@@ -1,0 +1,25 @@
+{
+  "binary_sha256": "346eb1ca73d0f5d2ef3906d5ae418d2f7ac115cef4198287fcbcc4ce3b8b099a",
+  "runtime_note": "Linux amd64 binary executed through Docker Desktop emulation on Linux arm64; not a native amd64 performance measurement.",
+  "checks": [
+    {
+      "arguments": [
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "auragaze 0.1.0\n",
+      "stderr": ""
+    },
+    {
+      "arguments": [
+        "analyze",
+        "all",
+        "--json",
+        "/repo"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"/repo\",\n  \"summary\": {\n    \"scanned_files\": 2,\n    \"analyzed_files\": 2,\n    \"skipped_files\": 0,\n    \"language_bytes\": 29\n  },\n  \"languages\": [\n    {\n      \"name\": \"Go\",\n      \"bytes\": 29,\n      \"percentage\": 100,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    }
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "archive_members": 1013,
+  "hashed_payload_members": 1012,
+  "fingerprints": 238,
+  "measured_scanner_samples": 220,
+  "excluded_scanner_warmups": 9,
+  "profile_scans": 9,
+  "scenarios": {
+    "roslyn-git-w5": {
+      "scan": {
+        "count": 20,
+        "median": 7102373899.0,
+        "p95": 7201758753,
+        "min": 7022011336,
+        "max": 7383626419,
+        "total": 142287927440,
+        "coefficient_of_variation": 0.010916168457836238
+      },
+      "peak_rss_mib": 343.99609375
+    },
+    "ripgrep-directory-w1": {
+      "scan": {
+        "count": 100,
+        "median": 143071333.5,
+        "p95": 226867375,
+        "min": 106948458,
+        "max": 346347292,
+        "total": 15275035842,
+        "coefficient_of_variation": 0.26729544742780564
+      },
+      "peak_rss_mib": 40.7890625
+    },
+    "jq-directory-w1": {
+      "scan": {
+        "count": 100,
+        "median": 181019812.5,
+        "p95": 310532375,
+        "min": 139643959,
+        "max": 414493292,
+        "total": 19675970383,
+        "coefficient_of_variation": 0.2651085751114332
+      },
+      "peak_rss_mib": 44.23828125
+    }
+  },
+  "source_snapshots_match_rc1": true,
+  "library_profile_labels_equal_baseline": true,
+  "library_profile_passes": 5,
+  "archive_sha256": "ed322339aeafc6ffcc93f68f792e18637b491ce00661fd8f3c5562a95fee4ebe",
+  "complete": true,
+  "reviewed_by": "independent reference_harness agent",
+  "library_correctness_artifacts_verified": [
+    "library-full-profile-artifacts/library-official-correctness.json",
+    "library-full-profile-artifacts/library-maintained-correctness.json"
+  ],
+  "previous_findings": {
+    "unretained_subsequent_host_probe_claim": "removed from README",
+    "missing_library_correctness_artifacts": "both exact outputs archived and hashes verified"
+  },
+  "claims_review": "Reported CPU, cumulative allocation, mutex delay and baseline statistics match retained evidence. Small scanner variance remains diagnostic; no universal performance claim.",
+  "verification_scope": "Archive and retained-record audit only; no benchmark, profiler, build, or corpus scan rerun.",
+  "auditor_sha256": "e665103de019ec07a1a0c5ffbbfc6e40228e73e2f2b3f3787609f53821bdadd5",
+  "profile_pilot_label_maps_equal_baseline": true,
+  "profile_pilot_ordered_checksums_recomputed": true
+}

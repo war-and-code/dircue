@@ -1,0 +1,8 @@
+{
+  "complete": true,
+  "archive_sha256": "ec2e00ba6e1cd1aa03fd91dca11f7b04e0519fd00d3f35fbb9472da38a0e2be8",
+  "members_extracted_to_fresh_temporary_directory": 1059,
+  "all_manifest_payload_hashes_verified": true,
+  "all_published_artifact_hashes_verified": true,
+  "source_read": "retained archive only; no current working-tree source dependency"
+}

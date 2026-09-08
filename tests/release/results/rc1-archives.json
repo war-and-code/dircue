@@ -1,0 +1,43 @@
+{
+  "passed": true,
+  "source_commit": "30adb1e7ad8f5fa09bbcfeb4122d1665df07fa0a",
+  "tag": "v0.1.0-rc.1",
+  "archives": [
+    {
+      "name": "auragaze_0.1.0_linux_amd64.tar.gz",
+      "sha256": "f94b9311a89579e17f9fa74d21a02086d1103d62a23c8472c82618db056cbc66",
+      "binary_sha256": "346eb1ca73d0f5d2ef3906d5ae418d2f7ac115cef4198287fcbcc4ce3b8b099a",
+      "os": "linux",
+      "arch": "amd64"
+    },
+    {
+      "name": "auragaze_0.1.0_linux_arm64.tar.gz",
+      "sha256": "e590595a529e280dc5861682cf3bafa0dc60024740dd5bbcbc4be219af5c037b",
+      "binary_sha256": "618f5210478a286cc150bef7acc959de54b60b446208400ac49a28264fc67fd2",
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "auragaze_0.1.0_darwin_amd64.tar.gz",
+      "sha256": "fd0add009f414eb33948d00c71e35a8835b8ab6fe5cf9f1c0e5053a61f5a0fa9",
+      "binary_sha256": "00dc82c38a68aef5f483eecc40fc518898927f777765a8b6f5dc190311421d8e",
+      "os": "darwin",
+      "arch": "amd64"
+    },
+    {
+      "name": "auragaze_0.1.0_darwin_arm64.tar.gz",
+      "sha256": "717ca98fbbb1d87ca38475569cc4f7ea35e23f551881898b72f9d1c57b6cd422",
+      "binary_sha256": "08000e68a65e32530dc6ef643fb7dc9e86d72c875f7bb5147f6636add5cb0ea8",
+      "os": "darwin",
+      "arch": "arm64"
+    },
+    {
+      "name": "auragaze_0.1.0_windows_amd64.zip",
+      "sha256": "bed87dad1352d9a6028f5f7813c525856c9a85d0f69b08780651584338f6a66e",
+      "binary_sha256": "1c18a7cf3466c67d286a34ad387d1755bad5ec072da0eb363494e29e61e461fc",
+      "os": "windows",
+      "arch": "amd64"
+    }
+  ],
+  "verification": "All five archives and SHA256SUMS match provenance; extracted executable bytes match the previously tested cross-build receipts; README and license bytes match the tagged commit. Archive metadata reproducibility is not asserted."
+}

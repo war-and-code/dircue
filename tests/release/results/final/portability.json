@@ -1,0 +1,37 @@
+{
+  "schema_version": "1.0.0",
+  "passed": true,
+  "finished_at_utc": "2026-09-08T05:02:03.109522+00:00",
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-I",
+    "<minimal-tree>/tests/release/record_final.py",
+    "--audit-only",
+    "--output",
+    "<minimal-tree>/tests/release/results/final"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "b279dfc2d30a5b8c33325a9aa43278e3f67c7fd9340f0b310166eb25d272bed9",
+  "stderr": "",
+  "python": "3.14.4 (main, Apr  7 2026, 13:13:20) [Clang 17.0.0 (clang-1700.6.4.2)]",
+  "path": "",
+  "home_preserved": true,
+  "git_go_docker_unavailable_on_path": true,
+  "no_git_or_workload_cache": true,
+  "minimal_input_files": [
+    "tests/release/record_final.py",
+    "tests/release/results/final/SHA256SUMS.json",
+    "tests/release/results/final/audit.json",
+    "tests/release/results/final/evidence.tar.gz"
+  ],
+  "recorder_sha256": "c735a4722d64870f0ff4bdb71d4412a5c0f5500b29be65a11e30375773a61a53",
+  "archive_sha256": "0d10d5f99ac12ac8c143cc61cec4057deb7e104f107d4eb823bbc5a26e88bdbb",
+  "audit_sha256": "dbf0dc84932783d1ca189d92406232bb2ce3f3a3a21bbafcf15e23c1504221f4",
+  "negative_archive_checks_rejected": [
+    "duplicate",
+    "symlink",
+    "traversal",
+    "noncanonical"
+  ],
+  "optimized_python_rejected": true
+}

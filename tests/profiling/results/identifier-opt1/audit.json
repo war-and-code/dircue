@@ -1,0 +1,1742 @@
+{
+  "artifacts_verified": 4,
+  "binary_sha256": {
+    "library-maintained": "7f8a5c1717bdd5854833105362df76949b3bd643aab01d9b30e28c4a3c3f8eba",
+    "library-official": "3dae4c287284863550b701df11623053ed86e87bc651c888c1cc4fe6f6f2c4a7"
+  },
+  "complete": true,
+  "driver_sha256": "188a9c033e82b5fe122307e713bfd3681678da7c308bde1f9fac783e81472bda",
+  "evidence_members_sha256": {
+    "artifacts/full/library-maintained-correctness.json": "a2838e194a5bb2388b20e09a3f4b1d1c13133ed49f63a7e0f5e3f9470811b14a",
+    "artifacts/full/library-official-correctness.json": "99745b987800b802bf62a16083e5fb1206a911e4cdfd861a6ef538c3c1847a51",
+    "artifacts/prefix/library-maintained-correctness.json": "5af0260057b3e5bbaecfafdc4ec7f1571140f06f5cae716d5defae3a21a3f8bc",
+    "artifacts/prefix/library-official-correctness.json": "728df1b0ca2bdb29f3d82d704afe6bd997a90d64515890eeac16de6a32ab8286",
+    "experiment/capture-check.json": "1cfd1594c017d6dc1de60dccbc7ecccd47969c830f504dfed1fde75c3f790d64",
+    "experiment/execution-receipt.json": "19d671f543bd094edd22fa38b627665dd319169833b4a6650d05230c4d4ef601",
+    "experiment/maintained-tests.log": "87e9af5c9ee4ff4966164b7f34e3c49fc3ba2c9137aaa4964d9dc7b8320011ce",
+    "experiment/rc1-build-receipt.json": "303f589e75cf659badf528bea7c4a5ce578b5b9891504e4b05789a2e2d40eb53",
+    "experiment/rc1-evidence.sha256": "e56469a2d1b04d3fc5559f23ddf2af111520a4a83a5745beaf28e2136b90354b",
+    "experiment/rc1-full.json": "973f88f5d561b051b07793219126fda97ebe56c047cdd864f6124072d05e4c4e",
+    "experiment/rc1-prefix.json": "98e1575c3450fc4b902d2e89260ef1ee3e4d346190251c1ed8ca8ddf59804a20",
+    "experiment/recorder.py": "e89535b34359a63d5042293477863b3f08301d59d3f5eadffbfdca1c42024e42",
+    "experiment/samples-runner.py": "ace011e3c2665500b825b960544dc29c4345671e2f6849540504f19ed8145054",
+    "experiment/samples.json": "ad98f9f8ad2c3ab1d831c33f45c1c2e11a48b435b6ba142393f04660aeb4a352",
+    "experiment/samples.log": "534e5721e40bd66b4df23eee774bde482d5462cecc7dbb2eff4e7ab540c09d3b",
+    "experiment/samples.md": "7b0284a9381e3822c9e46d1f6ac9761ea11b3a565e499488ed559529c278dc11",
+    "experiment/source-before-build.json": "7106abc02c7ebac4986641cc00e4b2387815b71fd252b2c13297b0530e111a5f",
+    "experiment/source-build-verification.json": "714855b46350112409357daebe6cf0591cf957a9412f238e8f1bca6143712602",
+    "experiment/source/internal/tokenizer/linguist.go": "3d43da3178f8bad29ca0d91282cd2333945ddd4576a4d7dcca470375d44cfea2",
+    "experiment/source/internal/tokenizer/linguist_identifier_test.go": "a98cfa7951d5845c257eae3422fa332bf9216e4669c6bf29ba9eb621dcf6b4ed",
+    "experiment/source/internal/tokenizer/linguist_reference_test.go": "8b9e211403c932ea878a098e00d116fa02a9f623f97f6709474048977f966aff",
+    "experiment/tokenizer-tests.log": "6a17914cf1d6327bb18ae06bb2f0192392082c64438e1fd1917a8c5c54929c05",
+    "inputs/copy-receipt.json": "16c6b0e247bb642db5f425c7fbc7fcf49b2cfa09afeb046c82df52f1349da0f2",
+    "inputs/extraction-inventory.json": "cda161411c6e03fa846aa108f85b78d7585ff03a2df1d7b4b4e8535ce017cf55",
+    "inputs/extraction-receipt.json": "7adbd2a973cf7a0bae57a7fa8d208329d8c256ede11a5437b6f23503b7f42c4b",
+    "inputs/full.json": "f26253a0a3a42d581db1a1f02c50f8fb05e271c180ab0dc316ee59a72587a73f",
+    "inputs/prefix.json": "b56a93be69b9b7c6c88f4e67d4e7825e4ce69c9a192fa33049ba156c084bbc7e",
+    "oracle/samples.json": "14c378e174be00f04c3f47bb1d92fc23dfe55daf724280cff75d6f70966f8571",
+    "provenance/build-receipt.json": "a9a54b8441af2cff1e474128ef33ee1f93aa521a4c42ad7bbf08208be550cf3d",
+    "provenance/capture-check.json": "ef2fe8ebb6fc07e970de54b34be41da4197a80b93086793065fbd658b68928c5",
+    "provenance/fork.json": "aaea1f8e610c8cc0ca4f1efe0b738cea0a16501fe1da845245e1dd34a9a77c2b",
+    "reports/full.json": "fcc62a85194392736bec66dca67c3d2b3427003622572cde92893ac2b32f737f",
+    "reports/prefix.json": "d9fac6c2a9eb8678bf331810d7297bf588a8970b99684f4c786f806fc3105914",
+    "sources/build.py": "886bbf92bd76f7e2ed71e71dfcfa6d51c96c87b00dafc3cec097752d5aafbf14",
+    "sources/compare.py": "64f8c3f204f88fde05029dff05b0f8d5842c60dd8cbc82946194de0f69915a8a",
+    "sources/library.go.txt": "188a9c033e82b5fe122307e713bfd3681678da7c308bde1f9fac783e81472bda",
+    "sources/library.py": "ea5c1871d9c835c35ca90265f89a454bc400f11671607af60c4cd3f0739d08b0",
+    "sources/manifest.py": "0586f888183dd0fb58173a46bea83e3cf3a1e98001f879dca19c1f3147167629",
+    "sources/measurement.py": "53511bf72475bd5430fa8c09797dcb32c1f22f1b4cc6c89ac4220cb754afc5fe",
+    "sources/pins.json": "e6642477737dd4214a6ba718233cf98bf522480d2fac272f754a9ef3c82541f5",
+    "sources/record_library.py": "b418a3d0ec17e26d069511fc62187d17d56e4cc81f544a2df26764f96aade1e1"
+  },
+  "experiment": {
+    "added_test_files": [
+      "internal/tokenizer/linguist_identifier_test.go",
+      "internal/tokenizer/linguist_reference_test.go"
+    ],
+    "changed_runtime_files": [
+      "internal/tokenizer/linguist.go"
+    ],
+    "conformance_official_probe": {
+      "module_and_all_labels_identical": true,
+      "opt1_sha256": "99e36d4e13c3c07e86e69c472da5f59e34a7d3eaa5de2f1e5ae5121bfd856d50",
+      "rc1_sha256": "2798db9d8e1cf400905523c10599e64260a6fc3f3ce62e76f73f45457cf00ae0",
+      "same_binary": false,
+      "scope": "This separately rebuilt conformance probe is not a timing baseline; binary equality is not claimed."
+    },
+    "official_timing_binaries_identical_to_rc1": true,
+    "phase": "experimental source; managed patch/provenance stale until integration",
+    "reference_errors": 0,
+    "retained_probe_sha256": "28289f67ea2442ba950c788bb00e0150fed992c10fcaf3d27f74645116df05b0",
+    "sample_labels_and_ordered_tokens_match_ruby": 3388,
+    "source_after_sha256": "714855b46350112409357daebe6cf0591cf957a9412f238e8f1bca6143712602",
+    "source_before_sha256": "7106abc02c7ebac4986641cc00e4b2387815b71fd252b2c13297b0530e111a5f",
+    "source_files_verified": 42
+  },
+  "oracle_sha256": "14c378e174be00f04c3f47bb1d92fc23dfe55daf724280cff75d6f70966f8571",
+  "recorder_sha256": "e89535b34359a63d5042293477863b3f08301d59d3f5eadffbfdca1c42024e42",
+  "sample_population": 3388,
+  "scenarios": {
+    "full": {
+      "cells": {
+        "library-maintained": {
+          "measurement_seconds": 23.631853054,
+          "median_allocations_per_call": 165.9681227863046,
+          "median_bytes_per_call": 57743.965761511216,
+          "median_cpu_seconds": 2.6,
+          "median_first_pass_seconds": 1.26835473,
+          "median_ns_per_call": 347834.1145218418,
+          "process": {
+            "coefficient_of_variation": 0.010436099515861701,
+            "max_seconds": 2.6200667929999923,
+            "median_seconds": 2.5278784595000054,
+            "min_seconds": 2.4980039599999913,
+            "p95_seconds": 2.567737127000001,
+            "peak_rss_kib": 109312,
+            "runs": 20
+          },
+          "sample_floor_met": true,
+          "warm": {
+            "coefficient_of_variation": 0.012198030004626215,
+            "max_seconds": 1.220122042,
+            "median_seconds": 1.17846198,
+            "min_seconds": 1.162943418,
+            "p95_seconds": 1.205729042,
+            "peak_rss_kib": 109312,
+            "runs": 20
+          }
+        },
+        "library-official": {
+          "measurement_seconds": 19.568780423,
+          "median_allocations_per_call": 106.54117473435656,
+          "median_bytes_per_call": 20709.050767414403,
+          "median_cpu_seconds": 2.0999999999999996,
+          "median_first_pass_seconds": 0.9808485,
+          "median_ns_per_call": 288251.9555785124,
+          "process": {
+            "coefficient_of_variation": 0.008854933448084041,
+            "max_seconds": 2.117154542999998,
+            "median_seconds": 2.0533949175000004,
+            "min_seconds": 2.031828501000007,
+            "p95_seconds": 2.070158458999998,
+            "peak_rss_kib": 105540,
+            "runs": 20
+          },
+          "sample_floor_met": true,
+          "warm": {
+            "coefficient_of_variation": 0.00995085496544185,
+            "max_seconds": 1.008238876,
+            "median_seconds": 0.9765976255,
+            "min_seconds": 0.966937875,
+            "p95_seconds": 0.993834167,
+            "peak_rss_kib": 105540,
+            "runs": 20
+          }
+        }
+      },
+      "classification": "ParityToMargin",
+      "historical_allocation_reduction_fraction": 0.15649388605968573,
+      "historical_rc1": {
+        "median_allocations_per_call": 192.06655844155844,
+        "median_bytes_per_call": 68457.08028335302,
+        "median_first_pass_seconds": 1.415235001,
+        "median_ns_per_call": 391727.44510035415,
+        "process": {
+          "coefficient_of_variation": 0.006785420376786486,
+          "max_seconds": 2.887743834999995,
+          "median_seconds": 2.831311667500003,
+          "min_seconds": 2.801337293000003,
+          "p95_seconds": 2.862437626000002,
+          "peak_rss_kib": 111620,
+          "runs": 20
+        },
+        "sample_floor_met": true,
+        "warm": {
+          "coefficient_of_variation": 0.013435285955497487,
+          "max_seconds": 1.395410418,
+          "median_seconds": 1.327172584,
+          "min_seconds": 1.3104965,
+          "p95_seconds": 1.3481471680000001,
+          "peak_rss_kib": 111620,
+          "runs": 20
+        }
+      },
+      "historical_time_reduction_fraction": 0.11205069016103175,
+      "label_differences": [
+        {
+          "maintained": "AL",
+          "official": "Perl",
+          "path": "AL/BlankProfileExt.al"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/Imperial Units Remover.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/abp-filters-anti-cv.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/anti-facebook.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/fake-news.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/test_rules.txt"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/arrays_in_finalize.aleo"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/key_value_store.aleo"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/signature_verification.aleo"
+        },
+        {
+          "maintained": "Answer Set Programming",
+          "official": "Lambdapi",
+          "path": "Answer Set Programming/spack-error-messages.lp"
+        },
+        {
+          "maintained": "AutoHotkey",
+          "official": "",
+          "path": "AutoHotkey/hello.ah1"
+        },
+        {
+          "maintained": "AutoHotkey",
+          "official": "",
+          "path": "AutoHotkey/hello.ah2"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/brtb.b"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/cat.b"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/shell.b"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/clients.baml"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/gen_schema.baml"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/threads.baml"
+        },
+        {
+          "maintained": "BBCode",
+          "official": "",
+          "path": "BBCode/guide.bbcode"
+        },
+        {
+          "maintained": "BIRD2",
+          "official": "",
+          "path": "BIRD2/filenames/bird.conf"
+        },
+        {
+          "maintained": "Blueprint",
+          "official": "",
+          "path": "Blueprint/counter_window.blp"
+        },
+        {
+          "maintained": "Blueprint",
+          "official": "",
+          "path": "Blueprint/sign_in.blp"
+        },
+        {
+          "maintained": "CoffeeScript",
+          "official": "HTML+ERB",
+          "path": "CoffeeScript/config.js.coffee.erb"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/CdhCore.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/CmdDispatcher.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/FileDownlink.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "",
+          "path": "FPP/FileDownlinkEvents.fppi"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/instances.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/topology.fpp"
+        },
+        {
+          "maintained": "Git Commit",
+          "official": "",
+          "path": "Git Commit/filenames/.gitmessage"
+        },
+        {
+          "maintained": "Git Config",
+          "official": "",
+          "path": "Git Config/filenames/.tgitconfig"
+        },
+        {
+          "maintained": "Git Config",
+          "official": "",
+          "path": "Git Config/filenames/config.worktree"
+        },
+        {
+          "maintained": "Gno",
+          "official": "",
+          "path": "Gno/home.gno"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/filenames/gtkrc"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/filenames/gtkrc-2.0"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/lambdacat.gtkrc"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "M",
+          "path": "GtkRC/v9t9.gtkrc"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/TestILAssembly.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/TinyAssembly.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/even-odd.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/primespeed.il"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.container"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.mount"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.network"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/example1.service"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.socket"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.target"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.timer"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.container"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.mount"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.network"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/example2.service"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.socket"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.target"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.timer"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/filenames/.gitreview"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/nebula.service"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.agignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.ckignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.eslint-ignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.rgignore"
+        },
+        {
+          "maintained": "ImHex Pattern Language",
+          "official": "",
+          "path": "ImHex Pattern Language/jpeg.hexpat"
+        },
+        {
+          "maintained": "ImHex Pattern Language",
+          "official": "",
+          "path": "ImHex Pattern Language/sqlite.hexpat"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/GDSMain.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/Noise.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/OctavePerlin.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/war3map.j"
+        },
+        {
+          "maintained": "JSON with Comments",
+          "official": "",
+          "path": "JSON with Comments/filenames/.eslintrc"
+        },
+        {
+          "maintained": "JSON",
+          "official": "",
+          "path": "JSON/filenames/.releaserc"
+        },
+        {
+          "maintained": "TypeScript",
+          "official": "JavaScript",
+          "path": "JavaScript/js"
+        },
+        {
+          "maintained": "JavaScript",
+          "official": "TypeScript",
+          "path": "JavaScript/make.js"
+        },
+        {
+          "maintained": "JavaScript",
+          "official": "TypeScript",
+          "path": "JavaScript/nbbun.js"
+        },
+        {
+          "maintained": "Lobster",
+          "official": "",
+          "path": "Lobster/lobstercraft.lobster"
+        },
+        {
+          "maintained": "Lobster",
+          "official": "",
+          "path": "Lobster/reach.lobster"
+        },
+        {
+          "maintained": "Makefile",
+          "official": "",
+          "path": "Makefile/filenames/Makefile.pc"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/acey-deucey.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/countdown.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/dogYears.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/tetris.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/therapist.ms"
+        },
+        {
+          "maintained": "OverPy",
+          "official": "",
+          "path": "OverPy/meipocalypse.opy"
+        },
+        {
+          "maintained": "OverPy",
+          "official": "",
+          "path": "OverPy/santa.opy"
+        },
+        {
+          "maintained": "PLpgSQL",
+          "official": "PLSQL",
+          "path": "PLpgSQL/pg_cron.sql"
+        },
+        {
+          "maintained": "Perl",
+          "official": "AL",
+          "path": "Perl/fetch_page.al"
+        },
+        {
+          "maintained": "Power Query",
+          "official": "",
+          "path": "Power Query/fnMxToolboxLookup.pq"
+        },
+        {
+          "maintained": "Power Query",
+          "official": "",
+          "path": "Power Query/q_MxToolboxScore_SOAR3.pq"
+        },
+        {
+          "maintained": "Pro*C",
+          "official": "",
+          "path": "ProC/dbFuncs.pc"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/ddr3_av_2x32.sip"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/mf_pllbase.sip"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/myadc.sip"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/LamportMutex.qnt"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/Paxos.qnt"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/clockSync6.qnt"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/filenames/.Rapp.history"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/filenames/.Rhistory"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/wine.Rhistory"
+        },
+        {
+          "maintained": "Redscript",
+          "official": "Red",
+          "path": "Redscript/hideHeadGear.reds"
+        },
+        {
+          "maintained": "Redscript",
+          "official": "Red",
+          "path": "Redscript/limitedFastTravel.reds"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/cabin.rhai"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/calyx.rhai"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/esp_idf_pre_script.rhai"
+        },
+        {
+          "maintained": "Robots Exclusion Rules",
+          "official": "robots.txt",
+          "path": "Robots Exclusion Rules/filenames/robots.txt"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/_ApplicationEx.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/common.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/core.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/docstrings_module.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/typedef.sip"
+        },
+        {
+          "maintained": "SQL",
+          "official": "PLpgSQL",
+          "path": "SQL/create_function_sql.sql"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/eval.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/gimp.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/gpg4win-light.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/openoffice.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/top.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/truecrypt.sls"
+        },
+        {
+          "maintained": "Shell",
+          "official": "",
+          "path": "Shell/alacritty.pacscript"
+        },
+        {
+          "maintained": "SpiceDB Schema",
+          "official": "",
+          "path": "SpiceDB Schema/oviva.zed"
+        },
+        {
+          "maintained": "SpiceDB Schema",
+          "official": "",
+          "path": "SpiceDB Schema/schema.zed"
+        },
+        {
+          "maintained": "Tape",
+          "official": "",
+          "path": "Tape/demo.tape"
+        },
+        {
+          "maintained": "Text",
+          "official": "",
+          "path": "Text/filenames/README.pc"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/Counter.tolk"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/JettonWallet.tolk"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/WalletV5.tolk"
+        },
+        {
+          "maintained": "TypeScript",
+          "official": "JavaScript",
+          "path": "TypeScript/bin.ts"
+        },
+        {
+          "maintained": "Valve Data Format",
+          "official": "",
+          "path": "Valve Data Format/small_debug.vmf"
+        },
+        {
+          "maintained": "Verse",
+          "official": "",
+          "path": "Verse/ConcurrencyFeatures.verse"
+        },
+        {
+          "maintained": "Verse",
+          "official": "",
+          "path": "Verse/Hexadecimal.verse"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/msmarco.sd"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/music.sd"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/ranking.sd"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.exrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.gvimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.nvimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/_vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/settings.vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/solarized.vim"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Help File",
+          "path": "Vim script/textobj-rubyblock.vba"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/todo.vmb"
+        },
+        {
+          "maintained": "XML",
+          "official": "",
+          "path": "XML/roblox-model.rbxmx"
+        },
+        {
+          "maintained": "XML",
+          "official": "",
+          "path": "XML/script_22621_x64.meta4"
+        },
+        {
+          "maintained": "YAML",
+          "official": "",
+          "path": "YAML/filenames/.eslintrc"
+        },
+        {
+          "maintained": "YAML",
+          "official": "",
+          "path": "YAML/filenames/.releaserc"
+        },
+        {
+          "maintained": "pkg-config",
+          "official": "",
+          "path": "pkg-config/luajit.pc"
+        },
+        {
+          "maintained": "pkg-config",
+          "official": "",
+          "path": "pkg-config/yaws.pc.in"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/commands.uc"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/ddns.uc"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/sys.uc"
+        }
+      ],
+      "measured_bytes": 28231769,
+      "paired_bootstrap_95_ci": [
+        0.8204669251130795,
+        0.8349497695443909
+      ],
+      "ruby_oracle_scope": "full content labels: maintained3388/3388; official3241/3388",
+      "speedup_official_over_maintained": 0.8287052463924207
+    },
+    "prefix": {
+      "cells": {
+        "library-maintained": {
+          "measurement_seconds": 22.378167882,
+          "median_allocations_per_call": 166.0439787485242,
+          "median_bytes_per_call": 57882.926800472254,
+          "median_cpu_seconds": 2.49,
+          "median_first_pass_seconds": 1.2089427295,
+          "median_ns_per_call": 330649.9719598583,
+          "process": {
+            "coefficient_of_variation": 0.014079572940780414,
+            "max_seconds": 2.5207874179999976,
+            "median_seconds": 2.4043433134999983,
+            "min_seconds": 2.377677876,
+            "p95_seconds": 2.4838411260000015,
+            "peak_rss_kib": 99936,
+            "runs": 20
+          },
+          "sample_floor_met": true,
+          "warm": {
+            "coefficient_of_variation": 0.007060358379250448,
+            "max_seconds": 1.1344912090000001,
+            "median_seconds": 1.120242105,
+            "min_seconds": 1.104468,
+            "p95_seconds": 1.129206125,
+            "peak_rss_kib": 99936,
+            "runs": 20
+          }
+        },
+        "library-official": {
+          "measurement_seconds": 18.407534176,
+          "median_allocations_per_call": 106.56788665879574,
+          "median_bytes_per_call": 20791.68476977568,
+          "median_cpu_seconds": 1.98,
+          "median_first_pass_seconds": 0.923420417,
+          "median_ns_per_call": 271736.45351239666,
+          "process": {
+            "coefficient_of_variation": 0.011279248904338289,
+            "max_seconds": 2.0251578760000015,
+            "median_seconds": 1.9311760010000043,
+            "min_seconds": 1.9165698340000006,
+            "p95_seconds": 1.9474833759999939,
+            "peak_rss_kib": 96004,
+            "runs": 20
+          },
+          "sample_floor_met": true,
+          "warm": {
+            "coefficient_of_variation": 0.005409958572011,
+            "max_seconds": 0.931345584,
+            "median_seconds": 0.9206431045,
+            "min_seconds": 0.912028959,
+            "p95_seconds": 0.927783501,
+            "peak_rss_kib": 96004,
+            "runs": 20
+          }
+        }
+      },
+      "classification": "ParityToMargin",
+      "historical_allocation_reduction_fraction": 0.15338663467552327,
+      "historical_rc1": {
+        "median_allocations_per_call": 192.0569657615112,
+        "median_bytes_per_call": 68369.96576151121,
+        "median_first_pass_seconds": 1.3609500005,
+        "median_ns_per_call": 376809.7085301063,
+        "process": {
+          "coefficient_of_variation": 0.008273074661425302,
+          "max_seconds": 2.7674243339999975,
+          "median_seconds": 2.712064980500017,
+          "min_seconds": 2.6871689179999976,
+          "p95_seconds": 2.7608288350000407,
+          "peak_rss_kib": 99988,
+          "runs": 20
+        },
+        "sample_floor_met": true,
+        "warm": {
+          "coefficient_of_variation": 0.014024238396320627,
+          "max_seconds": 1.323057167,
+          "median_seconds": 1.2766312925,
+          "min_seconds": 1.254077917,
+          "p95_seconds": 1.3091286260000001,
+          "peak_rss_kib": 99988,
+          "runs": 20
+        }
+      },
+      "historical_time_reduction_fraction": 0.12250145239174459,
+      "label_differences": [
+        {
+          "maintained": "AL",
+          "official": "Perl",
+          "path": "AL/BlankProfileExt.al"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/Imperial Units Remover.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/abp-filters-anti-cv.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/anti-facebook.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/fake-news.txt"
+        },
+        {
+          "maintained": "Adblock Filter List",
+          "official": "Text",
+          "path": "Adblock Filter List/test_rules.txt"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/arrays_in_finalize.aleo"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/key_value_store.aleo"
+        },
+        {
+          "maintained": "Aleo",
+          "official": "",
+          "path": "Aleo/signature_verification.aleo"
+        },
+        {
+          "maintained": "Answer Set Programming",
+          "official": "Lambdapi",
+          "path": "Answer Set Programming/spack-error-messages.lp"
+        },
+        {
+          "maintained": "AutoHotkey",
+          "official": "",
+          "path": "AutoHotkey/hello.ah1"
+        },
+        {
+          "maintained": "AutoHotkey",
+          "official": "",
+          "path": "AutoHotkey/hello.ah2"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/brtb.b"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/cat.b"
+        },
+        {
+          "maintained": "B",
+          "official": "Limbo",
+          "path": "B/shell.b"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/clients.baml"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/gen_schema.baml"
+        },
+        {
+          "maintained": "BAML",
+          "official": "",
+          "path": "BAML/threads.baml"
+        },
+        {
+          "maintained": "BBCode",
+          "official": "",
+          "path": "BBCode/guide.bbcode"
+        },
+        {
+          "maintained": "BIRD2",
+          "official": "",
+          "path": "BIRD2/filenames/bird.conf"
+        },
+        {
+          "maintained": "Blueprint",
+          "official": "",
+          "path": "Blueprint/counter_window.blp"
+        },
+        {
+          "maintained": "Blueprint",
+          "official": "",
+          "path": "Blueprint/sign_in.blp"
+        },
+        {
+          "maintained": "CoffeeScript",
+          "official": "HTML+ERB",
+          "path": "CoffeeScript/config.js.coffee.erb"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/CdhCore.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/CmdDispatcher.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/FileDownlink.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "",
+          "path": "FPP/FileDownlinkEvents.fppi"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/instances.fpp"
+        },
+        {
+          "maintained": "FPP",
+          "official": "Fortran",
+          "path": "FPP/topology.fpp"
+        },
+        {
+          "maintained": "Git Commit",
+          "official": "",
+          "path": "Git Commit/filenames/.gitmessage"
+        },
+        {
+          "maintained": "Git Config",
+          "official": "",
+          "path": "Git Config/filenames/.tgitconfig"
+        },
+        {
+          "maintained": "Git Config",
+          "official": "",
+          "path": "Git Config/filenames/config.worktree"
+        },
+        {
+          "maintained": "Gno",
+          "official": "",
+          "path": "Gno/home.gno"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/filenames/gtkrc"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/filenames/gtkrc-2.0"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "",
+          "path": "GtkRC/lambdacat.gtkrc"
+        },
+        {
+          "maintained": "GtkRC",
+          "official": "M",
+          "path": "GtkRC/v9t9.gtkrc"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/TestILAssembly.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/TinyAssembly.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/even-odd.il"
+        },
+        {
+          "maintained": "IL Assembly",
+          "official": "",
+          "path": "IL Assembly/primespeed.il"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.container"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.mount"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.network"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/example1.service"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.socket"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.target"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example1.timer"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.container"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.mount"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.network"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/example2.service"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.socket"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.target"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/example2.timer"
+        },
+        {
+          "maintained": "INI",
+          "official": "",
+          "path": "INI/filenames/.gitreview"
+        },
+        {
+          "maintained": "INI",
+          "official": "desktop",
+          "path": "INI/nebula.service"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.agignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.ckignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.eslint-ignore"
+        },
+        {
+          "maintained": "Ignore List",
+          "official": "",
+          "path": "Ignore List/filenames/.rgignore"
+        },
+        {
+          "maintained": "ImHex Pattern Language",
+          "official": "",
+          "path": "ImHex Pattern Language/jpeg.hexpat"
+        },
+        {
+          "maintained": "ImHex Pattern Language",
+          "official": "",
+          "path": "ImHex Pattern Language/sqlite.hexpat"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/GDSMain.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/Noise.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/OctavePerlin.j"
+        },
+        {
+          "maintained": "JASS",
+          "official": "Objective-J",
+          "path": "JASS/war3map.j"
+        },
+        {
+          "maintained": "JSON with Comments",
+          "official": "",
+          "path": "JSON with Comments/filenames/.eslintrc"
+        },
+        {
+          "maintained": "JSON",
+          "official": "",
+          "path": "JSON/filenames/.releaserc"
+        },
+        {
+          "maintained": "TypeScript",
+          "official": "JavaScript",
+          "path": "JavaScript/js"
+        },
+        {
+          "maintained": "JavaScript",
+          "official": "TypeScript",
+          "path": "JavaScript/make.js"
+        },
+        {
+          "maintained": "JavaScript",
+          "official": "TypeScript",
+          "path": "JavaScript/nbbun.js"
+        },
+        {
+          "maintained": "Lobster",
+          "official": "",
+          "path": "Lobster/lobstercraft.lobster"
+        },
+        {
+          "maintained": "Lobster",
+          "official": "",
+          "path": "Lobster/reach.lobster"
+        },
+        {
+          "maintained": "Makefile",
+          "official": "",
+          "path": "Makefile/filenames/Makefile.pc"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/acey-deucey.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/countdown.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/dogYears.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/tetris.ms"
+        },
+        {
+          "maintained": "MiniScript",
+          "official": "MAXScript",
+          "path": "MiniScript/therapist.ms"
+        },
+        {
+          "maintained": "OverPy",
+          "official": "",
+          "path": "OverPy/meipocalypse.opy"
+        },
+        {
+          "maintained": "OverPy",
+          "official": "",
+          "path": "OverPy/santa.opy"
+        },
+        {
+          "maintained": "PLpgSQL",
+          "official": "PLSQL",
+          "path": "PLpgSQL/pg_cron.sql"
+        },
+        {
+          "maintained": "Perl",
+          "official": "AL",
+          "path": "Perl/fetch_page.al"
+        },
+        {
+          "maintained": "Power Query",
+          "official": "",
+          "path": "Power Query/fnMxToolboxLookup.pq"
+        },
+        {
+          "maintained": "Power Query",
+          "official": "",
+          "path": "Power Query/q_MxToolboxScore_SOAR3.pq"
+        },
+        {
+          "maintained": "Pro*C",
+          "official": "",
+          "path": "ProC/dbFuncs.pc"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/ddr3_av_2x32.sip"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/mf_pllbase.sip"
+        },
+        {
+          "maintained": "Quartus Simulation IP",
+          "official": "",
+          "path": "Quartus Simulation IP/myadc.sip"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/LamportMutex.qnt"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/Paxos.qnt"
+        },
+        {
+          "maintained": "Quint",
+          "official": "",
+          "path": "Quint/clockSync6.qnt"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/filenames/.Rapp.history"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/filenames/.Rhistory"
+        },
+        {
+          "maintained": "R",
+          "official": "",
+          "path": "R/wine.Rhistory"
+        },
+        {
+          "maintained": "Redscript",
+          "official": "Red",
+          "path": "Redscript/hideHeadGear.reds"
+        },
+        {
+          "maintained": "Redscript",
+          "official": "Red",
+          "path": "Redscript/limitedFastTravel.reds"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/cabin.rhai"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/calyx.rhai"
+        },
+        {
+          "maintained": "Rhai",
+          "official": "",
+          "path": "Rhai/esp_idf_pre_script.rhai"
+        },
+        {
+          "maintained": "Robots Exclusion Rules",
+          "official": "robots.txt",
+          "path": "Robots Exclusion Rules/filenames/robots.txt"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/_ApplicationEx.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/common.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/core.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/docstrings_module.sip"
+        },
+        {
+          "maintained": "SIP",
+          "official": "",
+          "path": "SIP/typedef.sip"
+        },
+        {
+          "maintained": "SQL",
+          "official": "PLpgSQL",
+          "path": "SQL/create_function_sql.sql"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/eval.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/gimp.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/gpg4win-light.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/openoffice.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/top.sls"
+        },
+        {
+          "maintained": "Salt",
+          "official": "SaltStack",
+          "path": "Salt/truecrypt.sls"
+        },
+        {
+          "maintained": "Shell",
+          "official": "",
+          "path": "Shell/alacritty.pacscript"
+        },
+        {
+          "maintained": "SpiceDB Schema",
+          "official": "",
+          "path": "SpiceDB Schema/oviva.zed"
+        },
+        {
+          "maintained": "SpiceDB Schema",
+          "official": "",
+          "path": "SpiceDB Schema/schema.zed"
+        },
+        {
+          "maintained": "Tape",
+          "official": "",
+          "path": "Tape/demo.tape"
+        },
+        {
+          "maintained": "Text",
+          "official": "",
+          "path": "Text/filenames/README.pc"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/Counter.tolk"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/JettonWallet.tolk"
+        },
+        {
+          "maintained": "Tolk",
+          "official": "",
+          "path": "Tolk/WalletV5.tolk"
+        },
+        {
+          "maintained": "TypeScript",
+          "official": "JavaScript",
+          "path": "TypeScript/bin.ts"
+        },
+        {
+          "maintained": "Valve Data Format",
+          "official": "",
+          "path": "Valve Data Format/small_debug.vmf"
+        },
+        {
+          "maintained": "Verse",
+          "official": "",
+          "path": "Verse/ConcurrencyFeatures.verse"
+        },
+        {
+          "maintained": "Verse",
+          "official": "",
+          "path": "Verse/Hexadecimal.verse"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/msmarco.sd"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/music.sd"
+        },
+        {
+          "maintained": "Vespa Schema Definition",
+          "official": "",
+          "path": "Vespa Schema Definition/ranking.sd"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.exrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.gvimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.nvimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/.vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/filenames/_vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/settings.vimrc"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/solarized.vim"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Help File",
+          "path": "Vim script/textobj-rubyblock.vba"
+        },
+        {
+          "maintained": "Vim script",
+          "official": "Vim Script",
+          "path": "Vim script/todo.vmb"
+        },
+        {
+          "maintained": "XML",
+          "official": "",
+          "path": "XML/roblox-model.rbxmx"
+        },
+        {
+          "maintained": "XML",
+          "official": "",
+          "path": "XML/script_22621_x64.meta4"
+        },
+        {
+          "maintained": "YAML",
+          "official": "",
+          "path": "YAML/filenames/.eslintrc"
+        },
+        {
+          "maintained": "YAML",
+          "official": "",
+          "path": "YAML/filenames/.releaserc"
+        },
+        {
+          "maintained": "pkg-config",
+          "official": "",
+          "path": "pkg-config/luajit.pc"
+        },
+        {
+          "maintained": "pkg-config",
+          "official": "",
+          "path": "pkg-config/yaws.pc.in"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/commands.uc"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/ddns.uc"
+        },
+        {
+          "maintained": "ucode",
+          "official": "UnrealScript",
+          "path": "ucode/sys.uc"
+        }
+      ],
+      "measured_bytes": 22922457,
+      "paired_bootstrap_95_ci": [
+        0.8170863972939975,
+        0.8271064615014698
+      ],
+      "ruby_oracle_scope": "No independent prefix Ruby oracle. Both driver label maps equal their full-content maps on these samples.",
+      "speedup_official_over_maintained": 0.8218251219007698
+    }
+  },
+  "total_timing_samples": 80
+}

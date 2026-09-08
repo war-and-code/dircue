@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "go_version": "go version go1.26.6 darwin/arm64",
+  "checks": [
+    {
+      "command": "go test ./...",
+      "exit_code": 0,
+      "output": "?   \tauragaze\t[no test files]\nok  \tauragaze/internal/cli\t0.803s\nok  \tauragaze/pkg/detectors\t0.009s\n?   \tauragaze/pkg/profile\t[no test files]\nok  \tauragaze/pkg/scanner\t1.341s\nok  \tauragaze/schema\t0.027s\n?   \tauragaze/tests/conformance/classifier\t[no test files]\n?   \tauragaze/tests/conformance/enry_baseline\t[no test files]\nok  \tauragaze/tests/provenance\t(cached)\n",
+      "output_sha256": "cfbcc214dd8e2df81e913a898daeb81a4167d9a2f4abcd8f62f90d5389263fb6"
+    },
+    {
+      "command": "go vet ./...",
+      "exit_code": 0,
+      "output": "",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "benchmark_source_sha256": {
+    "internal/cli/file_benchmark_test.go": "09d72386c98c3fe29235761bafa9b62b3049cfb22c7911e33c04281c77a44bcf",
+    "pkg/scanner/profiling_benchmark_test.go": "625474756f3ac3e1c80d1012f60dc5b837b78d467a98376daa4b1476c2369318"
+  },
+  "scope": "Current Go source and benchmark scaffolding compile under normal tests; vet passes. Benchmarks and profiling modes were not executed. Python syntax check does not establish Enry baseline execution."
+}

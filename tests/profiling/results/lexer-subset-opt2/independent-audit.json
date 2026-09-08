@@ -1,0 +1,46 @@
+{
+  "actual_ruby_labels_and_ordered_tokens": 3388,
+  "actual_source_file_count": 43,
+  "archive_payloads": 59,
+  "archive_sha256": "9d7a84cc0769f5f4280276007e43f00c99ed70fc3241d5935939ab3f8b952b89",
+  "audit_sha256": "6c794e799dd11d47fae439559847b390140c2cd4340d2ef28495671a483f974a",
+  "caveat": "Patch mutations are rejected by frozen archive/audit digest replay; runtime/timing/output mutations additionally fail semantic links. This does not imply authenticity against an adversary replacing all receipts together.",
+  "complete": true,
+  "diagnostic_timing_samples": 40,
+  "final_timing_samples": 80,
+  "original_proposal_patch_matches_initial_receipt": true,
+  "recorder_sha256": "cbff2de7b1a7c4f80f111fde28941c9009b093af351fd0a570de4429da72ac52",
+  "scope": "Independent archive hash/readback and semantic replay; no timing or builds executed.",
+  "tamper_rejection": [
+    {
+      "mutation": "actual tokenizer source bytes",
+      "reason": "actual source snapshot hash",
+      "rejected": true
+    },
+    {
+      "mutation": "original source proposal patch",
+      "reason": "retained audit replay differs",
+      "rejected": true
+    },
+    {
+      "mutation": "test-only cleanup patch",
+      "reason": "retained audit replay differs",
+      "rejected": true
+    },
+    {
+      "mutation": "retained final warm timing",
+      "reason": "ns per call",
+      "rejected": true
+    },
+    {
+      "mutation": "candidate output label with refreshed artifact hash",
+      "reason": "ordered output checksum",
+      "rejected": true
+    },
+    {
+      "mutation": "Ruby differential label result",
+      "reason": "build verification/sample gate linkage",
+      "rejected": true
+    }
+  ]
+}

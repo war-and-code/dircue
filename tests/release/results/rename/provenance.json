@@ -1,0 +1,96 @@
+{
+  "version": "0.1.0",
+  "toolchain": "go version go1.26.6 darwin/arm64",
+  "git_revision": "b578c1e6ef18c234acb03089ab15ba42d8db9720",
+  "git_tree": "124dcf944fe20d2a4d50410db44edea6b80fb25a",
+  "clean_checkout": true,
+  "head_and_clean_state_verified_after_build": true,
+  "source": "regular committed blobs; ignores working-tree filters and export attributes",
+  "source_files": 241,
+  "local_replacements": [
+    {
+      "module": "github.com/go-enry/go-enry/v2",
+      "path": "./third_party/go-enry"
+    }
+  ],
+  "cgo_enabled": false,
+  "build_vcs": false,
+  "build_flags": [
+    "-mod=readonly",
+    "-buildvcs=false",
+    "-trimpath",
+    "-ldflags",
+    "-s -w -X dircue/internal/cli.Version=0.1.0"
+  ],
+  "controls": {
+    "GOENV": "off",
+    "GOWORK": "off",
+    "GOFLAGS": "",
+    "GOEXPERIMENT": "",
+    "CGO_ENABLED": "0",
+    "GOAMD64": "v1",
+    "GOARM64": "v8.0",
+    "GOPROXY": "https://proxy.golang.org,direct",
+    "GOSUMDB": "sum.golang.org",
+    "GOPRIVATE": "",
+    "GONOPROXY": "",
+    "GONOSUMDB": "",
+    "GOINSECURE": "",
+    "GOAUTH": "off",
+    "GOGC": "100",
+    "GOMEMLIMIT": "off",
+    "GODEBUG": "",
+    "GOTOOLCHAIN": "local",
+    "selected_toolchain": "go1.26.6",
+    "GOCACHE": "fresh temporary cache",
+    "GOMODCACHE": "fresh temporary cache"
+  },
+  "archive_metadata": {
+    "tar_epoch": 0,
+    "gzip_epoch": 0,
+    "zip_date": "1980-01-01T00:00:00",
+    "uid": 0,
+    "gid": 0,
+    "binary_mode": "0755",
+    "text_mode": "0644",
+    "python": "3.14.4",
+    "zlib": "1.2.12"
+  },
+  "archives": [
+    {
+      "name": "dircue_0.1.0_linux_amd64.tar.gz",
+      "sha256": "705096202314a79f4aa46c38ae8ba14fd197575510e665ccd597c132fe6812c5",
+      "binary_sha256": "d596afbc6c6c54b3eb2dcdb066260380273784d46fd02f29f3f9ab74fa69a12f",
+      "os": "linux",
+      "arch": "amd64"
+    },
+    {
+      "name": "dircue_0.1.0_linux_arm64.tar.gz",
+      "sha256": "eb884e3b17b5274c9c810c7ba3a9b2c1e7ded614e2328d476343ec400047069c",
+      "binary_sha256": "37ac7002f25ea1836529501c0c1ed1c74424813ec10c4e4ba99547ba65fb6d70",
+      "os": "linux",
+      "arch": "arm64"
+    },
+    {
+      "name": "dircue_0.1.0_darwin_amd64.tar.gz",
+      "sha256": "78deea3cf0c5b2a5badef25e157b4d6d3ae8a804755b636a1810fc90884c9f7d",
+      "binary_sha256": "9fdb39ad91f2c499f96660cb73900fd2285e0ed1a611a46a620b6414ff42ecc5",
+      "os": "darwin",
+      "arch": "amd64"
+    },
+    {
+      "name": "dircue_0.1.0_darwin_arm64.tar.gz",
+      "sha256": "cc6e4dc8623054bc097debef1183feac8471fa61c1e7c682b89cbbe671fc4013",
+      "binary_sha256": "7130ba662f4ca9e00437ba87aad66849acee83279710ebc7f2867f4c2c4b3ea6",
+      "os": "darwin",
+      "arch": "arm64"
+    },
+    {
+      "name": "dircue_0.1.0_windows_amd64.zip",
+      "sha256": "7af5695235fc64883b539bf7c3416734501a20e5a40c2d790a8f9b003c9ef376",
+      "binary_sha256": "2049870c0d75f1a986891b28d2fdbb9e3fb44471d3c06520fc78a35c727018dc",
+      "os": "windows",
+      "arch": "amd64"
+    }
+  ]
+}

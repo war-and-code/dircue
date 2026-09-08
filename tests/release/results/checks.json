@@ -1,0 +1,42 @@
+{
+  "date_utc": "2026-09-07T17:47:54.074139+00:00",
+  "toolchain": "go version go1.26.6 darwin/arm64",
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "./...",
+        "-count=1"
+      ],
+      "directory": ".",
+      "exit_code": 0,
+      "stdout": "?   \tauragaze\t[no test files]\nok  \tauragaze/internal/cli\t2.008s\nok  \tauragaze/pkg/detectors\t1.018s\n?   \tauragaze/pkg/profile\t[no test files]\nok  \tauragaze/pkg/scanner\t26.846s\nok  \tauragaze/schema\t1.074s\n?   \tauragaze/tests/conformance/classifier\t[no test files]\n?   \tauragaze/tests/conformance/enry_baseline\t[no test files]\nok  \tauragaze/tests/provenance\t1.016s\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "directory": ".",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "go",
+        "test",
+        "./...",
+        "-count=1"
+      ],
+      "directory": "third_party/go-enry",
+      "exit_code": 0,
+      "stdout": "ok  \tgithub.com/go-enry/go-enry/v2\t0.097s\n?   \tgithub.com/go-enry/go-enry/v2/data\t[no test files]\n?   \tgithub.com/go-enry/go-enry/v2/data/rule\t[no test files]\n?   \tgithub.com/go-enry/go-enry/v2/internal/tokenizer\t[no test files]\n?   \tgithub.com/go-enry/go-enry/v2/regex\t[no test files]\n",
+      "stderr": ""
+    }
+  ]
+}

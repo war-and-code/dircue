@@ -1,0 +1,27 @@
+{
+  "complete": true,
+  "packager_commit": "e3391a615e0bb483c87395005a2fa9bbc6b0724b",
+  "binary_source_commit": "b578c1e6ef18c234acb03089ab15ba42d8db9720",
+  "go_rebuilt": false,
+  "unit_tests_passed": 8,
+  "twine_strict_checks_passed": 7,
+  "native_execution": [
+    "macOS arm64 uvx offline, uv tool install, pip, python -m dircue"
+  ],
+  "docker_execution": [
+    "Linux arm64 glibc uvx offline",
+    "Linux arm64 musl uvx offline"
+  ],
+  "not_executed": [
+    "Windows amd64 wheel",
+    "macOS amd64 wheel",
+    "Linux amd64 wheel"
+  ],
+  "limitations": [
+    "Native Windows console signal behavior not verified; unit test covers wait control flow",
+    "Linux wheel minima rely on executable linkage and Go requirements; smoke hosts are newer than oldest supported OS",
+    "No package index download or publication tested"
+  ],
+  "pypi_upload": false,
+  "github_release": false
+}

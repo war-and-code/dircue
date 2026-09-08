@@ -1,0 +1,110 @@
+{
+  "image_id": "sha256:d3113a57224f390cbcbff059d2f0e3db111197a6650c006888a9eb2510868aec",
+  "architecture": "arm64",
+  "user": "65532:65532",
+  "binary_sha256": "618f5210478a286cc150bef7acc959de54b60b446208400ac49a28264fc67fd2",
+  "matches_cross_compiled_binary": true,
+  "checks": [
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "auragaze:0.1.0",
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "auragaze 0.1.0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "<temporary-fixture>:/repo:ro",
+        "auragaze:0.1.0",
+        "analyze",
+        "all",
+        "--json",
+        "/repo"
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"/repo\",\n  \"summary\": {\n    \"scanned_files\": 2,\n    \"analyzed_files\": 2,\n    \"skipped_files\": 0,\n    \"language_bytes\": 28\n  },\n  \"languages\": [\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 100,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "auragaze-v01-corpus-20260907:/corpus:ro",
+        "auragaze:0.1.0",
+        "-bj",
+        "/corpus/cobra"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"Go\":{\"size\":464460,\"percentage\":\"99.81\",\"files\":[\"active_help.go\",\"active_help_test.go\",\"args.go\",\"args_test.go\",\"bash_completions.go\",\"bash_completionsV2.go\",\"bash_completionsV2_test.go\",\"bash_completions_test.go\",\"cobra.go\",\"cobra_test.go\",\"command.go\",\"command_notwin.go\",\"command_test.go\",\"command_win.go\",\"completions.go\",\"completions_test.go\",\"fish_completions.go\",\"fish_completions_test.go\",\"flag_groups.go\",\"flag_groups_test.go\",\"powershell_completions.go\",\"powershell_completions_test.go\",\"shell_completions.go\",\"zsh_completions.go\",\"zsh_completions_test.go\"]},\"Makefile\":{\"size\":907,\"percentage\":\"0.19\",\"files\":[\"Makefile\"]}}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "auragaze:0.1.0",
+        "--json",
+        "/missing"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Error: inspect scan root: stat /missing: no such file or directory\n"
+    }
+  ]
+}

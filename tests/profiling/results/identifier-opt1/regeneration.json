@@ -1,0 +1,11 @@
+{
+  "complete": true,
+  "fresh_output": ".cache/enry-regen-identifier-opt1-v3",
+  "managed_files": 41,
+  "runtime_test_model_warnings_all_byte_identical": true,
+  "generator_sha256": "808e858dd87263c2e4a0abc09c441154d2d419cc40fddd7787557c17f28f2cb1",
+  "patch_sha256": "c2ab3e0a9efe9353049027cb6641a52f77664d7e859579d2420d4a83b06b7ae2",
+  "provenance_sha256": "4119712ac89c07bb665bc59e31f6b61f6377e1a8d1adee63c4c732cb315f52cb",
+  "generator_tests": "go test ./... passed before publication of fresh output",
+  "tooling_commit": "84a3c1e"
+}

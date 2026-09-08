@@ -1,0 +1,19 @@
+{
+  "questions": {
+    "10_profiler": "pass: separate matching-symbol memory profiles, never pooled with timings",
+    "11_three_tiers": "qualified: allocation-volume win; timing below10percentmargin; peakRSS unchanged",
+    "12_cost_scope": "pass: B/op, allocation count, sampled cumulative allocation and peakRSS distinct",
+    "13_repetition": "waive: one paired window, no three independent windows",
+    "14_reproduction": "qualified: retained source/receipts/outputs; same fixtures and Docker environment required",
+    "1_workload": "pass: pinned Roslyn Git and jq/ripgrep raw-blob directories",
+    "2_baseline": "pass: immutable opt2 scanner paired with isolated candidate",
+    "3_correctness": "pass: frozen-helper tests, 11 actual Ruby repositories and every full RC1 digest",
+    "4_source": "pass: committed base plus four hash-verified overlay files",
+    "5_build": "pass: same exact compiler, flags, CGO and actual binary settings",
+    "6_environment": "waive: Docker Desktop, uncontrolled governor/turbo/SMT and host interference",
+    "7_samples": "pass: 100/100/20 pairs, 3 warmups each, both duration floors met",
+    "8_distribution": "pass: all samples retained; median,p95,CV and intervals independently recomputed",
+    "9_order": "pass: seeded initial order, alternated every round, adjacent tool pairs"
+  },
+  "scope": "getLines allocation experiment; no headline speed claim"
+}

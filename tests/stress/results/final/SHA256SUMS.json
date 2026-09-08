@@ -1,0 +1,9 @@
+{
+  "fixture-manifest.json.gz": "4454b3ef793580e738e871822a763cd197a5335fdfb98e9d126b7be75e0ea55c",
+  "comparison.json": "2072ee4abae7c9bc2b5975f70a89444ecd15b8a0d217946dc015837e0f0aba88",
+  "README.md": "76e1a61518a9ffaffb97ea2d1ab5bd8d933103a88c3349315095efaf611c978c",
+  "archive-sha256.json": "73516f8bdaf484350c17cefefdce1664c75c5e1bb6d2d2e1f331f7180d3b7d7d",
+  "independent-audit.json": "eb9869edf43f7484c1cf5d404fb7d0e9940173078177c0058340033378cc220d",
+  "packaging-source-binding.json": "f8e721010924bf3d910892b699b8204012de4518ef41fc581af25348bdb5df5d",
+  "correctness-artifacts.tar.gz": "0081cce92327450ef896ddc7b141673f1dfb835be32ca258e1d19ac7fb3d6522"
+}

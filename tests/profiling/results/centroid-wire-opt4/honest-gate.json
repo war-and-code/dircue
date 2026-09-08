@@ -1,0 +1,19 @@
+{
+  "questions": {
+    "10_profiler": "pass: separate matching-symbol memory profiles, never pooled with timings",
+    "11_three_tiers": "qualified: small scan/process and RSS improve; Roslyn timing inconclusive and RSS unchanged",
+    "12_cost_scope": "pass: 512KiB stripped CLI growth; B/op, sampled cumulative allocation and peakRSS distinct",
+    "13_repetition": "waive: one paired window, no three independent windows",
+    "14_reproduction": "qualified: source/receipts/raw outputs retained; final integrated library/CLI/release gates pending",
+    "1_workload": "pass: pinned Roslyn Git and jq/ripgrep raw-blob directories",
+    "2_baseline": "pass: accepted opt3 byte-identical reused binary, original and normalization receipts preserved",
+    "3_correctness": "pass: 3388 actual Ruby labels/tokens, 11 actual Ruby repositories and every full RC1 digest",
+    "4_source": "pass: committed base plus complete isolated candidate inventory and explicit six-path source delta",
+    "5_build": "pass: same exact compiler, flags, CGO and actual binary settings",
+    "6_environment": "waive: Docker Desktop, uncontrolled governor/turbo/SMT and host interference",
+    "7_samples": "pass: fixed500/500/20 pairs, 3 warmups each, both duration floors met; pilot excluded",
+    "8_distribution": "pass: no samples removed; median,p95,CV, CPU,RSS,allocations and intervals recomputed",
+    "9_order": "pass: seeded initial order, alternated every round, adjacent tool pairs"
+  },
+  "scope": "binary centroid model; small-repository startup improvement, Roslyn timing inconclusive"
+}

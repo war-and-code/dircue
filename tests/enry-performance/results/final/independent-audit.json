@@ -1,0 +1,17 @@
+{
+  "all_manifest_hashes_verified": true,
+  "archive_sha256": "5431ba1fd20e888e1546cf8357442c2f48bac2c94ba44e0ec876da34e3b73243",
+  "benchmarks_rerun": false,
+  "complete": true,
+  "correctness_artifacts": 129,
+  "library_samples": 80,
+  "measured_cli_samples": 20972,
+  "offline_replay_exit_code": 0,
+  "tamper_rejection": {
+    "cli-timing": "rejected",
+    "library-sample": "rejected",
+    "managed-model": "rejected",
+    "release-source": "rejected"
+  },
+  "unique_safe_archive_members": 287
+}

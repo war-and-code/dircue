@@ -1,0 +1,102 @@
+[
+  {
+    "target_os": "linux",
+    "architecture": "amd64",
+    "cgo_enabled": false,
+    "command": [
+      "go",
+      "build",
+      "-buildvcs=false",
+      "-trimpath",
+      "-ldflags",
+      "-s -w -X auragaze/internal/cli.Version=0.1.0",
+      "-o",
+      "bin/auragaze-linux-amd64",
+      "."
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "binary_sha256": "346eb1ca73d0f5d2ef3906d5ae418d2f7ac115cef4198287fcbcc4ce3b8b099a"
+  },
+  {
+    "target_os": "linux",
+    "architecture": "arm64",
+    "cgo_enabled": false,
+    "command": [
+      "go",
+      "build",
+      "-buildvcs=false",
+      "-trimpath",
+      "-ldflags",
+      "-s -w -X auragaze/internal/cli.Version=0.1.0",
+      "-o",
+      "bin/auragaze-linux-arm64",
+      "."
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "binary_sha256": "618f5210478a286cc150bef7acc959de54b60b446208400ac49a28264fc67fd2"
+  },
+  {
+    "target_os": "darwin",
+    "architecture": "amd64",
+    "cgo_enabled": false,
+    "command": [
+      "go",
+      "build",
+      "-buildvcs=false",
+      "-trimpath",
+      "-ldflags",
+      "-s -w -X auragaze/internal/cli.Version=0.1.0",
+      "-o",
+      "bin/auragaze-darwin-amd64",
+      "."
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "binary_sha256": "00dc82c38a68aef5f483eecc40fc518898927f777765a8b6f5dc190311421d8e"
+  },
+  {
+    "target_os": "darwin",
+    "architecture": "arm64",
+    "cgo_enabled": false,
+    "command": [
+      "go",
+      "build",
+      "-buildvcs=false",
+      "-trimpath",
+      "-ldflags",
+      "-s -w -X auragaze/internal/cli.Version=0.1.0",
+      "-o",
+      "bin/auragaze",
+      "."
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "binary_sha256": "08000e68a65e32530dc6ef643fb7dc9e86d72c875f7bb5147f6636add5cb0ea8"
+  },
+  {
+    "target_os": "windows",
+    "architecture": "amd64",
+    "cgo_enabled": false,
+    "command": [
+      "go",
+      "build",
+      "-buildvcs=false",
+      "-trimpath",
+      "-ldflags",
+      "-s -w -X auragaze/internal/cli.Version=0.1.0",
+      "-o",
+      "bin/auragaze-windows-amd64.exe",
+      "."
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": "",
+    "binary_sha256": "1c18a7cf3466c67d286a34ad387d1755bad5ec072da0eb363494e29e61e461fc"
+  }
+]

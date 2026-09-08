@@ -1,0 +1,20 @@
+{
+  "overall": "explicit waivers; no universal or all-equal-work claim",
+  "questions": {
+    "10_variance": "waive: one window, CV/p95 retained; no3-window stability test",
+    "11_verdict": "pass:10percent margin+CI+p95; inconclusive and advisory preserved",
+    "12_losses": "pass: all cells, RSS, allocations and semantic differences retained",
+    "13_equivalence": "qualified:3388Rubyfull labels;147official differences; no prefix Ruby oracle",
+    "14_replay": "pass for offline retained-evidence audit; independent timing repeat not demonstrated",
+    "1_scenario": "pass: declared complete populations, APIs and output modes",
+    "2_builds": "pass: symmetric pinned Go1.26.6 settings; official binaries unchanged",
+    "3_work": "qualified: same library calls; CLI work differences explicit",
+    "4_controls": "pass: recorded shared runtime settings",
+    "5_inputs": "pass: pinned full populations, synthetic workloads identified",
+    "6_identity": "pass: source/build/input/output hashes and release reuse binding",
+    "7_warmup": "pass: three symmetric warmups; discarded warmups not individually retained",
+    "8_floor": "pass:20+ samples and10seconds; cutoff cells untimed",
+    "9_host": "waive: coordinated quiet Docker Desktop; uncontrolled governor/turbo/SMT"
+  },
+  "scope": "final full/prefix GetLanguage and complete25-case CLI matrix"
+}

@@ -1,0 +1,20 @@
+{
+  "all_statistics_replayed": true,
+  "archive_sha256": "36f4f9fe3affd1acd75725ca2856eacdf6d6862f88ca5c3227fcca509cf1b608",
+  "complete": true,
+  "fresh_directory_payload_hashes_verified": 2025,
+  "members": 2026,
+  "mutable_source_used": false,
+  "tamper_rejection": [
+    {
+      "mutation": "source overlay",
+      "reason": "cross-linked identity assertion",
+      "rejected": true
+    },
+    {
+      "mutation": "timing report",
+      "reason": "cross-linked identity assertion",
+      "rejected": true
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+// Identical measurement-only driver, compiled in isolated official/fork modules.
+// Preloading, first-touch initialization, and warm calls are distinct metrics.
+package main
+
+import (
+    "crypto/sha256"
+    "encoding/hex"
+    "encoding/json"
+    "flag"
+    "fmt"
+    "io"
+    "os"
+    "path/filepath"
+    "runtime"
+    "runtime/pprof"
+    "strings"
+    "sync"
+    "time"
+
+    "github.com/go-enry/go-enry/v2"
+)
+
+type File struct {
+    Path string `json:"path"`
+    SHA256 string `json:"sha256"`
+    Candidates []string `json:"candidates"`
+}
+type Manifest struct { Root string `json:"root"`; Files []File `json:"files"` }
+type Input struct { File; Name string; Content []byte }
+
+func must(err error) { if err != nil { panic(err) } }
+func main() {
+    manifestPath := flag.String("manifest", "", "Verified file inventory JSON")
+    prefix := flag.Int64("prefix", 131072, "Identical raw content prefix; 0 means full")
+    iterations := flag.Int("iterations", 1, "Same complete corpus passes for both implementations")
+    workers := flag.Int("workers", 1, "Fixed identical worker count")
+    api := flag.String("api", "language", "language or classifier")
+    flag.Parse()
+    if *manifestPath == "" || *prefix < 0 || *iterations < 1 || *workers < 1 || (*api != "language" && *api != "classifier") { panic("invalid arguments") }
+    raw, err := os.ReadFile(*manifestPath); must(err)
+    manifestHash := sha256.Sum256(raw)
+    var manifest Manifest; must(json.Unmarshal(raw, &manifest))
+    if len(manifest.Files) == 0 { panic("empty manifest") }
+    start := time.Now()
+    inputs := make([]Input, 0, len(manifest.Files))
+    var inputBytes int64
+    for _, file := range manifest.Files {
+        if file.Path == "" || filepath.IsAbs(file.Path) || filepath.Clean(file.Path) == ".." || strings.HasPrefix(filepath.Clean(file.Path), ".."+string(filepath.Separator)) { panic("unsafe path") }
+        f, err := os.Open(filepath.Join(manifest.Root, file.Path)); must(err)
+        var reader io.Reader = f
+        if *prefix > 0 { reader = io.LimitReader(f, *prefix) }
+        content, err := io.ReadAll(reader); must(err); must(f.Close())
+        // SHA identifies the actual measured prefix, not unexamined full bytes.
+        digest := sha256.Sum256(content)
+        if hex.EncodeToString(digest[:]) != file.SHA256 { panic("input prefix SHA mismatch: "+file.Path) }
+        if *api == "classifier" && len(file.Candidates) == 0 { panic("explicit classifier candidates required") }
+        inputs = append(inputs, Input{File:file, Name:filepath.Base(file.Path), Content:content})
+        inputBytes += int64(len(content))
+    }
+    preload := time.Since(start).Seconds()
+    classify := func(in Input) string {
+        if *api == "classifier" { return strings.Join(enry.GetLanguagesByClassifier(in.Name, in.Content, in.Candidates), "\x00") }
+        return enry.GetLanguage(in.Name, in.Content)
+    }
+    first := make([]string, len(inputs))
+    start = time.Now()
+    for i, in := range inputs { first[i] = classify(in) }
+    firstSeconds := time.Since(start).Seconds()
+    // This first pass includes lazy classifier initialization. Process/package
+    // initialization occurs before main and is measured only by external time.
+    results := make([]string, len(inputs))
+    runtime.GC()
+    var before, after runtime.MemStats
+    runtime.ReadMemStats(&before)
+    var cpuProfile *os.File
+    if path := os.Getenv("DIRCUE_PROFILE_CPU"); path != "" {
+        cpuProfile, err = os.Create(path); must(err); must(pprof.StartCPUProfile(cpuProfile))
+    }
+    start = time.Now()
+    for pass := 0; pass < *iterations; pass++ {
+        var wg sync.WaitGroup
+        for worker := 0; worker < *workers; worker++ {
+            wg.Add(1)
+            go func(worker int) {
+                defer wg.Done()
+                for i := worker; i < len(inputs); i += *workers { results[i] = classify(inputs[i]) }
+            }(worker)
+        }
+        wg.Wait()
+    }
+    elapsed := time.Since(start).Seconds()
+    if cpuProfile != nil { pprof.StopCPUProfile(); must(cpuProfile.Close()) }
+    runtime.ReadMemStats(&after)
+    // Snapshot before checksum/map/JSON allocation. Heap/alloc profiles still
+    // include retained preloaded inputs and the first pass, unlike the explicit
+    // warm-call TotalAlloc/Mallocs deltas emitted below.
+    if path := os.Getenv("DIRCUE_PROFILE_HEAP"); path != "" { f, err := os.Create(path); must(err); must(pprof.WriteHeapProfile(f)); must(f.Close()) }
+    labels := make(map[string]string, len(inputs))
+    hash := sha256.New()
+    for i, in := range inputs {
+        if first[i] != results[i] { panic("nondeterministic result: "+in.Path) }
+        labels[in.Path] = results[i]
+        fmt.Fprintf(hash, "%d:%s%d:%s",len(in.Path),in.Path,len(results[i]),results[i])
+    }
+    calls := int64(*iterations)*int64(len(inputs))
+    must(json.NewEncoder(os.Stdout).Encode(map[string]any{
+        "manifest_sha256":hex.EncodeToString(manifestHash[:]), "prefix":*prefix, "api":*api,
+        "workers":*workers, "gomaxprocs":runtime.GOMAXPROCS(0), "iterations":*iterations,
+        "files":len(inputs), "input_bytes":inputBytes, "calls":calls,
+        "preload_seconds":preload, "first_pass_seconds":firstSeconds, "warm_seconds":elapsed,
+        "ns_per_call":elapsed*1e9/float64(calls), "allocated_bytes":after.TotalAlloc-before.TotalAlloc,
+        "allocations":after.Mallocs-before.Mallocs, "labels":labels, "checksum":hex.EncodeToString(hash.Sum(nil)),
+        "heap_profile_scope":"retained preload, first pass, and warm calls; warm allocation counters use separate deltas",
+        "profiled":os.Getenv("DIRCUE_PROFILE_CPU")!="" || os.Getenv("DIRCUE_PROFILE_HEAP")!="",
+    }))
+}

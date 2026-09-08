@@ -1,0 +1,47 @@
+{
+  "source_commit": "b578c1e6ef18c234acb03089ab15ba42d8db9720",
+  "former_candidate": "v0.1.0-rc.2",
+  "name": "dircue",
+  "archives_verified": 5,
+  "archive_validation": [
+    "archive SHA256 matches provenance",
+    "binary SHA256 matches provenance",
+    "all payload files equal committed source bytes",
+    "binary mode 0755",
+    "payload filenames use dircue",
+    "native conformance binary equals packaged Darwin arm64 binary",
+    "Docker binary equals packaged Linux arm64 binary"
+  ],
+  "root_checks": [
+    "go vet ./... passed",
+    "go test -race ./... passed"
+  ],
+  "python_tests": {
+    "packaging": 5,
+    "updater": 22,
+    "build_inventory": 7
+  },
+  "historical_evidence": [
+    "final Enry replay passed with pinned original helpers",
+    "final release replay passed",
+    "final public and stress correctness archives reproduced byte-for-byte",
+    "existing results and managed classifier/model files unchanged"
+  ],
+  "performance_rerun": false,
+  "execution_scope": {
+    "darwin_arm64": "native full CLI conformance",
+    "linux_arm64": "Docker smoke and pinned Linguist Cobra comparison",
+    "linux_amd64": "Docker emulation version and Git-free extended profile",
+    "darwin_amd64": "cross-compiled only",
+    "windows_amd64": "cross-compiled only"
+  },
+  "github_issues": {
+    "reviewed": 13,
+    "updated": [
+      12,
+      13
+    ],
+    "comments": 0
+  },
+  "published": false
+}

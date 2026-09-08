@@ -1,0 +1,519 @@
+{
+  "actual_ruby_repositories": 11,
+  "actual_ruby_samples_and_tokens": 3388,
+  "all_benchmark_allocation_rows_reparsed": true,
+  "all_distributions_ratios_intervals_recomputed": true,
+  "all_profile_hashes_verified": true,
+  "all_rc1_full_digests_match": true,
+  "baseline_binary_sha256": "ac341ac5e06dac849976844bbca84d2ae66758aed522a4ad71fdf1801df256a9",
+  "candidate_binary_sha256": "f53002254553f1bd5295268db12ba1d34d2d6fcc251fb43b714d81a259d03320",
+  "candidate_is_clean_commit": false,
+  "complete": true,
+  "counts": {
+    "measured": 2040,
+    "mem": 2,
+    "pilot": 20,
+    "warmup": 18
+  },
+  "normalized_baseline_reused_without_rebuild": true,
+  "official_enry_matches": 3241,
+  "overlay_paths": [
+    "third_party/go-enry/PROVENANCE.json",
+    "third_party/go-enry/centroid.go",
+    "third_party/go-enry/centroid_wire_test.go",
+    "third_party/go-enry/data/centroid_model.bin",
+    "third_party/go-enry/data/centroid_model.go",
+    "third_party/go-enry/data/centroid_model.json.gz"
+  ],
+  "pilot_never_pooled": true,
+  "source_base_commit": "0577e7e190dfe65551c9eda0be8fb8922c9de5b1",
+  "source_files_verified": 71,
+  "summary": {
+    "jq-directory-w1": {
+      "below_10s_process_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "below_10s_scan_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "comparisons": {
+        "allocations": {
+          "paired_bootstrap_95_ci": [
+            4.257273345463234,
+            4.259856564913571
+          ],
+          "ratio": 4.258647473549716,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "bytes": {
+          "paired_bootstrap_95_ci": [
+            2.3691329605108367,
+            2.376085591936845
+          ],
+          "ratio": 2.372827955323086,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "process": {
+          "paired_bootstrap_95_ci": [
+            2.322773388432283,
+            2.3788823062518882
+          ],
+          "ratio": 2.3501013284168177,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "faster with margin"
+        },
+        "scan": {
+          "paired_bootstrap_95_ci": [
+            2.9683538445876216,
+            3.0375412680192677
+          ],
+          "ratio": 3.004511153545494,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "faster with margin"
+        }
+      },
+      "tools": {
+        "baseline": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.0008413471313169711,
+            "count": 500,
+            "max": 232225.0,
+            "median": 231647.0,
+            "min": 231016.0,
+            "p95": 231941.0,
+            "total": 115825101.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.023530708187839165,
+            "count": 500,
+            "max": 45081880.0,
+            "median": 42141956.0,
+            "min": 39170192.0,
+            "p95": 43666392.0,
+            "total": 21128955128.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.21811565563916796,
+            "count": 500,
+            "max": 0.52,
+            "median": 0.21000000000000002,
+            "min": 0.16999999999999998,
+            "p95": 0.32999999999999996,
+            "total": 111.78000000000014
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.1332517243902252,
+            "count": 500,
+            "max": 0.3291658339999799,
+            "median": 0.1747388959999796,
+            "min": 0.15250304099993173,
+            "p95": 0.2343596670000352,
+            "total": 90.98014488199956
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.02243835872767526,
+            "count": 500,
+            "max": 42108,
+            "median": 40796.0,
+            "min": 37612,
+            "p95": 41472,
+            "total": 20237388
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.1582367252566281,
+            "count": 500,
+            "max": 0.304887,
+            "median": 0.1474667915,
+            "min": 0.127383041,
+            "p95": 0.208179833,
+            "total": 77.64775344200002
+          }
+        },
+        "candidate": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.00448137778466946,
+            "count": 500,
+            "max": 55245.0,
+            "median": 54394.5,
+            "min": 53851.0,
+            "p95": 54803.0,
+            "total": 27203640.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.06772693197216259,
+            "count": 500,
+            "max": 21579552.0,
+            "median": 17760224.0,
+            "min": 14764648.0,
+            "p95": 19979968.0,
+            "total": 8944471064.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.11331154474650633,
+            "count": 500,
+            "max": 0.2,
+            "median": 0.09000000000000001,
+            "min": 0.08,
+            "p95": 0.1,
+            "total": 45.00000000000016
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.08981921346766707,
+            "count": 500,
+            "max": 0.16089145800003735,
+            "median": 0.07435377100003393,
+            "min": 0.07002712499996733,
+            "p95": 0.08518358399999215,
+            "total": 38.109902855999934
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.020103707759352458,
+            "count": 500,
+            "max": 30612,
+            "median": 28760.0,
+            "min": 27428,
+            "p95": 29776,
+            "total": 14407408
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.07143838147242593,
+            "count": 500,
+            "max": 0.09255225,
+            "median": 0.049081792,
+            "min": 0.046456458,
+            "p95": 0.054858167,
+            "total": 25.050085662999976
+          }
+        }
+      }
+    },
+    "ripgrep-directory-w1": {
+      "below_10s_process_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "below_10s_scan_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "comparisons": {
+        "allocations": {
+          "paired_bootstrap_95_ci": [
+            5.275278595204785,
+            5.279488416988417
+          ],
+          "ratio": 5.27741515147859,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "bytes": {
+          "paired_bootstrap_95_ci": [
+            2.4319155825513676,
+            2.47403344259496
+          ],
+          "ratio": 2.4373101866348756,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "process": {
+          "paired_bootstrap_95_ci": [
+            2.924163348492356,
+            2.9819409369832015
+          ],
+          "ratio": 2.9587060321012975,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "faster with margin"
+        },
+        "scan": {
+          "paired_bootstrap_95_ci": [
+            4.583612198824103,
+            4.6881915980760125
+          ],
+          "ratio": 4.625968858703989,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "faster with margin"
+        }
+      },
+      "tools": {
+        "baseline": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.0008206896363763866,
+            "count": 500,
+            "max": 219254.0,
+            "median": 218704.0,
+            "min": 218237.0,
+            "p95": 219071.0,
+            "total": 109368231.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.022229505989802546,
+            "count": 500,
+            "max": 44303864.0,
+            "median": 41346608.0,
+            "min": 39003808.0,
+            "p95": 43493472.0,
+            "total": 20799685576.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.2714133976626423,
+            "count": 500,
+            "max": 0.6000000000000001,
+            "median": 0.19,
+            "min": 0.13999999999999999,
+            "p95": 0.32,
+            "total": 103.13999999999984
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.1694596064530825,
+            "count": 500,
+            "max": 0.3626988340000139,
+            "median": 0.1564742500000591,
+            "min": 0.1332484160000007,
+            "p95": 0.22056599999996251,
+            "total": 82.1795865850014
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.018158327876792862,
+            "count": 500,
+            "max": 41856,
+            "median": 40814.0,
+            "min": 38036,
+            "p95": 41356,
+            "total": 20293280
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.20325190550040811,
+            "count": 500,
+            "max": 0.337677541,
+            "median": 0.1288930835,
+            "min": 0.107178209,
+            "p95": 0.192884834,
+            "total": 68.70440165700002
+          }
+        },
+        "candidate": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.004556605275018209,
+            "count": 500,
+            "max": 42169.0,
+            "median": 41441.5,
+            "min": 40869.0,
+            "p95": 41849.0,
+            "total": 20743213.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.05603714830643476,
+            "count": 500,
+            "max": 20680648.0,
+            "median": 16964032.0,
+            "min": 13927328.0,
+            "p95": 19133848.0,
+            "total": 8612202704.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.13296119160155798,
+            "count": 500,
+            "max": 0.16,
+            "median": 0.060000000000000005,
+            "min": 0.05,
+            "p95": 0.07,
+            "total": 31.899999999999984
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.10914736233416251,
+            "count": 500,
+            "max": 0.13686133400000244,
+            "median": 0.052886041500016745,
+            "min": 0.04883054100002937,
+            "p95": 0.06186520799997197,
+            "total": 27.257869800999558
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.015609391636786492,
+            "count": 500,
+            "max": 30152,
+            "median": 28882.0,
+            "min": 27488,
+            "p95": 29584,
+            "total": 14447836
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.0714915487903749,
+            "count": 500,
+            "max": 0.050924,
+            "median": 0.027862937999999997,
+            "min": 0.02607475,
+            "p95": 0.031387375,
+            "total": 14.187761173000002
+          }
+        }
+      }
+    },
+    "roslyn-git-w5": {
+      "below_10s_process_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "below_10s_scan_advisory": {
+        "baseline": false,
+        "candidate": false
+      },
+      "comparisons": {
+        "allocations": {
+          "paired_bootstrap_95_ci": [
+            1.0221162099763421,
+            1.0241568831708272
+          ],
+          "ratio": 1.0226353976682507,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "bytes": {
+          "paired_bootstrap_95_ci": [
+            1.0095938363793198,
+            1.0157772713677615
+          ],
+          "ratio": 1.0118618406173137,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "process": {
+          "paired_bootstrap_95_ci": [
+            0.9870324494791607,
+            1.0223087173919303
+          ],
+          "ratio": 1.014165598739463,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        },
+        "scan": {
+          "paired_bootstrap_95_ci": [
+            0.9869158432358256,
+            1.0222130724780158
+          ],
+          "ratio": 1.0141444902825878,
+          "scope": "baseline/candidate ratio of medians; bootstrap resamples matched round indexes",
+          "verdict": "no speed verdict"
+        }
+      },
+      "tools": {
+        "baseline": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.0015087230638661713,
+            "count": 20,
+            "max": 8122263.0,
+            "median": 8089249.5,
+            "min": 8070361.0,
+            "p95": 8104797.0,
+            "total": 161805784.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.0034419300721606426,
+            "count": 20,
+            "max": 2245138920.0,
+            "median": 2232510108.0,
+            "min": 2214873024.0,
+            "p95": 2243650592.0,
+            "total": 44673625512.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.019552695858742246,
+            "count": 20,
+            "max": 13.52,
+            "median": 12.92,
+            "min": 12.57,
+            "p95": 13.32,
+            "total": 259.05
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.020524195557645047,
+            "count": 20,
+            "max": 7.619354004000002,
+            "median": 7.297589420000001,
+            "min": 7.057599628999995,
+            "p95": 7.5394476700000155,
+            "total": 145.64116756499993
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.013762534550906815,
+            "count": 20,
+            "max": 352472,
+            "median": 345618.0,
+            "min": 333372,
+            "p95": 348216,
+            "total": 6871504
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.020544681570916625,
+            "count": 20,
+            "max": 7.57266967,
+            "median": 7.2543205865000004,
+            "min": 7.015732295,
+            "p95": 7.496540212,
+            "total": 144.77490881500003
+          }
+        },
+        "candidate": {
+          "allocations_per_scan": {
+            "coefficient_of_variation": 0.0014330758927117617,
+            "count": 20,
+            "max": 7935950.0,
+            "median": 7910199.0,
+            "min": 7894601.0,
+            "p95": 7930216.0,
+            "total": 158203713.0
+          },
+          "bytes_per_scan": {
+            "coefficient_of_variation": 0.0028188530032971777,
+            "count": 20,
+            "max": 2221284848.0,
+            "median": 2206338868.0,
+            "min": 2196887920.0,
+            "p95": 2218712512.0,
+            "total": 44140568824.0
+          },
+          "cpu_seconds": {
+            "coefficient_of_variation": 0.02181862530732032,
+            "count": 20,
+            "max": 13.39,
+            "median": 12.755,
+            "min": 12.520000000000001,
+            "p95": 13.379999999999999,
+            "total": 257.15
+          },
+          "process_seconds": {
+            "coefficient_of_variation": 0.025056585703129967,
+            "count": 20,
+            "max": 7.6196445870000105,
+            "median": 7.195658607499993,
+            "min": 7.056062711000038,
+            "p95": 7.584462337000019,
+            "total": 145.56602423300015
+          },
+          "rss_kib": {
+            "coefficient_of_variation": 0.015608717594209426,
+            "count": 20,
+            "max": 352724,
+            "median": 343562.0,
+            "min": 330280,
+            "p95": 351736,
+            "total": 6876268
+          },
+          "scan_seconds": {
+            "coefficient_of_variation": 0.025135305000343246,
+            "count": 20,
+            "max": 7.577491962,
+            "median": 7.1531430245,
+            "min": 7.013327669,
+            "p95": 7.538241212,
+            "total": 144.704064649
+          }
+        }
+      }
+    }
+  }
+}

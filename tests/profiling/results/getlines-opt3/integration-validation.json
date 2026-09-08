@@ -1,0 +1,47 @@
+{
+  "candidate_build_receipt_sha256": "84b4a824016794b4a1943ae66b81f405a5ca2e6215b9fb0fdba3f22aeb19b9bc",
+  "complete": true,
+  "files": {
+    "third_party/go-enry/PROVENANCE.json": {
+      "after_sha256": "348aa7b0b53b6923580e3491b6925fafa7b5758f3944bb1da8f3c99426fd96e3",
+      "before_sha256": "c1f9026ae6c5d1423ae60f2ef105cb0f4cfa327d900e1efc154fae6a9871ed03"
+    },
+    "third_party/go-enry/data/generated.go": {
+      "after_sha256": "120c7345f55c6d3d6eda79cc30ce9ceb8dc41b3158ef262ca31de37810c79254",
+      "before_sha256": "ada6d75135dc7cb29dc4280df4c16c2fc9ce044836923e14594cae08f770ff6c"
+    },
+    "third_party/go-enry/data/generated_lines_test.go": {
+      "after_sha256": "8a58f1033adecf4660b0b1123a7dfd3cb945fddc1a99e4e2fd78898adc11463e",
+      "before_sha256": null
+    },
+    "third_party/patches/enry-linguist-9.7.patch": {
+      "after_sha256": "8df68091b5058e98a9903c93657cd0259cd0eddb3b293838cd4fe480d1233491",
+      "before_sha256": "07283c3743029a4aa4cbbd64a1e6046c1d54d56d7b83a73ea7e7fff3ceb91a33"
+    }
+  },
+  "integrated_validation": {
+    "commands": [
+      {
+        "argv": [
+          "go",
+          "test",
+          "./..."
+        ],
+        "cwd": ".",
+        "exit_code": 0
+      },
+      {
+        "argv": [
+          "go",
+          "test",
+          "./..."
+        ],
+        "cwd": "third_party/go-enry",
+        "exit_code": 0
+      }
+    ],
+    "provenance_hash_gate": "passed as tests/provenance in root suite",
+    "recorded_from_successful_tool_results": true
+  },
+  "scope": "only four independently checked overlay files copied"
+}

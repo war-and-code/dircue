@@ -1,0 +1,35 @@
+# Pinned Enry data refresh
+
+Dircue uses the public Enry API through a local module replacement of `github.com/go-enry/go-enry/v2`. The source fork under `go-enry/` starts from official Enry v2.9.6. Its language data comes from that version's unmodified generator run against Linguist 9.7.0, and its classifier follows the pinned Ruby reference. The fork preserves Enry's Go detection interface without mutating its exported data maps at runtime.
+
+Regenerate with:
+
+```sh
+docker build -t dircue-linguist:9.7.0 -f tests/conformance/Dockerfile tests/conformance
+python3 third_party/update_enry.py
+```
+
+`--archive /path/linguist-v9.7.0.tar.gz` reuses a cached download after checking its pinned SHA-256. The script downloads Enry through Go's module/checksum system in an isolated temporary module, verifies the Linguist archive, runs the upstream generator, and applies the checked-in patch. It exports the official gem's centroid model and checks its canonical hash. A cached `--model` JSON export can replace the Docker export, with the same hash requirement.
+
+The output contains runtime Go source/data, regression tests, source licenses, and machine-readable provenance. It omits the unused Bayesian frequency table. A synthetic `.git/HEAD` records the exact upstream Git object during generation; the runtime has no Git checkout dependency. The updater never executes sample or application code.
+
+`go-enry/PROVENANCE.json` pins both upstream sources and hashes every derived source file. `patches/enry-linguist-9.7.patch` contains the project changes and must apply cleanly during every regeneration. The project-owned `auragaze_compat_test.go` is included in the patch and regenerated with a manifest hash.
+
+The updater checks existing output for unmanaged files. It removes obsolete files only when the preceding manifest owns them and their bytes remain unchanged. Before replacing the output directory, it validates and tests the staged tree, rechecks for intervening edits, and creates a backup for rollback. The next invocation checks for an interrupted replacement; ambiguous states require inspection. `GENERATOR_WARNINGS.txt` retains unsupported upstream regex diagnostics for review.
+
+The compatibility patch makes general changes backed by the pinned Ruby source:
+
+- Emacs modelines use the first syntactically valid delimiter pair, avoiding greedy matches inside X font names. See Linguist `lib/linguist/strategy/modeline.rb`.
+- A `UseVimball` marker in the first five lines suppresses modeline inference for Vimball archives, as Ruby does.
+- The Adblock header grammar's named subroutine is expanded into an equivalent RE2 expression. Its possessive repetition is unnecessary for recognition because version digits/dots cannot consume the following separator. The exact source expression is matched before applying this translation.
+- The shell `exec` wrapper heuristic permits only the whitespace/quote separators in Ruby `lib/linguist/shebang.rb`; an intervening argument such as `-nef` no longer changes Shell to another interpreter language.
+
+- Linguist 9.7's log term-frequency/inverse-class-frequency centroid model replaces the old Bayesian classifier. The canonical exported model is converted deterministically to an embedded, versioned binary and loaded once on first classifier use; no Ruby runtime is involved. Conversion preserves vocabulary mappings and float64 values. Every regeneration compares the binary decoder's output against an independent Go decode of the canonical JSON before publishing the maintained fork.
+- The generic tokenizer is a pure-Go implementation of the pinned Flex rules: longest match, declaration-order ties, comment/string states, 16-byte tokens, and the native scanner's byte cap. The broad conformance harness verifies ordered token sequences against Ruby, in addition to labels.
+- Generated-file line scanning follows Ruby `Generated#lines`: split on LF, preserve carriage returns and all final empty elements. This differs from Ruby's single-file metadata line handling and matters when source-map references precede trailing blank lines.
+
+The generator warning file lists the remaining unsupported upstream expressions. Agreement on the current sample corpus does not cover every possible input or unsupported regex branch. The differential suite records sample comparisons separately from CLI/repository conformance and real-project results.
+
+The scanner's binary preflight independently follows [Charlock Holmes 0.7.9's raw-byte policy](https://github.com/brianmario/charlock_holmes/blob/v0.7.9/ext/charlock_holmes/encoding_detector.c), the version pinned in the Ruby reference image: PostScript and Unicode BOM exceptions, specific binary magic signatures, and a maximum 1 MiB NUL probe over the supplied data. Repository callers supply only the LazyBlob 128 KiB prefix. Its [MIT notice](CHARLOCK_LICENSE) is retained; Charlock and ICU are not runtime dependencies. Language and generated-code strategies receive the original bytes, matching Linguist rather than implicitly transcoding source.
+
+Enry is **Apache-2.0**, preserved verbatim in `go-enry/LICENSE`. Linguist's generated data is derived from its **MIT**-licensed source; that notice is preserved in `go-enry/LINGUIST_LICENSE`. Project-specific changes are identified here and in the patch; this fork is not an upstream Enry release. The production build remains pure Go with `CGO_ENABLED=0`; optional Enry `oniguruma`/`flex` build modes are outside the supported Dircue build configuration.
