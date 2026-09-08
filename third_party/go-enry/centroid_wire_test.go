@@ -4,7 +4,9 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"math"
+	"reflect"
 	"sort"
 	"strings"
 	"testing"
@@ -139,23 +141,99 @@ func modelScoreBits(model centroidModel, content []byte, candidates []string) ma
 	return scores
 }
 
+// This fixture contains the 21 vocabulary entries used by the input below,
+// copied from the canonical Linguist JSON identified by source_sha256. Entries
+// retain original vocabulary order. Missing centroid weights are zero, as in
+// classification. Decimal JSON values round-trip to the original float64 bits.
+const centroidScoreFixture = `{"source_sha256":"13a5bb39a79e60c5bdb08f49c069445e664b475e82a9a65b018590293cd75743",
+"candidates":["C#","Java","Smalltalk","TypeScript"],
+"entries":[
+{"token":"(","index":734,"icf":1.1925699712853226,"centroids":[0.1663035129670237,0.11296491259271876,0.05384967233068738,0.19757367679559257]},
+{"token":"()","index":740,"icf":1.7399784802440443,"centroids":[0.0845686076784111,0.12020482007799052,0,0.11321276507580416]},
+{"token":")","index":746,"icf":1.1878268793893099,"centroids":[0.16561270330580535,0.1090393355893858,0.06285904701915151,0.1962038860653798]},
+{"token":",","index":770,"icf":1.1925699712853226,"centroids":[0.08009195906126025,0.10112019516676803,0.08097321877878998,0.12012162575571964]},
+{"token":".WriteLine","index":1498,"icf":6.030437921392435,"centroids":[0.209959077137826,0,0,0]},
+{"token":";","index":4176,"icf":1.5553764207513643,"centroids":[0.25543692734187445,0.15166985678217107,0.15123180780370493,0.22604635371721749]},
+{"token":"Age","index":4813,"icf":6.253581472706645,"centroids":[0,0,0,0]},
+{"token":"Console","index":5754,"icf":5.154969184038536,"centroids":[0.1050456210501385,0,0,0]},
+{"token":"Example","index":6526,"icf":4.504381617897386,"centroids":[0,0,0,0]},
+{"token":"Main","index":8401,"icf":4.2058886293413895,"centroids":[0.06164243379598141,0,0,0]},
+{"token":"Name","index":8750,"icf":3.496741107435003,"centroids":[0.01555163973229054,0.020798917576237502,0,0]},
+{"token":"Person","index":9402,"icf":4.80666248977032,"centroids":[0,0.019983350650829377,0,0]},
+{"token":"int","index":17563,"icf":2.5584714688420727,"centroids":[0.010902816374432828,0.11823189243890256,0,0]},
+{"token":"namespace","index":19330,"icf":3.6508917872622613,"centroids":[0.15895243117508528,0.007734459613083652,0,0]},
+{"token":"public","index":20838,"icf":3.3632097148104805,"centroids":[0.16522612499401826,0.23773573131124984,0,0.06704716588997496]},
+{"token":"record","index":21158,"icf":4.2058886293413895,"centroids":[0,0.004919085933997946,0,0]},
+{"token":"static","index":22806,"icf":3.257849199152654,"centroids":[0.07461216141856918,0.20658432576269184,0,0]},
+{"token":"string","index":22912,"icf":2.307157040561167,"centroids":[0.08554035074669435,0,0.003716273226219492,0.0940874044861261]},
+{"token":"void","index":24405,"icf":3.1180872567774953,"centroids":[0.10036453423334313,0.10880266033024878,0,0.04890009421526387]},
+{"token":"{","index":24891,"icf":1.3957089331627996,"centroids":[0.16711624121020194,0.11683512696351654,0.02657049661350504,0.16056361711424463]},
+{"token":"}","index":24903,"icf":1.376477571234912,"centroids":[0.16481355986857105,0.11522526507961041,0.026204383862603542,0.16542621223561704]}
+]}`
+
 func TestCentroidModelScoreBitsFixture(t *testing.T) {
 	model, err := decodeCentroidModel(centroidModelBinary, generatedCentroidModelMetadata)
 	if err != nil {
 		t.Fatal(err)
 	}
-	content := []byte("namespace Example { public record Person(string Name, int Age); static void Main() { Console.WriteLine(42); } }")
-	want := map[string]uint64{
-		"C#":         0x3fd8779783b1b48d,
-		"Java":       0x3fcefb6c6a7e916f,
-		"Smalltalk":  0x3faa5e62dfbc55fd,
-		"TypeScript": 0x3fc79cc382527788,
-	}
-	got := modelScoreBits(model, content, []string{"C#", "Java", "Smalltalk", "TypeScript"})
-	for language, bits := range want {
-		if got[language] != bits {
-			t.Errorf("%s score bits %#x, want %#x", language, got[language], bits)
+	var fixture struct {
+		SourceSHA256 string `json:"source_sha256"`
+		Candidates   []string
+		Entries      []struct {
+			Token     string
+			Index     int
+			ICF       float64
+			Centroids []float64
 		}
+	}
+	if err := json.Unmarshal([]byte(centroidScoreFixture), &fixture); err != nil {
+		t.Fatal(err)
+	}
+	if fixture.SourceSHA256 != generatedCentroidModelMetadata.sourceSHA256 {
+		t.Fatal("score fixture belongs to a different canonical model")
+	}
+	reference := centroidModel{
+		Vocabulary: make(map[string]int),
+		ICF:        make([]float64, len(fixture.Entries)),
+		Centroids:  make(map[string]map[int]float64),
+	}
+	for _, language := range fixture.Candidates {
+		reference.Centroids[language] = make(map[int]float64)
+	}
+	for index, entry := range fixture.Entries {
+		if index > 0 && fixture.Entries[index-1].Index >= entry.Index {
+			t.Fatal("fixture must preserve original vocabulary order")
+		}
+		if original, ok := model.Vocabulary[entry.Token]; !ok || original != entry.Index {
+			t.Fatalf("vocabulary entry changed for %q", entry.Token)
+		}
+		if math.Float64bits(model.ICF[entry.Index]) != math.Float64bits(entry.ICF) {
+			t.Fatalf("ICF bits changed for %q", entry.Token)
+		}
+		if len(entry.Centroids) != len(fixture.Candidates) {
+			t.Fatal("fixture centroid count differs from its candidates")
+		}
+		reference.Vocabulary[entry.Token] = index
+		reference.ICF[index] = entry.ICF
+		for candidate, language := range fixture.Candidates {
+			weight := entry.Centroids[candidate]
+			if math.Float64bits(model.Centroids[language][entry.Index]) != math.Float64bits(weight) {
+				t.Fatalf("centroid bits changed for %s/%q", language, entry.Token)
+			}
+			reference.Centroids[language][index] = weight
+		}
+	}
+	content := []byte("namespace Example { public record Person(string Name, int Age); static void Main() { Console.WriteLine(42); } }")
+	// math.Log and floating-point arithmetic can round differently by architecture.
+	// Compare both representations on this host without relaxing bit equality.
+	want := modelScoreBits(reference, content, fixture.Candidates)
+	got := modelScoreBits(model, content, fixture.Candidates)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("decoded model score bits %#v, want JSON fixture %#v", got, want)
+	}
+	ranking := GetLanguagesByClassifier("Example.cs", content, fixture.Candidates)
+	if want := []string{"C#", "Java", "TypeScript", "Smalltalk"}; !reflect.DeepEqual(ranking, want) {
+		t.Errorf("classifier ranking %v, want %v", ranking, want)
 	}
 }
 
