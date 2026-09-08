@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "projects": 11,
+  "retained_outputs": 22,
+  "archive_sha256": "3ae098eb8d2301d66e31be6df716fbdba6d7c48ba42bc894e206bf1542fae989",
+  "verification": "Archive extracted with safe regular-file paths; independent recorder rerun; report, build receipt, deterministic archive, and rendered README reproduced byte-for-byte."
+}

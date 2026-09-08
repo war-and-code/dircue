@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "repository": "https://github.com/go-enry/enry",
+    "tag": "v1.3.0",
+    "commit": "f10711437bfbb25b15506eb69dde24bb7decd222",
+    "library_version": "v2.8.4",
+    "files": {
+      "main.go": {
+        "url": "https://raw.githubusercontent.com/go-enry/enry/f10711437bfbb25b15506eb69dde24bb7decd222/main.go",
+        "sha256": "67d8987a4024fb823d6099ed5f4d404bed9bf87d8d064fe7a91b962c09155080"
+      },
+      "go.mod": {
+        "url": "https://raw.githubusercontent.com/go-enry/enry/f10711437bfbb25b15506eb69dde24bb7decd222/go.mod",
+        "sha256": "af722b97402af6a77c83cd41b23ed1bae5cf05960ea96458194587cc213ea57e"
+      },
+      "go.sum": {
+        "url": "https://raw.githubusercontent.com/go-enry/enry/f10711437bfbb25b15506eb69dde24bb7decd222/go.sum",
+        "sha256": "524a4b2b04ad3c82be1f663c7291a003778d5814fe60252470237bb3f62c0741"
+      },
+      "LICENSE": {
+        "url": "https://raw.githubusercontent.com/go-enry/enry/f10711437bfbb25b15506eb69dde24bb7decd222/LICENSE",
+        "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd"
+      }
+    }
+  },
+  "library": {
+    "module": "github.com/go-enry/go-enry/v2",
+    "version": "v2.9.6",
+    "sum": "h1:np63eOtMV56zfYDHnFVgpEVOk8fr2kmylcMnAZUDbSs="
+  },
+  "go_version": "go1.26.6",
+  "status": "source-researched; no benchmark run"
+}

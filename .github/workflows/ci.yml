@@ -1,0 +1,45 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+      - run: go vet ./...
+      - run: go test -race ./...
+      - run: go test ./...
+        working-directory: third_party/go-enry
+      - run: go build -trimpath -o bin/ .
+        env:
+          CGO_ENABLED: '0'
+
+  linguist-conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.x'
+          cache: true
+      - run: make conformance
+      - run: make samples
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linguist-conformance
+          path: tests/conformance/results/

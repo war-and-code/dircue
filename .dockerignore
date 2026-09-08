@@ -1,0 +1,10 @@
+.git
+.cache
+bin
+dist
+*.prof
+coverage.out
+tests/conformance/results
+tests/performance/results
+tests/stress/results
+tests/release/results

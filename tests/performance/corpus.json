@@ -1,0 +1,93 @@
+{
+  "description": "Pinned representative source checkouts; never build or execute their contents.",
+  "projects": [
+    {
+      "name": "cobra",
+      "url": "https://github.com/spf13/cobra.git",
+      "tag": "v1.10.2",
+      "ref": "88b30ab89da2d0d0abb153818746c5a2d30eccec",
+      "language": "Go",
+      "commit": "88b30ab89da2d0d0abb153818746c5a2d30eccec"
+    },
+    {
+      "name": "flask",
+      "url": "https://github.com/pallets/flask.git",
+      "tag": "3.1.2",
+      "ref": "80be49be88b534d2a72ef6bf5ea4aabf89f3305b",
+      "language": "Python",
+      "commit": "2c1b30d0503cfb064f1cb252e6614a06915a362a"
+    },
+    {
+      "name": "express",
+      "url": "https://github.com/expressjs/express.git",
+      "tag": "v5.1.0",
+      "ref": "e99649895f714c9dc9b3538e2cb0f58954f0ecfa",
+      "language": "JavaScript",
+      "commit": "cd7d4397c398a3f3ecadeaf9ef6ac1377bd414c4"
+    },
+    {
+      "name": "ripgrep",
+      "url": "https://github.com/BurntSushi/ripgrep.git",
+      "tag": "14.1.1",
+      "ref": "0e8390a66fbcf6eeac1aeb0541b367663a597c79",
+      "language": "Rust",
+      "commit": "4649aa9700619f94cf9c66876e9549d83420e16c"
+    },
+    {
+      "name": "rails",
+      "url": "https://github.com/rails/rails.git",
+      "tag": "v8.0.2",
+      "ref": "4d0b4290359c6f0bdbf15b9edff132b93ae82372",
+      "language": "Ruby",
+      "commit": "3235827585d87661942c91bc81f64f56d710f0b2"
+    },
+    {
+      "name": "jq",
+      "url": "https://github.com/jqlang/jq.git",
+      "tag": "jq-1.8.1",
+      "ref": "4467af7068b1bcd7f882defff6e7ea674c5357f4",
+      "language": "C",
+      "commit": "4467af7068b1bcd7f882defff6e7ea674c5357f4"
+    },
+    {
+      "name": "typescript",
+      "url": "https://github.com/microsoft/TypeScript.git",
+      "tag": "v5.8.3",
+      "ref": "68cead182cc24afdc3f1ce7c8ff5853aba14b65a",
+      "language": "TypeScript",
+      "commit": "68cead182cc24afdc3f1ce7c8ff5853aba14b65a"
+    },
+    {
+      "name": "laravel",
+      "url": "https://github.com/laravel/framework.git",
+      "tag": "v12.0.0",
+      "ref": "bd8aeb64d3f9fa4b11690d702bdf289f5f32ae97",
+      "language": "PHP",
+      "commit": "bd8aeb64d3f9fa4b11690d702bdf289f5f32ae97"
+    },
+    {
+      "name": "spring-framework",
+      "url": "https://github.com/spring-projects/spring-framework.git",
+      "tag": "v7.0.8",
+      "ref": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "language": "Java",
+      "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82"
+    },
+    {
+      "name": "roslyn",
+      "url": "https://github.com/dotnet/roslyn.git",
+      "tag": "main snapshot 2026-09-07",
+      "ref": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "language": "C#",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67"
+    },
+    {
+      "name": "aspnetcore",
+      "url": "https://github.com/dotnet/aspnetcore.git",
+      "tag": "v10.0.0",
+      "ref": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "language": "C#",
+      "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff"
+    }
+  ]
+}

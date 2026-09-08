@@ -1,0 +1,22 @@
+{
+  "complete": true,
+  "report_sha256": "fa3028d6d2ada21acb0a1eef12b16e6d91d7db10e306c4fb88bb885484dc6c00",
+  "correctness_archive_sha256": "3ae098eb8d2301d66e31be6df716fbdba6d7c48ba42bc894e206bf1542fae989",
+  "independent_fresh_extraction_and_recorder_replay": true,
+  "raw_correctness_artifacts": 22,
+  "measured_samples": 440,
+  "twenty_samples_all_cells": true,
+  "cells_below_ten_cumulative_seconds": {
+    "cobra/auragaze": 0.9201276690009763,
+    "flask/linguist": 9.476768796997021,
+    "flask/auragaze": 1.0447945400001117,
+    "express/linguist": 9.947592752000673,
+    "express/auragaze": 0.9383035000000746,
+    "ripgrep/auragaze": 1.2957344149990604,
+    "jq/auragaze": 1.466386207001051,
+    "laravel/auragaze": 7.48264841800119
+  },
+  "sample_floor_scope": "Legacy Linguist suites retain fixed20-run observations; short cells do not meet the newer10second floor used by final Enry/library comparisons. No additional timings were run.",
+  "reused_release_binary_sha256": "d4c1011d3d615f303cd8d60760c0eeb8d3f234fda74ac2dfd77aa75e4e8ae637",
+  "measurements_rerun": false
+}

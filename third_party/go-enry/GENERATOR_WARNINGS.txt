@@ -1,0 +1,45 @@
+RE2 incompatible syntax (lookbehind) for heuristic language:'[Smarty]', rule:'(?<!\{)\{(\*\s|\$|\/)?\w*\b'
+RE2 incompatible syntax (lookahead) for heuristic language:'[Vim Help File]', rule:'(?:(?:^|[ \t])(?:vi|Vi(?=m))(?:m[<=>]?[0-9]+|m)?|[ \t]ex)(?=:(?=[ \t]*set?[ \t][^\r\n:]+:)|:(?![ \t]*set?[ \t]))(?:(?:[ \t]*:[ \t]*|[ \t])\w*(?:[ \t]*=(?:[^\\\s]|\\.)*)?)*[ \t:](?:filetype|ft|syntax)[ \t]*=(help)(?=$|\s|:)'
+RE2 incompatible syntax (lookbehind, lookahead, possessive quantifier) for heuristic language:'[Hosts File]', rule:'(?xi) ^
+
+# IPv4 address
+(?<ipv4>
+  (?!\.)
+  (?:\.?
+    (?: 25[0-5]  # 250-255
+    |   2[0-4]\d # 200-249
+    |   1\d\d    # 100-199
+    |   [1-9]?\d # 0-99
+    )\b
+){4})
+
+# CIDR notation: /[0-32]
+(?<cidr>/(3[0-2]|[12]?\d)\b)?
+
+# Domains list
+(?<domains>
+  [ \t]+
+  \w[-\w]* (?:\.\w[-\w]*)*
+  (?<!-)\b
+)*+
+
+(?:$|\s)'
+RE2 incompatible syntax (possessive quantifier) for heuristic language:'[Adblock Filter List]', rule:'(?x)\A
+\[
+(?<version>
+  (?:
+    [Aa]d[Bb]lock
+    (?:[ \t][Pp]lus)?
+    |
+    u[Bb]lock
+    (?:[ \t][Oo]rigin)?
+    |
+    [Aa]d[Gg]uard
+  )
+  (?:[ \t] \d+(?:\.\d+)*+)?
+)
+(?:
+  [ \t]?;[ \t]?
+  \g<version>
+)*+
+\]'

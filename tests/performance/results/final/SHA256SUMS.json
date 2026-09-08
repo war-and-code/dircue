@@ -1,0 +1,8 @@
+{
+  "build-receipt.json": "d29d3abedd36c76d7c57cf05a53f1475e34d5aa36643be24d6309fda6cc1a8ae",
+  "comparison.json": "fa3028d6d2ada21acb0a1eef12b16e6d91d7db10e306c4fb88bb885484dc6c00",
+  "README.md": "a7afa0776b3a0028b098096e497a71fe4d7d1ab74da6126b860b08605afdc729",
+  "independent-audit.json": "9e8b838d120be33fe5ef56a5cb6f06a77e7ff4d592ae608aae70b5e34a6047ca",
+  "packaging-source-binding.json": "f8e721010924bf3d910892b699b8204012de4518ef41fc581af25348bdb5df5d",
+  "correctness-artifacts.tar.gz": "3ae098eb8d2301d66e31be6df716fbdba6d7c48ba42bc894e206bf1542fae989"
+}

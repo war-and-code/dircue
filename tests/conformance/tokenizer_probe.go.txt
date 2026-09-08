@@ -1,0 +1,3 @@
+package main
+import("crypto/sha256";"encoding/hex";"encoding/json";"os";"path/filepath";"io/fs";"strings";"github.com/go-enry/go-enry/v2/internal/tokenizer")
+func main(){r:=map[string]any{};err:=filepath.WalkDir(os.Args[1],func(p string,d fs.DirEntry,e error)error{if e!=nil{return e};if !d.Type().IsRegular(){return nil};b,e:=os.ReadFile(p);if e!=nil{return e};rel,e:=filepath.Rel(os.Args[1],p);if e!=nil{return e};tokens:=tokenizer.LinguistTokenize(b);h:=sha256.Sum256([]byte(strings.Join(tokens,"\000")));r[filepath.ToSlash(rel)]=map[string]any{"hash":hex.EncodeToString(h[:]),"count":len(tokens)};return nil});if err!=nil{panic(err)};json.NewEncoder(os.Stdout).Encode(r)}

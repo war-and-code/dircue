@@ -1,0 +1,94 @@
+$ go version
+go version go1.26.6 darwin/arm64
+
+$ go run golang.org/x/vuln/cmd/govulncheck@latest -version
+Go: go1.26.6
+Scanner: govulncheck@v1.7.0
+DB: https://vuln.go.dev
+DB updated: 2026-09-02 19:12:04 +0000 UTC
+
+
+$ go run golang.org/x/vuln/cmd/govulncheck@latest -show verbose ./...
+Fetching vulnerabilities from the database...
+
+Checking the code against the vulnerabilities...
+
+The package pattern matched the following 9 root packages:
+  auragaze/pkg/profile
+  auragaze/pkg/detectors
+  auragaze/pkg/scanner
+  auragaze/internal/cli
+  auragaze
+  auragaze/schema
+  auragaze/tests/conformance/classifier
+  auragaze/tests/conformance/enry_baseline
+  auragaze/tests/provenance
+Govulncheck scanned the following 25 modules and the go1.26.6 standard library:
+  auragaze
+  ./third_party/go-enry
+  ./third_party/go-enry
+  dario.cat/mergo@v1.0.0
+  github.com/ProtonMail/go-crypto@v1.1.6
+  github.com/cloudflare/circl@v1.6.3
+  github.com/cyphar/filepath-securejoin@v0.6.1
+  github.com/emirpasic/gods@v1.18.1
+  github.com/go-git/gcfg@v1.5.1-0.20230307220236-3a3c6141e376
+  github.com/go-git/go-billy/v5@v5.9.0
+  github.com/go-git/go-git/v5@v5.19.2
+  github.com/golang/groupcache@v0.0.0-20241129210726-2c02b8208cf8
+  github.com/jbenet/go-context@v0.0.0-20150711004518-d14ea06fba99
+  github.com/kevinburke/ssh_config@v1.2.0
+  github.com/klauspost/cpuid/v2@v2.3.0
+  github.com/pjbgf/sha1cd@v0.6.0
+  github.com/sergi/go-diff@v1.3.2-0.20230802210424-5b0b94c5c0d3
+  github.com/skeema/knownhosts@v1.3.1
+  github.com/spf13/cobra@v1.10.2
+  github.com/spf13/pflag@v1.0.9
+  github.com/xanzy/ssh-agent@v0.3.3
+  golang.org/x/crypto@v0.53.0
+  golang.org/x/net@v0.56.0
+  golang.org/x/sys@v0.46.0
+  gopkg.in/warnings.v0@v0.1.2
+
+=== Symbol Results ===
+
+No vulnerabilities found.
+
+=== Package Results ===
+
+Vulnerability #1: GO-2026-6355
+    Prevent DoS on deadlocked established channel in golang.org/x/crypto/ssh
+  More info: https://pkg.go.dev/vuln/GO-2026-6355
+  Module: golang.org/x/crypto
+    Found in: golang.org/x/crypto@v0.53.0
+    Fixed in: golang.org/x/crypto@v0.56.0
+
+Vulnerability #2: GO-2026-6354
+    Prevent DoS on deadlocked undecided channel in golang.org/x/crypto/ssh
+  More info: https://pkg.go.dev/vuln/GO-2026-6354
+  Module: golang.org/x/crypto
+    Found in: golang.org/x/crypto@v0.53.0
+    Fixed in: golang.org/x/crypto@v0.56.0
+
+Vulnerability #3: GO-2026-6303
+    Source-address critical option not enforced for non-public-key auth
+    callbacks in golang.org/x/crypto/ssh
+  More info: https://pkg.go.dev/vuln/GO-2026-6303
+  Module: golang.org/x/crypto
+    Found in: golang.org/x/crypto@v0.53.0
+    Fixed in: golang.org/x/crypto@v0.55.0
+
+=== Module Results ===
+
+Vulnerability #1: GO-2026-5932
+    The golang.org/x/crypto/openpgp package is unmaintained, unsafe by design,
+    and has known security issues
+  More info: https://pkg.go.dev/vuln/GO-2026-5932
+  Module: golang.org/x/crypto
+    Found in: golang.org/x/crypto@v0.53.0
+    Fixed in: N/A
+
+Your code is affected by 0 vulnerabilities.
+This scan also found 3 vulnerabilities in packages you import and 1
+vulnerability in modules you require, but your code doesn't appear to call these
+vulnerabilities.

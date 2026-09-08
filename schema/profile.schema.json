@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dircue repository profile v1",
+  "description": "Output of dircue analyze all --json. Findings cite source files; the report is not an SBOM.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "root", "summary", "languages", "ecosystems", "frameworks", "layouts", "warnings"],
+  "properties": {
+    "schema_version": {"const": "1.0.0"},
+    "root": {"type": "string", "minLength": 1},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scanned_files", "analyzed_files", "skipped_files", "language_bytes"],
+      "properties": {
+        "scanned_files": {"type": "integer", "minimum": 0},
+        "analyzed_files": {"type": "integer", "minimum": 0},
+        "skipped_files": {"type": "integer", "minimum": 0},
+        "language_bytes": {"type": "integer", "minimum": 0}
+      }
+    },
+    "languages": {"type": "array", "items": {"$ref": "#/$defs/language"}},
+    "ecosystems": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "ecosystem"}}}]}},
+    "frameworks": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "framework"}}}]}},
+    "layouts": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "layout"}}}]}},
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "code", "message"],
+        "properties": {
+          "path": {"type": "string"},
+          "code": {"type": "string", "minLength": 1},
+          "message": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "$defs": {
+    "language": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "bytes", "percentage", "file_count"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "bytes": {"type": "integer", "minimum": 0},
+        "percentage": {"type": "number", "minimum": 0, "maximum": 100},
+        "file_count": {"type": "integer", "minimum": 0},
+        "files": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "finding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "name", "root", "evidence", "detector"],
+      "properties": {
+        "kind": {"enum": ["ecosystem", "framework", "layout"]},
+        "name": {"type": "string", "minLength": 1},
+        "root": {"type": "string", "minLength": 1},
+        "evidence": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+        "detector": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

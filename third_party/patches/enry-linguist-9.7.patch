@@ -1,0 +1,1784 @@
+--- a/common.go
++++ b/common.go
+@@ -31,11 +31,7 @@
+ }
+ 
+-// defaultClassifier is a Naive Bayes classifier trained on Linguist samples.
++// defaultClassifier uses the centroid model exported from Linguist 9.7.0.
+-var defaultClassifier classifier = &naiveBayes{
+-	languagesLogProbabilities: data.LanguagesLogProbabilities,
+-	tokensLogProbabilities:    data.TokensLogProbabilities,
+-	tokensTotal:               data.TokensTotal,
+-}
++var defaultClassifier classifier = &centroidClassifier{}
+ 
+ // GetLanguage applies a sequence of strategies based on the given filename and content
+ // to find out the most probable language to return.
+@@ -150,6 +146,10 @@
+ // GetLanguagesByModeline returns a slice of possible languages for the given content.
+ // It complies with the signature to be a Strategy type.
+ func GetLanguagesByModeline(_ string, content []byte, candidates []string) []string {
++	// Linguist 9.7 modeline.rb ignores modelines inside Vimball archives.
++	if bytes.Contains(getFirstLines(content, 5), []byte("UseVimball")) {
++		return nil
++	}
+ 	headFoot := getHeaderAndFooter(content)
+ 	var languages []string
+ 	for _, getLang := range modelinesFunc {
+@@ -206,8 +206,8 @@
+ }
+ 
+ var (
+-	reEmacsModeline = regex.MustCompile(`.*-\*-\s*(.+?)\s*-\*-.*(?m:$)`)
+-	reEmacsLang     = regex.MustCompile(`.*(?i:mode)\s*:\s*([^\s;]+)\s*;*.*`)
++	reEmacsModeline = regex.MustCompile(`-\*-(.*?)-\*-`)
++	reEmacsLang     = regex.MustCompile(`(?:^|[ \t;])(?i:mode)[ \t]*:[ \t]*([^:;\s]+)`)
+ 	reVimModeline   = regex.MustCompile(`(?:(?m:\s|^)vi(?:m[<=>]?\d+|m)?|[\t\x20]*ex)\s*[:]\s*(.*)(?m:$)`)
+ 	reVimLang       = regex.MustCompile(`(?i:filetype|ft|syntax)\s*=(\w+)(?:\s|:|$)`)
+ )
+@@ -215,27 +215,26 @@
+ // GetLanguagesByEmacsModeline returns a slice of possible languages for the given content.
+ // It complies with the signature to be a Strategy type.
+ func GetLanguagesByEmacsModeline(_ string, content []byte, _ []string) []string {
+-	matched := reEmacsModeline.FindAllSubmatch(content, -1)
+-	if matched == nil {
+-		return nil
+-	}
+-
+-	// only take the last matched line, discard previous lines
+-	lastLineMatched := matched[len(matched)-1][1]
+-	matchedAlias := reEmacsLang.FindSubmatch(lastLineMatched)
+-	var alias string
+-	if matchedAlias != nil {
+-		alias = string(matchedAlias[1])
+-	} else {
+-		alias = string(lastLineMatched)
+-	}
+-
+-	language, ok := GetLanguageByAlias(alias)
+-	if !ok {
+-		return nil
+-	}
+-
+-	return []string{language}
++	// Ruby selects the first syntactically valid modeline, including an
++	// unknown alias; greedy delimiter matching mistakes XLFD font names for
++	// language modes (for example the "m" segment of a font descriptor).
++	for _, matched := range reEmacsModeline.FindAllSubmatch(content, -1) {
++		value := strings.Trim(string(matched[1]), " \t")
++		var alias string
++		if variable := reEmacsLang.FindStringSubmatch(value); variable != nil {
++			alias = variable[1]
++		} else if value != "" && !strings.ContainsAny(value, ":; \t\r\n") {
++			alias = value
++		} else {
++			continue
++		}
++		language, ok := GetLanguageByAlias(alias)
++		if !ok {
++			return nil
++		}
++		return []string{language}
++	}
++	return nil
+ }
+ 
+ // GetLanguagesByVimModeline returns a slice of possible languages for the given content.
+@@ -292,7 +291,7 @@
+ }
+ 
+ var (
+-	shebangExecHack = regex.MustCompile(`exec (\w+).+\$0.+\$@`)
++	shebangExecHack = regex.MustCompile(`exec (\w+)[\s"']+\$0[\s"']+\$@`)
+ 	pythonVersion   = regex.MustCompile(`python\d\.\d+`)
+ 	envOptArgs      = regex.MustCompile(`-[i0uCSv]*|--\S+`)
+ 	envVarArgs      = regex.MustCompile(`\S+=\S+`)
+@@ -564,5 +563,5 @@
+ 		return info, nil
+ 	}
+ 
+-	return data.LanguageInfo{}, fmt.Errorf("language %q not found", id)
+-}
++	return data.LanguageInfo{}, fmt.Errorf("language %d not found", id)
++}
+--- a/regex/standard.go
++++ b/regex/standard.go
+@@ -30,8 +30,36 @@
+ // What is a better way for an expression to indicate unsupported syntax?
+ // e.g. add .IsValidSyntax() to both, Matcher interface and EnryRegexp implementations?
+ func MustCompileRuby(s string) EnryRegexp {
++	// This pinned Linguist grammar uses a named subroutine to repeat a
++	// version token. Inlining it and removing possessive repetition is exact:
++	// digits/dots cannot consume the following semicolon or closing bracket.
++	if s == rubyAdblockFilterList {
++		return reAdblockFilterList
++	}
+ 	return nil
+ }
++
++const rubyAdblockFilterList = `(?x)\A
++\[
++(?<version>
++  (?:
++    [Aa]d[Bb]lock
++    (?:[ \t][Pp]lus)?
++    |
++    u[Bb]lock
++    (?:[ \t][Oo]rigin)?
++    |
++    [Aa]d[Gg]uard
++  )
++  (?:[ \t] \d+(?:\.\d+)*+)?
++)
++(?:
++  [ \t]?;[ \t]?
++  \g<version>
++)*+
++\]`
++
++var reAdblockFilterList = regexp.MustCompile(`\A\[(?:[Aa]d[Bb]lock(?:[ \t][Pp]lus)?|u[Bb]lock(?:[ \t][Oo]rigin)?|[Aa]d[Gg]uard)(?:[ \t]\d+(?:\.\d+)*)?(?:[ \t]?;[ \t]?(?:[Aa]d[Bb]lock(?:[ \t][Pp]lus)?|u[Bb]lock(?:[ \t][Oo]rigin)?|[Aa]d[Gg]uard)(?:[ \t]\d+(?:\.\d+)*)?)*\]`)
+ 
+ func QuoteMeta(s string) string {
+ 	return regexp.QuoteMeta(s)
+--- a/data/generated.go
++++ b/data/generated.go
+@@ -831,44 +831,59 @@
+ // getLines returns up to the first n lines. A negative index will return up to
+ // the last n lines in reverse order.
+ func getLines(content []byte, n int) [][]byte {
+-	var result [][]byte
+-	if n < 0 {
+-		for pos := len(content); pos > 0 && len(result) < -n; {
+-			nlpos := bytes.LastIndexByte(content[:pos], '\n')
+-			if nlpos+1 < len(content)-1 {
+-				result = append(result, content[nlpos+1:pos])
++	if n >= 0 {
++		if len(content) == 0 {
++			return nil
++		}
++		// Bound initial allocation even for an arbitrarily large request.
++		lines := make([][]byte, 0, min(n, 8))
++		for n > 0 {
++			end := bytes.IndexByte(content, '\n')
++			if end < 0 {
++				return append(lines, content)
+ 			}
+-			pos = nlpos
+-		}
+-	} else {
+-		for pos := 0; pos < len(content) && len(result) < n; {
+-			nlpos := bytes.IndexByte(content[pos:], '\n')
+-			if nlpos < 0 && pos < len(content) {
+-				nlpos = len(content)
+-			} else if nlpos >= 0 {
+-				nlpos += pos
+-			}
+-
+-			result = append(result, content[pos:nlpos])
+-			pos = nlpos + 1
+-		}
+-	}
+-
+-	return result
++			// Like bytes.Split, delimiter-ended fields cannot extend into the
++			// next field; the final suffix retains its original capacity.
++			lines = append(lines, content[:end:end])
++			content = content[end+1:]
++			n--
++		}
++		return lines
++	}
++	limit := -n
++	if limit < 0 {
++		// Negating MinInt overflows; preserve the resulting capacity panic.
++		return make([][]byte, 0, limit)
++	}
++	if len(content) == 0 {
++		return make([][]byte, 0)
++	}
++	lines := make([][]byte, 0, min(limit, 8))
++	for limit > 0 {
++		start := bytes.LastIndexByte(content, '\n')
++		if start < 0 {
++			return append(lines, content)
++		}
++		lines = append(lines, content[start+1:])
++		content = content[:start:start]
++		limit--
++	}
++	return lines
++}
++
++// Linguist Generated#lines differs from BlobHelper#lines: it splits only
++// on LF and preserves all trailing empty elements, without chomp or CR
++// normalization. Those final blanks determine source-map footer inclusion.
++func rubyLines(content []byte) [][]byte {
++	if len(content) == 0 {
++		return nil
++	}
++	return bytes.Split(content, []byte("\n"))
+ }
+ 
+ func forEachLine(content []byte, cb func([]byte)) {
+-	var pos int
+-	for pos < len(content) {
+-		nlpos := bytes.IndexByte(content[pos:], '\n')
+-		if nlpos < 0 && pos < len(content) {
+-			nlpos = len(content)
+-		} else if nlpos >= 0 {
+-			nlpos += pos
+-		}
+-
+-		cb(content[pos:nlpos])
+-		pos = nlpos + 1
++	for _, line := range rubyLines(content) {
++		cb(line)
+ 	}
+ }
+ 
+--- a/go.mod
++++ b/go.mod
+@@ -1,6 +1,6 @@
+ module github.com/go-enry/go-enry/v2
+ 
+-go 1.14
++go 1.26.6
+ 
+ require (
+ 	github.com/go-enry/go-oniguruma v1.2.1
+--- /dev/null
++++ b/centroid.go
+@@ -0,0 +1,322 @@
++package enry
++
++import (
++	"bytes"
++	"crypto/sha256"
++	_ "embed"
++	"encoding/binary"
++	"encoding/hex"
++	"fmt"
++	"math"
++	"sort"
++	"sync"
++	"unicode/utf8"
++
++	"github.com/go-enry/go-enry/v2/data"
++	"github.com/go-enry/go-enry/v2/internal/tokenizer"
++)
++
++// The model is exported from the pinned official Linguist gem. Inference is a
++// port of Linguist 9.7.0 Classifier#classify: log TF * inverse class frequency,
++// L2 normalization, then normalized centroid similarity. Runtime is pure Go.
++//
++//go:embed data/centroid_model.bin
++var centroidModelBinary []byte
++
++const centroidModelMagic = "AURACENT"
++const centroidModelFormatVersion uint32 = 1
++
++type centroidModel struct {
++	Vocabulary map[string]int
++	ICF        []float64
++	Centroids  map[string]map[int]float64
++}
++
++type centroidModelMetadata struct {
++	formatVersion uint32
++	sourceSHA256  string
++	binarySHA256  string
++	vocabulary    uint32
++	languages     uint32
++	entries       uint32
++}
++
++var generatedCentroidModelMetadata = centroidModelMetadata{
++	formatVersion: data.CentroidModelFormatVersion,
++	sourceSHA256:  data.CentroidModelSourceSHA256,
++	binarySHA256:  data.CentroidModelBinarySHA256,
++	vocabulary:    data.CentroidModelVocabularyCount,
++	languages:     data.CentroidModelLanguageCount,
++	entries:       data.CentroidModelEntryCount,
++}
++
++var centroidOnce sync.Once
++var currentCentroids centroidModel
++
++func loadCentroids() {
++	if err := verifyCentroidModelSHA256(centroidModelBinary, generatedCentroidModelMetadata.binarySHA256); err != nil {
++		panic(err)
++	}
++	model, err := decodeCentroidModel(centroidModelBinary, generatedCentroidModelMetadata)
++	if err != nil {
++		panic(err)
++	}
++	currentCentroids = model
++}
++
++func verifyCentroidModelSHA256(encoded []byte, expectedHex string) error {
++	expected, err := hex.DecodeString(expectedHex)
++	if err != nil || len(expected) != sha256.Size {
++		return fmt.Errorf("invalid generated centroid binary SHA-256")
++	}
++	actual := sha256.Sum256(encoded)
++	if !bytes.Equal(actual[:], expected) {
++		return fmt.Errorf("centroid binary SHA-256 mismatch")
++	}
++	return nil
++}
++
++type centroidCursor struct {
++	encoded []byte
++	offset  int
++}
++
++func (cursor *centroidCursor) remaining() int {
++	return len(cursor.encoded) - cursor.offset
++}
++
++func (cursor *centroidCursor) take(size uint32) ([]byte, error) {
++	if uint64(size) > uint64(cursor.remaining()) {
++		return nil, fmt.Errorf("truncated centroid model")
++	}
++	start := cursor.offset
++	cursor.offset += int(size)
++	return cursor.encoded[start:cursor.offset], nil
++}
++
++func (cursor *centroidCursor) uint32() (uint32, error) {
++	encoded, err := cursor.take(4)
++	if err != nil {
++		return 0, err
++	}
++	return binary.LittleEndian.Uint32(encoded), nil
++}
++
++func (cursor *centroidCursor) uint64() (uint64, error) {
++	encoded, err := cursor.take(8)
++	if err != nil {
++		return 0, err
++	}
++	return binary.LittleEndian.Uint64(encoded), nil
++}
++
++func (cursor *centroidCursor) string() (string, error) {
++	size, err := cursor.uint32()
++	if err != nil {
++		return "", err
++	}
++	encoded, err := cursor.take(size)
++	if err != nil {
++		return "", err
++	}
++	if !utf8.Valid(encoded) {
++		return "", fmt.Errorf("invalid UTF-8 in centroid model")
++	}
++	return string(encoded), nil
++}
++
++func boundedCentroidCount(count uint32, encodedSize, minimumRecordSize int, description string) (int, error) {
++	if minimumRecordSize <= 0 || uint64(count) > uint64(encodedSize/minimumRecordSize) {
++		return 0, fmt.Errorf("invalid centroid %s count", description)
++	}
++	return int(count), nil
++}
++
++func decodeCentroidModel(encoded []byte, metadata centroidModelMetadata) (centroidModel, error) {
++	cursor := centroidCursor{encoded: encoded}
++	magic, err := cursor.take(uint32(len(centroidModelMagic)))
++	if err != nil || string(magic) != centroidModelMagic {
++		return centroidModel{}, fmt.Errorf("invalid centroid model magic")
++	}
++	version, err := cursor.uint32()
++	if err != nil || version != centroidModelFormatVersion || version != metadata.formatVersion {
++		return centroidModel{}, fmt.Errorf("invalid centroid model format version")
++	}
++	sourceSHA, err := cursor.take(sha256.Size)
++	if err != nil {
++		return centroidModel{}, err
++	}
++	expectedSourceSHA, err := hex.DecodeString(metadata.sourceSHA256)
++	if err != nil || len(expectedSourceSHA) != sha256.Size {
++		return centroidModel{}, fmt.Errorf("invalid generated centroid source SHA-256")
++	}
++	if !bytes.Equal(sourceSHA, expectedSourceSHA) {
++		return centroidModel{}, fmt.Errorf("centroid source SHA-256 mismatch")
++	}
++	vocabularyCount, err := cursor.uint32()
++	if err != nil {
++		return centroidModel{}, err
++	}
++	languageCount, err := cursor.uint32()
++	if err != nil {
++		return centroidModel{}, err
++	}
++	entryCount, err := cursor.uint32()
++	if err != nil {
++		return centroidModel{}, err
++	}
++	if vocabularyCount != metadata.vocabulary || languageCount != metadata.languages || entryCount != metadata.entries {
++		return centroidModel{}, fmt.Errorf("centroid model counts do not match generated metadata")
++	}
++	vocabularySize, err := boundedCentroidCount(vocabularyCount, len(encoded), 12, "vocabulary")
++	if err != nil {
++		return centroidModel{}, err
++	}
++	languageSize, err := boundedCentroidCount(languageCount, len(encoded), 8, "language")
++	if err != nil {
++		return centroidModel{}, err
++	}
++	if _, err := boundedCentroidCount(entryCount, len(encoded), 12, "entry"); err != nil {
++		return centroidModel{}, err
++	}
++
++	model := centroidModel{
++		Vocabulary: make(map[string]int, vocabularySize),
++		ICF:        make([]float64, vocabularySize),
++		Centroids:  make(map[string]map[int]float64, languageSize),
++	}
++	for index := 0; index < vocabularySize; index++ {
++		token, err := cursor.string()
++		if err != nil {
++			return centroidModel{}, err
++		}
++		if _, exists := model.Vocabulary[token]; exists {
++			return centroidModel{}, fmt.Errorf("duplicate centroid vocabulary token")
++		}
++		model.Vocabulary[token] = index
++	}
++	for index := range model.ICF {
++		bits, err := cursor.uint64()
++		if err != nil {
++			return centroidModel{}, err
++		}
++		value := math.Float64frombits(bits)
++		if math.IsNaN(value) || math.IsInf(value, 0) {
++			return centroidModel{}, fmt.Errorf("non-finite centroid ICF value")
++		}
++		model.ICF[index] = value
++	}
++	previousLanguage := ""
++	var decodedEntries uint64
++	for languageIndex := 0; languageIndex < languageSize; languageIndex++ {
++		language, err := cursor.string()
++		if err != nil {
++			return centroidModel{}, err
++		}
++		if languageIndex > 0 && language <= previousLanguage {
++			return centroidModel{}, fmt.Errorf("centroid languages are not strictly increasing")
++		}
++		previousLanguage = language
++		count, err := cursor.uint32()
++		if err != nil {
++			return centroidModel{}, err
++		}
++		centroidSize, err := boundedCentroidCount(count, cursor.remaining(), 12, "language entry")
++		if err != nil {
++			return centroidModel{}, err
++		}
++		decodedEntries += uint64(count)
++		if decodedEntries > uint64(entryCount) {
++			return centroidModel{}, fmt.Errorf("centroid entry count exceeds header")
++		}
++		centroid := make(map[int]float64, centroidSize)
++		var previousIndex uint32
++		for entryIndex := 0; entryIndex < centroidSize; entryIndex++ {
++			index, err := cursor.uint32()
++			if err != nil {
++				return centroidModel{}, err
++			}
++			if index >= vocabularyCount || entryIndex > 0 && index <= previousIndex {
++				return centroidModel{}, fmt.Errorf("invalid centroid vocabulary index order")
++			}
++			previousIndex = index
++			bits, err := cursor.uint64()
++			if err != nil {
++				return centroidModel{}, err
++			}
++			value := math.Float64frombits(bits)
++			if math.IsNaN(value) || math.IsInf(value, 0) {
++				return centroidModel{}, fmt.Errorf("non-finite centroid value")
++			}
++			centroid[int(index)] = value
++		}
++		model.Centroids[language] = centroid
++	}
++	if decodedEntries != uint64(entryCount) {
++		return centroidModel{}, fmt.Errorf("centroid entry count does not match header")
++	}
++	if cursor.remaining() != 0 {
++		return centroidModel{}, fmt.Errorf("trailing centroid model bytes")
++	}
++	return model, nil
++}
++
++type centroidClassifier struct{}
++
++func (*centroidClassifier) classify(content []byte, candidates map[string]float64) []string {
++	if len(candidates) == 0 {
++		return nil
++	}
++	centroidOnce.Do(loadCentroids)
++	// Ruby caps inference at 50 KiB, while training sees complete samples.
++	if len(content) > 50*1024 {
++		content = content[:50*1024]
++	}
++	counts := map[int]float64{}
++	for _, token := range tokenizer.LinguistTokenize(content) {
++		if index, ok := currentCentroids.Vocabulary[token]; ok {
++			counts[index]++
++		}
++	}
++	if len(counts) == 0 {
++		return nil
++	}
++	// Stable token order avoids map-iteration-dependent floating point noise.
++	indices := make([]int, 0, len(counts))
++	for index := range counts {
++		indices = append(indices, index)
++	}
++	sort.Ints(indices)
++	norm := 0.0
++	for _, index := range indices {
++		value := (1 + math.Log(counts[index])) * currentCentroids.ICF[index]
++		counts[index] = value
++		norm += value * value
++	}
++	norm = math.Sqrt(norm)
++	if norm == 0 {
++		return nil
++	}
++	scored := make([]*scoredLanguage, 0, len(candidates))
++	for language := range candidates {
++		if alias, ok := GetLanguageByAlias(language); ok {
++			language = alias
++		}
++		fsName := language
++		if info, err := GetLanguageInfo(language); err == nil && info.FSName != "" {
++			fsName = info.FSName
++		}
++		centroid := currentCentroids.Centroids[fsName]
++		score := 0.0
++		for _, index := range indices {
++			score += (counts[index] / norm) * centroid[index]
++		}
++		if score > 0 {
++			scored = append(scored, &scoredLanguage{language: language, score: score})
++		}
++	}
++	// Ruby preserves candidate order for ties; generated candidates are sorted
++	// by canonical name, so make that order explicit before its stable score sort.
++	sort.Slice(scored, func(i, j int) bool { return scored[i].language < scored[j].language })
++	return sortLanguagesByScore(scored)
++}
+--- /dev/null
++++ b/internal/tokenizer/linguist.go
+@@ -0,0 +1,309 @@
++package tokenizer
++
++import (
++	"bytes"
++	"regexp"
++	"regexp/syntax"
++	"strconv"
++	"strings"
++)
++
++// LinguistTokenize is a pure-Go port of Linguist 9.7.0 ext/linguist/tokenizer.l.
++// Flex chooses the longest match, then the first rule on equal lengths. Go's
++// linear-time regexp engine implements this with Longest and ordered branches.
++// Tokens have a 16-byte limit; the upstream native scanner reads at most 100,000 bytes.
++func LinguistTokenize(content []byte) []string {
++	if len(content) > 100000 {
++		content = content[:100000]
++	}
++	var tokens []string
++	emit := func(token string) {
++		if len(token) > 16 {
++			token = token[:16]
++		}
++		tokens = append(tokens, token)
++	}
++	beginning := true
++	for len(content) > 0 {
++		// Only the identifier rule and one-rune fallback can start with an
++		// ASCII letter or underscore, in either lexer state. The identifier
++		// wins by longest match and declaration order. Numeric and prefixed
++		// identifiers still need the general lexer to resolve competing rules.
++		if size := asciiIdentifierLength(content); size > 0 {
++			emit(string(content[:size]))
++			content = content[size:]
++			beginning = false
++			continue
++		}
++		lexer := &ordinaryLexer
++		if beginning {
++			lexer = &beginningLexer
++		}
++		lexer = lexer.forInitialByte(content[0])
++		match := lexer.expression.FindSubmatchIndex(content)
++		if match == nil {
++			panic("tokenizer fallback failed")
++		}
++		selected := -1
++		for i, index := range lexer.groups {
++			if match[index*2] >= 0 {
++				selected = i
++				break
++			}
++		}
++		rule := lexer.rules[selected]
++		size := match[1]
++		lexeme := content[:size]
++		content = content[size:]
++		beginning = lexeme[len(lexeme)-1] == '\n'
++		switch rule.action {
++		case "feed":
++			emit(string(lexeme))
++		case "static":
++			emit(rule.value)
++		case "block":
++			emit(rule.value)
++			closing := []byte(rule.end)
++			index := bytes.Index(content, closing)
++			if index < 0 {
++				return tokens
++			}
++			end := index + len(closing)
++			beginning = content[end-1] == '\n'
++			content = content[end:]
++		case "string":
++			quote := lexeme[0]
++			for len(content) > 0 {
++				c := content[0]
++				content = content[1:]
++				beginning = c == '\n'
++				if c == 0 {
++					return tokens
++				}
++				if c == '\n' || c == quote {
++					break
++				}
++				if c == '\\' {
++					if len(content) == 0 || content[0] == 0 {
++						return tokens
++					}
++					beginning = content[0] == '\n'
++					content = content[1:]
++				}
++			}
++		case "shebang-env", "shebang":
++			token := string(lexeme)
++			separator := '/'
++			if rule.action == "shebang-env" {
++				separator = ' '
++			}
++			if index := strings.LastIndexByte(token, byte(separator)); index >= 0 {
++				token = token[index+1:]
++			}
++			if token != "env" || rule.action == "shebang-env" {
++				if len(token) > 16 {
++					token = token[:16]
++				}
++				tokens = append(tokens, "SHEBANG#!"+token)
++			}
++			for len(content) > 0 {
++				c := content[0]
++				content = content[1:]
++				if c == 0 {
++					return tokens
++				}
++				if c == '\n' {
++					beginning = true
++					break
++				}
++			}
++		}
++	}
++	return tokens
++}
++
++func asciiIdentifierLength(content []byte) int {
++	if len(content) == 0 || !asciiIdentifierStart(content[0]) {
++		return 0
++	}
++	size := 1
++	for size < len(content) {
++		c := content[size]
++		if !asciiIdentifierStart(c) && !(c >= '0' && c <= '9') {
++			break
++		}
++		size++
++	}
++	return size
++}
++
++func asciiIdentifierStart(c byte) bool {
++	return c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c == '_'
++}
++
++type lexicalRule struct{ pattern, action, value, end string }
++type compiledLexer struct {
++	expression *regexp.Regexp
++	groups     []int
++	rules      []lexicalRule
++	ascii      *[128]*compiledLexer
++}
++
++func compileLexer(rules []lexicalRule) compiledLexer {
++	ids := make([]int, len(rules))
++	first := make([][128]bool, len(rules))
++	for i, rule := range rules {
++		ids[i] = i
++		first[i] = possibleFirstASCII(rule.pattern)
++	}
++	full := compileLexerExpression(rules, ids)
++	full.ascii = new([128]*compiledLexer)
++	// Intern within this rule list: a mask identifies both the selected rules
++	// and their declaration order. Variable-length masks permit any rule count.
++	subsets := make(map[string]*compiledLexer)
++	for c := range full.ascii {
++		mask := make([]byte, (len(rules)+7)/8)
++		var selected []lexicalRule
++		var selectedIDs []int
++		for i, rule := range rules {
++			if first[i][c] {
++				mask[i/8] |= 1 << uint(i%8)
++				selected = append(selected, rule)
++				selectedIDs = append(selectedIDs, i)
++			}
++		}
++		if len(selected) == 0 || len(selected) == len(rules) {
++			continue // nil means retain the full expression.
++		}
++		key := string(mask)
++		if prior := subsets[key]; prior != nil {
++			full.ascii[c] = prior
++			continue
++		}
++		subset := compileLexerExpression(selected, selectedIDs)
++		subsets[key] = &subset
++		full.ascii[c] = &subset
++	}
++	return full
++}
++
++func (lexer *compiledLexer) forInitialByte(c byte) *compiledLexer {
++	if c < 128 && lexer.ascii != nil && lexer.ascii[c] != nil {
++		return lexer.ascii[c]
++	}
++	return lexer
++}
++
++// possibleFirstASCII conservatively overapproximates the first consumed rune.
++// Empty-width assertions are ignored; nullable rules remain eligible for every
++// byte. Removing a rule requires proving it cannot match this initial byte.
++func possibleFirstASCII(pattern string) [128]bool {
++	all := func() (result [128]bool) {
++		for i := range result {
++			result[i] = true
++		}
++		return result
++	}
++	expression, err := syntax.Parse(pattern, syntax.Perl)
++	if err != nil {
++		return all()
++	}
++	program, err := syntax.Compile(expression.Simplify())
++	if err != nil {
++		return all()
++	}
++	var result [128]bool
++	seen := make([]bool, len(program.Inst))
++	pending := []uint32{uint32(program.Start)}
++	for len(pending) > 0 {
++		pc := pending[len(pending)-1]
++		pending = pending[:len(pending)-1]
++		if int(pc) >= len(program.Inst) {
++			return all()
++		}
++		if seen[pc] {
++			continue
++		}
++		seen[pc] = true
++		instruction := &program.Inst[pc]
++		switch instruction.Op {
++		case syntax.InstAlt, syntax.InstAltMatch:
++			pending = append(pending, instruction.Out, instruction.Arg)
++		case syntax.InstCapture, syntax.InstNop, syntax.InstEmptyWidth:
++			pending = append(pending, instruction.Out)
++		case syntax.InstMatch:
++			return all()
++		case syntax.InstFail:
++		case syntax.InstRune:
++			for c := range result {
++				result[c] = result[c] || instruction.MatchRune(rune(c))
++			}
++		case syntax.InstRune1:
++			if len(instruction.Rune) != 1 || instruction.Arg != 0 {
++				return all()
++			}
++			if c := instruction.Rune[0]; c >= 0 && c < 128 {
++				result[c] = true
++			}
++		case syntax.InstRuneAny:
++			return all()
++		case syntax.InstRuneAnyNotNL:
++			for c := range result {
++				result[c] = result[c] || c != '\n'
++			}
++		default:
++			return all()
++		}
++	}
++	return result
++}
++
++func compileLexerExpression(rules []lexicalRule, ids []int) compiledLexer {
++	parts := make([]string, len(rules))
++	for i, rule := range rules {
++		parts[i] = "(?P<r" + strconv.Itoa(ids[i]) + ">" + rule.pattern + ")"
++	}
++	expression := regexp.MustCompile("^(?:" + strings.Join(parts, "|") + ")")
++	expression.Longest()
++	groups := make([]int, len(rules))
++	for i := range rules {
++		groups[i] = expression.SubexpIndex("r" + strconv.Itoa(ids[i]))
++	}
++	return compiledLexer{expression: expression, groups: groups, rules: rules}
++}
++
++var beginningRules = []lexicalRule{
++	{`#![ \t]*(?:[A-Za-z0-9_/]*/)?env(?:[ \t]+(?:[^ \t=]*=[^ \t]*))*[ \t]+[A-Za-z_]+`, "shebang-env", "", ""},
++	{`#![ \t]*[A-Za-z_/]+`, "shebang", "", ""},
++	{`[ \t]*#+(?: .*|\n)`, "static", "COMMENT#", ""},
++	{`[ \t]*//!(?: .*|\n)`, "static", "COMMENT//!", ""},
++	{`[ \t]*//.*\n?`, "static", "COMMENT//", ""},
++	{`[ \t]*--(?: .*|\n)`, "static", "COMMENT--", ""},
++	{`[ \t]*%+(?: .*|\n)`, "static", "COMMENT%", ""},
++	{`[ \t]*"(?: .*|\n)`, "static", "COMMENT\"", ""},
++	{`[ \t]*;+(?: .*|\n)`, "static", "COMMENT;", ""},
++	{`\.[ \t]*\\"(?:.*|\n)`, "static", "COMMENT.\\\"", ""},
++	{`'[ \t]*\\"(?:.*|\n)`, "static", "COMMENT'\\\"", ""},
++	{`\$! (?:.*|\n)`, "static", "COMMENT$!", ""},
++	{`\.ig\n`, "block", "COMMENT.ig", "..\n"},
++}
++var ordinaryRules = []lexicalRule{
++	{`/\*\*/`, "static", "COMMENT/*", ""},
++	{`/\*\*`, "block", "COMMENT/**", "*/"}, {`/\*!`, "block", "COMMENT/*!", "*/"}, {`/\*`, "block", "COMMENT/*", "*/"},
++	{`<!--`, "block", "COMMENT<!--", "-->"}, {`\{-`, "block", "COMMENT{-", "-}"}, {`\(\*`, "block", "COMMENT(*", "*)"},
++	{`"""`, "block", "COMMENT\"\"\"", "\"\"\""}, {`'''`, "block", "COMMENT'''", "'''"},
++	{`/--`, "block", "COMMENT/-", "-/"}, {`/-`, "block", "COMMENT/-", "-/"},
++	{`""|''`, "skip", "", ""}, {`"|'`, "string", "", ""},
++	{`(?:0x[0-9a-fA-F](?:[0-9a-fA-F]|\.)*|[0-9](?:[0-9]|\.)*)(?:[uU][lL]{0,2}|(?:[eE][-+][0-9]*)?[fFlL]*)`, "skip", "", ""},
++	{`[.@#$]?[A-Za-z0-9_]+`, "feed", "", ""},
++	{`\(+\)+|\{+\}+|\[+\]+|\(+|\)+|\{+|\}+|\[+|\]+|\$(?:\(+|\{+|\[\]+)`, "feed", "", ""},
++	{`\(\.\.\.\)|\{\.\.\.\}|\[\.\.\.\]`, "feed", "", ""},
++	{`&>|<&|<&-|&>>|>&|\|&|&\|`, "feed", "", ""},
++	{`-+>+|<+-+`, "feed", "", ""},
++	{`!+=+|[<>]*=+[<>]*|</?[?%!#@]|[?%!]>|[<>/]+|[-+*/%&|^~:]=+|[!=]~|:-`, "feed", "", ""},
++	{`\.\*+\??|\.\++\??|\(\?:`, "feed", "", ""},
++	{`-+|!+|#+|\$+|%+|&+|\*+|\++|,+|\.+|:+|;+|\?+|@+|\\+|\^+|` + "`" + `+|\|+|~+`, "feed", "", ""},
++	{`(?s:.)`, "skip", "", ""},
++}
++var ordinaryLexer = compileLexer(ordinaryRules)
++var beginningLexer = compileLexer(append(append([]lexicalRule{}, beginningRules...), ordinaryRules...))
+--- /dev/null
++++ b/auragaze_compat_test.go
+@@ -0,0 +1,44 @@
++package enry
++
++import "testing"
++
++// General syntax from Linguist 9.7.0 modeline.rb, shebang.rb and heuristics.yml.
++// No fixture names or content hashes participate in production classification.
++func TestLinguistCompatibilitySyntax(t *testing.T) {
++	tests := []struct{ name, filename, content, want string }{
++		{"font-is-not-mode", "theme.gtkrc", `fontset = "-*-courier-medium-r-*-*-12-*-*-*-m-*-*-*"`, "GtkRC"},
++		{"first-valid-mode", "file.txt", "# -*- ruby -*-\n# -*- python -*-\n", "Ruby"},
++		{"explicit-mode", "file.txt", "# -*- coding:utf-8; mode: python; -*-\n", "Python"},
++		{"adjacent-mode", "file.txt", "# -*-mode:ruby-*-\n", "Ruby"},
++		{"vimball-archive", "archive.vba", "\" Vimball Archiver\nUseVimball\nfinish\n\" vim:ft=help\n", "Vim script"},
++		{"adblock-header", "rules.txt", "[Adblock Plus 2.0]\n||example.com^\n", "Adblock Filter List"},
++		{"adblock-repeated-grammar", "rules.txt", "[uBlock Origin 1.2; AdGuard 3.0]\nexample.com\n", "Adblock Filter List"},
++		{"adblock-invalid-token", "rules.txt", "[Adblock Plus bogus]\nexample.com\n", "Text"},
++		{"adblock-not-at-start", "rules.txt", "hello\n[Adblock Plus]\n", "Text"},
++		{"node-commonjs", "launcher", "#!/usr/bin/env node\nrequire('./entry.js')\n", "JavaScript"},
++		{"exec-wrapper", "tool", "#!/bin/sh\nexec python \"$0\" \"$@\"\n", "Python"},
++		{"exec-with-flags-is-shell", "tool", "#!/bin/sh\nexec jq -nef \"$0\" \"$@\"\ntrue\n", "Shell"},
++	}
++	for _, tt := range tests {
++		t.Run(tt.name, func(t *testing.T) {
++			if got := GetLanguage(tt.filename, []byte(tt.content)); got != tt.want {
++				t.Fatalf("got %q want %q", got, tt.want)
++			}
++		})
++	}
++}
++
++func TestSourceMapFooterLineBoundaries(t *testing.T) {
++	for _, newline := range []string{"\n", "\r\n"} {
++		source := "console.log(1);" + newline + "//# sourceMappingURL=main.js.map"
++		if !IsGenerated("main.js", []byte(source+newline)) {
++			t.Errorf("source map within last two lines missed for %q", newline)
++		}
++		if IsGenerated("main.js", []byte(source+newline+newline)) {
++			t.Errorf("source map before last two lines incorrectly included for %q", newline)
++		}
++	}
++	if IsGenerated("main.js", []byte("console.log(1);\r//# sourceMappingURL=x.map\r")) {
++		t.Error("bare CR incorrectly split by Generated#lines")
++	}
++}
+--- /dev/null
++++ b/internal/tokenizer/linguist_identifier_test.go
+@@ -0,0 +1,96 @@
++package tokenizer
++
++import (
++	"bytes"
++	"math/rand"
++	"reflect"
++	"testing"
++)
++
++// This oracle uses the unchanged longest-match regexp and ordered capture
++// groups. It checks the fast path's consumed extent and lexical action, not
++// merely the emitted token (which is truncated and could conceal overreading).
++func checkIdentifierDecision(t *testing.T, content []byte) {
++	t.Helper()
++	size := asciiIdentifierLength(content)
++	wantGuard := len(content) > 0 && bytes.ContainsRune([]byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_"), rune(content[0]))
++	if (size > 0) != wantGuard {
++		t.Fatalf("guard for %q: size=%d, want guard=%t", content, size, wantGuard)
++	}
++	if size == 0 {
++		return
++	}
++	for _, lexer := range []compiledLexer{ordinaryLexer, beginningLexer} {
++		match := lexer.expression.FindSubmatchIndex(content)
++		if match == nil || match[0] != 0 || match[1] != size {
++			t.Fatalf("extent for %q: fast=%d, reference=%v", content, size, match)
++		}
++		selected := -1
++		for i, group := range lexer.groups {
++			if match[group*2] >= 0 {
++				selected = i
++				break
++			}
++		}
++		if selected < 0 || lexer.rules[selected].pattern != `[.@#$]?[A-Za-z0-9_]+` || lexer.rules[selected].action != "feed" {
++			t.Fatalf("reference selected a competing rule for %q: %d", content, selected)
++		}
++	}
++}
++
++func TestASCIIIdentifierLexicalBoundaries(t *testing.T) {
++	checkIdentifierDecision(t, nil)
++	// Every possible first byte and next byte, with a later identifier that
++	// must remain untouched when the next byte terminates this identifier.
++	for first := 0; first < 256; first++ {
++		for next := 0; next < 256; next++ {
++			checkIdentifierDecision(t, []byte{byte(first), byte(next), 'z', '9', '_'})
++		}
++	}
++	for _, length := range []int{1, 15, 16, 17, 31, 255, 100000, 100001} {
++		for _, ending := range [][]byte{nil, {'\n'}, {'\r', '\n'}, {0}, {0xff}, []byte("é"), []byte("/*comment*/next")} {
++			content := append(bytes.Repeat([]byte{'_'}, length), ending...)
++			checkIdentifierDecision(t, content)
++		}
++	}
++}
++
++func TestIdentifierFastPathOrderedTokens(t *testing.T) {
++	inputs := [][]byte{
++		nil, {}, []byte("a"), []byte("_"), []byte("a012_Z"),
++		[]byte("0xdeadbeef 123abc 1e+2 5.2F .name @name #name $name"),
++		[]byte("identifier\n#! /usr/bin/env python\nnext"),
++		[]byte("identifier\n // comment\nnext\n-- comment\nfinal"),
++		[]byte("before/* blocked identifier */after\n\"quoted identifier\" tail"),
++		[]byte("before\"escaped\\\" identifier\"after\n'''block'''tail"),
++		[]byte("before\"unterminated\x00after"),
++		[]byte("\xef\xbb\xbfalpha é_beta \xffname\x00last"),
++		[]byte("a\n.ig\nignored identifiers\n..\nlast"),
++		[]byte("a\n#!/usr/bin/env KEY=value python -x\nlast"),
++	}
++	for _, boundary := range []int{15, 16, 17, 99999, 100000, 100001} {
++		inputs = append(inputs, bytes.Repeat([]byte{'a'}, boundary))
++		input := bytes.Repeat([]byte{'a'}, boundary)
++		inputs = append(inputs, append(input, []byte("\n#! /bin/sh\nnext")...))
++	}
++	for _, input := range inputs {
++		if got, want := LinguistTokenize(input), referenceLinguistTokenize(input); !reflect.DeepEqual(got, want) {
++			t.Fatalf("ordered tokens differ for %d bytes (%q): got %q, want %q", len(input), input[:min(len(input), 80)], got, want)
++		}
++	}
++}
++
++func TestIdentifierFastPathDeterministicRandom(t *testing.T) {
++	random := rand.New(rand.NewSource(97001))
++	alphabet := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789 \t\r\n#@.$'\"/\\*-+(){}[];\x00\xff\xc3\xa9")
++	for trial := 0; trial < 10000; trial++ {
++		content := make([]byte, random.Intn(256))
++		for i := range content {
++			content[i] = alphabet[random.Intn(len(alphabet))]
++		}
++		checkIdentifierDecision(t, content)
++		if got, want := LinguistTokenize(content), referenceLinguistTokenize(content); !reflect.DeepEqual(got, want) {
++			t.Fatalf("seed=97001 trial=%d content=%q: got %q, want %q", trial, content, got, want)
++		}
++	}
++}
+--- /dev/null
++++ b/internal/tokenizer/linguist_reference_test.go
+@@ -0,0 +1,108 @@
++package tokenizer
++
++import (
++	"bytes"
++	"strings"
++)
++
++// Frozen RC1 tokenizer loop, retained solely as an ordered-token test oracle.
++// Source v0.1.0-rc.1 linguist.go SHA256: a25e3a34163965df585fdafb66ab8f3450fbbcec617c54bdc43668d0d4c0055f
++// It deliberately bypasses asciiIdentifierLength and uses the original lexer.
++func referenceLinguistTokenize(content []byte) []string {
++	if len(content) > 100000 {
++		content = content[:100000]
++	}
++	var tokens []string
++	emit := func(token string) {
++		if len(token) > 16 {
++			token = token[:16]
++		}
++		tokens = append(tokens, token)
++	}
++	beginning := true
++	for len(content) > 0 {
++		lexer := ordinaryLexer
++		if beginning {
++			lexer = beginningLexer
++		}
++		match := lexer.expression.FindSubmatchIndex(content)
++		if match == nil {
++			panic("tokenizer fallback failed")
++		}
++		selected := -1
++		for i, index := range lexer.groups {
++			if match[index*2] >= 0 {
++				selected = i
++				break
++			}
++		}
++		rule := lexer.rules[selected]
++		size := match[1]
++		lexeme := content[:size]
++		content = content[size:]
++		beginning = lexeme[len(lexeme)-1] == '\n'
++		switch rule.action {
++		case "feed":
++			emit(string(lexeme))
++		case "static":
++			emit(rule.value)
++		case "block":
++			emit(rule.value)
++			closing := []byte(rule.end)
++			index := bytes.Index(content, closing)
++			if index < 0 {
++				return tokens
++			}
++			end := index + len(closing)
++			beginning = content[end-1] == '\n'
++			content = content[end:]
++		case "string":
++			quote := lexeme[0]
++			for len(content) > 0 {
++				c := content[0]
++				content = content[1:]
++				beginning = c == '\n'
++				if c == 0 {
++					return tokens
++				}
++				if c == '\n' || c == quote {
++					break
++				}
++				if c == '\\' {
++					if len(content) == 0 || content[0] == 0 {
++						return tokens
++					}
++					beginning = content[0] == '\n'
++					content = content[1:]
++				}
++			}
++		case "shebang-env", "shebang":
++			token := string(lexeme)
++			separator := '/'
++			if rule.action == "shebang-env" {
++				separator = ' '
++			}
++			if index := strings.LastIndexByte(token, byte(separator)); index >= 0 {
++				token = token[index+1:]
++			}
++			if token != "env" || rule.action == "shebang-env" {
++				if len(token) > 16 {
++					token = token[:16]
++				}
++				tokens = append(tokens, "SHEBANG#!"+token)
++			}
++			for len(content) > 0 {
++				c := content[0]
++				content = content[1:]
++				if c == 0 {
++					return tokens
++				}
++				if c == '\n' {
++					beginning = true
++					break
++				}
++			}
++		}
++	}
++	return tokens
++}
+--- /dev/null
++++ b/internal/tokenizer/linguist_subset_test.go
+@@ -0,0 +1,159 @@
++package tokenizer
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"reflect"
++	"strconv"
++	"testing"
++)
++
++type lexicalDecision struct {
++	ruleID int
++	size   int
++}
++
++func decision(t *testing.T, lexer *compiledLexer, content []byte) lexicalDecision {
++	t.Helper()
++	match := lexer.expression.FindSubmatchIndex(content)
++	if match == nil {
++		return lexicalDecision{-1, 0}
++	}
++	if match[0] != 0 {
++		t.Fatal("lexer match was not anchored")
++	}
++	for _, group := range lexer.groups {
++		if match[group*2] >= 0 {
++			name := lexer.expression.SubexpNames()[group]
++			if len(name) < 2 || name[0] != 'r' {
++				t.Fatalf("unexpected lexical rule capture %q", name)
++			}
++			ruleID, err := strconv.Atoi(name[1:])
++			if err != nil {
++				t.Fatalf("unexpected lexical rule capture %q: %v", name, err)
++			}
++			return lexicalDecision{ruleID, match[1]}
++		}
++	}
++	t.Fatal("matched expression without a selected lexical rule")
++	return lexicalDecision{}
++}
++
++func checkSubsetDecision(t *testing.T, full *compiledLexer, content []byte) {
++	t.Helper()
++	subset := full
++	if len(content) > 0 {
++		subset = full.forInitialByte(content[0])
++	}
++	if got, want := decision(t, subset, content), decision(t, full, content); got != want {
++		t.Fatalf("subset decision for %q: got %+v, want %+v", content, got, want)
++	}
++}
++
++func TestASCIISubsetsCurrentRules(t *testing.T) {
++	for _, lexer := range []*compiledLexer{&ordinaryLexer, &beginningLexer} {
++		for first := 0; first < 256; first++ {
++			for next := 0; next < 256; next++ {
++				checkSubsetDecision(t, lexer, []byte{byte(first), byte(next), 'a', '0', '\n'})
++			}
++			for _, ending := range []string{"", "abc", "23e+5", "0x123", "\n", " comment\n", "*comment*/", "#!/bin/sh\n", "é", "\x00\xff"} {
++				checkSubsetDecision(t, lexer, append([]byte{byte(first)}, []byte(ending)...))
++			}
++			if first >= 128 && lexer.forInitialByte(byte(first)) != lexer {
++				t.Fatalf("non-ASCII byte %d did not retain the full lexer", first)
++			}
++		}
++		if lexer.forInitialByte('0') != lexer.forInitialByte('1') {
++			t.Error("identical numeric rule masks were not interned")
++		}
++		if lexer.forInitialByte(' ') != lexer.forInitialByte('\t') {
++			t.Error("identical whitespace rule masks were not interned")
++		}
++	}
++}
++
++func TestASCIISubsetsFutureRegexConstructs(t *testing.T) {
++	// Alternations, nullable repeats, captures and zero-width constraints must
++	// not remove an eligible rule. Unicode folding can reach ASCII.
++	patterns := []string{
++		`(?i:K)`, `(?i:s)`, `(?i)abc`, `(?:a?)*b`, `(?:ab|a)c?`,
++		`(a)(b)?`, `(?P<inner>x)y?`, `\bword`, `\Bword`, `^abc$`,
++		`(?m:^a$)`, `(?:\A|\b)x`, `a{0,3}b`, `[^\na]`, `\p{Greek}`,
++		`(?s:.)`, `.`, `(?:x|)`, `a*`, `(?:)`, `\z`, `[a&&b]`,
++		`a+?`, `(?:a?|b?)*c`, `[^\x00-\x{10FFFF}]`,
++	}
++	for _, pattern := range patterns {
++		t.Run(pattern, func(t *testing.T) {
++			// Competing rules before/after the candidate expose selection-order
++			// mistakes, including ties and empty matches when no rune matches.
++			lexer := compileLexer([]lexicalRule{
++				{`abc|word|xy`, "feed", "", ""},
++				{pattern, "static", "selected", ""},
++				{`abc|a|b|x|K|S`, "feed", "", ""},
++				{`(?s:.)`, "skip", "", ""},
++			})
++			checkSubsetDecision(t, &lexer, nil)
++			for first := 0; first < 256; first++ {
++				for _, tail := range []string{"", "abc", "word", "b", "bc", "xy", "\n", "\x00", "é"} {
++					checkSubsetDecision(t, &lexer, append([]byte{byte(first)}, []byte(tail)...))
++				}
++			}
++			for _, input := range []string{"K", "ſ", "Σ", "é", "\xff", "\xc3", "ab\n", "word\n"} {
++				checkSubsetDecision(t, &lexer, []byte(input))
++			}
++		})
++	}
++	// A nullable-only grammar is not used by the tokenizer, but future analysis
++	// must retain its zero-length match and original first-rule tie winner.
++	nullable := compileLexer([]lexicalRule{{`(?:)`, "skip", "", ""}, {`a*`, "feed", "", ""}})
++	for _, input := range []string{"", "z", "aaa", "\n"} {
++		checkSubsetDecision(t, &nullable, []byte(input))
++	}
++	// No candidate mask should weaken full-lexer fallback or its no-match result.
++	narrow := compileLexer([]lexicalRule{{`abc`, "feed", "", ""}})
++	for _, input := range []string{"", "abc", "xyz"} {
++		checkSubsetDecision(t, &narrow, []byte(input))
++	}
++}
++
++func TestASCIISubsetsAbove64Rules(t *testing.T) {
++	var rules []lexicalRule
++	for i := 0; i < 90; i++ {
++		rules = append(rules, lexicalRule{fmt.Sprintf("a%d", i), "feed", "", ""})
++	}
++	rules = append(rules, lexicalRule{`z+`, "static", "last", ""}, lexicalRule{`(?s:.)`, "skip", "", ""})
++	lexer := compileLexer(rules)
++	for i := 0; i < 90; i++ {
++		checkSubsetDecision(t, &lexer, []byte(fmt.Sprintf("a%d", i)))
++	}
++	for _, input := range []string{"zzz", "a89x", "!", "\xff"} {
++		checkSubsetDecision(t, &lexer, []byte(input))
++	}
++	if got := decision(t, lexer.forInitialByte('z'), []byte("zzz")); got.ruleID != 90 {
++		t.Fatalf("rule beyond 64 lost its original identity: %+v", got)
++	}
++}
++
++func TestASCIISubsetsOrderedTokens(t *testing.T) {
++	random := rand.New(rand.NewSource(97002))
++	alphabet := []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_0123456789 \t\r\n#@.$'\"/\\*-+(){}[];\x00\xff\xc3\xa9")
++	for trial := 0; trial < 10000; trial++ {
++		content := make([]byte, random.Intn(256))
++		for i := range content {
++			content[i] = alphabet[random.Intn(len(alphabet))]
++		}
++		for _, lexer := range []*compiledLexer{&ordinaryLexer, &beginningLexer} {
++			checkSubsetDecision(t, lexer, content)
++		}
++		if got, want := LinguistTokenize(content), referenceLinguistTokenize(content); !reflect.DeepEqual(got, want) {
++			t.Fatalf("seed=97002 trial=%d content=%q: got %q, want %q", trial, content, got, want)
++		}
++	}
++	for _, boundary := range []int{15, 16, 17, 99999, 100000, 100001} {
++		content := append(bytes.Repeat([]byte(" "), boundary), []byte("\n// comment\nnext")...)
++		if got, want := LinguistTokenize(content), referenceLinguistTokenize(content); !reflect.DeepEqual(got, want) {
++			t.Fatalf("input cap or whitespace state differs at %d", boundary)
++		}
++	}
++}
+--- /dev/null
++++ b/data/generated_lines_test.go
+@@ -0,0 +1,198 @@
++package data
++
++import (
++	"bytes"
++	"fmt"
++	"math/rand"
++	"reflect"
++	"strings"
++	"testing"
++)
++
++// Frozen helper before bounded selection. Unlike the optimized helper, this
++// oracle deliberately splits every LF field before selecting a prefix/suffix.
++func referenceGetLines(content []byte, n int) [][]byte {
++	var lines [][]byte
++	if len(content) != 0 {
++		lines = bytes.Split(content, []byte("\n"))
++	}
++	if n >= 0 {
++		if n < len(lines) {
++			lines = lines[:n]
++		}
++		return lines
++	}
++	limit := -n
++	if limit > len(lines) {
++		limit = len(lines)
++	}
++	result := make([][]byte, 0, limit)
++	for i := len(lines) - 1; i >= len(lines)-limit; i-- {
++		result = append(result, lines[i])
++	}
++	return result
++}
++
++func captureLines(fn func([]byte, int) [][]byte, content []byte, n int) (lines [][]byte, panicked any) {
++	defer func() { panicked = recover() }()
++	lines = fn(content, n)
++	return
++}
++
++func checkSelectedLines(t *testing.T, content []byte, n, spare int) {
++	t.Helper()
++	// Independent equal-capacity inputs expose aliasing/capacity changes without
++	// allowing mutation through one implementation to affect the other oracle.
++	actual := make([]byte, len(content), len(content)+spare)
++	original := make([]byte, len(content), len(content)+spare)
++	copy(actual, content)
++	copy(original, content)
++	got, gotPanic := captureLines(getLines, actual, n)
++	want, wantPanic := captureLines(referenceGetLines, original, n)
++	if reflect.TypeOf(gotPanic) != reflect.TypeOf(wantPanic) || fmt.Sprint(gotPanic) != fmt.Sprint(wantPanic) {
++		t.Fatalf("n=%d input=%q: panic got %v, want %v", n, content, gotPanic, wantPanic)
++	}
++	if gotPanic != nil {
++		return
++	}
++	if !reflect.DeepEqual(got, want) {
++		t.Fatalf("n=%d input=%q: got %#v, want %#v", n, content, got, want)
++	}
++	for i := range got {
++		if cap(got[i]) != cap(want[i]) {
++			t.Fatalf("n=%d line=%d: inner capacity got %d, want %d", n, i, cap(got[i]), cap(want[i]))
++		}
++		if len(got[i]) > 0 {
++			got[i][0] ^= 0xff
++			want[i][0] ^= 0xff
++		}
++	}
++	if !bytes.Equal(actual, original) {
++		t.Fatalf("n=%d input=%q: line slices no longer alias matching original bytes", n, content)
++	}
++}
++
++func TestGetLinesExhaustiveBoundaries(t *testing.T) {
++	maxInt := int(^uint(0) >> 1)
++	requests := []int{-maxInt - 1, -maxInt, -41, -3, -2, -1, 0, 1, 2, 3, 40, 41, maxInt}
++	alphabet := []byte{'x', '\n', '\r', 0}
++	var visit func([]byte, int)
++	visit = func(content []byte, remaining int) {
++		for _, n := range requests {
++			checkSelectedLines(t, content, n, 0)
++			checkSelectedLines(t, content, n, 7)
++		}
++		if remaining == 0 {
++			return
++		}
++		for _, c := range alphabet {
++			visit(append(bytes.Clone(content), c), remaining-1)
++		}
++	}
++	visit(nil, 5)
++	for _, n := range requests {
++		got, gotPanic := captureLines(getLines, nil, n)
++		want, wantPanic := captureLines(referenceGetLines, nil, n)
++		if !reflect.DeepEqual(got, want) || reflect.TypeOf(gotPanic) != reflect.TypeOf(wantPanic) {
++			t.Fatalf("nil input n=%d differs", n)
++		}
++	}
++}
++
++func TestGetLinesRandomAndLargeInputs(t *testing.T) {
++	random := rand.New(rand.NewSource(97003))
++	maxInt := int(^uint(0) >> 1)
++	for trial := 0; trial < 5000; trial++ {
++		content := make([]byte, random.Intn(512))
++		for i := range content {
++			content[i] = byte(random.Intn(256))
++			if i%3 == 0 && random.Intn(2) == 0 {
++				content[i] = '\n'
++			}
++		}
++		for _, n := range []int{random.Intn(101) - 50, -maxInt - 1, -maxInt, 0, maxInt} {
++			checkSelectedLines(t, content, n, random.Intn(8))
++		}
++	}
++	for _, content := range [][]byte{
++		bytes.Repeat([]byte("x"), 128<<10),
++		bytes.Repeat([]byte("\n"), 128<<10),
++		bytes.Repeat([]byte("x\r\n"), 1<<15),
++		append(bytes.Repeat([]byte("x\n"), 1<<15), []byte("tail\r\x00")...),
++		[]byte("\xff\xc3\xa9\n\xef\xbb\xbf\n"),
++	} {
++		for _, n := range []int{-maxInt, -41, -2, -1, 0, 1, 3, 40, maxInt} {
++			checkSelectedLines(t, content, n, 9)
++		}
++	}
++}
++
++func TestGeneratedPrefixSelectionBoundaries(t *testing.T) {
++	tests := []struct {
++		name, ext, marker string
++		limit             int
++		predicate         func(string, string, []byte) bool
++	}{
++		{"haxe", ".cs", "// Generated by Haxe", 3, isGeneratedHaxe},
++		{"go", ".go", "// Code generated by example", 40, isGeneratedGo},
++		{"go-protobuf", ".proto", "// This file was autogenerated by go-to-protobuf", 20, isGeneratedProtobufFromGo},
++		{"protobuf", ".java", "// Generated by the protocol buffer compiler.  DO NOT EDIT!", 3, isGeneratedProtobuf},
++		{"thrift", ".java", "// Autogenerated by Thrift Compiler", 6, isGeneratedApacheThrift},
++	}
++	for _, test := range tests {
++		for _, newline := range []string{"\n", "\r\n"} {
++			for _, position := range []int{test.limit - 1, test.limit, test.limit + 1} {
++				content := strings.Repeat("plain"+newline, position-1) + test.marker + newline + "tail"
++				if got, want := test.predicate("file"+test.ext, test.ext, []byte(content)), position <= test.limit; got != want {
++					t.Errorf("%s marker line %d ending %q: got %t, want %t", test.name, position, newline, got, want)
++				}
++			}
++		}
++	}
++	// These predicates require multiple fields even when the marker is first.
++	for _, test := range []struct {
++		ext, marker string
++		predicate   func(string, string, []byte) bool
++	}{
++		{".go", "Code generated by example", isGeneratedGo},
++		{".proto", "This file was autogenerated by go-to-protobuf", isGeneratedProtobufFromGo},
++		{".java", "Generated by the protocol buffer compiler.  DO NOT EDIT!", isGeneratedProtobuf},
++	} {
++		if test.predicate("file"+test.ext, test.ext, []byte(test.marker)) || !test.predicate("file"+test.ext, test.ext, []byte(test.marker+"\n")) {
++			t.Errorf("minimum field count/trailing empty field changed for %s", test.ext)
++		}
++	}
++	if !isGeneratedJNIHeader("f.h", ".h", []byte("/* DO NOT EDIT THIS FILE - it is machine generated */\n#include <jni.h>")) ||
++		isGeneratedJNIHeader("f.h", ".h", []byte("/* DO NOT EDIT THIS FILE - it is machine generated */\r#include <jni.h>")) {
++		t.Error("JNI header requires LF-separated first two fields")
++	}
++	if !isGeneratedRacc("f.rb", ".rb", []byte("a\nb\n# This file is automatically generated by Racc")) ||
++		isGeneratedRacc("f.rb", ".rb", []byte("a\n# This file is automatically generated by Racc")) {
++		t.Error("Racc marker must be the third field")
++	}
++}
++
++func TestGeneratedFooterSelectionBoundaries(t *testing.T) {
++	for _, newline := range []string{"\n", "\r\n"} {
++		for trailing := 0; trailing <= 3; trailing++ {
++			content := "body" + newline + "//# sourceMappingURL=main.js.map" + strings.Repeat(newline, trailing)
++			if got, want := hasSourceMapReference("f.js", ".js", []byte(content)), trailing < 2; got != want {
++				t.Errorf("source map trailing=%d newline=%q: got %t, want %t", trailing, newline, got, want)
++			}
++			cassette := "body" + newline + "recorded_with: VCR" + strings.Repeat(newline, trailing)
++			if got, want := isVCRCassette("f.yml", ".yml", []byte(cassette)), trailing == 1; got != want {
++				t.Errorf("VCR trailing=%d newline=%q: got %t, want %t", trailing, newline, got, want)
++			}
++		}
++	}
++	coffee := "(function() {\nvar __bind = function() {};\n}).call(this);\n"
++	if !isCompiledCoffeeScript("f.js", ".js", []byte(coffee)) ||
++		isCompiledCoffeeScript("f.js", ".js", []byte(strings.TrimSuffix(coffee, "\n"))) ||
++		isCompiledCoffeeScript("f.js", ".js", []byte(coffee+"\n")) ||
++		isCompiledCoffeeScript("f.js", ".js", []byte(strings.ReplaceAll(coffee, "\n", "\r\n"))) {
++		t.Error("CoffeeScript exact reversed footer/raw CR requirements changed")
++	}
++	if hasSourceMapReference("f.js", ".js", []byte("body\r//# sourceMappingURL=x.map\r")) {
++		t.Error("bare CR became a line separator")
++	}
++}
+--- /dev/null
++++ b/centroid_wire_test.go
+@@ -0,0 +1,276 @@
++package enry
++
++import (
++	"crypto/sha256"
++	"encoding/binary"
++	"encoding/hex"
++	"math"
++	"sort"
++	"strings"
++	"testing"
++
++	"github.com/go-enry/go-enry/v2/internal/tokenizer"
++)
++
++type wireTestEntry struct {
++	index uint32
++	bits  uint64
++}
++
++type wireTestLanguage struct {
++	name    string
++	entries []wireTestEntry
++}
++
++func appendWireUint32(encoded []byte, value uint32) []byte {
++	return binary.LittleEndian.AppendUint32(encoded, value)
++}
++
++func appendWireUint64(encoded []byte, value uint64) []byte {
++	return binary.LittleEndian.AppendUint64(encoded, value)
++}
++
++func appendWireString(encoded []byte, value string) []byte {
++	encoded = appendWireUint32(encoded, uint32(len(value)))
++	return append(encoded, value...)
++}
++
++func testCentroidWire(tokens []string, icf []uint64, languages []wireTestLanguage) ([]byte, centroidModelMetadata) {
++	source := sha256.Sum256([]byte("test source"))
++	var entries uint32
++	for _, language := range languages {
++		entries += uint32(len(language.entries))
++	}
++	encoded := append([]byte{}, centroidModelMagic...)
++	encoded = appendWireUint32(encoded, 1)
++	encoded = append(encoded, source[:]...)
++	encoded = appendWireUint32(encoded, uint32(len(tokens)))
++	encoded = appendWireUint32(encoded, uint32(len(languages)))
++	encoded = appendWireUint32(encoded, entries)
++	for _, token := range tokens {
++		encoded = appendWireString(encoded, token)
++	}
++	for _, bits := range icf {
++		encoded = appendWireUint64(encoded, bits)
++	}
++	for _, language := range languages {
++		encoded = appendWireString(encoded, language.name)
++		encoded = appendWireUint32(encoded, uint32(len(language.entries)))
++		for _, entry := range language.entries {
++			encoded = appendWireUint32(encoded, entry.index)
++			encoded = appendWireUint64(encoded, entry.bits)
++		}
++	}
++	digest := sha256.Sum256(encoded)
++	return encoded, centroidModelMetadata{
++		formatVersion: 1,
++		sourceSHA256:  hex.EncodeToString(source[:]),
++		binarySHA256:  hex.EncodeToString(digest[:]),
++		vocabulary:    uint32(len(tokens)),
++		languages:     uint32(len(languages)),
++		entries:       entries,
++	}
++}
++
++func validTestCentroidWire() ([]byte, centroidModelMetadata) {
++	return testCentroidWire(
++		[]string{"a", "b"},
++		[]uint64{math.Float64bits(1), math.Float64bits(2)},
++		[]wireTestLanguage{
++			{"A", []wireTestEntry{{0, math.Float64bits(.5)}, {1, math.Float64bits(.25)}}},
++			{"B", []wireTestEntry{{1, math.Float64bits(.75)}}},
++		},
++	)
++}
++
++func TestGeneratedCentroidModel(t *testing.T) {
++	if err := verifyCentroidModelSHA256(centroidModelBinary, generatedCentroidModelMetadata.binarySHA256); err != nil {
++		t.Fatal(err)
++	}
++	model, err := decodeCentroidModel(centroidModelBinary, generatedCentroidModelMetadata)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if got := uint32(len(model.Vocabulary)); got != generatedCentroidModelMetadata.vocabulary {
++		t.Fatalf("vocabulary count %d, want %d", got, generatedCentroidModelMetadata.vocabulary)
++	}
++	if got := uint32(len(model.ICF)); got != generatedCentroidModelMetadata.vocabulary {
++		t.Fatalf("ICF count %d, want %d", got, generatedCentroidModelMetadata.vocabulary)
++	}
++	if got := uint32(len(model.Centroids)); got != generatedCentroidModelMetadata.languages {
++		t.Fatalf("language count %d, want %d", got, generatedCentroidModelMetadata.languages)
++	}
++	var entries uint32
++	for _, centroid := range model.Centroids {
++		entries += uint32(len(centroid))
++	}
++	if entries != generatedCentroidModelMetadata.entries {
++		t.Fatalf("entry count %d, want %d", entries, generatedCentroidModelMetadata.entries)
++	}
++}
++
++func modelScoreBits(model centroidModel, content []byte, candidates []string) map[string]uint64 {
++	counts := map[int]float64{}
++	for _, token := range tokenizer.LinguistTokenize(content) {
++		if index, ok := model.Vocabulary[token]; ok {
++			counts[index]++
++		}
++	}
++	indices := make([]int, 0, len(counts))
++	for index := range counts {
++		indices = append(indices, index)
++	}
++	sort.Ints(indices)
++	norm := 0.0
++	for _, index := range indices {
++		value := (1 + math.Log(counts[index])) * model.ICF[index]
++		counts[index] = value
++		norm += value * value
++	}
++	norm = math.Sqrt(norm)
++	scores := make(map[string]uint64, len(candidates))
++	for _, language := range candidates {
++		score := 0.0
++		for _, index := range indices {
++			score += (counts[index] / norm) * model.Centroids[language][index]
++		}
++		scores[language] = math.Float64bits(score)
++	}
++	return scores
++}
++
++func TestCentroidModelScoreBitsFixture(t *testing.T) {
++	model, err := decodeCentroidModel(centroidModelBinary, generatedCentroidModelMetadata)
++	if err != nil {
++		t.Fatal(err)
++	}
++	content := []byte("namespace Example { public record Person(string Name, int Age); static void Main() { Console.WriteLine(42); } }")
++	want := map[string]uint64{
++		"C#":         0x3fd8779783b1b48d,
++		"Java":       0x3fcefb6c6a7e916f,
++		"Smalltalk":  0x3faa5e62dfbc55fd,
++		"TypeScript": 0x3fc79cc382527788,
++	}
++	got := modelScoreBits(model, content, []string{"C#", "Java", "Smalltalk", "TypeScript"})
++	for language, bits := range want {
++		if got[language] != bits {
++			t.Errorf("%s score bits %#x, want %#x", language, got[language], bits)
++		}
++	}
++}
++
++func TestCentroidModelDigestRejectsCorruption(t *testing.T) {
++	encoded, metadata := validTestCentroidWire()
++	if err := verifyCentroidModelSHA256(encoded, metadata.binarySHA256); err != nil {
++		t.Fatal(err)
++	}
++	corrupt := append([]byte{}, encoded...)
++	corrupt[len(corrupt)-1] ^= 1
++	if err := verifyCentroidModelSHA256(corrupt, metadata.binarySHA256); err == nil {
++		t.Fatal("corrupt binary passed SHA-256 verification")
++	}
++	for _, invalid := range []string{"", "xyz", strings.Repeat("0", 62)} {
++		if err := verifyCentroidModelSHA256(encoded, invalid); err == nil {
++			t.Fatalf("invalid generated digest %q was accepted", invalid)
++		}
++	}
++}
++
++func TestCentroidModelMalformedInputs(t *testing.T) {
++	valid, metadata := validTestCentroidWire()
++	clone := func() []byte { return append([]byte{}, valid...) }
++	tests := []struct {
++		name string
++		make func() ([]byte, centroidModelMetadata)
++		want string
++	}{
++		{"empty", func() ([]byte, centroidModelMetadata) { return nil, metadata }, "magic"},
++		{"magic", func() ([]byte, centroidModelMetadata) { b := clone(); b[0] ^= 1; return b, metadata }, "magic"},
++		{"version", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[8:12], 2)
++			return b, metadata
++		}, "version"},
++		{"metadata cannot bless unknown version", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[8:12], 2)
++			m := metadata
++			m.formatVersion = 2
++			return b, m
++		}, "version"},
++		{"source", func() ([]byte, centroidModelMetadata) { b := clone(); b[12] ^= 1; return b, metadata }, "source SHA-256"},
++		{"generated source", func() ([]byte, centroidModelMetadata) { m := metadata; m.sourceSHA256 = "bad"; return clone(), m }, "generated centroid source"},
++		{"metadata count", func() ([]byte, centroidModelMetadata) { m := metadata; m.vocabulary++; return clone(), m }, "generated metadata"},
++		{"count bound", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[44:48], math.MaxUint32)
++			m := metadata
++			m.vocabulary = math.MaxUint32
++			return b, m
++		}, "vocabulary count"},
++		{"truncated", func() ([]byte, centroidModelMetadata) { return clone()[:len(valid)-1], metadata }, "count"},
++		{"trailing", func() ([]byte, centroidModelMetadata) { return append(clone(), 0), metadata }, "trailing"},
++		{"duplicate token", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a", "a"}, []uint64{math.Float64bits(1), math.Float64bits(2)}, []wireTestLanguage{})
++		}, "duplicate"},
++		{"invalid UTF-8", func() ([]byte, centroidModelMetadata) { b := clone(); b[60] = 0xff; return b, metadata }, "UTF-8"},
++		{"nonfinite ICF", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(math.Inf(1))}, nil)
++		}, "non-finite"},
++		{"language order", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(1)}, []wireTestLanguage{{"B", nil}, {"A", nil}})
++		}, "strictly increasing"},
++		{"duplicate language", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(1)}, []wireTestLanguage{{"A", nil}, {"A", nil}})
++		}, "strictly increasing"},
++		{"out of range index", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(1)}, []wireTestLanguage{{"A", []wireTestEntry{{1, math.Float64bits(1)}}}})
++		}, "index order"},
++		{"duplicate index", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(1)}, []wireTestLanguage{{"A", []wireTestEntry{{0, math.Float64bits(1)}, {0, math.Float64bits(1)}}}})
++		}, "index order"},
++		{"descending index", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a", "b"}, []uint64{math.Float64bits(1), math.Float64bits(1)}, []wireTestLanguage{{"A", []wireTestEntry{{1, math.Float64bits(1)}, {0, math.Float64bits(1)}}}})
++		}, "index order"},
++		{"nonfinite centroid", func() ([]byte, centroidModelMetadata) {
++			return testCentroidWire([]string{"a"}, []uint64{math.Float64bits(1)}, []wireTestLanguage{{"A", []wireTestEntry{{0, math.Float64bits(math.NaN())}}}})
++		}, "non-finite"},
++		{"entry total low", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[52:56], 2)
++			m := metadata
++			m.entries = 2
++			return b, m
++		}, "exceeds header"},
++		{"entry total high", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[52:56], 4)
++			m := metadata
++			m.entries = 4
++			return b, m
++		}, "does not match"},
++		{"string length", func() ([]byte, centroidModelMetadata) {
++			b := clone()
++			binary.LittleEndian.PutUint32(b[56:60], math.MaxUint32)
++			return b, metadata
++		}, "truncated"},
++	}
++	for _, test := range tests {
++		t.Run(test.name, func(t *testing.T) {
++			encoded, expected := test.make()
++			_, err := decodeCentroidModel(encoded, expected)
++			if err == nil || !strings.Contains(err.Error(), test.want) {
++				t.Fatalf("error %v, want substring %q", err, test.want)
++			}
++		})
++	}
++}
++
++func TestCentroidModelRejectsEveryTruncation(t *testing.T) {
++	encoded, metadata := validTestCentroidWire()
++	for size := range encoded {
++		if _, err := decodeCentroidModel(encoded[:size], metadata); err == nil {
++			t.Fatalf("accepted truncation at byte %d of %d", size, len(encoded))
++		}
++	}
++}
