@@ -49,3 +49,5 @@ require (
 )
 
 replace github.com/go-enry/go-enry/v2 => ./third_party/go-enry
+
+replace github.com/go-git/go-git/v5 => ./third_party/go-git
