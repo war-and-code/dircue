@@ -1,0 +1,11 @@
+{
+  "tiny": {
+    "byte_identical": true,
+    "sha256": "c8b3f1894d275e9d2564232c80f2eae543bf372dc0fbc334cbd8b058f15f71c2"
+  },
+  "fixture": {
+    "byte_identical": true,
+    "sha256": "da143a1773272dfb113d0961727d2a75f174255cf87a6d19df3003f8d795e9cc"
+  },
+  "artifact_note": "Local workspace/home paths are replaced by $WORKSPACE/$HOME; counter values and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020."
+}
