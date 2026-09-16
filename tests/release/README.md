@@ -22,23 +22,24 @@ The other files directly under `results/` retain historical RC1 validation.
 Reproduce the Linux test environment with:
 
 ```sh
-docker build --target build -t dircue-build-check:0.1.0 .
-docker run --rm dircue-build-check:0.1.0 go test -race ./...
+docker build --target build -t dircue-build-check:0.2.0 .
+docker run --rm dircue-build-check:0.2.0 go test -race ./...
 ```
 
 The test run may download test-only Go modules through the checksum-verified module system. Historical image scans in `results/docker-smoke.json` use networking disabled, a read-only filesystem, no capabilities, no new privileges, 256 MiB memory, and two CPUs. They verify version output, Git-free `analyze all`, exact Linguist output for the Cobra checkout, and nonzero failure with stderr for a missing path. The image's Linux arm64 binary was extracted and its SHA-256 compared with that performance candidate: the bytes are identical. The final bundle retains the same checks against the final binary separately.
 
-Reproduce these image checks after building the image and fetching the benchmark corpus:
+For 0.2, the smoke harness also checks opt-in metrics and schema 1.1.0. Run it after building the image and fetching the benchmark corpus:
 
 ```sh
-python3 tests/release/smoke.py --corpus-volume dircue-benchmark-corpus \
+python3 tests/release/smoke.py --image dircue:0.2.0 --version 0.2.0 \
+  --corpus-volume dircue-benchmark-corpus \
   --candidate bin/dircue-linux-arm64
 ```
 
 Build release archives with:
 
 ```sh
-python3 scripts/release.py --version 0.1.0
+python3 scripts/release.py --version 0.2.0
 ```
 
 It requires a clean committed checkout and builds five targets: Linux amd64/arm64, macOS amd64/arm64, and Windows amd64. Archives include the executable, README, project license, and third-party license notices. `dist/SHA256SUMS` covers every archive; `dist/provenance.json` records the source commit, compiler, build flags, and both archive and executable hashes. These local build outputs are ignored by Git. Cross-compilation alone does not establish native runtime testing on every platform.
@@ -46,7 +47,7 @@ It requires a clean committed checkout and builds five targets: Linux amd64/arm6
 The output directory must be fresh, even if an existing directory is empty. Use
 `--output dist/<new-name>` when `dist` already contains previous releases. The
 packager builds an isolated copy of regular committed Git blobs, preserving the
-relative maintained-library replacement while excluding ignored working files
+relative maintained-library replacements while excluding ignored working files
 and checkout filters. It rejects source symlinks/submodules and local module
 replacements outside that snapshot. It verifies that HEAD and the clean working
 state still match after building, before creating the output directory.
@@ -71,8 +72,8 @@ After committing a clean source state, check archive reproducibility by building
 one target twice into separate fresh directories:
 
 ```sh
-python3 scripts/release.py --version 0.1.0 --target linux/arm64 --output dist/repro-a
-python3 scripts/release.py --version 0.1.0 --target linux/arm64 --output dist/repro-b
+python3 scripts/release.py --version 0.2.0 --target linux/arm64 --output dist/repro-a
+python3 scripts/release.py --version 0.2.0 --target linux/arm64 --output dist/repro-b
 diff dist/repro-a/SHA256SUMS dist/repro-b/SHA256SUMS
 ```
 

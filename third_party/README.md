@@ -1,4 +1,8 @@
-# Pinned Enry data refresh
+# Maintained dependencies
+
+Dircue keeps local module replacements for Enry and go-git. Their checked-in patches and provenance identify the changes from upstream. The scc dependency is unmodified; its counting interface, pinned version, and update steps are documented in [the scc integration guide](../docs/SCC_UPSTREAM.md).
+
+## Pinned Enry data refresh
 
 Dircue uses the public Enry API through a local module replacement of `github.com/go-enry/go-enry/v2`. The source fork under `go-enry/` starts from official Enry v2.9.6. Its language data comes from that version's unmodified generator run against Linguist 9.7.0, and its classifier follows the pinned Ruby reference. The fork preserves Enry's Go detection interface without mutating its exported data maps at runtime.
 
@@ -33,3 +37,34 @@ The generator warning file lists the remaining unsupported upstream expressions.
 The scanner's binary preflight independently follows [Charlock Holmes 0.7.9's raw-byte policy](https://github.com/brianmario/charlock_holmes/blob/v0.7.9/ext/charlock_holmes/encoding_detector.c), the version pinned in the Ruby reference image: PostScript and Unicode BOM exceptions, specific binary magic signatures, and a maximum 1 MiB NUL probe over the supplied data. Repository callers supply only the LazyBlob 128 KiB prefix. Its [MIT notice](CHARLOCK_LICENSE) is retained; Charlock and ICU are not runtime dependencies. Language and generated-code strategies receive the original bytes, matching Linguist rather than implicitly transcoding source.
 
 Enry is **Apache-2.0**, preserved verbatim in `go-enry/LICENSE`. Linguist's generated data is derived from its **MIT**-licensed source; that notice is preserved in `go-enry/LINGUIST_LICENSE`. Project-specific changes are identified here and in the patch; this fork is not an upstream Enry release. The production build remains pure Go with `CGO_ENABLED=0`; optional Enry `oniguruma`/`flex` build modes are outside the supported Dircue build configuration.
+
+## go-git streaming delta backport
+
+The local replacement under `go-git/` starts from go-git v5.19.2. It backports a
+correction for [upstream issue #2378](https://github.com/go-git/go-git/issues/2378):
+the streaming delta reader could reconstruct incorrect bytes after a backward
+copy followed by a forward copy, without returning an error. The correction
+resets the tracked base position when reopening the reader and closes the latest
+reader on completion. It applies to Git content used for language profiling and
+metrics while retaining streaming reads for large objects.
+
+[`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
+runtime changes and regression tests. The snapshot retains upstream production
+Go sources, module files, and license, plus the standalone delta tests; upstream
+examples and fixture-dependent test suites are omitted.
+[`go-git/PROVENANCE.json`](go-git/PROVENANCE.json) identifies the pinned upstream
+module, patch, and retained file hashes.
+
+Verify the maintained snapshot, or regenerate it into a fresh directory:
+
+```sh
+python3 third_party/update_go_git.py --check
+python3 third_party/update_go_git.py --output .cache/go-git-regenerated
+```
+
+The updater uses Go's module/checksum system to retrieve the pinned release and
+applies the recorded patch. This fork preserves go-git's Apache-2.0 license; it
+is not an upstream release. When a released go-git version contains the fix,
+review whether the local replacement can be removed. Repeat packed-object
+regressions, Git-versus-directory comparisons, and language profiling benchmarks
+before adopting that update.

@@ -113,7 +113,9 @@ status. Fatal scan errors still return a nonzero exit status.
 Complexity is scc's lexical estimate, based on language-specific tokens. It is
 not an AST-derived measure, a defect count, or proof of code quality. Counts are
 useful for sizing collections and comparing their composition; interpret them
-with the selected grammar and coverage information.
+with the selected grammar and coverage information. In text scope, scc may label
+XML or plain-text lines as `code`; that counter does not mean the file contains
+a programming language.
 
 The pinned scc version has known lexical limitations with Java text blocks and
 C# raw strings. Some valid multiline strings containing quote and comment-like
