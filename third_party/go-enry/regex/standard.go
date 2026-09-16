@@ -1,3 +1,5 @@
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
+
 //go:build !oniguruma
 // +build !oniguruma
 
@@ -64,5 +66,3 @@ var reAdblockFilterList = regexp.MustCompile(`\A\[(?:[Aa]d[Bb]lock(?:[ \t][Pp]lu
 func QuoteMeta(s string) string {
 	return regexp.QuoteMeta(s)
 }
-
-// Modified for dircue; see PROVENANCE.json in this maintained fork.
