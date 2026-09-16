@@ -116,7 +116,7 @@ type lineCancelContext struct {
 
 func (c *lineCancelContext) Err() error {
 	c.calls++
-	if c.calls >= 3 {
+	if c.calls >= 4 {
 		return context.Canceled
 	}
 	return nil

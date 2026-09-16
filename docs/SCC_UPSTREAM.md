@@ -12,7 +12,7 @@ Directory traversal, Git revision selection, exclusions, byte limits, and report
 
 ## Initialization and concurrency
 
-Grammar feature construction runs once, when the first supported file is counted. Calls then read those features concurrently. The adapter does not set GOGC, call `ConfigureGc`, or invoke scc's worker loop. Other code in the process must not mutate scc's package globals after counting starts.
+The first supported file enables scc’s lazy loading mode and initializes its lookup maps once. Each grammar is then built once on first use, through the same upstream feature builder used by eager initialization. Calls read completed features concurrently; a scan encountering a new language builds only that additional grammar. The adapter does not set GOGC, call `ConfigureGc`, or invoke scc's worker loop. Other code in the process must not mutate scc's package globals after counting starts.
 
 Importing the scc package still initializes its static language database and small lookup tables at process startup. Language-only performance comparisons must include that cost; lazy feature construction does not eliminate all startup work.
 
