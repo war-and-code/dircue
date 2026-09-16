@@ -86,3 +86,19 @@ source identity, archive hashes, executable hashes, and package metadata.
 The smoke and audit receipts retain commands and results. Temporary paths are
 replaced by placeholders; input contents, output values, and hashes are unchanged.
 Original local receipts remain in `.cache/release-v020/`.
+
+## Compatibility with the published 0.1.0 CLI
+
+`compatibility-v010.json` compares the actual published macOS arm64 executable
+with the 0.2 candidate. All 86 existing-command scenarios matched stdout, stderr,
+and exit status. Coverage includes legacy and structured modes, attributes,
+Git revisions, dirty working trees, empty directories, single files, size/tree
+limits, invalid options, and missing paths. Version/help additions and the
+expanded analysis-command listing are recorded separately. Corrected Git-reader
+results are intentional bug fixes, not a guarantee of reproducing corrupted
+0.1 output.
+
+Run `python3 tests/release/results/0.2.0/compatibility-v010.py` from a checkout
+with the named local archives available. The published 0.1 archive digest is
+checked before execution. The retained report replaces the workspace prefix
+with `$WORKSPACE`; its original remains in `.cache/compat-v010-published/`.

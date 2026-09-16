@@ -1,8 +1,10 @@
 {
-  "README.md": "77e3b8008829db0978927dcccdcf84f6dadded2b7bb515b25a79778dc65266ec",
+  "README.md": "770c87e55f47721773ac12444344c874a774e435b4317887be563626fd16dc7f",
   "archive-SHA256SUMS": "d838c511d1abd21a674de0388dec0247f224c996de57dbf7f7392a3e6c7a60ba",
   "archive-audit.json": "2ff816b3bcfe4207d6495a890a719be97a2a2591e5af4860b92cfd815fc05567",
   "archive.Dockerfile": "23da186693a68035e64c10ed68337bf61bdb9a4ca25a0423223b25d1eb1f689f",
+  "compatibility-v010.json": "633cf4ed1cac9530f46b8740daf60bd77db151aaddecb6e24879f1f2ad0cd52a",
+  "compatibility-v010.py": "dcb1dd0674753c61fb97ba617d7a0c7f9e775bc3924509c38f3092b286b47338",
   "corpus-output-equivalence.json": "f82afd8c8747a4b1f2f8229b738092ff1c9f73496814a03a2d1eba50b5f6a268",
   "docker-smoke-amd64.json": "20cd1f664b9a254d670bd8f4fbf5a797da8777e511bb20a82abc2ed358663286",
   "docker-smoke-arm64.json": "02e4e9a5e6b5a1cf00f85125119f2778974fbacdbfb6be86bd5c0400ef6a32f6",

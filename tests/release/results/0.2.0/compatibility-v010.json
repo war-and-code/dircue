@@ -1,0 +1,1645 @@
+{
+  "old_published_asset_sha256": "3eb328f168b321f6525a727f1a05b915cd53da522b649e06f9a8b5fad1abf87b",
+  "binaries": {
+    "old": "9447e497d4b0270abaee73dca10399afbee52fa6fb89d2b7942b8b6af0b6be2a",
+    "new": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059"
+  },
+  "cases": [
+    {
+      "cwd": "flat",
+      "args": [],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "-bj"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\",\"files\":[\"Main.cs\",\"generated.g.cs\",\"nested/Override.java\"]},\"Java\":{\"size\":47,\"percentage\":\"34.81\",\"files\":[\"-folder/a.java\",\"Main.java\",\"analyze/a.java\",\"metrics/a.java\"]},\"Python\":{\"size\":9,\"percentage\":\"6.67\",\"files\":[\"x.py\"]},\"XML\":{\"size\":8,\"percentage\":\"5.93\",\"files\":[\"logs.xml\"]}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\",\"files\":[\"Main.cs\",\"generated.g.cs\",\"nested/Override.java\"]},\"Java\":{\"size\":47,\"percentage\":\"34.81\",\"files\":[\"-folder/a.java\",\"Main.java\",\"analyze/a.java\",\"metrics/a.java\"]},\"Python\":{\"size\":9,\"percentage\":\"6.67\",\"files\":[\"x.py\"]},\"XML\":{\"size\":8,\"percentage\":\"5.93\",\"files\":[\"logs.xml\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--breakdown"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nJava:\n  -folder/a.java\n  Main.java\n  analyze/a.java\n  metrics/a.java\n\nC#:\n  Main.cs\n  generated.g.cs\n  nested/Override.java\n\nXML:\n  logs.xml\n\nPython:\n  x.py\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nJava:\n  -folder/a.java\n  Main.java\n  analyze/a.java\n  metrics/a.java\n\nC#:\n  Main.cs\n  generated.g.cs\n  nested/Override.java\n\nXML:\n  logs.xml\n\nPython:\n  x.py\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--strategies"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nJava:\n  -folder/a.java [Extension]\n  Main.java [Extension]\n  analyze/a.java [Extension]\n  metrics/a.java [Extension]\n\nC#:\n  Main.cs [Heuristics]\n  generated.g.cs [Heuristics]\n  nested/Override.java [Extension (overridden by .gitattributes)]\n\nXML:\n  logs.xml [Extension]\n\nPython:\n  x.py [Extension]\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nJava:\n  -folder/a.java [Extension]\n  Main.java [Extension]\n  analyze/a.java [Extension]\n  metrics/a.java [Extension]\n\nC#:\n  Main.cs [Heuristics]\n  generated.g.cs [Heuristics]\n  nested/Override.java [Extension (overridden by .gitattributes)]\n\nXML:\n  logs.xml [Extension]\n\nPython:\n  x.py [Extension]\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "languages",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "all",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/flat\",\n  \"summary\": {\n    \"scanned_files\": 15,\n    \"analyzed_files\": 12,\n    \"skipped_files\": 3,\n    \"language_bytes\": 135\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 71,\n      \"percentage\": 52.592592592592595,\n      \"file_count\": 3\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 47,\n      \"percentage\": 34.81481481481482,\n      \"file_count\": 4\n    },\n    {\n      \"name\": \"Python\",\n      \"bytes\": 9,\n      \"percentage\": 6.666666666666667,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"XML\",\n      \"bytes\": 8,\n      \"percentage\": 5.925925925925926,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"npm\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [\n    {\n      \"kind\": \"framework\",\n      \"name\": \"React\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\",\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/flat\",\n  \"summary\": {\n    \"scanned_files\": 15,\n    \"analyzed_files\": 12,\n    \"skipped_files\": 3,\n    \"language_bytes\": 135\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 71,\n      \"percentage\": 52.592592592592595,\n      \"file_count\": 3\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 47,\n      \"percentage\": 34.81481481481482,\n      \"file_count\": 4\n    },\n    {\n      \"name\": \"Python\",\n      \"bytes\": 9,\n      \"percentage\": 6.666666666666667,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"XML\",\n      \"bytes\": 8,\n      \"percentage\": 5.925925925925926,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"npm\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [\n    {\n      \"kind\": \"framework\",\n      \"name\": \"React\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\",\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "all"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "Languages:\n52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nEcosystems:\ngo\t.\nnpm\t.\n\nFrameworks:\nReact\t.\n\nLayouts:\nproject-root\t.\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Languages:\n52.59%  71         C#\n34.81%  47         Java\n6.67%   9          Python\n5.93%   8          XML\n\nEcosystems:\ngo\t.\nnpm\t.\n\nFrameworks:\nReact\t.\n\nLayouts:\nproject-root\t.\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "ecosystems",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"go\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"go.mod\"\n    ],\n    \"detector\": \"manifests\"\n  },\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"npm\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"go\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"go.mod\"\n    ],\n    \"detector\": \"manifests\"\n  },\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"npm\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "frameworks",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"framework\",\n    \"name\": \"React\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"framework\",\n    \"name\": \"React\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--source",
+        "directory",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--tree-size",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--max-file-bytes",
+        "10",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Python\":{\"size\":9,\"percentage\":\"52.94\"},\"XML\":{\"size\":8,\"percentage\":\"47.06\"}}\n",
+        "stderr": "warning: -folder/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: Main.cs: file exceeds 10 byte limit (file_too_large)\nwarning: Main.java: file exceeds 10 byte limit (file_too_large)\nwarning: analyze/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: generated.g.cs: file exceeds 10 byte limit (file_too_large)\nwarning: go.mod: file exceeds 10 byte limit (file_too_large)\nwarning: metrics/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: nested/Override.java: file exceeds 10 byte limit (file_too_large)\nwarning: package.json: file exceeds 10 byte limit (file_too_large)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Python\":{\"size\":9,\"percentage\":\"52.94\"},\"XML\":{\"size\":8,\"percentage\":\"47.06\"}}\n",
+        "stderr": "warning: -folder/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: Main.cs: file exceeds 10 byte limit (file_too_large)\nwarning: Main.java: file exceeds 10 byte limit (file_too_large)\nwarning: analyze/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: generated.g.cs: file exceeds 10 byte limit (file_too_large)\nwarning: go.mod: file exceeds 10 byte limit (file_too_large)\nwarning: metrics/a.java: file exceeds 10 byte limit (file_too_large)\nwarning: nested/Override.java: file exceeds 10 byte limit (file_too_large)\nwarning: package.json: file exceeds 10 byte limit (file_too_large)\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--workers",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":71,\"percentage\":\"52.59\"},\"Java\":{\"size\":47,\"percentage\":\"34.81\"},\"Python\":{\"size\":9,\"percentage\":\"6.67\"},\"XML\":{\"size\":8,\"percentage\":\"5.93\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "-bj"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--breakdown"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--strategies"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "analyze",
+        "languages",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "analyze",
+        "all",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/empty\",\n  \"summary\": {\n    \"scanned_files\": 0,\n    \"analyzed_files\": 0,\n    \"skipped_files\": 0,\n    \"language_bytes\": 0\n  },\n  \"languages\": [],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/empty\",\n  \"summary\": {\n    \"scanned_files\": 0,\n    \"analyzed_files\": 0,\n    \"skipped_files\": 0,\n    \"language_bytes\": 0\n  },\n  \"languages\": [],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "analyze",
+        "all"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "Languages:\n\nEcosystems:\n\nFrameworks:\n\nLayouts:\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Languages:\n\nEcosystems:\n\nFrameworks:\n\nLayouts:\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "analyze",
+        "ecosystems",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "analyze",
+        "frameworks",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--source",
+        "directory",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--tree-size",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--max-file-bytes",
+        "10",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "empty",
+      "args": [
+        "--workers",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "-bj"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\",\"files\":[\"Main.cs\"]},\"Java\":{\"size\":17,\"percentage\":\"29.31\",\"files\":[\"Main.java\"]},\"Python\":{\"size\":9,\"percentage\":\"15.52\",\"files\":[\"x.py\"]},\"XML\":{\"size\":8,\"percentage\":\"13.79\",\"files\":[\"logs.xml\"]}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\",\"files\":[\"Main.cs\"]},\"Java\":{\"size\":17,\"percentage\":\"29.31\",\"files\":[\"Main.java\"]},\"Python\":{\"size\":9,\"percentage\":\"15.52\",\"files\":[\"x.py\"]},\"XML\":{\"size\":8,\"percentage\":\"13.79\",\"files\":[\"logs.xml\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--breakdown"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nC#:\n  Main.cs\n\nJava:\n  Main.java\n\nXML:\n  logs.xml\n\nPython:\n  x.py\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nC#:\n  Main.cs\n\nJava:\n  Main.java\n\nXML:\n  logs.xml\n\nPython:\n  x.py\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--strategies"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nC#:\n  Main.cs [Heuristics]\n\nJava:\n  Main.java [Extension]\n\nXML:\n  logs.xml [Extension]\n\nPython:\n  x.py [Extension]\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nC#:\n  Main.cs [Heuristics]\n\nJava:\n  Main.java [Extension]\n\nXML:\n  logs.xml [Extension]\n\nPython:\n  x.py [Extension]\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "languages",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "all",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/repo\",\n  \"summary\": {\n    \"scanned_files\": 7,\n    \"analyzed_files\": 6,\n    \"skipped_files\": 1,\n    \"language_bytes\": 58\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 24,\n      \"percentage\": 41.37931034482759,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 17,\n      \"percentage\": 29.310344827586206,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Python\",\n      \"bytes\": 9,\n      \"percentage\": 15.517241379310345,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"XML\",\n      \"bytes\": 8,\n      \"percentage\": 13.793103448275861,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"npm\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [\n    {\n      \"kind\": \"framework\",\n      \"name\": \"React\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\",\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/repo\",\n  \"summary\": {\n    \"scanned_files\": 7,\n    \"analyzed_files\": 6,\n    \"skipped_files\": 1,\n    \"language_bytes\": 58\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 24,\n      \"percentage\": 41.37931034482759,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 17,\n      \"percentage\": 29.310344827586206,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Python\",\n      \"bytes\": 9,\n      \"percentage\": 15.517241379310345,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"XML\",\n      \"bytes\": 8,\n      \"percentage\": 13.793103448275861,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"npm\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [\n    {\n      \"kind\": \"framework\",\n      \"name\": \"React\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\",\n        \"package.json\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "all"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "Languages:\n41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nEcosystems:\ngo\t.\nnpm\t.\n\nFrameworks:\nReact\t.\n\nLayouts:\nproject-root\t.\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Languages:\n41.38%  24         C#\n29.31%  17         Java\n15.52%  9          Python\n13.79%  8          XML\n\nEcosystems:\ngo\t.\nnpm\t.\n\nFrameworks:\nReact\t.\n\nLayouts:\nproject-root\t.\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "ecosystems",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"go\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"go.mod\"\n    ],\n    \"detector\": \"manifests\"\n  },\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"npm\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"go\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"go.mod\"\n    ],\n    \"detector\": \"manifests\"\n  },\n  {\n    \"kind\": \"ecosystem\",\n    \"name\": \"npm\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "frameworks",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"framework\",\n    \"name\": \"React\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[\n  {\n    \"kind\": \"framework\",\n    \"name\": \"React\",\n    \"root\": \".\",\n    \"evidence\": [\n      \"package.json\"\n    ],\n    \"detector\": \"manifests\"\n  }\n]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--source",
+        "directory",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":15,\"percentage\":\"25.86\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":18,\"percentage\":\"31.03\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":15,\"percentage\":\"25.86\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":18,\"percentage\":\"31.03\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--tree-size",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 1 entries; language analysis omitted (tree_size_limit)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 1 entries; language analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--max-file-bytes",
+        "10",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Python\":{\"size\":9,\"percentage\":\"52.94\"},\"XML\":{\"size\":8,\"percentage\":\"47.06\"}}\n",
+        "stderr": "warning: Main.cs: file exceeds 10 byte limit (file_too_large)\nwarning: Main.java: file exceeds 10 byte limit (file_too_large)\nwarning: go.mod: file exceeds 10 byte limit (file_too_large)\nwarning: package.json: file exceeds 10 byte limit (file_too_large)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Python\":{\"size\":9,\"percentage\":\"52.94\"},\"XML\":{\"size\":8,\"percentage\":\"47.06\"}}\n",
+        "stderr": "warning: Main.cs: file exceeds 10 byte limit (file_too_large)\nwarning: Main.java: file exceeds 10 byte limit (file_too_large)\nwarning: go.mod: file exceeds 10 byte limit (file_too_large)\nwarning: package.json: file exceeds 10 byte limit (file_too_large)\n"
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--workers",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "-bj"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\",\"files\":[\"Main.java\"]}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\",\"files\":[\"Main.java\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--breakdown"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n\nJava:\n  Main.java\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n\nJava:\n  Main.java\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--strategies"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n\nJava:\n  Main.java [Extension]\n\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "100.00% 14         Java\n\nJava:\n  Main.java [Extension]\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "analyze",
+        "languages",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "analyze",
+        "all",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/nohead\",\n  \"summary\": {\n    \"scanned_files\": 1,\n    \"analyzed_files\": 1,\n    \"skipped_files\": 0,\n    \"language_bytes\": 14\n  },\n  \"languages\": [\n    {\n      \"name\": \"Java\",\n      \"bytes\": 14,\n      \"percentage\": 100,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"$WORKSPACE/.cache/compat-v010-published/nohead\",\n  \"summary\": {\n    \"scanned_files\": 1,\n    \"analyzed_files\": 1,\n    \"skipped_files\": 0,\n    \"language_bytes\": 14\n  },\n  \"languages\": [\n    {\n      \"name\": \"Java\",\n      \"bytes\": 14,\n      \"percentage\": 100,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "analyze",
+        "all"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "Languages:\n100.00% 14         Java\n\nEcosystems:\n\nFrameworks:\n\nLayouts:\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Languages:\n100.00% 14         Java\n\nEcosystems:\n\nFrameworks:\n\nLayouts:\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "analyze",
+        "ecosystems",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "analyze",
+        "frameworks",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "[]\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--source",
+        "directory",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--tree-size",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--max-file-bytes",
+        "10",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: Main.java: file exceeds 10 byte limit (file_too_large)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: Main.java: file exceeds 10 byte limit (file_too_large)\n"
+      }
+    },
+    {
+      "cwd": "nohead",
+      "args": [
+        "--workers",
+        "1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":14,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--rev",
+        "HEAD~1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"43.64\"},\"Java\":{\"size\":14,\"percentage\":\"25.45\"},\"Python\":{\"size\":9,\"percentage\":\"16.36\"},\"XML\":{\"size\":8,\"percentage\":\"14.55\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"43.64\"},\"Java\":{\"size\":14,\"percentage\":\"25.45\"},\"Python\":{\"size\":9,\"percentage\":\"16.36\"},\"XML\":{\"size\":8,\"percentage\":\"14.55\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--source",
+        "git",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"C#\":{\"size\":24,\"percentage\":\"41.38\"},\"Java\":{\"size\":17,\"percentage\":\"29.31\"},\"Python\":{\"size\":9,\"percentage\":\"15.52\"},\"XML\":{\"size\":8,\"percentage\":\"13.79\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--source",
+        "git",
+        "--rev",
+        "not-a-revision",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: resolve Git revision \"not-a-revision\": reference not found\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: resolve Git revision \"not-a-revision\": reference not found\n"
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--json",
+        "Main.cs"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "Main.java: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/x-java-source\n  language:  Java\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Main.java: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/x-java-source\n  language:  Java\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "-bjs",
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Main.java\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/x-java-source\",\"language\":\"Java\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Main.java\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/x-java-source\",\"language\":\"Java\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "--source",
+        "directory",
+        "--json",
+        "Main.cs"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "repo",
+      "args": [
+        "analyze",
+        "languages",
+        "--json",
+        "Main.cs"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Main.cs\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"C#\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "missing"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: inspect scan root: stat $WORKSPACE/.cache/compat-v010-published/flat/missing: no such file or directory\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: inspect scan root: stat $WORKSPACE/.cache/compat-v010-published/flat/missing: no such file or directory\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--source",
+        "bad",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --source must be auto, git, or directory\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --source must be auto, git, or directory\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--workers",
+        "-1"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --workers must be zero or greater\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --workers must be zero or greater\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--workers",
+        "1025"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: workers must not exceed 1024\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: workers must not exceed 1024\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--max-file-bytes",
+        "-1"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --max-file-bytes must be zero or greater\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --max-file-bytes must be zero or greater\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--tree-size",
+        "0",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--tree-size",
+        "-1",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: directory has at least 1 entries; analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--unknown"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: unknown flag: --unknown\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: unknown flag: --unknown\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--source"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: flag needs an argument: --source\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: flag needs an argument: --source\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--workers",
+        "no"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: invalid argument \"no\" for \"--workers\" flag: strconv.ParseInt: parsing \"no\": invalid syntax\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: invalid argument \"no\" for \"--workers\" flag: strconv.ParseInt: parsing \"no\": invalid syntax\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--rev",
+        "HEAD"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: open Git repository: repository does not exist\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: open Git repository: repository does not exist\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--source",
+        "git",
+        "--json"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: open Git repository: repository does not exist\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: open Git repository: repository does not exist\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--source",
+        "directory",
+        "--rev",
+        "HEAD"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --rev requires a Git content source\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: --rev requires a Git content source\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "all",
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: all analysis requires a directory\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: all analysis requires a directory\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "analyze",
+        "languages",
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "--",
+        "Main.java"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: file .cache/compat-v010-published/flat/Main.java is absent from Git revision: entry not found\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "Main.java",
+        "x.py"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: expected at most one directory path, received 2\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: expected at most one directory path, received 2\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "-j",
+        "false"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: inspect scan root: stat $WORKSPACE/.cache/compat-v010-published/flat/false: no such file or directory\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: inspect scan root: stat $WORKSPACE/.cache/compat-v010-published/flat/false: no such file or directory\n"
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "--",
+        "analyze"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "--",
+        "metrics"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "cwd": "flat",
+      "args": [
+        "--json",
+        "--",
+        "-folder"
+      ],
+      "equal": true,
+      "old": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "{\"Java\":{\"size\":11,\"percentage\":\"100.00\"}}\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "intentional_interface_additions": [
+    {
+      "args": [
+        "--version"
+      ],
+      "old": {
+        "exit": 0,
+        "stdout": "dircue 0.1.0\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "dircue 0.2.0\n",
+        "stderr": ""
+      }
+    },
+    {
+      "args": [
+        "--help"
+      ],
+      "old": {
+        "exit": 0,
+        "stdout": "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repositories use committed HEAD content by default; --source directory scans current files.\n\nUsage:\n  dircue [path] [flags]\n  dircue [command]\n\nAvailable Commands:\n  analyze     Run a selected profiler\n  help        Help about any command\n\nFlags:\n  -b, --breakdown            Include file paths in language results\n  -h, --help                 help for dircue\n  -j, --json                 Emit JSON\n      --max-file-bytes int   Skip files larger than this many bytes (0 disables the optional size limit)\n  -r, --rev string           Git revision to analyze (default \"HEAD\")\n      --source string        Content source: auto (Git when present), git, or directory (default \"auto\")\n  -s, --strategies           Show the language detection strategy for each file (text output)\n  -t, --tree-size int        Maximum number of files scanned (default 100000)\n  -v, --version              version for dircue\n      --workers int          Number of concurrent file workers (0 selects automatically)\n\nUse \"dircue [command] --help\" for more information about a command.\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repositories use committed HEAD content by default; --source directory scans current files.\n\nUsage:\n  dircue [path] [flags]\n  dircue [command]\n\nAvailable Commands:\n  analyze     Run a selected profiler\n  help        Help about any command\n\nFlags:\n  -b, --breakdown            Include file paths in language results\n  -h, --help                 help for dircue\n  -j, --json                 Emit JSON\n      --max-file-bytes int   Skip files larger than this many bytes (0 disables the optional size limit)\n  -r, --rev string           Git revision to analyze (default \"HEAD\")\n      --source string        Content source: auto (Git when present), git, or directory (default \"auto\")\n  -s, --strategies           Show the language detection strategy for each file (text output)\n  -t, --tree-size int        Maximum number of files scanned (default 100000)\n  -v, --version              version for dircue\n      --workers int          Number of concurrent file workers (0 selects automatically)\n\nUse \"dircue [command] --help\" for more information about a command.\n",
+        "stderr": ""
+      }
+    },
+    {
+      "args": [
+        "analyze"
+      ],
+      "old": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: choose an analysis: languages, frameworks, ecosystems, or all\n"
+      },
+      "new": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "Error: choose an analysis: languages, metrics, frameworks, ecosystems, or all\n"
+      }
+    },
+    {
+      "args": [
+        "analyze",
+        "--help"
+      ],
+      "old": {
+        "exit": 0,
+        "stdout": "Run a selected profiler\n\nUsage:\n  dircue analyze [flags]\n  dircue analyze [command]\n\nAvailable Commands:\n  all         Analyze all\n  ecosystems  Analyze ecosystems\n  frameworks  Analyze frameworks\n  languages   Analyze languages\n\nFlags:\n  -h, --help   help for analyze\n\nGlobal Flags:\n  -b, --breakdown            Include file paths in language results\n  -j, --json                 Emit JSON\n      --max-file-bytes int   Skip files larger than this many bytes (0 disables the optional size limit)\n  -r, --rev string           Git revision to analyze (default \"HEAD\")\n      --source string        Content source: auto (Git when present), git, or directory (default \"auto\")\n  -s, --strategies           Show the language detection strategy for each file (text output)\n  -t, --tree-size int        Maximum number of files scanned (default 100000)\n      --workers int          Number of concurrent file workers (0 selects automatically)\n\nUse \"dircue analyze [command] --help\" for more information about a command.\n",
+        "stderr": ""
+      },
+      "new": {
+        "exit": 0,
+        "stdout": "Run a selected profiler\n\nUsage:\n  dircue analyze [flags]\n  dircue analyze [command]\n\nAvailable Commands:\n  all         Analyze all\n  ecosystems  Analyze ecosystems\n  frameworks  Analyze frameworks\n  languages   Analyze languages\n  metrics     Analyze metrics\n\nFlags:\n  -h, --help   help for analyze\n\nGlobal Flags:\n  -b, --breakdown            Include file paths in language results\n  -j, --json                 Emit JSON\n      --max-file-bytes int   Skip files larger than this many bytes (0 disables the optional size limit)\n  -r, --rev string           Git revision to analyze (default \"HEAD\")\n      --source string        Content source: auto (Git when present), git, or directory (default \"auto\")\n  -s, --strategies           Show the language detection strategy for each file (text output)\n  -t, --tree-size int        Maximum number of files scanned (default 100000)\n      --workers int          Number of concurrent file workers (0 selects automatically)\n\nUse \"dircue analyze [command] --help\" for more information about a command.\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "exact_matches": 86,
+  "total": 86
+}
