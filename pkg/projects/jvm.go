@@ -11,6 +11,11 @@ import (
 )
 
 const jvmMavenNamespace = "http://maven.apache.org/POM/4.0.0"
+const jvmMaven41Namespace = "http://maven.apache.org/POM/4.1.0"
+
+func jvmKnownMavenNamespace(namespace string) bool {
+	return namespace == "" || namespace == jvmMavenNamespace || namespace == jvmMaven41Namespace
+}
 
 // IsJVM reports manifests understood by the passive JVM declaration reader.
 func IsJVM(name string) bool {
@@ -58,7 +63,7 @@ func (n *jvmNode) child(name string) *jvmNode {
 		return nil
 	}
 	for _, c := range n.children {
-		if c.name.Local == name && (c.name.Space == "" || c.name.Space == jvmMavenNamespace) {
+		if c.name.Local == name && (jvmKnownMavenNamespace(c.name.Space) && c.name.Space == n.name.Space) {
 			return c
 		}
 	}
@@ -77,7 +82,7 @@ func (n *jvmNode) list(name string) []*jvmNode {
 		return out
 	}
 	for _, c := range n.children {
-		if c.name.Local == name && (c.name.Space == "" || c.name.Space == jvmMavenNamespace) {
+		if c.name.Local == name && (jvmKnownMavenNamespace(c.name.Space) && c.name.Space == n.name.Space) {
 			out = append(out, c)
 		}
 	}
@@ -134,7 +139,7 @@ func jvmXML(content []byte) (*jvmNode, bool) {
 	}
 }
 func jvmInvalid(d *Document, name string) {
-	d.Diagnostics = append(d.Diagnostics, Diagnostic{Path: name, Code: "invalid_manifest", Message: "XML is malformed, uses a DTD, or exceeds the parser limits."})
+	d.Diagnostics = append(d.Diagnostics, Diagnostic{Path: name, Code: "invalid_manifest", Message: "XML is malformed, declares an unsupported encoding, uses a DTD, or exceeds the parser limits."})
 }
 func jvmProject(name, kind string) Project {
 	return Project{ID: name, Root: path.Dir(name), Kind: kind, Evidence: []string{name}, Requirements: []Requirement{}, References: []Reference{}}
@@ -284,7 +289,7 @@ func jvmParseMaven(name string, content []byte, d *Document) {
 		jvmInvalid(d, name)
 		return
 	}
-	if root.name.Local != "project" || (root.name.Space != "" && root.name.Space != jvmMavenNamespace) {
+	if root.name.Local != "project" || !jvmKnownMavenNamespace(root.name.Space) {
 		d.Diagnostics = append(d.Diagnostics, Diagnostic{Path: name, Code: "unsupported_manifest", Message: "Expected a Maven project element in the Maven namespace."})
 		return
 	}
@@ -293,7 +298,7 @@ func jvmParseMaven(name string, content []byte, d *Document) {
 	props := map[string]string{}
 	if properties := root.child("properties"); properties != nil {
 		for _, c := range properties.children {
-			if c.name.Space == "" || c.name.Space == jvmMavenNamespace {
+			if jvmKnownMavenNamespace(c.name.Space) && c.name.Space == properties.name.Space {
 				props[c.name.Local] = strings.TrimSpace(c.text.String())
 			}
 		}
@@ -312,7 +317,11 @@ func jvmParseMaven(name string, content []byte, d *Document) {
 		budget.requirement(jvmRequirement("maven-parent", coords, name, "", props))
 		relative := parent.child("relativePath")
 		if relative == nil {
-			budget.reference(jvmReference(name, "parent", "../pom.xml", "", props))
+			condition := ""
+			if root.name.Space == jvmMaven41Namespace || root.value("modelVersion") == "4.1.0" {
+				condition = "Maven default parent lookup; reactor and repository resolution not evaluated"
+			}
+			budget.reference(jvmReference(name, "parent", "../pom.xml", condition, props))
 		} else if value := strings.TrimSpace(relative.text.String()); value != "" {
 			budget.reference(jvmReference(name, "parent", value, "", props))
 		} else {
@@ -336,7 +345,7 @@ func jvmParseMaven(name string, content []byte, d *Document) {
 		}
 		if properties := profile.child("properties"); properties != nil {
 			for _, c := range properties.children {
-				if c.name.Space == "" || c.name.Space == jvmMavenNamespace {
+				if jvmKnownMavenNamespace(c.name.Space) && c.name.Space == properties.name.Space {
 					profileProps[c.name.Local] = strings.TrimSpace(c.text.String())
 				}
 			}
@@ -357,7 +366,11 @@ func jvmMavenSection(name string, n *jvmNode, condition string, props map[string
 			budget.requirement(jvmRequirement("maven-"+key, value, name, condition, props))
 		}
 	}
-	for _, module := range n.child("modules").list("module") {
+	modules := n.child("modules").list("module")
+	// Maven 4.1 calls these subprojects; they remain literal directory
+	// declarations. Source models and inherited reactor membership are not evaluated.
+	modules = append(modules, n.child("subprojects").list("subproject")...)
+	for _, module := range modules {
 		if budget.exceeded {
 			return
 		}

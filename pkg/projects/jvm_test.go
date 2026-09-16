@@ -288,3 +288,60 @@ func TestJVMObservationCountBudget(t *testing.T) {
 		}
 	}
 }
+
+func TestMaven41DeclarationsAndSubprojects(t *testing.T) {
+	d := ParseJVM("suite/pom.xml", []byte(`<project xmlns="http://maven.apache.org/POM/4.1.0" xmlns:foreign="urn:foreign">
+ <modelVersion>4.1.0</modelVersion><parent><groupId>example</groupId><artifactId>parent</artifactId></parent>
+ <artifactId>suite</artifactId><properties><child>api</child><maven.compiler.release>21</maven.compiler.release><foreign:maven.compiler.target>8</foreign:maven.compiler.target></properties>
+ <subprojects><subproject>${child}</subproject><foreign:subproject>foreign</foreign:subproject><subproject xmlns="http://maven.apache.org/POM/4.0.0">mixed-namespace</subproject></subprojects>
+ <profiles><profile><id>optional</id><subprojects><subproject>extra</subproject></subprojects></profile></profiles>
+ </project>`))
+	if len(d.Diagnostics) != 0 || len(d.Projects) != 1 {
+		t.Fatalf("Maven4.1: %+v", d)
+	}
+	p := d.Projects[0]
+	if len(p.References) != 3 {
+		t.Fatalf("references: %+v", p.References)
+	}
+	for _, ref := range p.References {
+		switch ref.Target {
+		case "suite/api/pom.xml":
+			if ref.State != "declared" {
+				t.Fatalf("literal subproject: %+v", ref)
+			}
+		case "suite/extra/pom.xml":
+			if ref.State != "conditional" || ref.Condition != "Maven profile optional" {
+				t.Fatalf("profile subproject: %+v", ref)
+			}
+		case "pom.xml":
+			if ref.Kind != "parent" || ref.State != "conditional" || !strings.Contains(ref.Condition, "reactor") {
+				t.Fatalf("unevaluated parent lookup: %+v", ref)
+			}
+		default:
+			t.Fatalf("foreign namespace contributed reference: %+v", ref)
+		}
+	}
+	release := false
+	for _, req := range p.Requirements {
+		if req.Kind == "java-release" && req.Value == "21" {
+			release = true
+		}
+		if req.Kind == "java-target" {
+			t.Fatalf("foreign property observed: %+v", req)
+		}
+	}
+	if !release {
+		t.Fatal("Maven4.1 compiler declaration absent")
+	}
+	unsupported := ParseJVM("pom.xml", []byte(`<project xmlns="http://maven.apache.org/POM/4.2.0"><subprojects><subproject>not-yet-supported</subproject></subprojects></project>`))
+	if len(unsupported.Projects) != 0 || len(unsupported.Diagnostics) != 1 || unsupported.Diagnostics[0].Code != "unsupported_manifest" {
+		t.Fatalf("newer namespace silently accepted: %+v", unsupported)
+	}
+}
+
+func TestMavenUnsupportedEncodingDiagnostic(t *testing.T) {
+	d := ParseJVM("pom.xml", []byte(`<?xml version="1.0" encoding="ISO-8859-1"?><project/>`))
+	if len(d.Projects) != 0 || len(d.Diagnostics) != 1 || !strings.Contains(d.Diagnostics[0].Message, "unsupported encoding") {
+		t.Fatalf("encoding diagnostic: %+v", d)
+	}
+}

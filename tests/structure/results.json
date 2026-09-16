@@ -1,7 +1,7 @@
 {
-  "candidate_sha256": "73b2de83ccfde65d4ee8de5b4e6b776dc017964c63ac56d8a7ae1a4bae896934",
+  "candidate_sha256": "61a4cd8da957f0ac4c43c1485eefa016175bbd383cd11459b39c69a08202e7af",
   "worker_sha256": "ae858af5da4721bf1ded45fae35d56329b4b78741f12c169d3111d5d21890521",
-  "harness_sha256": "8b0553582c9ab7e3309ffc105401cdb7c75e8292f476ef83d57ba0536c90760f",
+  "harness_sha256": "a1567e437e6f149cffe7793968ed77d846689093511bdcbed37de006d4e9a072",
   "sampling_sha256": "3f68f8a9eb96bac1428c1ba26a9a0ec7098183495674f55922d439ee5fdb806a",
   "platform": "macOS-26.5.2-arm64-arm-64bit",
   "corpora": [
@@ -281,7 +281,7 @@
         "syntax_nodes": 151091
       },
       "structural_report_sha256": "2d2f79c8cdab8f6684dba7bdd0390a4a2ec693fdd68f4777e177ea9c76815d08",
-      "validation_wall_seconds": 0.9729304993525147
+      "validation_wall_seconds": 0.9535309998318553
     },
     {
       "name": "roslyn",
@@ -563,7 +563,7 @@
         "syntax_nodes": 435623
       },
       "structural_report_sha256": "518d6b836629623de3d265aa709d19d02e622b947e6be75c52c61c7997ab3574",
-      "validation_wall_seconds": 2.4663319159299135
+      "validation_wall_seconds": 2.1765802912414074
     },
     {
       "name": "aspnetcore",
@@ -841,7 +841,7 @@
         "syntax_nodes": 239529
       },
       "structural_report_sha256": "5fdf2b39927c687ab08990e7c0ab1dfc9cd77a1c014d50ee28abf945b2c07680",
-      "validation_wall_seconds": 1.684013624675572
+      "validation_wall_seconds": 1.4350111251696944
     }
   ],
   "method": "Sampled tracked working files; explicit attributes include generated/vendor samples. Compare each production result with a separate direct worker invocation. Repeat production output with 1 and 8 workers. No build execution or network. This validates integration, not independent correctness of BCA metrics.",

@@ -1,5 +1,5 @@
 {
-  "binary_sha256": "73b2de83ccfde65d4ee8de5b4e6b776dc017964c63ac56d8a7ae1a4bae896934",
+  "binary_sha256": "61a4cd8da957f0ac4c43c1485eefa016175bbd383cd11459b39c69a08202e7af",
   "cases": [
     {
       "ambiguous": {
@@ -299,6 +299,102 @@
       "status": "partial",
       "stderr_lines": 1,
       "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+      "unassigned": {
+        "bytes": 0,
+        "files": 0
+      }
+    },
+    {
+      "ambiguous": {
+        "bytes": 0,
+        "files": 0
+      },
+      "checkout_commit": "9f5f92fa1e47fbd6fd9bcb90bd8da97d59611962",
+      "checks": [
+        "repeated-output-identical",
+        "schema-version",
+        "directory-source",
+        "sorted-unique-projects",
+        "exclusive-file-attribution",
+        "exclusive-byte-attribution",
+        "reference-target-state",
+        "root-contained-targets"
+      ],
+      "composition": [
+        {
+          "basis": "content-prefix",
+          "bytes": 5763465,
+          "files": 519,
+          "name": "binary"
+        },
+        {
+          "basis": "manifest-name",
+          "bytes": 3743943,
+          "files": 2039,
+          "name": "configuration"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 2667604,
+          "files": 3714,
+          "name": "data"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 537615,
+          "files": 101,
+          "name": "documentation"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 8866523,
+          "files": 1618,
+          "name": "source"
+        },
+        {
+          "basis": "path-convention",
+          "bytes": 6884446,
+          "files": 1592,
+          "name": "test"
+        },
+        {
+          "basis": "not-established",
+          "bytes": 536884,
+          "files": 403,
+          "name": "unknown"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 280647,
+          "files": 273,
+          "name": "vendored"
+        }
+      ],
+      "configurations": 4,
+      "corpus": "apache-maven",
+      "diagnostic_codes": {
+        "invalid_manifest": 7,
+        "unsupported_manifest": 15
+      },
+      "mode": "directory",
+      "normalized_report_sha256": "0c71e1d6d6b2a177c7a4b5339c4d61bd7f6e4c52dc044dbc83c1d3c1892adff7",
+      "observed_manifest_count": 2040,
+      "observed_manifest_inventory_sha256": "cbaedbb47de116557104e7f001260e5dce800b0f61c70cccf2f283e78762164f",
+      "omitted_files": 0,
+      "project_kinds": {
+        "maven": 2017
+      },
+      "projects": 2017,
+      "reference_states": {
+        "conditional": 67,
+        "missing": 79,
+        "resolved": 1246,
+        "unresolved": 2
+      },
+      "references": 1394,
+      "status": "partial",
+      "stderr_lines": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
       "unassigned": {
         "bytes": 0,
         "files": 0
