@@ -1,0 +1,52 @@
+name: Structural prototype
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'prototypes/structural/**'
+      - '.github/workflows/structural-prototype.yml'
+  pull_request:
+    paths:
+      - 'prototypes/structural/**'
+      - '.github/workflows/structural-prototype.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prototype:
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - name: Install the pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal
+      - name: Test worker
+        run: cargo +1.94.0 test --locked --manifest-path prototypes/structural/worker/Cargo.toml
+      - name: Test driver
+        working-directory: prototypes/structural/driver
+        run: |
+          go vet ./...
+          go test -race ./...
+      - name: Build prototype
+        run: make -C prototypes/structural build CARGO='cargo +1.94.0'
+      - name: Validate both consumers and process boundaries
+        run: >-
+          python3 prototypes/structural/tests/validate.py
+          --worker prototypes/structural/worker/target/release/dircue-structural-worker
+          --driver prototypes/structural/bin/dircue-structural-prototype
+          --output prototypes/structural/tests/results/ci-validation.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: structural-prototype-${{ matrix.os }}
+          path: prototypes/structural/tests/results/ci-validation.json
