@@ -37,15 +37,34 @@ def main():
             original = inspect(source, file["path"], language)
             if original["status"] != "partial":
                 continue
-            partials.append({"corpus": corpus["name"], "commit": corpus["commit"], **file,
+            partial = {"corpus": corpus["name"], "commit": corpus["commit"], **file,
                              "original": original,
                              "without_bom": inspect(source.lstrip("\ufeff"), file["path"], language),
                              "without_directive_lines": inspect("\n".join(
                                  line for line in source.splitlines() if not line.lstrip().startswith("#")),
-                                 file["path"], language)})
+                                 file["path"], language)}
+            if file["path"] == "src/Scripting/Core/ScriptBuilder.cs":
+                original_assignment = "pdbStreamOpt?.Position = 0;"
+                replacement = "if (pdbStreamOpt != null) pdbStreamOpt.Position = 0;"
+                if source.count(original_assignment) != 1:
+                    raise ValueError("Expected one null-conditional assignment in ScriptBuilder.cs")
+                partial["null_conditional_assignment_probe"] = {
+                    "original_statement": original_assignment,
+                    "replacement_statement": replacement,
+                    "result": inspect(source.replace(original_assignment, replacement), file["path"], language),
+                }
+            partials.append(partial)
+    minimal_sources = {
+        "null_conditional_assignment": "class C { void F(dynamic stream) { stream?.Position = 0; } }",
+        "explicit_null_check": "class C { void F(dynamic stream) { if (stream != null) stream.Position = 0; } }",
+    }
     report = {"worker_sha256": hashlib.sha256(worker.read_bytes()).hexdigest(),
               "caveat": "Modified-source probes only diagnose parser sensitivity; they are not proposed preprocessing or benchmark inputs.",
-              "partial_files": partials}
+              "partial_files": partials,
+              "csharp14_minimal_probes": {
+                  name: {"source": source, "result": inspect(source, name + ".cs", "C#")}
+                  for name, source in minimal_sources.items()
+              }}
     args.output.write_text(json.dumps(report, indent=2) + "\n")
 
 
