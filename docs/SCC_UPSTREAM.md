@@ -6,7 +6,7 @@
 
 The adapter accepts a language already identified by dircue and a complete UTF-8 file. It calls `processor.CountStats` to count physical lines, code lines, comment lines, blank lines, and complexity tokens. It uses scc's default counting behavior, including the generic counter. Complexity is a lexical estimate; it is not a count of control-flow paths obtained from an AST.
 
-Directory traversal, Git revision selection, exclusions, byte limits, and report aggregation remain in dircue. Git content is read through the [maintained go-git dependency](../third_party/README.md), which includes fixes for packed-object streaming and loose-object file cleanup. The adapter does not invoke scc's walker, load repository configuration, guess another language, calculate cost estimates, or use Git history. This release integrates the counting engine, not every feature of the standalone scc command.
+Directory traversal, Git revision selection, exclusions, byte limits, and report aggregation remain in dircue. Git content is read through the [maintained go-git dependency](../third_party/README.md), which includes fixes for packed-object streaming and file-handle cleanup. The adapter does not invoke scc's walker, load repository configuration, guess another language, calculate cost estimates, or use Git history. This release integrates the counting engine, not every feature of the standalone scc command.
 
 `Grammar` uses a fixed table of ungrouped Linguist names. An unknown name produces an explicit unsupported result, even when its filename extension looks familiar. This preserves the distinction between languages sharing extensions, such as Objective-C and MATLAB.
 

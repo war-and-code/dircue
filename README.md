@@ -70,7 +70,7 @@ If the executable name is fixed in your job, install the binary as `github-lingu
 
 ## Comparison
 
-Language profiling targets **GitHub Linguist 9.7.0** compatibility through a maintained Enry fork. The comparison harness measures upstream Enry v2.9.6 separately. The [upstream update process](third_party/README.md) records source versions, patches, generated data, and licenses. Git object reads use a maintained go-git v5.19.2 fork with fixes for streaming delta reconstruction and leaked loose-object file handles; scc v4.1.0 is used without source changes.
+Language profiling targets **GitHub Linguist 9.7.0** compatibility through a maintained Enry fork. The comparison harness measures upstream Enry v2.9.6 separately. The [upstream update process](third_party/README.md) records source versions, patches, generated data, and licenses. Git object reads use a maintained go-git v5.19.2 fork with fixes for streaming delta reconstruction and file-handle cleanup; scc v4.1.0 is used without source changes.
 
 | | GitHub Linguist 9.7.0 | Upstream Enry | Dircue |
 | --- | --- | --- | --- |
