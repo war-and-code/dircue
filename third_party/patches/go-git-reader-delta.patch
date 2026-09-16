@@ -289,3 +289,424 @@
 +	}
 +	return file.closeError
 +}
+--- a/repository.go
++++ b/repository.go
+@@ -433,6 +433,8 @@
+ 	if err != nil {
+ 		return nil, err
+ 	}
++
++	defer ioutil.CheckClose(f, &err)
+ 
+ 	b, err := io.ReadAll(f)
+ 	if err != nil {
+@@ -1904,3 +1906,5 @@
+ 	})
+ 	return
+ }
++
++// Modified for dircue: close linked-worktree commondir files after reading.
+--- /dev/null
++++ b/commondir_close_regression_test.go
+@@ -0,0 +1,102 @@
++package git
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/go-git/go-billy/v5"
++	"github.com/go-git/go-billy/v5/osfs"
++)
++
++func TestCommonDirectoryClosesMetadataFile(t *testing.T) {
++	readError := errors.New("metadata read failed")
++	closeError := errors.New("metadata close failed")
++	for _, test := range []struct {
++		name          string
++		content       string
++		readError     error
++		closeError    error
++		wantError     error
++		wantDirectory bool
++	}{
++		{name: "relative common directory", content: ".\n", wantDirectory: true},
++		{name: "empty metadata", content: ""},
++		{name: "missing target", content: "missing-directory\n", wantError: ErrRepositoryIncomplete},
++		{name: "read error", content: ".\n", readError: readError, wantError: readError},
++		{name: "close error", content: ".\n", closeError: closeError, wantError: closeError},
++		{name: "read error precedes close error", content: ".\n", readError: readError, closeError: closeError, wantError: readError},
++	} {
++		t.Run(test.name, func(t *testing.T) {
++			root := t.TempDir()
++			if err := os.WriteFile(filepath.Join(root, "commondir"), []byte(test.content), 0o644); err != nil {
++				t.Fatal(err)
++			}
++			fs := &trackedCommonDirFS{Filesystem: osfs.New(root), readError: test.readError, closeError: test.closeError}
++			// Close leaked handles after checking ownership so an unfixed Windows
++			// failure does not also prevent temporary-directory cleanup.
++			t.Cleanup(func() {
++				for _, file := range fs.files {
++					if !file.closed {
++						_ = file.File.Close()
++					}
++				}
++			})
++			directory, err := dotGitCommonDirectory(fs)
++			if !errors.Is(err, test.wantError) {
++				t.Fatalf("got error %v, want %v", err, test.wantError)
++			}
++			if err == nil && (directory != nil) != test.wantDirectory {
++				t.Errorf("directory present=%v, want %v", directory != nil, test.wantDirectory)
++			}
++			if len(fs.files) != 1 {
++				t.Fatalf("opened %d files, want 1", len(fs.files))
++			}
++			file := fs.files[0]
++			if !file.closed || file.closes != 1 {
++				t.Fatalf("commondir file closed %d times, want exactly 1", file.closes)
++			}
++		})
++	}
++}
++
++type trackedCommonDirFS struct {
++	billy.Filesystem
++	files      []*trackedCommonDirFile
++	readError  error
++	closeError error
++}
++
++func (fs *trackedCommonDirFS) Open(name string) (billy.File, error) {
++	file, err := fs.Filesystem.Open(name)
++	if err != nil {
++		return nil, err
++	}
++	tracked := &trackedCommonDirFile{File: file, readError: fs.readError, closeError: fs.closeError}
++	fs.files = append(fs.files, tracked)
++	return tracked, nil
++}
++
++type trackedCommonDirFile struct {
++	billy.File
++	closed     bool
++	closes     int
++	readError  error
++	closeError error
++}
++
++func (file *trackedCommonDirFile) Read(content []byte) (int, error) {
++	if file.readError != nil {
++		return 0, file.readError
++	}
++	return file.File.Read(content)
++}
++func (file *trackedCommonDirFile) Close() error {
++	file.closes++
++	file.closed = true
++	if err := file.File.Close(); err != nil {
++		return err
++	}
++	return file.closeError
++}
+--- a/storage/filesystem/dotgit/reader.go
++++ b/storage/filesystem/dotgit/reader.go
+@@ -34,20 +34,24 @@
+ 	}
+ 	r, err := objfile.NewReader(f)
+ 	if err != nil {
++		_ = f.Close()
+ 		return nil, err
+ 	}
+ 
+ 	t, size, err := r.Header()
+ 	if err != nil {
+ 		_ = r.Close()
++		_ = f.Close()
+ 		return nil, err
+ 	}
+ 	if t != e.t {
+ 		_ = r.Close()
++		_ = f.Close()
+ 		return nil, objfile.ErrHeader
+ 	}
+ 	if size != e.sz {
+ 		_ = r.Close()
++		_ = f.Close()
+ 		return nil, objfile.ErrHeader
+ 	}
+ 	return ioutil.NewReadCloserWithCloser(r, f.Close), nil
+@@ -77,3 +81,5 @@
+ 		sz:  size,
+ 	}
+ }
++
++// Modified for dircue: close loose object files when reader initialization fails.
+--- /dev/null
++++ b/storage/filesystem/dotgit/reader_close_regression_test.go
+@@ -0,0 +1,130 @@
++package dotgit
++
++import (
++	"bytes"
++	"compress/zlib"
++	"errors"
++	"io"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/go-git/go-billy/v5"
++	"github.com/go-git/go-billy/v5/osfs"
++	"github.com/go-git/go-git/v5/plumbing"
++	"github.com/go-git/go-git/v5/plumbing/format/objfile"
++)
++
++func TestEncodedObjectReaderFileOwnership(t *testing.T) {
++	closeError := errors.New("injected file close failure")
++	for _, tc := range []struct {
++		name       string
++		content    []byte
++		typ        plumbing.ObjectType
++		size       int64
++		wantError  error
++		anyError   bool
++		closeError error
++	}{
++		{name: "valid ownership transfer", content: compressedReaderObject(t, "blob 3\x00abc"), typ: plumbing.BlobObject, size: 3},
++		{name: "valid close error", content: compressedReaderObject(t, "blob 3\x00abc"), typ: plumbing.BlobObject, size: 3, closeError: closeError},
++		{name: "invalid zlib", content: []byte("not zlib"), typ: plumbing.BlobObject, size: 3, anyError: true, closeError: closeError},
++		{name: "invalid header", content: compressedReaderObject(t, "blob bad\x00abc"), typ: plumbing.BlobObject, size: 3, wantError: objfile.ErrHeader, closeError: closeError},
++		{name: "type mismatch", content: compressedReaderObject(t, "blob 3\x00abc"), typ: plumbing.TreeObject, size: 3, wantError: objfile.ErrHeader, closeError: closeError},
++		{name: "size mismatch", content: compressedReaderObject(t, "blob 3\x00abc"), typ: plumbing.BlobObject, size: 4, wantError: objfile.ErrHeader, closeError: closeError},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			root := t.TempDir()
++			hash := plumbing.NewHash("0123456789012345678901234567890123456789")
++			filename := filepath.Join(root, "objects", "01", hash.String()[2:])
++			if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
++				t.Fatal(err)
++			}
++			if err := os.WriteFile(filename, tc.content, 0644); err != nil {
++				t.Fatal(err)
++			}
++			fs := &readerOwnershipFS{Filesystem: osfs.New(root), closeError: tc.closeError}
++			t.Cleanup(func() {
++				for _, file := range fs.files {
++					if file.closes == 0 {
++						_ = file.File.Close()
++					}
++				}
++			})
++			object := NewEncodedObject(New(fs), hash, tc.typ, tc.size)
++			reader, err := object.Reader()
++			if tc.anyError || tc.wantError != nil {
++				if err == nil || reader != nil {
++					t.Fatalf("got reader %v, error %v; expected failure", reader, err)
++				}
++				if errors.Is(err, closeError) {
++					t.Fatalf("close error replaced primary error: %v", err)
++				}
++				if tc.wantError != nil && !errors.Is(err, tc.wantError) {
++					t.Fatalf("got %v, want %v", err, tc.wantError)
++				}
++			} else {
++				if err != nil {
++					t.Fatal(err)
++				}
++				if len(fs.files) != 1 || fs.files[0].closes != 0 {
++					t.Fatal("file closed before ownership reached reader")
++				}
++				content, readErr := io.ReadAll(reader)
++				closeErr := reader.Close()
++				if readErr != nil || string(content) != "abc" {
++					t.Fatalf("content %q, error %v", content, readErr)
++				}
++				if !errors.Is(closeErr, tc.closeError) {
++					t.Fatalf("close error %v, want %v", closeErr, tc.closeError)
++				}
++			}
++			if len(fs.files) != 1 || fs.files[0].closes != 1 {
++				t.Fatalf("files opened=%d; close counts=%v", len(fs.files), fs.files)
++			}
++		})
++	}
++}
++
++func compressedReaderObject(t *testing.T, value string) []byte {
++	t.Helper()
++	var result bytes.Buffer
++	writer := zlib.NewWriter(&result)
++	if _, err := io.WriteString(writer, value); err != nil {
++		t.Fatal(err)
++	}
++	if err := writer.Close(); err != nil {
++		t.Fatal(err)
++	}
++	return result.Bytes()
++}
++
++type readerOwnershipFS struct {
++	billy.Filesystem
++	files      []*readerOwnershipFile
++	closeError error
++}
++
++func (fs *readerOwnershipFS) Open(name string) (billy.File, error) {
++	file, err := fs.Filesystem.Open(name)
++	if err != nil {
++		return nil, err
++	}
++	tracked := &readerOwnershipFile{File: file, closeError: fs.closeError}
++	fs.files = append(fs.files, tracked)
++	return tracked, nil
++}
++
++type readerOwnershipFile struct {
++	billy.File
++	closes     int
++	closeError error
++}
++
++func (file *readerOwnershipFile) Close() error {
++	file.closes++
++	if err := file.File.Close(); err != nil {
++		return err
++	}
++	return file.closeError
++}
+--- a/plumbing/format/packfile/fsobject.go
++++ b/plumbing/format/packfile/fsobject.go
+@@ -70,6 +70,7 @@
+ 		// We have a big object
+ 		h, err := p.objectHeaderAtOffset(o.offset)
+ 		if err != nil {
++			_ = f.Close()
+ 			return nil, err
+ 		}
+ 
+@@ -123,3 +124,5 @@
+ func (o *FSObject) Writer() (io.WriteCloser, error) {
+ 	return nil, nil
+ }
++
++// Modified for dircue: close packfiles when large-object header reads fail.
+--- /dev/null
++++ b/plumbing/format/packfile/fsobject_close_regression_test.go
+@@ -0,0 +1,114 @@
++package packfile
++
++import (
++	"bytes"
++	"compress/zlib"
++	"crypto/sha1"
++	"errors"
++	"io"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/go-git/go-billy/v5"
++	"github.com/go-git/go-billy/v5/osfs"
++	"github.com/go-git/go-git/v5/plumbing"
++	"github.com/go-git/go-git/v5/plumbing/cache"
++)
++
++func TestFSObjectReaderFileOwnership(t *testing.T) {
++	header := []byte{'P', 'A', 'C', 'K', 0, 0, 0, 2, 0, 0, 0, 1}
++	var packed bytes.Buffer
++	packed.Write(header)
++	packed.WriteByte(0x33)
++	compressor := zlib.NewWriter(&packed)
++	if _, err := io.WriteString(compressor, "abc"); err != nil {
++		t.Fatal(err)
++	}
++	if err := compressor.Close(); err != nil {
++		t.Fatal(err)
++	}
++	checksum := sha1.Sum(packed.Bytes())
++	packed.Write(checksum[:])
++	closeError := errors.New("injected pack close failure")
++	for _, tc := range []struct {
++		name       string
++		content    []byte
++		failure    bool
++		closeError error
++	}{
++		{name: "valid ownership transfer", content: packed.Bytes()},
++		{name: "invalid object header", content: header, failure: true, closeError: closeError},
++		{name: "invalid zlib", content: append(append([]byte{}, header...), 0x33, 'b', 'a', 'd'), failure: true, closeError: closeError},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			root := t.TempDir()
++			if err := os.WriteFile(filepath.Join(root, "objects.pack"), tc.content, 0644); err != nil {
++				t.Fatal(err)
++			}
++			fs := &packOwnershipFS{Filesystem: osfs.New(root), closeError: tc.closeError}
++			t.Cleanup(func() {
++				for _, file := range fs.files {
++					if file.closes == 0 {
++						_ = file.File.Close()
++					}
++				}
++			})
++			object := NewFSObject(plumbing.NewHash("0123456789012345678901234567890123456789"), plumbing.BlobObject, 12, 3, nil, fs, "objects.pack", cache.NewObjectLRUDefault(), 1)
++			reader, err := object.Reader()
++			if tc.failure {
++				if err == nil || reader != nil {
++					t.Fatalf("reader %v, error %v; expected invalid pack failure", reader, err)
++				}
++				if errors.Is(err, closeError) {
++					t.Fatalf("close error replaced primary error: %v", err)
++				}
++			} else {
++				if err != nil {
++					t.Fatal(err)
++				}
++				if len(fs.files) != 1 || fs.files[0].closes != 0 {
++					t.Fatal("pack closed before reader received ownership")
++				}
++				content, readErr := io.ReadAll(reader)
++				closeErr := reader.Close()
++				if readErr != nil || closeErr != nil || string(content) != "abc" {
++					t.Fatalf("content %q read=%v close=%v", content, readErr, closeErr)
++				}
++			}
++			if len(fs.files) != 1 || fs.files[0].closes != 1 {
++				t.Fatalf("files opened=%d; close counts=%v", len(fs.files), fs.files)
++			}
++		})
++	}
++}
++
++type packOwnershipFS struct {
++	billy.Filesystem
++	files      []*packOwnershipFile
++	closeError error
++}
++
++func (fs *packOwnershipFS) Open(name string) (billy.File, error) {
++	file, err := fs.Filesystem.Open(name)
++	if err != nil {
++		return nil, err
++	}
++	tracked := &packOwnershipFile{File: file, closeError: fs.closeError}
++	fs.files = append(fs.files, tracked)
++	return tracked, nil
++}
++
++type packOwnershipFile struct {
++	billy.File
++	closes     int
++	closeError error
++}
++
++func (file *packOwnershipFile) Close() error {
++	file.closes++
++	if err := file.File.Close(); err != nil {
++		return err
++	}
++	return file.closeError
++}

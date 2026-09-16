@@ -434,6 +434,8 @@ func dotGitCommonDirectory(fs billy.Filesystem) (commonDir billy.Filesystem, err
 		return nil, err
 	}
 
+	defer ioutil.CheckClose(f, &err)
+
 	b, err := io.ReadAll(f)
 	if err != nil {
 		return nil, err
@@ -1904,3 +1906,5 @@ func expandPartialHash(st storer.EncodedObjectStorer, prefix []byte) (hashes []p
 	})
 	return
 }
+
+// Modified for dircue: close linked-worktree commondir files after reading.
