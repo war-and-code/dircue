@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import signal
 import statistics
 import subprocess
 import tempfile
@@ -32,8 +33,13 @@ def measured(command):
         launcher = ['/usr/bin/time', '-l'] if system == 'Darwin' else [
             '/usr/bin/time', '-f', '%U %S %M', '-o', stats.name]
         started = time.perf_counter()
-        result = subprocess.Popen(launcher + command, stdout=subprocess.DEVNULL, stderr=diagnostic)
-        timer = threading.Timer(600, result.kill)
+        result = subprocess.Popen(launcher + command, stdout=subprocess.DEVNULL, stderr=diagnostic, start_new_session=True)
+        def stop():
+            try:
+                os.killpg(result.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        timer = threading.Timer(600, stop)
         timer.daemon = True
         timer.start()
         try:
