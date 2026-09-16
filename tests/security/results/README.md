@@ -21,3 +21,12 @@ vulnerabilities. It also reported four unreachable dependency advisories from
 Auragaze's scanned paths do not call the vulnerable symbols according to
 govulncheck's static call graph. The complete module inventory and scanner
 wording are retained in the transcript.
+
+## 0.2 candidate
+
+`govulncheck-2026-09-16.txt` records `go run
+golang.org/x/vuln/cmd/govulncheck@v1.7.0 -show verbose ./...` with Go 1.26.6,
+scc v4.1.0, and the maintained go-git v5.19.2 replacement. The runtime source
+is present in commit `b005fb7`. The scan reports zero symbol-reachable
+vulnerabilities and the same four unreachable dependency advisories described
+above. The transcript is retained without edits.
