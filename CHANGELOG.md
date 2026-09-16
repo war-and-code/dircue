@@ -7,6 +7,7 @@
 - Count source files by default, with a broader text scope and bounded full-file reads. XML logs remain excluded from default counting unless attributes include them.
 - Extend the aggregate JSON schema to 1.1.0 when metrics are requested. Existing language output and reports without metrics retain their contracts.
 - Backport a go-git streaming delta fix: backward copies could reconstruct incorrect bytes from packed Git objects without reporting an error. The fix preserves bounded reads and applies to both language profiling and metrics.
+- Close loose-object files after reading their sizes. Upstream go-git left these handles open, which could exhaust file descriptors or prevent temporary repository cleanup on Windows.
 
 ## 0.1.0 (2026-09-08)
 

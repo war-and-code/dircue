@@ -38,7 +38,7 @@ The scanner's binary preflight independently follows [Charlock Holmes 0.7.9's ra
 
 Enry is **Apache-2.0**, preserved verbatim in `go-enry/LICENSE`. Linguist's generated data is derived from its **MIT**-licensed source; that notice is preserved in `go-enry/LINGUIST_LICENSE`. Project-specific changes are identified here and in the patch; this fork is not an upstream Enry release. The production build remains pure Go with `CGO_ENABLED=0`; optional Enry `oniguruma`/`flex` build modes are outside the supported Dircue build configuration.
 
-## go-git streaming delta backport
+## go-git reader backports
 
 The local replacement under `go-git/` starts from go-git v5.19.2. It backports a
 correction for [upstream issue #2378](https://github.com/go-git/go-git/issues/2378):
@@ -48,9 +48,14 @@ resets the tracked base position when reopening the reader and closes the latest
 reader on completion. It applies to Git content used for language profiling and
 metrics while retaining streaming reads for large objects.
 
+A second correction closes the loose-object file after `EncodedObjectSize`
+reads its header, including error paths. Upstream v5.19.2 closes the decompressor
+but leaves the underlying file open. This can accumulate file descriptors and
+prevent repository cleanup on Windows.
+
 [`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
 runtime changes and regression tests. The snapshot retains upstream production
-Go sources, module files, and license, plus the standalone delta tests; upstream
+Go sources, module files, and license, plus standalone delta and file-lifecycle tests; upstream
 examples and fixture-dependent test suites are omitted.
 [`go-git/PROVENANCE.json`](go-git/PROVENANCE.json) identifies the pinned upstream
 module, patch, and retained file hashes.
@@ -64,7 +69,7 @@ python3 third_party/update_go_git.py --output .cache/go-git-regenerated
 
 The updater uses Go's module/checksum system to retrieve the pinned release and
 applies the recorded patch. This fork preserves go-git's Apache-2.0 license; it
-is not an upstream release. When a released go-git version contains the fix,
+is not an upstream release. When a released go-git version contains these fixes,
 review whether the local replacement can be removed. Repeat packed-object
 regressions, Git-versus-directory comparisons, and language profiling benchmarks
 before adopting that update.
