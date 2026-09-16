@@ -1,0 +1,309 @@
+{
+  "binary_sha256": "73b2de83ccfde65d4ee8de5b4e6b776dc017964c63ac56d8a7ae1a4bae896934",
+  "cases": [
+    {
+      "ambiguous": {
+        "bytes": 170563,
+        "files": 77
+      },
+      "checkout_commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "checks": [
+        "repeated-output-identical",
+        "schema-version",
+        "directory-source",
+        "sorted-unique-projects",
+        "exclusive-file-attribution",
+        "exclusive-byte-attribution",
+        "reference-target-state",
+        "root-contained-targets"
+      ],
+      "composition": [
+        {
+          "basis": "content-prefix",
+          "bytes": 14276867,
+          "files": 326,
+          "name": "binary"
+        },
+        {
+          "basis": "manifest-name",
+          "bytes": 1479692,
+          "files": 619,
+          "name": "configuration"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 9945104,
+          "files": 766,
+          "name": "data"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 33458856,
+          "files": 9581,
+          "name": "documentation"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 50664568,
+          "files": 1262,
+          "name": "generated"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 126689103,
+          "files": 16295,
+          "name": "source"
+        },
+        {
+          "basis": "path-convention",
+          "bytes": 206398812,
+          "files": 6143,
+          "name": "test"
+        },
+        {
+          "basis": "not-established",
+          "bytes": 10993984,
+          "files": 124,
+          "name": "unknown"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 1656752,
+          "files": 104,
+          "name": "vendored"
+        }
+      ],
+      "configurations": 75,
+      "corpus": "roslyn",
+      "diagnostic_codes": {
+        "invalid-xml": 1
+      },
+      "mode": "directory",
+      "normalized_report_sha256": "e4b61f92ea29545cd69e3e12aee715f334ad5f75211d58f60618a94404996d79",
+      "observed_manifest_count": 619,
+      "observed_manifest_inventory_sha256": "b38692c58dbf722bbaf7f6eea25d38d5f3f0f0d50ff667f3c6f430e0968002e5",
+      "omitted_files": 0,
+      "project_kinds": {
+        "dotnet": 508,
+        "solution": 35
+      },
+      "projects": 543,
+      "reference_states": {
+        "conditional": 98,
+        "missing": 49,
+        "resolved": 2304,
+        "unresolved": 225
+      },
+      "references": 2676,
+      "status": "partial",
+      "stderr_lines": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unassigned": {
+        "bytes": 40346319,
+        "files": 3700
+      }
+    },
+    {
+      "ambiguous": {
+        "bytes": 49349999,
+        "files": 855
+      },
+      "checkout_commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "checks": [
+        "repeated-output-identical",
+        "schema-version",
+        "directory-source",
+        "sorted-unique-projects",
+        "exclusive-file-attribution",
+        "exclusive-byte-attribution",
+        "reference-target-state",
+        "root-contained-targets"
+      ],
+      "composition": [
+        {
+          "basis": "content-prefix",
+          "bytes": 3281364,
+          "files": 101,
+          "name": "binary"
+        },
+        {
+          "basis": "manifest-name",
+          "bytes": 921374,
+          "files": 703,
+          "name": "configuration"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 5182865,
+          "files": 1449,
+          "name": "data"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 6586852,
+          "files": 704,
+          "name": "documentation"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 7841089,
+          "files": 39,
+          "name": "generated"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 33387054,
+          "files": 7732,
+          "name": "source"
+        },
+        {
+          "basis": "path-convention",
+          "bytes": 33696579,
+          "files": 4959,
+          "name": "test"
+        },
+        {
+          "basis": "not-established",
+          "bytes": 419714,
+          "files": 183,
+          "name": "unknown"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 81970711,
+          "files": 645,
+          "name": "vendored"
+        }
+      ],
+      "configurations": 78,
+      "corpus": "aspnetcore",
+      "diagnostic_codes": {
+        "unresolved_build_script": 1
+      },
+      "mode": "directory",
+      "normalized_report_sha256": "41d0170d6355407fd7f7fbbab22aff1f1e710ecaa58a9234de272b4c797ddbc1",
+      "observed_manifest_count": 704,
+      "observed_manifest_inventory_sha256": "3368d600f1944a02c5298ce2ad0dd8f6b1a98fcd536e25b25771eef7ef26a8fb",
+      "omitted_files": 0,
+      "project_kinds": {
+        "dotnet": 605,
+        "gradle": 4,
+        "npm": 15,
+        "solution": 2
+      },
+      "projects": 626,
+      "reference_states": {
+        "conditional": 45,
+        "missing": 4,
+        "resolved": 747,
+        "unresolved": 179
+      },
+      "references": 975,
+      "status": "partial",
+      "stderr_lines": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "unassigned": {
+        "bytes": 0,
+        "files": 0
+      }
+    },
+    {
+      "ambiguous": {
+        "bytes": 0,
+        "files": 0
+      },
+      "checkout_commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "checks": [
+        "repeated-output-identical",
+        "schema-version",
+        "directory-source",
+        "sorted-unique-projects",
+        "exclusive-file-attribution",
+        "exclusive-byte-attribution",
+        "reference-target-state",
+        "root-contained-targets"
+      ],
+      "composition": [
+        {
+          "basis": "content-prefix",
+          "bytes": 1064559,
+          "files": 43,
+          "name": "binary"
+        },
+        {
+          "basis": "manifest-name",
+          "bytes": 7075,
+          "files": 7,
+          "name": "configuration"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 1498633,
+          "files": 903,
+          "name": "data"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 3980186,
+          "files": 498,
+          "name": "documentation"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 139827,
+          "files": 18,
+          "name": "generated"
+        },
+        {
+          "basis": "detected-language-type",
+          "bytes": 27879338,
+          "files": 5371,
+          "name": "source"
+        },
+        {
+          "basis": "path-convention",
+          "bytes": 24373033,
+          "files": 3974,
+          "name": "test"
+        },
+        {
+          "basis": "not-established",
+          "bytes": 144593,
+          "files": 118,
+          "name": "unknown"
+        },
+        {
+          "basis": "linguist-rules-and-attributes",
+          "bytes": 1660698,
+          "files": 415,
+          "name": "vendored"
+        }
+      ],
+      "configurations": 5,
+      "corpus": "spring-framework",
+      "diagnostic_codes": {},
+      "mode": "directory",
+      "normalized_report_sha256": "d3ecbae64dd1a9802df18005469b48abd6c23415c84f135780034a7041e22f6d",
+      "observed_manifest_count": 8,
+      "observed_manifest_inventory_sha256": "2a3e00dfeddeaf034426ad090756a88b24278545d28972db9010b057439c1521",
+      "omitted_files": 1,
+      "project_kinds": {
+        "gradle": 2,
+        "npm": 1
+      },
+      "projects": 3,
+      "reference_states": {
+        "conditional": 27
+      },
+      "references": 27,
+      "status": "partial",
+      "stderr_lines": 1,
+      "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+      "unassigned": {
+        "bytes": 0,
+        "files": 0
+      }
+    }
+  ],
+  "scope": "Project inventory consistency and deterministic output; not proof of effective build membership."
+}

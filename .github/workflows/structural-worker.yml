@@ -1,0 +1,84 @@
+name: Structural worker
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'pkg/structure/**'
+      - 'pkg/scanner/**'
+      - 'pkg/profile/**'
+      - 'schema/**'
+      - 'pkg/projects/**'
+      - 'internal/cli/**'
+      - 'prototypes/structural/worker/**'
+      - 'scripts/structural_worker_release.py'
+      - 'docs/STRUCTURE.md'
+      - '.github/workflows/structural-worker.yml'
+  pull_request:
+    paths:
+      - 'pkg/structure/**'
+      - 'pkg/scanner/**'
+      - 'pkg/profile/**'
+      - 'schema/**'
+      - 'pkg/projects/**'
+      - 'internal/cli/**'
+      - 'prototypes/structural/worker/**'
+      - 'scripts/structural_worker_release.py'
+      - 'docs/STRUCTURE.md'
+      - '.github/workflows/structural-worker.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux-amd64
+            target: x86_64-unknown-linux-gnu
+            suffix: ''
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
+            target: aarch64-unknown-linux-gnu
+            suffix: ''
+          - os: macos-14
+            platform: darwin-arm64
+            target: aarch64-apple-darwin
+            suffix: ''
+          - os: macos-15-intel
+            platform: darwin-amd64
+            target: x86_64-apple-darwin
+            suffix: ''
+          - os: windows-latest
+            platform: windows-amd64
+            target: x86_64-pc-windows-msvc
+            suffix: '.exe'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --target ${{ matrix.target }}
+      - name: Test native worker
+        run: rustup run 1.94.0 cargo test --locked --manifest-path prototypes/structural/worker/Cargo.toml
+      - name: Build and package worker with dependency sources
+        run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version 0.3.0 --smoke-test
+      - name: Test Go process adapter against native worker
+        env:
+          DIRCUE_STRUCTURAL_WORKER: ${{ github.workspace }}/prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }}
+        run: go test -race ./pkg/structure ./pkg/scanner ./schema ./internal/cli
+      - uses: actions/upload-artifact@v4
+        with:
+          name: structural-worker-${{ matrix.platform }}
+          path: dist/structural-worker/*
+          if-no-files-found: error

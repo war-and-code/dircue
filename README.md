@@ -1,25 +1,23 @@
-
 # `dircue`
 
 Profile source code repos and other directories of computer content.
 
-Dircue helps you understand what's in a file directory and choose tools to analyze it further. It runs as a single Go binary, with or without Git metadata.
+Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-Version 0.2 adds optional line counts and complexity estimates through scc, alongside language statistics and selected ecosystem, framework, project-root, and CI/container observations.
-
-The project is designed to grow into broader directory profiling, including project relationships and dependency and infrastructure observations.
+The 0.3.0 release candidate adds project mapping and declared build requirements, content composition, and optional Java/C# structural analysis. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze all --json /path/to/checkout
-dircue analyze metrics --json /path/to/checkout
+dircue analyze projects --json /path/to/checkout
+dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
 
-As of this writing, public downloads are not available yet, but you can build from this checkout or use a locally prepared release archive or wheel. A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
+Public downloads and PyPI publication are not available yet. Authenticated repository users can obtain existing GitHub Release assets; build this checkout or prepare local artifacts to try the 0.3.0 candidate. A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Execution machines need only the binary for their OS and architecture.
+Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .
@@ -39,9 +37,7 @@ dircue --breakdown --json /path/to/checkout
 
 ## Replace `github-linguist --json`
 
-Currently running `github-linguist --json` in a pipeline or wherever?
-
-Then you can install dircue on `PATH` and replace that with `dircue --json`. Keep the same working directory. No path or subcommand is required; at a Git repository root, both commands analyze committed `HEAD`.
+Install dircue on `PATH` and replace `github-linguist --json` with `dircue --json`. Keep the same working directory. No path or subcommand is required; at a Git repository root, both commands analyze committed `HEAD`.
 
 Dircue emits the same language-keyed JSON structure, with integer byte sizes and string percentages. For example:
 
@@ -74,10 +70,10 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 
 | | GitHub Linguist 9.7.0 | Upstream Enry | Dircue |
 | --- | --- | --- | --- |
-| Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork |
+| Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Manifest, framework, project-root, and CI/container observations; optional scc code metrics |
+| Additional profiling | Language metadata | Language metadata | Project declarations and references, content composition, framework/CI observations, optional scc metrics and Java/C# structure |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -137,6 +133,9 @@ dircue analyze frameworks /checkout --json
 dircue analyze all /checkout --json --breakdown
 dircue analyze metrics /checkout --json --files
 dircue analyze all /checkout --json --metrics
+dircue analyze projects /checkout --json
+dircue analyze all /checkout --json --projects --metrics
+dircue analyze structure /checkout --json --files --structural-worker /opt/dircue/dircue-structural-worker
 ```
 
 Language commands use the legacy output contract. Ecosystem and framework commands emit finding arrays. `analyze all --json` emits the versioned [profile schema](schema/profile.schema.json): languages, ecosystem/framework/layout findings, summary counts, and warnings.
@@ -145,11 +144,23 @@ Language commands use the legacy output contract. Ecosystem and framework comman
 
 Metrics default to files included in language statistics, so XML logs are excluded unless attributes override their selection. `--metrics-scope text` includes detected textual languages beyond that source selection. Files larger than 16 MiB are skipped for counting by default; `--metrics-max-file-bytes` can raise that bound to 256 MiB. Counts always cover complete files. Check `metrics.status` and skip reasons before treating totals as complete. See the [metrics guide](docs/METRICS.md) for scope, limits, output fields, and which scc capabilities are integrated.
 
-Reports with metrics use schema version `1.1.0`. Reports without metrics retain `1.0.0`, and legacy language JSON is unchanged.
+`analyze projects` reports .NET and Maven declarations, conservative Gradle observations, and filename-based project discovery for other ecosystems. It records references, configuration candidates, and file/byte composition. Dynamic build expressions remain conditional or unresolved; a present reference target does not establish a working build. Directory-based file attribution reports ambiguous and unassigned files. See the [project guide](docs/PROJECTS.md).
+
+`analyze structure` sends selected Java and C# source to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies declaration counts and BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
+
+Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
+
+| Requested output | Schema version |
+| --- | --- |
+| Existing aggregate report without optional modules | `1.0.0` |
+| Metrics, without projects or structure | `1.1.0` |
+| Projects or structure, with optional metrics | `1.2.0` |
+
+Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
 Every finding includes its detector, project root, and relative evidence paths. Results are deterministic across worker counts, and empty collections are arrays rather than `null`. Generated manifests and selected CI configuration files can reach hooks without contributing to language totals. Detector hooks exclude vendored dependency trees unless attributes override that exclusion.
 
-Built-in detectors recognize common Go, npm-compatible, Python, Cargo, Maven, Gradle, Bundler, Composer, and NuGet manifests. Selected frameworks are identified from dependencies declared in `package.json`, `composer.json`, and direct Python requirement lines. Project-root and CI/container findings help choose tools and working directories. Dependency resolution and project-reference graphs are not implemented.
+Built-in detectors recognize common Go, npm-compatible, Python, Cargo, Maven, Gradle, Bundler, Composer, and NuGet manifests. Selected frameworks are identified from dependencies declared in `package.json`, `composer.json`, and direct Python requirement lines. Project-root and CI/container findings help choose tools and working directories. The optional project mapper adds declared reference edges and target-presence checks. It does not evaluate effective build membership, restore dependencies, or resolve arbitrary build code.
 
 Compiled detectors implement [profile.Detector](pkg/profile/types.go) and are supplied through `scanner.Options.Detectors`. Hooks receive a bounded, immutable file view, the detected language, and whether it contributes to statistics. Hooks must be concurrency-safe and must not execute repository code. A detector error produces a warning; valid accompanying findings are retained.
 
@@ -160,11 +171,10 @@ Committed Git tree or directory
               |
    attributes + Enry classification
               |
-       +------+------+---------------+
-       |             |               |
- language totals   detector hooks   optional scc counts
-       |             |               |
-       +------+------+---------------+
+              +-- language totals and detector findings
+              +-- optional scc counts
+              +-- optional project declarations and composition
+              +-- optional native worker: one tree, two consumers
               |
    deterministic text or JSON report
 ```
@@ -188,15 +198,17 @@ Dircue reads source and Git objects without invoking project hooks, package mana
 
 Read failures, invalid arguments, and resource-policy violations fail with a nonzero exit status. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
+Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary.
+
 Bounded content buffers do not impose a hard total-memory limit. Git delta reconstruction, metadata, findings, and optional file lists consume additional memory. Embedding callers can cancel through context; the CLI handles interrupt and termination signals. Use container CPU, memory, and wall-clock limits where needed.
 
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.2.0 -t dircue:0.2.0 .
+docker build --build-arg VERSION=0.3.0 -t dircue:0.3.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.2.0 --breakdown --json /repo
+  dircue:0.3.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -204,15 +216,15 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.2.0 --output dist/release-0.2.0
-python3 scripts/wheels.py --release-dir dist/release-0.2.0 --output dist/wheels-0.2.0
+python3 scripts/release.py --version 0.3.0 --output dist/release-0.3.0
+python3 scripts/wheels.py --release-dir dist/release-0.3.0 --output dist/wheels-0.3.0
 ```
 
-These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher.
+These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
 
 ## GitHub Releases and PyPI
 
-The primary distribution channels will be GitHub Release binaries and PyPI wheels for `uvx dircue@0.2.0` or `uv tool install 'dircue==0.2.0'`. These public commands will become available after publication. Local wheel preparation, offline use, platform requirements, and release steps are described in the [distribution guide](docs/DISTRIBUTION.md).
+The primary distribution channels will be GitHub Release binaries and PyPI wheels for `uvx dircue@0.3.0` or `uv tool install 'dircue==0.3.0'`. These public commands will become available after publication. Local wheel preparation, offline use, platform requirements, and release steps are described in the [distribution guide](docs/DISTRIBUTION.md).
 
 uv can also install a compatible wheel from a local file or a GitHub Release URL. We may not immediately publish to PyPI.
 
@@ -227,6 +239,8 @@ uv can also install a compatible wheel from a local file or a GitHub Release URL
 | uv cannot find dircue on PyPI | Public packages are not yet available. Use a local compatible wheel as described in the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
+
+The 0.3 candidate adds [project-map validation](tests/projects/README.md) on Roslyn, ASP.NET Core, and Spring Framework, plus schema checks covering combined reports. The [structural prototype](prototypes/structural/README.md) records parse reuse, offline execution, and known grammar limitations. These checks have a different scope from the historical language and scc benchmarks below; they do not establish that structural parsing has the same cost as language classification.
 
 The 0.2 metrics validation compared 910 committed files from Spring Framework, Roslyn, and ASP.NET Core against native Git bytes and standalone scc. Fixtures cover Java, C#, scope overrides, and a 1,100 MiB XML file. All five [candidate CI jobs](https://github.com/war-and-code/dircue/actions/runs/35128787043) passed, including Linux, macOS, Windows, and both conformance suites. See the [metrics validation](tests/metrics/results/README.md) for counters, performance measurements, source identities, and limitations.
 
@@ -245,7 +259,7 @@ go vet ./...
 
 [Conformance](tests/conformance/README.md) compares the actual pinned Ruby CLI, including failures and intentional extensions. [Upstream sample results](tests/conformance/results/samples.md) compare language classifiers. The [performance harness](tests/performance/README.md) compares identical committed public checkouts, requires exact language output before timing, and records raw measurements and environment details.
 
-Java and C#/.NET receive explicit coverage through Spring Framework, Roslyn, ASP.NET Core, and focused Maven/Gradle/MSBuild fixtures. The [scale suite](tests/stress/README.md) adds a fully written 2 GiB Talend-shaped checkout, a 1.1 GiB XML log, and 2,048 interconnected `.csproj` files. It exercises both loose and packed Git objects, bounded delta history, Git-free views, generated-code overrides, and tree-size boundaries. Talend and XML-log fixtures are synthetic; they are not verified Talend exports or MOVEit samples. Project-reference graphs are currently test inputs, not resolved dependency graphs in the profile output.
+Java and C#/.NET receive explicit coverage through Spring Framework, Roslyn, ASP.NET Core, and focused Maven/Gradle/MSBuild fixtures. The [scale suite](tests/stress/README.md) adds a fully written 2 GiB Talend-shaped checkout, a 1.1 GiB XML log, and 2,048 interconnected `.csproj` files. It exercises both loose and packed Git objects, bounded delta history, Git-free views, generated-code overrides, and tree-size boundaries. Talend and XML-log fixtures are synthetic; they are not verified Talend exports or MOVEit samples. The 0.3 project mapper now reports declared project-reference edges. Directory attribution and target-presence checks remain distinct from evaluated build membership or dependency resolution.
 
 XML is normally excluded as a data language. The [attribute examples](#attributes-and-boundaries) show how to include XML or generated Java when that suits your pipeline.
 
@@ -253,9 +267,9 @@ These checks establish behavior for the recorded inputs. Re-run the comparison w
 
 ## FAQ
 
-**Can I replace Linguist in an existing job?** Yes, easily. Use the supported flags and path with `dircue`. Check the [documented differences](tests/conformance/DISCREPANCIES.md), especially if your job uses a Linguist version other than 9.7.0.
+**Can I replace Linguist in an existing job?** Yes. Use the supported flags and path with `dircue`. Check the [documented differences](tests/conformance/DISCREPANCIES.md), especially if your job uses a Linguist version other than 9.7.0.
 
-**Do I need Go, Ruby, or Git installed?** No. The standalone executable needs none of them. Building from source needs Go; a wheel's launcher needs Python.
+**Do I need Go, Ruby, or Git installed?** The core executable needs none of them. Building it needs Go; a wheel's launcher needs Python. Optional structural analysis needs a prebuilt native worker. Building that worker also needs Rust and its native build tools.
 
 **Can it profile an extracted archive?** Yes. Point it at the extracted directory; Git metadata is optional.
 
@@ -269,4 +283,4 @@ For a classification mismatch, include the dircue version, command, expected res
 
 ## License
 
-[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) include licenses for linked dependencies and the embedded MIME database.
+[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) cover the Go executable and embedded MIME database. The optional structural worker includes BCA under MPL-2.0 and Tree-sitter components under MIT; its separate archive includes dependency sources, licenses, and provenance. See [worker redistribution](docs/STRUCTURE.md#dependencies-and-redistribution).
