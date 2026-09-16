@@ -10,7 +10,8 @@ import tempfile
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", default="dircue:0.1.0")
+    parser.add_argument("--image", default="dircue:0.2.0")
+    parser.add_argument("--version", default="0.2.0")
     parser.add_argument("--reference", default="dircue-linguist:9.7.0")
     parser.add_argument("--corpus-volume", required=True)
     parser.add_argument("--candidate", type=Path, required=True)
@@ -34,10 +35,15 @@ def main():
         root = Path(directory)
         (root / "main.go").write_text("package main\nfunc main() {}\n")
         (root / "go.mod").write_text("module example.test/smoke\n\ngo 1.26\n")
-        assert run([args.image, "--version"])[0] == "dircue 0.1.0\n"
+        assert run([args.image, "--version"])[0] == f"dircue {args.version}\n"
         modern = json.loads(run(["-v", f"{root}:/repo:ro", args.image, "analyze", "all", "--json", "/repo"])[0])
         assert modern["languages"][0]["name"] == "Go"
         assert any(value["name"] == "go" for value in modern["ecosystems"])
+        metrics = json.loads(run(["-v", f"{root}:/repo:ro", args.image, "analyze", "metrics", "--json", "/repo"])[0])
+        assert metrics["schema_version"] == "1.1.0"
+        assert metrics["metrics"]["status"] == "complete"
+        assert metrics["metrics"]["totals"]["code"] == 2
+        assert metrics["metrics"]["totals"]["files"] == 1
         legacy = json.loads(run(["-v", f"{args.corpus_volume}:/corpus:ro", args.image, "-bj", "/corpus/cobra"])[0])
         reference = json.loads(subprocess.check_output(["docker", "run", "--rm", "--network", "none",
             "-v", f"{args.corpus_volume}:/corpus:ro", args.reference, "github-linguist", "-bj", "/corpus/cobra"], timeout=120))

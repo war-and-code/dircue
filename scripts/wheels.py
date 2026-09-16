@@ -211,7 +211,7 @@ def wheel_files(version, platform, row, payload, provenance):
     info = f'dircue-{version}.dist-info'
     binary = 'dircue.exe' if row['os'] == 'windows' else 'dircue'
     metadata = ('Metadata-Version: 2.4\nName: dircue\nVersion: ' + version + '\n'
-                'Summary: Fast repository and directory profiling for security pipelines\n'
+                'Summary: Profile source code repos and other directories of computer content.\n'
                 'Requires-Python: >=3.10\nLicense-Expression: MIT\n'
                 'License-File: LICENSE\nLicense-File: THIRD_PARTY_NOTICES.md\n'
                 'Project-URL: Source, https://github.com/war-and-code/dircue\n'

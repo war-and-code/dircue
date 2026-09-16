@@ -1,0 +1,48 @@
+{
+  "platform": "macOS amd64 binary under Rosetta on arm64",
+  "binary_sha256": "c9370b1da0542c30a41b042265c0ea0f39f175dbaf0f7e5ca7ef2b4b097b45e3",
+  "checks": [
+    {
+      "args": [
+        "--version"
+      ],
+      "exit_code": 0,
+      "stdout": "dircue 0.2.0\n",
+      "stderr": "",
+      "matches_arm64": true
+    },
+    {
+      "args": [
+        "--json",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "{\"C#\":{\"size\":47,\"percentage\":\"75.81\"},\"Java\":{\"size\":15,\"percentage\":\"24.19\"}}\n",
+      "stderr": "",
+      "matches_arm64": true
+    },
+    {
+      "args": [
+        "analyze",
+        "metrics",
+        "--json",
+        "--files",
+        "."
+      ],
+      "exit_code": 0,
+      "stdout": "{\n  \"schema_version\": \"1.1.0\",\n  \"root\": \"/private<fixture>\",\n  \"summary\": {\n    \"scanned_files\": 2,\n    \"analyzed_files\": 2,\n    \"skipped_files\": 0,\n    \"language_bytes\": 62\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 47,\n      \"percentage\": 75.80645161290323,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 15,\n      \"percentage\": 24.193548387096776,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 2,\n      \"bytes\": 62,\n      \"lines\": 4,\n      \"code\": 2,\n      \"comment\": 1,\n      \"blank\": 1,\n      \"complexity\": 0\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 47,\n        \"lines\": 3,\n        \"code\": 1,\n        \"comment\": 1,\n        \"blank\": 1,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 15,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 2,\n        \"bytes\": 62,\n        \"lines\": 4,\n        \"code\": 2,\n        \"comment\": 1,\n        \"blank\": 1,\n        \"complexity\": 0\n      }\n    ],\n    \"skipped\": [],\n    \"files\": [\n      {\n        \"path\": \"Hello.java\",\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"status\": \"counted\",\n        \"counts\": {\n          \"files\": 1,\n          \"bytes\": 15,\n          \"lines\": 1,\n          \"code\": 1,\n          \"comment\": 0,\n          \"blank\": 0,\n          \"complexity\": 0\n        }\n      },\n      {\n        \"path\": \"Main.cs\",\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"status\": \"counted\",\n        \"counts\": {\n          \"files\": 1,\n          \"bytes\": 47,\n          \"lines\": 3,\n          \"code\": 1,\n          \"comment\": 1,\n          \"blank\": 1,\n          \"complexity\": 0\n        }\n      }\n    ]\n  }\n}\n",
+      "stderr": "",
+      "matches_arm64": true
+    },
+    {
+      "args": [
+        "--json",
+        "missing"
+      ],
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "Error: inspect scan root: stat /private<fixture>/missing: no such file or directory\n",
+      "matches_arm64": true
+    }
+  ]
+}

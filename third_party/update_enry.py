@@ -668,7 +668,13 @@ def main():
                 relative = path.relative_to(stage)
                 target = candidate/relative
                 target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copyfile(path, target)
+                content = path.read_bytes()
+                upstream = source/relative
+                if ((path.suffix == '.go' or path.name == 'go.mod') and
+                        upstream.is_file() and content != upstream.read_bytes()):
+                    content = (b'// Modified for dircue; see PROVENANCE.json '
+                               b'in this maintained fork.\n\n' + content)
+                target.write_bytes(content)
                 manifest[relative.as_posix()] = file_sha256(target)
             shutil.copyfile(linguist/'LICENSE', candidate/'LINGUIST_LICENSE')
             manifest['LINGUIST_LICENSE'] = file_sha256(candidate/'LINGUIST_LICENSE')

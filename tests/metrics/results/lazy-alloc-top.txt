@@ -1,0 +1,66 @@
+File: codemetrics-lazy.test
+Type: alloc_space
+Time: 2026-09-16 12:56:10 EDT
+Showing nodes accounting for 3759.48kB, 100% of 3759.48kB total
+      flat  flat%   sum%        cum   cum%
+ 1172.03kB 31.18% 31.18%  1172.03kB 31.18%  runtime/pprof.StartCPUProfile
+  648.03kB 17.24% 48.41%  1329.89kB 35.37%  compress/flate.NewWriter (inline)
+  390.79kB 10.39% 58.81%   390.79kB 10.39%  github.com/boyter/scc/v4/processor.(*Trie).Insert (inline)
+  362.02kB  9.63% 68.44%   681.87kB 18.14%  compress/flate.(*compressor).init
+  255.69kB  6.80% 75.24%   255.69kB  6.80%  compress/flate.newDeflateFast (inline)
+  194.57kB  5.18% 80.41%   194.57kB  5.18%  runtime.mallocgc
+  192.19kB  5.11% 85.53%   192.19kB  5.11%  github.com/boyter/scc/v4/processor.map.init.1
+  157.63kB  4.19% 89.72%   157.63kB  4.19%  github.com/boyter/scc/v4/processor.ProcessConstants
+  130.26kB  3.46% 93.18%   130.26kB  3.46%  github.com/boyter/scc/v4/processor.(*Trie).InsertClose (inline)
+   64.16kB  1.71% 94.89%    64.16kB  1.71%  compress/flate.newHuffmanBitWriter (inline)
+   64.08kB  1.70% 96.59%    64.08kB  1.70%  compress/gzip.NewWriterLevel
+   64.02kB  1.70% 98.30%    64.02kB  1.70%  syscall.ByteSliceFromString
+   64.01kB  1.70%   100%    64.01kB  1.70%  runtime/pprof.(*protobuf).varint (inline)
+         0     0%   100%  1329.89kB 35.37%  compress/gzip.(*Writer).Write
+         0     0%   100%   678.68kB 18.05%  dircue/pkg/codemetrics.Count
+         0     0%   100%   157.63kB  4.19%  dircue/pkg/codemetrics.Count.func1
+         0     0%   100%   521.05kB 13.86%  dircue/pkg/codemetrics.Count.func2
+         0     0%   100%   678.68kB 18.05%  dircue/pkg/codemetrics.TestCountKnownResults
+         0     0%   100%   521.05kB 13.86%  github.com/boyter/scc/v4/processor.LoadLanguageFeature
+         0     0%   100%   192.19kB  5.11%  github.com/boyter/scc/v4/processor.init
+         0     0%   100%   521.05kB 13.86%  github.com/boyter/scc/v4/processor.processLanguageFeature
+         0     0%   100%  1236.06kB 32.88%  main.main
+         0     0%   100%    64.02kB  1.70%  os.Create (inline)
+         0     0%   100%    64.02kB  1.70%  os.OpenFile
+         0     0%   100%    64.02kB  1.70%  os.ignoringEINTR (inline)
+         0     0%   100%    64.02kB  1.70%  os.open (inline)
+         0     0%   100%    64.02kB  1.70%  os.openFileNolog
+         0     0%   100%    64.02kB  1.70%  os.openFileNolog.func1 (inline)
+         0     0%   100%   130.01kB  3.46%  runtime.allocm
+         0     0%   100%   192.19kB  5.11%  runtime.doInit (inline)
+         0     0%   100%   192.19kB  5.11%  runtime.doInit1
+         0     0%   100%    64.56kB  1.72%  runtime.goenvs (inline)
+         0     0%   100%    64.56kB  1.72%  runtime.goenvs_unix
+         0     0%   100%    64.56kB  1.72%  runtime.gostring
+         0     0%   100%  1428.25kB 37.99%  runtime.main
+         0     0%   100%   130.01kB  3.46%  runtime.mstart
+         0     0%   100%   130.01kB  3.46%  runtime.mstart0
+         0     0%   100%   130.01kB  3.46%  runtime.mstart1
+         0     0%   100%   130.01kB  3.46%  runtime.newm
+         0     0%   100%   130.01kB  3.46%  runtime.newobject
+         0     0%   100%    64.56kB  1.72%  runtime.rawstring (inline)
+         0     0%   100%   130.01kB  3.46%  runtime.resetspinning
+         0     0%   100%    64.56kB  1.72%  runtime.rt0_go
+         0     0%   100%    64.56kB  1.72%  runtime.schedinit
+         0     0%   100%   130.01kB  3.46%  runtime.schedule
+         0     0%   100%   130.01kB  3.46%  runtime.startm
+         0     0%   100%   130.01kB  3.46%  runtime.wakep
+         0     0%   100%  1393.90kB 37.08%  runtime/pprof.(*profileBuilder).build
+         0     0%   100%    64.01kB  1.70%  runtime/pprof.(*protobuf).int64 (inline)
+         0     0%   100%    64.01kB  1.70%  runtime/pprof.(*protobuf).int64Opt (inline)
+         0     0%   100%    64.01kB  1.70%  runtime/pprof.(*protobuf).uint64 (inline)
+         0     0%   100%    64.08kB  1.70%  runtime/pprof.newProfileBuilder
+         0     0%   100%  1457.98kB 38.78%  runtime/pprof.profileWriter
+         0     0%   100%   678.68kB 18.05%  sync.(*Once).Do (inline)
+         0     0%   100%   678.68kB 18.05%  sync.(*Once).doSlow
+         0     0%   100%    64.02kB  1.70%  syscall.BytePtrFromString (inline)
+         0     0%   100%    64.02kB  1.70%  syscall.Open
+         0     0%   100%  1236.06kB 32.88%  testing.(*M).Run
+         0     0%   100%  1236.06kB 32.88%  testing.(*M).before
+         0     0%   100%   678.68kB 18.05%  testing.tRunner
+         0     0%   100%  1172.03kB 31.18%  testing/internal/testdeps.TestDeps.StartCPUProfile

@@ -1,0 +1,952 @@
+{
+  "schema_version": "1.0.0",
+  "binary_sha256": {
+    "before": "e4d2dd7e15f159c210f4e1eb565c0c2566095ba39b95da0262cb3f6823b61f48",
+    "candidate": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
+    "scc": "b664af4efae07198ac99b63c90d0c9e119923518a1c02c9377a5a81f444122de"
+  },
+  "projects": [
+    {
+      "name": "spring-framework",
+      "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "before_totals": {
+        "files": 9323,
+        "bytes": 52189532,
+        "lines": 1486469,
+        "code": 843699,
+        "comment": 416571,
+        "blank": 226199,
+        "complexity": 67990
+      },
+      "fixed_totals": {
+        "files": 9323,
+        "bytes": 52189532,
+        "lines": 1486469,
+        "code": 843699,
+        "comment": 416571,
+        "blank": 226199,
+        "complexity": 67990
+      },
+      "changes": [],
+      "result": "pass"
+    },
+    {
+      "name": "roslyn",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "before_totals": {
+        "files": 22365,
+        "bytes": 332447403,
+        "lines": 8465604,
+        "code": 7035422,
+        "comment": 568881,
+        "blank": 861301,
+        "complexity": 221099
+      },
+      "fixed_totals": {
+        "files": 22366,
+        "bytes": 332610407,
+        "lines": 8469083,
+        "code": 7035674,
+        "comment": 570343,
+        "blank": 863066,
+        "complexity": 221034
+      },
+      "changes": [
+        {
+          "path": "src/Analyzers/CSharp/Tests/GenerateMethod/GenerateMethodTests.cs",
+          "native_blob_sha256": "61088ed8e88e6f1bf86a321bf1703de459aa1bf0272ac9de427cbfed82283ee4",
+          "before": {
+            "path": "src/Analyzers/CSharp/Tests/GenerateMethod/GenerateMethodTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 270612,
+              "lines": 10996,
+              "code": 10642,
+              "comment": 14,
+              "blank": 340,
+              "complexity": 1
+            }
+          },
+          "fixed": {
+            "path": "src/Analyzers/CSharp/Tests/GenerateMethod/GenerateMethodTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 270612,
+              "lines": 10994,
+              "code": 10641,
+              "comment": 14,
+              "blank": 339,
+              "complexity": 1
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Portable/Generated/CSharpSyntaxGenerator/CSharpSyntaxGenerator.SourceGenerator/Syntax.xml.Main.Generated.cs",
+          "native_blob_sha256": "0963a4b0a81b2ab8229a65519f3d96951811ce5471ae633e460cae3ac07752b1",
+          "before": {
+            "path": "src/Compilers/CSharp/Portable/Generated/CSharpSyntaxGenerator/CSharpSyntaxGenerator.SourceGenerator/Syntax.xml.Main.Generated.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 547658,
+              "lines": 6714,
+              "code": 4294,
+              "comment": 1075,
+              "blank": 1345,
+              "complexity": 1379
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Portable/Generated/CSharpSyntaxGenerator/CSharpSyntaxGenerator.SourceGenerator/Syntax.xml.Main.Generated.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 547658,
+              "lines": 6714,
+              "code": 4294,
+              "comment": 1076,
+              "blank": 1344,
+              "complexity": 1379
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Emit/CodeGen/CodeGenOptimizedNullableOperators.cs",
+          "native_blob_sha256": "54ddf2777afd019d2df670b61a50b5b895cc90e604417850ec7f276c9c60cb4c",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Emit/CodeGen/CodeGenOptimizedNullableOperators.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 179497,
+              "lines": 5120,
+              "code": 4808,
+              "comment": 185,
+              "blank": 127,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Emit/CodeGen/CodeGenOptimizedNullableOperators.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 179497,
+              "lines": 5120,
+              "code": 4699,
+              "comment": 265,
+              "blank": 156,
+              "complexity": 2
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Emit3/Semantics/PatternMatchingTests2.cs",
+          "native_blob_sha256": "b31223cc55496beee2d08e793251fef3b67bd043d97d53ca9941e0d88b2a4d93",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Emit3/Semantics/PatternMatchingTests2.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 142644,
+              "lines": 3656,
+              "code": 3371,
+              "comment": 188,
+              "blank": 97,
+              "complexity": 102
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Emit3/Semantics/PatternMatchingTests2.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 142644,
+              "lines": 3661,
+              "code": 3162,
+              "comment": 374,
+              "blank": 125,
+              "complexity": 5
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/IOperation/IOperation/IOperationTests_IIfStatement.cs",
+          "native_blob_sha256": "9380d1c1e3f8881b60668072834602f1152092b5bbd1274d1efa91a957793618",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/IOperation/IOperation/IOperationTests_IIfStatement.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 170228,
+              "lines": 3856,
+              "code": 3643,
+              "comment": 107,
+              "blank": 106,
+              "complexity": 1
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/IOperation/IOperation/IOperationTests_IIfStatement.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 170228,
+              "lines": 3855,
+              "code": 3638,
+              "comment": 109,
+              "blank": 108,
+              "complexity": 0
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NameOfTests.cs",
+          "native_blob_sha256": "93fa40c7dbd0c8da4f3930e3822ab0efc9f604100b6494d37dd55946c30c3338",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NameOfTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 137060,
+              "lines": 3387,
+              "code": 2906,
+              "comment": 282,
+              "blank": 199,
+              "complexity": 9
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NameOfTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 137060,
+              "lines": 3389,
+              "code": 2908,
+              "comment": 282,
+              "blank": 199,
+              "complexity": 9
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NativeIntegerTests.cs",
+          "native_blob_sha256": "14df9e47e6c86444a64c56ceff9c30c94a6ff115e8997fd02d565650621eb5b8",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NativeIntegerTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 862959,
+              "lines": 15996,
+              "code": 14328,
+              "comment": 928,
+              "blank": 740,
+              "complexity": 268
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/NativeIntegerTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 862959,
+              "lines": 15999,
+              "code": 14331,
+              "comment": 928,
+              "blank": 740,
+              "complexity": 268
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Semantic/Semantics/Utf8StringsLiteralsTests.cs",
+          "native_blob_sha256": "091d502b69d7de1637e196398666a2b824ed49b3793e96b15a82ebbd8a1767b4",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/Utf8StringsLiteralsTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 151048,
+              "lines": 4295,
+              "code": 3873,
+              "comment": 156,
+              "blank": 266,
+              "complexity": 3
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Semantic/Semantics/Utf8StringsLiteralsTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 151048,
+              "lines": 4298,
+              "code": 3682,
+              "comment": 339,
+              "blank": 277,
+              "complexity": 2
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Symbol/Compilation/SemanticModelAPITests.cs",
+          "native_blob_sha256": "1f046054970ac40721582115d5c078746b4094e9cf5e4ef45f0011b6f1397a1c",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Symbol/Compilation/SemanticModelAPITests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 185363,
+              "lines": 4829,
+              "code": 4060,
+              "comment": 92,
+              "blank": 677,
+              "complexity": 30
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Symbol/Compilation/SemanticModelAPITests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 185363,
+              "lines": 4828,
+              "code": 4059,
+              "comment": 92,
+              "blank": 677,
+              "complexity": 30
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Symbol/Symbols/CheckedUserDefinedOperatorsTests.cs",
+          "native_blob_sha256": "996ffcfedc02b6d4e2527dadb8ba034e92d859051fc3966eb524b49ce11ff8db",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Symbol/Symbols/CheckedUserDefinedOperatorsTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 303489,
+              "lines": 7526,
+              "code": 6437,
+              "comment": 578,
+              "blank": 511,
+              "complexity": 93
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Symbol/Symbols/CheckedUserDefinedOperatorsTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 303489,
+              "lines": 7528,
+              "code": 6439,
+              "comment": 578,
+              "blank": 511,
+              "complexity": 93
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/AnonymousFunctionParsingTests.cs",
+          "native_blob_sha256": "5dde05b490a8fc1972fc2682ad9669bca7fd99985b36f4377d13a6aeb32f32b9",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/AnonymousFunctionParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 222043,
+              "lines": 4636,
+              "code": 4607,
+              "comment": 3,
+              "blank": 26,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/AnonymousFunctionParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 222043,
+              "lines": 4636,
+              "code": 4168,
+              "comment": 287,
+              "blank": 181,
+              "complexity": 0
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/CrefParsingTests.cs",
+          "native_blob_sha256": "1a32b36cbd1730d06fda78f0fed431e3dcb9058f12741a29d271357a80b8aaa2",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/CrefParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 164263,
+              "lines": 4043,
+              "code": 3639,
+              "comment": 159,
+              "blank": 245,
+              "complexity": 40
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/CrefParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 164263,
+              "lines": 4048,
+              "code": 3596,
+              "comment": 159,
+              "blank": 293,
+              "complexity": 44
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ExtensionsParsingTests.cs",
+          "native_blob_sha256": "ecfda9caea75a14f3cff82474916b525c369baa18e6eebbd024c0ae11d6e7629",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ExtensionsParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 226129,
+              "lines": 6034,
+              "code": 5416,
+              "comment": 391,
+              "blank": 227,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ExtensionsParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 226129,
+              "lines": 6035,
+              "code": 5417,
+              "comment": 391,
+              "blank": 227,
+              "complexity": 0
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/FunctionPointerTests.cs",
+          "native_blob_sha256": "f0494515cdbe8955f158093573a444342629fa214ebfd7f251620e4ac38a5e68",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/FunctionPointerTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 186936,
+              "lines": 4168,
+              "code": 4162,
+              "comment": 3,
+              "blank": 3,
+              "complexity": 3
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/FunctionPointerTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 186936,
+              "lines": 4168,
+              "code": 3897,
+              "comment": 189,
+              "blank": 82,
+              "complexity": 1
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs",
+          "native_blob_sha256": "5d94c0f18a62663786958b3875c5c214f5c4f05595fbdff870e414efdac13269",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 186284,
+              "lines": 4534,
+              "code": 4400,
+              "comment": 54,
+              "blank": 80,
+              "complexity": 7
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/LambdaAttributeParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 186284,
+              "lines": 4536,
+              "code": 4266,
+              "comment": 94,
+              "blank": 176,
+              "complexity": 6
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ScriptParsingTests.cs",
+          "native_blob_sha256": "28d41cbe727fb22a65eccc7c28d3d9180493bcefd1dcad1f7a4ea14fadd1baa2",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ScriptParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 425093,
+              "lines": 10290,
+              "code": 9156,
+              "comment": 776,
+              "blank": 358,
+              "complexity": 5
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/ScriptParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 425093,
+              "lines": 10293,
+              "code": 9158,
+              "comment": 776,
+              "blank": 359,
+              "complexity": 5
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/StatementParsingTests.cs",
+          "native_blob_sha256": "47f4e835228326ac50209070956bb26d3cf705549e1b44416cb9433ffb949ca4",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/StatementParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 263937,
+              "lines": 6048,
+              "code": 5334,
+              "comment": 205,
+              "blank": 509,
+              "complexity": 2
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/StatementParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 263937,
+              "lines": 6047,
+              "code": 5333,
+              "comment": 205,
+              "blank": 509,
+              "complexity": 2
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/TopLevelStatementsParsingTests.cs",
+          "native_blob_sha256": "a409ba74c5b94f54489120d87278d094ab69fb92f4bdd28f3704c54b1a416443",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/TopLevelStatementsParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 141323,
+              "lines": 3595,
+              "code": 3157,
+              "comment": 279,
+              "blank": 159,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/TopLevelStatementsParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 141323,
+              "lines": 3597,
+              "code": 3099,
+              "comment": 329,
+              "blank": 169,
+              "complexity": 0
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/UsingDirectiveParsingTests.cs",
+          "native_blob_sha256": "8ee0f3eaed4840eb062d051b9c319231e4bf29ed87381626fb62e7dcb56f31a8",
+          "before": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/UsingDirectiveParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 205395,
+              "lines": 5311,
+              "code": 5277,
+              "comment": 5,
+              "blank": 29,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/CSharp/Test/Syntax/Parsing/UsingDirectiveParsingTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 205395,
+              "lines": 5311,
+              "code": 4711,
+              "comment": 393,
+              "blank": 207,
+              "complexity": 0
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_ArrayCreationAndInitializer.vb",
+          "native_blob_sha256": "dfe1fcb07b30cfd1f98a173266182c32552f473903962ad83847b785434f174e",
+          "before": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_ArrayCreationAndInitializer.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 189477,
+              "lines": 3643,
+              "code": 3185,
+              "comment": 8,
+              "blank": 450,
+              "complexity": 32
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_ArrayCreationAndInitializer.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 189477,
+              "lines": 3644,
+              "code": 3186,
+              "comment": 8,
+              "blank": 450,
+              "complexity": 32
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IConversionExpression.vb",
+          "native_blob_sha256": "3783457946d6cb083e32b771c8e8894b84c3edb4ad1168ce9e5ef799d64d0414",
+          "before": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IConversionExpression.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 171666,
+              "lines": 3411,
+              "code": 3404,
+              "comment": 3,
+              "blank": 4,
+              "complexity": 0
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IConversionExpression.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 171666,
+              "lines": 3411,
+              "code": 2950,
+              "comment": 9,
+              "blank": 452,
+              "complexity": 1
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IForEachLoopStatement.vb",
+          "native_blob_sha256": "b8eb3061e80a4a96e1652cff1f1c278ba4bb99fbaf9932022d8d241e369d5c90",
+          "before": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IForEachLoopStatement.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "skipped",
+            "reason": "input_changed"
+          },
+          "fixed": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IForEachLoopStatement.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 163004,
+              "lines": 3451,
+              "code": 3045,
+              "comment": 6,
+              "blank": 400,
+              "complexity": 30
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IVariableDeclaration.vb",
+          "native_blob_sha256": "42a3a5961cf7f2bc610087366d599477a24c2842e0ff10cbe8259f43deddbe89",
+          "before": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IVariableDeclaration.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 174772,
+              "lines": 3896,
+              "code": 3413,
+              "comment": 3,
+              "blank": 480,
+              "complexity": 11
+            }
+          },
+          "fixed": {
+            "path": "src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IVariableDeclaration.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 174772,
+              "lines": 3901,
+              "code": 3418,
+              "comment": 3,
+              "blank": 480,
+              "complexity": 11
+            }
+          },
+          "standalone_matches_fixed": true
+        },
+        {
+          "path": "src/EditorFeatures/Test2/IntelliSense/VisualBasicCompletionCommandHandlerTests.vb",
+          "native_blob_sha256": "66f8b92de37d5a520302c14aa8d0610949046156afce85cf12c9e0f69cdf9dff",
+          "before": {
+            "path": "src/EditorFeatures/Test2/IntelliSense/VisualBasicCompletionCommandHandlerTests.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 136917,
+              "lines": 3569,
+              "code": 3407,
+              "comment": 8,
+              "blank": 154,
+              "complexity": 13
+            }
+          },
+          "fixed": {
+            "path": "src/EditorFeatures/Test2/IntelliSense/VisualBasicCompletionCommandHandlerTests.vb",
+            "language": "Visual Basic .NET",
+            "grammar": "Visual Basic",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 136917,
+              "lines": 3568,
+              "code": 3074,
+              "comment": 58,
+              "blank": 436,
+              "complexity": 13
+            }
+          },
+          "standalone_matches_fixed": true
+        }
+      ],
+      "result": "pass"
+    },
+    {
+      "name": "aspnetcore",
+      "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "before_totals": {
+        "files": 12571,
+        "bytes": 67057303,
+        "lines": 1709329,
+        "code": 1247695,
+        "comment": 213949,
+        "blank": 247685,
+        "complexity": 74475
+      },
+      "fixed_totals": {
+        "files": 12571,
+        "bytes": 67057303,
+        "lines": 1709330,
+        "code": 1247642,
+        "comment": 213953,
+        "blank": 247735,
+        "complexity": 74475
+      },
+      "changes": [
+        {
+          "path": "src/Servers/Kestrel/test/InMemory.FunctionalTests/Http3/Http3StreamTests.cs",
+          "native_blob_sha256": "b345a3c1a91ba024cde18753210a1f4bd5fb9b634a168a636b2585ab88f86e78",
+          "before": {
+            "path": "src/Servers/Kestrel/test/InMemory.FunctionalTests/Http3/Http3StreamTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 149833,
+              "lines": 3337,
+              "code": 2752,
+              "comment": 60,
+              "blank": 525,
+              "complexity": 27
+            }
+          },
+          "fixed": {
+            "path": "src/Servers/Kestrel/test/InMemory.FunctionalTests/Http3/Http3StreamTests.cs",
+            "language": "C#",
+            "grammar": "C#",
+            "status": "counted",
+            "counts": {
+              "files": 1,
+              "bytes": 149833,
+              "lines": 3338,
+              "code": 2699,
+              "comment": 64,
+              "blank": 575,
+              "complexity": 27
+            }
+          },
+          "standalone_matches_fixed": true
+        }
+      ],
+      "result": "pass"
+    }
+  ],
+  "artifact_note": "Local workspace/home paths are replaced by $WORKSPACE/$HOME; counter values and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020."
+}

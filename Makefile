@@ -1,4 +1,4 @@
-VERSION ?= 0.1.0
+VERSION ?= 0.2.0
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 
 .PHONY: build test check bench reference conformance samples release
@@ -13,6 +13,7 @@ check:
 	go vet ./...
 	go test -race ./...
 	cd third_party/go-enry && go test ./...
+	cd third_party/go-git && go test -race . ./plumbing/format/packfile ./storage/filesystem ./storage/filesystem/dotgit
 
 bench:
 	go test ./pkg/scanner -run '^$$' -bench . -benchmem

@@ -1,3 +1,5 @@
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
+
 package data
 
 import (
