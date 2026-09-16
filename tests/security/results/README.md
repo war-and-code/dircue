@@ -30,3 +30,8 @@ scc v4.1.0, and the maintained go-git v5.19.2 replacement. The runtime source
 is present in commit `b005fb7`. The scan reports zero symbol-reachable
 vulnerabilities and the same four unreachable dependency advisories described
 above. The transcript is retained without edits.
+
+The final reader-audited runtime at commit `bf315bb5fb58e7a45ba7cd66451c08590770de7b`
+was checked with the same pinned command.
+`govulncheck-2026-09-16-audited.txt` retains that unedited output: zero
+symbol-reachable vulnerabilities and the same four unreachable advisories.

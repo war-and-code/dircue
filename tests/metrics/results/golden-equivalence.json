@@ -7,5 +7,6 @@
     "byte_identical": true,
     "sha256": "da143a1773272dfb113d0961727d2a75f174255cf87a6d19df3003f8d795e9cc"
   },
+  "candidate_sha256": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
   "artifact_note": "Local workspace/home paths are replaced by $WORKSPACE/$HOME; counter values and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020."
 }

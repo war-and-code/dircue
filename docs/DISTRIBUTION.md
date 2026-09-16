@@ -113,7 +113,7 @@ ownership of `dircue`, review package metadata, validate all intended platforms,
 and verify that archive and wheel
 binary hashes agree. An absent PyPI project page does not reserve the name.
 
-For the initial release, upload the verified standalone archives, checksums,
+For each release, upload the verified standalone archives, checksums,
 provenance, and release notes to a GitHub Release. Attach wheels there too for
 direct uv installation without PyPI. For PyPI publication, upload only the
 intended `.whl` files. Both channels must identify the same version and source. Verify
@@ -125,12 +125,15 @@ Hosted release automation is tracked in [#13](https://github.com/war-and-code/di
 PyPI distribution and publication checks are tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
 Manual release preparation remains supported for v0.2.
 
-## Local validation status
+## Historical 0.1 validation
 
-Seven wheels are prepared under `dist/dircue-wheels-rc3/`, using the exact RC3
-release executables. All passed strict Twine metadata checks. Actual offline
+The 0.1 validation prepared seven wheels under `dist/dircue-wheels-rc3/`, using
+the exact RC3 release executables. All passed strict Twine metadata checks. Actual offline
 installation/execution passed on macOS arm64 (uvx, uv tool install, pip) and
 Linux arm64 glibc/musl (uvx in Docker). Windows, Intel macOS, and Linux amd64
-wheel installations have not been executed in this round. See the
+wheel installations were not executed in that round. See the
 [retained wheel validation](../tests/release/results/wheels/README.md) for
 platform scope, commands, outputs, and checksums.
+
+Those receipts describe 0.1 artifacts. Version 0.2 archives and wheels require
+separate validation before release.
