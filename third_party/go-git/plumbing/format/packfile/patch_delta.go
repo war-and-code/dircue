@@ -577,3 +577,5 @@ func invalidOffsetSize(offset, sz, srcSz uint) bool {
 func sumOverflows(a, b uint) bool {
 	return a+b < a
 }
+
+// Modified for dircue: reset streaming delta offsets and close reopened base readers.

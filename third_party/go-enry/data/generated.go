@@ -894,3 +894,5 @@ func countAppearancesInLine(line []byte, targets ...string) int {
 	}
 	return count
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

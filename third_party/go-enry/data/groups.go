@@ -90,3 +90,5 @@ var LanguagesGroup = map[string]string{
 	"fish":                           "Shell",
 	"nanorc":                         "INI",
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

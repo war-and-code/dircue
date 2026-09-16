@@ -25,3 +25,5 @@ var DocumentationMatchers = []regex.EnryRegexp{
 	regex.MustCompile(`(^|/)[Rr]eadme(\.|$)`),
 	regex.MustCompile(`^[Ss]amples?/`),
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
