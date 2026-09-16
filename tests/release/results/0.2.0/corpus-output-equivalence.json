@@ -1,0 +1,48 @@
+{
+  "release_binary_sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059",
+  "measured_binary_sha256": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
+  "checks": [
+    {
+      "project": "spring-framework",
+      "mode": "candidate",
+      "exit_code": 0,
+      "stdout_sha256": "589c067e9195386d067e7e579edf6de380a26f1b6eda5b2c59db4de21fc4fd3d",
+      "matches_measured_report": true
+    },
+    {
+      "project": "spring-framework",
+      "mode": "metrics",
+      "exit_code": 0,
+      "stdout_sha256": "df040d29f09627d5158f11f27e5390fa2f62082bceeefb5f7b7637221998b236",
+      "matches_measured_report": true
+    },
+    {
+      "project": "roslyn",
+      "mode": "candidate",
+      "exit_code": 0,
+      "stdout_sha256": "145b80fcde3f6fe4edc4e69971b85e3d677382ced90cc5483e9089966d528a29",
+      "matches_measured_report": true
+    },
+    {
+      "project": "roslyn",
+      "mode": "metrics",
+      "exit_code": 0,
+      "stdout_sha256": "b851089bd5af4d29afd714a6b0f22b40ba699583623ac91ca4324744a45b2ca7",
+      "matches_measured_report": true
+    },
+    {
+      "project": "aspnetcore",
+      "mode": "candidate",
+      "exit_code": 0,
+      "stdout_sha256": "5bfbf0e6316fa12aa5f585448e492d78a12e523bec9c9414fa6f7c5b86fb2b44",
+      "matches_measured_report": true
+    },
+    {
+      "project": "aspnetcore",
+      "mode": "metrics",
+      "exit_code": 0,
+      "stdout_sha256": "71989585e8e7f1a86681a10f1b544130694292e615521f03eb34b52d9947700d",
+      "matches_measured_report": true
+    }
+  ]
+}

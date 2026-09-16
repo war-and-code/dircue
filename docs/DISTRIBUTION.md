@@ -135,5 +135,17 @@ wheel installations were not executed in that round. See the
 [retained wheel validation](../tests/release/results/wheels/README.md) for
 platform scope, commands, outputs, and checksums.
 
-Those receipts describe 0.1 artifacts. Version 0.2 archives and wheels require
-separate validation before release.
+## 0.2 candidate validation
+
+Five archives and seven wheels were built locally from committed source. All
+wheels passed strict metadata checks and contain the same executable bytes as
+their corresponding archives. Offline `uvx` execution passed on macOS arm64 and
+Linux arm64 glibc/musl. The Linux amd64 binary passed Docker smoke checks under
+emulation, and the macOS amd64 binary passed under Rosetta. Windows code passed
+native CI, but the packaged Windows executable and wheel have not been executed
+on Windows in this round.
+
+Two independent fresh-cache Linux arm64 builds produced byte-identical archives.
+See the [0.2 release validation](../tests/release/results/0.2.0/README.md) for
+source commits, checksums, commands, and platform limits. These are local
+candidate checks; 0.2 has not been published.
