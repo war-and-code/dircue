@@ -51,7 +51,9 @@ metrics while retaining streaming reads for large objects.
 A second correction closes the loose-object file after `EncodedObjectSize`
 reads its header, including error paths. Upstream v5.19.2 closes the decompressor
 but leaves the underlying file open. This can accumulate file descriptors and
-prevent repository cleanup on Windows.
+prevent repository cleanup on Windows. Linked-worktree `commondir` discovery
+and failed lazy-object reader construction now also close their files. The
+regressions cover valid ownership transfer and cleanup after malformed input.
 
 [`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
 runtime changes and regression tests. The snapshot retains upstream production
