@@ -45,3 +45,26 @@ jobs:
         with:
           name: linguist-conformance
           path: tests/conformance/results/
+
+  metrics-conformance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+      - name: Compare full-file counters with pinned scc
+        run: |
+          mkdir -p "$RUNNER_TEMP/dircue-metrics"
+          GOBIN="$RUNNER_TEMP/dircue-metrics" CGO_ENABLED=0 go install github.com/boyter/scc/v4@v4.1.0
+          python3 tests/metrics/run.py --candidate bin/dircue --scc "$RUNNER_TEMP/dircue-metrics/scc" --output .cache/metrics-differential.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: metrics-conformance
+          path: .cache/metrics-differential.json

@@ -70,3 +70,50 @@ func TestAllOutputConformsToSchema(t *testing.T) {
 		}
 	}
 }
+
+func TestMetricsOutputConformsToSchema(t *testing.T) {
+	compiled, err := jsonschema.Compile("profile.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	root := t.TempDir()
+	files := map[string]string{
+		"Example.java": "// Example\nclass Example {\n void run() { if (true) {} }\n}\n",
+		"events.xml":   "<events>\n<event/>\n</events>\n",
+	}
+	for name, content := range files {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, args := range [][]string{
+		{"analyze", "metrics", "--json", root},
+		{"analyze", "metrics", "--json", "--files", root},
+		{"analyze", "metrics", "--json", "--files", "--metrics-scope", "text", root},
+		{"analyze", "all", "--json", "--metrics", "--files", "--metrics-max-file-bytes", "1", root},
+		{"analyze", "metrics", "--json", "--files", t.TempDir()},
+		{"analyze", "metrics", "--json", "--files", "--tree-size", "1", root},
+	} {
+		var stdout, stderr bytes.Buffer
+		if err := cli.Execute(context.Background(), args, &stdout, &stderr); err != nil {
+			t.Fatal(err)
+		}
+		var value any
+		if err := json.Unmarshal(stdout.Bytes(), &value); err != nil {
+			t.Fatal(err)
+		}
+		if err := compiled.Validate(value); err != nil {
+			t.Fatalf("%v: %v\n%s", args, err, stdout.String())
+		}
+		object := value.(map[string]any)
+		object["schema_version"] = "1.0.0"
+		if err := compiled.Validate(value); err == nil {
+			t.Fatal("schema 1.0.0 must reject metrics")
+		}
+		object["schema_version"] = "1.1.0"
+		delete(object, "metrics")
+		if err := compiled.Validate(value); err == nil {
+			t.Fatal("schema 1.1.0 must require metrics")
+		}
+	}
+}

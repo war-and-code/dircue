@@ -5,12 +5,13 @@ Profile source code repos and other directories of computer content.
 
 Dircue helps you understand what's in a file directory and choose tools to analyze it further. It runs as a single Go binary, with or without Git metadata.
 
-Version 0.1 provides language statistics and identifies selected ecosystems, frameworks, project roots, and CI/container configuration.
+Version 0.2 adds optional line counts and complexity estimates through scc, alongside language statistics and selected ecosystem, framework, project-root, and CI/container observations.
 
-The project is designed to grow into broader directory profiling. Planned areas include code metrics, project relationships, and dependency and infrastructure observations to support workflows like code-quality and application security scanning.
+The project is designed to grow into broader directory profiling, including project relationships and dependency and infrastructure observations.
 
 ```sh
 dircue analyze all --json /path/to/checkout
+dircue analyze metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -76,7 +77,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Manifest, framework, project-root, and CI/container observations |
+| Additional profiling | Language metadata | Language metadata | Manifest, framework, project-root, and CI/container observations; optional scc code metrics |
 
 The recorded candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -134,13 +135,21 @@ dircue analyze languages /checkout --json
 dircue analyze ecosystems /checkout --json
 dircue analyze frameworks /checkout --json
 dircue analyze all /checkout --json --breakdown
+dircue analyze metrics /checkout --json --files
+dircue analyze all /checkout --json --metrics
 ```
 
 Language commands use the legacy output contract. Ecosystem and framework commands emit finding arrays. `analyze all --json` emits the versioned [profile schema](schema/profile.schema.json): languages, ecosystem/framework/layout findings, summary counts, and warnings.
 
-Every finding includes its detector, project root, and relative evidence paths. Results are deterministic across worker counts, and empty collections are arrays rather than `null`. Generated manifests and selected CI configuration files can reach hooks without contributing to language totals. Vendored dependency trees remain excluded unless attributes override the exclusion.
+`analyze metrics` counts code, comment, and blank lines and estimates lexical complexity with scc. It also reports totals by language and immediate parent directory; `--files` adds per-file counts and skip reasons. `analyze all --metrics` includes counting alongside the other profilers. Counting is opt-in, and plain language commands keep their existing behavior.
 
-Built-in detectors recognize common Go, npm-compatible, Python, Cargo, Maven, Gradle, Bundler, Composer, and NuGet manifests. Selected frameworks are identified from dependencies declared in `package.json`, `composer.json`, and direct Python requirement lines. Project-root and CI/container findings help pipelines choose tools and working directories. Dircue does not resolve dependencies, produce an SBOM, or report vulnerabilities.
+Metrics default to files included in language statistics, so XML logs are excluded unless attributes override their selection. `--metrics-scope text` includes detected textual languages beyond that source selection. Files larger than 16 MiB are skipped for counting by default; `--metrics-max-file-bytes` can raise that bound to 256 MiB. Counts always cover complete files. Check `metrics.status` and skip reasons before treating totals as complete. See the [metrics guide](docs/METRICS.md) for scope, limits, output fields, and which scc capabilities are integrated.
+
+Reports with metrics use schema version `1.1.0`. Reports without metrics retain `1.0.0`, and legacy language JSON is unchanged.
+
+Every finding includes its detector, project root, and relative evidence paths. Results are deterministic across worker counts, and empty collections are arrays rather than `null`. Generated manifests and selected CI configuration files can reach hooks without contributing to language totals. Detector hooks exclude vendored dependency trees unless attributes override that exclusion.
+
+Built-in detectors recognize common Go, npm-compatible, Python, Cargo, Maven, Gradle, Bundler, Composer, and NuGet manifests. Selected frameworks are identified from dependencies declared in `package.json`, `composer.json`, and direct Python requirement lines. Project-root and CI/container findings help choose tools and working directories. Dependency resolution and project-reference graphs are not implemented.
 
 Compiled detectors implement [profile.Detector](pkg/profile/types.go) and are supplied through `scanner.Options.Detectors`. Hooks receive a bounded, immutable file view, the detected language, and whether it contributes to statistics. Hooks must be concurrency-safe and must not execute repository code. A detector error produces a warning; valid accompanying findings are retained.
 
@@ -151,18 +160,18 @@ Committed Git tree or directory
               |
    attributes + Enry classification
               |
-       +------+------+
-       |             |
- language totals   detector hooks
-       |             |
-       +------+------+
+       +------+------+---------------+
+       |             |               |
+ language totals   detector hooks   optional scc counts
+       |             |               |
+       +------+------+---------------+
               |
    deterministic text or JSON report
 ```
 
 ## Attributes and boundaries
 
-Dircue is configured through CLI flags and `.gitattributes`; v0.1 has no dircue YAML configuration file. For example, these opt-in overrides include XML and generated Java in language statistics:
+Dircue is configured through CLI flags and `.gitattributes`; there is no dircue YAML configuration file. For example, these opt-in overrides include XML and generated Java in language statistics:
 
 ```gitattributes
 *.xml linguist-detectable=true
@@ -177,17 +186,17 @@ The [conformance scope](tests/conformance/COVERAGE.md) and [documented differenc
 
 Dircue reads source and Git objects without invoking project hooks, package managers, Git executables, or build scripts. Directory reads use `os.Root`; normal traversal excludes symlinks and special files. Unix reads additionally reject final-component symlinks and use nonblocking opens to prevent FIFO substitutions from hanging workers. Use a stable checkout: neither filesystem mode nor local Git metadata is an atomic snapshot of an actively modified directory.
 
-Read failures, invalid arguments, and resource-policy violations fail with a nonzero exit status. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for downstream scanning.
+Read failures, invalid arguments, and resource-policy violations fail with a nonzero exit status. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
 Bounded content buffers do not impose a hard total-memory limit. Git delta reconstruction, metadata, findings, and optional file lists consume additional memory. Embedding callers can cancel through context; the CLI handles interrupt and termination signals. Use container CPU, memory, and wall-clock limits where needed.
 
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.1.0 -t dircue:0.1.0 .
+docker build --build-arg VERSION=0.2.0 -t dircue:0.2.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.1.0 --breakdown --json /repo
+  dircue:0.2.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -195,15 +204,15 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.1.0 --output dist/release-0.1.0
-python3 scripts/wheels.py --release-dir dist/release-0.1.0 --output dist/wheels-0.1.0
+python3 scripts/release.py --version 0.2.0 --output dist/release-0.2.0
+python3 scripts/wheels.py --release-dir dist/release-0.2.0 --output dist/wheels-0.2.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher.
 
 ## GitHub Releases and PyPI
 
-The primary distribution channels will be GitHub Release binaries and PyPI wheels for `uvx dircue@0.1.0` or `uv tool install 'dircue==0.1.0'`. These public commands will become available after publication. Local wheel preparation, offline use, platform requirements, and release steps are described in the [distribution guide](docs/DISTRIBUTION.md).
+The primary distribution channels will be GitHub Release binaries and PyPI wheels for `uvx dircue@0.2.0` or `uv tool install 'dircue==0.2.0'`. These public commands will become available after publication. Local wheel preparation, offline use, platform requirements, and release steps are described in the [distribution guide](docs/DISTRIBUTION.md).
 
 uv can also install a compatible wheel from a local file or a GitHub Release URL. We may not immediately publish to PyPI.
 
@@ -258,4 +267,4 @@ For a classification mismatch, include the dircue version, command, expected res
 
 ## License
 
-[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. [Third-party notices](THIRD_PARTY_NOTICES.md) include licenses for linked dependencies and the embedded MIME database.
+[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) include licenses for linked dependencies and the embedded MIME database.
