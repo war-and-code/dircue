@@ -18,6 +18,7 @@ var (
 	ErrBinary      = errors.New("binary content cannot be counted")
 	ErrEncoding    = errors.New("code metrics require UTF-8 content")
 	initialize     sync.Once
+	grammarLoads   map[string]*sync.Once
 )
 
 // Counts contains physical line counts and scc's token-based complexity estimate.
@@ -50,9 +51,22 @@ func Count(ctx context.Context, filename, linguistLanguage string, content []byt
 		return Counts{}, ErrBinary
 	}
 
-	// ProcessConstants builds grammar features but does not configure the Go GC.
-	// Keeping its mutable initialization here leaves the language-only path alone.
-	initialize.Do(processor.ProcessConstants)
+	// Publish initialization before any worker loads or counts a grammar.
+	// Upstream lazy loading uses the same feature builder as eager initialization.
+	initialize.Do(func() {
+		processor.ConfigureLazy(true)
+		processor.ProcessConstants()
+		grammarLoads = make(map[string]*sync.Once, len(grammarNames))
+		for _, name := range grammarNames {
+			if grammarLoads[name] == nil {
+				grammarLoads[name] = new(sync.Once)
+			}
+		}
+	})
+	if err := ctx.Err(); err != nil {
+		return Counts{}, err
+	}
+	grammarLoads[grammar].Do(func() { processor.LoadLanguageFeature(grammar) })
 	if err := ctx.Err(); err != nil {
 		return Counts{}, err
 	}
