@@ -1,0 +1,432 @@
+{
+  "schema_version": "1.0.0",
+  "started_at_utc": "2026-09-16T17:04:58Z",
+  "candidate_sha256": "ec4bf5280cd966c32a69394d0753b13d6f5fd028b480a80d3b66e0c40a76ae48",
+  "scc_sha256": "b664af4efae07198ac99b63c90d0c9e119923518a1c02c9377a5a81f444122de",
+  "scc_version": "scc version 4.1.0",
+  "harness_sha256": "199a98ecc67d7d8a9a4560303bac63d034b1b8691b3c586de40f049c39fd32c9",
+  "checks": [
+    "source scope: exact full-file counters, Java/C# variants, TSX, long block comment",
+    "text scope includes detected generated/vendor/docs/XML; totals agree at every aggregation level",
+    "metrics opt-in: all without metrics retains schema 1.0.0 and omits counting",
+    "oversized eligible file yields partial coverage and contributes no prefix counts",
+    "Git HEAD and --rev metrics use committed blobs despite staged, dirty, and untracked files",
+    "large XML excluded by default without changing code totals",
+    "explicit text scope reports over-limit XML as partial without prefix counts"
+  ],
+  "source_files": [
+    {
+      "path": "src/CRLF.cs",
+      "sha256": "01b5a63163ad463a0948017e93dd6cfd1aec046df46946a7d477e85a63cd9fa7",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 35,
+        "lines": 3,
+        "code": 1,
+        "comment": 1,
+        "blank": 1,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Example.cs",
+      "sha256": "f56444c97f32a44fe3f3ced48bd5e2267cda63dd533913c4750b4a14ee966b36",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 164,
+        "lines": 8,
+        "code": 7,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/Example.java",
+      "sha256": "ac3df83b73c252e078fbdc7f82ec317c0138719e7d622a28836097d93be8f5fc",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 224,
+        "lines": 10,
+        "code": 7,
+        "comment": 3,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/NoNewline.java",
+      "sha256": "ac3b2603f8edcd57fc41a25358c4694c079780d58bead6e13ee6e357fd9c11e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 30,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.cs",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.java",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Strings.cs",
+      "sha256": "287ea7351ac63b950aa3a78044f43bd562810fb7603ed31c7177461af9fdc13b",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 258,
+        "lines": 9,
+        "code": 9,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/TextBlock.java",
+      "sha256": "333e3faed76ec31a043cfe5dcb806f994a2b6281e79f342c79f6789a2ab771e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 194,
+        "lines": 7,
+        "code": 7,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Unicode.java",
+      "sha256": "cc8ad26a8ddada161e1b2fa243d95f00a7314d362b19cd7180b39f2d02c9fb58",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 41,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/long.cs",
+      "sha256": "2d7d5ebe24002e3d40b9dc6a23cbd222237e4af7ba93636591f70fd7f869bf4c",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 252032,
+        "lines": 9005,
+        "code": 3,
+        "comment": 9002,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/view.tsx",
+      "sha256": "04f3510a3aa780657beed21304f6a032de66fbd0f38b252d304e6de6994cab32",
+      "language": "TSX",
+      "grammar": "TypeScript",
+      "counts": {
+        "files": 1,
+        "bytes": 59,
+        "lines": 2,
+        "code": 1,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    }
+  ],
+  "known_upstream_limitations": [
+    "scc 4.1.0 counts the // line in RawStringLimitation.java and .cs as a comment although it is raw-string content; parity is not semantic parsing accuracy."
+  ],
+  "text_files": [
+    {
+      "path": "README.md",
+      "sha256": "25713540883b9e1185ab87f8073755475118d275dfcc86271fd4d547acd73a20",
+      "language": "Markdown",
+      "grammar": "Markdown",
+      "counts": {
+        "files": 1,
+        "bytes": 33,
+        "lines": 3,
+        "code": 2,
+        "comment": 0,
+        "blank": 1,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "docs/Example.cs",
+      "sha256": "a6b50230815741b7323109ae534181f8cd95d27885be9f88ebd215e57e5d87db",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 23,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "generated/Generated.cs",
+      "sha256": "a5ca62c5b4c73bb015b020a135dade4ceaebc1369f2636bec3250a0b9829ac83",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 2,
+        "code": 1,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "logs/activity.xml",
+      "sha256": "547d48cfbe58febe10f86eca5fca8ded3409324be8f484632917d06862d4d266",
+      "language": "XML",
+      "grammar": "XML",
+      "counts": {
+        "files": 1,
+        "bytes": 58,
+        "lines": 2,
+        "code": 2,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/CRLF.cs",
+      "sha256": "01b5a63163ad463a0948017e93dd6cfd1aec046df46946a7d477e85a63cd9fa7",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 35,
+        "lines": 3,
+        "code": 1,
+        "comment": 1,
+        "blank": 1,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Example.cs",
+      "sha256": "f56444c97f32a44fe3f3ced48bd5e2267cda63dd533913c4750b4a14ee966b36",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 164,
+        "lines": 8,
+        "code": 7,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/Example.java",
+      "sha256": "ac3df83b73c252e078fbdc7f82ec317c0138719e7d622a28836097d93be8f5fc",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 224,
+        "lines": 10,
+        "code": 7,
+        "comment": 3,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/NoNewline.java",
+      "sha256": "ac3b2603f8edcd57fc41a25358c4694c079780d58bead6e13ee6e357fd9c11e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 30,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.cs",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.java",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Strings.cs",
+      "sha256": "287ea7351ac63b950aa3a78044f43bd562810fb7603ed31c7177461af9fdc13b",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 258,
+        "lines": 9,
+        "code": 9,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/TextBlock.java",
+      "sha256": "333e3faed76ec31a043cfe5dcb806f994a2b6281e79f342c79f6789a2ab771e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 194,
+        "lines": 7,
+        "code": 7,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Unicode.java",
+      "sha256": "cc8ad26a8ddada161e1b2fa243d95f00a7314d362b19cd7180b39f2d02c9fb58",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 41,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/long.cs",
+      "sha256": "2d7d5ebe24002e3d40b9dc6a23cbd222237e4af7ba93636591f70fd7f869bf4c",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 252032,
+        "lines": 9005,
+        "code": 3,
+        "comment": 9002,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/view.tsx",
+      "sha256": "04f3510a3aa780657beed21304f6a032de66fbd0f38b252d304e6de6994cab32",
+      "language": "TSX",
+      "grammar": "TypeScript",
+      "counts": {
+        "files": 1,
+        "bytes": 59,
+        "lines": 2,
+        "code": 1,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "vendor/Vendor.java",
+      "sha256": "93ea6a0db8d3e0e7f477b2bdfd8f9114cc881693f96e557f0fd911ad78c1176c",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 16,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    }
+  ],
+  "xml_bytes": 1153433600,
+  "result": "pass",
+  "artifact_note": "Local workspace/home paths are replaced by $WORKSPACE/$HOME; counter values and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020."
+}
