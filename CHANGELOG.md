@@ -1,6 +1,13 @@
 # Changelog
 
-## 0.1.0 (unreleased)
+## 0.2.0 (unreleased)
+
+- Add opt-in scc code metrics through `analyze metrics` and `analyze all --metrics`, with code, comment, blank, and total lines, bytes, file counts, and lexical complexity estimates.
+- Report metrics by language and immediate parent directory, with optional per-file rows and explicit coverage and skip reasons.
+- Count source files by default, with a broader text scope and bounded full-file reads. XML logs remain excluded from default counting unless attributes include them.
+- Extend the aggregate JSON schema to 1.1.0 when metrics are requested. Existing language output and reports without metrics retain their contracts.
+
+## 0.1.0 (2026-09-08)
 
 First release as dircue, renamed from auragaze before publication. Language profiling targets GitHub Linguist 9.7.0.
 
@@ -8,7 +15,7 @@ First release as dircue, renamed from auragaze before publication. Language prof
 - Committed Git-tree analysis by default at repository roots, plus arbitrary directories and explicit working-directory mode.
 - Nested Linguist attributes, bounded concurrent classification, generated/vendor/documentation filtering, and language grouping.
 - Maintained Enry compatibility fork with pinned Linguist data, centroid classification, pure-Go tokenizer, regeneration provenance, and license notices.
-- Ecosystem, framework, and layout detectors with a versioned aggregate JSON schema for security pipelines.
+- Ecosystem, framework, and layout detectors with a versioned aggregate JSON schema.
 - Differential checks against the actual Ruby CLI and upstream samples, pinned public-repository comparisons, cross-platform builds, and an unprivileged minimal Docker image.
 - Java/.NET coverage and synthetic GiB-scale Talend/XML, interconnected project, packed-object, and 100,000-file cases, including regressions for binary-prefix detection and tree-size cutoffs.
 - Local release packaging for Linux, macOS, and Windows, plus Python wheels containing the same binaries for installation with uv or pip.

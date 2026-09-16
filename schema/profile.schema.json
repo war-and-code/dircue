@@ -1,12 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "dircue repository profile v1",
-  "description": "Output of dircue analyze all --json. Findings cite source files; the report is not an SBOM.",
+  "title": "dircue directory profile",
+  "description": "Output of dircue analyze all --json or analyze metrics --json. Metrics are present only when requested.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "root", "summary", "languages", "ecosystems", "frameworks", "layouts", "warnings"],
+  "allOf": [{"if": {"properties": {"schema_version": {"const": "1.1.0"}}}, "then": {"required": ["metrics"]}, "else": {"not": {"required": ["metrics"]}}}],
   "properties": {
-    "schema_version": {"const": "1.0.0"},
+    "schema_version": {"enum": ["1.0.0", "1.1.0"]},
     "root": {"type": "string", "minLength": 1},
     "summary": {
       "type": "object",
@@ -23,6 +24,7 @@
     "ecosystems": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "ecosystem"}}}]}},
     "frameworks": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "framework"}}}]}},
     "layouts": {"type": "array", "items": {"allOf": [{"$ref": "#/$defs/finding"}, {"properties": {"kind": {"const": "layout"}}}]}},
+    "metrics": {"$ref": "#/$defs/metrics"},
     "warnings": {
       "type": "array",
       "items": {
@@ -61,6 +63,95 @@
         "evidence": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
         "detector": {"type": "string", "minLength": 1}
       }
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["files", "bytes", "lines", "code", "comment", "blank", "complexity"],
+      "properties": {
+        "files": {"type": "integer", "minimum": 0},
+        "bytes": {"type": "integer", "minimum": 0},
+        "lines": {"type": "integer", "minimum": 0},
+        "code": {"type": "integer", "minimum": 0},
+        "comment": {"type": "integer", "minimum": 0},
+        "blank": {"type": "integer", "minimum": 0},
+        "complexity": {"type": "integer", "minimum": 0}
+      }
+    },
+    "language_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["language", "grammar", "files", "bytes", "lines", "code", "comment", "blank", "complexity"],
+      "properties": {
+        "language": {"type": "string", "minLength": 1},
+        "grammar": {"type": "string", "minLength": 1},
+        "files": {"type": "integer", "minimum": 0},
+        "bytes": {"type": "integer", "minimum": 0},
+        "lines": {"type": "integer", "minimum": 0},
+        "code": {"type": "integer", "minimum": 0},
+        "comment": {"type": "integer", "minimum": 0},
+        "blank": {"type": "integer", "minimum": 0},
+        "complexity": {"type": "integer", "minimum": 0}
+      }
+    },
+    "directory_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "files", "bytes", "lines", "code", "comment", "blank", "complexity"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "files": {"type": "integer", "minimum": 0},
+        "bytes": {"type": "integer", "minimum": 0},
+        "lines": {"type": "integer", "minimum": 0},
+        "code": {"type": "integer", "minimum": 0},
+        "comment": {"type": "integer", "minimum": 0},
+        "blank": {"type": "integer", "minimum": 0},
+        "complexity": {"type": "integer", "minimum": 0}
+      }
+    },
+    "metric_skip": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reason"],
+      "properties": {
+        "reason": {"enum": ["outside_scope", "binary", "non_regular_file", "unsupported_language", "unsupported_encoding", "file_too_large", "input_changed", "lfs_pointer", "tree_size_limit"]},
+        "files": {"type": "integer", "minimum": 0}
+      },
+      "allOf": [{"if": {"properties": {"reason": {"const": "tree_size_limit"}}}, "then": {"not": {"required": ["files"]}}, "else": {"required": ["files"]}}]
+    },
+    "file_metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "status"],
+      "properties": {
+        "path": {"type": "string", "minLength": 1},
+        "language": {"type": "string", "minLength": 1},
+        "grammar": {"type": "string", "minLength": 1},
+        "status": {"enum": ["counted", "skipped"]},
+        "reason": {"enum": ["outside_scope", "binary", "non_regular_file", "unsupported_language", "unsupported_encoding", "file_too_large", "input_changed", "lfs_pointer", "tree_size_limit"]},
+        "counts": {"$ref": "#/$defs/counts"}
+      },
+      "allOf": [{"if": {"properties": {"status": {"const": "counted"}}}, "then": {"required": ["language", "grammar", "counts"], "not": {"required": ["reason"]}}, "else": {"required": ["reason"], "not": {"required": ["counts"]}}}]
+    },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "engine_version", "status", "scope", "max_file_bytes", "source", "totals", "languages", "directories", "skipped"],
+      "properties": {
+        "engine": {"const": "scc"},
+        "engine_version": {"type": "string", "minLength": 1},
+        "status": {"enum": ["complete", "partial", "skipped"]},
+        "scope": {"enum": ["source", "text"]},
+        "max_file_bytes": {"type": "integer", "minimum": 1, "maximum": 268435456},
+        "source": {"enum": ["git", "directory"]},
+        "tree": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+        "totals": {"$ref": "#/$defs/counts"},
+        "languages": {"type": "array", "items": {"$ref": "#/$defs/language_metrics"}},
+        "directories": {"type": "array", "items": {"$ref": "#/$defs/directory_metrics"}},
+        "skipped": {"type": "array", "items": {"$ref": "#/$defs/metric_skip"}},
+        "files": {"type": "array", "items": {"$ref": "#/$defs/file_metrics"}}
+      },
+      "allOf": [{"if": {"properties": {"source": {"const": "directory"}}}, "then": {"not": {"required": ["tree"]}}, "else": {"required": ["tree"]}}]
     }
   }
 }

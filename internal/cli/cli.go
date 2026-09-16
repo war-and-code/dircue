@@ -18,18 +18,22 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.1.0"
+var Version = "0.2.0"
 
 type options struct {
-	json           bool
-	breakdown      bool
-	workers        int
-	maxFileBytes   int64
-	source         string
-	revision       string
-	maxTreeSize    int
-	strategies     bool
-	fileStrategies map[string]string
+	json                bool
+	breakdown           bool
+	workers             int
+	maxFileBytes        int64
+	source              string
+	revision            string
+	maxTreeSize         int
+	strategies          bool
+	fileStrategies      map[string]string
+	metrics             bool
+	metricsScope        string
+	metricsMaxFileBytes int64
+	metricsFiles        bool
 }
 
 // Execute runs one invocation. Errors are returned without printing; the caller
@@ -43,7 +47,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	opts := &options{}
 	root := &cobra.Command{
 		Use:           "dircue [path]",
-		Short:         "Profile repository languages and security tooling inputs",
+		Short:         "Profile source code repos and other directories of computer content",
 		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repositories use committed HEAD content by default; --source directory scans current files.",
 		Version:       Version,
 		Args:          pathArgs,
@@ -69,16 +73,25 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, metrics, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "frameworks", "ecosystems", "all"} {
-		analyze.AddCommand(&cobra.Command{
+	for _, mode := range []string{"languages", "metrics", "frameworks", "ecosystems", "all"} {
+		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
 			Args:  pathArgs,
 			RunE:  func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, mode) },
-		})
+		}
+		if mode == "metrics" || mode == "all" {
+			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include metrics for each counted or skipped file")
+			command.Flags().StringVar(&opts.metricsScope, "metrics-scope", "source", "Metrics selection: source (language statistics) or text (all detected text languages)")
+			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
+		}
+		if mode == "all" {
+			command.Flags().BoolVar(&opts.metrics, "metrics", false, "Count code, comment, and blank lines and estimate complexity with scc")
+		}
+		analyze.AddCommand(command)
 	}
 	root.AddCommand(analyze)
 	return root.ExecuteContext(ctx)
@@ -97,6 +110,22 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	}
 	if opts.maxFileBytes < 0 {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
+	}
+	var metrics *scanner.MetricsOptions
+	if mode == "metrics" || (mode == "all" && opts.metrics) {
+		if opts.metricsScope != "source" && opts.metricsScope != "text" {
+			return fmt.Errorf("--metrics-scope must be source or text")
+		}
+		if opts.metricsMaxFileBytes <= 0 || opts.metricsMaxFileBytes > 268435456 {
+			return fmt.Errorf("--metrics-max-file-bytes must be between 1 and 268435456")
+		}
+		metrics = &scanner.MetricsOptions{Scope: opts.metricsScope, MaxFileBytes: opts.metricsMaxFileBytes, IncludeFiles: opts.metricsFiles}
+	} else if mode == "all" {
+		for _, flag := range []string{"files", "metrics-scope", "metrics-max-file-bytes"} {
+			if cmd.Flags().Changed(flag) {
+				return fmt.Errorf("--%s requires --metrics", flag)
+			}
+		}
 	}
 	path := "."
 	if len(args) == 1 {
@@ -128,7 +157,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		opts.revision = ""
 	}
 	var hooks []profile.Detector
-	if mode != "languages" {
+	if mode != "languages" && mode != "metrics" {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
@@ -143,6 +172,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		IncludeFiles:      opts.breakdown || opts.strategies,
 		IncludeStrategies: opts.strategies,
 		Detectors:         hooks,
+		Metrics:           metrics,
 	})
 	if err != nil {
 		return err
@@ -172,6 +202,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "metrics":
+		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
 		if _, err := fmt.Fprintln(out, "Languages:"); err != nil {
 			return err
@@ -191,6 +223,12 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			if err := writeFindings(out, section.findings); err != nil {
 				return err
 			}
+		}
+		if report.Metrics != nil {
+			if _, err := fmt.Fprintln(out, "\nMetrics:"); err != nil {
+				return err
+			}
+			return writeMetrics(out, report.Metrics, opts.metricsFiles)
 		}
 		return nil
 	}
