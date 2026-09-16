@@ -204,6 +204,8 @@ func (s *ObjectStorage) encodedObjectSizeFromUnpacked(h plumbing.Hash) (
 		return 0, err
 	}
 
+	defer ioutil.CheckClose(f, &err)
+
 	r, err := objfile.NewReader(f)
 	if err != nil {
 		return 0, err

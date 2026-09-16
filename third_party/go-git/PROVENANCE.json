@@ -197,7 +197,8 @@
     "storage/filesystem/dotgit/writers_windows.go": "9ab89dfd34d4e87f001dfab5e25199b2d17e7ca882c5ade0c652043554ef8fba",
     "storage/filesystem/index.go": "234a5cc56a968560c02374990dd66b168c9c314eb3855561d5a602ac0844d04f",
     "storage/filesystem/module.go": "18c9920ee9a297a923a41844907cbcae9d1218b8d4803fed3cba60037b1b4ee6",
-    "storage/filesystem/object.go": "2652888b137e151e0f122d05b406e99036a35ec144ae8d4f0aa584c5f5146d53",
+    "storage/filesystem/object.go": "2e0ee03d3754d206b710ad0f2e4bea9cb5ccae7640602db52d6ca6982eae42d3",
+    "storage/filesystem/object_size_close_regression_test.go": "22cec3541debd04bb962b23124f6263c4855d56e8ff5d7c397b5b5c695442622",
     "storage/filesystem/reference.go": "99465c4257e0fac1c93a5efe28a36a5c336e96f9d72b02e58d7d0db1b8e5ee20",
     "storage/filesystem/shallow.go": "de200d1c48e6d083e057e5150d7ae7a4bcdbdf2e1b5f3678f9a5cf56481af8ba",
     "storage/filesystem/storage.go": "425a4e8f01c87ab9e4fb40f9c14f5fe04ee012c7d5663b6a8b374feccd4f170e",
@@ -250,7 +251,7 @@
   "module": "github.com/go-git/go-git/v5",
   "module_sum": "h1:wkfn7vOlUBu8ivAWKBWisTiwJK4jYHzTF8Ndv1LyGqY=",
   "patch": "third_party/patches/go-git-reader-delta.patch",
-  "patch_sha256": "45a4371047fdd0a26c32a216da0b79fc461ec245252a01763430c990f5404208",
+  "patch_sha256": "c15a0adfb6bde8455e9b31a0b177cf3ad839a9e233d3c227a1f9d80a3d1ac851",
   "selection": "production Go files excluding _examples and test directories; LICENSE, go.mod, go.sum, patch_delta_test.go",
   "upstream_files": {
     "LICENSE": "fecc274e9b67f7e128c7d2ba1ad68fcf23b18fe0448d3c3671e943763502d504",
