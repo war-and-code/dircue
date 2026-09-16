@@ -66,7 +66,34 @@
         "status": "partial",
         "error_nodes": 1,
         "missing_nodes": 0
+      },
+      "null_conditional_assignment_probe": {
+        "original_statement": "pdbStreamOpt?.Position = 0;",
+        "replacement_statement": "if (pdbStreamOpt != null) pdbStreamOpt.Position = 0;",
+        "result": {
+          "status": "complete",
+          "error_nodes": 0,
+          "missing_nodes": 0
+        }
       }
     }
-  ]
+  ],
+  "csharp14_minimal_probes": {
+    "null_conditional_assignment": {
+      "source": "class C { void F(dynamic stream) { stream?.Position = 0; } }",
+      "result": {
+        "status": "partial",
+        "error_nodes": 2,
+        "missing_nodes": 0
+      }
+    },
+    "explicit_null_check": {
+      "source": "class C { void F(dynamic stream) { if (stream != null) stream.Position = 0; } }",
+      "result": {
+        "status": "complete",
+        "error_nodes": 0,
+        "missing_nodes": 0
+      }
+    }
+  }
 }

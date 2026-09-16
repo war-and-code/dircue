@@ -95,8 +95,12 @@ Roslyn files reported partial results because their parse trees contained error
 nodes. [The parser limitation report](results/parser-limitations-macos-arm64.json)
 lists their paths, hashes, and diagnostic probes. Removing preprocessor directive
 lines eliminated errors from `Binder.ValueChecks.cs` and the generated Razor
-`TestComponent.codegen.cs` fixture. It did not eliminate the error in
-`ScriptBuilder.cs`, whose cause remains unclassified. Removing UTF-8 BOMs did not
-resolve these cases. These probes do not change the benchmark inputs and are not
-a proposed preprocessing step. Parser errors do not establish that the source is
-invalid C#; they limit the reliability of observations derived from that tree.
+`TestComponent.codegen.cs` fixture. The error in `ScriptBuilder.cs` comes from
+`pdbStreamOpt?.Position = 0;`, a
+[C# 14 null-conditional assignment](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-14.0/null-conditional-assignment).
+Replacing only that statement with an explicit null check removed the error.
+A minimal example reproduced the same grammar limitation; its explicit null-check
+variant parsed without errors. Removing UTF-8 BOMs did not resolve these cases.
+These probes do not change the benchmark inputs and are not a proposed
+preprocessing step. Parser errors do not establish that the source is invalid C#;
+they limit the reliability of observations derived from that tree.

@@ -84,8 +84,9 @@ per-file teardown is a possible later optimization, subject to measurement.
 
 Syntax errors produce `partial` observations rather than a successful full-parse
 claim. In the initial 150-file public-project sample, three Roslyn files produced
-syntax errors. Preprocessor directives contributed to two; the third cause remains
-unresolved. Full compiler validity and Tree-sitter parse success are different
+syntax errors. Preprocessor directives contributed to two; the third uses
+[C# 14 null-conditional assignment](https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/proposals/csharp-14.0/null-conditional-assignment),
+which the pinned grammar does not parse correctly. Full compiler validity and Tree-sitter parse success are different
 properties. See the [test report](tests/README.md) for exact paths and measurements.
 
 ## Verify it
