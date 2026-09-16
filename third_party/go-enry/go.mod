@@ -7,3 +7,5 @@ require (
 	github.com/stretchr/testify v1.8.1
 	gopkg.in/yaml.v2 v2.2.8
 )
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

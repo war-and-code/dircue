@@ -424,3 +424,5 @@ var LanguagesByFilename = map[string][]string{
 	"zshenv":                       {"Shell"},
 	"zshrc":                        {"Shell"},
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

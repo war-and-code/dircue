@@ -2506,3 +2506,5 @@ var ContentHeuristics = map[string]*Heuristics{
 		),
 	},
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

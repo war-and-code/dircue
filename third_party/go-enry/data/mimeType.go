@@ -312,3 +312,5 @@ var LanguagesMime = map[string]string{
 	"vCard":                          "text/x-properties",
 	"wisp":                           "text/x-clojure",
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

@@ -2280,3 +2280,5 @@ var ExtensionsByLanguage = map[string][]string{
 	"wisp":                               {".wisp"},
 	"xBase":                              {".prg", ".ch", ".prw"},
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

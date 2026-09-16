@@ -697,3 +697,5 @@ var LanguagesColor = map[string]string{
 	"wisp":                            "#7582D1",
 	"xBase":                           "#403a40",
 }
+
+// Modified for dircue; see PROVENANCE.json in this maintained fork.

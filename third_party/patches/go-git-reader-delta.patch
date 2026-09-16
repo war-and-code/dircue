@@ -21,6 +21,12 @@
  					discard = offset
  				}
  				for discard > math.MaxInt32 {
+@@ -572,3 +577,5 @@
+ func sumOverflows(a, b uint) bool {
+ 	return a+b < a
+ }
++
++// Modified for dircue: reset streaming delta offsets and close reopened base readers.
 --- /dev/null
 +++ b/plumbing/format/packfile/reader_delta_regression_test.go
 @@ -0,0 +1,119 @@
@@ -154,6 +160,12 @@
  
  	r, err := objfile.NewReader(f)
  	if err != nil {
+@@ -899,3 +901,5 @@
+ func (s *ObjectStorage) DeleteOldObjectPackAndIndex(h plumbing.Hash, t time.Time) error {
+ 	return s.dir.DeleteOldObjectPackAndIndex(h, t)
+ }
++
++// Modified for dircue: close loose object files after reading their size.
 --- /dev/null
 +++ b/storage/filesystem/object_size_close_regression_test.go
 @@ -0,0 +1,120 @@
