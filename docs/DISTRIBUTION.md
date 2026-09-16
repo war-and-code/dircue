@@ -2,10 +2,10 @@
 
 Dircue has two intended release channels: standalone GitHub Release archives and
 platform-specific Python wheels on PyPI. Both contain the same Go executable
-bytes for a given operating system, architecture, and version. Local release
-preparation is available; no public release or PyPI upload has been made.
+bytes for a given operating system, architecture, and version. GitHub Releases include archives and wheels. PyPI publication remains deferred;
+private GitHub assets require authenticated access.
 
-## Pipeline use after publication
+## Pipeline use after PyPI publication
 
 For a pinned invocation without a persistent tool installation:
 
@@ -21,8 +21,8 @@ uv tool install 'dircue==0.2.0'
 dircue --breakdown --json /path/to/checkout
 ```
 
-These commands require the matching release to have been published. Until then,
-use a locally prepared wheel with `--from`, as shown below. The package name and
+These commands require the matching version to be published on PyPI. Until then,
+use a downloaded or locally prepared wheel with `--from`, as shown below. The package name and
 executable name are both `dircue`.
 
 `uvx` installs into an isolated cached environment. It avoids changing the
@@ -148,4 +148,5 @@ on Windows in this round.
 Two independent fresh-cache Linux arm64 builds produced byte-identical archives.
 See the [0.2 release validation](../tests/release/results/0.2.0/README.md) for
 source commits, checksums, commands, and platform limits. These are local
-candidate checks; 0.2 has not been published.
+candidate checks. Final release assets carry their own source and checksum
+provenance on the [release page](https://github.com/war-and-code/dircue/releases/tag/v0.2.0).
