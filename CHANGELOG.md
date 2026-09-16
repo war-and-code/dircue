@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0 (unreleased candidate)
+
+- Add opt-in project mapping through `analyze projects` and `analyze all --projects`, including .NET/Maven declarations, conservative Gradle observations, and broader manifest discovery.
+- Report declared project and solution relationships, reference target presence, unevaluated conditions, configuration candidates, and ambiguous or unassigned directory attribution.
+- Describe selected content by source, test, configuration, generated, vendor, documentation, data, binary, and unknown categories with the basis for each classification.
+- Add optional Java/C# structural analysis through `analyze structure` and `analyze all --structure`. A separate native worker uses one BCA-owned Tree-sitter parse per file for declaration counts and BCA metrics.
+- Report structural omissions, syntax recovery, parser versions, and per-file metrics. Limit worker admission to one process, bound source/output sizes, and enforce a per-file deadline.
+- Add native-worker packaging with pinned dependency sources, license notices, checksums, and runtime provenance. The core binary and Python wheels remain usable without this add-on.
+- Use aggregate schema 1.2.0 when projects or structure are requested. Existing language JSON, plain `analyze all`, and metrics-only schema 1.1.0 retain their contracts.
+
+Project mapping reads declarations without running build tools or restoring packages. Structural analysis currently supports Java and C#, with documented grammar limitations; it does not perform compiler type resolution or construct cross-file call graphs.
+
 ## 0.2.0 (2026-09-16)
 
 - Add opt-in scc code metrics through `analyze metrics` and `analyze all --metrics`, with code, comment, blank, and total lines, bytes, file counts, and lexical complexity estimates.
