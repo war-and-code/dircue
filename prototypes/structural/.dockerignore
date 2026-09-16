@@ -1,0 +1,7 @@
+*
+!worker/
+!worker/Cargo.toml
+!worker/Cargo.lock
+!worker/src/
+!worker/src/**
+!LICENSE
