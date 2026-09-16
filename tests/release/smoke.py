@@ -10,8 +10,8 @@ import tempfile
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image", default="dircue:0.2.0")
-    parser.add_argument("--version", default="0.2.0")
+    parser.add_argument("--image", default="dircue:0.3.0")
+    parser.add_argument("--version", default="0.3.0")
     parser.add_argument("--reference", default="dircue-linguist:9.7.0")
     parser.add_argument("--corpus-volume", required=True)
     parser.add_argument("--candidate", type=Path, required=True)
@@ -44,6 +44,10 @@ def main():
         assert metrics["metrics"]["status"] == "complete"
         assert metrics["metrics"]["totals"]["code"] == 2
         assert metrics["metrics"]["totals"]["files"] == 1
+        projects = json.loads(run(["-v", f"{root}:/repo:ro", args.image, "analyze", "projects", "--json", "/repo"])[0])
+        assert projects["schema_version"] == "1.2.0"
+        assert projects["projects"]["status"] == "complete"
+        assert projects["projects"]["projects"][0]["id"] == "go.mod"
         legacy = json.loads(run(["-v", f"{args.corpus_volume}:/corpus:ro", args.image, "-bj", "/corpus/cobra"])[0])
         reference = json.loads(subprocess.check_output(["docker", "run", "--rm", "--network", "none",
             "-v", f"{args.corpus_volume}:/corpus:ro", args.reference, "github-linguist", "-bj", "/corpus/cobra"], timeout=120))
