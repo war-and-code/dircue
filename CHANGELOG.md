@@ -6,6 +6,7 @@
 - Report metrics by language and immediate parent directory, with optional per-file rows and explicit coverage and skip reasons.
 - Count source files by default, with a broader text scope and bounded full-file reads. XML logs remain excluded from default counting unless attributes include them.
 - Extend the aggregate JSON schema to 1.1.0 when metrics are requested. Existing language output and reports without metrics retain their contracts.
+- Backport a go-git streaming delta fix: backward copies could reconstruct incorrect bytes from packed Git objects without reporting an error. The fix preserves bounded reads and applies to both language profiling and metrics.
 
 ## 0.1.0 (2026-09-08)
 

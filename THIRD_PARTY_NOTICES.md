@@ -1720,7 +1720,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ```
 
-## github.com/go-git/go-git/v5 v5.19.2
+## github.com/go-git/go-git/v5 v5.19.2 (local maintained fork; see third_party/go-git/PROVENANCE.json)
 
 ### LICENSE
 
