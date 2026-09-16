@@ -1,0 +1,12 @@
+{
+  "commit": "c3444a4e899678c798bccdbaec7f87de4c3d7bbb",
+  "binary_sha256": "2934ce9614926462a7e8f30332c4f5e097f4ae85a710b476002924ff0ad8aa3b",
+  "go": "go version go1.26.6 darwin/arm64",
+  "build": [
+    "go",
+    "build",
+    "-trimpath"
+  ],
+  "CGO_ENABLED": "0",
+  "artifact_note": "Local workspace/home paths are replaced by $WORKSPACE/$HOME; counter values and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020."
+}

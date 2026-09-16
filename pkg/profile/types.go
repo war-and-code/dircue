@@ -68,4 +68,5 @@ type Report struct {
 	Frameworks    []Finding         `json:"frameworks"`
 	Layouts       []Finding         `json:"layouts"`
 	Warnings      []Warning         `json:"warnings"`
+	Metrics       *MetricsReport    `json:"metrics,omitempty"`
 }

@@ -29,7 +29,8 @@ for name, module in sorted(modules.items()):
         raise RuntimeError(f"no root license located for linked module {name}")
     version = module.get("Version", "local")
     if module.get("Replace"):
-        version += " (local maintained fork; see third_party/go-enry/PROVENANCE.json)"
+        replacement = Path(module["Replace"]["Dir"]).relative_to(root)
+        version += f" (local maintained fork; see {replacement.as_posix()}/PROVENANCE.json)"
     sections.append(f"## {name} {version}\n")
     for license in sorted(licenses):
         sections.append(f"### {license.name}\n\n```text\n{license.read_text(errors='replace')}\n```\n")

@@ -10,14 +10,14 @@ preparation is available; no public release or PyPI upload has been made.
 For a pinned invocation without a persistent tool installation:
 
 ```sh
-uvx dircue@0.1.0 --breakdown --json /path/to/checkout
-uvx dircue@0.1.0 analyze all --json /path/to/checkout
+uvx dircue@0.2.0 --breakdown --json /path/to/checkout
+uvx dircue@0.2.0 analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==0.1.0'
+uv tool install 'dircue==0.2.0'
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -44,8 +44,8 @@ and [cache behavior](https://docs.astral.sh/uv/concepts/tools/#tool-environments
 From a clean committed checkout, choose fresh output directories:
 
 ```sh
-python3 scripts/release.py --version 0.1.0 --output dist/release-0.1.0
-python3 scripts/wheels.py --release-dir dist/release-0.1.0 --output dist/wheels-0.1.0
+python3 scripts/release.py --version 0.2.0 --output dist/release-0.2.0
+python3 scripts/wheels.py --release-dir dist/release-0.2.0 --output dist/wheels-0.2.0
 ```
 
 The wheel builder consumes existing release archives; it does not compile Go,
@@ -78,7 +78,7 @@ Test a local wheel on an Apple Silicon Mac without accessing a package index:
 
 ```sh
 uvx --offline --no-index \
-  --from ./dist/wheels-0.1.0/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl \
+  --from ./dist/wheels-0.2.0/dircue-0.2.0-py3-none-macosx_12_0_arm64.whl \
   dircue --version
 ```
 
@@ -95,7 +95,7 @@ uv can install it directly. For a Linux amd64 runner, the release URL would be:
 
 ```sh
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v0.1.0/dircue-0.1.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.2.0/dircue-0.2.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -113,7 +113,7 @@ ownership of `dircue`, review package metadata, validate all intended platforms,
 and verify that archive and wheel
 binary hashes agree. An absent PyPI project page does not reserve the name.
 
-For the initial release, upload the verified standalone archives, checksums,
+For each release, upload the verified standalone archives, checksums,
 provenance, and release notes to a GitHub Release. Attach wheels there too for
 direct uv installation without PyPI. For PyPI publication, upload only the
 intended `.whl` files. Both channels must identify the same version and source. Verify
@@ -123,14 +123,29 @@ published version with different executable bytes.
 
 Hosted release automation is tracked in [#13](https://github.com/war-and-code/dircue/issues/13);
 PyPI distribution and publication checks are tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
-Manual release preparation remains sufficient for v0.1.
+Manual release preparation remains supported for v0.2.
 
-## Local validation status
+## Historical 0.1 validation
 
-Seven wheels are prepared under `dist/dircue-wheels-rc3/`, using the exact RC3
-release executables. All passed strict Twine metadata checks. Actual offline
+The 0.1 validation prepared seven wheels under `dist/dircue-wheels-rc3/`, using
+the exact RC3 release executables. All passed strict Twine metadata checks. Actual offline
 installation/execution passed on macOS arm64 (uvx, uv tool install, pip) and
 Linux arm64 glibc/musl (uvx in Docker). Windows, Intel macOS, and Linux amd64
-wheel installations have not been executed in this round. See the
+wheel installations were not executed in that round. See the
 [retained wheel validation](../tests/release/results/wheels/README.md) for
 platform scope, commands, outputs, and checksums.
+
+## 0.2 candidate validation
+
+Five archives and seven wheels were built locally from committed source. All
+wheels passed strict metadata checks and contain the same executable bytes as
+their corresponding archives. Offline `uvx` execution passed on macOS arm64 and
+Linux arm64 glibc/musl. The Linux amd64 binary passed Docker smoke checks under
+emulation, and the macOS amd64 binary passed under Rosetta. Windows code passed
+native CI, but the packaged Windows executable and wheel have not been executed
+on Windows in this round.
+
+Two independent fresh-cache Linux arm64 builds produced byte-identical archives.
+See the [0.2 release validation](../tests/release/results/0.2.0/README.md) for
+source commits, checksums, commands, and platform limits. These are local
+candidate checks; 0.2 has not been published.

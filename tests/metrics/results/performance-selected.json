@@ -1,0 +1,516 @@
+{
+  "schema_version": "1.0.0",
+  "candidate_sha256": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
+  "scc_sha256": "b664af4efae07198ac99b63c90d0c9e119923518a1c02c9377a5a81f444122de",
+  "scc_version": "scc version 4.1.0",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "methodology": "20 alternating process samples after three warmups; system time peak RSS; same full-file inputs and counting settings; dircue additionally classifies and reports source coverage",
+  "limitations": "Small synthetic corpus, warm filesystem cache. Not a universal speed comparison. p99+ are observed order statistics.",
+  "files": [
+    {
+      "path": "src/CRLF.cs",
+      "sha256": "01b5a63163ad463a0948017e93dd6cfd1aec046df46946a7d477e85a63cd9fa7",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 35,
+        "lines": 3,
+        "code": 1,
+        "comment": 1,
+        "blank": 1,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Example.cs",
+      "sha256": "f56444c97f32a44fe3f3ced48bd5e2267cda63dd533913c4750b4a14ee966b36",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 164,
+        "lines": 8,
+        "code": 7,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/Example.java",
+      "sha256": "ac3df83b73c252e078fbdc7f82ec317c0138719e7d622a28836097d93be8f5fc",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 224,
+        "lines": 10,
+        "code": 7,
+        "comment": 3,
+        "blank": 0,
+        "complexity": 2
+      }
+    },
+    {
+      "path": "src/NoNewline.java",
+      "sha256": "ac3b2603f8edcd57fc41a25358c4694c079780d58bead6e13ee6e357fd9c11e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 30,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.cs",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/RawStringLimitation.java",
+      "sha256": "e1c250847439c1928b9cbf083845b0749d60b1aecc403f54e5ef6decec60cb05",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 37,
+        "lines": 4,
+        "code": 3,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Strings.cs",
+      "sha256": "287ea7351ac63b950aa3a78044f43bd562810fb7603ed31c7177461af9fdc13b",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 258,
+        "lines": 9,
+        "code": 9,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/TextBlock.java",
+      "sha256": "333e3faed76ec31a043cfe5dcb806f994a2b6281e79f342c79f6789a2ab771e1",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 194,
+        "lines": 7,
+        "code": 7,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/Unicode.java",
+      "sha256": "cc8ad26a8ddada161e1b2fa243d95f00a7314d362b19cd7180b39f2d02c9fb58",
+      "language": "Java",
+      "grammar": "Java",
+      "counts": {
+        "files": 1,
+        "bytes": 41,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/long.cs",
+      "sha256": "2d7d5ebe24002e3d40b9dc6a23cbd222237e4af7ba93636591f70fd7f869bf4c",
+      "language": "C#",
+      "grammar": "C#",
+      "counts": {
+        "files": 1,
+        "bytes": 252032,
+        "lines": 9005,
+        "code": 3,
+        "comment": 9002,
+        "blank": 0,
+        "complexity": 0
+      }
+    },
+    {
+      "path": "src/view.tsx",
+      "sha256": "04f3510a3aa780657beed21304f6a032de66fbd0f38b252d304e6de6994cab32",
+      "language": "TSX",
+      "grammar": "TypeScript",
+      "counts": {
+        "files": 1,
+        "bytes": 59,
+        "lines": 2,
+        "code": 1,
+        "comment": 1,
+        "blank": 0,
+        "complexity": 0
+      }
+    }
+  ],
+  "commands": {
+    "dircue_metrics": [
+      "$WORKSPACE/.cache/metrics-v020/dircue-rc-audited",
+      "analyze",
+      "metrics",
+      "--json",
+      "--source",
+      "directory",
+      "$FIXTURE"
+    ],
+    "scc": [
+      "$WORKSPACE/.cache/metrics-v020/scc",
+      "--no-config",
+      "--no-cocomo",
+      "--no-gitignore",
+      "--no-ignore",
+      "--no-scc-ignore",
+      "--format",
+      "json",
+      "$FIXTURE"
+    ]
+  },
+  "samples": {
+    "dircue_metrics": [
+      {
+        "seconds": 0.028432167135179043,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42467328,
+        "cpu_percent": 105.51429251722807
+      },
+      {
+        "seconds": 0.028443709015846252,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 43220992,
+        "cpu_percent": 105.47147695571883
+      },
+      {
+        "seconds": 0.028278124518692493,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 43253760,
+        "cpu_percent": 106.08907242122548
+      },
+      {
+        "seconds": 0.02845649980008602,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42270720,
+        "cpu_percent": 105.42406905542653
+      },
+      {
+        "seconds": 0.02814504224807024,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 43253760,
+        "cpu_percent": 106.59070871374139
+      },
+      {
+        "seconds": 0.028714042156934738,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42713088,
+        "cpu_percent": 104.47849813703324
+      },
+      {
+        "seconds": 0.02891004178673029,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42418176,
+        "cpu_percent": 103.7701716978147
+      },
+      {
+        "seconds": 0.028936125338077545,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 43646976,
+        "cpu_percent": 103.67663137165944
+      },
+      {
+        "seconds": 0.029641125351190567,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42680320,
+        "cpu_percent": 101.21073219912354
+      },
+      {
+        "seconds": 0.030540458858013153,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 43335680,
+        "cpu_percent": 98.23035121860539
+      },
+      {
+        "seconds": 0.028349541127681732,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 41369600,
+        "cpu_percent": 105.8218186491445
+      },
+      {
+        "seconds": 0.02983220759779215,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42287104,
+        "cpu_percent": 100.5624538568184
+      },
+      {
+        "seconds": 0.030286874622106552,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42418176,
+        "cpu_percent": 99.0528087639087
+      },
+      {
+        "seconds": 0.02899116650223732,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42270720,
+        "cpu_percent": 103.47979615682186
+      },
+      {
+        "seconds": 0.029279165901243687,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42582016,
+        "cpu_percent": 102.46193522447884
+      },
+      {
+        "seconds": 0.029319165274500847,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42369024,
+        "cpu_percent": 102.32214907595367
+      },
+      {
+        "seconds": 0.03207137528806925,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42319872,
+        "cpu_percent": 93.54135808189113
+      },
+      {
+        "seconds": 0.02864404208958149,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42926080,
+        "cpu_percent": 104.73382180551852
+      },
+      {
+        "seconds": 0.028862041421234608,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 41893888,
+        "cpu_percent": 103.94275152667532
+      },
+      {
+        "seconds": 0.028414832428097725,
+        "user_seconds": 0.02,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 42205184,
+        "cpu_percent": 105.57866239723025
+      }
+    ],
+    "scc": [
+      {
+        "seconds": 0.015489082783460617,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21889024,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015231291763484478,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21676032,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015191333368420601,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21823488,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015522625297307968,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21708800,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015293666161596775,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21757952,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.014741708524525166,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21856256,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015616250224411488,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21594112,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.014849667437374592,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21594112,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015801665373146534,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21839872,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.01568212453275919,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21856256,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.014898791909217834,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21938176,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.01574137434363365,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21725184,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015501666814088821,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21774336,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.014774958603084087,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21643264,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015313958749175072,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21872640,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.01575141679495573,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21987328,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015377582982182503,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 22118400,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015072000212967396,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21561344,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.014998124912381172,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21807104,
+        "cpu_percent": 0.0
+      },
+      {
+        "seconds": 0.015441624447703362,
+        "user_seconds": 0.0,
+        "system_seconds": 0.0,
+        "peak_rss_bytes": 21889024,
+        "cpu_percent": 0.0
+      }
+    ]
+  },
+  "summary": {
+    "dircue_metrics": {
+      "runs": 20,
+      "median_seconds": 0.02888604160398245,
+      "p95_seconds": 0.030540458858013153,
+      "p99_seconds": 0.03207137528806925,
+      "p999_seconds": 0.03207137528806925,
+      "p9999_seconds": 0.03207137528806925,
+      "max_seconds": 0.03207137528806925,
+      "min_seconds": 0.02814504224807024,
+      "coefficient_of_variation": 0.03221161052169346,
+      "operations_per_second": 34.61879663920904,
+      "peak_rss_bytes": 43646976,
+      "mean_cpu_percent": 103.09767799130088
+    },
+    "scc": {
+      "runs": 20,
+      "median_seconds": 0.015345770865678787,
+      "p95_seconds": 0.01575141679495573,
+      "p99_seconds": 0.015801665373146534,
+      "p999_seconds": 0.015801665373146534,
+      "p9999_seconds": 0.015801665373146534,
+      "max_seconds": 0.015801665373146534,
+      "min_seconds": 0.014741708524525166,
+      "coefficient_of_variation": 0.02143466392824154,
+      "operations_per_second": 65.16453352216575,
+      "peak_rss_bytes": 22118400,
+      "mean_cpu_percent": 0.0
+    }
+  },
+  "artifact_note": "Local workspace/home/temporary paths and the machine hostname are replaced by $WORKSPACE, $HOME, $FIXTURE, and <host>. Measurements, counter values, and hashes are unchanged. Raw receipts remain in ignored .cache/metrics-v020.",
+  "cpu_note": "System time rounds user/system CPU time to hundredths of a second; CPU percentages are too coarse for tiny inputs. A zero reading does not mean no CPU work."
+}

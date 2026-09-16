@@ -1,3 +1,5 @@
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
+
 //go:build !oniguruma
 // +build !oniguruma
 

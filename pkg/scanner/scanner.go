@@ -34,6 +34,7 @@ type Options struct {
 	IncludeFiles      bool
 	IncludeStrategies bool
 	Detectors         []profile.Detector
+	Metrics           *MetricsOptions
 }
 
 type job struct {
@@ -50,6 +51,7 @@ type result struct {
 	skipped  bool
 	warnings []profile.Warning
 	findings []profile.Finding
+	metrics  *profile.FileMetrics
 }
 
 // Scan returns a deterministic report. A zero worker count uses GOMAXPROCS,
@@ -58,6 +60,13 @@ type result struct {
 // fatal; detector failures become warnings and preserve partial findings.
 // An explicit MaxFileBytes limit skips larger files entirely.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.Metrics != nil {
+		normalized, err := normalizeMetricsOptions(*opts.Metrics)
+		if err != nil {
+			return nil, err
+		}
+		opts.Metrics = &normalized
+	}
 	if opts.Workers < 0 || opts.MaxFileBytes < 0 || opts.MaxTreeSize < 0 {
 		return nil, errors.New("workers, max file bytes, and max tree size must not be negative")
 	}
@@ -120,6 +129,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		if exceeded {
 			report := newReport(abs)
+			if opts.Metrics != nil {
+				report.SchemaVersion = profile.MetricsSchemaVersion
+				report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
+				report.Metrics.Status = "skipped"
+				report.Metrics.Skipped = append(report.Metrics.Skipped, profile.MetricSkip{Reason: "tree_size_limit"})
+			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
 			return report, nil
 		}
@@ -262,6 +277,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	var metrics *metricsAccumulator
+	if opts.Metrics != nil {
+		report.SchemaVersion = profile.MetricsSchemaVersion
+		report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
+		metrics = newMetricsAccumulator(report.Metrics)
+	}
 	languages := make(map[string]*profile.Language)
 	type findingKey struct{ kind, name, root, detector string }
 	findings := make(map[findingKey]*profile.Finding)
@@ -269,6 +290,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if metrics != nil {
+			metrics.add(value)
+		}
 		if value.strategy != "" && opts.IncludeStrategies {
 			report.Strategies[value.path] = value.strategy
 		}
@@ -321,6 +345,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	if metrics != nil {
+		metrics.finish()
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {
@@ -380,13 +407,21 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
 	value := result{path: item.path}
+	if opts.Metrics != nil {
+		value.metrics = &profile.FileMetrics{Path: item.path, Status: "skipped", Reason: "outside_scope"}
+	}
 	vendored := overrideBool(item.attrs.vendored, enry.IsVendor(item.path))
 	if vendored && !(item.attrs.vendored == nil && isCIHookPath(item.path)) {
 		value.skipped = true
-		return value, nil
+		if opts.Metrics == nil || opts.Metrics.Scope != "text" {
+			return value, nil
+		}
 	}
 	if opts.MaxFileBytes > 0 && item.size > opts.MaxFileBytes {
 		value.skipped = true
+		if value.metrics != nil {
+			value.metrics.Reason = "file_too_large"
+		}
 		value.warnings = []profile.Warning{{Path: item.path, Code: "file_too_large", Message: fmt.Sprintf("file exceeds %d byte limit", opts.MaxFileBytes)}}
 		return value, nil
 	}
@@ -416,6 +451,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	}
 	if tooLarge {
 		value.skipped = true
+		if value.metrics != nil {
+			value.metrics.Reason = "file_too_large"
+		}
 		value.warnings = []profile.Warning{{Path: item.path, Code: "file_too_large", Message: fmt.Sprintf("file exceeds %d byte limit", opts.MaxFileBytes)}}
 		return value, nil
 	}
@@ -426,6 +464,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	// LazyBlob's explicit language override bypasses Linguist.detect's binary
 	// and empty-file checks. Preserve that behavior for attributed content.
 	if isBinaryContent(classContent) && (!item.attrs.languageSet || item.attrs.language == "") {
+		if value.metrics != nil {
+			value.metrics.Reason = "binary"
+		}
 		value.skipped = true
 		return value, nil
 	}
@@ -444,6 +485,14 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 		if value.language == "" {
 			value.language = language
 		}
+	}
+	if opts.Metrics != nil {
+		if err := countFileMetrics(ctx, root, item, opts, &value, language, content, actualSize, detectable && language != ""); err != nil {
+			return result{}, err
+		}
+	}
+	if value.skipped {
+		return value, nil
 	}
 	file := profile.File{Path: item.path, Size: value.size, Content: content, Language: language, Included: detectable && language != ""}
 	for _, detector := range opts.Detectors {

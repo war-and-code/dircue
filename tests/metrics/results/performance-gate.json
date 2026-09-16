@@ -1,0 +1,51 @@
+{
+  "schema_version": "1.0.0",
+  "candidate_commit": "bf315bb5fb58e7a45ba7cd66451c08590770de7b",
+  "candidate_sha256": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
+  "baseline_commit": "c3444a4e899678c798bccdbaec7f87de4c3d7bbb",
+  "checks": [
+    {
+      "name": "empty",
+      "legacy_json_equal": true,
+      "candidate_to_baseline_p95_ratio": 1.0482453019196025,
+      "within_10_percent_envelope": true,
+      "samples_per_command": 20
+    },
+    {
+      "name": "tiny",
+      "legacy_json_equal": true,
+      "candidate_to_baseline_p95_ratio": 1.0730066255780122,
+      "within_10_percent_envelope": true,
+      "samples_per_command": 20
+    },
+    {
+      "name": "spring-framework",
+      "legacy_json_equal": true,
+      "candidate_to_baseline_p95_ratio": 1.0494601969143798,
+      "within_10_percent_envelope": true,
+      "samples_per_command": 20
+    },
+    {
+      "name": "roslyn",
+      "legacy_json_equal": true,
+      "candidate_to_baseline_p95_ratio": 0.9370151379502735,
+      "within_10_percent_envelope": true,
+      "samples_per_command": 20
+    },
+    {
+      "name": "aspnetcore",
+      "legacy_json_equal": true,
+      "candidate_to_baseline_p95_ratio": 0.9967553653573604,
+      "within_10_percent_envelope": true,
+      "samples_per_command": 20
+    }
+  ],
+  "result": "pass",
+  "limitations": [
+    "Same macOS arm64 desktop; no claim about other hosts or all repositories.",
+    "Three warmups and 20 alternating process samples per command; warm filesystem cache.",
+    "The 10% p95 envelope is a regression check, not a proof of identical cost.",
+    "Counter reports are partial for unsupported grammars/encodings.",
+    "Selected-source dircue metrics takes additional classification/coverage work and is slower than standalone scc in this measurement."
+  ]
+}
