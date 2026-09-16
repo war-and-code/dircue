@@ -230,7 +230,7 @@ uv can also install a compatible wheel from a local file or a GitHub Release URL
 
 Note that this project was renamed from **auragaze** to **dircue** before public release. Archived benchmark and validation records retain the former name, original source revisions, and executable hashes. They describe the pre-rename candidate; the rename validation is recorded separately in [the rename notes](docs/RENAME.md).
 
-The final candidate matched Linguist 9.7.0 language totals and file breakdowns on all 11 pinned public projects. In the recorded Linux arm64 Docker run, median execution was **5.38–14.66× faster**: **9.99×** for Spring Framework, **7.05×** for Roslyn, and **8.21×** for ASP.NET Core. These are measurements of those checkouts and commands, not a guarantee for every repository or host. Peak memory was higher on several large projects; Roslyn used about 345 MiB versus Linguist's 223 MiB.
+The 0.1 release candidate matched Linguist 9.7.0 language totals and file breakdowns on all 11 pinned public projects. In the recorded Linux arm64 Docker run, median execution was **5.38–14.66× faster**: **9.99×** for Spring Framework, **7.05×** for Roslyn, and **8.21×** for ASP.NET Core. These are measurements of those checkouts and commands, not a guarantee for every repository or host. Peak memory was higher on several large projects; Roslyn used about 345 MiB versus Linguist's 223 MiB.
 
 See the [final public-project evidence](tests/performance/results/final/README.md), [final scale evidence](tests/stress/results/final/README.md), and [release validation](tests/release/results/final/README.md) for raw measurements, source identities, checks and limitations. Historical RC1 results remain available separately.
 

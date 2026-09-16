@@ -1,0 +1,27 @@
+File: codemetrics-eager.test
+Type: alloc_space
+Time: 2026-09-16 12:52:12 EDT
+Showing nodes accounting for 71.10MB, 98.92% of 71.88MB total
+Dropped 58 nodes (cum <= 0.36MB)
+      flat  flat%   sum%        cum   cum%
+   58.45MB 81.32% 81.32%    58.45MB 81.32%  github.com/boyter/scc/v4/processor.(*Trie).Insert (inline)
+    5.28MB  7.34% 88.67%     5.28MB  7.34%  github.com/boyter/scc/v4/processor.(*Trie).InsertClose (inline)
+    4.77MB  6.63% 95.30%    68.69MB 95.56%  github.com/boyter/scc/v4/processor.processLanguageFeature
+    1.14MB  1.59% 96.89%     1.14MB  1.59%  runtime/pprof.StartCPUProfile
+    0.63MB  0.88% 97.77%     1.14MB  1.58%  compress/flate.NewWriter (inline)
+    0.38MB  0.53% 98.30%     0.38MB  0.53%  runtime.mallocgc
+    0.35MB  0.49% 98.79%     0.50MB   0.7%  compress/flate.(*compressor).init
+    0.09MB  0.12% 98.92%    68.78MB 95.69%  github.com/boyter/scc/v4/processor.ProcessConstants
+         0     0% 98.92%     1.14MB  1.58%  compress/gzip.(*Writer).Write
+         0     0% 98.92%    68.78MB 95.69%  dircue/pkg/codemetrics.Count
+         0     0% 98.92%    68.78MB 95.69%  dircue/pkg/codemetrics.TestCountKnownResults
+         0     0% 98.92%     1.21MB  1.68%  main.main
+         0     0% 98.92%     1.39MB  1.94%  runtime.main
+         0     0% 98.92%     1.20MB  1.67%  runtime/pprof.(*profileBuilder).build
+         0     0% 98.92%     1.26MB  1.76%  runtime/pprof.profileWriter
+         0     0% 98.92%    68.78MB 95.69%  sync.(*Once).Do (inline)
+         0     0% 98.92%    68.78MB 95.69%  sync.(*Once).doSlow
+         0     0% 98.92%     1.21MB  1.68%  testing.(*M).Run
+         0     0% 98.92%     1.21MB  1.68%  testing.(*M).before
+         0     0% 98.92%    68.84MB 95.77%  testing.tRunner
+         0     0% 98.92%     1.14MB  1.59%  testing/internal/testdeps.TestDeps.StartCPUProfile
