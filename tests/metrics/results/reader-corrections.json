@@ -2,7 +2,7 @@
   "schema_version": "1.0.0",
   "binary_sha256": {
     "before": "e4d2dd7e15f159c210f4e1eb565c0c2566095ba39b95da0262cb3f6823b61f48",
-    "candidate": "ec4bf5280cd966c32a69394d0753b13d6f5fd028b480a80d3b66e0c40a76ae48",
+    "candidate": "de0208f5626b2bc86850d3615e52dff28653d8b5b9f26b5e36bdc00a02679187",
     "scc": "b664af4efae07198ac99b63c90d0c9e119923518a1c02c9377a5a81f444122de"
   },
   "projects": [

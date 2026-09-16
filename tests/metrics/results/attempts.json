@@ -1,0 +1,45 @@
+{
+  "schema_version": "1.0.0",
+  "retention": "Original receipts remain under ignored .cache/metrics-v020. Only the final audited measurements support release performance conclusions.",
+  "attempts": [
+    {
+      "name": "eager integration",
+      "disposition": "Diagnostic baseline for grammar initialization; superseded by lazy loading and Git reader fixes.",
+      "receipts": [
+        "performance-startup.json",
+        "performance-selected.json",
+        "performance-corpus.json"
+      ]
+    },
+    {
+      "name": "first candidate timing",
+      "disposition": "Corpus run interrupted after unrelated local build interference; partial results excluded. Completed startup/selected measurements also superseded by later runtime fixes.",
+      "receipts": [
+        "contaminated-performance-corpus.json",
+        "contaminated-corpus-run.json",
+        "final-performance-startup.json",
+        "final-performance-selected.json"
+      ]
+    },
+    {
+      "name": "first descriptor fix",
+      "disposition": "Corpus run paused for an additional linked-worktree metadata descriptor fix; ordinary-repository samples remain diagnostic only.",
+      "receipts": [
+        "rc-performance-corpus-before-commondir.json",
+        "runtime-freeze-pause.json",
+        "rc-performance-startup.json",
+        "rc-performance-selected.json"
+      ]
+    },
+    {
+      "name": "audited final runtime",
+      "disposition": "Accepted: all 20-sample comparisons complete after ownership audit and Windows CI passed.",
+      "source_commit": "bf315bb5fb58e7a45ba7cd66451c08590770de7b",
+      "receipts": [
+        "audited-performance-startup.json",
+        "audited-performance-selected.json",
+        "audited-performance-corpus.json"
+      ]
+    }
+  ]
+}

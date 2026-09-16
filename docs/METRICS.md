@@ -35,6 +35,10 @@ selection.
 dircue analyze metrics --metrics-scope text --files --json /exported-directory
 ```
 
+Counting requires valid UTF-8 content; dircue does not transcode other encodings.
+A file can contribute to language statistics but remain uncounted with
+`unsupported_encoding`.
+
 Metrics require complete file contents. The default `--metrics-max-file-bytes`
 is 16 MiB (16,777,216 bytes). The permitted range is 1 through 268,435,456 bytes
 (256 MiB). Larger files retain their ordinary language-statistics treatment but

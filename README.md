@@ -79,7 +79,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
 | Additional profiling | Language metadata | Language metadata | Manifest, framework, project-root, and CI/container observations; optional scc code metrics |
 
-The recorded candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
+The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
 [Verification section](#verification) here links the measurements, separate Enry comparison, and their limitations.
 
@@ -227,6 +227,8 @@ uv can also install a compatible wheel from a local file or a GitHub Release URL
 | uv cannot find dircue on PyPI | Public packages are not yet available. Use a local compatible wheel as described in the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
+
+The 0.2 metrics validation compared 910 committed files from Spring Framework, Roslyn, and ASP.NET Core against native Git bytes and standalone scc. Fixtures cover Java, C#, scope overrides, and a 1,100 MiB XML file. All five [candidate CI jobs](https://github.com/war-and-code/dircue/actions/runs/35128787043) passed, including Linux, macOS, Windows, and both conformance suites. See the [metrics validation](tests/metrics/results/README.md) for counters, performance measurements, source identities, and limitations.
 
 Note that this project was renamed from **auragaze** to **dircue** before public release. Archived benchmark and validation records retain the former name, original source revisions, and executable hashes. They describe the pre-rename candidate; the rename validation is recorded separately in [the rename notes](docs/RENAME.md).
 
