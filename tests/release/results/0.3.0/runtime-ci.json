@@ -1,0 +1,66 @@
+{
+  "source_head": "2501e826a9201e1fb2d5285d58b5177282b1469c",
+  "recorded_at": "2026-09-16T20:36:02.811674+00:00",
+  "success": true,
+  "jobs_passed": 7,
+  "runs": [
+    {
+      "run_id": "35146919317",
+      "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317",
+      "head_sha": "2501e826a9201e1fb2d5285d58b5177282b1469c",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "linguist-conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317/job/104965245973"
+        },
+        {
+          "name": "metrics-conformance",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317/job/104965246194"
+        },
+        {
+          "name": "test (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317/job/104965246276"
+        },
+        {
+          "name": "test (windows-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317/job/104965246359"
+        },
+        {
+          "name": "test (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919317/job/104965246491"
+        }
+      ]
+    },
+    {
+      "run_id": "35146919279",
+      "url": "https://github.com/war-and-code/dircue/actions/runs/35146919279",
+      "head_sha": "2501e826a9201e1fb2d5285d58b5177282b1469c",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "name": "prototype (ubuntu-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919279/job/104965246223"
+        },
+        {
+          "name": "prototype (macos-latest)",
+          "status": "completed",
+          "conclusion": "success",
+          "url": "https://github.com/war-and-code/dircue/actions/runs/35146919279/job/104965246566"
+        }
+      ]
+    }
+  ]
+}
