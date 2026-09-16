@@ -9,6 +9,8 @@ import tempfile
 
 from run import COUNTERS, counted, execute, metrics
 
+REGRESSION_PATH = 'src/Compilers/VisualBasic/Test/IOperation/IOperation/IOperationTests_IForEachLoopStatement.vb'
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -23,23 +25,33 @@ def main():
     binary, scc = str(args.candidate.resolve()), str(args.scc.resolve())
     receipt = {'schema_version': '1.0.0', 'candidate_sha256': hashlib.sha256(Path(binary).read_bytes()).hexdigest(),
                'scc_sha256': hashlib.sha256(Path(scc).read_bytes()).hexdigest(),
-               'scc_version': execute([scc, '--version']).strip(), 'sample_order': 'SHA-256 of relative path', 'projects': []}
+               'scc_version': execute([scc, '--version']).strip(), 'sample_order': 'SHA-256 of relative path; additionally every counted Java/C# file larger than 128 KiB and the VB regression', 'projects': []}
     for argument in args.project:
         name, folder = argument.split('=', 1)
         root = Path(folder).resolve()
         commit = execute(['git', '-C', str(root), 'rev-parse', 'HEAD']).strip()
         report = metrics(binary, root, '--source', 'git')
+        changed = [row['path'] for row in report['files'] if row.get('reason') == 'input_changed']
+        assert not changed, f'{name}: immutable Git inputs unexpectedly changed: {changed}'
         available = [row for row in counted(report).values() if row['grammar'] in ('Java', 'C#')]
         available.sort(key=lambda row: hashlib.sha256(row['path'].encode()).digest())
         selected = available[:args.sample]
         assert selected, name
+        selected_paths = {row['path'] for row in selected}
+        large = [row for row in available if row['counts']['bytes'] > 128*1024]
+        selected.extend(row for row in large if row['path'] not in selected_paths)
+        regressions = []
+        if any(row['path'] == REGRESSION_PATH for row in report['files']):
+            assert REGRESSION_PATH in counted(report), f'{name}: regression file was not counted'
+            selected.append(counted(report)[REGRESSION_PATH])
+            regressions.append(REGRESSION_PATH)
         project = {'name': name, 'commit': commit, 'tree': report['tree'], 'totals': report['totals'],
-                   'status': report['status'], 'skipped': report['skipped'], 'available_java_csharp_files': len(available), 'files': []}
+                   'status': report['status'], 'skipped': report['skipped'], 'regression_paths': regressions, 'large_java_csharp_files': len(large), 'available_java_csharp_files': len(available), 'files': []}
         with tempfile.TemporaryDirectory(prefix='dircue-scc-corpus-') as directory:
             snapshots = {}
             for index, row in enumerate(selected):
                 content = subprocess.check_output(['git', '-C', str(root), 'show', f'{commit}:{row["path"]}'])
-                suffix = '.java' if row['grammar'] == 'Java' else '.cs'
+                suffix = {'Java': '.java', 'C#': '.cs', 'Visual Basic': '.vb'}[row['grammar']]
                 target = Path(directory)/f'sample-{index}{suffix}'
                 target.write_bytes(content)
                 snapshots[target.name] = (row, hashlib.sha256(content).hexdigest())

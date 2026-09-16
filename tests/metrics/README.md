@@ -51,8 +51,10 @@ python3 tests/metrics/corpus.py \
 ```
 
 This scans each committed tree, selects 200 counted Java or C# files by the hash
-of their path, extracts the same committed bytes into a temporary directory, and
-compares standalone counters. Receipts record source commits, tree IDs, file
+of their path, adds every counted Java/C# file larger than 128 KiB, extracts the same committed bytes into a temporary directory, and
+compares standalone counters. It also checks the Roslyn Visual Basic file that
+exposed an upstream Git delta-reader corruption bug, and rejects unexpected
+`input_changed` skips from immutable Git trees. Receipts record source commits, tree IDs, file
 hashes, binary hashes, and matching counts.
 
 ## Language-only cost
@@ -82,3 +84,23 @@ Peak RSS comes from that launcher's child measurements, normalized to bytes on
 macOS and Linux. Reported p99 and higher values are observed order statistics;
 20 samples cannot estimate rare tails. The harness does not flush filesystem
 caches, change power settings, or establish a universal performance guarantee.
+
+To compare the optional metrics command with standalone scc on the same selected
+synthetic source files:
+
+```sh
+python3 tests/metrics/compare_selected.py \
+  --candidate .cache/metrics-v020/dircue-candidate \
+  --scc .cache/metrics-v020/scc \
+  --output .cache/metrics-v020/performance-selected.json
+```
+
+This verifies exact per-file counters before timing. Both tools count the same
+files, but dircue also classifies them and reports coverage. These small fixtures
+are useful for initialization measurements, not a general ranking of the tools.
+
+`reader_corrections.py` compares per-file reports from the pre-fix and fixed Git
+readers, then verifies each changed counter against standalone scc using native
+`git show` bytes. Pass `--before`, `--candidate`, `--scc`, repeated `--project
+NAME=PATH`, and `--output` arguments. The old executable is needed to reproduce
+which counters the reader fix corrected.
