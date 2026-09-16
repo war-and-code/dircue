@@ -1,3 +1,5 @@
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
+
 package enry
 
 import (
@@ -565,5 +567,3 @@ func GetLanguageInfoByID(id int) (data.LanguageInfo, error) {
 
 	return data.LanguageInfo{}, fmt.Errorf("language %d not found", id)
 }
-
-// Modified for dircue; see PROVENANCE.json in this maintained fork.

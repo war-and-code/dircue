@@ -1,6 +1,12 @@
 --- a/plumbing/format/packfile/patch_delta.go
 +++ b/plumbing/format/packfile/patch_delta.go
-@@ -142,7 +142,11 @@
+@@ -1,3 +1,5 @@
++// Modified for dircue: reset streaming delta offsets and close reopened base readers.
++
+ package packfile
+ 
+ import (
+@@ -142,7 +144,11 @@
  			_ = dstWr.CloseWithError(ErrInvalidDelta)
  			return
  		}
@@ -13,7 +19,7 @@
  
  		baseBuf := bufio.NewReader(baseRd)
  		basePos := uint(0)
-@@ -186,6 +190,7 @@
+@@ -186,6 +192,7 @@
  						return
  					}
  					baseBuf.Reset(baseRd)
@@ -21,12 +27,6 @@
  					discard = offset
  				}
  				for discard > math.MaxInt32 {
-@@ -572,3 +577,5 @@
- func sumOverflows(a, b uint) bool {
- 	return a+b < a
- }
-+
-+// Modified for dircue: reset streaming delta offsets and close reopened base readers.
 --- /dev/null
 +++ b/plumbing/format/packfile/reader_delta_regression_test.go
 @@ -0,0 +1,119 @@
@@ -151,7 +151,13 @@
 +func (reader *trackedDeltaReader) Close() error { reader.closed <- reader.id; return nil }
 --- a/storage/filesystem/object.go
 +++ b/storage/filesystem/object.go
-@@ -203,6 +203,8 @@
+@@ -1,3 +1,5 @@
++// Modified for dircue: close loose object files after reading their size.
++
+ package filesystem
+ 
+ import (
+@@ -203,6 +205,8 @@
  
  		return 0, err
  	}
@@ -160,12 +166,6 @@
  
  	r, err := objfile.NewReader(f)
  	if err != nil {
-@@ -899,3 +901,5 @@
- func (s *ObjectStorage) DeleteOldObjectPackAndIndex(h plumbing.Hash, t time.Time) error {
- 	return s.dir.DeleteOldObjectPackAndIndex(h, t)
- }
-+
-+// Modified for dircue: close loose object files after reading their size.
 --- /dev/null
 +++ b/storage/filesystem/object_size_close_regression_test.go
 @@ -0,0 +1,120 @@
@@ -291,7 +291,13 @@
 +}
 --- a/repository.go
 +++ b/repository.go
-@@ -433,6 +433,8 @@
+@@ -1,3 +1,5 @@
++// Modified for dircue: close linked-worktree commondir files after reading.
++
+ package git
+ 
+ import (
+@@ -433,6 +435,8 @@
  	if err != nil {
  		return nil, err
  	}
@@ -300,12 +306,6 @@
  
  	b, err := io.ReadAll(f)
  	if err != nil {
-@@ -1904,3 +1906,5 @@
- 	})
- 	return
- }
-+
-+// Modified for dircue: close linked-worktree commondir files after reading.
 --- /dev/null
 +++ b/commondir_close_regression_test.go
 @@ -0,0 +1,102 @@
@@ -413,7 +413,13 @@
 +}
 --- a/storage/filesystem/dotgit/reader.go
 +++ b/storage/filesystem/dotgit/reader.go
-@@ -34,20 +34,24 @@
+@@ -1,3 +1,5 @@
++// Modified for dircue: close loose object files when reader initialization fails.
++
+ package dotgit
+ 
+ import (
+@@ -34,20 +36,24 @@
  	}
  	r, err := objfile.NewReader(f)
  	if err != nil {
@@ -438,12 +444,6 @@
  		return nil, objfile.ErrHeader
  	}
  	return ioutil.NewReadCloserWithCloser(r, f.Close), nil
-@@ -77,3 +81,5 @@
- 		sz:  size,
- 	}
- }
-+
-+// Modified for dircue: close loose object files when reader initialization fails.
 --- /dev/null
 +++ b/storage/filesystem/dotgit/reader_close_regression_test.go
 @@ -0,0 +1,130 @@
@@ -579,7 +579,13 @@
 +}
 --- a/plumbing/format/packfile/fsobject.go
 +++ b/plumbing/format/packfile/fsobject.go
-@@ -70,6 +70,7 @@
+@@ -1,3 +1,5 @@
++// Modified for dircue: close packfiles when large-object header reads fail.
++
+ package packfile
+ 
+ import (
+@@ -70,6 +72,7 @@
  		// We have a big object
  		h, err := p.objectHeaderAtOffset(o.offset)
  		if err != nil {
@@ -587,12 +593,6 @@
  			return nil, err
  		}
  
-@@ -123,3 +124,5 @@
- func (o *FSObject) Writer() (io.WriteCloser, error) {
- 	return nil, nil
- }
-+
-+// Modified for dircue: close packfiles when large-object header reads fail.
 --- /dev/null
 +++ b/plumbing/format/packfile/fsobject_close_regression_test.go
 @@ -0,0 +1,114 @@

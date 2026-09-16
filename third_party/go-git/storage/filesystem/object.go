@@ -1,3 +1,5 @@
+// Modified for dircue: close loose object files after reading their size.
+
 package filesystem
 
 import (
@@ -901,5 +903,3 @@ func (s *ObjectStorage) ObjectPacks() ([]plumbing.Hash, error) {
 func (s *ObjectStorage) DeleteOldObjectPackAndIndex(h plumbing.Hash, t time.Time) error {
 	return s.dir.DeleteOldObjectPackAndIndex(h, t)
 }
-
-// Modified for dircue: close loose object files after reading their size.

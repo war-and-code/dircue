@@ -1,3 +1,5 @@
+// Modified for dircue: close packfiles when large-object header reads fail.
+
 package packfile
 
 import (
@@ -124,5 +126,3 @@ func (o *FSObject) Type() plumbing.ObjectType {
 func (o *FSObject) Writer() (io.WriteCloser, error) {
 	return nil, nil
 }
-
-// Modified for dircue: close packfiles when large-object header reads fail.

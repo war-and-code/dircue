@@ -1,3 +1,5 @@
+// Modified for dircue: close loose object files when reader initialization fails.
+
 package dotgit
 
 import (
@@ -81,5 +83,3 @@ func NewEncodedObject(dir *DotGit, h plumbing.Hash, t plumbing.ObjectType, size 
 		sz:  size,
 	}
 }
-
-// Modified for dircue: close loose object files when reader initialization fails.

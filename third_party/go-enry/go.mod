@@ -1,3 +1,5 @@
+// Modified for dircue; see PROVENANCE.json in this maintained fork.
+
 module github.com/go-enry/go-enry/v2
 
 go 1.26.6
@@ -7,5 +9,3 @@ require (
 	github.com/stretchr/testify v1.8.1
 	gopkg.in/yaml.v2 v2.2.8
 )
-
-// Modified for dircue; see PROVENANCE.json in this maintained fork.

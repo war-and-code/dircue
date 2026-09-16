@@ -1,3 +1,5 @@
+// Modified for dircue: close linked-worktree commondir files after reading.
+
 package git
 
 import (
@@ -1906,5 +1908,3 @@ func expandPartialHash(st storer.EncodedObjectStorer, prefix []byte) (hashes []p
 	})
 	return
 }
-
-// Modified for dircue: close linked-worktree commondir files after reading.
