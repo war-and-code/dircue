@@ -4,3 +4,6 @@
 internal/cli/mimedata/ext_mime.db -text -whitespace
 # Context whitespace is significant in the reproducible compatibility patch.
 third_party/patches/*.patch text eol=lf -whitespace
+
+# Preserve maintained go-git source bytes, including upstream CRLF files.
+third_party/go-git/** -text -whitespace
