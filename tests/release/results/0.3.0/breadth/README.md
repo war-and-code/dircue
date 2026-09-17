@@ -1,9 +1,12 @@
 # Expanded 0.3.0 candidate validation
 
-The expanded candidate was built from `0f77a0e0d251f516cdf801beea1889461fb0b6fe`
-on `codex/v0.3.0`. The subsequent validation-record commit does not change the
-runtime or package inputs. These records supersede the earlier two-language
-candidate for release preparation; neither candidate is a published release.
+The expanded candidate recorded here was built from
+`0f77a0e0d251f516cdf801beea1889461fb0b6fe` on `codex/v0.3.0`. These records
+supersede the earlier two-language candidate for release preparation; neither
+candidate is a published release. The subsequent [staged-analysis checkpoint](../staged/README.md)
+adds documentation, tests, and workflow measurements without changing the runtime.
+Its refreshed core packages include the updated README; the artifacts below
+retain their original provenance.
 
 ## Coverage and correctness
 

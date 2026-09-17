@@ -148,6 +148,8 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 `analyze structure` sends selected source in 20 supported languages to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies syntax observations and BCA metrics. Java and C# also receive custom declaration counts; other languages expose syntax-node and recovery counts alongside BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [capability matrix](docs/CAPABILITIES.md) for language and ecosystem coverage, and the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
 
+For staged workflows, start with `analyze all --projects --source directory --json`, then choose additional work from the evidence and coverage. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes an executable report consumer and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
+
 Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
 | Requested output | Schema version |
