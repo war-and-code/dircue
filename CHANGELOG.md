@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.3.0 (unreleased candidate)
+## 0.3.0 (2026-09-17)
 
 - Add opt-in project mapping through `analyze projects` and `analyze all --projects`, including .NET/Maven declarations, conservative Gradle observations, and broader manifest discovery.
 - Report declared project and solution relationships, reference target presence, unevaluated conditions, configuration candidates, and ambiguous or unassigned directory attribution.
