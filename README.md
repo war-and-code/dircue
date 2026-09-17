@@ -4,7 +4,7 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-The 0.3.0 release candidate adds project mapping and declared build requirements, content composition, and optional structural analysis across 20 languages. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+Version 0.3.0 adds project mapping and declared build requirements, content composition, and optional structural analysis across 20 languages. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze all --json /path/to/checkout
@@ -13,7 +13,7 @@ dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
 
-Public downloads and PyPI publication are not available yet. Authenticated repository users can obtain existing GitHub Release assets; build this checkout or prepare local artifacts to try the 0.3.0 candidate. A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
+The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [0.3.0 release archives and wheels](https://github.com/war-and-code/dircue/releases/tag/v0.3.0). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
 
 ## Quick start
 
