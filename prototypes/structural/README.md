@@ -2,8 +2,12 @@
 
 This experiment tests whether dircue can offer optional syntax-based observations
 and [BCA](https://github.com/dekobon/big-code-analysis) metrics without parsing
-each file twice. It targets Java and C# first. It is separate from the released
-`dircue` CLI and does not change its commands, dependencies, or JSON schemas.
+each file twice. The original experiment targeted Java and C# and ran separately
+from the released 0.2.0 CLI. The worker source now also serves the 0.3.0 production
+adapter and supports additional languages; the standalone prototype driver and
+historical receipts below retain their Java/C# scope. See the current
+[structural guide](../../docs/STRUCTURE.md) and
+[breadth validation](../../tests/structural_breadth/README.md).
 The [production isolation check](tests/results/production-isolation.json) records
 a byte-identical rebuild of the v0.2.0 Go binary and passing root tests.
 

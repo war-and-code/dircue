@@ -104,7 +104,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		}
 		if mode == "all" {
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
-			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional Java/C# structural analysis with the specified worker")
+			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
 			command.Flags().BoolVar(&opts.metrics, "metrics", false, "Count code, comment, and blank lines and estimate complexity with scc")
 		}
 		analyze.AddCommand(command)

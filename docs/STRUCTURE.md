@@ -1,7 +1,7 @@
 # Optional structural analysis
 
 Structural analysis extracts syntax observations and aggregate BCA metrics from
-Java and C# source. It is an explicit addition to dircue's ordinary language and
+20 source languages through pinned BCA grammars. It is an explicit addition to dircue's ordinary language and
 line-counting paths. Neither the existing commands nor the core Go executable
 need a native parser installation.
 
@@ -42,11 +42,19 @@ does not.
 ## What the result means
 
 Each eligible file is parsed once. The same BCA-owned Tree-sitter tree supplies
-both declaration counts and BCA metrics. The worker reports classes, interfaces,
+both syntax observations and BCA metrics. Every enabled language reports syntax
+node and recovery counts. Java and C# additionally report classes, interfaces,
 records, structs, enums, methods, constructors, properties, imports, lambdas,
-local functions, and syntax recovery counts. These are syntax observations;
+and local functions. Those custom declaration fields are absent for other
+languages; absence is not a count of zero. These are syntax observations;
 there is no compiler name resolution, type checking, project evaluation, or
 cross-file call graph.
+
+`supported_languages` lists the pinned grammar and available observation fields
+for each production language. `observation_files` gives the analyzed-file coverage
+for each aggregate observation key. Consumers can distinguish measured zeroes
+from unavailable declarations. BCA metric groups differ by language and are
+preserved as supplied by upstream.
 
 The Go adapter preserves only deterministic results. Parser timings remain in
 the standalone experimental worker protocol for benchmark use but do not enter
@@ -67,8 +75,32 @@ failure.
 The current C# grammar has known limitations on parts of the Roslyn corpus,
 including modern syntax. The prototype's
 [parser limitation report](../prototypes/structural/tests/results/parser-limitations-macos-arm64.json)
-records those examples. Java and C# are the only enabled grammars. XML logs and
-other data are not admitted merely because they are text.
+records those examples. XML logs and other data are not admitted merely because
+they are text. Parser acceptance does not establish support for every language
+version or dialect. See the [capability matrix](CAPABILITIES.md) for the distinction
+between language detection, counting, parsing, and project mapping.
+
+## Enabled languages
+
+The production adapter accepts C, C++, C#, Elixir, Go, Groovy, Java, JavaScript
+(including JSX), Kotlin, Lua, Objective-C, Perl, PHP, Python, Ruby, Rust, Shell,
+Tcl, TSX, and TypeScript. Shell uses BCA's Bash grammar; it is not a promise to
+parse every shell dialect. TSX has its own grammar alongside TypeScript.
+
+BCA supplies the metric groups for each enabled parser. Their definitions and
+applicability vary by language; an upstream zero or null is not evidence that
+an equivalent language feature was measured. Dircue preserves these per-file
+metrics instead of presenting one cross-language quality score.
+
+The [breadth harness](../tests/structural_breadth/README.md) covers every enabled
+language with small source fixtures, direct-worker comparison, and deterministic
+combined reports. Java and C# also retain the larger real-project corpus checks.
+That deeper corpus validation is not implied for all other languages.
+
+BCA's F5 iRules parser is available in the standalone worker, but the current
+Enry catalog has no F5 iRules language identity. The production scanner therefore
+does not claim iRules coverage. It does not silently treat arbitrary Tcl files
+as iRules. Firefox-specific C++/JavaScript parser variants are not enabled.
 
 ## Resource boundaries
 
@@ -135,8 +167,7 @@ Cargo installation, grammar cache, or writeable source directory.
 | --- | --- | --- |
 | big-code-analysis | 2.2.0 | MPL-2.0 |
 | Tree-sitter | 0.26.12 | MIT |
-| tree-sitter-java | 0.23.5 | MIT |
-| tree-sitter-c-sharp | 0.23.5 | MIT |
+| Language grammars and BCA helper grammars | Pinned in Cargo.lock | See each dependency's included license and notices |
 
 The packaging script verifies each dependency's original crate archive against
 Cargo.lock, and includes every resolved dependency's complete crate source
@@ -146,7 +177,8 @@ contains the worker's source, Cargo manifest and lockfile, a third-party notice,
 provenance, and SHA-256 checksums. Preserve those files when redistributing the
 add-on. Its dependency licenses remain distinct from dircue's MIT license.
 
-BCA and the grammar versions form a tested set. The Go adapter rejects a worker
+The [dependency inventory](../prototypes/structural/DEPENDENCIES.md) lists the
+enabled grammar versions. BCA and the grammar versions form a tested set. The Go adapter rejects a worker
 claiming another BCA, runtime, or grammar version. Upgrade them together, rerun
 real-worker tests and syntax fixtures, and compare corpus reports. A grammar
 with the same language name is not automatically compatible with BCA's metric

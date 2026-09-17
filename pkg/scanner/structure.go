@@ -11,7 +11,7 @@ import (
 )
 
 func newStructureReport(opts Options, snapshot *gitSnapshot) *profile.StructureReport {
-	r := &profile.StructureReport{Engine: "big-code-analysis", EngineVersion: "2.2.0", Status: "complete", Scope: "source", Source: "directory", MaxFileBytes: opts.Structure.MaxFileBytes(), Omissions: map[string]int64{}, Observations: map[string]uint64{}}
+	r := &profile.StructureReport{Engine: "big-code-analysis", EngineVersion: "2.2.0", Status: "complete", Scope: "source", Source: "directory", MaxFileBytes: opts.Structure.MaxFileBytes(), Omissions: map[string]int64{}, Observations: map[string]uint64{}, SupportedLanguages: structure.Capabilities(), ObservationFiles: map[string]int64{}}
 	if snapshot != nil {
 		r.Source = "git"
 		r.Tree = snapshot.tree.Hash.String()
@@ -29,7 +29,7 @@ func countStructure(ctx context.Context, root *os.Root, item job, opts Options, 
 		f.Reason = "outside_scope"
 		return nil
 	}
-	if language != "Java" && language != "C#" {
+	if !structure.Supports(language) {
 		f.Reason = "unsupported_language"
 		return nil
 	}
@@ -103,6 +103,7 @@ func addStructure(r *profile.StructureReport, value result) {
 		}
 		for k, v := range f.Observations {
 			r.Observations[k] += v
+			r.ObservationFiles[k]++
 		}
 	}
 	if r.Files != nil {

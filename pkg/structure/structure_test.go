@@ -14,16 +14,13 @@ import (
 
 func validResponse(path, language string, n int) map[string]any {
 	observations := map[string]uint64{}
-	for _, key := range []string{"classes", "interfaces", "records", "structs", "enums", "methods", "constructors", "properties", "imports", "lambdas", "local_functions", "syntax_nodes", "error_nodes", "missing_nodes"} {
+	for _, key := range capabilities[language].Observations {
 		observations[key] = 0
 	}
 	observations["syntax_nodes"] = 1
-	grammar := "tree-sitter-java@0.23.5"
-	if language == "C#" {
-		grammar = "tree-sitter-c-sharp@0.23.5"
-	}
+	grammar := capabilities[language].Grammar
 	metrics := map[string]any{}
-	for _, group := range metricGroups {
+	for _, group := range capabilities[language].MetricGroups {
 		metrics[group] = map[string]any{"value": 0}
 	}
 	return map[string]any{"path": path, "language": language, "status": "complete", "source_bytes": n, "parse_count": 1, "syntax_errors": false, "observations": observations, "metrics": metrics, "provenance": map[string]string{"bca": "big-code-analysis@2.2.0", "tree_sitter": "0.26.12", "grammar": grammar}, "timings_ns": map[string]int{"parse": 123}}
@@ -231,5 +228,100 @@ func TestNumericMetricsBoundary(t *testing.T) {
 	}
 	if numericMetric(deep, 0) {
 		t.Fatal("excessive metric nesting accepted")
+	}
+}
+
+func TestCapabilityContract(t *testing.T) {
+	listed := Capabilities()
+	if len(listed) != 20 {
+		t.Fatalf("supported language count: %d", len(listed))
+	}
+	for i, c := range listed {
+		if !Supports(c.Language) || (i > 0 && listed[i-1].Language >= c.Language) {
+			t.Fatalf("unstable or unsupported capability: %+v", c)
+		}
+		response := validResponse("fixture", c.Language, 0)
+		data, _ := json.Marshal(response)
+		file, err := decode(data, File{Path: "fixture", Language: c.Language})
+		if err != nil || file.Provenance.Grammar != c.Grammar {
+			t.Fatalf("%s: %+v %v", c.Language, file, err)
+		}
+	}
+	for _, name := range []string{"Bash", "JSX", "Objective-C++", "F5 iRule", "COBOL", "Swift", "XML", ""} {
+		if Supports(name) {
+			t.Fatalf("unsupported or noncanonical language accepted: %s", name)
+		}
+	}
+	listed[0].Observations[0] = "modified"
+	if Capabilities()[0].Observations[0] == "modified" {
+		t.Fatal("caller mutated capabilities")
+	}
+}
+
+func TestExpandedObservationBoundary(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		change func(map[string]any)
+	}{
+		{"invented declaration", func(v map[string]any) { v["observations"].(map[string]uint64)["classes"] = 0 }},
+		{"missing health", func(v map[string]any) { delete(v["observations"].(map[string]uint64), "error_nodes") }},
+		{"wrong parser", func(v map[string]any) { v["provenance"].(map[string]string)["grammar"] = "tree-sitter-java@0.23.5" }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			v := validResponse("main.py", "Python", 0)
+			tc.change(v)
+			data, _ := json.Marshal(v)
+			if _, err := decode(data, File{Path: "main.py", Language: "Python"}); err == nil {
+				t.Fatal("invalid expanded-language contract accepted")
+			}
+		})
+	}
+	v := validResponse("main.py", "Python", 0)
+	v["status"] = "partial"
+	v["syntax_errors"] = true
+	v["observations"].(map[string]uint64)["error_nodes"] = 1
+	data, _ := json.Marshal(v)
+	file, err := decode(data, File{Path: "main.py", Language: "Python"})
+	if err != nil || file.Reason != "syntax_errors" || len(file.Observations) != 3 {
+		t.Fatalf("partial observation lost: %+v %v", file, err)
+	}
+}
+
+func TestRecoveredRootWithoutVisibleErrorNodes(t *testing.T) {
+	v := validResponse("Choice.kt", "Kotlin", 0)
+	v["status"] = "partial"
+	v["syntax_errors"] = true
+	data, _ := json.Marshal(v)
+	file, err := decode(data, File{Path: "Choice.kt", Language: "Kotlin"})
+	if err != nil || !file.SyntaxErrors || file.Reason != "syntax_errors" {
+		t.Fatalf("hidden recovery: %+v %v", file, err)
+	}
+}
+
+func TestLanguageMetricAvailability(t *testing.T) {
+	for _, tc := range []struct {
+		language string
+		missing  string
+		invented string
+	}{
+		{"Shell", "tokens", "npa"},
+		{"C", "cyclomatic", "wmc"},
+		{"Go", "npa", "wmc"},
+	} {
+		t.Run(tc.language, func(t *testing.T) {
+			v := validResponse("fixture", tc.language, 0)
+			metrics := v["metrics"].(map[string]any)
+			metrics[tc.invented] = map[string]any{"value": 0}
+			data, _ := json.Marshal(v)
+			if _, err := decode(data, File{Path: "fixture", Language: tc.language}); err == nil {
+				t.Fatal("unsupported metric synthesized as zero accepted")
+			}
+			delete(metrics, tc.invented)
+			delete(metrics, tc.missing)
+			data, _ = json.Marshal(v)
+			if _, err := decode(data, File{Path: "fixture", Language: tc.language}); err == nil {
+				t.Fatal("available metric missing accepted")
+			}
+		})
 	}
 }

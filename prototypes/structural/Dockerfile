@@ -14,7 +14,7 @@ RUN mkdir -p /notices/source && cp Cargo.lock /notices/Cargo.lock && \
         fi; \
       done; \
     done && \
-    cp /usr/local/cargo/registry/cache/*/big-code-analysis-2.2.0.crate /notices/source/
+    cp /usr/local/cargo/registry/cache/*/*.crate /notices/source/
 
 FROM debian:bookworm-slim@sha256:88200866dfff7ea7f5cbcb6ec7c8a701889efe6fe859fe64d6990e4b07ea4171
 COPY --from=build /build/target/release/dircue-structural-worker /usr/local/bin/dircue-structural-worker
