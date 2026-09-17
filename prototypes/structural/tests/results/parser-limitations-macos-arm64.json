@@ -1,0 +1,99 @@
+{
+  "worker_sha256": "ae858af5da4721bf1ded45fae35d56329b4b78741f12c169d3111d5d21890521",
+  "caveat": "Modified-source probes only diagnose parser sensitivity; they are not proposed preprocessing or benchmark inputs.",
+  "partial_files": [
+    {
+      "corpus": "roslyn",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "path": "src/Compilers/CSharp/Portable/Binder/Binder.ValueChecks.cs",
+      "bytes": 282839,
+      "sha256": "ee3f7687cfd2c5030957589e3aae630851c8bca51b6675766da887f61bb8dec8",
+      "original": {
+        "status": "partial",
+        "error_nodes": 2,
+        "missing_nodes": 0
+      },
+      "without_bom": {
+        "status": "partial",
+        "error_nodes": 2,
+        "missing_nodes": 0
+      },
+      "without_directive_lines": {
+        "status": "complete",
+        "error_nodes": 0,
+        "missing_nodes": 0
+      }
+    },
+    {
+      "corpus": "roslyn",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/TestFiles/IntegrationTests/CSharp8LanguageFeaturesIntegrationTest/RecursivePatterns/TestComponent.codegen.cs",
+      "bytes": 1273,
+      "sha256": "3dcb32422b1ea51f11f4de99611f6b7a650cf2c55392e325af0e6f2babd6a169",
+      "original": {
+        "status": "partial",
+        "error_nodes": 15,
+        "missing_nodes": 0
+      },
+      "without_bom": {
+        "status": "partial",
+        "error_nodes": 15,
+        "missing_nodes": 0
+      },
+      "without_directive_lines": {
+        "status": "complete",
+        "error_nodes": 0,
+        "missing_nodes": 0
+      }
+    },
+    {
+      "corpus": "roslyn",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "path": "src/Scripting/Core/ScriptBuilder.cs",
+      "bytes": 8388,
+      "sha256": "a6f0485b1c7724f39cb31f290e65fa538fbc94f3154beb2f9e6852a96dbde5eb",
+      "original": {
+        "status": "partial",
+        "error_nodes": 1,
+        "missing_nodes": 0
+      },
+      "without_bom": {
+        "status": "partial",
+        "error_nodes": 1,
+        "missing_nodes": 0
+      },
+      "without_directive_lines": {
+        "status": "partial",
+        "error_nodes": 1,
+        "missing_nodes": 0
+      },
+      "null_conditional_assignment_probe": {
+        "original_statement": "pdbStreamOpt?.Position = 0;",
+        "replacement_statement": "if (pdbStreamOpt != null) pdbStreamOpt.Position = 0;",
+        "result": {
+          "status": "complete",
+          "error_nodes": 0,
+          "missing_nodes": 0
+        }
+      }
+    }
+  ],
+  "csharp14_minimal_probes": {
+    "null_conditional_assignment": {
+      "source": "class C { void F(dynamic stream) { stream?.Position = 0; } }",
+      "result": {
+        "status": "partial",
+        "error_nodes": 2,
+        "missing_nodes": 0
+      }
+    },
+    "explicit_null_check": {
+      "source": "class C { void F(dynamic stream) { if (stream != null) stream.Position = 0; } }",
+      "result": {
+        "status": "complete",
+        "error_nodes": 0,
+        "missing_nodes": 0
+      }
+    }
+  }
+}

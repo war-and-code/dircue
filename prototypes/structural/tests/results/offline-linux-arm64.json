@@ -1,0 +1,150 @@
+{
+  "image_id": "sha256:5ed00776f0a18a080c7d928f5fb73a9e2ff6a0cf2bb17107b561d8cdbf8dbec7",
+  "os": "linux",
+  "architecture": "arm64",
+  "worker_sha256": "0e49d3bda0bac6221c1119f43dd2f7a4d18c876548719564a237bb38e706bd7b",
+  "network": "none",
+  "read_only": true,
+  "user": "65534:65534",
+  "compiler_required_at_runtime": false,
+  "bca_source_archive_in_image": true,
+  "cases": [
+    {
+      "path": "tests/fixtures/java/Shapes.java",
+      "language": "Java",
+      "source_bytes": 986,
+      "source_sha256": "96955b0a0994d1e2e5002ad21675a9f42229ca4f65f114ff4dd8fe600e9381be",
+      "elapsed_with_container_startup_seconds": 0.31473316717892885,
+      "cgroup_peak_bytes": null,
+      "cgroup_limit_bytes": 268435456,
+      "cgroup_memory_events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0"
+      },
+      "status": "complete",
+      "parse_count": 1,
+      "observations": {
+        "classes": 2,
+        "constructors": 2,
+        "enums": 0,
+        "error_nodes": 0,
+        "imports": 2,
+        "interfaces": 1,
+        "lambdas": 1,
+        "local_functions": 0,
+        "methods": 4,
+        "missing_nodes": 0,
+        "properties": 0,
+        "records": 1,
+        "structs": 0,
+        "syntax_nodes": 332
+      },
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-java@0.23.5",
+        "tree_sitter": "0.26.12"
+      }
+    },
+    {
+      "path": "tests/fixtures/csharp/Shapes.cs",
+      "language": "C#",
+      "source_bytes": 910,
+      "source_sha256": "4a0a022d6b17db57e4c5179c61c1aa210c71d80d72715f02cbfae86fa591e074",
+      "elapsed_with_container_startup_seconds": 0.29101791698485613,
+      "cgroup_peak_bytes": null,
+      "cgroup_limit_bytes": 268435456,
+      "cgroup_memory_events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0"
+      },
+      "status": "complete",
+      "parse_count": 1,
+      "observations": {
+        "classes": 2,
+        "constructors": 1,
+        "enums": 0,
+        "error_nodes": 0,
+        "imports": 3,
+        "interfaces": 1,
+        "lambdas": 2,
+        "local_functions": 0,
+        "methods": 4,
+        "missing_nodes": 0,
+        "properties": 1,
+        "records": 1,
+        "structs": 0,
+        "syntax_nodes": 309
+      },
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-c-sharp@0.23.5",
+        "tree_sitter": "0.26.12"
+      }
+    },
+    {
+      "path": "synthetic/repeated.java",
+      "language": "Java",
+      "source_bytes": 276000,
+      "source_sha256": "460453520f458effac1dce1c672ad32cd97afbf4243f49845ef9ec109556e03c",
+      "elapsed_with_container_startup_seconds": 0.4091624580323696,
+      "cgroup_peak_bytes": null,
+      "cgroup_limit_bytes": 268435456,
+      "cgroup_memory_events": {
+        "low": "0",
+        "high": "0",
+        "max": "0",
+        "oom": "0",
+        "oom_kill": "0"
+      },
+      "status": "complete",
+      "parse_count": 1,
+      "observations": {
+        "classes": 4600,
+        "constructors": 0,
+        "enums": 0,
+        "error_nodes": 0,
+        "imports": 0,
+        "interfaces": 0,
+        "lambdas": 0,
+        "local_functions": 0,
+        "methods": 4600,
+        "missing_nodes": 0,
+        "properties": 0,
+        "records": 0,
+        "structs": 0,
+        "syntax_nodes": 170201
+      },
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-java@0.23.5",
+        "tree_sitter": "0.26.12"
+      }
+    }
+  ],
+  "limitations": "One worker per container; peak includes shell and cgroup-charged pages when the kernel exposes memory.peak; null means unavailable. This verifies these inputs under a container limit, not a bound on every input or on the Go driver.",
+  "driver_and_worker": {
+    "driver_sha256": "02a14ffe5fffdf8b0298e2b5c7d44f1ddd1c08bca0c4d3425ed09a638c25675f",
+    "container_limit_bytes": 268435456,
+    "network": "none",
+    "read_only": true,
+    "summary": {
+      "type": "summary",
+      "scope": "working-directory",
+      "mode": "combined",
+      "status": "partial",
+      "observed": 4,
+      "skipped": 0,
+      "errors": 0,
+      "partial_files": 2,
+      "excluded_directories": 0,
+      "ignored_files": 2
+    },
+    "limitations": "The limit covers both processes together; this checks fixtures, not arbitrary inputs."
+  }
+}

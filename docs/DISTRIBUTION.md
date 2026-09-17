@@ -1,23 +1,27 @@
 # Distribution
 
-Dircue has two intended release channels: standalone GitHub Release archives and
-platform-specific Python wheels on PyPI. Both contain the same Go executable
-bytes for a given operating system, architecture, and version. GitHub Releases include archives and wheels. PyPI publication remains deferred;
-private GitHub assets require authenticated access.
+GitHub Release archives and platform-specific Python wheels contain the same Go
+executable bytes for a given operating system, architecture, and version.
+Existing releases include both formats. GitHub assets require authenticated
+access while the repository is private; PyPI publication remains deferred.
+
+The 0.3.0 examples below describe candidate preparation and use after its
+artifacts are available. They do not assert that 0.3.0 or a PyPI package has been
+published.
 
 ## Pipeline use after PyPI publication
 
 For a pinned invocation without a persistent tool installation:
 
 ```sh
-uvx dircue@0.2.0 --breakdown --json /path/to/checkout
-uvx dircue@0.2.0 analyze all --json /path/to/checkout
+uvx dircue@0.3.0 --breakdown --json /path/to/checkout
+uvx dircue@0.3.0 analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==0.2.0'
+uv tool install 'dircue==0.3.0'
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -44,8 +48,8 @@ and [cache behavior](https://docs.astral.sh/uv/concepts/tools/#tool-environments
 From a clean committed checkout, choose fresh output directories:
 
 ```sh
-python3 scripts/release.py --version 0.2.0 --output dist/release-0.2.0
-python3 scripts/wheels.py --release-dir dist/release-0.2.0 --output dist/wheels-0.2.0
+python3 scripts/release.py --version 0.3.0 --output dist/release-0.3.0
+python3 scripts/wheels.py --release-dir dist/release-0.3.0 --output dist/wheels-0.3.0
 ```
 
 The wheel builder consumes existing release archives; it does not compile Go,
@@ -78,7 +82,7 @@ Test a local wheel on an Apple Silicon Mac without accessing a package index:
 
 ```sh
 uvx --offline --no-index \
-  --from ./dist/wheels-0.2.0/dircue-0.2.0-py3-none-macosx_12_0_arm64.whl \
+  --from ./dist/wheels-0.3.0/dircue-0.3.0-py3-none-macosx_12_0_arm64.whl \
   dircue --version
 ```
 
@@ -95,7 +99,7 @@ uv can install it directly. For a Linux amd64 runner, the release URL would be:
 
 ```sh
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v0.2.0/dircue-0.2.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.3.0/dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -105,6 +109,55 @@ one wheel. A Python package index can select the compatible wheel automatically.
 A Git clone alone is not an installable Python package here: this repository has
 no Python source-package build backend. Standalone binary archives also require
 ordinary extraction rather than installation through uv.
+
+## Private GitHub downloads
+
+A private asset URL cannot be used as an anonymous public download. With an
+authenticated GitHub CLI, download the compatible wheel first, then give uv the
+local file:
+
+```sh
+gh release download v0.3.0 --repo war-and-code/dircue \
+  --pattern 'dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl' \
+  --dir ./dircue-download
+uvx --offline --no-index \
+  --from ./dircue-download/dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl \
+  dircue analyze projects --json /path/to/checkout
+```
+
+This requires the release asset to exist and a compatible Python interpreter to
+be available locally. Replace the wheel filename for another platform.
+
+## Optional structural worker
+
+The archives and wheels above contain the core Go executable. Language profiling,
+project mapping, and scc counting do not require a separate parser. Structural
+analysis adds a native `dircue-structural-worker` selected by explicit path:
+
+```sh
+dircue analyze structure --json --files \
+  --structural-worker /opt/dircue/dircue-structural-worker /path/to/checkout
+```
+
+Build its platform archive separately:
+
+```sh
+python3 scripts/structural_worker_release.py --version 0.3.0 \
+  --platform darwin-arm64 --output dist/structural-worker-0.3.0 --smoke-test
+```
+
+See the [worker guide](STRUCTURE.md#building-the-add-on) for the pinned Rust
+build toolchain and supported targets. The worker uses
+[big-code-analysis](https://github.com/dekobon/big-code-analysis) and Tree-sitter;
+it is not included in Python wheels or the core Docker image. A built worker
+runs offline and requires neither Cargo nor a grammar download at runtime.
+
+Native-worker platform requirements differ from the static Go executable.
+In particular, Linux worker packages use glibc and are not supported by the
+core wheel's musllinux compatibility claim. Check the package's runtime
+provenance and validate it on the intended runner. Keep its license notices and
+complete dependency-source archives when redistributing it; BCA's MPL-2.0
+license is separate from dircue's MIT license.
 
 ## Publication
 
@@ -123,7 +176,7 @@ published version with different executable bytes.
 
 Hosted release automation is tracked in [#13](https://github.com/war-and-code/dircue/issues/13);
 PyPI distribution and publication checks are tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
-Manual release preparation remains supported for v0.2.
+Manual release preparation remains supported for v0.3.
 
 ## Historical 0.1 validation
 

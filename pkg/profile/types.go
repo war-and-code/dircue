@@ -1,7 +1,10 @@
 // Package profile defines the versioned repository profile and detector API.
 package profile
 
-import "context"
+import (
+	"context"
+	"dircue/pkg/projects"
+)
 
 const SchemaVersion = "1.0.0"
 
@@ -57,7 +60,11 @@ type Warning struct {
 	Message string `json:"message"`
 }
 
+const ExpandedSchemaVersion = "1.2.0"
+
 type Report struct {
+	Projects  *projects.Report `json:"projects,omitempty"`
+	Structure *StructureReport `json:"structure,omitempty"`
 	// Strategies is CLI-only diagnostic data and does not change the JSON schema.
 	Strategies    map[string]string `json:"-"`
 	SchemaVersion string            `json:"schema_version"`

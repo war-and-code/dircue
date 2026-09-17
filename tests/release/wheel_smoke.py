@@ -20,6 +20,8 @@ COMMANDS = (
     ["--breakdown", "--json", "."],
     ["analyze", "metrics", "--json", "--files", "."],
     ["analyze", "all", "--metrics", "--json", "."],
+    ["analyze", "projects", "--json", "."],
+    ["analyze", "all", "--projects", "--metrics", "--json", "."],
 )
 BINARY_HASH = ("import hashlib,dircue;"
                "print(hashlib.sha256(open(dircue.get_binary_path(),'rb').read()).hexdigest())")
@@ -113,13 +115,19 @@ def main():
                 expected = run([*direct, *arguments], label=label)
                 require(actual.stdout == expected.stdout, f"{label}: JSON differs from archive binary")
                 report = json.loads(actual.stdout)
-                if arguments[0] == "analyze":
+                if "metrics" in report:
                     metrics = report["metrics"]
                     require(metrics["status"] == "complete" and metrics["totals"]["files"] == 2,
                             f"{label}: incomplete counts or XML entered default source scope")
                     require({row["language"] for row in metrics["languages"]} == {"Java", "C#"},
                             f"{label}: missing Java/C# metrics")
-                else:
+                if "projects" in report:
+                    projects = report["projects"]
+                    require(report["schema_version"] == "1.2.0" and projects["status"] == "complete",
+                            f"{label}: incomplete project inventory")
+                    require(len(projects["projects"]) == 1 and projects["projects"][0]["id"] == "App.csproj",
+                            f"{label}: missing .NET project")
+                if arguments[0] != "analyze":
                     require(set(report) == {"Java", "C#"}, f"{label}: unexpected languages")
             actual = run([*wrapper, "--json", "./missing"], 1, label)
             expected = run([*direct, "--json", "./missing"], 1, label)
