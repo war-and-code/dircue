@@ -2,39 +2,20 @@ name: Structural worker
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - 'pkg/structure/**'
-      - 'pkg/scanner/**'
-      - 'pkg/profile/**'
-      - 'schema/**'
-      - 'pkg/projects/**'
-      - 'internal/cli/**'
-      - 'prototypes/structural/worker/**'
-      - 'scripts/structural_worker_release.py'
-      - 'tests/structural_breadth/**'
-      - 'docs/STRUCTURE.md'
-      - '.github/workflows/structural-worker.yml'
   pull_request:
-    paths:
-      - 'pkg/structure/**'
-      - 'pkg/scanner/**'
-      - 'pkg/profile/**'
-      - 'schema/**'
-      - 'pkg/projects/**'
-      - 'internal/cli/**'
-      - 'prototypes/structural/worker/**'
-      - 'scripts/structural_worker_release.py'
-      - 'tests/structural_breadth/**'
-      - 'docs/STRUCTURE.md'
-      - '.github/workflows/structural-worker.yml'
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
   package:
-    timeout-minutes: 30
+    if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
+    timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
@@ -61,16 +42,33 @@ jobs:
             suffix: '.exe'
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache: false
-      - uses: actions/setup-python@v5
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+            prototypes/structural/driver/go.mod
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.94.0 --profile minimal --target ${{ matrix.target }}
+      - name: Cache Rust dependencies, crate sources, and build outputs
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/src
+            ~/.cargo/git
+            prototypes/structural/worker/target
+          key: rust-structural-worker-v1-${{ matrix.os }}-${{ runner.arch }}-${{ matrix.target }}-1.94.0-${{ hashFiles('prototypes/structural/worker/Cargo.lock', 'prototypes/structural/worker/Cargo.toml', '.cargo/config.toml', 'prototypes/structural/worker/.cargo/config.toml') }}
+          restore-keys: |
+            rust-structural-worker-v1-${{ matrix.os }}-${{ runner.arch }}-${{ matrix.target }}-1.94.0-
       - name: Test native worker
         run: rustup run 1.94.0 cargo test --locked --manifest-path prototypes/structural/worker/Cargo.toml
       - name: Build and package worker with dependency sources
@@ -85,8 +83,9 @@ jobs:
         run: |
           go build -trimpath -o bin/dircue${{ matrix.suffix }} .
           python tests/structural_breadth/run.py --candidate bin/dircue${{ matrix.suffix }} --worker prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }} --output dist/structural-worker/breadth-${{ matrix.platform }}.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
+          retention-days: 7
           name: structural-worker-${{ matrix.platform }}
           path: dist/structural-worker/*
           if-no-files-found: error

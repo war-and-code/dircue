@@ -1,27 +1,53 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
+  preflight:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Test packaging contracts without building binaries
+        run: python -m unittest discover -s tests/release -p 'test_*.py' -v
+      - name: Test staged-analysis consumer contracts
+        run: python examples/staged_analysis/test_route.py -v
+
   test:
+    needs: preflight
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: ${{ fromJSON(github.event_name == 'push' && '["ubuntu-latest"]' || '["ubuntu-latest", "macos-latest", "windows-latest"]') }}
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
-      - uses: actions/setup-python@v5
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - run: go vet ./...
@@ -37,31 +63,44 @@ jobs:
         run: python examples/staged_analysis/test_route.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
 
   linguist-conformance:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
       - run: make conformance
       - run: make samples
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
+          retention-days: 7
           name: linguist-conformance
           path: tests/conformance/results/
 
   metrics-conformance:
+    needs: preflight
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
       - run: go build -trimpath -o bin/dircue .
         env:
           CGO_ENABLED: '0'
@@ -70,8 +109,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/dircue-metrics"
           GOBIN="$RUNNER_TEMP/dircue-metrics" CGO_ENABLED=0 go install github.com/boyter/scc/v4@v4.1.0
           python3 tests/metrics/run.py --candidate bin/dircue --scc "$RUNNER_TEMP/dircue-metrics/scc" --output .cache/metrics-differential.json
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
+          retention-days: 7
           name: metrics-conformance
           path: .cache/metrics-differential.json
