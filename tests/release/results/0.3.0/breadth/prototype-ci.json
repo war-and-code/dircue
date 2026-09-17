@@ -1,0 +1,221 @@
+{
+  "conclusion": "success",
+  "headSha": "0f77a0e0d251f516cdf801beea1889461fb0b6fe",
+  "jobs": [
+    {
+      "completedAt": "2026-09-17T13:08:17Z",
+      "conclusion": "success",
+      "databaseId": 105213729279,
+      "name": "prototype (macos-latest)",
+      "startedAt": "2026-09-17T13:06:36Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-17T13:06:37Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-17T13:06:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:06:40Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-09-17T13:06:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:06:50Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@v5",
+          "number": 3,
+          "startedAt": "2026-09-17T13:06:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:06:56Z",
+          "conclusion": "success",
+          "name": "Install the pinned Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-09-17T13:06:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:07:21Z",
+          "conclusion": "success",
+          "name": "Test worker",
+          "number": 5,
+          "startedAt": "2026-09-17T13:06:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:07:32Z",
+          "conclusion": "success",
+          "name": "Test driver",
+          "number": 6,
+          "startedAt": "2026-09-17T13:07:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:10Z",
+          "conclusion": "success",
+          "name": "Build prototype",
+          "number": 7,
+          "startedAt": "2026-09-17T13:07:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:11Z",
+          "conclusion": "success",
+          "name": "Validate both consumers and process boundaries",
+          "number": 8,
+          "startedAt": "2026-09-17T13:08:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:12Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 9,
+          "startedAt": "2026-09-17T13:08:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:12Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@v5",
+          "number": 17,
+          "startedAt": "2026-09-17T13:08:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:13Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 18,
+          "startedAt": "2026-09-17T13:08:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:14Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 19,
+          "startedAt": "2026-09-17T13:08:13Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/war-and-code/dircue/actions/runs/35224863706/job/105213729279"
+    },
+    {
+      "completedAt": "2026-09-17T13:08:57Z",
+      "conclusion": "success",
+      "databaseId": 105213729755,
+      "name": "prototype (ubuntu-latest)",
+      "startedAt": "2026-09-17T13:05:38Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-09-17T13:05:40Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-09-17T13:05:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:05:43Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-09-17T13:05:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:05:53Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-go@v5",
+          "number": 3,
+          "startedAt": "2026-09-17T13:05:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:06:01Z",
+          "conclusion": "success",
+          "name": "Install the pinned Rust toolchain",
+          "number": 4,
+          "startedAt": "2026-09-17T13:05:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:06:58Z",
+          "conclusion": "success",
+          "name": "Test worker",
+          "number": 5,
+          "startedAt": "2026-09-17T13:06:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:07:25Z",
+          "conclusion": "success",
+          "name": "Test driver",
+          "number": 6,
+          "startedAt": "2026-09-17T13:06:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:54Z",
+          "conclusion": "success",
+          "name": "Build prototype",
+          "number": 7,
+          "startedAt": "2026-09-17T13:07:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:54Z",
+          "conclusion": "success",
+          "name": "Validate both consumers and process boundaries",
+          "number": 8,
+          "startedAt": "2026-09-17T13:08:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:55Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 9,
+          "startedAt": "2026-09-17T13:08:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:55Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-go@v5",
+          "number": 17,
+          "startedAt": "2026-09-17T13:08:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:56Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 18,
+          "startedAt": "2026-09-17T13:08:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-09-17T13:08:56Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 19,
+          "startedAt": "2026-09-17T13:08:56Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/war-and-code/dircue/actions/runs/35224863706/job/105213729755"
+    }
+  ],
+  "url": "https://github.com/war-and-code/dircue/actions/runs/35224863706"
+}

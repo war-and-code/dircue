@@ -1,0 +1,12 @@
+?   	dircue	[no test files]
+ok  	dircue/internal/cli	2.609s
+ok  	dircue/pkg/codemetrics	(cached)
+ok  	dircue/pkg/detectors	1.020s
+?   	dircue/pkg/profile	[no test files]
+ok  	dircue/pkg/projects	(cached)
+ok  	dircue/pkg/scanner	5.517s
+ok  	dircue/pkg/structure	(cached)
+ok  	dircue/schema	1.561s
+?   	dircue/tests/conformance/classifier	[no test files]
+?   	dircue/tests/conformance/enry_baseline	[no test files]
+ok  	dircue/tests/provenance	(cached)

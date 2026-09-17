@@ -94,5 +94,31 @@ func TestBuiltBinaryGitPipelineContract(t *testing.T) {
 		if err == nil || len(out) != 0 || stderr.Len() == 0 {
 			t.Fatalf("invalid invocation %v: %q %q %v", args, out, stderr.String(), err)
 		}
+		if exit, ok := err.(*exec.ExitError); !ok || exit.ExitCode() != 1 {
+			t.Fatalf("invalid invocation %v: expected exit 1, got %v", args, err)
+		}
 	}
+	t.Run("first-pass tree omission remains a successful process", func(t *testing.T) {
+		cmd := exec.Command(binary, "analyze", "all", "--projects", "--source=directory", "--tree-size=1", "--json", root)
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		out, err := cmd.Output()
+		if err != nil {
+			t.Fatalf("partial coverage changed the success exit code: %v\n%s", err, stderr.String())
+		}
+		var report struct {
+			Projects struct {
+				Status string `json:"status"`
+			} `json:"projects"`
+			Warnings []struct {
+				Code string `json:"code"`
+			} `json:"warnings"`
+		}
+		if err := json.Unmarshal(out, &report); err != nil {
+			t.Fatal(err)
+		}
+		if report.Projects.Status != "skipped" || len(report.Warnings) != 1 || report.Warnings[0].Code != "tree_size_limit" || stderr.Len() == 0 {
+			t.Fatalf("successful process concealed omitted inventory: %s\nstderr: %s", out, stderr.String())
+		}
+	})
 }

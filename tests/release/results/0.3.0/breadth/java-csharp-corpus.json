@@ -1,0 +1,849 @@
+{
+  "candidate_sha256": "ff0d723411657a61dc4385c84fc011c1392ce7696066fc13f1c663b1c3967ade",
+  "worker_sha256": "62ec4623aa1220fe279b3ac337b704409b3ebde2d8c965ccd90fa5bbacb216b8",
+  "harness_sha256": "a1567e437e6f149cffe7793968ed77d846689093511bdcbed37de006d4e9a072",
+  "sampling_sha256": "3f68f8a9eb96bac1428c1ba26a9a0ec7098183495674f55922d439ee5fdb806a",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "corpora": [
+    {
+      "name": "spring-framework",
+      "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "files": [
+        {
+          "path": "buildSrc/src/main/java/org/springframework/build/CheckstyleConventions.java",
+          "bytes": 3283,
+          "sha256": "940f108c40e1f66b3ed2a7f1a95fb797ebf2a97e5a102f048adabc422f8b3913"
+        },
+        {
+          "path": "framework-docs/src/main/java/org/springframework/docs/web/webmvc/mvcservlet/mvccontainerconfig/MyWebApplicationInitializer.java",
+          "bytes": 1489,
+          "sha256": "3e549f0b2abe07d10d48c4545370741e30657f24c099b7bf825ff0a0cbe333c2"
+        },
+        {
+          "path": "spring-aop/src/main/java/org/springframework/aop/framework/adapter/AfterReturningAdviceAdapter.java",
+          "bytes": 1494,
+          "sha256": "84a163b7b6b02570dc5a519b6d59ec423b07d04e6b52f9f630241d45310bfabe"
+        },
+        {
+          "path": "spring-aspects/src/main/java/org/springframework/scheduling/aspectj/AspectJAsyncConfiguration.java",
+          "bytes": 2050,
+          "sha256": "577e1b56112b681b19c55b623048d8029f6e322c6051d14711033363067f9f3b"
+        },
+        {
+          "path": "spring-beans/src/main/java/org/springframework/beans/factory/config/PropertiesFactoryBean.java",
+          "bytes": 3243,
+          "sha256": "567ff1509d3a7faef45e7b70c001d724bb00fd1fdfbd703549903dc0d92909b8"
+        },
+        {
+          "path": "spring-beans/src/test/java/org/springframework/beans/factory/FactoryBeanTests.java",
+          "bytes": 8266,
+          "sha256": "fc9fbd9e3daf97c62d13dd89d0ed3b103664b9ee2f09f546bf64350daa0db10c"
+        },
+        {
+          "path": "spring-beans/src/testFixtures/java/org/springframework/beans/testfixture/beans/factory/generator/deprecation/DeprecatedBean.java",
+          "bytes": 909,
+          "sha256": "aca5450a8425a0dd7c0bdf8294d3031acd8d6bafa530914888a5f8e8ad21974d"
+        },
+        {
+          "path": "spring-context/src/jmh/java/org/springframework/context/annotation/AnnotationProcessorBenchmark.java",
+          "bytes": 3295,
+          "sha256": "609cc35d5985aba05f8889dd12782e26a7de70ed8238a4208c675f3af0994e4c"
+        },
+        {
+          "path": "spring-context/src/main/java/org/springframework/context/event/ApplicationContextEvent.java",
+          "bytes": 1782,
+          "sha256": "ea161743790f85215aaf9ac171a688be31f568b84b82cf8f77a58b4e4bccede0"
+        },
+        {
+          "path": "spring-context/src/main/java/org/springframework/jmx/export/metadata/JmxAttributeSource.java",
+          "bytes": 3856,
+          "sha256": "f38fea7f73a7d1cf78e254acea49718a0ca5219ea2b5e5d91456213a51c51b86"
+        },
+        {
+          "path": "spring-context/src/main/java/org/springframework/validation/Errors.java",
+          "bytes": 14125,
+          "sha256": "343d654e107a62344f339e2c15a4ac8a8a47422a5e34aec6abe86743cac213e3"
+        },
+        {
+          "path": "spring-context/src/test/java/org/springframework/context/annotation/ComponentScanParserScopedProxyTests.java",
+          "bytes": 4323,
+          "sha256": "a2e04863ca762ad9f6608b35018a93956f0b3298c4c5b53c87b8582ffe2ace8b"
+        },
+        {
+          "path": "spring-context/src/test/java/org/springframework/context/support/ResourceConverter.java",
+          "bytes": 1051,
+          "sha256": "d03f2194d1f3fe1fb4ce282a66f00f62e9d7fc1c1f23ebc7fa536afdd93f85e3"
+        },
+        {
+          "path": "spring-context/src/testFixtures/java/org/springframework/context/testfixture/beans/factory/OverridingBeanRegistrar.java",
+          "bytes": 1108,
+          "sha256": "ef023fc9e83707daab0c5c21162d323491d7422baf45cefda9a9b791bf5009b0"
+        },
+        {
+          "path": "spring-core/src/main/java/org/springframework/aot/hint/annotation/package-info.java",
+          "bytes": 155,
+          "sha256": "0ec8834ce317cccc074e9a765357801b66bbe32f87897b8a9b6b184967c1cad3"
+        },
+        {
+          "path": "spring-core/src/main/java/org/springframework/asm/ClassReader.java",
+          "bytes": 173102,
+          "sha256": "3d7d18afdefa2c8257cab1d6d62a686a72de53e3fdfb9d2b4f731ff32976e730"
+        },
+        {
+          "path": "spring-core/src/main/java/org/springframework/cglib/util/ParallelSorter.java",
+          "bytes": 10215,
+          "sha256": "e5aa50443035d28dbe4af8cfcc61e850495d00d6386fed38285c2f709420427b"
+        },
+        {
+          "path": "spring-core/src/main/java/org/springframework/core/env/PropertyResolver.java",
+          "bytes": 4171,
+          "sha256": "d3f384e34b0cd657a0e4d2049233d69b00f93a7ab97a679c04d1f95b5c005f9c"
+        },
+        {
+          "path": "spring-core/src/main/java/org/springframework/util/FilteredSet.java",
+          "bytes": 1651,
+          "sha256": "0d8a010c438ea2acfb53a51624a1b53ec2a839ce64792233a477cae4944d3075"
+        },
+        {
+          "path": "spring-core/src/test/java/org/springframework/core/annotation/OrderSourceProviderTests.java",
+          "bytes": 3982,
+          "sha256": "5fada194ced9bf088bef66ec291754bfed4e84d0668bededc4546e993b68820c"
+        },
+        {
+          "path": "spring-core/src/test/java/org/springframework/util/xml/TransformerUtilsTests.java",
+          "bytes": 4915,
+          "sha256": "a46706b2e877fe56f22e6769928b0bf8beb9673b1bbce214107668d2b1dc0445"
+        },
+        {
+          "path": "spring-expression/src/test/java/org/springframework/expression/spel/SetValueTests.java",
+          "bytes": 12482,
+          "sha256": "8bddffc7a3d55f33a7a7f2c1529705397f5d61aeff82739351bb9e6bd7f93a02"
+        },
+        {
+          "path": "spring-expression/src/test/java/org/springframework/expression/spel/SpelCompilationCoverageTests.java",
+          "bytes": 280371,
+          "sha256": "eeaf3c8cf57dff587048d39ff7439393e87590049485a851f99e1905d7475e6c"
+        },
+        {
+          "path": "spring-jdbc/src/main/java/org/springframework/jdbc/datasource/init/CompositeDatabasePopulator.java",
+          "bytes": 2944,
+          "sha256": "3679bde3441e6ded9bef0bb77f0b664384b052e3f93e871b17adad13c2dfb00a"
+        },
+        {
+          "path": "spring-jdbc/src/test/java/org/springframework/jdbc/support/SQLExceptionSubclassTranslatorTests.java",
+          "bytes": 5135,
+          "sha256": "f447cb91a19ce08d01a024ac802f33b8f91501a93f6474f5d32409d7fa75a31e"
+        },
+        {
+          "path": "spring-messaging/src/main/java/org/springframework/messaging/MessageHandlingException.java",
+          "bytes": 1329,
+          "sha256": "cc4fa2bd9eaf7c646160d40a29f34120526335dad8e0b876a91a128c894d117a"
+        },
+        {
+          "path": "spring-messaging/src/main/java/org/springframework/messaging/simp/stomp/StompTcpMessageCodec.java",
+          "bytes": 1681,
+          "sha256": "fd1e7f733899e04cba7941b42f85f41ee3a306aa07adc4a93bce8081a2050598"
+        },
+        {
+          "path": "spring-orm/src/main/java/org/springframework/orm/jpa/persistenceunit/ManagedClassNameFilter.java",
+          "bytes": 1258,
+          "sha256": "7551e8c3d1f726897923faacd42659e34e34949496ff3dd5baddfe1864b84f12"
+        },
+        {
+          "path": "spring-r2dbc/src/test/java/org/springframework/r2dbc/connection/DelegatingConnectionFactoryTests.java",
+          "bytes": 1854,
+          "sha256": "1696109fb1d056692cbbbcb52e2b8bf7aa388966eb99bb1dd7f0a6528ba83547"
+        },
+        {
+          "path": "spring-test/src/main/java/org/springframework/test/context/event/package-info.java",
+          "bytes": 190,
+          "sha256": "234baf28317f132c244ac31bf069ded7dc96d5bcb3dc4c189bb7dce0eabb8108"
+        },
+        {
+          "path": "spring-test/src/main/java/org/springframework/test/web/servlet/MockMvcBuilderSupport.java",
+          "bytes": 3799,
+          "sha256": "2730b6e855a1754cbef80652f72d220d55d9285c069f5ff1ed914588091e904a"
+        },
+        {
+          "path": "spring-test/src/test/java/org/springframework/test/context/bean/override/convention/TestBeanOverrideHandlerTests.java",
+          "bytes": 6148,
+          "sha256": "1d6ef19cf26bd971d662dd7b5bab439335c61837e4e196381ef4a7794a4e94be"
+        },
+        {
+          "path": "spring-test/src/test/java/org/springframework/test/context/config/interfaces/TestPropertySourceTestInterface.java",
+          "bytes": 903,
+          "sha256": "a47b3c55ca1a7ecddd0892a4a88a9970f09d957bd69e4b1a17cdd33934bfb929"
+        },
+        {
+          "path": "spring-test/src/test/java/org/springframework/test/context/junit/jupiter/generics/CatTests.java",
+          "bytes": 1273,
+          "sha256": "ee42fe59174296660736ba4b6f30bf99f79b74c8e6fff7b2ab07f778e9f12c0e"
+        },
+        {
+          "path": "spring-test/src/test/java/org/springframework/test/context/web/RequestAndSessionScopedBeansWacTests.java",
+          "bytes": 2319,
+          "sha256": "dcab5deca008849c63d3b1d899f7e80cffea6a219f538d8db4d0501d96750929"
+        },
+        {
+          "path": "spring-test/src/test/java/org/springframework/test/web/servlet/samples/standalone/resulthandlers/PrintingResultHandlerSmokeTests.java",
+          "bytes": 2852,
+          "sha256": "407eab88d4ca78cbe12d96c2dd950574765561bc189c4b10c382de86f21e4c9a"
+        },
+        {
+          "path": "spring-tx/src/test/java/org/springframework/dao/annotation/PersistenceExceptionTranslationAdvisorTests.java",
+          "bytes": 6331,
+          "sha256": "46b7f9b3e0accff2fcd27c510cf461605cbf0647807a267d167fed94d4711eb1"
+        },
+        {
+          "path": "spring-web/src/main/java/org/springframework/http/codec/json/AbstractJackson2Decoder.java",
+          "bytes": 11242,
+          "sha256": "8743539fc6336f1668bdcbc422d7ee14556bc03d28343ec16c1b01642da3ce0d"
+        },
+        {
+          "path": "spring-web/src/main/java/org/springframework/http/support/Netty4HeadersAdapter.java",
+          "bytes": 6474,
+          "sha256": "c314e577857fe763f7948c8d74b38e7b91520db0746b475ca582642d182e0bb3"
+        },
+        {
+          "path": "spring-web/src/main/java/org/springframework/web/context/support/ServletContextResource.java",
+          "bytes": 7606,
+          "sha256": "27bb2d07966b5d3f537984bbade8b118b9be9500c3a6aad57a5b4343fa08b52f"
+        },
+        {
+          "path": "spring-web/src/main/java/org/springframework/web/service/registry/GroupsMetadata.java",
+          "bytes": 5432,
+          "sha256": "fba3232bf474fb4bf3d76b71cf7b067379ea743160536d7ec57d11d80b46ed54"
+        },
+        {
+          "path": "spring-web/src/test/java/org/springframework/http/server/reactive/ChannelSendOperatorTests.java",
+          "bytes": 8559,
+          "sha256": "f48e3cb9b88da670bd047f65e959bdd27a45373a4ba4bbae179cddf446e9f7ff"
+        },
+        {
+          "path": "spring-web/src/test/java/org/springframework/web/service/registry/HttpServiceProxyRegistryFactoryBeanTests.java",
+          "bytes": 7629,
+          "sha256": "c82f2d61331af0c0d2eed954c547a242b2635cc43f24ec6f885ef0bd89e6bba4"
+        },
+        {
+          "path": "spring-webflux/src/main/java/org/springframework/web/reactive/resource/CachingResourceTransformer.java",
+          "bytes": 2521,
+          "sha256": "4b01ee05e3f0f8b78e139f974196d46bd3fcd265816049ee256bf27489143e93"
+        },
+        {
+          "path": "spring-webflux/src/test/java/org/springframework/web/reactive/function/client/support/ClientResponseWrapperTests.java",
+          "bytes": 5033,
+          "sha256": "b110524d54f76cc65b6df2d544a10d4255d36e9740cffefdc1e26ced2805820a"
+        },
+        {
+          "path": "spring-webmvc/src/main/java/org/springframework/web/servlet/config/annotation/ViewControllerRegistration.java",
+          "bytes": 2547,
+          "sha256": "c219ba4d793e0e006c8bada585f009f1f7559f59f4ffe8d6724482faeb76a6b8"
+        },
+        {
+          "path": "spring-webmvc/src/main/java/org/springframework/web/servlet/resource/VersionStrategy.java",
+          "bytes": 1217,
+          "sha256": "bbecb80178ed99b384aabd2b271f20e23b4fdc77b8df14fe2b0a7c1d73009832"
+        },
+        {
+          "path": "spring-webmvc/src/test/java/org/springframework/web/servlet/mvc/condition/PatternsRequestConditionTests.java",
+          "bytes": 5567,
+          "sha256": "6ea954601edd79de50653cdbe382fa7523df573d874698cf5edc6bc74ac46dd2"
+        },
+        {
+          "path": "spring-websocket/src/main/java/org/springframework/web/socket/config/annotation/SockJsServiceRegistration.java",
+          "bytes": 11613,
+          "sha256": "00329808d133ade441249a6bbe9a75251b0b1bbb75c567783fcc5227072998df"
+        },
+        {
+          "path": "spring-websocket/src/test/java/org/springframework/web/socket/sockjs/transport/session/WebSocketServerSockJsSessionTests.java",
+          "bytes": 5678,
+          "sha256": "c61b06eab66de8ec45620de581f846d6f0e1037d390f8616cb0175022a865d50"
+        }
+      ],
+      "analyzed_files": 50,
+      "partial_files": [],
+      "parse_count": 50,
+      "status": "complete",
+      "observations": {
+        "classes": 164,
+        "constructors": 68,
+        "enums": 0,
+        "error_nodes": 0,
+        "imports": 488,
+        "interfaces": 15,
+        "lambdas": 70,
+        "local_functions": 0,
+        "methods": 751,
+        "missing_nodes": 0,
+        "properties": 0,
+        "records": 2,
+        "structs": 0,
+        "syntax_nodes": 151091
+      },
+      "structural_report_sha256": "54bfb84dad55e1962424aee0897e5a8aabc4b5e37ac5da30a828d75ba35b25a9",
+      "validation_wall_seconds": 0.9803705001249909
+    },
+    {
+      "name": "roslyn",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "files": [
+        {
+          "path": "eng/config/test/Core/InstallTraceListener.cs",
+          "bytes": 299,
+          "sha256": "85d09eb0a7f788041881d8aecdbc8d54c25ca10220e861e6d914ffb0b249f91c"
+        },
+        {
+          "path": "src/Analyzers/CSharp/Tests/ImplementInterface/ImplementInterfaceCodeFixTests_Razor.cs",
+          "bytes": 11312,
+          "sha256": "2ff8a86d599e623dc73ed49094a070aa8b2005af57b2d5e73bbcc85fa3548801"
+        },
+        {
+          "path": "src/Compilers/CSharp/Portable/Binder/Binder.ValueChecks.cs",
+          "bytes": 282839,
+          "sha256": "ee3f7687cfd2c5030957589e3aae630851c8bca51b6675766da887f61bb8dec8"
+        },
+        {
+          "path": "src/Compilers/CSharp/Portable/FlowAnalysis/AbstractFlowPass.cs",
+          "bytes": 145078,
+          "sha256": "db59ad0350877b71c9d7c048b494e39b1ba1013eba7ef3ea3aff55726eea2322"
+        },
+        {
+          "path": "src/Compilers/CSharp/Portable/Symbols/Source/AttributeLocation.cs",
+          "bytes": 5505,
+          "sha256": "f7d9455177aa8a39f6df7127fe3bdfa4f0aa5d6476ca5495bc9997eeb5252d61"
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/CommandLine/CommandLineIVTTests.cs",
+          "bytes": 16401,
+          "sha256": "f1f6ee84698be1c4634ec8db6417e6ffad2667081da7aa53f6773f3c2e8d66b4"
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Semantic/Semantics/SemanticErrorTests.cs",
+          "bytes": 1037434,
+          "sha256": "4c26cfaf459c6baba75982d94960644e12d557c8c16223a93cc52511a185a517"
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Semantic/Semantics/TargetTypedDefaultTests.cs",
+          "bytes": 156828,
+          "sha256": "3d5654e78b08186bcda0499126ca8c7f0a5b75b7ac7289141a1e3faf6502a2a6"
+        },
+        {
+          "path": "src/Compilers/CSharp/Test/Syntax/Parsing/MemberDeclarationParsingTests.cs",
+          "bytes": 1008450,
+          "sha256": "e2c068dfc6f879332422b7945bcf6f4c680f63075ef04e4cf03577fdcd2688f8"
+        },
+        {
+          "path": "src/Compilers/Core/CodeAnalysisTest/CommonParseOptionsTests.cs",
+          "bytes": 1118,
+          "sha256": "8d3e7d1b240ddeab4a3a83fe35dcf4bc6564ea523f2e7712114f78b3c7d56c9f"
+        },
+        {
+          "path": "src/Compilers/Core/Portable/DiagnosticAnalyzer/AnalyzerReference.cs",
+          "bytes": 3599,
+          "sha256": "9fa7bc314c9cfef14d8a1c71411c9d60b6a38f8269b4739d598c2e4d5d6d1759"
+        },
+        {
+          "path": "src/Compilers/Core/Portable/SourceGeneration/IncrementalContexts.cs",
+          "bytes": 31212,
+          "sha256": "69c24403bed12c96949a8d92c957b297b2ae30d89875f69d970870a2e1c621b6"
+        },
+        {
+          "path": "src/Compilers/Test/Core/Assert/AssertEx.cs",
+          "bytes": 41211,
+          "sha256": "02d6736d713f6463d21ddb30226486262d5a957b2d4ce8f884e6ce784a81987d"
+        },
+        {
+          "path": "src/Dependencies/Threading/AsyncBatchingWorkQueue`1.cs",
+          "bytes": 1853,
+          "sha256": "a89b4b07408953a396ca3292724b90eb29114344a56aff70e9259da95bebec6a"
+        },
+        {
+          "path": "src/EditorFeatures/CSharpTest/Structure/StringLiteralExpressionStructureTests.cs",
+          "bytes": 1624,
+          "sha256": "becd2567cc0571bb380338c85eef4941b2068a44798924bae5246aff37475006"
+        },
+        {
+          "path": "src/EditorFeatures/Core/GoOrFind/GoToBase/GoToBaseNavigationService.cs",
+          "bytes": 2019,
+          "sha256": "d2e39687444e25d2130e3e61e85d623f22d2c66a836991ffc29e5e1a37121283"
+        },
+        {
+          "path": "src/EditorFeatures/Core/Suggestions/SuggestedActions/EditorSuggestedActionWithNestedActions.cs",
+          "bytes": 2293,
+          "sha256": "56ec3ffc09e62faba1f595475d444c259bc7b5612a70db565f7c20245bba7017"
+        },
+        {
+          "path": "src/ExpressionEvaluator/CSharp/Test/ResultProvider/CustomResultProviderTests.cs",
+          "bytes": 13024,
+          "sha256": "01e15fd36241d50200104e92982d3f71ea77c9de134fb244f6f1cfb5b5040cf1"
+        },
+        {
+          "path": "src/Features/CSharp/Portable/Completion/KeywordRecommenders/InitKeywordRecommender.cs",
+          "bytes": 926,
+          "sha256": "56811f1e27491b9bbf6e63282e54927fda1089a6c6e081c64bed5b6d6b02995e"
+        },
+        {
+          "path": "src/Features/CSharp/Portable/SplitStringLiteral/SimpleStringSplitter.cs",
+          "bytes": 3329,
+          "sha256": "bc01047f50d68ba35d9952a72652830f07e823170365fa9abf8d71b649152967"
+        },
+        {
+          "path": "src/Features/Core/Portable/CodeLens/IRemoteCodeLensReferencesService.cs",
+          "bytes": 1168,
+          "sha256": "58d4df3d1ad17c1acad071c7d74c2d7241c18e72a208a61344a6adc18ea58bab"
+        },
+        {
+          "path": "src/Features/Core/Portable/EmbeddedLanguages/Json/JsonParser.StrictSyntaxChecker.cs",
+          "bytes": 11538,
+          "sha256": "dbf079ec31362d9f2fb1c718e0e23d9962cde83e7d80369c8018833824412b94"
+        },
+        {
+          "path": "src/Features/Core/Portable/Navigation/DefaultSymbolNavigationServiceFactory.cs",
+          "bytes": 973,
+          "sha256": "1389be96576c2f89c47a3a5d264b72ab05dc445de9ea31af13dd9f7b6d0a4678"
+        },
+        {
+          "path": "src/Features/ExternalAccess/Core/Copilot/Analyzer/CopilotChecksumWrapper.cs",
+          "bytes": 1184,
+          "sha256": "6f973ad7b9c1cd9beb620fabddb4dc38c9101ccf4f1a41ee1fe2bdb3567ea34e"
+        },
+        {
+          "path": "src/LanguageServer/Microsoft.CommonLanguageServerProtocol.Framework.Example/ExampleLanguageServer.cs",
+          "bytes": 2533,
+          "sha256": "33e6da4f58a92ee6a86c687e12f47e4d27de73903b485693f3767ac316b2dd7a"
+        },
+        {
+          "path": "src/LanguageServer/Protocol/Protocol/CodeActionResolveSupportSetting.cs",
+          "bytes": 942,
+          "sha256": "e9c4db35d30a057a513e048a22449cb008ceed249af0c0608962ff8df705f9b5"
+        },
+        {
+          "path": "src/LanguageServer/Protocol/Protocol/Notebook/NotebookDocumentSyncRegistrationOptions.cs",
+          "bytes": 1201,
+          "sha256": "2c953e4523a25cf3d433084290b0b25100b61c6f65f920af695e5ebb72f261e1"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/legacyTest/Legacy/CSharpToMarkupSwitchTest.cs",
+          "bytes": 8839,
+          "sha256": "e7387b9a0386ca1a757900bd6f482839c23f68735b720a38c57ce43c3323c3e4"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/TestFiles/IntegrationTests/CSharp8LanguageFeaturesIntegrationTest/RecursivePatterns/TestComponent.codegen.cs",
+          "bytes": 1273,
+          "sha256": "3dcb32422b1ea51f11f4de99611f6b7a650cf2c55392e325af0e6f2babd6a169"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/TestFiles/IntegrationTests/ComponentCodeGenerationTest/CascadingGenericInference_WithUnrelatedType_CreatesError/TestComponent.decl.codegen.cs",
+          "bytes": 501,
+          "sha256": "dd59ea437763f56cc0b250abd4fae3582cbbc3652a90a4dbeb8b9a35ee843e9c"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/TestFiles/IntegrationTests/ComponentCodeGenerationTest/GenericComponentBindToGenericComponent_InferredType_WithAfter_Action/TestComponent.decl.codegen.cs",
+          "bytes": 221,
+          "sha256": "24b0ad4378c92fbda610d082cee4ba01bfbcaaeb6e5073ac58b261b83b7906de"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.CodeAnalysis.Razor.Compiler/src/Language/CodeGeneration/TagHelperRenderingContext.cs",
+          "bytes": 1109,
+          "sha256": "e85f1ea6a7ba18b12bf59c9dfde00412d6966980654af9654b4da33659e9d257"
+        },
+        {
+          "path": "src/Razor/src/Compiler/Microsoft.CodeAnalysis.Razor.Compiler/src/Language/Syntax/ArrayElement.cs",
+          "bytes": 1686,
+          "sha256": "ab8659569e393ddd1ac56eaac83a167d790e051dca446c9477012759ce428ec4"
+        },
+        {
+          "path": "src/Razor/src/Compiler/test/Microsoft.AspNetCore.Razor.Test.MvcShim/Microsoft.AspNetCore.Razor.Runtime.TagHelpers/TagHelperScopeManager.cs",
+          "bytes": 845,
+          "sha256": "454e2ac8c22952c103e2192e61feebf0e5db8e91089477bc6033e1433d899db6"
+        },
+        {
+          "path": "src/Razor/src/Razor/src/Microsoft.CodeAnalysis.Razor.Workspaces/Tooltip/AggregateBoundElementDescription.cs",
+          "bytes": 473,
+          "sha256": "dc92b9ed0d483d906f2cf081fab63ea132b53d0fbdb6cc34d37f0f478c94efac"
+        },
+        {
+          "path": "src/Razor/src/Razor/src/Microsoft.VisualStudio.LanguageServices.Razor/LiveShare/Host/ProjectHierarchyProxyFactory.cs",
+          "bytes": 1139,
+          "sha256": "aa690df7b4a57b72fbd0f0cbfc56c695bb11dceb90730e9b54899a98bf74b9df"
+        },
+        {
+          "path": "src/Razor/src/Razor/test/Microsoft.VisualStudio.Razor.IntegrationTests/LanguageNames.cs",
+          "bytes": 321,
+          "sha256": "cb6b18939a62a5336e8d273d2b2543fad808f217b07d57874f8e7ebc24a6a6c4"
+        },
+        {
+          "path": "src/RoslynAnalyzers/PublicApiAnalyzers/Core/CodeFixes/NullableEnablePublicApiFix.cs",
+          "bytes": 7235,
+          "sha256": "4ebe32d4c97bdd8eedbb700b981e162a975dbe0e01370532f58b14520213c113"
+        },
+        {
+          "path": "src/RoslynAnalyzers/Utilities/FlowAnalysis/FlowAnalysis/Framework/DataFlow/PredicateValueKind.cs",
+          "bytes": 659,
+          "sha256": "9577c9cd854be84769a800833d0d65511ac80e70f186e617ab7b78ad1069fe90"
+        },
+        {
+          "path": "src/Scripting/Core/ScriptBuilder.cs",
+          "bytes": 8388,
+          "sha256": "a6f0485b1c7724f39cb31f290e65fa538fbc94f3154beb2f9e6852a96dbde5eb"
+        },
+        {
+          "path": "src/VisualStudio/CSharp/Impl/ProjectSystemShim/CSharpProjectShim.IServiceProvider.cs",
+          "bytes": 831,
+          "sha256": "c846e86ffdf8c46d67cae7f5727aa9038e083341a32ea57cf675db0f0f25d7bb"
+        },
+        {
+          "path": "src/VisualStudio/Core/Def/Preview/ChangeList.cs",
+          "bytes": 3265,
+          "sha256": "39fa7e01b53d82d9c76147ecf947986b821248abaa5b0c69eb96b2dad2835606"
+        },
+        {
+          "path": "src/VisualStudio/Core/Impl/Options/Style/BooleanCodeStyleOptionViewModel.cs",
+          "bytes": 3069,
+          "sha256": "f949ca14cba14f71c91ae808025f4ec98f25a5424a92deeff0d251c9e8d84cbb"
+        },
+        {
+          "path": "src/VisualStudio/IntegrationTest/New.IntegrationTests/CSharp/CSharpGenerateTypeDialog.cs",
+          "bytes": 4047,
+          "sha256": "0571290ce3e57a47254acfa05ac4b0dd5039ee77b079ea226c66b544de3fe1bf"
+        },
+        {
+          "path": "src/Workspaces/Core/Portable/Classification/SyntaxClassification/AbstractSyntaxClassificationService.cs",
+          "bytes": 3076,
+          "sha256": "6c27318308291405264ce8e23910905f9a7d25c4b4f18b9b1c0e3caba0bf9f8a"
+        },
+        {
+          "path": "src/Workspaces/Core/Portable/Rename/RenameUtilities.cs",
+          "bytes": 18642,
+          "sha256": "5ce9d59327203e5a3fdae44ca9f059d1c2237d7be3330b1d9473144fcd3f134d"
+        },
+        {
+          "path": "src/Workspaces/CoreTest/FindAllDeclarationsTests.cs",
+          "bytes": 43875,
+          "sha256": "140c15ea5a86d7e4ef4bbbfa78032abf941395a1af2068a26772822a256c12c2"
+        },
+        {
+          "path": "src/Workspaces/SharedUtilitiesAndExtensions/Compiler/CSharp/Extensions/ILocalSymbolExtensions.cs",
+          "bytes": 2034,
+          "sha256": "4fbc6f133447945dd1d354409a5dcc324da2347ffc7d7a03a191547652cc5f98"
+        },
+        {
+          "path": "src/Workspaces/SharedUtilitiesAndExtensions/Compiler/Core/SymbolKey/SymbolKey.FunctionPointerTypeSymbolKey.cs",
+          "bytes": 4388,
+          "sha256": "08b98a8ba4c2ac305ae54279b0e62c73ac38267122802d8b1870e0a93a8c420d"
+        },
+        {
+          "path": "src/Workspaces/TestAnalyzerReference/NonSourceFileRefactoring.cs",
+          "bytes": 1584,
+          "sha256": "94ef74ef0c84d5c08950c7aae8857a0f58502c9697d92392d498cece58cf8f30"
+        }
+      ],
+      "analyzed_files": 50,
+      "partial_files": [
+        "src/Compilers/CSharp/Portable/Binder/Binder.ValueChecks.cs",
+        "src/Razor/src/Compiler/Microsoft.AspNetCore.Razor.Language/test/TestFiles/IntegrationTests/CSharp8LanguageFeaturesIntegrationTest/RecursivePatterns/TestComponent.codegen.cs",
+        "src/Scripting/Core/ScriptBuilder.cs"
+      ],
+      "parse_count": 50,
+      "status": "partial",
+      "observations": {
+        "classes": 67,
+        "constructors": 31,
+        "enums": 5,
+        "error_nodes": 18,
+        "imports": 305,
+        "interfaces": 1,
+        "lambdas": 95,
+        "local_functions": 41,
+        "methods": 1886,
+        "missing_nodes": 0,
+        "properties": 59,
+        "records": 2,
+        "structs": 16,
+        "syntax_nodes": 435623
+      },
+      "structural_report_sha256": "5ade82a99327684b1ee372e2ef94746635acd0376a650c4442742b7e09d76bfe",
+      "validation_wall_seconds": 2.2011707918718457
+    },
+    {
+      "name": "aspnetcore",
+      "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "files": [
+        {
+          "path": "eng/tools/BaselineGenerator/Program.cs",
+          "bytes": 14876,
+          "sha256": "2904b5c642fd65149264a5ac896168b4817c9f31bd451a0470e558e77e1be885"
+        },
+        {
+          "path": "src/Components/Components/src/IEventCallback.cs",
+          "bytes": 337,
+          "sha256": "5b38de310cc13961c044407af1d0f564a9cf54ab68c74a542d8cb39f039e1a04"
+        },
+        {
+          "path": "src/Components/Endpoints/src/FormMapping/Converters/CollectionAdapters/ImmutableHashSetBufferAdapter.cs",
+          "bytes": 1398,
+          "sha256": "68198c9f8a7e03e7dba30da54931265e999cd683d1e4671642ded0e95ca82bbe"
+        },
+        {
+          "path": "src/Components/Server/src/ProtectedBrowserStorage/ProtectedBrowserStorageResult.cs",
+          "bytes": 744,
+          "sha256": "893f19aa6221784f5f449d5ff26d4f7f7289466a8e1b34f1bcd400435e4235f9"
+        },
+        {
+          "path": "src/Components/WebAssembly/Samples/HostedBlazorWebassemblyApp/Client/Program.cs",
+          "bytes": 985,
+          "sha256": "ddc7662a8de35b056966f96760fc59d7fee055a2affbf3c41f6a7d947aa8d0b8"
+        },
+        {
+          "path": "src/Components/test/E2ETest/ServerExecutionTests/ServerExecutionTestExtensions.cs",
+          "bytes": 1010,
+          "sha256": "b9e04b174ee8d175532ac5893010c3c3d1c6cebddf264f7ca18b0526a3bb3a44"
+        },
+        {
+          "path": "src/DataProtection/Cryptography.Internal/src/SafeHandles/LocalAllocHandle.cs",
+          "bytes": 783,
+          "sha256": "b5f2a557664f9751dc4a1872cfb0429aa54711693056a570c6ddfd29133d2107"
+        },
+        {
+          "path": "src/DataProtection/EntityFrameworkCore/src/IDataProtectionKeyContext.cs",
+          "bytes": 575,
+          "sha256": "ae1e7d0051edc9a0572ab60df62f6b82327b213e891d36b6a7b46c4bd4848c1c"
+        },
+        {
+          "path": "src/FileProviders/Embedded/test/ManifestEmbeddedFileProviderTests.cs",
+          "bytes": 16231,
+          "sha256": "cc1851427cbe15d2ecdd57409bf617d634f5287d007ebd76a8b8f20911802a7a"
+        },
+        {
+          "path": "src/Grpc/JsonTranscoding/src/Microsoft.AspNetCore.Grpc.Swagger/GrpcSwaggerGenOptionsExtensions.cs",
+          "bytes": 3438,
+          "sha256": "e0f61fd720a1f4494391ef466a3062130c3807a45308ef7ccb42f3dfc39b924a"
+        },
+        {
+          "path": "src/Hosting/Hosting/test/HostingEnvironmentExtensionsTests.cs",
+          "bytes": 2917,
+          "sha256": "63c4e7942c64caefffbed4ba312a087dc801d7c39446ea45d5c219878acbe1fc"
+        },
+        {
+          "path": "src/Http/Http.Abstractions/src/Extensions/MapWhenMiddleware.cs",
+          "bytes": 1778,
+          "sha256": "1c32fc4b49cc7e1cd173d3c64d7f9518b5116171abf600b01f81be6703297801"
+        },
+        {
+          "path": "src/Http/Http.Features/src/IHttpBodyControlFeature.cs",
+          "bytes": 629,
+          "sha256": "cccd17dbb33a6cc84e830d69a205e64a3c586b182586e66c4ff4e47969aebbbd"
+        },
+        {
+          "path": "src/Http/Http/test/Features/FormFeatureTests.cs",
+          "bytes": 27398,
+          "sha256": "d9e860bf466c4d13c02c2c727a64a0ac7eb7ef4b0c3ad0cbab3cf755367da5b0"
+        },
+        {
+          "path": "src/Http/Routing/src/Matching/NegotiationMatcherPolicy.cs",
+          "bytes": 21020,
+          "sha256": "06aaa16c670d742a7c1409bf1613ab06d483adbc0d27fbec719b978c6b5f9fe4"
+        },
+        {
+          "path": "src/Http/Routing/test/UnitTests/RouterMiddlewareTest.cs",
+          "bytes": 4694,
+          "sha256": "4248af3ff410b3220ad0e23748375c2495665e8ce737ccbdd6a02f72ff1fe748"
+        },
+        {
+          "path": "src/Identity/Extensions.Core/src/AuthenticatorTokenProvider.cs",
+          "bytes": 3254,
+          "sha256": "0a9bc25694d34a4ba0ff4698e804238b697a7fd2f1e3ee84c83f3474c9ec72a6"
+        },
+        {
+          "path": "src/Identity/samples/IdentitySample.PasskeyUI/Program.cs",
+          "bytes": 2896,
+          "sha256": "f2f0f9a225b6584ae0e11416284833944d88a949eb4770a8ace69da98d5905b3"
+        },
+        {
+          "path": "src/Logging.AzureAppServices/src/AzureFileLoggerOptions.cs",
+          "bytes": 2159,
+          "sha256": "c7e6f50486b59b986af686f145261c863ddf8e3e44cd4ebd922a8b8e6a1cd22c"
+        },
+        {
+          "path": "src/Middleware/HealthChecks/test/testassets/HealthChecksSample/DbContextHealthStartup.cs",
+          "bytes": 3297,
+          "sha256": "24df74e932c2bad812bcca3e2fe80621d7aabbb14b1b28ca60b3000146cba203"
+        },
+        {
+          "path": "src/Middleware/OutputCaching/test/TestUtils.cs",
+          "bytes": 14998,
+          "sha256": "2ebfca4ce795e42e638e2c2adc04ddcc5d9f2b98ede0fefc6b8e4f63e8b3d0ce"
+        },
+        {
+          "path": "src/Middleware/Rewrite/test/ApacheModRewrite/RuleRegexParserTest.cs",
+          "bytes": 843,
+          "sha256": "5f985121d844330b24e972a95d2c1101a193f9a5913444709e1d5f4450a212f3"
+        },
+        {
+          "path": "src/Mvc/Mvc.Abstractions/src/Filters/IAsyncExceptionFilter.cs",
+          "bytes": 716,
+          "sha256": "e6fe48c69215e766df812e59c14f8dfbf84ebbd6f90d4d6fd1a75e4717793e45"
+        },
+        {
+          "path": "src/Mvc/Mvc.ApiExplorer/src/DependencyInjection/EndpointMethodInfoApiExplorerServiceCollectionExtensions.cs",
+          "bytes": 1559,
+          "sha256": "06cff58531c0f6ed75abfe1eff81ca50d7f23d56df16e019f0d1f642d67e572d"
+        },
+        {
+          "path": "src/Mvc/Mvc.Core/src/HttpPutAttribute.cs",
+          "bytes": 1029,
+          "sha256": "189b316db10d5c9374a71f1758530a4ed73989e2aef659d04fad695eb7379b64"
+        },
+        {
+          "path": "src/Mvc/Mvc.Core/src/MvcOptions.cs",
+          "bytes": 17182,
+          "sha256": "72ac1f0f31103ca54db8db59a6719edbeac1eb89478b90faa54ee06cbdeaea06"
+        },
+        {
+          "path": "src/Mvc/Mvc.Core/test/ModelBinding/Binders/BodyModelBinderTests.cs",
+          "bytes": 37045,
+          "sha256": "ba7912354d7b6a033c867d58f49d35e7002fd6aacf6bbf4043e67b99a527b1ab"
+        },
+        {
+          "path": "src/Mvc/Mvc.Formatters.Xml/src/SerializableErrorWrapperProviderFactory.cs",
+          "bytes": 1390,
+          "sha256": "745787477ca9dd6caa38f7183d17af8cb886d00ca95647b788fc5674f8286f17"
+        },
+        {
+          "path": "src/Mvc/Mvc.RazorPages/src/ApplicationModels/AutoValidateAntiforgeryPageApplicationModelProvider.cs",
+          "bytes": 1586,
+          "sha256": "4f68844f70d463db90caa0356ea9ccfea245f569ee54cd717f3bc47303f0814f"
+        },
+        {
+          "path": "src/Mvc/Mvc.TagHelpers/test/TextAreaTagHelperTest.cs",
+          "bytes": 10054,
+          "sha256": "e53407c603bfc6efd99be4bb5a5160871bb295b6fc1062237000ec2f34aab513"
+        },
+        {
+          "path": "src/Mvc/Mvc.ViewFeatures/test/Filters/SaveTempDataFilterTest.cs",
+          "bytes": 15522,
+          "sha256": "a3b55167421c477ebb5cbcf9bb20db8eef40a84dad4a0901fd55e0d064d6a9b2"
+        },
+        {
+          "path": "src/Mvc/test/Mvc.FunctionalTests/Infrastructure/MvcTestFixture.cs",
+          "bytes": 2818,
+          "sha256": "fb860654b2d921c706889d03213a595427758ee39e98e3b528c403743648a15d"
+        },
+        {
+          "path": "src/Mvc/test/WebSites/BasicWebSite/Controllers/ContentNegotiation/ProducesContentOnClassController.cs",
+          "bytes": 1675,
+          "sha256": "c36fbaf862c4533098e89eec55bddf1f197dd40ab3c4b44e0593404dc29a91ef"
+        },
+        {
+          "path": "src/Mvc/test/WebSites/RazorPagesWebSite/Components/ViewDataViewComponent.cs",
+          "bytes": 343,
+          "sha256": "b0ef2b11258f31d04389a2cf2baaac9601f697fcb766f818f127ca18671cb0e1"
+        },
+        {
+          "path": "src/Mvc/test/WebSites/VersioningWebSite/Controllers/ItemsController.cs",
+          "bytes": 1099,
+          "sha256": "8ca9e35e6e3ce8e61ffd59d196affffad03a16ad6a3ff9da3d5b60b1ecdae5d9"
+        },
+        {
+          "path": "src/ProjectTemplates/Web.ProjectTemplates/content/EmptyWeb-CSharp/Program.Main.cs",
+          "bytes": 277,
+          "sha256": "bf9ce7f5d46e094cd9a9a3e4e28496b424b8470249edb0e409b3e7d76a780ed5"
+        },
+        {
+          "path": "src/Security/Authentication/JwtBearer/src/JwtBearerOptions.cs",
+          "bytes": 9032,
+          "sha256": "a65ed49a1c929425467ca8790de5e80a4c688a19dc14e06109a6774044763798"
+        },
+        {
+          "path": "src/Security/Authorization/test/AssertionRequirementsTests.cs",
+          "bytes": 626,
+          "sha256": "ab1a4dfc4a8858a0b65202a825815840cb444dc5352d11e92d17f4044db50b09"
+        },
+        {
+          "path": "src/Servers/HttpSys/src/HttpSysOptions.cs",
+          "bytes": 11346,
+          "sha256": "8756ed335487a5f766e5d92c44245e303d2d08974598a274c83926dc52192efc"
+        },
+        {
+          "path": "src/Servers/IIS/IIS/test/IISExpress.FunctionalTests/InProcess/AuthenticationTests.cs",
+          "bytes": 3136,
+          "sha256": "089288707f4baaf819eb1ecfabc65cd5855790037bd432c34429ae2c25ac3367"
+        },
+        {
+          "path": "src/Servers/Kestrel/Core/src/Internal/Http/HttpHeaders.Generated.cs",
+          "bytes": 672523,
+          "sha256": "3f613b3c7390ef20a944af03f685e4bf5ef5b0dd13e809bbf6280389001b4370"
+        },
+        {
+          "path": "src/Servers/Kestrel/Core/src/Internal/Infrastructure/TransportManager.cs",
+          "bytes": 10338,
+          "sha256": "4421fdc4c7391fedc581d8b8abdf380f1209f874c389e0416ee1d4d6120faa68"
+        },
+        {
+          "path": "src/Servers/Kestrel/shared/HPackHeaderWriter.cs",
+          "bytes": 8050,
+          "sha256": "547b7b63da24773a4672b537c9c168a275616c3ef37699fa1f1259b9cd683254"
+        },
+        {
+          "path": "src/Servers/Kestrel/test/InMemory.FunctionalTests/Http2/Http2StreamTests.cs",
+          "bytes": 256097,
+          "sha256": "74f63725835ee53fce2aff5cb840af3f69cabe64b05ab5c73a32b93a54f95492"
+        },
+        {
+          "path": "src/Shared/Debugger/DictionaryItemDebugView.cs",
+          "bytes": 903,
+          "sha256": "eea89821814168e2598e9f59d2128dd5ff70b5078aee348e2f0aa09feb16a543"
+        },
+        {
+          "path": "src/Shared/runtime/Http3/Http3StreamType.cs",
+          "bytes": 1421,
+          "sha256": "7d083c354d3c69ef409259618c7c6a2a9472f751d38ea352296cf92cbb47f8ec"
+        },
+        {
+          "path": "src/SignalR/common/Shared/DuplexPipe.cs",
+          "bytes": 1282,
+          "sha256": "092e8c39ee2bc2c1389f61409598d02b63b54208d586187aaf664eec366faf49"
+        },
+        {
+          "path": "src/SignalR/server/Core/src/Internal/HubContext`T.cs",
+          "bytes": 934,
+          "sha256": "fb20b900860a13f42899081efaaebc4006a19edb37bf3d9d1aa77d848fc9a501"
+        },
+        {
+          "path": "src/Testing/test/TestTestOutputHelper.cs",
+          "bytes": 902,
+          "sha256": "718e4bc16e491f4353d04bb5ce38bfa49a60b8a6fe97a408e903c03d867c0b3a"
+        },
+        {
+          "path": "src/WebEncoders/test/HtmlTestEncoderTest.cs",
+          "bytes": 674,
+          "sha256": "1cdb1d1d035e980a0a2f9d9987e8b21ee3f8e9007e15fd5affb54031cf348619"
+        }
+      ],
+      "analyzed_files": 50,
+      "partial_files": [],
+      "parse_count": 50,
+      "status": "complete",
+      "observations": {
+        "classes": 80,
+        "constructors": 39,
+        "enums": 3,
+        "error_nodes": 0,
+        "imports": 203,
+        "interfaces": 5,
+        "lambdas": 317,
+        "local_functions": 3,
+        "methods": 425,
+        "missing_nodes": 0,
+        "properties": 430,
+        "records": 0,
+        "structs": 9,
+        "syntax_nodes": 239529
+      },
+      "structural_report_sha256": "015625d7c40bb82f056bcfe5ab2a4166df15bdc5d43cbb468ff4c728558b2b74",
+      "validation_wall_seconds": 1.473296208307147
+    }
+  ],
+  "method": "Sampled tracked working files; explicit attributes include generated/vendor samples. Compare each production result with a separate direct worker invocation. Repeat production output with 1 and 8 workers. No build execution or network. This validates integration, not independent correctness of BCA metrics.",
+  "passed": true
+}

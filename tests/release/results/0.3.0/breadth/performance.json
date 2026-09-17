@@ -1,0 +1,715 @@
+{
+  "schema_version": "1.0.0",
+  "started_at_utc": "2026-09-17T13:03:41.255862+00:00",
+  "binaries": {
+    "baseline": {
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+      "sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059"
+    },
+    "candidate": {
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+      "sha256": "ff0d723411657a61dc4385c84fc011c1392ce7696066fc13f1c663b1c3967ade"
+    }
+  },
+  "source_provenance": {
+    "commit": "a43d36b702345155208854ae7071b3c1616da452",
+    "status": " M .github/workflows/structural-worker.yml\n M CHANGELOG.md\n M README.md\n M docs/STRUCTURE.md\n M internal/cli/cli.go\n M pkg/profile/structure.go\n M pkg/scanner/structure.go\n M pkg/scanner/structure_integration_test.go\n M pkg/structure/structure.go\n M pkg/structure/structure_test.go\n M prototypes/structural/DEPENDENCIES.md\n M prototypes/structural/Dockerfile\n M prototypes/structural/README.md\n M prototypes/structural/tests/validate.py\n M prototypes/structural/worker/Cargo.lock\n M prototypes/structural/worker/Cargo.toml\n M prototypes/structural/worker/src/main.rs\n M schema/profile.schema.json\n M schema/projects_test.go\n M scripts/structural_worker_release.py\n M tests/release/results/0.3.0/README.md\n?? docs/CAPABILITIES.md\n?? pkg/structure/capabilities.go\n?? tests/structural_breadth/\n",
+    "build_inputs_sha256": "39278c825b4176cc69eef386d052c636b00bcce60049485c6867c5e55d990b2b",
+    "build_input_files": 344,
+    "build_input_rule": "*.go, *.mod, *.sum and embedded MIME database; prototypes excluded; path plus SHA-256 bytes in lexical order"
+  },
+  "harnesses": {
+    "tests/performance_v030/run.py": "605ab686667fac6258fdff80a0820283fc4a15c93cdcabdeb8830a95246d8b71",
+    "tests/compatibility_v030/run.py": "95e8a5e542be2a6254949d8473b03bea157ca07ab7e71900a88ec16cbb9934da",
+    "tests/metrics/compare_language.py": "4cca455978472b172baffe1795c958c6d5ae2c52538186820d8e830e80af687a"
+  },
+  "environment": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "cpu_count": 10,
+    "load_average_start": [
+      2.1474609375,
+      2.46435546875,
+      2.2734375
+    ],
+    "load_average_finish": [
+      3.81298828125,
+      3.013671875,
+      2.52099609375
+    ]
+  },
+  "methodology": {
+    "runs": 3,
+    "warmups": 1,
+    "cache": "warm; no OS cache flush",
+    "order": "alternating forward and reverse command order",
+    "wall": "perf_counter around system time launcher; target stdout discarded during timing",
+    "memory": "system time peak child RSS, normalized to bytes",
+    "tail_limitation": "nearest-rank p95 from three runs is the observed maximum, not a reliable tail estimate",
+    "scope": "language stdout/stderr exact comparison before timing; project mode performs additional work",
+    "isolation": "no heavy concurrent builds or tests requested; host not exclusively reserved"
+  },
+  "projects": [
+    {
+      "name": "spring-framework",
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "source": "git",
+      "commands": {
+        "baseline": [
+          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+        ],
+        "candidate": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+        ],
+        "projects": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "analyze",
+          "projects",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+        ]
+      },
+      "language_match": true,
+      "language_stdout_sha256": "589c067e9195386d067e7e579edf6de380a26f1b6eda5b2c59db4de21fc4fd3d",
+      "language_bytes": 52252371,
+      "projects_stdout_sha256": "7952f0ef14e2eef41c843af63ec81cb6892851e1dc1c125cb749ecf61e2a98ed",
+      "projects_stderr": "",
+      "inventory": {
+        "status": "partial",
+        "project_roots": 3,
+        "distinct_project_directories": 3,
+        "project_kinds": {
+          "gradle": 2,
+          "npm": 1
+        },
+        "observed_manifests": 8,
+        "configurations": 5,
+        "references": 27,
+        "missing_reference_targets": 0,
+        "unresolved_reference_targets": 0,
+        "diagnostics": 0,
+        "omitted_files": 1,
+        "selected_files": 11347,
+        "selected_bytes": 60747942,
+        "unassigned": {
+          "files": 0,
+          "bytes": 0
+        },
+        "ambiguous": {
+          "files": 0,
+          "bytes": 0
+        },
+        "composition": [
+          {
+            "name": "binary",
+            "basis": "content-prefix",
+            "files": 43,
+            "bytes": 1064559
+          },
+          {
+            "name": "configuration",
+            "basis": "manifest-name",
+            "files": 7,
+            "bytes": 7075
+          },
+          {
+            "name": "data",
+            "basis": "detected-language-type",
+            "files": 903,
+            "bytes": 1498633
+          },
+          {
+            "name": "documentation",
+            "basis": "linguist-rules-and-attributes",
+            "files": 498,
+            "bytes": 3980186
+          },
+          {
+            "name": "generated",
+            "basis": "linguist-rules-and-attributes",
+            "files": 18,
+            "bytes": 139827
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 5371,
+            "bytes": 27879338
+          },
+          {
+            "name": "test",
+            "basis": "path-convention",
+            "files": 3974,
+            "bytes": 24373033
+          },
+          {
+            "name": "unknown",
+            "basis": "not-established",
+            "files": 118,
+            "bytes": 144593
+          },
+          {
+            "name": "vendored",
+            "basis": "linguist-rules-and-attributes",
+            "files": 415,
+            "bytes": 1660698
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "git_commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "worktree_status": "",
+      "samples": {
+        "baseline": [
+          {
+            "seconds": 1.5480089588090777,
+            "user_seconds": 2.46,
+            "system_seconds": 0.63,
+            "peak_rss_bytes": 175341568,
+            "cpu_percent": 199.61124788174448
+          },
+          {
+            "seconds": 1.5467847492545843,
+            "user_seconds": 2.48,
+            "system_seconds": 0.68,
+            "peak_rss_bytes": 167772160,
+            "cpu_percent": 204.2947476384704
+          },
+          {
+            "seconds": 1.5566652081906796,
+            "user_seconds": 2.47,
+            "system_seconds": 0.63,
+            "peak_rss_bytes": 166166528,
+            "cpu_percent": 199.14365553291623
+          }
+        ],
+        "candidate": [
+          {
+            "seconds": 1.550734749995172,
+            "user_seconds": 2.42,
+            "system_seconds": 0.63,
+            "peak_rss_bytes": 167837696,
+            "cpu_percent": 196.68096042920916
+          },
+          {
+            "seconds": 1.5289711244404316,
+            "user_seconds": 2.4,
+            "system_seconds": 0.61,
+            "peak_rss_bytes": 174620672,
+            "cpu_percent": 196.8644110987767
+          },
+          {
+            "seconds": 1.5132232923060656,
+            "user_seconds": 2.38,
+            "system_seconds": 0.6,
+            "peak_rss_bytes": 167952384,
+            "cpu_percent": 196.93061923852963
+          }
+        ],
+        "projects": [
+          {
+            "seconds": 1.5638963328674436,
+            "user_seconds": 2.46,
+            "system_seconds": 0.64,
+            "peak_rss_bytes": 173850624,
+            "cpu_percent": 198.22285754171898
+          },
+          {
+            "seconds": 1.5133328335359693,
+            "user_seconds": 2.42,
+            "system_seconds": 0.6,
+            "peak_rss_bytes": 177209344,
+            "cpu_percent": 199.55953727268547
+          },
+          {
+            "seconds": 1.54274233430624,
+            "user_seconds": 2.45,
+            "system_seconds": 0.63,
+            "peak_rss_bytes": 179437568,
+            "cpu_percent": 199.64448576469857
+          }
+        ]
+      },
+      "summary": {
+        "baseline": {
+          "runs": 3,
+          "median_seconds": 1.5480089588090777,
+          "p95_seconds": 1.5566652081906796,
+          "min_seconds": 1.5467847492545843,
+          "max_seconds": 1.5566652081906796,
+          "max_peak_rss_bytes": 175341568
+        },
+        "candidate": {
+          "runs": 3,
+          "median_seconds": 1.5289711244404316,
+          "p95_seconds": 1.550734749995172,
+          "min_seconds": 1.5132232923060656,
+          "max_seconds": 1.550734749995172,
+          "max_peak_rss_bytes": 174620672
+        },
+        "projects": {
+          "runs": 3,
+          "median_seconds": 1.54274233430624,
+          "p95_seconds": 1.5638963328674436,
+          "min_seconds": 1.5133328335359693,
+          "max_seconds": 1.5638963328674436,
+          "max_peak_rss_bytes": 179437568
+        }
+      },
+      "language_candidate_to_baseline_p95_ratio": 0.9961902802450371,
+      "projects_to_language_candidate_median_ratio": 1.0090068475759137
+    },
+    {
+      "name": "roslyn",
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "source": "git",
+      "commands": {
+        "baseline": [
+          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+        ],
+        "candidate": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+        ],
+        "projects": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "analyze",
+          "projects",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+        ]
+      },
+      "language_match": true,
+      "language_stdout_sha256": "145b80fcde3f6fe4edc4e69971b85e3d677382ced90cc5483e9089966d528a29",
+      "language_bytes": 333087915,
+      "projects_stdout_sha256": "a6be4c9d527198db18a9e5257d24acbe0ec07db0de2a5a5916341c587af77964",
+      "projects_stderr": "",
+      "inventory": {
+        "status": "partial",
+        "project_roots": 543,
+        "distinct_project_directories": 460,
+        "project_kinds": {
+          "solution": 35,
+          "dotnet": 508
+        },
+        "observed_manifests": 618,
+        "configurations": 75,
+        "references": 2676,
+        "missing_reference_targets": 49,
+        "unresolved_reference_targets": 225,
+        "diagnostics": 1,
+        "omitted_files": 0,
+        "selected_files": 35220,
+        "selected_bytes": 455563738,
+        "unassigned": {
+          "files": 3700,
+          "bytes": 40346319
+        },
+        "ambiguous": {
+          "files": 77,
+          "bytes": 170563
+        },
+        "composition": [
+          {
+            "name": "binary",
+            "basis": "content-prefix",
+            "files": 326,
+            "bytes": 14276867
+          },
+          {
+            "name": "configuration",
+            "basis": "manifest-name",
+            "files": 619,
+            "bytes": 1479692
+          },
+          {
+            "name": "data",
+            "basis": "detected-language-type",
+            "files": 766,
+            "bytes": 9945104
+          },
+          {
+            "name": "documentation",
+            "basis": "linguist-rules-and-attributes",
+            "files": 9581,
+            "bytes": 33458856
+          },
+          {
+            "name": "generated",
+            "basis": "linguist-rules-and-attributes",
+            "files": 1262,
+            "bytes": 50664568
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 16295,
+            "bytes": 126689103
+          },
+          {
+            "name": "test",
+            "basis": "path-convention",
+            "files": 6143,
+            "bytes": 206398812
+          },
+          {
+            "name": "unknown",
+            "basis": "not-established",
+            "files": 124,
+            "bytes": 10993984
+          },
+          {
+            "name": "vendored",
+            "basis": "linguist-rules-and-attributes",
+            "files": 104,
+            "bytes": 1656752
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "git_commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "worktree_status": "",
+      "samples": {
+        "baseline": [
+          {
+            "seconds": 6.1657469579949975,
+            "user_seconds": 9.47,
+            "system_seconds": 2.03,
+            "peak_rss_bytes": 359333888,
+            "cpu_percent": 186.5143035928224
+          },
+          {
+            "seconds": 6.203967542387545,
+            "user_seconds": 9.49,
+            "system_seconds": 2.05,
+            "peak_rss_bytes": 363544576,
+            "cpu_percent": 186.00999958744026
+          },
+          {
+            "seconds": 6.120182083919644,
+            "user_seconds": 9.48,
+            "system_seconds": 2.01,
+            "peak_rss_bytes": 373506048,
+            "cpu_percent": 187.73951236171848
+          }
+        ],
+        "candidate": [
+          {
+            "seconds": 6.094606249593198,
+            "user_seconds": 9.23,
+            "system_seconds": 1.95,
+            "peak_rss_bytes": 370900992,
+            "cpu_percent": 183.44089088193746
+          },
+          {
+            "seconds": 6.1294235829263926,
+            "user_seconds": 9.24,
+            "system_seconds": 1.97,
+            "peak_rss_bytes": 367591424,
+            "cpu_percent": 182.88832299379072
+          },
+          {
+            "seconds": 6.184278875589371,
+            "user_seconds": 9.31,
+            "system_seconds": 2.04,
+            "peak_rss_bytes": 361529344,
+            "cpu_percent": 183.52988648039147
+          }
+        ],
+        "projects": [
+          {
+            "seconds": 6.108712749555707,
+            "user_seconds": 9.37,
+            "system_seconds": 1.95,
+            "peak_rss_bytes": 373293056,
+            "cpu_percent": 185.3090898867902
+          },
+          {
+            "seconds": 6.137246542610228,
+            "user_seconds": 9.4,
+            "system_seconds": 1.96,
+            "peak_rss_bytes": 369655808,
+            "cpu_percent": 185.09929365113115
+          },
+          {
+            "seconds": 6.1398637080565095,
+            "user_seconds": 9.41,
+            "system_seconds": 1.97,
+            "peak_rss_bytes": 372146176,
+            "cpu_percent": 185.34613374345054
+          }
+        ]
+      },
+      "summary": {
+        "baseline": {
+          "runs": 3,
+          "median_seconds": 6.1657469579949975,
+          "p95_seconds": 6.203967542387545,
+          "min_seconds": 6.120182083919644,
+          "max_seconds": 6.203967542387545,
+          "max_peak_rss_bytes": 373506048
+        },
+        "candidate": {
+          "runs": 3,
+          "median_seconds": 6.1294235829263926,
+          "p95_seconds": 6.184278875589371,
+          "min_seconds": 6.094606249593198,
+          "max_seconds": 6.184278875589371,
+          "max_peak_rss_bytes": 370900992
+        },
+        "projects": {
+          "runs": 3,
+          "median_seconds": 6.137246542610228,
+          "p95_seconds": 6.1398637080565095,
+          "min_seconds": 6.108712749555707,
+          "max_seconds": 6.1398637080565095,
+          "max_peak_rss_bytes": 373293056
+        }
+      },
+      "language_candidate_to_baseline_p95_ratio": 0.9968264394254717,
+      "projects_to_language_candidate_median_ratio": 1.0012762961440007
+    },
+    {
+      "name": "aspnetcore",
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+      "source": "git",
+      "commands": {
+        "baseline": [
+          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+        ],
+        "candidate": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+        ],
+        "projects": [
+          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "analyze",
+          "projects",
+          "--json",
+          "--source",
+          "git",
+          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+        ]
+      },
+      "language_match": true,
+      "language_stdout_sha256": "5bfbf0e6316fa12aa5f585448e492d78a12e523bec9c9414fa6f7c5b86fb2b44",
+      "language_bytes": 67083586,
+      "projects_stdout_sha256": "0ae584595536b0ff5056017732dbfb2dcbf35f992622745dab2bbcc73868b234",
+      "projects_stderr": "",
+      "inventory": {
+        "status": "partial",
+        "project_roots": 626,
+        "distinct_project_directories": 621,
+        "project_kinds": {
+          "solution": 2,
+          "dotnet": 605,
+          "npm": 15,
+          "gradle": 4
+        },
+        "observed_manifests": 704,
+        "configurations": 78,
+        "references": 975,
+        "missing_reference_targets": 6,
+        "unresolved_reference_targets": 179,
+        "diagnostics": 1,
+        "omitted_files": 2,
+        "selected_files": 16515,
+        "selected_bytes": 173287549,
+        "unassigned": {
+          "files": 0,
+          "bytes": 0
+        },
+        "ambiguous": {
+          "files": 855,
+          "bytes": 49349999
+        },
+        "composition": [
+          {
+            "name": "binary",
+            "basis": "content-prefix",
+            "files": 101,
+            "bytes": 3281364
+          },
+          {
+            "name": "configuration",
+            "basis": "manifest-name",
+            "files": 703,
+            "bytes": 921374
+          },
+          {
+            "name": "data",
+            "basis": "detected-language-type",
+            "files": 1449,
+            "bytes": 5182865
+          },
+          {
+            "name": "documentation",
+            "basis": "linguist-rules-and-attributes",
+            "files": 704,
+            "bytes": 6586852
+          },
+          {
+            "name": "generated",
+            "basis": "linguist-rules-and-attributes",
+            "files": 39,
+            "bytes": 7841089
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 7732,
+            "bytes": 33387054
+          },
+          {
+            "name": "test",
+            "basis": "path-convention",
+            "files": 4959,
+            "bytes": 33696532
+          },
+          {
+            "name": "unknown",
+            "basis": "not-established",
+            "files": 183,
+            "bytes": 419714
+          },
+          {
+            "name": "vendored",
+            "basis": "linguist-rules-and-attributes",
+            "files": 645,
+            "bytes": 81970705
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "git_commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "worktree_status": "",
+      "samples": {
+        "baseline": [
+          {
+            "seconds": 2.1259290827438235,
+            "user_seconds": 3.09,
+            "system_seconds": 0.86,
+            "peak_rss_bytes": 224067584,
+            "cpu_percent": 185.80111782947836
+          },
+          {
+            "seconds": 2.1369666662067175,
+            "user_seconds": 3.17,
+            "system_seconds": 0.91,
+            "peak_rss_bytes": 228245504,
+            "cpu_percent": 190.92483118804648
+          },
+          {
+            "seconds": 2.0608771247789264,
+            "user_seconds": 3.08,
+            "system_seconds": 0.83,
+            "peak_rss_bytes": 228409344,
+            "cpu_percent": 189.7250424582898
+          }
+        ],
+        "candidate": [
+          {
+            "seconds": 2.0889987498521805,
+            "user_seconds": 3.05,
+            "system_seconds": 0.85,
+            "peak_rss_bytes": 213532672,
+            "cpu_percent": 186.69230894829246
+          },
+          {
+            "seconds": 2.1072671664878726,
+            "user_seconds": 3.1,
+            "system_seconds": 0.9,
+            "peak_rss_bytes": 211468288,
+            "cpu_percent": 189.819310223805
+          },
+          {
+            "seconds": 2.0393891241401434,
+            "user_seconds": 3.03,
+            "system_seconds": 0.82,
+            "peak_rss_bytes": 225017856,
+            "cpu_percent": 188.7820207741499
+          }
+        ],
+        "projects": [
+          {
+            "seconds": 2.0548590002581477,
+            "user_seconds": 3.1,
+            "system_seconds": 0.82,
+            "peak_rss_bytes": 227835904,
+            "cpu_percent": 190.76734703001708
+          },
+          {
+            "seconds": 2.0998703753575683,
+            "user_seconds": 3.13,
+            "system_seconds": 0.85,
+            "peak_rss_bytes": 235864064,
+            "cpu_percent": 189.53550879645516
+          },
+          {
+            "seconds": 2.204209417104721,
+            "user_seconds": 3.23,
+            "system_seconds": 0.98,
+            "peak_rss_bytes": 242679808,
+            "cpu_percent": 190.9981858951465
+          }
+        ]
+      },
+      "summary": {
+        "baseline": {
+          "runs": 3,
+          "median_seconds": 2.1259290827438235,
+          "p95_seconds": 2.1369666662067175,
+          "min_seconds": 2.0608771247789264,
+          "max_seconds": 2.1369666662067175,
+          "max_peak_rss_bytes": 228409344
+        },
+        "candidate": {
+          "runs": 3,
+          "median_seconds": 2.0889987498521805,
+          "p95_seconds": 2.1072671664878726,
+          "min_seconds": 2.0393891241401434,
+          "max_seconds": 2.1072671664878726,
+          "max_peak_rss_bytes": 225017856
+        },
+        "projects": {
+          "runs": 3,
+          "median_seconds": 2.0998703753575683,
+          "p95_seconds": 2.204209417104721,
+          "min_seconds": 2.0548590002581477,
+          "max_seconds": 2.204209417104721,
+          "max_peak_rss_bytes": 242679808
+        }
+      },
+      "language_candidate_to_baseline_p95_ratio": 0.9861020294848287,
+      "projects_to_language_candidate_median_ratio": 1.0052042278656974
+    }
+  ],
+  "passed": true,
+  "finished_at_utc": "2026-09-17T13:06:08.707105+00:00"
+}

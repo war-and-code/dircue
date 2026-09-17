@@ -1,0 +1,258 @@
+{
+  "schema_version": "1.0.0",
+  "started_at_utc": "2026-09-16T20:21:00.245635+00:00",
+  "candidate_sha256": "5d353a6dd824d2b0dbbed4705ee3d6871405b31a14ae187d5fd17d8917a5e48a",
+  "harness_sha256": "c22f3927e3b7f135603a51b4150314ce8c4ed7d35a848e0ea589b07f75a3e0ed",
+  "fixture_manifest_sha256": "d7922edd9cbb84976e6ce56afab21dc625e319ea1db1565f0f31f43e78342ff9",
+  "source_provenance": {
+    "commit": "f7a90b109036bb542c00f481e14e25aaa911b678",
+    "status": " M tests/compatibility_v030/results.json\n?? tests/performance_v030/results.json\n",
+    "build_inputs_sha256": "cd2c856b44eda27df1e28a2e952dc06bd847fe18bd99a36fe4c9d51c17b79f31",
+    "build_input_files": 342,
+    "build_input_rule": "*.go, *.mod, *.sum and embedded MIME database; prototypes excluded; path plus SHA-256 bytes in lexical order"
+  },
+  "environment": {
+    "platform": "Linux-5.15.49-linuxkit-pr-aarch64-with-glibc2.36",
+    "machine": "aarch64",
+    "cpu_count": 5,
+    "cgroups": {
+      "/sys/fs/cgroup/memory.max": "536870912",
+      "/sys/fs/cgroup/cpu.max": "200000 100000"
+    }
+  },
+  "methodology": {
+    "scope": "optional project mapping, no structural parsing or scc metrics requested",
+    "timing": "one diagnostic wall/CPU/RSS run per fixture; not a stable performance estimate",
+    "fixtures": "existing synthetic fixtures; current file sizes/allocated blocks checked, content hashes not reread",
+    "storage": "read-only fixture and source mounts; report output is the only writable mount",
+    "network": "Docker --network none required by invocation"
+  },
+  "cases": [
+    {
+      "name": "talend",
+      "variant": "generated-excluded",
+      "path": "/stress/acceptance-final/talend/flat-generated-excluded",
+      "logical_bytes": 2147484103,
+      "allocated_bytes": 2147504128,
+      "fixture_files": 8293,
+      "inventory": {
+        "status": "complete",
+        "project_roots": 1,
+        "distinct_project_directories": 1,
+        "project_kinds": {
+          "maven": 1
+        },
+        "observed_manifests": 1,
+        "configurations": 0,
+        "references": 0,
+        "missing_reference_targets": 0,
+        "unresolved_reference_targets": 0,
+        "diagnostics": 0,
+        "omitted_files": 0,
+        "selected_files": 8293,
+        "selected_bytes": 2147484103,
+        "unassigned": {
+          "files": 0,
+          "bytes": 0
+        },
+        "ambiguous": {
+          "files": 0,
+          "bytes": 0
+        },
+        "composition": [
+          {
+            "name": "binary",
+            "basis": "content-prefix",
+            "files": 96,
+            "bytes": 201326592
+          },
+          {
+            "name": "configuration",
+            "basis": "manifest-name",
+            "files": 1,
+            "bytes": 131
+          },
+          {
+            "name": "data",
+            "basis": "detected-language-type",
+            "files": 6144,
+            "bytes": 1140850688
+          },
+          {
+            "name": "generated",
+            "basis": "linguist-rules-and-attributes",
+            "files": 2048,
+            "bytes": 805306368
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 3,
+            "bytes": 250
+          },
+          {
+            "name": "vendored",
+            "basis": "linguist-rules-and-attributes",
+            "files": 1,
+            "bytes": 74
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "languages": {
+        "Java": 207,
+        "Shell": 43
+      },
+      "language_mode_agreement": true,
+      "structure_absent": true,
+      "metrics_absent": true,
+      "stderr": "",
+      "sample": {
+        "seconds": 7.598826627945527,
+        "user_seconds": 12.77,
+        "system_seconds": 1.23,
+        "peak_rss_bytes": 32202752,
+        "cpu_percent": 184.23897116580403
+      },
+      "artifact": "stress-artifacts/talend.json.gz",
+      "artifact_sha256": "2e97170f21ace4c7e07aff1fae8c1f91d403892f8b709e2059a395d6be87e4bc",
+      "stdout_sha256": "64f607c53a277c5671d052a7aba70c113d7f07ebb7906506374fbbabb77b87fd"
+    },
+    {
+      "name": "xml-log",
+      "variant": "default",
+      "path": "/stress/acceptance-final/xml-log/flat-default",
+      "logical_bytes": 1153433745,
+      "allocated_bytes": 1153449984,
+      "fixture_files": 3,
+      "inventory": {
+        "status": "complete",
+        "project_roots": 0,
+        "distinct_project_directories": 0,
+        "project_kinds": {},
+        "observed_manifests": 0,
+        "configurations": 0,
+        "references": 0,
+        "missing_reference_targets": 0,
+        "unresolved_reference_targets": 0,
+        "diagnostics": 0,
+        "omitted_files": 0,
+        "selected_files": 3,
+        "selected_bytes": 1153433745,
+        "unassigned": {
+          "files": 3,
+          "bytes": 1153433745
+        },
+        "ambiguous": {
+          "files": 0,
+          "bytes": 0
+        },
+        "composition": [
+          {
+            "name": "data",
+            "basis": "detected-language-type",
+            "files": 1,
+            "bytes": 1153433601
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 1,
+            "bytes": 87
+          },
+          {
+            "name": "vendored",
+            "basis": "linguist-rules-and-attributes",
+            "files": 1,
+            "bytes": 57
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "languages": {
+        "C#": 87
+      },
+      "language_mode_agreement": true,
+      "structure_absent": true,
+      "metrics_absent": true,
+      "stderr": "",
+      "sample": {
+        "seconds": 0.02623437508009374,
+        "user_seconds": 0.01,
+        "system_seconds": 0.01,
+        "peak_rss_bytes": 19664896,
+        "cpu_percent": 76.23585444265339
+      },
+      "artifact": "stress-artifacts/xml-log.json.gz",
+      "artifact_sha256": "8a24eee55ce9dd783b210582dde164a113a8ded3da47e15d7f879e05f3f99ac7",
+      "stdout_sha256": "4c4f9601537a8f00de8c6395c8d546b0d3c18563bf13f96821acdce8c60d6ab5"
+    },
+    {
+      "name": "dotnet-graph",
+      "variant": "default",
+      "path": "/stress/acceptance-final/dotnet-graph/flat",
+      "logical_bytes": 3016486,
+      "allocated_bytes": 18886656,
+      "fixture_files": 4100,
+      "inventory": {
+        "status": "complete",
+        "project_roots": 2048,
+        "distinct_project_directories": 2048,
+        "project_kinds": {
+          "dotnet": 2048
+        },
+        "observed_manifests": 2051,
+        "configurations": 3,
+        "references": 4094,
+        "missing_reference_targets": 0,
+        "unresolved_reference_targets": 0,
+        "diagnostics": 0,
+        "omitted_files": 0,
+        "selected_files": 4100,
+        "selected_bytes": 3016486,
+        "unassigned": {
+          "files": 4,
+          "bytes": 2097394
+        },
+        "ambiguous": {
+          "files": 0,
+          "bytes": 0
+        },
+        "composition": [
+          {
+            "name": "configuration",
+            "basis": "manifest-name",
+            "files": 2051,
+            "bytes": 724946
+          },
+          {
+            "name": "source",
+            "basis": "detected-language-type",
+            "files": 2049,
+            "bytes": 2291540
+          }
+        ],
+        "count_invariants_passed": true
+      },
+      "languages": {
+        "C#": 2291540
+      },
+      "language_mode_agreement": true,
+      "structure_absent": true,
+      "metrics_absent": true,
+      "stderr": "",
+      "sample": {
+        "seconds": 0.3856673340778798,
+        "user_seconds": 0.47,
+        "system_seconds": 0.17,
+        "peak_rss_bytes": 42446848,
+        "cpu_percent": 165.94612596117915
+      },
+      "artifact": "stress-artifacts/dotnet-graph.json.gz",
+      "artifact_sha256": "dfb6b2ec6b550d60569b6d917ffc7bd56395466721acd25fc9b3f528dd558f6b",
+      "stdout_sha256": "0e366c59626a5fc4c29b3edd5607d2896a5ef84e28499e391850dc7d54bec8a9"
+    }
+  ],
+  "passed": true,
+  "finished_at_utc": "2026-09-16T20:21:30.510904+00:00"
+}

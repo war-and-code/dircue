@@ -1,0 +1,100 @@
+{
+  "binary_version": "0.3.0",
+  "go_rebuilt": false,
+  "packager_sha256": "f9005f1590b34ca78cdda8f5c07f13c679c573eb255c9e5ca9a4aeb4c9439534",
+  "release_provenance_sha256": "9a0456ddf2c129c60908aeef2c7b37bf0ed46315fd3855fb7faa00900ae41ec8",
+  "source_revision": "0f77a0e0d251f516cdf801beea1889461fb0b6fe",
+  "version": "0.3.0",
+  "wheels": [
+    {
+      "binary_sha256": "340074b1860d61ce9f41f270045dafd21af9b8e5d08ecf6e9d7ee7a8bc126a13",
+      "binary_verification": {
+        "format": "ELF64",
+        "machine": 62,
+        "static": true
+      },
+      "name": "dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl",
+      "platform": "manylinux_2_17_x86_64",
+      "sha256": "e6800e5658079664cedcb5c364ca66ac418dcd29ce67dd91e02e8ad725ae06ca",
+      "source_archive": "dircue_0.3.0_linux_amd64.tar.gz",
+      "source_archive_sha256": "ba060ccccd7abcf0d181537606ff137bf3e49293fcb2af69056c2f5292813744"
+    },
+    {
+      "binary_sha256": "340074b1860d61ce9f41f270045dafd21af9b8e5d08ecf6e9d7ee7a8bc126a13",
+      "binary_verification": {
+        "format": "ELF64",
+        "machine": 62,
+        "static": true
+      },
+      "name": "dircue-0.3.0-py3-none-musllinux_1_2_x86_64.whl",
+      "platform": "musllinux_1_2_x86_64",
+      "sha256": "377ce8000c7347db49d619b8509a674dee69127bfbff42a5fe0ddc992406dd98",
+      "source_archive": "dircue_0.3.0_linux_amd64.tar.gz",
+      "source_archive_sha256": "ba060ccccd7abcf0d181537606ff137bf3e49293fcb2af69056c2f5292813744"
+    },
+    {
+      "binary_sha256": "1c7b7d1bb841ab19f5e792392840002762790d5e5dc807d89736b3fc98a3401b",
+      "binary_verification": {
+        "format": "ELF64",
+        "machine": 183,
+        "static": true
+      },
+      "name": "dircue-0.3.0-py3-none-manylinux_2_17_aarch64.whl",
+      "platform": "manylinux_2_17_aarch64",
+      "sha256": "9b6f521f6d496efa672ee03891a0aa63229dac06e8ae6fd3260b7745fa438a58",
+      "source_archive": "dircue_0.3.0_linux_arm64.tar.gz",
+      "source_archive_sha256": "ddd0f1593c5180dbae1f659c1951537c0727c0d592037a055fa05ec6bfa4ca9e"
+    },
+    {
+      "binary_sha256": "1c7b7d1bb841ab19f5e792392840002762790d5e5dc807d89736b3fc98a3401b",
+      "binary_verification": {
+        "format": "ELF64",
+        "machine": 183,
+        "static": true
+      },
+      "name": "dircue-0.3.0-py3-none-musllinux_1_2_aarch64.whl",
+      "platform": "musllinux_1_2_aarch64",
+      "sha256": "0c35875cba45c7fe4e892260b46df43b9c0ca2f5f2428aed276521e920e4c821",
+      "source_archive": "dircue_0.3.0_linux_arm64.tar.gz",
+      "source_archive_sha256": "ddd0f1593c5180dbae1f659c1951537c0727c0d592037a055fa05ec6bfa4ca9e"
+    },
+    {
+      "binary_sha256": "cd3c2a280e917aa82120f930d2c92b67b19610ca7272e8e6b79517627175a992",
+      "binary_verification": {
+        "format": "Mach-O64",
+        "machine": 16777223,
+        "minimum_macos": "12.0"
+      },
+      "name": "dircue-0.3.0-py3-none-macosx_12_0_x86_64.whl",
+      "platform": "macosx_12_0_x86_64",
+      "sha256": "eb22f4397bb03637d17b90313f62be1f8b8f5afcf7d2b702e033f9edc8c2de4d",
+      "source_archive": "dircue_0.3.0_darwin_amd64.tar.gz",
+      "source_archive_sha256": "649dc07b4f3fa0c70b61dd4f0a5507522fddee018289174bcda912b240b04850"
+    },
+    {
+      "binary_sha256": "ff0d723411657a61dc4385c84fc011c1392ce7696066fc13f1c663b1c3967ade",
+      "binary_verification": {
+        "format": "Mach-O64",
+        "machine": 16777228,
+        "minimum_macos": "12.0"
+      },
+      "name": "dircue-0.3.0-py3-none-macosx_12_0_arm64.whl",
+      "platform": "macosx_12_0_arm64",
+      "sha256": "dd9fbdf5346443e190ae3576a7faf499b907288f00a4146c6700d8aa09909840",
+      "source_archive": "dircue_0.3.0_darwin_arm64.tar.gz",
+      "source_archive_sha256": "4758e0a0a02852c6050479a4bc8f907a9d765cc5a7b6b65751d4218bccdbad97"
+    },
+    {
+      "binary_sha256": "03d70383f3e7fa27d3da9262f6ff129e2563491a5177738046bf182ee4da88a7",
+      "binary_verification": {
+        "format": "PE",
+        "machine": 34404
+      },
+      "name": "dircue-0.3.0-py3-none-win_amd64.whl",
+      "platform": "win_amd64",
+      "sha256": "16fc9293b60d4c60b614e7092176b399581ff4c1d779056e725391f648c799be",
+      "source_archive": "dircue_0.3.0_windows_amd64.zip",
+      "source_archive_sha256": "08d8acaebd463d233315628054f043bc95a39409c08fa2e46fef35a1ed0f49e5"
+    }
+  ]
+}

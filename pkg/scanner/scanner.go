@@ -17,6 +17,8 @@ import (
 	"sync"
 
 	"dircue/pkg/profile"
+	"dircue/pkg/projects"
+	"dircue/pkg/structure"
 	enry "github.com/go-enry/go-enry/v2"
 )
 
@@ -35,6 +37,10 @@ type Options struct {
 	IncludeStrategies bool
 	Detectors         []profile.Detector
 	Metrics           *MetricsOptions
+	Projects          bool
+	Structure         *structure.Client
+	StructureFiles    bool
+	structureGate     chan struct{}
 }
 
 type job struct {
@@ -44,14 +50,19 @@ type job struct {
 	read  func(int64) ([]byte, int64, error)
 }
 type result struct {
-	path     string
-	size     int64
-	language string
-	strategy string
-	skipped  bool
-	warnings []profile.Warning
-	findings []profile.Finding
-	metrics  *profile.FileMetrics
+	path            string
+	size            int64
+	language        string
+	strategy        string
+	skipped         bool
+	warnings        []profile.Warning
+	findings        []profile.Finding
+	metrics         *profile.FileMetrics
+	projectDocument projects.Document
+	inventorySize   int64
+	inventoried     bool
+	role            string
+	structural      *structure.File
 }
 
 // Scan returns a deterministic report. A zero worker count uses GOMAXPROCS,
@@ -60,6 +71,9 @@ type result struct {
 // fatal; detector failures become warnings and preserve partial findings.
 // An explicit MaxFileBytes limit skips larger files entirely.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.Structure != nil {
+		opts.structureGate = make(chan struct{}, 1)
+	}
 	if opts.Metrics != nil {
 		normalized, err := normalizeMetricsOptions(*opts.Metrics)
 		if err != nil {
@@ -129,11 +143,24 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		if exceeded {
 			report := newReport(abs)
+			if opts.Projects {
+				report.Projects = projects.New("directory", "").Skip("tree_size_limit")
+				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
+			if opts.Structure != nil {
+				report.Structure = newStructureReport(opts, snapshot)
+				report.Structure.Status = "skipped"
+				report.Structure.Omissions["tree_size_limit"] = 1
+				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
 			if opts.Metrics != nil {
 				report.SchemaVersion = profile.MetricsSchemaVersion
 				report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
 				report.Metrics.Status = "skipped"
 				report.Metrics.Skipped = append(report.Metrics.Skipped, profile.MetricSkip{Reason: "tree_size_limit"})
+			}
+			if opts.Projects || opts.Structure != nil {
+				report.SchemaVersion = profile.ExpandedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
 			return report, nil
@@ -283,6 +310,20 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
 		metrics = newMetricsAccumulator(report.Metrics)
 	}
+	var projectCollector *projects.Collector
+	if opts.Projects {
+		source, tree := "directory", ""
+		if snapshot != nil {
+			source = "git"
+			tree = snapshot.tree.Hash.String()
+		}
+		projectCollector = projects.New(source, tree)
+		report.SchemaVersion = profile.ExpandedSchemaVersion
+	}
+	if opts.Structure != nil {
+		report.Structure = newStructureReport(opts, snapshot)
+		report.SchemaVersion = profile.ExpandedSchemaVersion
+	}
 	languages := make(map[string]*profile.Language)
 	type findingKey struct{ kind, name, root, detector string }
 	findings := make(map[findingKey]*profile.Finding)
@@ -290,6 +331,16 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if projectCollector != nil {
+			if value.inventoried {
+				projectCollector.Add(value.path, value.inventorySize, value.role, value.projectDocument)
+			} else if value.path != "" {
+				projectCollector.Omit()
+			}
+		}
+		if report.Structure != nil {
+			addStructure(report.Structure, value)
+		}
 		if metrics != nil {
 			metrics.add(value)
 		}
@@ -349,6 +400,17 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if metrics != nil {
 		metrics.finish()
 	}
+	if projectCollector != nil {
+		report.Projects = projectCollector.Finish()
+		for _, w := range report.Warnings {
+			if w.Code == "tree_size_limit" {
+				report.Projects = projectCollector.Skip("tree_size_limit")
+			}
+		}
+	}
+	if report.Structure != nil {
+		finishStructure(report.Structure)
+	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {
 			language.Percentage = 100 * float64(language.Bytes) / float64(report.Summary.LanguageBytes)
@@ -405,12 +467,23 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	return report, nil
 }
 
-func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
 	value := result{path: item.path}
+	if opts.Structure != nil {
+		value.size = item.size
+	}
+	if opts.Projects {
+		value.inventoried = true
+		value.inventorySize = item.size
+		value.role = "unknown"
+	}
 	if opts.Metrics != nil {
 		value.metrics = &profile.FileMetrics{Path: item.path, Status: "skipped", Reason: "outside_scope"}
 	}
 	vendored := overrideBool(item.attrs.vendored, enry.IsVendor(item.path))
+	if opts.Projects && vendored {
+		value.role = "vendored"
+	}
 	if vendored && !(item.attrs.vendored == nil && isCIHookPath(item.path)) {
 		value.skipped = true
 		if opts.Metrics == nil || opts.Metrics.Scope != "text" {
@@ -428,6 +501,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	limit := ClassificationBytes
 	if len(opts.Detectors) > 0 {
 		limit = maxAttributesBytes
+	}
+	if opts.Projects && projects.IsManifest(item.path) {
+		limit = max(limit, projects.MaxManifestBytes)
 	}
 	if opts.MaxFileBytes > 0 {
 		limit = min(limit, opts.MaxFileBytes)
@@ -449,6 +525,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	if err != nil {
 		return result{}, err
 	}
+	if opts.Projects {
+		value.inventorySize = actualSize
+	}
 	if tooLarge {
 		value.skipped = true
 		if value.metrics != nil {
@@ -463,6 +542,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	classContent := content[:min(int64(len(content)), ClassificationBytes)]
 	// LazyBlob's explicit language override bypasses Linguist.detect's binary
 	// and empty-file checks. Preserve that behavior for attributed content.
+	if opts.Projects && isBinaryContent(classContent) {
+		value.role = "binary"
+	}
 	if isBinaryContent(classContent) && (!item.attrs.languageSet || item.attrs.language == "") {
 		if value.metrics != nil {
 			value.metrics.Reason = "binary"
@@ -480,6 +562,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	documentation := overrideBool(item.attrs.documentation, enry.IsDocumentation(item.path))
 	detectable := !vendored && !generated && !documentation && !(item.attrs.lfsTracked && isLFSPointer(classContent)) && overrideBool(item.attrs.detectable, typ == enry.Programming || typ == enry.Markup)
 	value.size = actualSize
+	if opts.Projects {
+		value.role = contentRole(item.path, language, vendored, generated, documentation)
+	}
 	if detectable {
 		value.language = enry.GetLanguageGroup(language)
 		if value.language == "" {
@@ -488,6 +573,11 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	}
 	if opts.Metrics != nil {
 		if err := countFileMetrics(ctx, root, item, opts, &value, language, content, actualSize, detectable && language != ""); err != nil {
+			return result{}, err
+		}
+	}
+	if opts.Structure != nil {
+		if err := countStructure(ctx, root, item, opts, &value, language, content, actualSize, detectable && language != ""); err != nil {
 			return result{}, err
 		}
 	}

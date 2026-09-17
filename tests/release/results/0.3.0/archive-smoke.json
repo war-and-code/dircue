@@ -1,0 +1,428 @@
+{
+  "status": "pass",
+  "timestamp_utc": "2026-09-16T20:33:48.394100+00:00",
+  "host": "macOS-26.5.2-arm64-arm-64bit",
+  "targets": [
+    {
+      "target": "darwin/arm64",
+      "passed": true,
+      "checks": 8,
+      "binary_sha256": "61a4cd8da957f0ac4c43c1485eefa016175bbd383cd11459b39c69a08202e7af",
+      "execution": "native"
+    },
+    {
+      "target": "darwin/amd64",
+      "passed": true,
+      "checks": 8,
+      "binary_sha256": "614e8c1e1f344451fba1399d3dc7edfe555b375b3b4a2cdac9dade3acfa5aac5",
+      "execution": "x86_64 binary on arm64 macOS via Rosetta"
+    },
+    {
+      "target": "linux/amd64",
+      "passed": true,
+      "checks": 8,
+      "binary_sha256": "c411412051bdc0cca4c977b0c2c825b3e6422e84e6b9800957e9e01dce597aa9",
+      "execution": "Docker amd64 emulation on arm64 host",
+      "image_id": "sha256:0d049036c2970d0f6a51bd34838b90d0db46bce1cccf84fee54d714c5cd92cdb"
+    }
+  ],
+  "checks": [
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "dircue 0.3.0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\"C#\":{\"size\":67,\"percentage\":\"41.36\"},\"Go\":{\"size\":28,\"percentage\":\"17.28\"},\"Java\":{\"size\":67,\"percentage\":\"41.36\"}}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "analyze",
+        "all",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "analyze",
+        "metrics",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.1.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "analyze",
+        "projects",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "analyze",
+        "all",
+        "--json",
+        "--projects",
+        "--metrics",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture/absent"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: inspect scan root: stat /Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture/absent: no such file or directory\n"
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_arm64/dircue",
+        "analyze",
+        "structure",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: structure requires an explicit worker path\n"
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "dircue 0.3.0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\"C#\":{\"size\":67,\"percentage\":\"41.36\"},\"Go\":{\"size\":28,\"percentage\":\"17.28\"},\"Java\":{\"size\":67,\"percentage\":\"41.36\"}}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "analyze",
+        "all",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "analyze",
+        "metrics",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.1.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "analyze",
+        "projects",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "analyze",
+        "all",
+        "--json",
+        "--projects",
+        "--metrics",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture/absent"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: inspect scan root: stat /Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture/absent: no such file or directory\n"
+    },
+    {
+      "command": [
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/extracted/darwin_amd64/dircue",
+        "analyze",
+        "structure",
+        "--json",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: structure requires an explicit worker path\n"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "--version"
+      ],
+      "exit": 0,
+      "stdout": "dircue 0.3.0\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "--json",
+        "/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\"C#\":{\"size\":67,\"percentage\":\"41.36\"},\"Go\":{\"size\":28,\"percentage\":\"17.28\"},\"Java\":{\"size\":67,\"percentage\":\"41.36\"}}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "analyze",
+        "all",
+        "--json",
+        "/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.0.0\",\n  \"root\": \"/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "analyze",
+        "metrics",
+        "--json",
+        "/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"schema_version\": \"1.1.0\",\n  \"root\": \"/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "analyze",
+        "projects",
+        "--json",
+        "/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [],\n  \"frameworks\": [],\n  \"layouts\": [],\n  \"warnings\": []\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "analyze",
+        "all",
+        "--json",
+        "--projects",
+        "--metrics",
+        "/fixture"
+      ],
+      "exit": 0,
+      "stdout": "{\n  \"projects\": {\n    \"status\": \"complete\",\n    \"source\": \"directory\",\n    \"attribution\": \"nearest-unique-project-directory\",\n    \"max_manifest_bytes\": 1048576,\n    \"projects\": [\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/App/App.csproj\",\n        \"root\": \"dotnet/App\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/App/App.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          },\n          {\n            \"kind\": \"target-framework\",\n            \"value\": \"net8.0\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"project-reference\",\n            \"value\": \"../Lib/Lib.csproj\",\n            \"target\": \"dotnet/Lib/Lib.csproj\",\n            \"state\": \"resolved\",\n            \"evidence\": \"dotnet/App/App.csproj\"\n          }\n        ],\n        \"files\": 2,\n        \"bytes\": 253\n      },\n      {\n        \"configuration_candidates\": [\n          \"global.json\"\n        ],\n        \"id\": \"dotnet/Lib/Lib.csproj\",\n        \"root\": \"dotnet/Lib\",\n        \"kind\": \"dotnet\",\n        \"evidence\": [\n          \"dotnet/Lib/Lib.csproj\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk\",\n            \"value\": \"Microsoft.NET.Sdk\",\n            \"state\": \"declared\",\n            \"evidence\": \"dotnet/Lib/Lib.csproj\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 1,\n        \"bytes\": 35\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"go.mod\",\n        \"root\": \".\",\n        \"kind\": \"go\",\n        \"evidence\": [\n          \"go.mod\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"manifest-discovery\",\n            \"value\": \"filename-only\",\n            \"state\": \"declared\",\n            \"evidence\": \"go.mod\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 4,\n        \"bytes\": 126\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/api/pom.xml\",\n        \"root\": \"java/api\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/api/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"api\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/api/pom.xml\"\n          }\n        ],\n        \"references\": [],\n        \"files\": 2,\n        \"bytes\": 156\n      },\n      {\n        \"configuration_candidates\": [],\n        \"id\": \"java/pom.xml\",\n        \"root\": \"java\",\n        \"kind\": \"maven\",\n        \"evidence\": [\n          \"java/pom.xml\"\n        ],\n        \"requirements\": [\n          {\n            \"kind\": \"maven-artifactId\",\n            \"value\": \"parent\",\n            \"state\": \"declared\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"references\": [\n          {\n            \"target_status\": \"present\",\n            \"kind\": \"module\",\n            \"value\": \"api\",\n            \"target\": \"java/api/pom.xml\",\n            \"state\": \"resolved\",\n            \"evidence\": \"java/pom.xml\"\n          }\n        ],\n        \"files\": 1,\n        \"bytes\": 181\n      }\n    ],\n    \"configurations\": [\n      {\n        \"path\": \"global.json\",\n        \"requirements\": [\n          {\n            \"kind\": \"dotnet-sdk-version\",\n            \"value\": \"8.0.100\",\n            \"state\": \"declared\",\n            \"evidence\": \"global.json\"\n          }\n        ],\n        \"references\": []\n      }\n    ],\n    \"composition\": [\n      {\n        \"name\": \"configuration\",\n        \"basis\": \"manifest-name\",\n        \"files\": 6,\n        \"bytes\": 558\n      },\n      {\n        \"name\": \"data\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 1,\n        \"bytes\": 31\n      },\n      {\n        \"name\": \"source\",\n        \"basis\": \"detected-language-type\",\n        \"files\": 3,\n        \"bytes\": 162\n      }\n    ],\n    \"unassigned\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"ambiguous\": {\n      \"files\": 0,\n      \"bytes\": 0\n    },\n    \"omitted_files\": 0,\n    \"diagnostics\": []\n  },\n  \"schema_version\": \"1.2.0\",\n  \"root\": \"/fixture\",\n  \"summary\": {\n    \"scanned_files\": 10,\n    \"analyzed_files\": 10,\n    \"skipped_files\": 0,\n    \"language_bytes\": 162\n  },\n  \"languages\": [\n    {\n      \"name\": \"C#\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Java\",\n      \"bytes\": 67,\n      \"percentage\": 41.358024691358025,\n      \"file_count\": 1\n    },\n    {\n      \"name\": \"Go\",\n      \"bytes\": 28,\n      \"percentage\": 17.28395061728395,\n      \"file_count\": 1\n    }\n  ],\n  \"ecosystems\": [\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"go\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"nuget\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"ecosystem\",\n      \"name\": \"maven\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"frameworks\": [],\n  \"layouts\": [\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \".\",\n      \"evidence\": [\n        \"go.mod\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/App\",\n      \"evidence\": [\n        \"dotnet/App/App.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"dotnet/Lib\",\n      \"evidence\": [\n        \"dotnet/Lib/Lib.csproj\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java\",\n      \"evidence\": [\n        \"java/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    },\n    {\n      \"kind\": \"layout\",\n      \"name\": \"project-root\",\n      \"root\": \"java/api\",\n      \"evidence\": [\n        \"java/api/pom.xml\"\n      ],\n      \"detector\": \"manifests\"\n    }\n  ],\n  \"warnings\": [],\n  \"metrics\": {\n    \"engine\": \"scc\",\n    \"engine_version\": \"4.1.0\",\n    \"status\": \"complete\",\n    \"scope\": \"source\",\n    \"max_file_bytes\": 16777216,\n    \"source\": \"directory\",\n    \"totals\": {\n      \"files\": 3,\n      \"bytes\": 162,\n      \"lines\": 4,\n      \"code\": 4,\n      \"comment\": 0,\n      \"blank\": 0,\n      \"complexity\": 2\n    },\n    \"languages\": [\n      {\n        \"language\": \"C#\",\n        \"grammar\": \"C#\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"language\": \"Go\",\n        \"grammar\": \"Go\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"language\": \"Java\",\n        \"grammar\": \"Java\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"directories\": [\n      {\n        \"path\": \".\",\n        \"files\": 1,\n        \"bytes\": 28,\n        \"lines\": 2,\n        \"code\": 2,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 0\n      },\n      {\n        \"path\": \"dotnet/App\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      },\n      {\n        \"path\": \"java/api\",\n        \"files\": 1,\n        \"bytes\": 67,\n        \"lines\": 1,\n        \"code\": 1,\n        \"comment\": 0,\n        \"blank\": 0,\n        \"complexity\": 1\n      }\n    ],\n    \"skipped\": [\n      {\n        \"reason\": \"outside_scope\",\n        \"files\": 7\n      }\n    ]\n  }\n}\n",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "--json",
+        "/absent"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: inspect scan root: stat /absent: no such file or directory\n"
+    },
+    {
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--platform",
+        "linux/amd64",
+        "--network",
+        "none",
+        "--read-only",
+        "--memory",
+        "256m",
+        "--cpus",
+        "2",
+        "-v",
+        "/Users/gingeleski/Workspace/dircue/.cache/v030/archive-audit/fixture:/fixture:ro",
+        "dircue:0.3.0-audit-amd64",
+        "analyze",
+        "structure",
+        "--json",
+        "/fixture"
+      ],
+      "exit": 1,
+      "stdout": "",
+      "stderr": "Error: structure requires an explicit worker path\n"
+    }
+  ],
+  "fixtures_sha256": {
+    "go.mod": "2815137faa98ad86d7ec583f5b84e0dbf232349304c0c975c0f29d9c9ad22b34",
+    "main.go": "15dfc4f51b4ed90211b566886f456d23d6984e1bb298460786c9740b01ac183e",
+    "global.json": "7a732eed0990d1a142b3cefb8130b6446b3d4c6a868d5b83604368cf30335787",
+    "dotnet/App/App.csproj": "a34dd976cce22bbed4cc0eee7881c6aee00e53e69b39dbb794a32031609fc6db",
+    "dotnet/Lib/Lib.csproj": "3e1a9f612f8cfcc2e2a8b2ef085685f9f3d1a55c4b901e8d88af6ec37d283195",
+    "dotnet/App/Main.cs": "4165f50c9476ed7ce07fce8d64ef5baf0ca8ad85e8ac0414cd5d77b21bd1444c",
+    "java/pom.xml": "3d66f89e59bbfafb5062e8f8ac72e0790e0618a205d9f8f378b97eb52bec45fc",
+    "java/api/pom.xml": "dc24845c0406914b310c1a650da15bdd853366e13b3b3371dd373c3f4c009260",
+    "java/api/Main.java": "904f0819deae46cb5cff84be61e034983aa9601d612fe5548ca6619d72c0b461",
+    "log.xml": "4d439f608addb709651513dd6e602c848ec6f5565f9a6db51697cea1cba52475"
+  }
+}

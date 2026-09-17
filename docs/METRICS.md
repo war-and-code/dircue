@@ -1,6 +1,6 @@
 # Code metrics
 
-Dircue 0.2 adds opt-in code metrics through the Go library from
+Dircue includes opt-in code metrics (introduced in 0.2) through the Go library from
 [scc](https://github.com/boyter/scc). It counts complete files selected by dircue's
 existing directory or Git scanner. Language-only commands keep their existing
 output and bounded classification reads.
@@ -51,15 +51,19 @@ Use `--workers` to reduce concurrent work and operating-system or container
 limits when a hard resource limit is required. Per-file output also increases
 report size and retained memory.
 
-`--files`, `--metrics-scope`, and `--metrics-max-file-bytes` are available only on
-`analyze metrics` and `analyze all`; on `all` they require `--metrics`.
+`--metrics-scope` and `--metrics-max-file-bytes` are available on
+`analyze metrics` and `analyze all`; on `all` they require `--metrics`. `--files`
+also serves structural analysis. On `analyze all`, it applies to both counting
+and structure when both are requested.
 `--breakdown` retains its separate meaning: include paths in language statistics.
 
 ## Reading the report
 
-Metrics reports use `schema_version: "1.1.0"`; reports without metrics retain
-`"1.0.0"`. The [JSON schema](../schema/profile.schema.json) accepts both and
-requires the metrics object only for 1.1.0. Legacy `dircue --json` is unchanged.
+Metrics reports use `schema_version: "1.1.0"` when project mapping and structural
+analysis are absent. Adding either module uses `"1.2.0"`, with the same metrics
+object. Reports without these optional modules retain `"1.0.0"`. The
+[JSON schema](../schema/profile.schema.json) describes all three versions. Legacy
+`dircue --json` is unchanged.
 
 The `metrics` object records the engine and its version, selection scope,
 per-file limit, and content source. Git reports identify the selected tree.
@@ -104,7 +108,7 @@ status. Fatal scan errors still return a nonzero exit status.
 
 ## What scc contributes
 
-| Capability | Dircue 0.2 |
+| Capability | Integration |
 | --- | --- |
 | Code, comment, blank, and total line counts | Included for supported selected languages. |
 | Byte and file totals | Included alongside line counts. |
@@ -112,14 +116,17 @@ status. Fatal scan errors still return a nonzero exit status.
 | Per-file, language, and parent-directory summaries | Included in the versioned report. |
 | scc's own file walker and language-selection policy | Not used; dircue selects the source and language. |
 | COCOMO cost estimates, duplicate detection, ULOC, or scc's output formats | Not integrated. |
-| Function-level AST metrics and BCA integration | Deferred to a later release. |
+| Tree-sitter/BCA metrics | Separate optional [structural analysis](STRUCTURE.md), with per-file BCA aggregates for 20 supported languages. |
 
-Complexity is scc's lexical estimate, based on language-specific tokens. It is
-not an AST-derived measure, a defect count, or proof of code quality. Counts are
-useful for sizing collections and comparing their composition; interpret them
-with the selected grammar and coverage information. In text scope, scc may label
-XML or plain-text lines as `code`; that counter does not mean the file contains
-a programming language.
+Complexity in the `metrics` object is scc's lexical estimate, based on
+language-specific tokens. It is not an AST-derived measure, a defect count, or
+proof of code quality. The optional `structure` object retains BCA measurements
+separately; values from the two engines should not be treated as interchangeable.
+
+Counts are useful for sizing collections and comparing their composition;
+interpret them with the selected grammar and coverage information. In text
+scope, scc may label XML or plain-text lines as `code`; that counter does not
+mean the file contains a programming language.
 
 The pinned scc version has known lexical limitations with Java text blocks and
 C# raw strings. Some valid multiline strings containing quote and comment-like

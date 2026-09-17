@@ -1,0 +1,12 @@
+{
+  "baseline_commit": "a77cc5a3a1721a6e31c5e3cf0766e98fcd06b626",
+  "baseline_release": "v0.2.0",
+  "production_binary_sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059",
+  "prototype_branch_production_build_sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059",
+  "byte_identical": true,
+  "go": "go version go1.26.6 darwin/arm64",
+  "build": "CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags \"-s -w -X dircue/internal/cli.Version=0.2.0\"",
+  "root_go_test_race": "passed",
+  "root_go_vet": "passed",
+  "scope": "No changes to production Go source, dependencies, schemas or commands; standalone prototype uses a nested Go module."
+}
