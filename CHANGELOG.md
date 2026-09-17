@@ -9,6 +9,7 @@
 - Report structural omissions, syntax recovery, parser versions, and per-file metrics. Limit worker admission to one process, bound source/output sizes, and enforce a per-file deadline.
 - Add native-worker packaging with pinned dependency sources, license notices, checksums, and runtime provenance. The core binary and Python wheels remain usable without this add-on.
 - Use aggregate schema 1.2.0 when projects or structure are requested. Existing language JSON, plain `analyze all`, and metrics-only schema 1.1.0 retain their contracts.
+- Document staged analysis with a tested report consumer that suggests independent follow-ups and preserves incomplete or unknown evidence for review.
 
 Project mapping reads declarations without running build tools or restoring packages. Structural analysis has documented grammar and per-language observation limits; it does not perform compiler type resolution or construct cross-file call graphs.
 
