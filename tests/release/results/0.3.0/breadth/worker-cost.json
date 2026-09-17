@@ -1,0 +1,94 @@
+{
+  "description": "Diagnostic warm one-file process latency; not a repository benchmark or a general regression claim.",
+  "limitations": [
+    "A single 70-byte Java file does not represent large-file parse cost.",
+    "One warm-up per binary is excluded; subsequent pairs alternate order.",
+    "Peak RSS is one separate invocation per binary, not a hard memory bound.",
+    "Artifact hashes identify inputs; their original compiler/build conditions are not inferred."
+  ],
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "source": "class Choice { int choose(int x) { if (x > 0) return x; return 0; } }\n",
+  "source_bytes": 70,
+  "runs_per_binary": 25,
+  "outputs_equal_excluding_timings": true,
+  "workers": {
+    "before": {
+      "path": "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/previous-worker/dircue-structural-worker",
+      "sha256": "04dd6cb10d5f20e0dd746ec0c1d39b1700e0889de0e403617350b9d03e1d1599",
+      "bytes": 6471584,
+      "elapsed_ms": [
+        2.998042,
+        2.884542,
+        2.729792,
+        2.778333,
+        2.856583,
+        2.742208,
+        2.694292,
+        2.862708,
+        2.795,
+        2.815042,
+        2.718125,
+        2.696958,
+        2.625375,
+        2.636959,
+        2.604,
+        2.962917,
+        2.914416,
+        3.128542,
+        2.823833,
+        2.953083,
+        2.857041,
+        3.320042,
+        2.887292,
+        3.149209,
+        3.115875
+      ],
+      "median_ms": 2.856583,
+      "min_ms": 2.604,
+      "max_ms": 3.320042,
+      "peak_rss": {
+        "available": true,
+        "bytes": 2310144
+      }
+    },
+    "candidate": {
+      "path": "/Users/gingeleski/Workspace/dircue/prototypes/structural/worker/target/release/dircue-structural-worker",
+      "sha256": "62ec4623aa1220fe279b3ac337b704409b3ebde2d8c965ccd90fa5bbacb216b8",
+      "bytes": 35065696,
+      "elapsed_ms": [
+        3.543959,
+        3.149292,
+        3.217292,
+        3.092125,
+        3.06875,
+        3.06325,
+        3.046958,
+        3.350541,
+        2.980041,
+        2.963208,
+        3.072583,
+        3.045625,
+        2.946916,
+        2.868916,
+        4.186,
+        4.108416,
+        3.4465,
+        3.993875,
+        3.162667,
+        3.362958,
+        3.240584,
+        3.109833,
+        3.115292,
+        3.248208,
+        3.684667
+      ],
+      "median_ms": 3.149292,
+      "min_ms": 2.868916,
+      "max_ms": 4.186,
+      "peak_rss": {
+        "available": true,
+        "bytes": 2801664
+      }
+    }
+  }
+}

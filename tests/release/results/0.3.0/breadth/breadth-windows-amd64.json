@@ -1,0 +1,712 @@
+{
+  "candidate_sha256": "18274f8243f462d985a170747dc2bbb38b8b6d97007653a324df9434c9653b6f",
+  "worker_sha256": "e6b30e106e9d65b64ad3142eea265fd84a5276b962963a20d63d743e50ae3faa",
+  "harness_sha256": "8e5130729f348c076f3b4b415d464aa66eb36cfa3871a4a0e0ea2f6860bcd0fb",
+  "manifest_sha256": "ec762a29ab2d51e00f46aa5eca8e47c7656df2b873c4fe9808959f956678df4c",
+  "platform": "Windows-2025Server-10.0.26100-SP0",
+  "fixtures": [
+    {
+      "path": "example.c",
+      "language": "C",
+      "status": "complete",
+      "sha256": "ffb4b514b64d8d3bb1483ff004b17adfa650430c0493bad08ebc58b56a65e3f4",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-c@0.24.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ]
+    },
+    {
+      "path": "example.cpp",
+      "language": "C++",
+      "status": "complete",
+      "sha256": "cf69492abaffceda3c64fe6816ec530c0f9e1324016d0295528086e9e45593bf",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-cpp@0.23.4",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "Example.cs",
+      "language": "C#",
+      "status": "complete",
+      "sha256": "80993c8dddf155de9b916dea15fb3c63580813ab1e57b9fd40b12725b9712110",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-c-sharp@0.23.5",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "classes",
+        "constructors",
+        "enums",
+        "error_nodes",
+        "imports",
+        "interfaces",
+        "lambdas",
+        "local_functions",
+        "methods",
+        "missing_nodes",
+        "properties",
+        "records",
+        "structs",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.ex",
+      "language": "Elixir",
+      "status": "complete",
+      "sha256": "61364b2a094cae48d2d2e5e24682650c640a8e62727a407e78b6b965df1aa989",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-elixir@0.3.5",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.go",
+      "language": "Go",
+      "status": "complete",
+      "sha256": "2214acf97aa489bfe2d7d9124f5354a40a47e038792e4dcbf182146d757cf2a9",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-go@0.25.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens"
+      ]
+    },
+    {
+      "path": "example.groovy",
+      "language": "Groovy",
+      "status": "complete",
+      "sha256": "ea532ea3602ac4ef6a489f0277de65b09b7834f95cb8351a7a889940a4933805",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "dekobon-tree-sitter-groovy@0.2.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "Example.java",
+      "language": "Java",
+      "status": "complete",
+      "sha256": "49038a7a9f4fd16977334d1e9b7b6273f9eba0635156a3589a89431e0470e047",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-java@0.23.5",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "classes",
+        "constructors",
+        "enums",
+        "error_nodes",
+        "imports",
+        "interfaces",
+        "lambdas",
+        "local_functions",
+        "methods",
+        "missing_nodes",
+        "properties",
+        "records",
+        "structs",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.js",
+      "language": "JavaScript",
+      "status": "complete",
+      "sha256": "23b6d6b938ad0dad5dbdb5db1ff272e833e40d70e40200b053acdc2fd3227354",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-javascript@0.25.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "component.jsx",
+      "language": "JavaScript",
+      "status": "complete",
+      "sha256": "9a83f94e2a961cd6a98d3d41dd9debe366592dc440f69002f2e85aa6815e04c8",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-javascript@0.25.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.kt",
+      "language": "Kotlin",
+      "status": "complete",
+      "sha256": "eee37ea85eaef190a48a0a17208ba04c5b4e0fc8a2ba701fa17ab3f33333e47a",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-kotlin-ng@1.1.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.lua",
+      "language": "Lua",
+      "status": "complete",
+      "sha256": "d390142b6108efd1f26d50a2f4096c23b8287a43785d30f14ff8acaca7a2f7c1",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-lua@0.5.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ]
+    },
+    {
+      "path": "example.m",
+      "language": "Objective-C",
+      "status": "complete",
+      "sha256": "f783aa57d639ebe2ab5ce7cee0c56b2b7f39820b53e0182b590cd36170af634a",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-objc@3.0.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.pl",
+      "language": "Perl",
+      "status": "complete",
+      "sha256": "b3aad8e1cb5963c9f0f71da8372638aea70d9bd927f55cc10393bf2bd01734c3",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-perl@1.1.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ]
+    },
+    {
+      "path": "example.php",
+      "language": "PHP",
+      "status": "complete",
+      "sha256": "4e31c5ebce6f4d183f6a7150237df806f3f8619bfef2200dbbc9b73bd36fd3e4",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-php@0.24.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.py",
+      "language": "Python",
+      "status": "complete",
+      "sha256": "6a0e9a274c5e073af0147dd2c50a81d32e93c89b425086a8a6a0306fbf6cd4c2",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-python@0.25.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.rb",
+      "language": "Ruby",
+      "status": "complete",
+      "sha256": "9a0275ed86874baf030b53b58afd75de99544d2ccce61bc5eea0940ebe3b6aae",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-ruby@0.23.1",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.rs",
+      "language": "Rust",
+      "status": "complete",
+      "sha256": "25788cd587a654abaf63f9119f29bd26dcc88e3d47075b786eef5e13233ebfcf",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-rust@0.24.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.sh",
+      "language": "Shell",
+      "status": "complete",
+      "sha256": "01c9127c057e2247e70724c79cf763dd367ec6439d683c60dbd80d52de918399",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-bash@0.25.1",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ]
+    },
+    {
+      "path": "example.tcl",
+      "language": "Tcl",
+      "status": "complete",
+      "sha256": "7165d2ceef213869f2473997f85bfc077edf822e627965475fda0f8dfc5640ab",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "bca-tree-sitter-tcl@2.2.0",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ]
+    },
+    {
+      "path": "component.tsx",
+      "language": "TSX",
+      "status": "complete",
+      "sha256": "aa5c548bdf19301e2f7e1fcc3dae8a41efdee398b441c5c2e62eec3c9cd764ff",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    },
+    {
+      "path": "example.ts",
+      "language": "TypeScript",
+      "status": "complete",
+      "sha256": "eea017aec608b265389c53451d6a73ae96e0a44051869f3d09917220310feb9c",
+      "provenance": {
+        "bca": "big-code-analysis@2.2.0",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "tree_sitter": "0.26.12"
+      },
+      "observation_fields": [
+        "error_nodes",
+        "missing_nodes",
+        "syntax_nodes"
+      ],
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "npa",
+        "npm",
+        "tokens",
+        "wmc"
+      ]
+    }
+  ],
+  "method": "Handwritten syntax fixtures are naturally classified, then compared with direct combined, structure-only, and metrics-only worker invocations. CLI reports must match across one/eight workers and combined-module execution. This verifies integration and parser acceptance, not independent correctness of BCA metric formulas or comprehensive language-version support.",
+  "supported_report_sha256": "10ee096e3e749df495ae5c8adb97a9ad2813cd336e65da945f93cf75cc9d8258",
+  "qualified_inputs": [
+    {
+      "path": "unsupported.swift",
+      "status": "skipped",
+      "reason": "unsupported_language",
+      "parse_count": 0,
+      "syntax_errors": false
+    },
+    {
+      "path": "log.xml",
+      "status": "skipped",
+      "reason": "outside_scope",
+      "parse_count": 0,
+      "syntax_errors": false
+    },
+    {
+      "path": "generated.go",
+      "status": "skipped",
+      "reason": "outside_scope",
+      "parse_count": 0,
+      "syntax_errors": false
+    },
+    {
+      "path": "broken.py",
+      "status": "partial",
+      "reason": "syntax_errors",
+      "parse_count": 1,
+      "syntax_errors": true
+    }
+  ],
+  "language_count": 20,
+  "fixture_count": 21,
+  "checks": [
+    "natural_classification",
+    "one_parse_per_file",
+    "direct_worker_parity",
+    "mode_isolation",
+    "one_eight_worker_determinism",
+    "combined_module_equivalence",
+    "unsupported_language",
+    "data_and_generated_exclusions",
+    "syntax_recovery"
+  ],
+  "passed": true
+}
