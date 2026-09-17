@@ -21,6 +21,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 WORKER = ROOT / "prototypes/structural/worker"
 TOOLCHAIN = "1.94.0"
+SMOKE_FIXTURES = ROOT / "tests/structural_breadth/fixtures.json"
 TARGETS = {
     "darwin-arm64": "aarch64-apple-darwin",
     "darwin-amd64": "x86_64-apple-darwin",
@@ -43,6 +44,8 @@ def source_hashes() -> dict[str, str]:
               ROOT / "docs/STRUCTURE.md", ROOT / "scripts/structural_worker_release.py",
               ROOT / ".github/workflows/structural-worker.yml"]
     inputs.extend(path for path in (WORKER / "src").rglob("*") if path.is_file())
+    inputs.append(SMOKE_FIXTURES)
+    inputs.extend(path for path in (SMOKE_FIXTURES.parent / "testdata").rglob("*") if path.is_file())
     inputs.extend(path for path in [ROOT / ".cargo/config.toml", WORKER / ".cargo/config.toml"] if path.is_file())
     return {path.relative_to(ROOT).as_posix(): digest(path) for path in sorted(inputs)}
 
@@ -126,16 +129,21 @@ def verify_archive(archive: Path, executable: str) -> None:
                 raise RuntimeError(f"packaged file checksum mismatch: {name}")
         if not (root / "source/crates/big-code-analysis-2.2.0.crate").is_file():
             raise RuntimeError("BCA source archive missing from package")
-        for language, source in [("Java", "class A { int f() { return 1; } }"),
-                                 ("C#", "class A { int F() { return 1; } }")]:
-            request = json.dumps(dict(path="fixture", language=language, source=source, mode="combined"))
+        fixtures = json.loads(SMOKE_FIXTURES.read_text())
+        for fixture in fixtures:
+            source = (SMOKE_FIXTURES.parent / "testdata" / fixture["path"]).read_text()
+            request = json.dumps(dict(path=fixture["path"], language=fixture["language"],
+                                      source=source, mode="combined"))
             proc = subprocess.run([str(root / executable)], input=request, capture_output=True,
                                   text=True, check=True, timeout=10)
             result = json.loads(proc.stdout)
-            if result["parse_count"] != 1 or result["status"] != "complete":
-                raise RuntimeError(f"packaged worker smoke test failed for {language}")
-            if result["observations"]["classes"] != 1 or result["observations"]["methods"] != 1:
-                raise RuntimeError(f"packaged worker observations failed for {language}")
+            if (result["parse_count"] != 1 or result["status"] != fixture["status"]
+                    or result["language"] != fixture["language"]
+                    or result["source_bytes"] != len(source.encode())
+                    or result["observations"]["syntax_nodes"] == 0
+                    or not result.get("metrics")):
+                raise RuntimeError(f"packaged worker smoke test failed for {fixture['language']}")
+
 
 
 def main() -> None:

@@ -116,7 +116,7 @@ status. Fatal scan errors still return a nonzero exit status.
 | Per-file, language, and parent-directory summaries | Included in the versioned report. |
 | scc's own file walker and language-selection policy | Not used; dircue selects the source and language. |
 | COCOMO cost estimates, duplicate detection, ULOC, or scc's output formats | Not integrated. |
-| Tree-sitter/BCA metrics | Separate optional [structural analysis](STRUCTURE.md), with per-file BCA aggregates for Java/C#. |
+| Tree-sitter/BCA metrics | Separate optional [structural analysis](STRUCTURE.md), with per-file BCA aggregates for 20 supported languages. |
 
 Complexity in the `metrics` object is scc's lexical estimate, based on
 language-specific tokens. It is not an AST-derived measure, a defect count, or

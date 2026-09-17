@@ -120,7 +120,7 @@ func TestStructureNativeCoverageAndLimits(t *testing.T) {
 		analyzed       int64
 	}{
 		{"no source", map[string]string{"README.md": "# docs"}, "skipped", "outside_scope", 0},
-		{"unsupported source", map[string]string{"main.go": goSource}, "partial", "unsupported_language", 0},
+		{"unsupported source", map[string]string{"main.swift": "func hello() {}\n"}, "partial", "unsupported_language", 0},
 		{"source cap", map[string]string{"A.java": "class A { int f() { return 1111111111111111111; } }"}, "partial", "file_too_large", 0},
 		{"grammar recovery", map[string]string{"A.java": "class {"}, "partial", "", 1},
 	} {
@@ -190,5 +190,53 @@ func TestStructureNativeReusesMetricsFullRead(t *testing.T) {
 	}
 	if value.structural == nil || value.structural.ParseCount != 1 || value.structural.SourceBytes != int64(len(content)) || value.structural.Observations["methods"] != 1 {
 		t.Fatalf("incomplete structure: %+v", value.structural)
+	}
+}
+
+func TestStructureNativeExpandedLanguages(t *testing.T) {
+	client := nativeStructure(t, 0, 0)
+	root := fixtures(t, map[string]string{
+		"A.java":     "class A {}\n",
+		"main.go":    "package main\nfunc main() {}\n",
+		"main.py":    "def hello():\n    return 1\n",
+		"app.tsx":    "export const App = () => <div>Hello</div>;\n",
+		"hello.sh":   "#!/bin/bash\necho hello\n",
+		"readme.xml": "<log>data</log>\n",
+	})
+	base, err := Scan(context.Background(), root, Options{Source: "directory"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first *profile.StructureReport
+	for _, workers := range []int{1, 8} {
+		r, err := Scan(context.Background(), root, Options{Source: "directory", Workers: workers, Structure: client, StructureFiles: true})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(base.Languages, r.Languages) || base.Summary != r.Summary {
+			t.Fatal("expanded structure changed language results")
+		}
+		if r.Structure.AnalyzedFiles != 5 || r.Structure.ParseCount != 5 || r.Structure.Status != "complete" {
+			t.Fatalf("coverage: %+v", r.Structure)
+		}
+		if r.Structure.ObservationFiles["classes"] != 1 || r.Structure.ObservationFiles["syntax_nodes"] != 5 {
+			t.Fatalf("observation coverage: %+v", r.Structure.ObservationFiles)
+		}
+		if !reflect.DeepEqual(r.Structure.SupportedLanguages, structure.Capabilities()) {
+			t.Fatal("capabilities missing")
+		}
+		for _, path := range []string{"main.go", "main.py", "app.tsx", "hello.sh"} {
+			file := structureFiles(t, r)[path]
+			if file.Status != "complete" || len(file.Observations) != 3 || file.Provenance == nil {
+				t.Fatalf("%s: %+v", path, file)
+			}
+			if _, exists := file.Observations["classes"]; exists {
+				t.Fatalf("unavailable observation for %s", path)
+			}
+		}
+		if first != nil && !reflect.DeepEqual(first, r.Structure) {
+			t.Fatal("worker count changed structure output")
+		}
+		first = r.Structure
 	}
 }

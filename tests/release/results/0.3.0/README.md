@@ -1,5 +1,10 @@
 # 0.3.0 candidate validation
 
+These receipts describe the **earlier Java/C#-only structural candidate**. The
+subsequent language expansion changes the worker, dependency set, and core
+adapter. These archived artifacts and CI results do not verify the expanded
+candidate; new builds and validation are required before publication.
+
 Core artifacts were built from clean committed source `2501e826a9201e1fb2d5285d58b5177282b1469c` with Go 1.26.6, cgo disabled, and fresh build/module caches. The native macOS arm64 archive contains the same executable as the final compatibility candidate: `61a4cd8da957f0ac4c43c1485eefa016175bbd383cd11459b39c69a08202e7af`.
 
 The candidate remains on `codex/v0.3.0` in [PR #19](https://github.com/war-and-code/dircue/pull/19). These records do not represent a published release.

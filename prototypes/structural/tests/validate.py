@@ -71,7 +71,7 @@ def main():
         check(f"{language}: malformed parsed once", result["parse_count"] == 1)
 
     for name, source, overrides in [
-        ("unsupported language", "print('hello')", {"language": "Python"}),
+        ("unsupported language", "SELECT 1;", {"language": "SQL"}),
         ("unknown mode", "class X {}", {"mode": "unknown"}),
         ("oversized source", " " * (8 * 1024 * 1024 + 1), {}),
     ]:

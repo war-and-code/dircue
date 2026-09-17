@@ -1,5 +1,5 @@
 // Package structure runs the optional, explicitly selected native structural worker.
-// The worker parses each Java or C# file once for observations and BCA metrics.
+// The worker parses each supported file once for observations and BCA metrics.
 package structure
 
 import (
@@ -98,7 +98,7 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		return result, err
 	}
 	switch {
-	case language != "Java" && language != "C#":
+	case !Supports(language):
 		result.Reason = "unsupported_language"
 	case len(path) > 16<<10 || !utf8.ValidString(path) || strings.ContainsRune(path, 0):
 		result.Reason = "invalid_path"
@@ -176,15 +176,15 @@ func decode(data []byte, submitted File) (File, error) {
 	if (*response.SyntaxErrors) != (response.Status == "partial") {
 		return fail()
 	}
-	grammar := "tree-sitter-java@0.23.5"
-	if submitted.Language == "C#" {
-		grammar = "tree-sitter-c-sharp@0.23.5"
-	}
-	p := response.Provenance
-	if p == nil || p.BCA != "big-code-analysis@2.2.0" || p.TreeSitter != "0.26.12" || p.Grammar != grammar {
+	capability, supported := capabilities[submitted.Language]
+	if !supported {
 		return fail()
 	}
-	fields := []string{"classes", "interfaces", "records", "structs", "enums", "methods", "constructors", "properties", "imports", "lambdas", "local_functions", "syntax_nodes", "error_nodes", "missing_nodes"}
+	p := response.Provenance
+	if p == nil || p.BCA != "big-code-analysis@2.2.0" || p.TreeSitter != "0.26.12" || p.Grammar != capability.Grammar {
+		return fail()
+	}
+	fields := capability.Observations
 	if len(response.Observations) != len(fields) {
 		return fail()
 	}
@@ -196,10 +196,12 @@ func decode(data []byte, submitted File) (File, error) {
 	if response.Observations["syntax_nodes"] == 0 {
 		return fail()
 	}
-	if (*response.SyntaxErrors) != (response.Observations["error_nodes"] > 0 || response.Observations["missing_nodes"] > 0) {
+	// Some grammars mark the root as recovered without exposing a traversable
+	// ERROR or missing node. Positive counters still require syntax_errors.
+	if !*response.SyntaxErrors && (response.Observations["error_nodes"] > 0 || response.Observations["missing_nodes"] > 0) {
 		return fail()
 	}
-	metrics, ok := decodeMetrics(response.Metrics)
+	metrics, ok := decodeMetrics(response.Metrics, capability.MetricGroups)
 	if !ok {
 		return fail()
 	}
@@ -215,18 +217,18 @@ func decode(data []byte, submitted File) (File, error) {
 	return response.File, nil
 }
 
-// BCA 2.2.0 CodeMetrics with MetricsOptions::default serializes these groups.
+// BCA 2.2.0 exposes these groups for languages with class and member metrics.
 // Keep the boundary synchronized with the pinned native worker's output.
 var metricGroups = []string{"abc", "cognitive", "cyclomatic", "halstead", "loc", "mi", "nargs", "nexits", "nom", "npa", "npm", "tokens", "wmc"}
 
-func decodeMetrics(data []byte) (map[string]any, bool) {
+func decodeMetrics(data []byte, groups []string) (map[string]any, bool) {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	decoder.UseNumber()
 	var metrics map[string]any
-	if decoder.Decode(&metrics) != nil || len(metrics) != len(metricGroups) {
+	if decoder.Decode(&metrics) != nil || len(metrics) != len(groups) {
 		return nil, false
 	}
-	for _, name := range metricGroups {
+	for _, name := range groups {
 		group, ok := metrics[name].(map[string]any)
 		if !ok || len(group) == 0 || !numericMetric(group, 0) {
 			return nil, false

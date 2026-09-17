@@ -4,7 +4,7 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-The 0.3.0 release candidate adds project mapping and declared build requirements, content composition, and optional Java/C# structural analysis. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+The 0.3.0 release candidate adds project mapping and declared build requirements, content composition, and optional structural analysis across 20 languages. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze all --json /path/to/checkout
@@ -73,7 +73,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Project declarations and references, content composition, framework/CI observations, optional scc metrics and Java/C# structure |
+| Additional profiling | Language metadata | Language metadata | Project declarations and references, content composition, framework/CI observations, optional scc metrics and structural analysis |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -146,7 +146,7 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 `analyze projects` reports .NET and Maven declarations, conservative Gradle observations, and filename-based project discovery for other ecosystems. It records references, configuration candidates, and file/byte composition. Dynamic build expressions remain conditional or unresolved; a present reference target does not establish a working build. Directory-based file attribution reports ambiguous and unassigned files. See the [project guide](docs/PROJECTS.md).
 
-`analyze structure` sends selected Java and C# source to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies declaration counts and BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
+`analyze structure` sends selected source in 20 supported languages to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies syntax observations and BCA metrics. Java and C# also receive custom declaration counts; other languages expose syntax-node and recovery counts alongside BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [capability matrix](docs/CAPABILITIES.md) for language and ecosystem coverage, and the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
 
 Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
@@ -240,7 +240,7 @@ uv can also install a compatible wheel from a local file or a GitHub Release URL
 
 ## Verification
 
-The 0.3 candidate adds [project-map validation](tests/projects/README.md) on Roslyn, ASP.NET Core, Spring Framework, and Apache Maven, plus schema checks covering combined reports. The [production structural check](tests/structure/README.md) compares 150 Java/C# files with the pinned worker and preserves known grammar limitations. [CLI compatibility](tests/compatibility_v030/README.md) compares existing invocations with the shipped 0.2.0 binary; [performance and scale checks](tests/performance_v030/README.md) record the cost of project mapping. The [structural prototype](prototypes/structural/README.md) records parse reuse and offline execution. These checks have a different scope from the historical language and scc benchmarks below; they do not establish that structural parsing has the same cost as language classification.
+The 0.3 candidate adds [project-map validation](tests/projects/README.md) on Roslyn, ASP.NET Core, Spring Framework, and Apache Maven, plus schema checks covering combined reports. The [production structural check](tests/structure/README.md) compares 150 Java/C# files with the pinned worker and preserves known grammar limitations. The [structural breadth harness](tests/structural_breadth/README.md) adds small fixtures for every enabled parser; these do not provide equivalent real-project coverage for every language. [CLI compatibility](tests/compatibility_v030/README.md) compares existing invocations with the shipped 0.2.0 binary; [performance and scale checks](tests/performance_v030/README.md) record the cost of project mapping. The [structural prototype](prototypes/structural/README.md) records parse reuse and offline execution. These checks have a different scope from the historical language and scc benchmarks below; they do not establish that structural parsing has the same cost as language classification.
 
 The 0.2 metrics validation compared 910 committed files from Spring Framework, Roslyn, and ASP.NET Core against native Git bytes and standalone scc. Fixtures cover Java, C#, scope overrides, and a 1,100 MiB XML file. All five [candidate CI jobs](https://github.com/war-and-code/dircue/actions/runs/35128787043) passed, including Linux, macOS, Windows, and both conformance suites. See the [metrics validation](tests/metrics/results/README.md) for counters, performance measurements, source identities, and limitations.
 
@@ -283,4 +283,4 @@ For a classification mismatch, include the dircue version, command, expected res
 
 ## License
 
-[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) cover the Go executable and embedded MIME database. The optional structural worker includes BCA under MPL-2.0 and Tree-sitter components under MIT; its separate archive includes dependency sources, licenses, and provenance. See [worker redistribution](docs/STRUCTURE.md#dependencies-and-redistribution).
+[MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) cover the Go executable and embedded MIME database. The optional structural worker includes BCA under MPL-2.0 and Tree-sitter and grammar dependencies under their respective licenses; its separate archive includes dependency sources, licenses, and provenance. See [worker redistribution](docs/STRUCTURE.md#dependencies-and-redistribution).

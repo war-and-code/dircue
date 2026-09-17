@@ -7,7 +7,7 @@ publish = false
 license = "MIT"
 
 [dependencies]
-big-code-analysis = { version = "=2.2.0", default-features = false, features = ["java", "csharp"] }
+big-code-analysis = { version = "=2.2.0", default-features = false, features = ["bash", "c", "cpp", "csharp", "elixir", "go", "groovy", "irules", "java", "javascript", "kotlin", "lua", "objc", "perl", "php", "python", "ruby", "rust", "tcl", "typescript"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 

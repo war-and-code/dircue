@@ -141,7 +141,7 @@ func TestStructureSchemaContract(t *testing.T) {
 	}
 	observations["syntax_nodes"] = 1
 	files := []structure.File{{Path: "A.java", Language: "Java", Status: "complete", ParseCount: 1, Observations: observations, Metrics: json.RawMessage(`{"cyclomatic":{"sum":1}}`), Provenance: &structure.Provenance{BCA: "big-code-analysis@2.2.0", TreeSitter: "0.26.12", Grammar: "tree-sitter-java@0.23.5"}}}
-	report := profile.StructureReport{Engine: "big-code-analysis", EngineVersion: "2.2.0", Status: "complete", Scope: "source", Source: "directory", MaxFileBytes: 8388608, AnalyzedFiles: 1, ParseCount: 1, Omissions: map[string]int64{}, Observations: observations, Files: &files}
+	report := profile.StructureReport{SupportedLanguages: structure.Capabilities(), ObservationFiles: map[string]int64{}, Engine: "big-code-analysis", EngineVersion: "2.2.0", Status: "complete", Scope: "source", Source: "directory", MaxFileBytes: 8388608, AnalyzedFiles: 1, ParseCount: 1, Omissions: map[string]int64{}, Observations: observations, Files: &files}
 	encoded, _ := json.Marshal(report)
 	var body map[string]any
 	json.Unmarshal(encoded, &body)
@@ -168,6 +168,25 @@ func TestStructureSchemaContract(t *testing.T) {
 	file["syntax_errors"] = true
 	file["reason"] = "syntax_errors"
 	validateProfile(t, compiled, value)
+	for _, capability := range structure.Capabilities() {
+		t.Run(capability.Language, func(t *testing.T) {
+			file["language"] = capability.Language
+			file["provenance"].(map[string]any)["grammar"] = capability.Grammar
+			counts := map[string]any{}
+			for _, key := range capability.Observations {
+				counts[key] = float64(0)
+			}
+			counts["syntax_nodes"] = float64(1)
+			file["observations"] = counts
+			validateProfile(t, compiled, value)
+			if capability.Language != "Java" && capability.Language != "C#" {
+				counts["classes"] = float64(0)
+				if compiled.Validate(value) == nil {
+					t.Fatal("unavailable declaration observation accepted")
+				}
+			}
+		})
+	}
 }
 
 func TestNativeStructureCLIConformsToSchema(t *testing.T) {
@@ -180,6 +199,11 @@ func TestNativeStructureCLIConformsToSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 	root := projectFixture(t)
+	for name, source := range map[string]string{"main.py": "def hello():\n    return 1\n", "main.go": "package main\nfunc main() {}\n", "main.tsx": "export const App = () => <div/>;\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(source), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
 	if err := os.WriteFile(filepath.Join(root, "Broken.java"), []byte("class {"), 0600); err != nil {
 		t.Fatal(err)
 	}

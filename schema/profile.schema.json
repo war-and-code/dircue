@@ -680,12 +680,17 @@
             "bca": {"const": "big-code-analysis@2.2.0"},
             "tree_sitter": {"const": "0.26.12"},
             "grammar": {
-              "enum": ["tree-sitter-java@0.23.5", "tree-sitter-c-sharp@0.23.5"]
+              "enum": ["bca-tree-sitter-tcl@2.2.0", "dekobon-tree-sitter-groovy@0.2.2", "tree-sitter-bash@0.25.1", "tree-sitter-c-sharp@0.23.5", "tree-sitter-c@0.24.2", "tree-sitter-cpp@0.23.4", "tree-sitter-elixir@0.3.5", "tree-sitter-go@0.25.0", "tree-sitter-java@0.23.5", "tree-sitter-javascript@0.25.0", "tree-sitter-kotlin-ng@1.1.0", "tree-sitter-lua@0.5.0", "tree-sitter-objc@3.0.2", "tree-sitter-perl@1.1.2", "tree-sitter-php@0.24.2", "tree-sitter-python@0.25.0", "tree-sitter-ruby@0.23.1", "tree-sitter-rust@0.24.2", "tree-sitter-typescript@0.23.2"]
             }
           }
         }
       },
       "allOf": [
+        {
+          "if": {"properties": {"status": {"enum": ["complete", "partial"]}, "language": {"enum": ["Java", "C#"]}}},
+          "then": {"properties": {"observations": {"minProperties": 14}}},
+          "else": {"properties": {"observations": {"maxProperties": 3}}}
+        },
         {
           "if": {
             "properties": {
@@ -717,25 +722,10 @@
             "properties": {
               "parse_count": {"const": 1},
               "language": {
-                "enum": ["Java", "C#"]
+                "enum": ["C", "C#", "C++", "Elixir", "Go", "Groovy", "Java", "JavaScript", "Kotlin", "Lua", "Objective-C", "PHP", "Perl", "Python", "Ruby", "Rust", "Shell", "TSX", "Tcl", "TypeScript"]
               },
               "observations": {
-                "required": [
-                  "classes",
-                  "interfaces",
-                  "records",
-                  "structs",
-                  "enums",
-                  "methods",
-                  "constructors",
-                  "properties",
-                  "imports",
-                  "lambdas",
-                  "local_functions",
-                  "syntax_nodes",
-                  "error_nodes",
-                  "missing_nodes"
-                ]
+                "required": ["syntax_nodes", "error_nodes", "missing_nodes"]
               }
             }
           }
@@ -775,6 +765,8 @@
       "type": "object",
       "additionalProperties": false,
       "required": [
+        "supported_languages",
+        "observation_files",
         "engine",
         "engine_version",
         "status",
@@ -788,6 +780,25 @@
         "observations"
       ],
       "properties": {
+        "supported_languages": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["language", "grammar", "observations", "metric_groups"],
+            "properties": {
+              "language": {"type": "string"},
+              "grammar": {"type": "string"},
+              "observations": {"type": "array", "uniqueItems": true, "items": {"type": "string"}},
+              "metric_groups": {"type": "array", "uniqueItems": true, "items": {"type": "string"}}
+            }
+          }
+        },
+        "observation_files": {
+          "description": "Number of analyzed files supplying each dircue syntax observation; unavailable observations are not zero measurements.",
+          "type": "object",
+          "additionalProperties": {"type": "integer", "minimum": 0}
+        },
         "engine": {"const": "big-code-analysis"},
         "engine_version": {"const": "2.2.0"},
         "status": {
