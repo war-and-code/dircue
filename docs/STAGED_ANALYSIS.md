@@ -88,3 +88,7 @@ The [staged-analysis measurements](../tests/staged_analysis/README.md) compare t
 The language-only CLI, default aggregate report, and module opt-ins retain their existing behavior. A successful scan can still contain warnings or partial module results, including a tree-limit result that omits analysis. Check process status first and then report coverage; do not rely on exit status alone to decide that an inventory is complete.
 
 A lighter dedicated discovery contract and reusable inventories remain future work in [#22](https://github.com/war-and-code/dircue/issues/22) and [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
+
+The [roadmap](ROADMAP.md) connects those foundations to proposed entry-point
+mapping, optional semantic providers, and portable context for caller-selected
+analysis. It keeps observations separate from the policy that selects follow-ups.
