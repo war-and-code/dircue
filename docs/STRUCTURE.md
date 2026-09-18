@@ -92,6 +92,11 @@ applicability vary by language; an upstream zero or null is not evidence that
 an equivalent language feature was measured. Dircue preserves these per-file
 metrics instead of presenting one cross-language quality score.
 
+For future review views, the [roadmap](ROADMAP.md#useful-metrics-without-a-universal-grade)
+describes how to combine measurements with their scope, definitions, and missing
+evidence. Function-level hotspots and cross-file dependency graphs require
+additional observations; neither can be inferred from the current file totals.
+
 The [breadth harness](../tests/structural_breadth/README.md) covers every enabled
 language with small source fixtures, direct-worker comparison, and deterministic
 combined reports. Java and C# also retain the larger real-project corpus checks.

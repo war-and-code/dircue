@@ -152,6 +152,8 @@ For staged workflows, start with `analyze all --projects --source directory --js
 
 Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
+The [roadmap](docs/ROADMAP.md) tracks proposed discovery, entry-point and relationship mapping, reusable analysis context, and explainable complexity hotspots. These are future extensions of the general-purpose profiler; the [capability matrix](docs/CAPABILITIES.md) describes what is available today.
+
 | Requested output | Schema version |
 | --- | --- |
 | Existing aggregate report without optional modules | `1.0.0` |
