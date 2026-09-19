@@ -1,0 +1,217 @@
+{
+  "decision": "reject",
+  "reason": "Geometric capacity growth reduced valid-report cumulative allocation but reproducibly increased peak RSS for a hard-limit malformed package report.",
+  "baseline_commit": "58ed625",
+  "scope": "Two output append sites and a private capped geometric growth helper; no parser, validation, cancellation, redaction or sorting changes.",
+  "source_before": {
+    "pkg/packageevidence/fuzz_test.go": "9c8447f170e66306b018412a25b295fa00fc971c670d4cd22eb0f3f1c5939302",
+    "pkg/packageevidence/import.go": "8fb567f71e6388cf25898ea7ef31720414db7339bed524448ba85062870d6b91",
+    "pkg/packageevidence/types.go": "24a4bce04aed429402deb10167d375ba26798f1d2de00437a2f3da9d5e097706",
+    "pkg/packageevidence/import_test.go": "41f333d7fd33bdfa5b6772b00f0e969b920e770ba2687f96a6da40ce029208f0",
+    "pkg/packageevidence/hardening_test.go": "479163c4badd724b9e4d626758524b6c25bdacd60c961e19a1e044461e53d554",
+    "pkg/packageevidence/associate.go": "b830b5d4dbe17e6711e1a54836cc224ac62bed77585ca0e53e98da4018a5b887",
+    "pkg/packageevidence/json.go": "3fc6951ac41e99d877731153abe5762a65b376db9539ab9bd4b1d976cbd49b34",
+    "go.mod": "b5535c1379d9b9929577d9f8efa20a8f26731488dc8e46646f21b0a4f1fa2cf6",
+    "go.sum": "4b42506ce769e9f9d887e62010ae64c185b71a0466bdd72aebbc4bda499c4ce1",
+    "tests/packageevidence/import-performance/contract.go": "47ddd4d1b0ec65c777f6bad89d616602e2577cbbe469f30d3a8cbc90aff4fb68",
+    "baseline_binary_sha256": "806e4e0aedd275026245e8378ab44d6b22b39f6974da9ab6cd40c0e2677b5740"
+  },
+  "source_after": {
+    "pkg/packageevidence/fuzz_test.go": "9c8447f170e66306b018412a25b295fa00fc971c670d4cd22eb0f3f1c5939302",
+    "pkg/packageevidence/capacity.go": "1ec0e3add7c56f27887129724fc5909c84042328e1dfa8aadfbdbe4a3bfff38d",
+    "pkg/packageevidence/import.go": "cf9b6ef2462f5578e94314be0e3c60bee7ded3b685496a10c41b2c3a1e84f12c",
+    "pkg/packageevidence/types.go": "24a4bce04aed429402deb10167d375ba26798f1d2de00437a2f3da9d5e097706",
+    "pkg/packageevidence/capacity_test.go": "6fb81d933138e96cca93224b2d75d45fcd14a65b98aefdf05d2046a821bd7aca",
+    "pkg/packageevidence/import_test.go": "41f333d7fd33bdfa5b6772b00f0e969b920e770ba2687f96a6da40ce029208f0",
+    "pkg/packageevidence/hardening_test.go": "479163c4badd724b9e4d626758524b6c25bdacd60c961e19a1e044461e53d554",
+    "pkg/packageevidence/associate.go": "b830b5d4dbe17e6711e1a54836cc224ac62bed77585ca0e53e98da4018a5b887",
+    "pkg/packageevidence/json.go": "3fc6951ac41e99d877731153abe5762a65b376db9539ab9bd4b1d976cbd49b34",
+    "go.mod": "b5535c1379d9b9929577d9f8efa20a8f26731488dc8e46646f21b0a4f1fa2cf6",
+    "go.sum": "4b42506ce769e9f9d887e62010ae64c185b71a0466bdd72aebbc4bda499c4ce1",
+    "tests/packageevidence/import-performance/contract.go": "47ddd4d1b0ec65c777f6bad89d616602e2577cbbe469f30d3a8cbc90aff4fb68",
+    "candidate_binary_sha256": "42027d02fe4a4bba2a1029941bcbb509370768dd9c030a31c2c66bf782959c09"
+  },
+  "environment": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "machine": "arm64",
+    "go_version": "go version go1.26.6 darwin/arm64",
+    "GOMAXPROCS": 2,
+    "measurement_conditions": "Other project builds and measurements paused during contracts, 20 shuffled paired valid measurements, and five paired adversarial repeats."
+  },
+  "valid_cases": [
+    {
+      "name": "actual-syft-fixture",
+      "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+      "input_bytes": 12507,
+      "before": {
+        "median_ms": 0.904958,
+        "p95_ms": 0.92315595,
+        "minimum_ms": 0.888333,
+        "maximum_ms": 0.926917,
+        "coefficient_of_variation": 0.013091789263858402,
+        "median_allocated_bytes": 310040.0,
+        "median_allocations": 7951.0,
+        "maximum_process_peak_rss_bytes": 6963200
+      },
+      "after": {
+        "median_ms": 0.9101665,
+        "p95_ms": 0.9597319,
+        "minimum_ms": 0.882042,
+        "maximum_ms": 0.983917,
+        "coefficient_of_variation": 0.0269510464769197,
+        "median_allocated_bytes": 309144.0,
+        "median_allocations": 7951.0,
+        "maximum_process_peak_rss_bytes": 6930432
+      },
+      "allocation_change_percent": -0.28899496839117633,
+      "median_latency_change_percent": 0.575551572559152
+    },
+    {
+      "name": "synthetic-1000",
+      "input_sha256": "d0f755488ce047def859d26e0b65f3131b990706d24220d60d6817bdbf3cfb8f",
+      "input_bytes": 643312,
+      "before": {
+        "median_ms": 47.42325,
+        "p95_ms": 50.390025,
+        "minimum_ms": 45.285042,
+        "maximum_ms": 50.83225,
+        "coefficient_of_variation": 0.039356750073279774,
+        "median_allocated_bytes": 19595208.0,
+        "median_allocations": 506779.0,
+        "maximum_process_peak_rss_bytes": 15433728
+      },
+      "after": {
+        "median_ms": 47.472646,
+        "p95_ms": 50.1609021,
+        "minimum_ms": 45.193,
+        "maximum_ms": 50.531917,
+        "coefficient_of_variation": 0.03594488744548574,
+        "median_allocated_bytes": 18824936.0,
+        "median_allocations": 506772.5,
+        "maximum_process_peak_rss_bytes": 15056896
+      },
+      "allocation_change_percent": -3.9309202535640297,
+      "median_latency_change_percent": 0.10415987938403592
+    },
+    {
+      "name": "synthetic-20000",
+      "input_sha256": "7f482cac68cf11a79b5a657f24c345c93d162a667587d440a3be43055c753bb5",
+      "input_bytes": 12860312,
+      "before": {
+        "median_ms": 937.6418955,
+        "p95_ms": 962.92003925,
+        "minimum_ms": 916.628084,
+        "maximum_ms": 965.070958,
+        "coefficient_of_variation": 0.015594039620470563,
+        "median_allocated_bytes": 408055248.0,
+        "median_allocations": 10121200.5,
+        "maximum_process_peak_rss_bytes": 210731008
+      },
+      "after": {
+        "median_ms": 924.6133125,
+        "p95_ms": 958.4152548,
+        "minimum_ms": 910.134166,
+        "maximum_ms": 966.928125,
+        "coefficient_of_variation": 0.015869964083808176,
+        "median_allocated_bytes": 385404196.0,
+        "median_allocations": 10121181.0,
+        "maximum_process_peak_rss_bytes": 202424320
+      },
+      "allocation_change_percent": -5.55097676381312,
+      "median_latency_change_percent": -1.3895052111608686
+    }
+  ],
+  "repeated_rss_cases": [
+    {
+      "name": "packages-hard-invalid-middle",
+      "before_bytes": [
+        77447168,
+        78446592,
+        77250560,
+        77299712,
+        77299712
+      ],
+      "after_bytes": [
+        87818240,
+        88965120,
+        88260608,
+        88276992,
+        87605248
+      ],
+      "median_before_bytes": 77299712,
+      "median_after_bytes": 88260608,
+      "median_change_percent": 14.179737176769812
+    },
+    {
+      "name": "relationships-default-invalid-last",
+      "before_bytes": [
+        39288832,
+        39190528,
+        41959424,
+        42614784,
+        44843008
+      ],
+      "after_bytes": [
+        40452096,
+        46186496,
+        40370176,
+        45613056,
+        40239104
+      ],
+      "median_before_bytes": 41959424,
+      "median_after_bytes": 40452096,
+      "median_change_percent": -3.5923467395548636
+    },
+    {
+      "name": "relationships-hard-invalid-growth-edge",
+      "before_bytes": [
+        79527936,
+        86818816,
+        74088448,
+        86573056,
+        77627392
+      ],
+      "after_bytes": [
+        82657280,
+        82067456,
+        90013696,
+        82395136,
+        81985536
+      ],
+      "median_before_bytes": 79527936,
+      "median_after_bytes": 82395136,
+      "median_change_percent": 3.605274000824066
+    },
+    {
+      "name": "actual-native-exact-bytes",
+      "before_bytes": [
+        6848512
+      ],
+      "after_bytes": [
+        6832128
+      ],
+      "median_before_bytes": 6848512,
+      "median_after_bytes": 6832128,
+      "median_change_percent": -0.23923444976076125
+    }
+  ],
+  "validation": {
+    "contracts": 39,
+    "repeated_contract_pairs": 16,
+    "all_output_and_error_contracts_identical": true,
+    "fuzz_executions": 53540,
+    "fuzz_seconds": 61.016,
+    "fuzz_divergences": 0,
+    "fuzz_gomaxprocs": 2,
+    "fuzz_parallel": 2,
+    "race": "pass",
+    "vet": "pass"
+  },
+  "limitations": [
+    "Peak RSS includes input reading and JSON serialization for successful imports; rejection outputs are null.",
+    "Initial malformed-case samples are single observations. Five paired repeats were used for the three increases selected for follow-up.",
+    "The first actual-fixture timing case uses compact reserialization. The exact native fixture bytes were checked separately in the repeat receipt.",
+    "A 1.39% median latency difference for 20k lies inside the timing-noise envelope and is not a speedup claim."
+  ],
+  "baseline_profiles": "Original CPU/alloc/live profiles and heap-polling contamination diagnosis retained in the main checkout .cache/next-sprint/import-profile. The rejected candidate was not treated as a new optimization baseline."
+}
