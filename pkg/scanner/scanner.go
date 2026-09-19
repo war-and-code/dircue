@@ -19,6 +19,7 @@ import (
 	"dircue/pkg/discovery"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
+	"dircue/pkg/registries"
 	"dircue/pkg/rules"
 	"dircue/pkg/structure"
 	enry "github.com/go-enry/go-enry/v2"
@@ -37,6 +38,10 @@ type Options struct {
 	Rules *rules.Program
 	// RulesOnly skips classifiers and other content profilers.
 	RulesOnly bool
+	// Registries observes selected repository-owned registry configuration declarations.
+	Registries bool
+	// RegistriesOnly skips language classifiers and other content profilers.
+	RegistriesOnly bool
 	// Source selects committed Git content when auto discovers a repository.
 	Source            string
 	Revision          string
@@ -60,6 +65,7 @@ type job struct {
 	read  func(int64) ([]byte, int64, error)
 }
 type result struct {
+	registryFile    *registries.Candidate
 	discoveryFile   *discovery.File
 	rulesFile       *rules.File
 	rulesRead       func(int64) ([]byte, int64, error)
@@ -85,6 +91,15 @@ type result struct {
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.DiscoveryOnly && (opts.Registries || opts.RegistriesOnly) {
+		return nil, errors.New("discovery-only cannot run registries")
+	}
+	if opts.RulesOnly && (opts.Registries || opts.RegistriesOnly) {
+		return nil, errors.New("rules-only cannot run registries")
+	}
+	if opts.RegistriesOnly && (!opts.Registries || opts.Rules != nil || opts.RulesOnly || opts.DiscoveryOnly || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
+		return nil, errors.New("registries-only requires registries and cannot run rules, discovery-only, detectors, projects, metrics, or structure")
+	}
 	if opts.DiscoveryOnly && (opts.Rules != nil || opts.RulesOnly) {
 		return nil, errors.New("discovery-only cannot run rules")
 	}
@@ -163,6 +178,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err != nil {
 		return nil, err
 	}
+	registryCollector, err := newRegistryAccumulator(opts, snapshot)
+	if err != nil {
+		return nil, err
+	}
 	if snapshot == nil {
 		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize)
 		if err != nil {
@@ -170,6 +189,15 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		if exceeded {
 			report := newReport(abs)
+			if registryCollector != nil {
+				if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
+					return nil, err
+				}
+				report.Registries, err = registryCollector.finish(ctx)
+				if err != nil {
+					return nil, err
+				}
+			}
 			if ruleCollector != nil {
 				if err := ruleCollector.collector.Omit(rules.TreeSizeLimit, 1); err != nil {
 					return nil, err
@@ -202,7 +230,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if opts.Projects || opts.Structure != nil {
 				report.SchemaVersion = profile.ExpandedSchemaVersion
 			}
-			if opts.Rules != nil || opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
+			if opts.Registries || opts.Rules != nil || opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
 				report.SchemaVersion = profile.EnhancedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
@@ -382,6 +410,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if registryCollector != nil {
+			if err := registryCollector.add(value); err != nil {
+				fail(err)
+				continue
+			}
+		}
 		if ruleCollector != nil {
 			if err := ruleCollector.add(value); err != nil {
 				fail(fmt.Errorf("collect rules: %w", err))
@@ -476,6 +510,20 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		if err != nil {
 			return nil, err
 		}
+	}
+	if registryCollector != nil {
+		for _, warning := range report.Warnings {
+			if warning.Code == "tree_size_limit" {
+				if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
+					return nil, err
+				}
+			}
+		}
+		report.Registries, err = registryCollector.finish(ctx)
+		if err != nil {
+			return nil, err
+		}
+		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
 	if metrics != nil {
 		metrics.finish()

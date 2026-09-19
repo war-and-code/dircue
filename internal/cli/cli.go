@@ -39,6 +39,7 @@ type options struct {
 	metricsFiles           bool
 	projects               bool
 	discovery              bool
+	registries             bool
 	graph                  bool
 	structure              bool
 	structureFunctions     bool
@@ -90,10 +91,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, rules, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, rules, registries, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "rules", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "rules", "registries", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -114,10 +115,11 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().StringVar(&opts.metricsScope, "metrics-scope", "source", "Metrics selection: source (language statistics) or text (all detected text languages)")
 			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
 		}
-		if mode == "rules" || mode == "all" {
+		if mode == "rules" || mode == "registries" || mode == "all" {
 			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet.Config and .npmrc declarations; disclose qualified names and sanitized origins")
 			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
@@ -244,6 +246,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		DiscoveryOnly:     mode == "discovery",
 		Rules:             ruleProgram,
 		RulesOnly:         mode == "rules",
+		Registries:        mode == "registries" || (mode == "all" && opts.registries),
+		RegistriesOnly:    mode == "registries",
 		Structure:         structural,
 		StructureFiles:    opts.metricsFiles,
 	})
@@ -295,6 +299,11 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			return err
 		}
 		return writeRules(out, report.Rules)
+	case "registries":
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
+		return writeRegistries(out, report.Registries)
 	case "graph":
 		return writeGraph(out, report.Graph)
 	case "packages":
@@ -304,6 +313,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	case "metrics":
 		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
+		if err := writeRegistries(out, report.Registries); err != nil {
+			return err
+		}
 		if err := writeRules(out, report.Rules); err != nil {
 			return err
 		}

@@ -1,0 +1,219 @@
+[
+  {
+    "id": "plain",
+    "text": "registry=https://registry.example/path\n",
+    "npm": {
+      "registry": "https://registry.example/path"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "inline-comment",
+    "text": "registry=https://registry.example/path ; synthetic-comment\n",
+    "npm": {
+      "registry": "https://registry.example/path"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "escaped-comment",
+    "text": "registry=https://registry.example/path\\#fragment\\;part\n",
+    "npm": {
+      "registry": "https://registry.example/path#fragment;part"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "double-quoted",
+    "text": "registry=\"https://registry.example/path#fragment;part\"\n",
+    "npm": {
+      "registry": "https://registry.example/path#fragment;part"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "single-quoted",
+    "text": "registry='https://registry.example/path'\n",
+    "npm": {
+      "registry": "https://registry.example/path"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "scoped-crlf",
+    "text": "@company:registry=https://scope.example:443/private\r\nregistry=https://registry.example/\r",
+    "npm": {
+      "@company:registry": "https://scope.example:443/private",
+      "registry": "https://registry.example/"
+    },
+    "origins": [
+      "https://scope.example:443",
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "quoted-trailing-comment",
+    "text": "registry=\"https://registry.example/path\" ; comment\n",
+    "npm": {
+      "registry": "\"https://registry.example/path\""
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "array-unsupported",
+    "text": "registry[]=https://registry.example/\n",
+    "npm": {
+      "registry": [
+        "https://registry.example/"
+      ]
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "section-unsupported",
+    "text": "[custom]\nregistry=https://registry.example/\n",
+    "npm": {
+      "custom": {
+        "registry": "https://registry.example/"
+      }
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "quoted-key-unsupported",
+    "text": "\"registry\"=https://registry.example/\n",
+    "npm": {
+      "registry": "https://registry.example/"
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "boolean-unsupported",
+    "text": "registry=true\n",
+    "npm": {
+      "registry": true
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "null-unsupported",
+    "text": "registry=\"null\"\n",
+    "npm": {
+      "registry": null
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "credentials-discarded",
+    "text": "registry=https://synthetic-user:synthetic-password@registry.example/private?token=synthetic-query#synthetic-fragment\n//registry.example/:_authToken=synthetic-auth-token\n",
+    "npm": {
+      "registry": "https://synthetic-user:synthetic-password@registry.example/private?token=synthetic-query",
+      "//registry.example/:_authToken": "synthetic-auth-token"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "single-quoted-number",
+    "text": "registry='123'\n",
+    "npm": {
+      "registry": 123
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-array",
+    "text": "registry='[]'\n",
+    "npm": {
+      "registry": []
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-object",
+    "text": "registry='{}'\n",
+    "npm": {
+      "registry": {}
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-array-member",
+    "text": "registry='[1]'\n",
+    "npm": {
+      "registry": [
+        1
+      ]
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-true",
+    "text": "registry='true'\n",
+    "npm": {
+      "registry": true
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-null",
+    "text": "registry='null'\n",
+    "npm": {
+      "registry": null
+    },
+    "origins": [],
+    "status": "partial"
+  },
+  {
+    "id": "single-quoted-json-string",
+    "text": "registry='\"https://registry.example/path\"'\n",
+    "npm": {
+      "registry": "https://registry.example/path"
+    },
+    "origins": [
+      "https://registry.example"
+    ],
+    "status": "complete"
+  },
+  {
+    "id": "single-quoted-overflow-number",
+    "text": "registry='1e400'\n",
+    "npm": {
+      "registry": null
+    },
+    "npm_types": {
+      "registry": "number"
+    },
+    "origins": [],
+    "status": "partial"
+  }
+]

@@ -1,0 +1,52 @@
+{
+  "reviewed_on": "2026-09-19",
+  "purpose": "Define a bounded declaration observer; not an effective configuration evaluator.",
+  "nuget_revision": "1e4190512e7db17a3a7938661cfd055ca5c59fa7",
+  "npm_ini_revision": "180a8d5c72d7f13ed70c53619132f3a8ee5ac6ed",
+  "npm_ini_tag": "v6.0.0",
+  "sources": [
+    {
+      "url": "https://learn.microsoft.com/en-us/nuget/reference/nuget-config-file",
+      "finding": "Package sources, disabled sources and package source mappings are separate declarations. Credentials and API keys are separate sections. Values can reference environment variables. Observe supported declaration sections without expanding any values or reporting credential sections."
+    },
+    {
+      "url": "https://learn.microsoft.com/en-us/nuget/consume-packages/configuring-nuget-behavior",
+      "finding": "NuGet configuration can depend on machine/user files, ancestor directories, invocation location and explicit config-file arguments. Selected repository ancestors are candidates only; this observer cannot establish the effective feed set."
+    },
+    {
+      "url": "https://docs.npmjs.com/cli/v11/configuring-npm/npmrc/",
+      "finding": "npm uses project/user/global/built-in configuration and other input channels. Project .npmrc applies at the invoked project root, not generic recursive ancestor inheritance. Scoped registry assignments are supported; authentication keys and values are not inventory evidence."
+    },
+    {
+      "url": "https://github.com/NuGet/NuGet.Client/blob/1e4190512e7db17a3a7938661cfd055ca5c59fa7/src/NuGet.Core/NuGet.Configuration/Settings/SettingFactory.cs",
+      "finding": "Element and parent type classification ignores case. Clear has a recognized case; Remove does not and falls back to UnknownItem. Preserve remove-shaped syntax as unsupported, without simulating removal."
+    },
+    {
+      "url": "https://github.com/NuGet/NuGet.Client/blob/1e4190512e7db17a3a7938661cfd055ca5c59fa7/src/NuGet.Core/NuGet.Configuration/Settings/SettingElement.cs",
+      "finding": "Attribute storage uses OrdinalIgnoreCase, but required attributes are validated through XElement.Attribute with exact required names. Conservatively reject alternate casing for required key/value/pattern attributes; do not silently normalize invalid declarations."
+    },
+    {
+      "url": "https://github.com/NuGet/NuGet.Client/blob/1e4190512e7db17a3a7938661cfd055ca5c59fa7/src/NuGet.Core/NuGet.Configuration/Settings/NuGetConfiguration.cs",
+      "finding": "Root element matching ignores case. Sections are indexed using their original ElementName and default dictionary equality. Supported section names therefore use canonical spelling in this observer."
+    },
+    {
+      "url": "https://github.com/npm/ini/blob/180a8d5c72d7f13ed70c53619132f3a8ee5ac6ed/lib/ini.js",
+      "finding": "The parser splits CR/LF lines, supports comments, sections and array keys, and applies distinct quoted versus unquoted value handling. Unquoted escapes preserve escaped semicolons/hash characters; unescaped comments terminate values. The observer supports ordinary string values only; ambiguous quoting, quoted keys, arrays and sectioned registry settings are omitted with fixed codes."
+    }
+  ],
+  "limits": {
+    "configurations_per_ecosystem": 64,
+    "file_bytes": 262144,
+    "declarations_per_configuration": 256,
+    "retained_declarations_per_ecosystem": 1024,
+    "xml_depth": 32,
+    "xml_tokens": 32768,
+    "npm_line_bytes": 8192
+  },
+  "limitations": [
+    "Source review supports the selected grammar subset; it does not establish compatibility with every NuGet/npm version.",
+    "Origin and identifier disclosure can reveal internal names; syntactic validation is not secret detection.",
+    "No effective feed set, inherited feed values, credential availability, registry access or approval policy is asserted.",
+    "No repository content hashes, raw excerpts or secret-bearing parser errors are emitted by the module."
+  ]
+}

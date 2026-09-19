@@ -5,6 +5,7 @@ import (
 	"context"
 	"dircue/pkg/discovery"
 	"dircue/pkg/projects"
+	"dircue/pkg/registries"
 	"dircue/pkg/rules"
 	"fmt"
 	enry "github.com/go-enry/go-enry/v2"
@@ -16,6 +17,10 @@ import (
 // Project manifests have their own selection policy. In particular, XML
 // manifests remain visible even when XML is excluded from language statistics.
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	var registryFile *registries.Candidate
+	if opts.Registries {
+		registryFile = registryCandidate(root, item)
+	}
 	var ruleFile *rules.File
 	originalRead := item.read
 	if opts.Rules != nil {
@@ -31,6 +36,12 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 			return result{path: item.path, skipped: true, discoveryFile: metadata}, nil
 		}
 	}
+	if opts.RegistriesOnly {
+		if err := ctx.Err(); err != nil {
+			return result{}, err
+		}
+		return result{path: item.path, skipped: true, discoveryFile: metadata, registryFile: registryFile}, nil
+	}
 	if opts.RulesOnly {
 		if err := ctx.Err(); err != nil {
 			return result{}, err
@@ -42,6 +53,10 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	}
 	value, err := analyzeFileBase(ctx, root, item, opts)
 	value.discoveryFile = metadata
+	value.registryFile = registryFile
+	if err != nil && registryFile != nil {
+		err = registryReadError(err)
+	}
 	if ruleFile != nil {
 		value.rulesFile, value.rulesRead = ruleFile, originalRead
 	}
@@ -64,6 +79,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 		data, _, size, err = readBoundedSize(root, item.path, limit)
 	}
 	if err != nil {
+		if registryFile != nil {
+			err = registryReadError(err)
+		}
 		return result{}, err
 	}
 	if size > limit || int64(len(data)) > limit {

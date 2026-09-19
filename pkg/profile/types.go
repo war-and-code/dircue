@@ -6,6 +6,7 @@ import (
 	"dircue/pkg/discovery"
 	"dircue/pkg/packageevidence"
 	"dircue/pkg/projects"
+	"dircue/pkg/registries"
 	"dircue/pkg/rules"
 )
 
@@ -68,6 +69,7 @@ const ExpandedSchemaVersion = "1.2.0"
 const EnhancedSchemaVersion = "1.3.0"
 
 type Report struct {
+	Registries      *registries.Report      `json:"registries,omitempty"`
 	Rules           *rules.Report           `json:"rules,omitempty"`
 	PackageEvidence *packageevidence.Report `json:"package_evidence,omitempty"`
 	Discovery       *discovery.Report       `json:"discovery,omitempty"`
