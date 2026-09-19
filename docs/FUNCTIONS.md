@@ -68,6 +68,8 @@ file counts before using the measured population. Syntax recovery, invalid
 spans, omitted names, and entry caps prevent a complete claim. An empty list
 does not prove there are no functions in the directory.
 
+The scope is `selected-source-files`. An `outside_scope` omission, such as a generated file excluded by the selected policy, does not by itself make analysis of the selected files partial. The omission still matters when interpreting what the report covers. Recovery, unsupported selected input, or an exhausted limit has different coverage consequences.
+
 The aggregate owns these entries. Requesting `--files` does not duplicate
 function lists under every file. Function-enabled reports use schema `1.3.0`;
 older structural invocations keep schema `1.2.0`.
@@ -76,7 +78,6 @@ The existing [structural input selection, deadlines, and size bounds](STRUCTURE.
 still apply. This feature supplies evidence for future review views and report
 comparisons; it does not rank files, set quality thresholds, or recommend
 skipping other analysis.
-
 
 ## Validation and measured cost
 

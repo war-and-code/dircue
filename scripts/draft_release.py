@@ -15,6 +15,7 @@ import urllib.request
 import zipfile
 
 import release
+import function_release_smoke
 import structural_worker_release as worker_release
 import wheels
 
@@ -185,6 +186,9 @@ def native_smoke(directory, platform, version, commit):
         checked(result.stdout == f'dircue {version}\n'.encode() and not result.stderr, 'packaged core version mismatch')
         subprocess.run([sys.executable, str(ROOT / 'tests/structural_breadth/run.py'), '--candidate', str(folder / executable),
                         '--worker', str(folder / native_worker), '--output', str(directory / 'breadth.json')], check=True)
+        if function_release_smoke.functions_required(version):
+            receipt = function_release_smoke.run(folder / executable, folder / native_worker, version)
+            (directory / 'functions.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
 
 
 def assemble(input_dir, output, version, commit, notes):
@@ -241,6 +245,10 @@ def assemble(input_dir, output, version, commit, notes):
         checked(smoke['harness_sha256'] == digest((ROOT / 'tests/structural_breadth/run.py').read_bytes()) and
                 smoke['manifest_sha256'] == digest((ROOT / 'tests/structural_breadth/fixtures.json').read_bytes()), 'smoke test source mismatch')
         add('native-smoke-' + platform + '.json', (folder / 'breadth.json').read_bytes())
+        if function_release_smoke.functions_required(version):
+            raw_functions = (folder / 'functions.json').read_bytes()
+            function_release_smoke.validate_receipt(json.loads(raw_functions), version, core_row['binary_sha256'], wp['binary_sha256'])
+            add('function-smoke-' + platform + '.json', raw_functions)
         validations.append({'platform': platform, 'core_sha256': core_row['binary_sha256'], 'worker_sha256': wp['binary_sha256'], 'wheels': len(receipt['wheels'])})
     checked(sum(row['wheels'] for row in validations) == 7, 'expected seven platform wheels')
     receipt = {'schema_version': '1.0.0', 'version': version, 'commit': commit, 'notes_sha256': digest(notes),
