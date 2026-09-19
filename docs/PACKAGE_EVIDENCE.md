@@ -1,6 +1,6 @@
 # Importing package evidence
 
-Available on the development branch after 0.3.0.
+Added in the 0.4.0 candidate.
 
 Dircue can import an existing native [Syft](https://github.com/anchore/syft)
 JSON report and associate its locations with the static project inventory.
@@ -93,9 +93,8 @@ The output preserves provider and schema versions, report digest, selected
 configuration details, catalogers, package locations, relationship kinds, and
 diagnostics. Arbitrary metadata and host paths are represented by digests;
 recognized credential forms and PURLs with qualifiers or fragments are omitted.
-This is a normalized subset,
-not a lossless replacement for the original Syft report. Retain that report if
-you need fields outside the supported subset.
+Retain the original Syft report if you need fields outside this normalized
+subset.
 
 See the [fixture provenance](../tests/packageevidence/README.md),
 [project guide](PROJECTS.md), and [staged-analysis guide](STAGED_ANALYSIS.md).

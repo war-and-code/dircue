@@ -1,6 +1,6 @@
 # Static project-reference graphs
 
-Available on the development branch after 0.3.0.
+Added in the 0.4.0 candidate.
 
 ```sh
 dircue analyze graph --source directory --json /path/to/checkout

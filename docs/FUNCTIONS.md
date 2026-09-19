@@ -1,8 +1,8 @@
 # Optional function-space metrics
 
-The development branch after 0.3.0 can report bounded function-space metrics
+Version 0.4.0 can report bounded function-space metrics
 from [big-code-analysis](https://github.com/dekobon/big-code-analysis) (BCA).
-This option needs a worker built from the matching development source. The
+This option needs the matching 0.4.0 worker. The
 downloadable 0.3.0 worker does not provide it.
 
 ```sh
