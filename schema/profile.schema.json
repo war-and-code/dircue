@@ -6,8 +6,8 @@
   "additionalProperties": false,
   "required": ["schema_version", "root", "summary", "languages", "ecosystems", "frameworks", "layouts", "warnings"],
   "allOf": [
-    {"if": {"properties": {"schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]}}}, "then": {"not": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}}},
-    {"if": {"properties": {"schema_version": {"const": "1.3.0"}}}, "then": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}},
+    {"if": {"properties": {"schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]}}}, "then": {"not": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}}},
+    {"if": {"properties": {"schema_version": {"const": "1.3.0"}}}, "then": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}},
     {"if": {"required": ["graph"]}, "then": {"required": ["projects"]}},
     {"if": {"required": ["package_evidence"]}, "then": {"required": ["projects"]}},
     {
@@ -71,6 +71,7 @@
     }
   ],
   "properties": {
+    "rules": {"$ref": "#/$defs/rules"},
     "package_evidence": {"$ref": "#/$defs/package_evidence"},
     "discovery": {"$ref": "#/$defs/discovery"},
     "graph": {"$ref": "#/$defs/graph"},
@@ -150,6 +151,400 @@
     "structure": {"$ref": "#/$defs/structure"}
   },
   "$defs": {
+    "rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "provider",
+        "evaluator_version",
+        "rules_schema_version",
+        "rules_sha256",
+        "source",
+        "source_consistency",
+        "scope",
+        "status",
+        "order",
+        "limits",
+        "inventory_files",
+        "candidate_files",
+        "content_candidate_files",
+        "content_eligible_files",
+        "content_admitted_files",
+        "content_evaluated_files",
+        "content_omitted_files",
+        "total_matches",
+        "omitted_matches",
+        "omissions",
+        "rules",
+        "observations"
+      ],
+      "properties": {
+        "provider": {
+          "const": "dircue"
+        },
+        "evaluator_version": {
+          "const": "1.0.0"
+        },
+        "rules_schema_version": {
+          "const": "1.0.0"
+        },
+        "rules_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "git",
+                "directory"
+              ]
+            },
+            "tree": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{40}$"
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "kind": {
+                    "const": "git"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "tree"
+                ]
+              },
+              "else": {
+                "not": {
+                  "required": [
+                    "tree"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        "source_consistency": {
+          "enum": [
+            "selected_git_tree",
+            "live_directory"
+          ]
+        },
+        "scope": {
+          "const": "selected_regular_files_including_vendor_generated_and_data"
+        },
+        "status": {
+          "enum": [
+            "complete",
+            "partial",
+            "skipped"
+          ]
+        },
+        "order": {
+          "const": "path_then_rule_id"
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "config_bytes",
+            "rules",
+            "selector_values",
+            "total_selectors",
+            "literal_bytes",
+            "path_bytes",
+            "content_files",
+            "observations",
+            "content_bytes",
+            "caller_max_file_bytes"
+          ],
+          "properties": {
+            "config_bytes": {
+              "const": 262144
+            },
+            "rules": {
+              "const": 256
+            },
+            "selector_values": {
+              "const": 64
+            },
+            "total_selectors": {
+              "const": 4096
+            },
+            "literal_bytes": {
+              "const": 4096
+            },
+            "path_bytes": {
+              "const": 4096
+            },
+            "content_files": {
+              "const": 256
+            },
+            "observations": {
+              "const": 1024
+            },
+            "content_bytes": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65536
+            },
+            "caller_max_file_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9223372036854775807
+            }
+          }
+        },
+        "inventory_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "candidate_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "content_candidate_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "content_eligible_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "content_admitted_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "content_evaluated_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "content_omitted_files": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "total_matches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "omitted_matches": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 18446744073709551615
+        },
+        "omissions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "non_regular_file": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "unsupported_path": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "tree_size_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "file_too_large": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "caller_file_limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "content_budget": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "incomplete_content": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "invalid_utf8": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            },
+            "not_evaluated": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 18446744073709551615
+            }
+          }
+        },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "requires_content",
+              "candidate_files",
+              "evaluated_files",
+              "matched_files",
+              "content_omitted_files"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+              },
+              "requires_content": {
+                "type": "boolean"
+              },
+              "candidate_files": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "evaluated_files": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "matched_files": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              },
+              "content_omitted_files": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 18446744073709551615
+              }
+            }
+          }
+        },
+        "observations": {
+          "type": "array",
+          "maxItems": 1024,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "rule_id",
+              "evidence",
+              "size"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4096
+              },
+              "rule_id": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128,
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$"
+              },
+              "evidence": {
+                "enum": [
+                  "metadata",
+                  "content"
+                ]
+              },
+              "size": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[0-9a-f]{64}$"
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "evidence": {
+                      "const": "content"
+                    }
+                  }
+                },
+                "then": {
+                  "required": [
+                    "source_sha256"
+                  ]
+                },
+                "else": {
+                  "not": {
+                    "required": [
+                      "source_sha256"
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "source": {
+                "properties": {
+                  "kind": {
+                    "const": "git"
+                  }
+                }
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "source_consistency": {
+                "const": "selected_git_tree"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "source_consistency": {
+                "const": "live_directory"
+              }
+            }
+          }
+        }
+      ]
+    },
     "function_evidence": {
       "type": "object",
       "additionalProperties": false,

@@ -19,6 +19,7 @@ import (
 	"dircue/pkg/discovery"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
+	"dircue/pkg/rules"
 	"dircue/pkg/structure"
 	enry "github.com/go-enry/go-enry/v2"
 )
@@ -32,6 +33,10 @@ type Options struct {
 	Discovery bool
 	// DiscoveryOnly inventories metadata without language or content analysis.
 	DiscoveryOnly bool
+	// Rules evaluates explicit caller-supplied observations independently of language inclusion.
+	Rules *rules.Program
+	// RulesOnly skips classifiers and other content profilers.
+	RulesOnly bool
 	// Source selects committed Git content when auto discovers a repository.
 	Source            string
 	Revision          string
@@ -56,6 +61,8 @@ type job struct {
 }
 type result struct {
 	discoveryFile   *discovery.File
+	rulesFile       *rules.File
+	rulesRead       func(int64) ([]byte, int64, error)
 	path            string
 	size            int64
 	language        string
@@ -78,8 +85,14 @@ type result struct {
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.DiscoveryOnly && (opts.Rules != nil || opts.RulesOnly) {
+		return nil, errors.New("discovery-only cannot run rules")
+	}
 	if opts.DiscoveryOnly && (!opts.Discovery || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
 		return nil, errors.New("discovery-only requires discovery and cannot run detectors, projects, metrics, or structure")
+	}
+	if opts.RulesOnly && (opts.Rules == nil || opts.DiscoveryOnly || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
+		return nil, errors.New("rules-only requires rules and cannot run detectors, projects, metrics, structure, or discovery-only")
 	}
 	if opts.Structure != nil {
 		opts.structureGate = make(chan struct{}, 1)
@@ -146,6 +159,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return nil, fmt.Errorf("open scan root: %w", err)
 	}
 	defer root.Close()
+	ruleCollector, err := newRulesAccumulator(opts, snapshot)
+	if err != nil {
+		return nil, err
+	}
 	if snapshot == nil {
 		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize)
 		if err != nil {
@@ -153,6 +170,15 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		if exceeded {
 			report := newReport(abs)
+			if ruleCollector != nil {
+				if err := ruleCollector.collector.Omit(rules.TreeSizeLimit, 1); err != nil {
+					return nil, err
+				}
+				report.Rules, err = ruleCollector.finish(ctx, root)
+				if err != nil {
+					return nil, err
+				}
+			}
 			if opts.Discovery {
 				report.Discovery = discovery.New("directory", "", opts.MaxTreeSize).Skip("tree_size_limit")
 			}
@@ -176,7 +202,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if opts.Projects || opts.Structure != nil {
 				report.SchemaVersion = profile.ExpandedSchemaVersion
 			}
-			if opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
+			if opts.Rules != nil || opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
 				report.SchemaVersion = profile.EnhancedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
@@ -356,6 +382,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if ruleCollector != nil {
+			if err := ruleCollector.add(value); err != nil {
+				fail(fmt.Errorf("collect rules: %w", err))
+				continue
+			}
+		}
 		if discoveryCollector != nil {
 			if value.discoveryFile != nil {
 				discoveryCollector.Add(*value.discoveryFile)
@@ -432,6 +464,19 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if ruleCollector != nil {
+		for _, warning := range report.Warnings {
+			if warning.Code == "tree_size_limit" {
+				if err := ruleCollector.collector.Omit(rules.TreeSizeLimit, 1); err != nil {
+					return nil, err
+				}
+			}
+		}
+		report.Rules, err = ruleCollector.finish(ctx, root)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if metrics != nil {
 		metrics.finish()
 	}
@@ -459,6 +504,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				discoveryCollector.Partial("unsupported_gitattributes")
 			}
 		}
+		report.SchemaVersion = profile.EnhancedSchemaVersion
+	}
+	if ruleCollector != nil {
 		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
 	for _, language := range languages {

@@ -1,7 +1,7 @@
 # Profiling module boundaries
 
 This document describes the current scanner and the constraints for extending
-it. The discovery, graph, and package-import rows refer to the development
+it. The discovery, graph, package-import, and function-evidence rows refer to the development
 branch after 0.3.0. There is no runtime plugin loader or declarative module
 registry.
 
@@ -28,6 +28,7 @@ ordinary directory profiling.
 | Projects | Selected inventory and recognized manifests, independently of XML language inclusion | Bounded manifest parsing, declarations, configuration candidates, composition, attribution |
 | Metrics | Explicit source or text scope | Complete-file scc counting, with size bounds and omission reasons |
 | Structure | Selected supported source files | Complete bounded source sent to an explicit native worker; per-file syntax and metrics |
+| Function evidence | Explicit structural opt-in over selected supported source | Reuses the native metrics tree; bounded entries, source hashes, and coverage |
 | Graph | Finalized project report | Pure aggregation over defined declaration edges; no new filesystem reads |
 | Package evidence | Explicit imported report and project context | Bounded parsing and conservative association; no Syft execution or evidence-path reads |
 
@@ -101,3 +102,5 @@ source identities, and omissions are not yet represented uniformly across all
 legacy result types; changing those contracts requires explicit schema and
 compatibility work. See [#4](https://github.com/war-and-code/dircue/issues/4),
 the [capability matrix](CAPABILITIES.md), and the module-specific guides.
+
+Caller-supplied [observation rules](RULES.md) are compiled explicitly by the CLI. The scanner delivers metadata independently of language inclusion, admits bounded content candidates in lexical order, and owns source reads. `pkg/rules` owns matching, counting, and coverage; it performs no filesystem access and cannot change another module’s scope.

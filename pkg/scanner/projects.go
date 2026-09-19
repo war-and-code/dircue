@@ -5,6 +5,7 @@ import (
 	"context"
 	"dircue/pkg/discovery"
 	"dircue/pkg/projects"
+	"dircue/pkg/rules"
 	"fmt"
 	enry "github.com/go-enry/go-enry/v2"
 	"os"
@@ -15,6 +16,11 @@ import (
 // Project manifests have their own selection policy. In particular, XML
 // manifests remain visible even when XML is excluded from language statistics.
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	var ruleFile *rules.File
+	originalRead := item.read
+	if opts.Rules != nil {
+		ruleFile = &rules.File{Path: item.path, Size: item.size}
+	}
 	var metadata *discovery.File
 	if opts.Discovery {
 		metadata = &discovery.File{Path: item.path, Size: item.size, Vendored: item.attrs.vendored, Generated: item.attrs.generated, Documentation: item.attrs.documentation}
@@ -25,11 +31,20 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 			return result{path: item.path, skipped: true, discoveryFile: metadata}, nil
 		}
 	}
+	if opts.RulesOnly {
+		if err := ctx.Err(); err != nil {
+			return result{}, err
+		}
+		return result{path: item.path, skipped: true, discoveryFile: metadata, rulesFile: ruleFile, rulesRead: originalRead}, nil
+	}
 	if opts.Projects || opts.Structure != nil {
 		item.read = cachedFileReader(root, item)
 	}
 	value, err := analyzeFileBase(ctx, root, item, opts)
 	value.discoveryFile = metadata
+	if ruleFile != nil {
+		value.rulesFile, value.rulesRead = ruleFile, originalRead
+	}
 	if err != nil || !opts.Projects || !projects.IsManifest(item.path) {
 		return value, err
 	}
