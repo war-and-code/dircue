@@ -6,7 +6,9 @@ The initial macOS ARM64 run matched **209 of 209 cases**. It includes the existi
 
 The [integrated follow-up receipt](results/integrated-macos-arm64.json.gz) also
 matched all 209 cases after Syft-import hardening and the new command-help and
-validation changes. Each receipt identifies its own candidate binary.
+validation changes. The [function-integration receipt](results/functions-macos-arm64.json.gz) matched
+the same 209 cases after adding optional function metrics and protocol hardening.
+Each receipt identifies its own candidate binary.
 
 From the repository root:
 
