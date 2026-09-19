@@ -1,0 +1,3 @@
+package schema_test
+import("encoding/json";"os";"path/filepath";"testing";"github.com/santhosh-tekuri/jsonschema/v5")
+func TestFinalV040CompositionAudit(t *testing.T){s,err:=jsonschema.Compile("profile.schema.json");if err!=nil{t.Fatal(err)};paths,err:=filepath.Glob("../.cache/final-v040-audit/composition-*.json");if err!=nil{t.Fatal(err)};n:=0;for _,p:=range paths{b,err:=os.ReadFile(p);if err!=nil{t.Fatal(err)};var r map[string]any;if err=json.Unmarshal(b,&r);err!=nil{t.Fatal(err)};if _,ok:=r["root"];!ok{continue};if err=s.Validate(r);err!=nil{t.Fatalf("%s: %v",p,err)};n++};if n!=5{t.Fatalf("expected5 actual CLI reports; got%d",n)}}

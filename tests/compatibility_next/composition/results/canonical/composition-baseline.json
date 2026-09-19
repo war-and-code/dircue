@@ -1,0 +1,1419 @@
+{
+  "projects": {
+    "status": "complete",
+    "source": "directory",
+    "attribution": "nearest-unique-project-directory",
+    "max_manifest_bytes": 1048576,
+    "projects": [
+      {
+        "configuration_candidates": [
+          "NuGet.Config"
+        ],
+        "id": "App/App.csproj",
+        "root": "App",
+        "kind": "dotnet",
+        "evidence": [
+          "App/App.csproj"
+        ],
+        "requirements": [
+          {
+            "kind": "dotnet-sdk",
+            "value": "Microsoft.NET.Sdk",
+            "state": "declared",
+            "evidence": "App/App.csproj"
+          },
+          {
+            "kind": "target-framework",
+            "value": "net8.0",
+            "state": "declared",
+            "evidence": "App/App.csproj"
+          }
+        ],
+        "references": [
+          {
+            "target_status": "present",
+            "kind": "project-reference",
+            "value": "../Lib/Lib.csproj",
+            "target": "Lib/Lib.csproj",
+            "state": "resolved",
+            "evidence": "App/App.csproj"
+          }
+        ],
+        "files": 2,
+        "bytes": 285
+      },
+      {
+        "configuration_candidates": [
+          "NuGet.Config"
+        ],
+        "id": "Lib/Lib.csproj",
+        "root": "Lib",
+        "kind": "dotnet",
+        "evidence": [
+          "Lib/Lib.csproj"
+        ],
+        "requirements": [
+          {
+            "kind": "dotnet-sdk",
+            "value": "Microsoft.NET.Sdk",
+            "state": "declared",
+            "evidence": "Lib/Lib.csproj"
+          },
+          {
+            "kind": "target-framework",
+            "value": "net8.0",
+            "state": "declared",
+            "evidence": "Lib/Lib.csproj"
+          }
+        ],
+        "references": [],
+        "files": 2,
+        "bytes": 193
+      }
+    ],
+    "configurations": [
+      {
+        "path": "NuGet.Config",
+        "requirements": [],
+        "references": []
+      }
+    ],
+    "composition": [
+      {
+        "name": "configuration",
+        "basis": "manifest-name",
+        "files": 3,
+        "bytes": 464
+      },
+      {
+        "name": "data",
+        "basis": "detected-language-type",
+        "files": 1,
+        "bytes": 125
+      },
+      {
+        "name": "source",
+        "basis": "detected-language-type",
+        "files": 3,
+        "bytes": 265
+      }
+    ],
+    "unassigned": {
+      "files": 3,
+      "bytes": 376
+    },
+    "ambiguous": {
+      "files": 0,
+      "bytes": 0
+    },
+    "omitted_files": 0,
+    "diagnostics": []
+  },
+  "structure": {
+    "supported_languages": [
+      {
+        "language": "C",
+        "grammar": "tree-sitter-c@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "C#",
+        "grammar": "tree-sitter-c-sharp@0.23.5",
+        "observations": [
+          "classes",
+          "interfaces",
+          "records",
+          "structs",
+          "enums",
+          "methods",
+          "constructors",
+          "properties",
+          "imports",
+          "lambdas",
+          "local_functions",
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "C++",
+        "grammar": "tree-sitter-cpp@0.23.4",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Elixir",
+        "grammar": "tree-sitter-elixir@0.3.5",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Go",
+        "grammar": "tree-sitter-go@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens",
+          "npa",
+          "npm"
+        ]
+      },
+      {
+        "language": "Groovy",
+        "grammar": "dekobon-tree-sitter-groovy@0.2.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Java",
+        "grammar": "tree-sitter-java@0.23.5",
+        "observations": [
+          "classes",
+          "interfaces",
+          "records",
+          "structs",
+          "enums",
+          "methods",
+          "constructors",
+          "properties",
+          "imports",
+          "lambdas",
+          "local_functions",
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "JavaScript",
+        "grammar": "tree-sitter-javascript@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Kotlin",
+        "grammar": "tree-sitter-kotlin-ng@1.1.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Lua",
+        "grammar": "tree-sitter-lua@0.5.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "Objective-C",
+        "grammar": "tree-sitter-objc@3.0.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "PHP",
+        "grammar": "tree-sitter-php@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Perl",
+        "grammar": "tree-sitter-perl@1.1.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "Python",
+        "grammar": "tree-sitter-python@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Ruby",
+        "grammar": "tree-sitter-ruby@0.23.1",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Rust",
+        "grammar": "tree-sitter-rust@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Shell",
+        "grammar": "tree-sitter-bash@0.25.1",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "TSX",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Tcl",
+        "grammar": "bca-tree-sitter-tcl@2.2.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "TypeScript",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      }
+    ],
+    "observation_files": {
+      "classes": 3,
+      "constructors": 3,
+      "enums": 3,
+      "error_nodes": 3,
+      "imports": 3,
+      "interfaces": 3,
+      "lambdas": 3,
+      "local_functions": 3,
+      "methods": 3,
+      "missing_nodes": 3,
+      "properties": 3,
+      "records": 3,
+      "structs": 3,
+      "syntax_nodes": 3
+    },
+    "engine": "big-code-analysis",
+    "engine_version": "2.2.0",
+    "status": "complete",
+    "scope": "source",
+    "source": "directory",
+    "max_file_bytes": 8388608,
+    "analyzed_files": 3,
+    "partial_files": 0,
+    "parse_count": 3,
+    "omissions": {
+      "outside_scope": 4
+    },
+    "observations": {
+      "classes": 3,
+      "constructors": 0,
+      "enums": 0,
+      "error_nodes": 0,
+      "imports": 0,
+      "interfaces": 0,
+      "lambdas": 0,
+      "local_functions": 0,
+      "methods": 3,
+      "missing_nodes": 0,
+      "properties": 0,
+      "records": 0,
+      "structs": 0,
+      "syntax_nodes": 116
+    },
+    "files": [
+      {
+        "path": ".npmrc",
+        "language": "NPM Config",
+        "status": "skipped",
+        "reason": "outside_scope",
+        "source_bytes": 125,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "App/App.csproj",
+        "language": "XML",
+        "status": "skipped",
+        "reason": "outside_scope",
+        "source_bytes": 185,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "App/main.cs",
+        "language": "C#",
+        "status": "complete",
+        "source_bytes": 100,
+        "parse_count": 1,
+        "syntax_errors": false,
+        "observations": {
+          "classes": 1,
+          "constructors": 0,
+          "enums": 0,
+          "error_nodes": 0,
+          "imports": 0,
+          "interfaces": 0,
+          "lambdas": 0,
+          "local_functions": 0,
+          "methods": 1,
+          "missing_nodes": 0,
+          "properties": 0,
+          "records": 0,
+          "structs": 0,
+          "syntax_nodes": 41
+        },
+        "metrics": {
+          "abc": {
+            "assignments": 0,
+            "assignments_average": 0.0,
+            "assignments_max": 0,
+            "assignments_min": 0,
+            "branches": 0,
+            "branches_average": 0.0,
+            "branches_max": 0,
+            "branches_min": 0,
+            "conditions": 1,
+            "conditions_average": 0.3333333333333333,
+            "conditions_max": 1,
+            "conditions_min": 0,
+            "magnitude": 1.0,
+            "value": 0.0
+          },
+          "cognitive": {
+            "average": 1.0,
+            "max": 1,
+            "min": 0,
+            "sum": 1,
+            "value": 0
+          },
+          "cyclomatic": {
+            "average": 4.0,
+            "max": 2,
+            "min": 1,
+            "modified": {
+              "average": 4.0,
+              "max": 2,
+              "min": 1,
+              "sum": 4,
+              "value": 1
+            },
+            "sum": 4,
+            "value": 1
+          },
+          "halstead": {
+            "bugs": 0.022013131409364953,
+            "difficulty": 5.833333333333333,
+            "effort": 536.6666666666666,
+            "estimated_program_length": 48.72905595320056,
+            "length": 23,
+            "level": 0.17142857142857143,
+            "purity_ratio": 2.118654606660894,
+            "time": 29.814814814814813,
+            "total_operands": 7,
+            "total_operators": 16,
+            "unique_operands": 6,
+            "unique_operators": 10,
+            "vocabulary": 16,
+            "volume": 92.0
+          },
+          "loc": {
+            "blank": 0,
+            "blank_average": 0.0,
+            "blank_max": 0,
+            "blank_min": 0,
+            "cloc": 0,
+            "cloc_average": 0.0,
+            "cloc_max": 0,
+            "cloc_min": 0,
+            "lloc": 3,
+            "lloc_average": 1.0,
+            "lloc_max": 3,
+            "lloc_min": 3,
+            "ploc": 1,
+            "ploc_average": 0.3333333333333333,
+            "ploc_max": 1,
+            "ploc_min": 1,
+            "sloc": 1,
+            "sloc_average": 0.3333333333333333,
+            "sloc_max": 1,
+            "sloc_min": 1
+          },
+          "mi": {
+            "original": 146.566699399345,
+            "sei": 136.15747782850354,
+            "visual_studio": 85.71152011657603
+          },
+          "nargs": {
+            "average": 1.0,
+            "closure_args": 0,
+            "closure_args_average": 0.0,
+            "closure_args_max": 0,
+            "closure_args_min": 0,
+            "function_args": 1,
+            "function_args_average": 1.0,
+            "function_args_max": 1,
+            "function_args_min": 0,
+            "total": 1
+          },
+          "nexits": {
+            "average": 2.0,
+            "max": 2,
+            "min": 0,
+            "sum": 2
+          },
+          "nom": {
+            "average": 0.3333333333333333,
+            "closures": 0,
+            "closures_average": 0.0,
+            "closures_max": 0,
+            "closures_min": 0,
+            "functions": 1,
+            "functions_average": 0.3333333333333333,
+            "functions_max": 1,
+            "functions_min": 0,
+            "total": 1
+          },
+          "npa": {
+            "cda": 0.0,
+            "class_attributes": 0,
+            "class_cda": 0.0,
+            "class_npa_sum": 0,
+            "interface_attributes": 0,
+            "interface_cda": 0.0,
+            "interface_npa_sum": 0,
+            "total": 0,
+            "total_attributes": 0
+          },
+          "npm": {
+            "class_coa": 0.0,
+            "class_methods": 1,
+            "class_npm_sum": 0,
+            "coa": 0.0,
+            "interface_coa": 0.0,
+            "interface_methods": 0,
+            "interface_npm_sum": 0,
+            "total": 0,
+            "total_methods": 1
+          },
+          "tokens": {
+            "average": 9.333333333333334,
+            "max": 21,
+            "min": 3,
+            "tokens": 28
+          },
+          "wmc": {
+            "class_wmc_sum": 2,
+            "interface_wmc_sum": 0,
+            "total": 2
+          }
+        },
+        "provenance": {
+          "bca": "big-code-analysis@2.2.0",
+          "tree_sitter": "0.26.12",
+          "grammar": "tree-sitter-c-sharp@0.23.5"
+        }
+      },
+      {
+        "path": "Java/Main.java",
+        "language": "Java",
+        "status": "complete",
+        "source_bytes": 87,
+        "parse_count": 1,
+        "syntax_errors": false,
+        "observations": {
+          "classes": 1,
+          "constructors": 0,
+          "enums": 0,
+          "error_nodes": 0,
+          "imports": 0,
+          "interfaces": 0,
+          "lambdas": 0,
+          "local_functions": 0,
+          "methods": 1,
+          "missing_nodes": 0,
+          "properties": 0,
+          "records": 0,
+          "structs": 0,
+          "syntax_nodes": 39
+        },
+        "metrics": {
+          "abc": {
+            "assignments": 0,
+            "assignments_average": 0.0,
+            "assignments_max": 0,
+            "assignments_min": 0,
+            "branches": 0,
+            "branches_average": 0.0,
+            "branches_max": 0,
+            "branches_min": 0,
+            "conditions": 1,
+            "conditions_average": 0.3333333333333333,
+            "conditions_max": 1,
+            "conditions_min": 0,
+            "magnitude": 1.0,
+            "value": 0.0
+          },
+          "cognitive": {
+            "average": 1.0,
+            "max": 1,
+            "min": 0,
+            "sum": 1,
+            "value": 0
+          },
+          "cyclomatic": {
+            "average": 4.0,
+            "max": 2,
+            "min": 1,
+            "modified": {
+              "average": 4.0,
+              "max": 2,
+              "min": 1,
+              "sum": 4,
+              "value": 1
+            },
+            "sum": 4,
+            "value": 1
+          },
+          "halstead": {
+            "bugs": 0.013959922923599755,
+            "difficulty": 4.2,
+            "effort": 271.0231650545194,
+            "estimated_program_length": 31.26112492884004,
+            "length": 18,
+            "level": 0.23809523809523808,
+            "purity_ratio": 1.7367291627133357,
+            "time": 15.056842503028854,
+            "total_operands": 6,
+            "total_operators": 12,
+            "unique_operands": 5,
+            "unique_operators": 7,
+            "vocabulary": 12,
+            "volume": 64.5293250129808
+          },
+          "loc": {
+            "blank": 0,
+            "blank_average": 0.0,
+            "blank_max": 0,
+            "blank_min": 0,
+            "cloc": 0,
+            "cloc_average": 0.0,
+            "cloc_max": 0,
+            "cloc_min": 0,
+            "lloc": 3,
+            "lloc_average": 1.0,
+            "lloc_max": 3,
+            "lloc_min": 3,
+            "ploc": 1,
+            "ploc_average": 0.3333333333333333,
+            "ploc_max": 1,
+            "ploc_min": 1,
+            "sloc": 1,
+            "sloc_average": 0.3333333333333333,
+            "sloc_max": 1,
+            "sloc_min": 1
+          },
+          "mi": {
+            "original": 148.4109771864156,
+            "sei": 138.81820824593197,
+            "visual_studio": 86.79004513825474
+          },
+          "nargs": {
+            "average": 1.0,
+            "closure_args": 0,
+            "closure_args_average": 0.0,
+            "closure_args_max": 0,
+            "closure_args_min": 0,
+            "function_args": 1,
+            "function_args_average": 1.0,
+            "function_args_max": 1,
+            "function_args_min": 0,
+            "total": 1
+          },
+          "nexits": {
+            "average": 2.0,
+            "max": 2,
+            "min": 0,
+            "sum": 2
+          },
+          "nom": {
+            "average": 0.3333333333333333,
+            "closures": 0,
+            "closures_average": 0.0,
+            "closures_max": 0,
+            "closures_min": 0,
+            "functions": 1,
+            "functions_average": 0.3333333333333333,
+            "functions_max": 1,
+            "functions_min": 0,
+            "total": 1
+          },
+          "npa": {
+            "cda": 0.0,
+            "class_attributes": 0,
+            "class_cda": 0.0,
+            "class_npa_sum": 0,
+            "interface_attributes": 0,
+            "interface_cda": 0.0,
+            "interface_npa_sum": 0,
+            "total": 0,
+            "total_attributes": 0
+          },
+          "npm": {
+            "class_coa": 0.0,
+            "class_methods": 1,
+            "class_npm_sum": 0,
+            "coa": 0.0,
+            "interface_coa": 0.0,
+            "interface_methods": 0,
+            "interface_npm_sum": 0,
+            "total": 0,
+            "total_methods": 1
+          },
+          "tokens": {
+            "average": 8.333333333333334,
+            "max": 21,
+            "min": 0,
+            "tokens": 25
+          },
+          "wmc": {
+            "class_wmc_sum": 2,
+            "interface_wmc_sum": 0,
+            "total": 2
+          }
+        },
+        "provenance": {
+          "bca": "big-code-analysis@2.2.0",
+          "tree_sitter": "0.26.12",
+          "grammar": "tree-sitter-java@0.23.5"
+        }
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "language": "XML",
+        "status": "skipped",
+        "reason": "outside_scope",
+        "source_bytes": 115,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "Lib/lib.cs",
+        "language": "C#",
+        "status": "complete",
+        "source_bytes": 78,
+        "parse_count": 1,
+        "syntax_errors": false,
+        "observations": {
+          "classes": 1,
+          "constructors": 0,
+          "enums": 0,
+          "error_nodes": 0,
+          "imports": 0,
+          "interfaces": 0,
+          "lambdas": 0,
+          "local_functions": 0,
+          "methods": 1,
+          "missing_nodes": 0,
+          "properties": 0,
+          "records": 0,
+          "structs": 0,
+          "syntax_nodes": 36
+        },
+        "metrics": {
+          "abc": {
+            "assignments": 0,
+            "assignments_average": 0.0,
+            "assignments_max": 0,
+            "assignments_min": 0,
+            "branches": 0,
+            "branches_average": 0.0,
+            "branches_max": 0,
+            "branches_min": 0,
+            "conditions": 0,
+            "conditions_average": 0.0,
+            "conditions_max": 0,
+            "conditions_min": 0,
+            "magnitude": 0.0,
+            "value": 0.0
+          },
+          "cognitive": {
+            "average": 0.0,
+            "max": 0,
+            "min": 0,
+            "sum": 0,
+            "value": 0
+          },
+          "cyclomatic": {
+            "average": 3.0,
+            "max": 1,
+            "min": 1,
+            "modified": {
+              "average": 3.0,
+              "max": 1,
+              "min": 1,
+              "sum": 3,
+              "value": 1
+            },
+            "sum": 3,
+            "value": 1
+          },
+          "halstead": {
+            "bugs": 0.023030911953251406,
+            "difficulty": 7.0,
+            "effort": 574.3129175544523,
+            "estimated_program_length": 44.82892142331043,
+            "length": 21,
+            "level": 0.14285714285714285,
+            "purity_ratio": 2.1347105439671634,
+            "time": 31.90627319746957,
+            "total_operands": 7,
+            "total_operators": 14,
+            "unique_operands": 5,
+            "unique_operators": 10,
+            "vocabulary": 15,
+            "volume": 82.0447025077789
+          },
+          "loc": {
+            "blank": 0,
+            "blank_average": 0.0,
+            "blank_max": 0,
+            "blank_min": 0,
+            "cloc": 0,
+            "cloc_average": 0.0,
+            "cloc_max": 0,
+            "cloc_min": 0,
+            "lloc": 1,
+            "lloc_average": 0.3333333333333333,
+            "lloc_max": 1,
+            "lloc_min": 1,
+            "ploc": 1,
+            "ploc_average": 0.3333333333333333,
+            "ploc_max": 1,
+            "ploc_min": 1,
+            "sloc": 1,
+            "sloc_average": 0.3333333333333333,
+            "sloc_max": 1,
+            "sloc_min": 1
+          },
+          "mi": {
+            "original": 147.3922258934663,
+            "sei": 137.24664094829032,
+            "visual_studio": 86.19428414822592
+          },
+          "nargs": {
+            "average": 2.0,
+            "closure_args": 0,
+            "closure_args_average": 0.0,
+            "closure_args_max": 0,
+            "closure_args_min": 0,
+            "function_args": 2,
+            "function_args_average": 2.0,
+            "function_args_max": 2,
+            "function_args_min": 0,
+            "total": 2
+          },
+          "nexits": {
+            "average": 1.0,
+            "max": 1,
+            "min": 0,
+            "sum": 1
+          },
+          "nom": {
+            "average": 0.3333333333333333,
+            "closures": 0,
+            "closures_average": 0.0,
+            "closures_max": 0,
+            "closures_min": 0,
+            "functions": 1,
+            "functions_average": 0.3333333333333333,
+            "functions_max": 1,
+            "functions_min": 0,
+            "total": 1
+          },
+          "npa": {
+            "cda": 0.0,
+            "class_attributes": 0,
+            "class_cda": 0.0,
+            "class_npa_sum": 0,
+            "interface_attributes": 0,
+            "interface_cda": 0.0,
+            "interface_npa_sum": 0,
+            "total": 0,
+            "total_attributes": 0
+          },
+          "npm": {
+            "class_coa": 0.0,
+            "class_methods": 1,
+            "class_npm_sum": 0,
+            "coa": 0.0,
+            "interface_coa": 0.0,
+            "interface_methods": 0,
+            "interface_npm_sum": 0,
+            "total": 0,
+            "total_methods": 1
+          },
+          "tokens": {
+            "average": 8.0,
+            "max": 17,
+            "min": 3,
+            "tokens": 24
+          },
+          "wmc": {
+            "class_wmc_sum": 1,
+            "interface_wmc_sum": 0,
+            "total": 1
+          }
+        },
+        "provenance": {
+          "bca": "big-code-analysis@2.2.0",
+          "tree_sitter": "0.26.12",
+          "grammar": "tree-sitter-c-sharp@0.23.5"
+        }
+      },
+      {
+        "path": "NuGet.Config",
+        "language": "",
+        "status": "skipped",
+        "reason": "outside_scope",
+        "source_bytes": 164,
+        "parse_count": 0,
+        "syntax_errors": false
+      }
+    ]
+  },
+  "schema_version": "1.2.0",
+  "root": "/Users/gingeleski/Workspace/dircue/tests/compatibility_next/composition/fixture",
+  "summary": {
+    "scanned_files": 7,
+    "analyzed_files": 7,
+    "skipped_files": 0,
+    "language_bytes": 265
+  },
+  "languages": [
+    {
+      "name": "C#",
+      "bytes": 178,
+      "percentage": 67.16981132075472,
+      "file_count": 2
+    },
+    {
+      "name": "Java",
+      "bytes": 87,
+      "percentage": 32.83018867924528,
+      "file_count": 1
+    }
+  ],
+  "ecosystems": [
+    {
+      "kind": "ecosystem",
+      "name": "nuget",
+      "root": "App",
+      "evidence": [
+        "App/App.csproj"
+      ],
+      "detector": "manifests"
+    },
+    {
+      "kind": "ecosystem",
+      "name": "nuget",
+      "root": "Lib",
+      "evidence": [
+        "Lib/Lib.csproj"
+      ],
+      "detector": "manifests"
+    }
+  ],
+  "frameworks": [],
+  "layouts": [
+    {
+      "kind": "layout",
+      "name": "project-root",
+      "root": "App",
+      "evidence": [
+        "App/App.csproj"
+      ],
+      "detector": "manifests"
+    },
+    {
+      "kind": "layout",
+      "name": "project-root",
+      "root": "Lib",
+      "evidence": [
+        "Lib/Lib.csproj"
+      ],
+      "detector": "manifests"
+    }
+  ],
+  "warnings": [],
+  "metrics": {
+    "engine": "scc",
+    "engine_version": "4.1.0",
+    "status": "complete",
+    "scope": "source",
+    "max_file_bytes": 16777216,
+    "source": "directory",
+    "totals": {
+      "files": 3,
+      "bytes": 265,
+      "lines": 3,
+      "code": 3,
+      "comment": 0,
+      "blank": 0,
+      "complexity": 2
+    },
+    "languages": [
+      {
+        "language": "C#",
+        "grammar": "C#",
+        "files": 2,
+        "bytes": 178,
+        "lines": 2,
+        "code": 2,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 1
+      },
+      {
+        "language": "Java",
+        "grammar": "Java",
+        "files": 1,
+        "bytes": 87,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 1
+      }
+    ],
+    "directories": [
+      {
+        "path": "App",
+        "files": 1,
+        "bytes": 100,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 1
+      },
+      {
+        "path": "Java",
+        "files": 1,
+        "bytes": 87,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 1
+      },
+      {
+        "path": "Lib",
+        "files": 1,
+        "bytes": 78,
+        "lines": 1,
+        "code": 1,
+        "comment": 0,
+        "blank": 0,
+        "complexity": 0
+      }
+    ],
+    "skipped": [
+      {
+        "reason": "outside_scope",
+        "files": 4
+      }
+    ],
+    "files": [
+      {
+        "path": ".npmrc",
+        "language": "NPM Config",
+        "status": "skipped",
+        "reason": "outside_scope"
+      },
+      {
+        "path": "App/App.csproj",
+        "language": "XML",
+        "status": "skipped",
+        "reason": "outside_scope"
+      },
+      {
+        "path": "App/main.cs",
+        "language": "C#",
+        "grammar": "C#",
+        "status": "counted",
+        "counts": {
+          "files": 1,
+          "bytes": 100,
+          "lines": 1,
+          "code": 1,
+          "comment": 0,
+          "blank": 0,
+          "complexity": 1
+        }
+      },
+      {
+        "path": "Java/Main.java",
+        "language": "Java",
+        "grammar": "Java",
+        "status": "counted",
+        "counts": {
+          "files": 1,
+          "bytes": 87,
+          "lines": 1,
+          "code": 1,
+          "comment": 0,
+          "blank": 0,
+          "complexity": 1
+        }
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "language": "XML",
+        "status": "skipped",
+        "reason": "outside_scope"
+      },
+      {
+        "path": "Lib/lib.cs",
+        "language": "C#",
+        "grammar": "C#",
+        "status": "counted",
+        "counts": {
+          "files": 1,
+          "bytes": 78,
+          "lines": 1,
+          "code": 1,
+          "comment": 0,
+          "blank": 0,
+          "complexity": 0
+        }
+      },
+      {
+        "path": "NuGet.Config",
+        "status": "skipped",
+        "reason": "outside_scope"
+      }
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "verified_at_utc": "2026-09-19T23:50:17.884159+00:00",
+  "passed": true,
+  "comparison_source_commit": "3e8e8ad",
+  "comparison_version_override": "0.3.0",
+  "build_input_receipt": "tests/compatibility_next/results/v040-final-build-inputs.json.gz",
+  "matched_source_inputs": 280,
+  "candidate_sha256": "0a0587135b7f906db7c2add58623dd4a3908e6d236b8b95cee79fd5941f99214",
+  "worker_sha256": "5f9a06323fb30b93dbc7e98a52bd74bfd108da009931548775a8102f015919a5",
+  "schema_sha256": "b193620266c30192a5b190fd0f3bc1f771ffcc3cc9d4fc3b5bce2c3b3aad7a18",
+  "fixture_policy_report_binary_hashes_verified": true,
+  "schema_reports_validated": 5,
+  "source_changes": false,
+  "limits": [
+    "Synthetic C#/Java directory, not universal input coverage.",
+    "Directory source only; package attribution deliberately lacks report-to-tree attestation.",
+    "Composition correctness only, not timing evidence.",
+    "Release orchestration and five-platform artifacts remain separate gates."
+  ],
+  "original_build_input_sha256": "84f8f55ad1d6baba2306751970771bc1e76c2e165e8c3da3eb894a6fcecbe3b6",
+  "retained_build_input_uncompressed_sha256": "f0f50a4c3d825e1ee32bb5541d11dd02d0699a5c1c18db1c4cf5c4a6ac4ac63b",
+  "retained_build_receipt_matches_original_fields": true
+}
