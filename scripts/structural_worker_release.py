@@ -149,7 +149,7 @@ def verify_archive(archive: Path, executable: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--platform", choices=TARGETS, required=True)
-    parser.add_argument("--version", default="0.3.0")
+    parser.add_argument("--version", default="0.4.0")
     parser.add_argument("--smoke-test", action="store_true", help="extract and execute the archive on this host")
     parser.add_argument("--output", type=Path, default=ROOT / "dist/structural-worker")
     args = parser.parse_args()
