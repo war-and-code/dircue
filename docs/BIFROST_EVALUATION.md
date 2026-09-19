@@ -1,0 +1,77 @@
+# Bifrost evaluation
+
+This is an integration study, not an implemented dircue capability. Bifrost is a plausible optional provider of cross-file declarations, call relationships, and bounded semantic queries. Adoption needs a separate, explicit execution boundary; passing the original repository directly to its CLI would not preserve dircue's existing input and write boundaries.
+
+Reviewed on September 19, 2026: [Bifrost v0.11.5](https://github.com/BrokkAi/bifrost/releases/tag/v0.11.5), published at 17:45:27 UTC, source commit [`4ec4489e850b809c9cc7750e4c450c7560c45de0`](https://github.com/BrokkAi/bifrost/tree/4ec4489e850b809c9cc7750e4c450c7560c45de0). All source links below pin that commit. Live documentation can describe a different revision.
+
+## Commands and their boundaries
+
+Commands below describe upstream interfaces, not dircue commands. Use a disposable, materialized input directory and a private cache when evaluating them.
+
+| Command or option | Behavior at the reviewed version |
+| --- | --- |
+| `bifrost --version` | Prints the package version. Also retain `--build-identity` and the executable SHA-256; a version alone does not identify a binary. |
+| `bifrost --root DIR --tool query_code --args JSON` | Runs one structural/semantic query, emits a JSON wrapper, and exits. The host should own the query and limit its output. |
+| `bifrost --root DIR --tool query_code --sources FILE --args JSON` | Builds a subset session; repeat `--sources` for more files. Explicit selection bypasses `.bifrostignore`. |
+| `bifrost --root DIR --query-file queries/example.rql` | Reads a workspace-relative query. Cannot be combined with `--sources`; the CLI rejects that combination before execution. |
+| `bifrost --list-row-schemas` | Lists the versioned relation schema without scanning a repository. Useful for pinning a provider contract. |
+| `bifrost --root DIR --tool get_symbol_sources --args '{"symbols":["HEAD:src/Example.java"]}'` | Supports a committed-file overlay. This is not a whole-workspace snapshot: other source files can remain live. |
+| `bifrost --root DIR --policy-pack PACK --policy-id ID --format json` | Selects the intersection of selector dimensions. Repeated values within one dimension widen it. Policy execution is outside the proposed initial integration. |
+
+The [CLI dispatcher](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/src/bin/bifrost.rs), [argument normalization](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/tool_arguments.rs), and [policy selector implementation](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-policy/src/builtin.rs#L824) define these behaviors. A normal one-shot error exits 1; policy execution has a separate status contract. Successful query execution is not evidence that every possible relationship was resolved.
+
+## Configuration and environment
+
+| Configuration | Scope and implication |
+| --- | --- |
+| `.bifrostignore` | Root and nested gitignore-style rules exclude code-intelligence inputs, not every file-level tool. Explicit sources override these rules. |
+| `.bifrost/packs.json` | Repository-owned pack activation, catalog location, ecosystems, and enable list. An absent document permits ambient dependency ecosystems for the indexed languages; an empty ecosystems list disables that dependency route. |
+| `.bifrost/semantic-models/` | Authored workspace models require explicit activation. These are additional assumptions about code, not facts derived solely from source. |
+| `.bifrost/suppressions.json`, `policy-scope.json`, `baseline.json` | Policy acceptance configuration. An optional profiling adapter need not invoke the policy runner or honor repository-owned suppression decisions. |
+| Query JSON/RQL | Typed operations, path scopes, result limits, and provenance controls. The adapter must supply trusted queries rather than accepting arbitrary repository query files. |
+
+See [ignore semantics](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/analyzer/project.rs#L40) and [workspace pack configuration](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-analysis/src/analyzer/packs_document.rs).
+
+| Environment variable | Verified behavior | Conservative evaluation setting |
+| --- | --- | --- |
+| `BIFROST_CACHE_DIR` | Exact cache directory; wins over cache-root selection. Sharing one value between unrelated runs can cause writer contention. | A fresh directory owned by this invocation. |
+| `BIFROST_CACHE_ROOT` | Derives a repository-specific child under this root; linked worktrees share their primary repository's cache identity. | Remove inherited value when setting the exact directory. |
+| `BIFROST_SEMANTIC_PACK_CACHE_ROOT` | Independently relocates the semantic-pack catalog. | Remove inherited value. |
+| `BIFROST_SEMANTIC_PACK_DOWNLOAD` | Defaults to on. Only `off`, ignoring case and surrounding whitespace, disables downloads; `0` and `false` do not. | **`off`**. |
+| `BIFROST_WORKSPACE_SEMANTIC_MODELS` | Defaults to disabled; accepts `on`/`1`/`enabled` and `off`/`0`/`disabled`. Does not disable all shipped/dependency packs. | `off`. |
+| `BIFROST_SEMANTIC_PACK_CATALOG`, `BIFROST_SEMANTIC_PACK_EVIDENCE` | Legacy explicit catalog and JSON evidence must be supplied together. | Remove inherited values. |
+| `BIFROST_CACHE_GC` | Disables automatic collection with `0`, `off`, or `disabled`. | `off` for a disposable cache. |
+
+Sources: [cache placement](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/gitblob.rs#L126), [catalog override](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-analysis/src/analyzer/semantic_model/catalog/mod.rs#L88), [download mode](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-semantic-packs/src/download.rs#L127), [model configuration](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/searchtools_service.rs#L180), and [cache collection](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/cache_gc.rs).
+
+## Verified integration gotchas
+
+1. **Source selection is not a filesystem sandbox.** Relative literal sources receive lexical path validation, then `is_file()` follows links. Absolute existing paths instead undergo canonicalization and must stay below the canonical root. `FileSetProject` uses ordinary filesystem reads. Therefore a relative `--sources Link.java` can reach an external symlink target where its absolute equivalent is rejected. Selected directories and globs also enumerate the workspace first; selection is not a promise to avoid traversing unrelated input. Materialize selected regular files into an isolated tree and do not copy symlinks. [Source selection](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/scoped_project.rs#L166), [path normalization](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/scoped_project.rs#L347), [source reads](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/analyzer/project.rs#L390).
+
+2. **An ordinary one-shot query can write caches and acquire packs.** The CLI registers the download hook at startup. Absent overrides, cache-path resolution selects `.bifrost/cache` under the primary Git root, or the supplied workspace root when Git discovery fails. Cache preparation creates directories and a `.gitignore`; analyzer and semantic-pack state use writable SQLite databases and sidecars. Explicit subset services still persist content facts. Disable acquisition explicitly and relocate all generated state. [Startup hook](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/src/lib.rs#L68), [persistent subset construction](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/searchtools_service.rs#L3553), [cache preparation](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/cache_db.rs#L1072).
+
+3. **A committed-file argument can produce a mixed snapshot.** CLI normalization loads named revision blobs as overlays, then constructs a project from live files or explicit live sources plus those overlays. The Rust API has a revision-aware subset constructor, but ordinary `--tool` does not expose that as a global immutable revision option. For committed analysis, materialize every selected blob from one tree before invoking Bifrost. [Overlay assembly](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/scoped_project.rs#L102).
+
+4. **Cooperative cancellation is not a process resource limit.** The Unix one-shot orphan watcher starts after service construction, checks parent identity every two seconds, then allows a 20-second cancellation grace. It has no corresponding Windows implementation in this path. Build-lock waits can poll cancellation, while SQLite writer busy timeout is 120 seconds. A host must enforce wall time, stdout/stderr bounds, process cleanup, and OS resource limits independently. Do not translate a timeout into an empty successful result. [One-shot lifecycle](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/src/bin/bifrost.rs#L1870), [lock waits](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/cache_gc.rs#L66), [SQLite timeout](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-core/src/cache_db.rs#L399).
+
+5. **The live docs are not the pinned CLI contract.** In v0.11.5, different policy selector dimensions intersect, `--query-file` rejects `--sources`, and the old `nlp` MCP toolset is rejected. Preserve versioned probes when upgrading instead of deriving behavior from current website examples. [Registry regression](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-mcp/src/mcp_registry.rs#L270).
+
+## Models, network, and result meaning
+
+The shipped semantic packs are structured declarations, runtime facts, and behavioral summaries: examples include Java Lombok, Scala case classes, Rust getset, Node runtime APIs, and Go standard-library/testify APIs. Registration and activation are distinct; workspace languages and dependency evidence select relevant packs. These are not an enabled natural-language embedding-search service. The current registry removes the `nlp` toolset. [Embedded registry](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-semantic-packs/src/lib.rs#L268).
+
+When acquisition is enabled, the downloader requests versioned GitHub Release assets using HTTPS, checksums, and bounded extraction. Its global HTTP timeout is 30 seconds; archive and extracted-size limits are 256 MiB and 512 MiB. Disabling this path is useful, but source inspection of one downloader does not prove that every possible mode and dependency has no network behavior. An offline container is the stronger execution guarantee. [Download implementation](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-semantic-packs/src/download.rs).
+
+`query_code` returns a wrapper containing `isError` and `structuredContent`. Ordinary results include `results`, `truncated`, optional `diagnostics`, and optional `session_subset`. Rows can retain seed/step provenance and call-site proof. Dispatch-oriented rows distinguish unknown, unsupported, ambiguous, cancelled, and budget-limited cases. An empty `callees` relation alone does not prove that a function calls nothing. Preserve both rows and completeness evidence; record the staged source hashes, query, binary identity, and chosen model policy separately. The default result envelope does not itself certify a particular Git tree or the completeness of every language resolver. [Result types](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-rql/src/structural/search/results.rs#L52), [dispatch row types](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/crates/bifrost-rql/src/structural/search/results/sites.rs).
+
+## Decision and remaining evidence
+
+The [reproducible probe](../tests/bifrost/README.md) completed 13 invocations on macOS arm64 and Linux arm64; all nine expected checks passed. Both found the concrete Java, C#, and JavaScript callee, retained `unproven`/`open` for a dynamic JavaScript callback, exposed an incomplete diagnostic for an unsupported Java query kind, honored ignore precedence, and refreshed a changed Java method through the existing cache. Both also reproduced the relative-symlink escape. Linux execution used an existing container image with networking disabled, read-only source/root mounts, UID 65534, one CPU, and a 1 GiB limit. These constraints held for this small fixture; peak memory and large-repository performance were not measured.
+
+The [checked-in receipt](../tests/bifrost/results-v0.11.5.json) identifies both binaries and the exact queries. Their embedded build identity is `667e50a2b76d6dc9a58d1e525a3875a8d0c2433f`, whereas the release tag points to `4ec4489e850b809c9cc7750e4c450c7560c45de0`. Bifrost deliberately identifies the last compiled-input change, not necessarily the tag commit. The [comparison](https://github.com/BrokkAi/bifrost/compare/667e50a2b76d6dc9a58d1e525a3875a8d0c2433f...4ec4489e850b809c9cc7750e4c450c7560c45de0) contains only release workflow, editor metadata, plugin metadata, and script changes, outside its [compiled-input list](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/src/build_identity_inputs.rs).
+
+Proceed with bounded evaluation of an **optional, pinned external provider**. Do not enable it by default or replace dircue's language, metrics, or declaration paths. A production adapter needs immutable staging, explicit offline behavior, independent process bounds, validated output, and visible partial/unsupported states. Performance acceptance remains pending representative corpus measurements; tiny correctness probes cannot establish scalability or parity with a compiler.
+
+Before distributing Bifrost binaries or packs, review their release contents and retain applicable notices. The source project uses [Apache 2.0](https://github.com/BrokkAi/bifrost/blob/4ec4489e850b809c9cc7750e4c450c7560c45de0/LICENSE.md); its [third-party notices](https://bifrost.brokk.ai/third-party-notices/) distinguish native dependencies and separately distributed packs. No upstream code or binaries are vendored by this evaluation.
+
+Activity checked alongside source: the [v0.11.5 release](https://github.com/BrokkAi/bifrost/releases/tag/v0.11.5) and [open cache-backend issue #12](https://github.com/BrokkAi/bifrost/issues/12). Broader background references are the live [storage design](https://bifrost.brokk.ai/design/storage-and-cache/) and [evidence/result design](https://bifrost.brokk.ai/design/evidence-and-results/); pinned implementation takes precedence for this study.

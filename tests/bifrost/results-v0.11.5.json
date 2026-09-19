@@ -1,0 +1,393 @@
+{
+  "evaluated_at": "2026-09-19",
+  "version": "0.11.5",
+  "source_commit": "4ec4489e850b809c9cc7750e4c450c7560c45de0",
+  "build_identity": "667e50a2b76d6dc9a58d1e525a3875a8d0c2433f",
+  "scope": "Synthetic correctness and trust-boundary probes; not a performance benchmark.",
+  "platforms": {
+    "darwin-arm64": {
+      "binary_sha256": "f95ef29312b8f408f401c9c251b16416b807fb57556d3a414cc1c5d3a51ea1ec",
+      "docker_image": null,
+      "network_disabled": false,
+      "read_only_source_mount": false,
+      "fixture_sha256": {
+        "Service.java": "719c2727a455dd7d5fdd8e4c442d10abdeefec014a79e28e72777b87e12b9314",
+        "Service.cs": "a95e63917096965c21d7a509bf89381f196767733b3913c73195b541406a7a3c",
+        "service.js": "c0897d564f95821d6777cb5e0e7c27f3dc6f516b25694a77ea02e86136b5f926",
+        "Ignored.java": "8bfbd1f86b4e778ec2ebc8d6a6832fbc8935e06043f8c35c4853709d205f5ce1",
+        ".bifrostignore": "2bc06c96f8d922f84f75cbebbdf79b077de9e56820dc86dda50782b46dcaab24"
+      },
+      "checks": {
+        "expected_exit_codes": true,
+        "three_declared_callees": true,
+        "dynamic_dispatch_stays_open": true,
+        "unsupported_kind_reports_incomplete": true,
+        "ignore_applies_by_default": true,
+        "explicit_source_overrides_ignore": true,
+        "relative_source_follows_external_symlink": true,
+        "cache_refreshes_changed_source": true,
+        "source_preserved": true
+      },
+      "runs": [
+        {
+          "name": "version",
+          "arguments": [
+            "--version"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "4bff0c2e267343cb948bff42dc045b8f5fb8de3d625e6e9c0a381d1100154f1e",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "identity",
+          "arguments": [
+            "--build-identity"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "2670504e8990f5190d15dcd3337595f18229fb94ddd307d1df2c116d4159d1cd",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "java-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"java\"], \"match\": {\"kind\": \"method\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "5abc3fd5d500a2ec22c6c5812a8900986ae07ae5491e92e634e84fabd10440de",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "csharp-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"csharp\"], \"match\": {\"kind\": \"method\", \"name\": \"Handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e1e28f82fba47305c287f669634af19758b7ff6cbcf69e32f32b274daaf06d37",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "javascript-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"javascript\"], \"match\": {\"kind\": \"function\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "1e49e403f2652502b0591bc962a3c8c0f475613eaaaa34b37d7a118cd0d85586",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "dynamic-dispatch",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"javascript\"], \"match\": {\"kind\": \"call\", \"callee\": {\"name\": \"target\"}}, \"steps\": [{\"op\": \"dispatch_outcome\"}]}",
+            "--sources",
+            "service.js"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "da776879b06d822f940619cf5425fd4bbe6e5c4fe3fda86c1a40f151f3edfa70",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "unsupported-kind",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"function\"}}",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "bd3201f85c2cc0c22ded61e6feea2153b5294bc85a41f35717fb85f4c411002f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "ignored-default",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"IgnoredCanary\"}}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "76264d8493ea924382f30cd506ec4ed386212b98ad37f3d517a6e679b982e15f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "ignored-explicit",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"IgnoredCanary\"}}",
+            "--sources",
+            "Ignored.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "2e5eb123629448b071ae2f9f7bbf31a1a34c237dd5ce373af952a6754c3c5c98",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "symlink-relative",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"ExternalCanary\"}}",
+            "--sources",
+            "Link.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "f1736c461aee0dffc3454aaa53bf4e0d6a8814c7f74dbaa81d3c12b128c40e65",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "symlink-absolute",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"ExternalCanary\"}}",
+            "--sources",
+            "<workspace>/Link.java"
+          ],
+          "exit_code": 1,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "6906400f15f6c12996692b35650c73dac49e72ebd32d9d614cf34ce84f38c897"
+        },
+        {
+          "name": "changed-bytes",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"method\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "f8a7b029007c11dc4c0e322b4004da423ceac7430aebe6f7c13cbb06720aad9d",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "query-file-with-sources",
+          "arguments": [
+            "--query-file",
+            "query.rql",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 1,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "403b080122c0ce54ae60c7f25bfdef09fe0a3eb666c85c7a6a27de77991dab6b"
+        }
+      ],
+      "cache_file_count": 6
+    },
+    "linux-arm64-offline": {
+      "binary_sha256": "c14711a5cb060a86ff4293062dab30839a531b4022fd2de18e869aec8894f869",
+      "docker_image": "sha256:b00eb95f27b4a7c666c7b99764515e147ab19ff26451123346f40c23a031498a",
+      "network_disabled": true,
+      "read_only_source_mount": true,
+      "fixture_sha256": {
+        "Service.java": "719c2727a455dd7d5fdd8e4c442d10abdeefec014a79e28e72777b87e12b9314",
+        "Service.cs": "a95e63917096965c21d7a509bf89381f196767733b3913c73195b541406a7a3c",
+        "service.js": "c0897d564f95821d6777cb5e0e7c27f3dc6f516b25694a77ea02e86136b5f926",
+        "Ignored.java": "8bfbd1f86b4e778ec2ebc8d6a6832fbc8935e06043f8c35c4853709d205f5ce1",
+        ".bifrostignore": "2bc06c96f8d922f84f75cbebbdf79b077de9e56820dc86dda50782b46dcaab24"
+      },
+      "checks": {
+        "expected_exit_codes": true,
+        "three_declared_callees": true,
+        "dynamic_dispatch_stays_open": true,
+        "unsupported_kind_reports_incomplete": true,
+        "ignore_applies_by_default": true,
+        "explicit_source_overrides_ignore": true,
+        "relative_source_follows_external_symlink": true,
+        "cache_refreshes_changed_source": true,
+        "source_preserved": true
+      },
+      "runs": [
+        {
+          "name": "version",
+          "arguments": [
+            "--version"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "4bff0c2e267343cb948bff42dc045b8f5fb8de3d625e6e9c0a381d1100154f1e",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "identity",
+          "arguments": [
+            "--build-identity"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "2670504e8990f5190d15dcd3337595f18229fb94ddd307d1df2c116d4159d1cd",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "java-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"java\"], \"match\": {\"kind\": \"method\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "5abc3fd5d500a2ec22c6c5812a8900986ae07ae5491e92e634e84fabd10440de",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "csharp-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"csharp\"], \"match\": {\"kind\": \"method\", \"name\": \"Handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "e1e28f82fba47305c287f669634af19758b7ff6cbcf69e32f32b274daaf06d37",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "javascript-callees",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"schema_version\": \"1\", \"languages\": [\"javascript\"], \"match\": {\"kind\": \"function\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "1e49e403f2652502b0591bc962a3c8c0f475613eaaaa34b37d7a118cd0d85586",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "expected_callee_found": true
+        },
+        {
+          "name": "dynamic-dispatch",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"javascript\"], \"match\": {\"kind\": \"call\", \"callee\": {\"name\": \"target\"}}, \"steps\": [{\"op\": \"dispatch_outcome\"}]}",
+            "--sources",
+            "service.js"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "da776879b06d822f940619cf5425fd4bbe6e5c4fe3fda86c1a40f151f3edfa70",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "unsupported-kind",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"function\"}}",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "bd3201f85c2cc0c22ded61e6feea2153b5294bc85a41f35717fb85f4c411002f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "ignored-default",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"IgnoredCanary\"}}"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "76264d8493ea924382f30cd506ec4ed386212b98ad37f3d517a6e679b982e15f",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "ignored-explicit",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"IgnoredCanary\"}}",
+            "--sources",
+            "Ignored.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "2e5eb123629448b071ae2f9f7bbf31a1a34c237dd5ce373af952a6754c3c5c98",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "symlink-relative",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"ExternalCanary\"}}",
+            "--sources",
+            "Link.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "f1736c461aee0dffc3454aaa53bf4e0d6a8814c7f74dbaa81d3c12b128c40e65",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "symlink-absolute",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"class\", \"name\": \"ExternalCanary\"}}",
+            "--sources",
+            "<workspace>/Link.java"
+          ],
+          "exit_code": 1,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "9475621f3c7dc65b460bc8f35450a2b438ee6930d5e4a697c8246fa12540dcb8"
+        },
+        {
+          "name": "changed-bytes",
+          "arguments": [
+            "--tool",
+            "query_code",
+            "--args",
+            "{\"languages\": [\"java\"], \"match\": {\"kind\": \"method\", \"name\": \"handle\"}, \"steps\": [{\"op\": \"enclosing_decl\"}, {\"op\": \"callees\"}]}",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 0,
+          "stdout_sha256": "f8a7b029007c11dc4c0e322b4004da423ceac7430aebe6f7c13cbb06720aad9d",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "query-file-with-sources",
+          "arguments": [
+            "--query-file",
+            "query.rql",
+            "--sources",
+            "Service.java"
+          ],
+          "exit_code": 1,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "stderr_sha256": "403b080122c0ce54ae60c7f25bfdef09fe0a3eb666c85c7a6a27de77991dab6b"
+        }
+      ],
+      "cache_file_count": 6
+    }
+  }
+}
