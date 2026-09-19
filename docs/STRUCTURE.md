@@ -12,6 +12,9 @@ executable: obtain it from a source you trust, and pass its actual filesystem
 path. Filenames and source text are delivered through standard input, not shell
 commands.
 
+The development branch also supports [`--functions`](FUNCTIONS.md) for bounded
+function-space metrics. This is not available in the 0.3.0 binaries.
+
 ## Commands
 
 ```sh

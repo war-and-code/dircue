@@ -154,11 +154,12 @@ Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`
 
 The [roadmap](docs/ROADMAP.md) tracks proposed discovery, entry-point and relationship mapping, reusable analysis context, and explainable complexity hotspots. These are future extensions of the general-purpose profiler; the [capability matrix](docs/CAPABILITIES.md) describes what is available today.
 
-The development branch after 0.3.0 adds three explicit options:
+The development branch after 0.3.0 adds these explicit options:
 
 - [`analyze discovery`](docs/DISCOVERY.md) inventories regular-file metadata without reading source payloads. It includes filename hints for manifests and packaged artifacts, including paths excluded from language statistics.
 - [`analyze graph`](docs/GRAPH.md) derives .NET project-reference components, cycles, and degrees from static declarations, keeping conditional and unresolved edges separate.
 - [`analyze packages --syft-report FILE`](docs/PACKAGE_EVIDENCE.md) imports an existing Syft JSON report. Coordinate mapping and source binding are explicit; it does not execute Syft.
+- [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires a matching development worker.
 
 These can be combined with `analyze all --discovery --graph --syft-report FILE`. They are not part of the downloadable 0.3.0 binaries. Existing invocations retain their output contracts.
 
@@ -167,7 +168,7 @@ These can be combined with `analyze all --discovery --graph --syft-report FILE`.
 | Existing aggregate report without optional modules | `1.0.0` |
 | Metrics, without projects or structure | `1.1.0` |
 | Projects or structure, with optional metrics | `1.2.0` |
-| Discovery, graph, or imported package evidence (development branch) | `1.3.0` |
+| Discovery, graph, imported package evidence, or function metrics (development branch) | `1.3.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
@@ -211,7 +212,7 @@ Dircue reads source and Git objects without invoking project hooks, package mana
 
 Read failures, invalid arguments, and resource-policy violations fail with a nonzero exit status. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
-Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary.
+Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary. For shared runners, the [resource-budget guide](docs/RESOURCE_BUDGETS.md) describes external container limits and measured behavior under CPU and memory constraints.
 
 Bounded content buffers do not impose a hard total-memory limit. Git delta reconstruction, metadata, findings, and optional file lists consume additional memory. Embedding callers can cancel through context; the CLI handles interrupt and termination signals. Use container CPU, memory, and wall-clock limits where needed.
 

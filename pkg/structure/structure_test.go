@@ -36,15 +36,30 @@ func TestMain(m *testing.M) {
 		case "failure":
 			fmt.Fprint(os.Stderr, "intentional worker failure")
 			os.Exit(3)
+		case "unsupported-functions":
+			fmt.Print("{\"status\":\"error\",\"parse_count\":0,\"error\":{\"code\":\"invalid_request\",\"message\":\"unknown field `functions`\"}}")
+			os.Exit(2)
 		case "invalid":
 			fmt.Print("[]")
 		default:
-			var req struct{ Path, Language, Source string }
+			var req struct {
+				Path, Language, Source string
+				Functions              bool
+			}
 			body, _ := io.ReadAll(os.Stdin)
 			if json.Unmarshal(body, &req) != nil {
 				os.Exit(4)
 			}
-			json.NewEncoder(os.Stdout).Encode(validResponse(req.Path, req.Language, len(req.Source)))
+			response := validResponse(req.Path, req.Language, len(req.Source))
+			if req.Functions {
+				f := validFunctions()
+				f["entries"].([]any)[0].(map[string]any)["end_line"] = 1
+				response["functions"] = f
+			}
+			if mode == "default-request" && strings.Contains(string(body), `"functions"`) {
+				os.Exit(5)
+			}
+			json.NewEncoder(os.Stdout).Encode(response)
 		}
 		os.Exit(0)
 	}
