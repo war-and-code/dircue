@@ -5,6 +5,7 @@ import (
 	"dircue/pkg/profile"
 	"dircue/pkg/structure"
 	"fmt"
+	"math"
 	"os"
 	"slices"
 	"strings"
@@ -15,6 +16,9 @@ func newStructureReport(opts Options, snapshot *gitSnapshot) *profile.StructureR
 	if snapshot != nil {
 		r.Source = "git"
 		r.Tree = snapshot.tree.Hash.String()
+	}
+	if opts.Structure.FunctionMetricsEnabled() {
+		r.Functions = newFunctionReport()
 	}
 	if opts.StructureFiles {
 		f := []structure.File{}
@@ -72,16 +76,16 @@ func countStructure(ctx context.Context, root *os.Root, item job, opts Options, 
 	value.structural = &observed
 	return nil
 }
-func addStructure(r *profile.StructureReport, value result) {
+func addStructure(r *profile.StructureReport, value result) error {
 	for _, w := range value.warnings {
 		if w.Code == "tree_size_limit" {
 			r.Status = "skipped"
 			r.Omissions["tree_size_limit"]++
-			return
+			return nil
 		}
 	}
 	if value.path == "" {
-		return
+		return nil
 	}
 	f := value.structural
 	if f == nil {
@@ -106,11 +110,21 @@ func addStructure(r *profile.StructureReport, value result) {
 			r.ObservationFiles[k]++
 		}
 	}
-	if r.Files != nil {
-		*r.Files = append(*r.Files, *f)
+	if r.Functions != nil && f.Functions != nil {
+		if err := addFunctions(r.Functions, *f); err != nil {
+			return err
+		}
 	}
+	if r.Files != nil {
+		retained := *f
+		retained.Functions = nil
+		retained.SourceSHA256 = ""
+		*r.Files = append(*r.Files, retained)
+	}
+	return nil
 }
 func finishStructure(r *profile.StructureReport) {
+	defer finishFunctions(r)
 	if r.Status == "skipped" {
 		return
 	}
@@ -127,5 +141,74 @@ func finishStructure(r *profile.StructureReport) {
 	}
 	if r.Files != nil {
 		slices.SortFunc(*r.Files, func(a, b structure.File) int { return strings.Compare(a.Path, b.Path) })
+	}
+}
+
+const functionReportLimit = 1024
+
+func newFunctionReport() *profile.FunctionReport {
+	return &profile.FunctionReport{Provider: "big-code-analysis@2.2.0", Rule: "space-kind-function", RuleVersion: "1.0.0", Scope: "selected-source-files", Status: "complete", ParentStatus: "complete", MetricScope: "includes_nested_spaces", MetricGroups: structure.FunctionMetricGroups(), Order: "path_then_provider_preorder", Limit: functionReportLimit, PerFileLimit: structure.FunctionLimit, NameMaxBytes: structure.FunctionNameMaxBytes, Omissions: map[string]int64{}, Entries: []profile.FunctionEvidence{}}
+}
+
+func compareFunction(a, b profile.FunctionEvidence) int {
+	if order := strings.Compare(a.Path, b.Path); order != 0 {
+		return order
+	}
+	if a.Index < b.Index {
+		return -1
+	}
+	if a.Index > b.Index {
+		return 1
+	}
+	return 0
+}
+
+func addFunctions(r *profile.FunctionReport, file structure.File) error {
+	f := file.Functions
+	// Every other space counter is a nonnegative subset of the total. Check
+	// total first so a rejected response leaves the function aggregate unchanged.
+	if f.TotalSpaces > math.MaxUint64-r.TotalSpaces {
+		return fmt.Errorf("structure function-space counter overflow for %q", file.Path)
+	}
+	r.AnalyzedFiles++
+	if f.Status == "partial" {
+		r.PartialFiles++
+	}
+	r.TotalSpaces += f.TotalSpaces
+	r.PerFileOmittedSpaces += f.OmittedSpaces
+	r.OmittedSpaces += f.OmittedSpaces
+	r.InvalidSpanSpaces += f.InvalidSpanSpaces
+	for _, entry := range f.Entries {
+		value := profile.FunctionEvidence{Path: file.Path, Language: file.Language, SourceSHA256: file.SourceSHA256, FunctionEntry: entry}
+		index, _ := slices.BinarySearchFunc(r.Entries, value, compareFunction)
+		if len(r.Entries) < functionReportLimit {
+			r.Entries = slices.Insert(r.Entries, index, value)
+		} else {
+			r.ReportOmittedSpaces++
+			r.OmittedSpaces++
+			if index < functionReportLimit {
+				copy(r.Entries[index+1:], r.Entries[index:functionReportLimit-1])
+				r.Entries[index] = value
+			}
+		}
+	}
+	return nil
+}
+
+func finishFunctions(parent *profile.StructureReport) {
+	r := parent.Functions
+	if r == nil {
+		return
+	}
+	r.ParentStatus = parent.Status
+	for reason, count := range parent.Omissions {
+		r.Omissions[reason] = count
+	}
+	r.Status = parent.Status
+	if r.Status != "skipped" && (r.PartialFiles > 0 || r.OmittedSpaces > 0 || r.InvalidSpanSpaces > 0) {
+		r.Status = "partial"
+	}
+	if r.Status == "partial" {
+		parent.Status = "partial"
 	}
 }

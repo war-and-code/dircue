@@ -164,6 +164,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				report.Structure = newStructureReport(opts, snapshot)
 				report.Structure.Status = "skipped"
 				report.Structure.Omissions["tree_size_limit"] = 1
+				finishStructure(report.Structure)
 				report.SchemaVersion = profile.ExpandedSchemaVersion
 			}
 			if opts.Metrics != nil {
@@ -175,7 +176,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if opts.Projects || opts.Structure != nil {
 				report.SchemaVersion = profile.ExpandedSchemaVersion
 			}
-			if opts.Discovery {
+			if opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
 				report.SchemaVersion = profile.EnhancedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
@@ -370,7 +371,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			}
 		}
 		if report.Structure != nil {
-			addStructure(report.Structure, value)
+			if err := addStructure(report.Structure, value); err != nil {
+				fail(err)
+				continue
+			}
 		}
 		if metrics != nil {
 			metrics.add(value)
@@ -441,6 +445,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	if report.Structure != nil {
 		finishStructure(report.Structure)
+		if opts.Structure.FunctionMetricsEnabled() {
+			report.SchemaVersion = profile.EnhancedSchemaVersion
+		}
 	}
 	if discoveryCollector != nil {
 		report.Discovery = discoveryCollector.Finish()

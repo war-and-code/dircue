@@ -41,6 +41,7 @@ type options struct {
 	discovery              bool
 	graph                  bool
 	structure              bool
+	structureFunctions     bool
 	structuralWorker       string
 	structuralMaxFileBytes int64
 	structuralTimeout      time.Duration
@@ -103,6 +104,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include per-file metrics or structural observations")
 		}
 		if mode == "structure" || mode == "all" {
+			command.Flags().BoolVar(&opts.structureFunctions, "functions", false, "Include bounded function-space metrics from the structural worker")
 			command.Flags().StringVar(&opts.structuralWorker, "structural-worker", "", "Path to the optional native structural worker")
 			command.Flags().Int64Var(&opts.structuralMaxFileBytes, "structural-max-file-bytes", structure.MaxSourceBytes, "Maximum complete source bytes for structural analysis (at most 8388608)")
 			command.Flags().DurationVar(&opts.structuralTimeout, "structural-timeout", 10*time.Second, "Time limit for each structural worker invocation")
@@ -170,12 +172,12 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			return fmt.Errorf("--structural-timeout must be positive")
 		}
 		var err error
-		structural, err = structure.New(structure.Options{Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})
+		structural, err = structure.New(structure.Options{Functions: opts.structureFunctions, Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})
 		if err != nil {
 			return err
 		}
 	} else if mode == "all" {
-		for _, flag := range []string{"structural-worker", "structural-max-file-bytes", "structural-timeout"} {
+		for _, flag := range []string{"functions", "structural-worker", "structural-max-file-bytes", "structural-timeout"} {
 			if cmd.Flags().Changed(flag) {
 				return fmt.Errorf("--%s requires --structure", flag)
 			}
