@@ -3,6 +3,7 @@ package scanner
 import (
 	"bytes"
 	"context"
+	"dircue/pkg/discovery"
 	"dircue/pkg/projects"
 	"fmt"
 	enry "github.com/go-enry/go-enry/v2"
@@ -14,10 +15,21 @@ import (
 // Project manifests have their own selection policy. In particular, XML
 // manifests remain visible even when XML is excluded from language statistics.
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	var metadata *discovery.File
+	if opts.Discovery {
+		metadata = &discovery.File{Path: item.path, Size: item.size, Vendored: item.attrs.vendored, Generated: item.attrs.generated, Documentation: item.attrs.documentation}
+		if opts.DiscoveryOnly {
+			if err := ctx.Err(); err != nil {
+				return result{}, err
+			}
+			return result{path: item.path, skipped: true, discoveryFile: metadata}, nil
+		}
+	}
 	if opts.Projects || opts.Structure != nil {
 		item.read = cachedFileReader(root, item)
 	}
 	value, err := analyzeFileBase(ctx, root, item, opts)
+	value.discoveryFile = metadata
 	if err != nil || !opts.Projects || !projects.IsManifest(item.path) {
 		return value, err
 	}

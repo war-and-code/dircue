@@ -2,6 +2,14 @@
 
 Start with a profile of the directory, then decide which additional work its contents justify. Metrics, structural parsing, and external package inventories answer different questions; none needs to run merely because another ran.
 
+The examples below use released 0.3.0 commands and schema. On the development
+branch, [`analyze discovery`](DISCOVERY.md) provides an earlier metadata-only
+pass without source-payload reads. Its manifest and artifact candidates can
+help choose whether to request project declarations, language analysis, or
+another inventory. Filename hints cannot validate content formats or establish
+that follow-up work is unnecessary. Its schema `1.3.0` is not accepted by the
+0.3.0 routing example below.
+
 ## First pass
 
 ```sh
@@ -73,6 +81,13 @@ dircue analyze structure --source directory --json --files \
 ```
 
 A pipeline may also run its installed Syft executable. Dircue 0.3.0 neither invokes Syft nor imports its reports. Explicit integration is tracked separately in [#20](https://github.com/war-and-code/dircue/issues/20) and [#21](https://github.com/war-and-code/dircue/issues/21).
+
+The development branch can [import an existing Syft report](PACKAGE_EVIDENCE.md)
+with `analyze packages --syft-report FILE`. Importing is separate from choosing
+or executing Syft. Match the cataloged source to the dircue inventory explicitly;
+a plausible path match alone does not establish that both describe the same
+contents. [Project-reference graphs](GRAPH.md) are another optional follow-up
+for parsed .NET declarations.
 
 Project roots can help narrow follow-ups, but keep shared parent manifests, workspace files, imports, and artifacts in view. `project_root_hints` in the example are observed locations, not a list of guaranteed self-contained scan targets. The paths are report data and must never be treated as executable shell fragments.
 

@@ -1,0 +1,695 @@
+{
+  "artifacts": [
+    {
+      "id": "1e7067fe6a24fd58",
+      "name": "Example.Core",
+      "version": "1.2.3",
+      "type": "dotnet",
+      "foundBy": "dotnet-deps-binary-cataloger",
+      "locations": [
+        {
+          "path": "/dotnet/app/app.deps.json",
+          "accessPath": "/dotnet/app/app.deps.json",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "dotnet",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:example_core:example_core_.net:1.2.3:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        },
+        {
+          "cpe": "cpe:2.3:a:example_core:example_core:1.2.3:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:nuget/Example.Core@1.2.3",
+      "metadataType": "dotnet-deps-entry",
+      "metadata": {
+        "name": "Example.Core",
+        "version": "1.2.3",
+        "path": "example.core/1.2.3",
+        "sha512": "abc",
+        "hashPath": "example.core.1.2.3.nupkg.sha512",
+        "type": "package"
+      }
+    },
+    {
+      "id": "46de9b534711cf50",
+      "name": "Example.Core",
+      "version": "1.2.3",
+      "type": "dotnet",
+      "foundBy": "dotnet-packages-lock-cataloger",
+      "locations": [
+        {
+          "path": "/dotnet/app/packages.lock.json",
+          "accessPath": "/dotnet/app/packages.lock.json",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "dotnet",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:example_core:example_core_.net:1.2.3:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        },
+        {
+          "cpe": "cpe:2.3:a:example_core:example_core:1.2.3:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:nuget/Example.Core@1.2.3",
+      "metadataType": "dotnet-packages-lock-entry",
+      "metadata": {
+        "name": "Example.Core",
+        "version": "1.2.3",
+        "contentHash": "abc",
+        "type": "Direct"
+      }
+    },
+    {
+      "id": "601eefac951322b3",
+      "name": "Example.Transitive",
+      "version": "2.0.0",
+      "type": "dotnet",
+      "foundBy": "dotnet-deps-binary-cataloger",
+      "locations": [
+        {
+          "path": "/dotnet/app/app.deps.json",
+          "accessPath": "/dotnet/app/app.deps.json",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "dotnet",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:example_transitive:example_transitive_.net:2.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        },
+        {
+          "cpe": "cpe:2.3:a:example_transitive:example_transitive:2.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:nuget/Example.Transitive@2.0.0",
+      "metadataType": "dotnet-deps-entry",
+      "metadata": {
+        "name": "Example.Transitive",
+        "version": "2.0.0",
+        "path": "example.transitive/2.0.0",
+        "sha512": "def",
+        "hashPath": "example.transitive.2.0.0.nupkg.sha512",
+        "type": "package"
+      }
+    },
+    {
+      "id": "b251b66f5e1ba15f",
+      "name": "Example.Transitive",
+      "version": "2.0.0",
+      "type": "dotnet",
+      "foundBy": "dotnet-packages-lock-cataloger",
+      "locations": [
+        {
+          "path": "/dotnet/app/packages.lock.json",
+          "accessPath": "/dotnet/app/packages.lock.json",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "dotnet",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:example_transitive:example_transitive_.net:2.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        },
+        {
+          "cpe": "cpe:2.3:a:example_transitive:example_transitive:2.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:nuget/Example.Transitive@2.0.0",
+      "metadataType": "dotnet-packages-lock-entry",
+      "metadata": {
+        "name": "Example.Transitive",
+        "version": "2.0.0",
+        "contentHash": "def",
+        "type": "Transitive"
+      }
+    },
+    {
+      "id": "0ab28651f68dfde4",
+      "name": "app",
+      "version": "1.0.0",
+      "type": "java-archive",
+      "foundBy": "java-archive-cataloger",
+      "locations": [
+        {
+          "path": "/java/app.jar",
+          "accessPath": "/java/app.jar",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "java",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:app:app:1.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:maven/example/app@1.0.0",
+      "metadataType": "java-archive",
+      "metadata": {
+        "virtualPath": "/java/app.jar",
+        "manifest": {
+          "main": [
+            {
+              "key": "Manifest-Version",
+              "value": "1.0"
+            },
+            {
+              "key": "Implementation-Title",
+              "value": "app"
+            },
+            {
+              "key": "Implementation-Version",
+              "value": "1.0.0"
+            }
+          ]
+        },
+        "pomProperties": {
+          "path": "META-INF/maven/example/app/pom.properties",
+          "name": "",
+          "groupId": "example",
+          "artifactId": "app",
+          "version": "1.0.0"
+        },
+        "digest": [
+          {
+            "algorithm": "sha1",
+            "value": "9d33fefd86087cda91b8f670fb4cb4f9bc9ac521"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2f0b6a6bff9dc114",
+      "name": "inner",
+      "version": "2.0.0",
+      "type": "java-archive",
+      "foundBy": "java-archive-cataloger",
+      "locations": [
+        {
+          "path": "/java/app.jar",
+          "accessPath": "/java/app.jar:BOOT-INF/lib/inner.jar",
+          "annotations": {
+            "evidence": "primary"
+          }
+        }
+      ],
+      "licenses": [],
+      "language": "java",
+      "cpes": [
+        {
+          "cpe": "cpe:2.3:a:inner:inner:2.0.0:*:*:*:*:*:*:*",
+          "source": "syft-generated"
+        }
+      ],
+      "purl": "pkg:maven/example/inner@2.0.0",
+      "metadataType": "java-archive",
+      "metadata": {
+        "virtualPath": "/java/app.jar:BOOT-INF/lib/inner.jar",
+        "manifest": {
+          "main": [
+            {
+              "key": "Manifest-Version",
+              "value": "1.0"
+            },
+            {
+              "key": "Implementation-Title",
+              "value": "inner"
+            },
+            {
+              "key": "Implementation-Version",
+              "value": "2.0.0"
+            }
+          ]
+        },
+        "pomProperties": {
+          "path": "META-INF/maven/example/inner/pom.properties",
+          "name": "",
+          "groupId": "example",
+          "artifactId": "inner",
+          "version": "2.0.0"
+        },
+        "digest": [
+          {
+            "algorithm": "sha1",
+            "value": "69546d652f0d1e06abe6302dd0f0734ede5c9dc5"
+          }
+        ]
+      }
+    }
+  ],
+  "artifactRelationships": [
+    {
+      "parent": "0ab28651f68dfde4",
+      "child": "736b0dc5c6ab52d9",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "1e7067fe6a24fd58",
+      "child": "0480439a69f82e6f",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "2f0b6a6bff9dc114",
+      "child": "0ab28651f68dfde4",
+      "type": "dependency-of"
+    },
+    {
+      "parent": "2f0b6a6bff9dc114",
+      "child": "736b0dc5c6ab52d9",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "46de9b534711cf50",
+      "child": "e0b544e2371ea97d",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "601eefac951322b3",
+      "child": "0480439a69f82e6f",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "601eefac951322b3",
+      "child": "1e7067fe6a24fd58",
+      "type": "dependency-of"
+    },
+    {
+      "parent": "b251b66f5e1ba15f",
+      "child": "46de9b534711cf50",
+      "type": "dependency-of"
+    },
+    {
+      "parent": "b251b66f5e1ba15f",
+      "child": "e0b544e2371ea97d",
+      "type": "evident-by",
+      "metadata": {
+        "kind": "primary"
+      }
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "0ab28651f68dfde4",
+      "type": "contains"
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "1e7067fe6a24fd58",
+      "type": "contains"
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "2f0b6a6bff9dc114",
+      "type": "contains"
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "46de9b534711cf50",
+      "type": "contains"
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "601eefac951322b3",
+      "type": "contains"
+    },
+    {
+      "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "child": "b251b66f5e1ba15f",
+      "type": "contains"
+    }
+  ],
+  "files": [
+    {
+      "id": "0480439a69f82e6f",
+      "location": {
+        "path": "/dotnet/app/app.deps.json"
+      },
+      "metadata": {
+        "mode": 644,
+        "type": "RegularFile",
+        "userID": 501,
+        "groupID": 20,
+        "mimeType": "application/json",
+        "size": 825
+      },
+      "digests": [
+        {
+          "algorithm": "sha1",
+          "value": "a8ef4b94601d3b87197eb45f7410218b13961281"
+        },
+        {
+          "algorithm": "sha256",
+          "value": "a21276288260d27b67ad8834adb8750c51a6a97f9d54e8bf02800dade3eb7374"
+        }
+      ]
+    },
+    {
+      "id": "e0b544e2371ea97d",
+      "location": {
+        "path": "/dotnet/app/packages.lock.json"
+      },
+      "metadata": {
+        "mode": 644,
+        "type": "RegularFile",
+        "userID": 501,
+        "groupID": 20,
+        "mimeType": "application/json",
+        "size": 420
+      },
+      "digests": [
+        {
+          "algorithm": "sha1",
+          "value": "40219cd6023b486448a1530a77487c658ab5ce6b"
+        },
+        {
+          "algorithm": "sha256",
+          "value": "390fd747a34f4813adfe94243c5d9564e5d912704ba93adec53afbaeafa23b6a"
+        }
+      ]
+    },
+    {
+      "id": "736b0dc5c6ab52d9",
+      "location": {
+        "path": "/java/app.jar"
+      },
+      "metadata": {
+        "mode": 644,
+        "type": "RegularFile",
+        "userID": 501,
+        "groupID": 20,
+        "mimeType": "application/java-archive",
+        "size": 968
+      },
+      "digests": [
+        {
+          "algorithm": "sha1",
+          "value": "9d33fefd86087cda91b8f670fb4cb4f9bc9ac521"
+        },
+        {
+          "algorithm": "sha256",
+          "value": "a2d02a45dfdf40a79b4bcc10c994fde67a873be8deeff103ba1971986309a4b0"
+        }
+      ]
+    }
+  ],
+  "source": {
+    "id": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+    "name": "dircue-package-fixture",
+    "version": "",
+    "type": "directory",
+    "metadata": {
+      "path": "tests/packageevidence/fixtures/input"
+    }
+  },
+  "distro": {},
+  "descriptor": {
+    "name": "syft",
+    "version": "1.52.0",
+    "configuration": {
+      "catalogers": {
+        "requested": {
+          "default": [
+            "directory",
+            "file"
+          ]
+        },
+        "used": [
+          "alpm-db-cataloger",
+          "apk-db-cataloger",
+          "apple-app-bundle-cataloger",
+          "binary-classifier-cataloger",
+          "cargo-auditable-binary-cataloger",
+          "cocoapods-cataloger",
+          "conan-cataloger",
+          "conda-meta-cataloger",
+          "dart-pubspec-cataloger",
+          "dart-pubspec-lock-cataloger",
+          "deb-archive-cataloger",
+          "dotnet-deps-binary-cataloger",
+          "dotnet-packages-lock-cataloger",
+          "dpkg-db-cataloger",
+          "elf-binary-package-cataloger",
+          "elixir-mix-lock-cataloger",
+          "erlang-otp-application-cataloger",
+          "erlang-rebar-lock-cataloger",
+          "file-content-cataloger",
+          "file-digest-cataloger",
+          "file-executable-cataloger",
+          "file-metadata-cataloger",
+          "gguf-cataloger",
+          "github-action-workflow-usage-cataloger",
+          "github-actions-usage-cataloger",
+          "go-module-binary-cataloger",
+          "go-module-file-cataloger",
+          "graalvm-native-image-cataloger",
+          "haskell-cataloger",
+          "homebrew-cataloger",
+          "java-archive-cataloger",
+          "java-gradle-lockfile-cataloger",
+          "java-jvm-cataloger",
+          "java-pom-cataloger",
+          "javascript-lock-cataloger",
+          "linux-kernel-cataloger",
+          "lua-rock-cataloger",
+          "nix-cataloger",
+          "opam-cataloger",
+          "pe-binary-package-cataloger",
+          "php-composer-lock-cataloger",
+          "php-interpreter-cataloger",
+          "php-pear-serialized-cataloger",
+          "portage-cataloger",
+          "python-installed-package-cataloger",
+          "python-package-cataloger",
+          "r-package-cataloger",
+          "rpm-archive-cataloger",
+          "rpm-db-cataloger",
+          "ruby-gemfile-cataloger",
+          "ruby-gemspec-cataloger",
+          "rust-cargo-lock-cataloger",
+          "safetensors-cataloger",
+          "snap-cataloger",
+          "swift-package-manager-cataloger",
+          "swipl-pack-cataloger",
+          "terraform-lock-cataloger",
+          "vcpkg-manifest-cataloger",
+          "wordpress-plugins-cataloger"
+        ]
+      },
+      "data-generation": {
+        "generate-cpes": true
+      },
+      "files": {
+        "content": {
+          "globs": null,
+          "skip-files-above-size": 0
+        },
+        "hashers": [
+          "sha-1",
+          "sha-256"
+        ],
+        "selection": "owned-by-package"
+      },
+      "licenses": {
+        "coverage": 75,
+        "include-content": "none"
+      },
+      "packages": {
+        "binary": [
+          "python-binary",
+          "python-binary-lib",
+          "pypy-binary-lib",
+          "go-binary",
+          "julia-binary",
+          "julia-binary",
+          "helm",
+          "redis-binary",
+          "valkey-binary",
+          "nodejs-binary",
+          "busybox-binary",
+          "util-linux-binary",
+          "haproxy-binary",
+          "perl-binary",
+          "php-composer-binary",
+          "httpd-binary",
+          "memcached-binary",
+          "traefik-binary",
+          "arangodb-binary",
+          "postgresql-binary",
+          "mysql-binary",
+          "mysql-binary",
+          "mysql-binary",
+          "mysqld-mysql-cluster-legacy-binary",
+          "mysqld-binary",
+          "ndbd-binary",
+          "ndbmtd-binary",
+          "ndb_mgmd-binary",
+          "xtrabackup-binary",
+          "mariadb-binary",
+          "rust-standard-library-linux",
+          "rust-standard-library-macos",
+          "ruby-binary",
+          "erlang-binary",
+          "erlang-alpine-binary",
+          "erlang-library",
+          "swipl-binary",
+          "dart-binary",
+          "deno-binary",
+          "bun-binary",
+          "haskell-ghc-binary",
+          "haskell-cabal-binary",
+          "haskell-stack-binary",
+          "consul-binary",
+          "hashicorp-vault-binary",
+          "nginx-binary",
+          "bash-binary",
+          "openssl-binary",
+          "openldap-search-binary",
+          "qt-qtbase-lib",
+          "gcc-binary",
+          "fluent-bit-binary",
+          "wordpress-cli-binary",
+          "curl-binary",
+          "lighttpd-binary",
+          "proftpd-binary",
+          "zstd-binary",
+          "xz-binary",
+          "gzip-binary",
+          "sqlcipher-binary",
+          "jq-binary",
+          "chrome-binary",
+          "firefox-binary",
+          "ffmpeg-binary",
+          "ffmpeg-library",
+          "ffmpeg-library",
+          "elixir-binary",
+          "elixir-library",
+          "istio-binary",
+          "istio-binary",
+          "grafana-binary",
+          "grafana-binary",
+          "envoy-binary",
+          "mongodb-binary",
+          "ingress-nginx-binary",
+          "filebeat-binary",
+          "metricbeat-binary",
+          "heartbeat-binary",
+          "packetbeat-binary",
+          "auditbeat-binary",
+          "elastic-agent-binary",
+          "krb5-library",
+          "heimdal-krb5-library",
+          "java-binary",
+          "java-jdb-binary"
+        ],
+        "cpp": {
+          "vcpkg-allow-git-clone": false
+        },
+        "dotnet": {
+          "dep-packages-must-claim-dll": true,
+          "dep-packages-must-have-dll": false,
+          "exclude-project-references": true,
+          "propagate-dll-claims-to-parents": true,
+          "relax-dll-claims-when-bundling-detected": true
+        },
+        "golang": {
+          "capture-symbols": "none",
+          "local-mod-cache-dir": "/fixture-cache/go",
+          "local-vendor-dir": "",
+          "main-module-version": {
+            "from-build-settings": true,
+            "from-contents": false,
+            "from-ld-flags": true
+          },
+          "proxies": [
+            "https://proxy.golang.org",
+            "direct"
+          ],
+          "search-local-mod-cache-licenses": false,
+          "search-local-vendor-licenses": false,
+          "search-remote-licenses": false,
+          "use-packages-lib": true
+        },
+        "java-archive": {
+          "include-indexed-archives": true,
+          "include-unindexed-archives": false,
+          "maven-base-url": "https://repo1.maven.org/maven2",
+          "maven-localrepository-dir": "/fixture-cache/maven",
+          "max-parent-recursive-depth": 0,
+          "resolve-transitive-dependencies": false,
+          "use-maven-localrepository": false,
+          "use-network": false
+        },
+        "javascript": {
+          "include-dev-dependencies": false,
+          "npm-base-url": "https://registry.npmjs.org",
+          "search-remote-licenses": false
+        },
+        "linux-kernel": {
+          "catalog-modules": true
+        },
+        "nix": {
+          "capture-owned-files": false
+        },
+        "python": {
+          "guess-unpinned-requirements": false,
+          "pypi-base-url": "https://pypi.org/pypi",
+          "search-remote-licenses": false
+        }
+      },
+      "relationships": {
+        "exclude-binary-packages-with-file-ownership-overlap": true,
+        "package-file-ownership": true,
+        "package-file-ownership-overlap": true
+      },
+      "search": {
+        "scope": "squashed"
+      }
+    }
+  },
+  "schema": {
+    "version": "16.1.10",
+    "url": "https://raw.githubusercontent.com/anchore/syft/main/schema/json/schema-16.1.10.json"
+  }
+}

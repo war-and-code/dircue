@@ -3,6 +3,8 @@ package profile
 
 import (
 	"context"
+	"dircue/pkg/discovery"
+	"dircue/pkg/packageevidence"
 	"dircue/pkg/projects"
 )
 
@@ -62,9 +64,14 @@ type Warning struct {
 
 const ExpandedSchemaVersion = "1.2.0"
 
+const EnhancedSchemaVersion = "1.3.0"
+
 type Report struct {
-	Projects  *projects.Report `json:"projects,omitempty"`
-	Structure *StructureReport `json:"structure,omitempty"`
+	PackageEvidence *packageevidence.Report `json:"package_evidence,omitempty"`
+	Discovery       *discovery.Report       `json:"discovery,omitempty"`
+	Graph           *projects.GraphReport   `json:"graph,omitempty"`
+	Projects        *projects.Report        `json:"projects,omitempty"`
+	Structure       *StructureReport        `json:"structure,omitempty"`
 	// Strategies is CLI-only diagnostic data and does not change the JSON schema.
 	Strategies    map[string]string `json:"-"`
 	SchemaVersion string            `json:"schema_version"`

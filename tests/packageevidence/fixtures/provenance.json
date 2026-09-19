@@ -1,0 +1,47 @@
+{
+  "provider": "anchore/syft",
+  "version": "1.52.0",
+  "commit": "02ba369d13b4248395b20a504eca94b0cab564d8",
+  "schema": "16.1.10",
+  "schema_sha256": "7bb6469553136d70a6291a2de94fe4dd0c435c668b3f88123501b94ac7da8623",
+  "schema_url": "https://github.com/anchore/syft/blob/v1.52.0/schema/json/schema-16.1.10.json",
+  "documentation": [
+    "https://oss.anchore.com/docs/guides/sbom/json/",
+    "https://github.com/anchore/syft/blob/v1.52.0/syft/artifact/relationship.go"
+  ],
+  "upstream_license": "Apache-2.0",
+  "archive_sha256": "014d561b6d13059124155f74a6c5a9a99501f5e209313638dd884f39eb418ee6",
+  "binary_sha256": "17e4215af72264e186a843269d0b797697d643f53841d9598f73614bbcbe9022",
+  "original_report_sha256": "87e903536cfe8cbb63ab2b8e07c83ec8258f25cefe594a64b88f273892e4d6d0",
+  "retained_report_sha256": "f45eab535e14ce25a9c93f6f9abb3ceebb6fb490a8736c9c4a2da4fbcec1b7ef",
+  "command": [
+    "syft",
+    "scan",
+    "dir:tests/packageevidence/fixtures/input",
+    "-o",
+    "syft-json",
+    "--source-name",
+    "dircue-package-fixture",
+    "--parallelism",
+    "1"
+  ],
+  "environment": {
+    "SYFT_CHECK_FOR_APP_UPDATE": "false"
+  },
+  "transformations": [
+    "Replaced unused local Go module cache path with /fixture-cache/go.",
+    "Replaced unused local Maven repository path with /fixture-cache/maven.",
+    "Formatted JSON with two-space indentation."
+  ],
+  "inputs": {
+    "fixtures/input/dotnet/app/app.deps.json": "a21276288260d27b67ad8834adb8750c51a6a97f9d54e8bf02800dade3eb7374",
+    "fixtures/input/dotnet/app/packages.lock.json": "390fd747a34f4813adfe94243c5d9564e5d912704ba93adec53afbaeafa23b6a",
+    "fixtures/input/java/app.jar": "a2d02a45dfdf40a79b4bcc10c994fde67a873be8deeff103ba1971986309a4b0"
+  },
+  "observations": {
+    "artifacts": 6,
+    "relationships": 15,
+    "files": 3
+  },
+  "scope": "Synthetic .NET packages.lock.json/deps.json and Java JAR with nested JAR; no package restore, builds, or remote metadata enrichment."
+}
