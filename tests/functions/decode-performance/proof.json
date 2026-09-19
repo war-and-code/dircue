@@ -1,0 +1,6 @@
+{
+  "passed": true,
+  "proof": "Original validation statements retained byte-for-byte in wrapper prefix plus shared decoder. Only response caller changes, after unchanged strict envelope validation. Runtime default path, metric validation/serialization and all other production bytes unchanged.",
+  "before_sources_sha256": "5d2aef818e6190e0103978d8f51337a64c557c228af39384cff7e3a4dcf7a726",
+  "after_sources_sha256": "138b33f60a2f479d41fffd82197bb58614c5444df186295c98a1da1b66d8ba14"
+}

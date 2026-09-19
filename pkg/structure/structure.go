@@ -236,7 +236,8 @@ func decodeResponse(data []byte, submitted File, content []byte, functions bool)
 		if len(response.Functions) == 0 {
 			return submitted, errors.New("structure worker did not return requested function-space metrics; use a worker with function support")
 		}
-		decoded, ok := decodeFunctions(response.Functions, content, *response.SyntaxErrors, response.Observations["syntax_nodes"])
+		// strictFunctionResponse already checked every nested function metric.
+		decoded, ok := decodeValidatedFunctions(response.Functions, content, *response.SyntaxErrors, response.Observations["syntax_nodes"])
 		if !ok {
 			return submitted, errors.New("structure worker function-space response violates its metrics, bounds, or coverage contract")
 		}

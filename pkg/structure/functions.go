@@ -58,6 +58,13 @@ func decodeFunctions(data []byte, content []byte, syntaxErrors bool, syntaxNodes
 	if _, err := decoder.Token(); err != io.EOF {
 		return nil, false
 	}
+	return decodeValidatedFunctions(data, content, syntaxErrors, syntaxNodes)
+}
+
+// The caller must first validate this exact JSON subtree's UTF-8, framing,
+// duplicate keys and depth, either here or as part of strictFunctionResponse.
+// The enclosing response's depth limit is at least as strict as the subtree's.
+func decodeValidatedFunctions(data []byte, content []byte, syntaxErrors bool, syntaxNodes uint64) (*FunctionSpaces, bool) {
 	var object map[string]json.RawMessage
 	required := []string{"provider", "rule", "rule_version", "scope", "status", "syntax_errors", "metric_scope", "order", "limit", "name_max_bytes", "total_spaces", "omitted_spaces", "invalid_span_spaces", "entries"}
 	if json.Unmarshal(data, &object) != nil || !functionKeys(object, required, "") {
