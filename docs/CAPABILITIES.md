@@ -6,7 +6,8 @@ describe the 0.3.0 release's enabled integrations, rather than every feature
 provided by its upstream dependencies.
 
 The development branch additionally offers [metadata discovery](DISCOVERY.md),
-[.NET declaration graphs](GRAPH.md), and [Syft report import](PACKAGE_EVIDENCE.md).
+[.NET declaration graphs](GRAPH.md), [Syft report import](PACKAGE_EVIDENCE.md),
+[caller-supplied rules](RULES.md), and [bounded function metrics](FUNCTIONS.md).
 These additions have their own scope and coverage fields; they do not expand
 the structural grammar list or turn filename hints into parsed declarations.
 

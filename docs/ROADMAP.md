@@ -6,10 +6,30 @@ is present, then explicitly request the detail needed for a particular task.
 That can support navigation, testing, architecture review, build preparation,
 and many kinds of downstream analysis.
 
-This document records the direction agreed on September 18, 2026. The items
-below are proposals, not shipped capabilities or promises for a particular
-release. Linked issues hold the acceptance criteria and subsequent decisions.
-The [capability matrix](CAPABILITIES.md) describes what works today.
+This document records the direction agreed on September 18, 2026. The work
+sequence describes proposed capabilities, not promises for a particular
+release. The development status below distinguishes implemented work from
+remaining plans. Linked issues hold the acceptance criteria and decisions;
+the [capability matrix](CAPABILITIES.md) distinguishes released support from
+development additions.
+
+## Development status after 0.3.0
+
+These additions are on the development branch, not in the downloadable 0.3.0
+binaries. They remain subject to candidate validation and review.
+
+| Area | Implemented development work | Remaining work |
+| --- | --- | --- |
+| Discovery and module contracts | Explicit metadata inventory with candidate manifests, scoped counts, and omissions; documented module ownership | More file-role adapters and any future module registry |
+| Project relationships | Static .NET graph components, cycles, and degrees from supported declarations | Broader workspace adapters and relationship types |
+| Package evidence | Bounded import of existing native Syft JSON with explicit mapping and source binding | Optional execution of an installed Syft binary |
+| Caller rules | Explicit bounded JSON rules over filenames, paths, and complete-file literals | Named profiles and additional rule operations |
+| Function evidence | Optional bounded BCA function-space metrics with spans, hashes, and coverage | Comparable distributions, explainable hotspot selection, and report comparison |
+| Semantic analysis | Retained Bifrost feasibility and isolation findings | A validated production provider contract and broader cost measurements |
+| Distribution | Manual workflow for verified draft-release assembly and local packaged function checks | Full cross-platform workflow rehearsal and any public/PyPI publication |
+
+No repository scheduler, atlas, or cross-repository aggregator is planned as
+part of these changes. A consumer may reuse dircue reports for that purpose.
 
 ## Starting point
 
@@ -20,10 +40,11 @@ and C# have additional syntax declaration counts. There is no cross-file call
 graph, compiler name resolution, runtime route discovery, or vulnerability
 analysis in the current structural report.
 
-The [staged-analysis guide](STAGED_ANALYSIS.md) shows today's first pass and
-follow-up composition. A dedicated cheaper discovery contract, reusable scan
-results, and semantic relationships are still future work. Existing language
-JSON, exit behavior, and ordinary invocation costs remain compatibility gates.
+The [staged-analysis guide](STAGED_ANALYSIS.md) shows the released first pass and
+follow-up composition. The development branch's [discovery command](DISCOVERY.md)
+adds a metadata-only option; reusable scan results and semantic relationships
+remain future work. Existing language JSON, exit behavior, and ordinary
+invocation costs remain compatibility gates.
 
 ## Work sequence
 
