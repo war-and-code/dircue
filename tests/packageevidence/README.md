@@ -19,3 +19,29 @@ go test ./pkg/packageevidence -run '^$' -bench BenchmarkImportSyftFixture -bench
 The benchmark reads the fixture before timing and measures import only, including JSON checks, digesting, extraction, and sorting. It does not measure Syft execution or filesystem profiling. Tests also exercise malformed and trailing JSON, duplicate keys and identities, count/byte/depth limits, cancellation, unsupported schemas, stale bindings, ambiguous project roots, incomplete inventories, untrusted text, and nested archive evidence.
 
 Default limits are 16 MiB, 20,000 packages, 50,000 relationships, 50,000 files, and 100,000 locations. Explicit library limits have hard ceilings of 128 MiB, 100,000 packages, 250,000 relationships, 100,000 files, and 250,000 locations. JSON nesting is limited to 64 levels and two million value tokens. Limit or parse failures return no report. These are input limits, not a guarantee of a process-wide RAM ceiling.
+
+For import-only wall time, allocations and process RSS, use the separate helper:
+
+```sh
+python3 tests/packageevidence/benchmark.py --prepare .cache/package-import-bench
+CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false \
+  -o .cache/package-import-bench/bench ./tests/packageevidence/bench
+GOMAXPROCS=2 python3 tests/packageevidence/benchmark.py \
+  --cases .cache/package-import-bench/cases.json \
+  --binary .cache/package-import-bench/bench \
+  --output .cache/package-import-bench/results.json
+```
+
+The helper loads each report and validates it once before timing repeated calls to `Import`. Timed work includes JSON validation, hashing, extraction, sorting and garbage collection. It excludes Syft execution, directory scanning, project attribution and output serialization. Each of three samples uses a separate process; maximum RSS covers that whole process, including the input buffer and warmup. Allocation totals are cumulative allocated bytes per import, not simultaneous resident memory.
+
+`benchmark.py` generates 1,000-package and 20,000-package synthetic reports from a small subset of the real fixture's .NET package fields. Each group of twenty packages has a synthetic lockfile location, and package observations form a synthetic relationship chain. These are scaling fixtures, not scans of actual monorepos or resolved build graphs. Both fit the default input limits. `results/import-performance.json` preserves fixture, helper and source hashes with the measurements. Three warm samples do not establish a production p95 or an end-to-end SBOM scanning time.
+
+The recorded September 19, 2026 import run used an Apple M1 Max with 32 GiB RAM, Go 1.26.6 and `GOMAXPROCS=2`, with other project CPU-intensive work paused.
+
+| Report | Packages | Relationships | Report bytes | Median import | Process peak RSS |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Real Syft fixture | 6 | 15 | 19,120 | 0.993 ms | 11.1 MiB |
+| Synthetic 1,000 | 1,000 | 1,999 | 643,312 | 47.27 ms | 13.4 MiB |
+| Synthetic 20,000 | 20,000 | 39,999 | 12,860,312 | 939.32 ms | 134.2 MiB |
+
+These results measure the importer API alone. They do not impose a process memory cap or predict the cost of importing arbitrary reports with different metadata, locations or relationship shapes.
