@@ -1,0 +1,194 @@
+{
+  "binary_sha256": "bdf3989f6d5bc8e4aacffc900af4774f94ef6d9e3699912dc26d5286b99da32b",
+  "build_command": "CGO_ENABLED=0 go build -mod=readonly -trimpath -buildvcs=false -o BENCH ./tests/packageevidence/bench",
+  "cases": [
+    {
+      "maximum_ms_per_import": 0.99722042,
+      "maximum_process_rss_bytes": 11616256,
+      "median_ms_per_import": 0.99298417,
+      "minimum_ms_per_import": 0.9565633299999999,
+      "name": "real-fixture",
+      "report_bytes": 19120,
+      "report_sha256": "f45eab535e14ce25a9c93f6f9abb3ceebb6fb490a8736c9c4a2da4fbcec1b7ef",
+      "samples": [
+        {
+          "allocated_bytes_per_import": 315868.48,
+          "allocations_per_import": 7240.59,
+          "elapsed_ns": 95656333,
+          "garbage_collections": 9,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 100,
+          "ns_per_import": 956563.33,
+          "packages": 6,
+          "process_peak_rss_bytes": 11616256,
+          "relationships": 15,
+          "report_bytes": 19120
+        },
+        {
+          "allocated_bytes_per_import": 315895.12,
+          "allocations_per_import": 7240.92,
+          "elapsed_ns": 99722042,
+          "garbage_collections": 10,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 100,
+          "ns_per_import": 997220.42,
+          "packages": 6,
+          "process_peak_rss_bytes": 11501568,
+          "relationships": 15,
+          "report_bytes": 19120
+        },
+        {
+          "allocated_bytes_per_import": 315887.12,
+          "allocations_per_import": 7240.81,
+          "elapsed_ns": 99298417,
+          "garbage_collections": 10,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 100,
+          "ns_per_import": 992984.17,
+          "packages": 6,
+          "process_peak_rss_bytes": 11550720,
+          "relationships": 15,
+          "report_bytes": 19120
+        }
+      ],
+      "synthetic": false
+    },
+    {
+      "maximum_ms_per_import": 49.218166700000005,
+      "maximum_process_rss_bytes": 14024704,
+      "median_ms_per_import": 47.2696708,
+      "minimum_ms_per_import": 46.573516700000006,
+      "name": "synthetic-1000",
+      "report_bytes": 643312,
+      "report_sha256": "d0f755488ce047def859d26e0b65f3131b990706d24220d60d6817bdbf3cfb8f",
+      "samples": [
+        {
+          "allocated_bytes_per_import": 19570310.4,
+          "allocations_per_import": 506430.4,
+          "elapsed_ns": 492181667,
+          "garbage_collections": 93,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 10,
+          "ns_per_import": 49218166.7,
+          "packages": 1000,
+          "process_peak_rss_bytes": 14024704,
+          "relationships": 1999,
+          "report_bytes": 643312
+        },
+        {
+          "allocated_bytes_per_import": 19570163.2,
+          "allocations_per_import": 506429.3,
+          "elapsed_ns": 465735167,
+          "garbage_collections": 89,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 10,
+          "ns_per_import": 46573516.7,
+          "packages": 1000,
+          "process_peak_rss_bytes": 14008320,
+          "relationships": 1999,
+          "report_bytes": 643312
+        },
+        {
+          "allocated_bytes_per_import": 19570106.4,
+          "allocations_per_import": 506428.8,
+          "elapsed_ns": 472696708,
+          "garbage_collections": 92,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 10,
+          "ns_per_import": 47269670.8,
+          "packages": 1000,
+          "process_peak_rss_bytes": 13369344,
+          "relationships": 1999,
+          "report_bytes": 643312
+        }
+      ],
+      "synthetic": true
+    },
+    {
+      "maximum_ms_per_import": 941.8180416666667,
+      "maximum_process_rss_bytes": 140722176,
+      "median_ms_per_import": 939.3150833333334,
+      "minimum_ms_per_import": 933.998875,
+      "name": "synthetic-20000",
+      "report_bytes": 12860312,
+      "report_sha256": "7f482cac68cf11a79b5a657f24c345c93d162a667587d440a3be43055c753bb5",
+      "samples": [
+        {
+          "allocated_bytes_per_import": 408030125.3333333,
+          "allocations_per_import": 10120851.666666666,
+          "elapsed_ns": 2801996625,
+          "garbage_collections": 39,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 3,
+          "ns_per_import": 933998875,
+          "packages": 20000,
+          "process_peak_rss_bytes": 131350528,
+          "relationships": 39999,
+          "report_bytes": 12860312
+        },
+        {
+          "allocated_bytes_per_import": 408030130.6666667,
+          "allocations_per_import": 10120851.666666666,
+          "elapsed_ns": 2825454125,
+          "garbage_collections": 39,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 3,
+          "ns_per_import": 941818041.6666666,
+          "packages": 20000,
+          "process_peak_rss_bytes": 140722176,
+          "relationships": 39999,
+          "report_bytes": 12860312
+        },
+        {
+          "allocated_bytes_per_import": 408030237.3333333,
+          "allocations_per_import": 10120853.333333334,
+          "elapsed_ns": 2817945250,
+          "garbage_collections": 39,
+          "go_version": "go1.26.6",
+          "gomaxprocs": 2,
+          "iterations": 3,
+          "ns_per_import": 939315083.3333334,
+          "packages": 20000,
+          "process_peak_rss_bytes": 140591104,
+          "relationships": 39999,
+          "report_bytes": 12860312
+        }
+      ],
+      "synthetic": true
+    }
+  ],
+  "environment": {
+    "GOMAXPROCS": "2",
+    "cpu_model": "Apple M1 Max",
+    "machine": "arm64",
+    "physical_memory_bytes": 34359738368,
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "system": "Darwin"
+  },
+  "harness_sha256": "1d5497110427749b6be7f831874ab45ccb4646fe43646421d2400ee45c3acb3b",
+  "measurement_window": {
+    "completed_at": "2026-09-19T21:25:23Z",
+    "scope": "Combined sequential graph and importer measurements; other project CPU-intensive work paused for this window.",
+    "started_at": "2026-09-19T21:23:49Z"
+  },
+  "method": "Separate child processes per sample; input read and first validation outside the timed loop, one GC before timing, subsequent importer allocations/GC included. Peak RSS covers the entire helper process including input, initial validation, and timed imports. No Syft scanner, source inventory, graph or output serialization is timed.",
+  "source_files": {
+    "go.mod": "b5535c1379d9b9929577d9f8efa20a8f26731488dc8e46646f21b0a4f1fa2cf6",
+    "go.sum": "4b42506ce769e9f9d887e62010ae64c185b71a0466bdd72aebbc4bda499c4ce1",
+    "pkg/packageevidence/associate.go": "b830b5d4dbe17e6711e1a54836cc224ac62bed77585ca0e53e98da4018a5b887",
+    "pkg/packageevidence/import.go": "8fb567f71e6388cf25898ea7ef31720414db7339bed524448ba85062870d6b91",
+    "pkg/packageevidence/json.go": "3fc6951ac41e99d877731153abe5762a65b376db9539ab9bd4b1d976cbd49b34",
+    "pkg/packageevidence/types.go": "24a4bce04aed429402deb10167d375ba26798f1d2de00437a2f3da9d5e097706",
+    "tests/packageevidence/bench/main.go": "e88f294fe52b34af8f1c999b9d4fb10384a5ad233c7dd1f8a06546a03d77c532"
+  },
+  "statistical_limit": "Three independent process samples report median/minimum/maximum; this is not a production p95 estimate.",
+  "synthetic_scope": "Generated native-schema package rows derived from a real .NET lockfile fixture. Synthetic locations and relationship chains are not observed repositories or resolved build graphs."
+}

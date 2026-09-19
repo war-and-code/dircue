@@ -4,6 +4,10 @@ This harness compares an actual released 0.3.0 executable with a candidate. Each
 
 The initial macOS ARM64 run matched **209 of 209 cases**. It includes the existing 118-case CLI matrix, project declarations and limits introduced in 0.3.0, and the released structural worker across all 20 supported languages. This is evidence for the exercised cases, not a guarantee for every input, platform or future candidate.
 
+The [integrated follow-up receipt](results/integrated-macos-arm64.json.gz) also
+matched all 209 cases after Syft-import hardening and the new command-help and
+validation changes. Each receipt identifies its own candidate binary.
+
 From the repository root:
 
 ```sh
