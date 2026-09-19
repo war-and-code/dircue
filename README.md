@@ -162,7 +162,7 @@ The development branch after 0.3.0 adds these explicit options:
 - [`analyze rules --rules-file FILE`](docs/RULES.md) applies explicit, bounded filename/path/content rules and reports matches, provenance, and omissions.
 - [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires a matching development worker.
 
-These can be combined with `analyze all --discovery --graph --syft-report FILE`. They are not part of the downloadable 0.3.0 binaries. Existing invocations retain their output contracts.
+Select combinations explicitly, such as `analyze all --discovery --graph` or `analyze all --structure --functions`. Add `--rules-file FILE` or `--syft-report FILE` when supplying those inputs. These options are not part of the downloadable 0.3.0 binaries. Existing invocations retain their output contracts.
 
 | Requested output | Schema version |
 | --- | --- |

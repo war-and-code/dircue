@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+Development work after 0.3.0; no final release version has been selected.
+
+- Add explicit metadata discovery that includes regular files outside language statistics, with candidate manifest/artifact hints and declared omissions.
+- Add static .NET project-graph components, cycles, and degrees while keeping conditional and unresolved references separate.
+- Import existing native Syft JSON through `analyze packages --syft-report FILE`, with bounded parsing, credential redaction, explicit coordinate mapping, and caller-provided source binding. Importing does not execute Syft.
+- Add caller-supplied observation rules through `--rules-file`, with deterministic metadata/content matching, exact policy/source digests, and coverage limits. Repository files cannot enable rules automatically or disable other modules.
+- Add optional BCA function-space metrics with source spans and hashes. Reuse the native parse, preserve nested-metric semantics, and qualify bounded evidence rather than assigning quality grades.
+- Reduce redundant JSON traversal in function-response decoding. Retained measurements show a 26.3% median decoder-time reduction for the 128-entry fixture; this is not a whole-scan or peak-memory claim.
+- Use aggregate schema 1.3.0 only when a new optional module is requested. Existing command output and exit contracts remain regression gates; the integrated development binary matches 209 retained 0.3.0 cases.
+- Add a manual workflow for verified draft-release assembly, including packaged native smoke checks and artifact provenance. It does not publish to PyPI or change repository visibility; a full five-runner GitHub rehearsal remains outstanding.
+- Document measured container CPU/memory behavior, conservative evidence interpretation, and the limits of each optional module.
+
 ## 0.3.0 (2026-09-17)
 
 - Add opt-in project mapping through `analyze projects` and `analyze all --projects`, including .NET/Maven declarations, conservative Gradle observations, and broader manifest discovery.
