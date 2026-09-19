@@ -56,7 +56,7 @@ func loadPackageEvidence(cmd *cobra.Command, opts *options, mode string) (*packa
 			return nil, fmt.Errorf("--syft-source-tree requires a Git content source")
 		}
 	}
-	file, err := openReportFile(opts.syftReport)
+	file, err := openInputFile(opts.syftReport, "Syft report")
 	if err != nil {
 		return nil, fmt.Errorf("open Syft report: %w", err)
 	}
@@ -149,13 +149,13 @@ func writePackageEvidence(out io.Writer, r *packageevidence.Report) error {
 }
 
 // Check the open handle as well as its name: a path can change before opening.
-func requireRegularReport(filename string) error {
+func requireRegularInput(filename, label string) error {
 	info, err := os.Lstat(filename)
 	if err != nil {
 		return err
 	}
 	if !info.Mode().IsRegular() {
-		return fmt.Errorf("Syft report must be a regular file")
+		return fmt.Errorf("%s must be a regular file", label)
 	}
 	return nil
 }

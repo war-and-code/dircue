@@ -159,6 +159,7 @@ The development branch after 0.3.0 adds these explicit options:
 - [`analyze discovery`](docs/DISCOVERY.md) inventories regular-file metadata without reading source payloads. It includes filename hints for manifests and packaged artifacts, including paths excluded from language statistics.
 - [`analyze graph`](docs/GRAPH.md) derives .NET project-reference components, cycles, and degrees from static declarations, keeping conditional and unresolved edges separate.
 - [`analyze packages --syft-report FILE`](docs/PACKAGE_EVIDENCE.md) imports an existing Syft JSON report. Coordinate mapping and source binding are explicit; it does not execute Syft.
+- [`analyze rules --rules-file FILE`](docs/RULES.md) applies explicit, bounded filename/path/content rules and reports matches, provenance, and omissions.
 - [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires a matching development worker.
 
 These can be combined with `analyze all --discovery --graph --syft-report FILE`. They are not part of the downloadable 0.3.0 binaries. Existing invocations retain their output contracts.
@@ -168,7 +169,7 @@ These can be combined with `analyze all --discovery --graph --syft-report FILE`.
 | Existing aggregate report without optional modules | `1.0.0` |
 | Metrics, without projects or structure | `1.1.0` |
 | Projects or structure, with optional metrics | `1.2.0` |
-| Discovery, graph, imported package evidence, or function metrics (development branch) | `1.3.0` |
+| Discovery, graph, imported package evidence, rules, or function metrics (development branch) | `1.3.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 

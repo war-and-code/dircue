@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-func TestPackageReportRejectsSpecialFiles(t *testing.T) {
+func TestReportAndRulesRejectSpecialFiles(t *testing.T) {
 	root := t.TempDir()
 	fifo := filepath.Join(root, "report.pipe")
 	if err := syscall.Mkfifo(fifo, 0600); err != nil {
@@ -26,9 +26,11 @@ func TestPackageReportRejectsSpecialFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, name := range []string{fifo, link, root} {
-		var out, stderr bytes.Buffer
-		if err := Execute(context.Background(), []string{"analyze", "packages", "--syft-report", name, "--json", root}, &out, &stderr); err == nil || out.Len() != 0 {
-			t.Fatalf("special report input accepted: %s", name)
+		for _, mode := range []struct{ command, flag string }{{"packages", "--syft-report"}, {"rules", "--rules-file"}} {
+			var out, stderr bytes.Buffer
+			if err := Execute(context.Background(), []string{"analyze", mode.command, mode.flag, name, "--json", root}, &out, &stderr); err == nil || out.Len() != 0 {
+				t.Fatalf("special %s input accepted: %s", mode.command, name)
+			}
 		}
 	}
 }

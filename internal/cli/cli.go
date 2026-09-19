@@ -21,7 +21,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.3.0"
+var Version = "0.4.0-dev"
 
 type options struct {
 	json                   bool
@@ -45,6 +45,7 @@ type options struct {
 	structuralWorker       string
 	structuralMaxFileBytes int64
 	structuralTimeout      time.Duration
+	rulesFile              string
 	syftReport             string
 	syftRoot               string
 	syftReportSHA256       string
@@ -89,10 +90,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, rules, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "rules", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -120,6 +121,9 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
 			command.Flags().BoolVar(&opts.metrics, "metrics", false, "Count code, comment, and blank lines and estimate complexity with scc")
 		}
+		if mode == "rules" || mode == "all" {
+			command.Flags().StringVar(&opts.rulesFile, "rules-file", "", "Apply an explicit caller-supplied JSON ruleset; never discovers rulesets automatically")
+		}
 		if mode == "packages" || mode == "all" {
 			addPackageFlags(command, opts)
 		}
@@ -144,6 +148,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
 	}
 	packageReport, err := loadPackageEvidence(cmd, opts, mode)
+	if err != nil {
+		return err
+	}
+	ruleProgram, err := loadRules(cmd, opts, mode)
 	if err != nil {
 		return err
 	}
@@ -232,6 +240,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
 		Discovery:         mode == "discovery" || (mode == "all" && opts.discovery),
 		DiscoveryOnly:     mode == "discovery",
+		Rules:             ruleProgram,
+		RulesOnly:         mode == "rules",
 		Structure:         structural,
 		StructureFiles:    opts.metricsFiles,
 	})
@@ -278,6 +288,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeProjects(out, report.Projects)
 	case "discovery":
 		return writeDiscovery(out, report.Discovery)
+	case "rules":
+		return writeRules(out, report.Rules)
 	case "graph":
 		return writeGraph(out, report.Graph)
 	case "packages":
@@ -287,6 +299,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	case "metrics":
 		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
+		if err := writeRules(out, report.Rules); err != nil {
+			return err
+		}
 		if err := writePackageEvidence(out, report.PackageEvidence); err != nil {
 			return err
 		}
