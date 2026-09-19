@@ -10,6 +10,18 @@ validation changes. The [function-integration receipt](results/functions-macos-a
 the same 209 cases after adding optional function metrics and protocol hardening.
 Each receipt identifies its own candidate binary.
 
+The [rules and decoder-optimization receipt](results/rules-optimized-macos-arm64.json.gz)
+matched all 209 cases using the released worker. Its [build provenance](results/rules-optimized-build-inputs.json.gz)
+records 271 local Go and embedded inputs, checked before and after verification.
+This comparison build deliberately reports version `0.3.0`; its source default is
+`0.4.0-dev`, and it is not a v0.3.0 release artifact.
+
+A separate [combined-module smoke check](results/rules-optimized-native-smoke.json.gz)
+uses the updated function-capable worker on three small Java/C#/Python files.
+Adding rules preserved the other module results, including 22 function spaces
+and one parse per source. Combined rule results matched standalone analysis.
+That check covers the stated fixtures, not every combination of optional modules.
+
 From the repository root:
 
 ```sh
