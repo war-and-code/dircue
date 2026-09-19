@@ -1,5 +1,7 @@
 //! Optional one-file worker. BCA owns the parse shared by both consumers.
 
+mod functions;
+
 use big_code_analysis::{Ast, LANG, MetricsOptions, Source};
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
@@ -26,6 +28,8 @@ struct Request {
     source: String,
     #[serde(default)]
     mode: Mode,
+    #[serde(default)]
+    functions: bool,
 }
 
 #[derive(Default, Debug, Serialize, PartialEq)]
@@ -155,6 +159,11 @@ fn analyze(request: Request) -> Result<Value, Failure> {
     }
     let (language, grammar) = select_language(&request.language)?;
     let source_bytes = request.source.len();
+    let source_lines = if request.functions {
+        request.source.lines().count()
+    } else {
+        0
+    };
     let mut parse_count = 0;
     let started = Instant::now();
     // This is the only parser entry point. Both consumers borrow this same Ast.
@@ -209,7 +218,7 @@ fn analyze(request: Request) -> Result<Value, Failure> {
         }
         result["observations"] = observations;
     }
-    if request.mode != Mode::Structure {
+    if request.mode != Mode::Structure || request.functions {
         let started = Instant::now();
         let space = ast
             .metrics(MetricsOptions::default())
@@ -219,12 +228,22 @@ fn analyze(request: Request) -> Result<Value, Failure> {
                 parse_count,
             })?;
         metrics_ns = started.elapsed().as_nanos();
-        // Only aggregate file metrics cross the wire; function trees can be large.
-        result["metrics"] = serde_json::to_value(&space.metrics).map_err(|error| Failure {
-            code: "serialization_failed",
-            message: error.to_string(),
-            parse_count,
-        })?;
+        if request.mode != Mode::Structure {
+            result["metrics"] = serde_json::to_value(&space.metrics).map_err(|error| Failure {
+                code: "serialization_failed",
+                message: error.to_string(),
+                parse_count,
+            })?;
+        }
+        if request.functions {
+            result["functions"] =
+                serde_json::to_value(functions::collect(&space, source_lines, syntax_errors))
+                    .map_err(|error| Failure {
+                        code: "serialization_failed",
+                        message: error.to_string(),
+                        parse_count,
+                    })?;
+        }
     }
     result["timings_ns"] =
         json!({"parse": parse_ns, "structure": structure_ns, "metrics": metrics_ns});
@@ -273,6 +292,7 @@ mod tests {
             language: language.into(),
             source: source.into(),
             mode,
+            functions: false,
         }
     }
 
@@ -410,6 +430,178 @@ mod tests {
     }
 
     #[test]
+    fn optional_functions_preserve_default_outputs_for_every_grammar() {
+        for &(language, source) in LANGUAGE_FIXTURES {
+            let mut default = analyze(request(language, source, Mode::Combined)).unwrap();
+            assert!(default.get("functions").is_none());
+            let mut selected = request(language, source, Mode::Combined);
+            selected.functions = true;
+            let mut enriched = analyze(selected).unwrap();
+            let functions = enriched
+                .as_object_mut()
+                .unwrap()
+                .remove("functions")
+                .unwrap();
+            assert_eq!(functions["status"], "complete", "{language}: {functions}");
+            assert_eq!(functions["rule_version"], "1.0.0");
+            assert_eq!(functions["limit"], 128);
+            assert_eq!(functions["omitted_spaces"], 0);
+            assert_eq!(functions["invalid_span_spaces"], 0);
+            assert_eq!(
+                functions["entries"].as_array().unwrap().len() as u64,
+                functions["total_spaces"].as_u64().unwrap()
+            );
+            for entry in functions["entries"].as_array().unwrap() {
+                assert!(entry["start_line"].as_u64().unwrap() > 0);
+                assert!(
+                    entry["end_line"].as_u64().unwrap() >= entry["start_line"].as_u64().unwrap()
+                );
+                let keys = entry["metrics"]
+                    .as_object()
+                    .unwrap()
+                    .keys()
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    keys,
+                    [
+                        "abc",
+                        "cognitive",
+                        "cyclomatic",
+                        "halstead",
+                        "loc",
+                        "mi",
+                        "nargs",
+                        "nexits",
+                        "nom",
+                        "tokens"
+                    ],
+                    "{language}"
+                );
+            }
+            default.as_object_mut().unwrap().remove("timings_ns");
+            enriched.as_object_mut().unwrap().remove("timings_ns");
+            assert_eq!(
+                default, enriched,
+                "{language}: opt-in changed existing fields"
+            );
+        }
+    }
+
+    #[test]
+    fn function_spaces_follow_provider_not_declaration_regexes() {
+        for (language, source) in [
+            (
+                "Java",
+                "class C { C() {} int f(int x) { return x; } class Nested { void g() {} } }",
+            ),
+            (
+                "C#",
+                "class C { public int P { get; set; } int F(int x) { int Local(int y) => y + 1; return Local(x); } }",
+            ),
+            (
+                "Python",
+                "def outer(x):\n    def inner(y):\n        return y + 1\n    return inner(x)\n",
+            ),
+            (
+                "JavaScript",
+                "function outer(x) { const inner = (y) => y + 1; return inner(x); }",
+            ),
+        ] {
+            let mut selected = request(language, source, Mode::Structure);
+            selected.functions = true;
+            let result = analyze(selected).unwrap();
+            assert!(
+                result.get("metrics").is_none(),
+                "structure mode still omits file metrics"
+            );
+            assert_eq!(result["parse_count"], 1);
+            assert!(
+                result["functions"]["total_spaces"].as_u64().unwrap() >= 2,
+                "{language}: {result}"
+            );
+            assert_eq!(
+                result["functions"]["metric_scope"],
+                "includes_nested_spaces"
+            );
+        }
+    }
+
+    #[test]
+    fn function_evidence_does_not_honor_repository_suppressions() {
+        let mut selected = request(
+            "Python",
+            "def choose(x):\n    # bca: suppress(cyclomatic)\n    if x:\n        return 1\n    return 0\n",
+            Mode::Metrics,
+        );
+        selected.functions = true;
+        let result = analyze(selected).unwrap();
+        assert_eq!(result["functions"]["total_spaces"], 1);
+        assert!(result.get("observations").is_none());
+        assert!(
+            result["functions"]["entries"][0]["metrics"]["cyclomatic"]["sum"]
+                .as_f64()
+                .unwrap()
+                > 1.0
+        );
+        assert!(
+            result["functions"]["entries"][0]
+                .get("suppressions")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn function_spans_use_physical_lines_with_crlf_and_unicode() {
+        let mut empty = request("Python", "", Mode::Combined);
+        empty.functions = true;
+        let empty = analyze(empty).unwrap();
+        assert_eq!(empty["functions"]["status"], "complete");
+        assert_eq!(empty["functions"]["total_spaces"], 0);
+        assert_eq!(empty["functions"]["invalid_span_spaces"], 0);
+        for source in [
+            "def λ(x):\r\n    return x",
+            "def λ(x):\r\n    return x\r\n",
+            "def λ(x):\n    return x\n",
+        ] {
+            let mut selected = request("Python", source, Mode::Combined);
+            selected.functions = true;
+            let result = analyze(selected).unwrap();
+            let functions = &result["functions"];
+            assert_eq!(functions["status"], "complete", "{result}");
+            assert_eq!(functions["entries"][0]["start_line"], 1);
+            assert_eq!(functions["entries"][0]["end_line"], 2);
+            assert_eq!(functions["entries"][0]["name"], "λ");
+            assert_eq!(functions["entries"][0]["index"], 1);
+        }
+    }
+
+    #[test]
+    fn partial_syntax_and_name_omissions_qualify_functions() {
+        let mut selected = request(
+            "Python",
+            "def valid(x):\n    return x\ndef broken(:\n    return",
+            Mode::Combined,
+        );
+        selected.functions = true;
+        let result = analyze(selected).unwrap();
+        assert_eq!(result["functions"]["status"], "partial");
+        assert_eq!(result["functions"]["syntax_errors"], true);
+        let name = "long".repeat(100);
+        let mut selected = request(
+            "Python",
+            &format!("def {name}():\n    return 1\n"),
+            Mode::Combined,
+        );
+        selected.functions = true;
+        let result = analyze(selected).unwrap();
+        assert_eq!(result["functions"]["status"], "partial");
+        assert_eq!(result["functions"]["entries"][0]["name_status"], "omitted");
+        assert!(result["functions"]["entries"][0].get("name").is_none());
+        assert_eq!(result["functions"]["total_spaces"], 1);
+        assert_eq!(result["functions"]["omitted_spaces"], 0);
+    }
+
+    #[test]
     fn every_enabled_language_accepts_empty_source() {
         for &(name, _) in LANGUAGE_FIXTURES {
             let result = analyze(request(name, "", Mode::Combined)).unwrap();
@@ -540,6 +732,12 @@ mod tests {
             .is_err()
         );
         assert!(read_request(b"{} {}".as_slice()).is_err());
+        assert!(
+            read_request(
+                br#"{"path":"x.py","language":"Python","source":"","functions":"true"}"#.as_slice()
+            )
+            .is_err()
+        );
     }
 
     #[test]
