@@ -32,14 +32,18 @@ Five native runners build Linux AMD64/ARM64, macOS AMD64/ARM64 and Windows AMD64
 
 Each runner builds one core archive and its matching wheels, tests the native Rust worker, and packages the worker with dependency source archives. The Linux AMD64 job also runs the Go race suite and vet. The final smoke check extracts the **packaged** core and worker, verifies the core version, and runs the existing 21-fixture/20-language structural harness. That harness includes direct worker comparison, one/eight-worker determinism, combined projects/metrics/structure, parser recovery and explicit omissions.
 
+Candidates starting with 0.4.0 (including alpha, beta and release candidates) must also pass `scripts/function_release_smoke.py` using those same extracted executables. It compares explicit `--functions` output across one/eight workers and against direct native results for all 21 fixtures, including exact source SHA-256 values, one parse per file and unchanged default report fields. Separate Java, C# and Python fixtures check hand-marked spans and selected cyclomatic values. Recovery, long names and the 128-function per-file cap must preserve partial coverage and population counts. Generated files remain excluded with visible `outside_scope` omissions; this ordinary scope exclusion does not make otherwise complete structural or function coverage partial. A separate malformed-Python case checks that incomplete parsing propagates from the parent report. Function entries must remain absent from the ordinary per-file records. These are parser and integration checks, not a code-quality assessment.
+
+The function smoke receipt records the executable and test-input hashes. Assembly requires it for every platform on 0.4.0 and later, and rejects missing checks or mismatched identities. Prior-version artifact checks retain the default structural path; they do not require a flag absent from 0.3.0. The standalone helper can additionally check clear refusal with an explicitly supplied older worker via `--baseline-worker`; the workflow does not download an older worker or require that optional check.
+
 The final job requires all five platform artifacts. It verifies:
 
 - Core version, commit, Git tree, archive and executable hashes, plus committed README and license bytes.
 - Worker version, commit, clean source state, toolchain, target and current source-input hashes; staged worker sources; every packaged Cargo dependency's lockfile checksum and declared license; internal and external archive checksums.
 - All seven wheels' identities, hashes and provenance. Their uncompressed entries, including `RECORD`, notices and executable bytes, must match a fresh deterministic package of the verified core. ZIP compression bytes may differ across runner zlib versions.
-- Each native smoke receipt's executable hashes, fixture count, language count and test-source hashes.
+- Each native smoke receipt's executable hashes, fixture count, language count and test-source hashes, plus the required function-evidence receipt for 0.4.0 and later.
 
-The draft contains five core archives, five worker archives, seven wheels, per-platform core/wheel provenance and native smoke receipts, an aggregate `release-candidate.json`, and `SHA256SUMS`. The aggregate records the assembly script/workflow hashes and release-note digest. These are build receipts and checksum checks, not signed attestations.
+The draft contains five core archives, five worker archives, seven wheels, per-platform core/wheel provenance and native smoke receipts (including function receipts for 0.4.0 and later), an aggregate `release-candidate.json`, and `SHA256SUMS`. The aggregate records the assembly script/workflow hashes and release-note digest. These are build receipts and checksum checks, not signed attestations.
 
 After uploading, the workflow downloads every attached asset into a fresh directory, compares its filename and SHA-256 with the assembled files, and checks that the release remains a draft. A separate Actions artifact retains the download-verification receipt.
 
@@ -66,7 +70,9 @@ python3 -m unittest discover -s tests/release -p 'test_*.py'
 actionlint .github/workflows/release-candidate.yml
 ```
 
-The new orchestration has been checked locally with packaging-contract tests and actionlint. It has **not been dispatched or tested end to end on GitHub**. A deliberate five-runner rehearsal is still required before relying on it for a release. The native runner labels and existing packagers come from the already exercised structural-worker workflow; that does not prove this new orchestration has run.
+The new orchestration has been checked locally with packaging-contract tests and actionlint. The function-smoke receipt contract has unit tests for prior-version handling, missing checks, omitted coverage and mismatched executable/source hashes. It has **not been dispatched or tested end to end on GitHub**. A deliberate five-runner rehearsal is still required before relying on it for a release. The native runner labels and existing packagers come from the already exercised structural-worker workflow; that does not prove this new orchestration has run.
+
+Local Darwin arm64 archives built from clean commit `58ed625` with the validation version `0.4.0-rc.1` passed both packaged smoke checks. The function check covered all 21 fixtures across 20 languages and the 11 counterexamples described above. An actual v0.3.0 worker rejected the new opt-in request with an update instruction and empty stdout; the helper's prior-version path also passed against the v0.3.0 archives. No tag or release was created for this local check.
 
 The uploader requires GitHub.com Actions URLs and fixes every gh subprocess to `GH_HOST=github.com`. It does not promise GitHub Enterprise compatibility, cryptographic build attestations, automatic tag management or idempotent replacement of drafts. Wheel validation deliberately retains the existing reviewed Go 1.26.6 requirement; changing the compiler needs a coordinated packager update and validation. These limitations fail explicitly rather than silently broadening support.
 
