@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net/url"
-	"reflect"
 	"regexp"
 	"slices"
 	"strings"
@@ -23,10 +22,7 @@ type nativeDocument struct {
 	Files         []json.RawMessage `json:"files"`
 	Source        json.RawMessage   `json:"source"`
 	Descriptor    json.RawMessage   `json:"descriptor"`
-	Schema        struct {
-		Version string `json:"version"`
-		URL     string `json:"url"`
-	} `json:"schema"`
+	Schema        nativeSchema      `json:"schema"`
 }
 type nativeLocation struct {
 	Path        string            `json:"path"`
@@ -83,11 +79,11 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 		return nil, ErrInvalid
 	}
 	var native nativeDocument
-	if !canonicalFields(fields, reflect.TypeOf(native)) || json.Unmarshal(data, &native) != nil {
+	if !canonicalFields(fields, &documentFields) || json.Unmarshal(data, &native) != nil {
 		return nil, ErrInvalid
 	}
 	var schemaFields map[string]json.RawMessage
-	if json.Unmarshal(fields["schema"], &schemaFields) != nil || !canonicalFields(schemaFields, reflect.TypeOf(native.Schema)) {
+	if json.Unmarshal(fields["schema"], &schemaFields) != nil || !canonicalFields(schemaFields, &schemaFieldsTable) {
 		return nil, ErrInvalid
 	}
 	if native.Schema.Version != SupportedSchema {
@@ -102,18 +98,8 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 	if len(native.Artifacts) > limits.Artifacts || len(native.Relationships) > limits.Relationships || len(native.Files) > limits.Files {
 		return nil, ErrLimit
 	}
-	var descriptor struct {
-		Name          string          `json:"name"`
-		Version       string          `json:"version"`
-		Configuration json.RawMessage `json:"configuration"`
-	}
-	var source struct {
-		Name     string          `json:"name"`
-		Version  string          `json:"version"`
-		ID       string          `json:"id"`
-		Type     string          `json:"type"`
-		Metadata json.RawMessage `json:"metadata"`
-	}
+	var descriptor nativeDescriptor
+	var source nativeSource
 	if json.Unmarshal(native.Descriptor, &descriptor) != nil || descriptor.Name != "syft" || !identifier.MatchString(descriptor.Version) {
 		return nil, ErrInvalid
 	}
@@ -124,7 +110,7 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 	_ = json.Unmarshal(native.Source, &sourceFields)
 	var descriptorFields map[string]json.RawMessage
 	_ = json.Unmarshal(native.Descriptor, &descriptorFields)
-	if !canonicalFields(sourceFields, reflect.TypeOf(source)) || !canonicalFields(descriptorFields, reflect.TypeOf(descriptor)) {
+	if !canonicalFields(sourceFields, &sourceFieldsTable) || !canonicalFields(descriptorFields, &descriptorFieldsTable) {
 		return nil, ErrInvalid
 	}
 	for _, key := range []string{"id", "name", "version", "type", "metadata"} {
@@ -156,7 +142,7 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 		}
 		var shape map[string]json.RawMessage
 		_ = json.Unmarshal(raw, &shape)
-		if !canonicalFields(shape, reflect.TypeOf(p)) {
+		if !canonicalFields(shape, &packageFields) {
 			return nil, ErrInvalid
 		}
 		for _, key := range []string{"id", "name", "version", "type", "foundBy", "locations", "licenses", "language", "cpes", "purl"} {
@@ -199,7 +185,7 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 		var locationShapes []map[string]json.RawMessage
 		_ = json.Unmarshal(shape["locations"], &locationShapes)
 		for _, entry := range locationShapes {
-			if !canonicalFields(entry, reflect.TypeOf(nativeLocation{})) {
+			if !canonicalFields(entry, &locationFieldsTable) {
 				return nil, ErrInvalid
 			}
 			if _, ok := entry["path"]; !ok || !isString(entry["path"]) {
@@ -222,17 +208,14 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		var file struct {
-			ID       string         `json:"id"`
-			Location nativeLocation `json:"location"`
-		}
+		var file nativeFile
 		if json.Unmarshal(raw, &file) != nil || !identifier.MatchString(file.ID) || file.Location.Path == "" {
 			return nil, ErrInvalid
 		}
 		var fileFields, locationFields map[string]json.RawMessage
 		_ = json.Unmarshal(raw, &fileFields)
 		_ = json.Unmarshal(fileFields["location"], &locationFields)
-		if !canonicalFields(fileFields, reflect.TypeOf(file)) || !canonicalFields(locationFields, reflect.TypeOf(nativeLocation{})) || !isString(locationFields["path"]) {
+		if !canonicalFields(fileFields, &fileFieldsTable) || !canonicalFields(locationFields, &locationFieldsTable) || !isString(locationFields["path"]) {
 			return nil, ErrInvalid
 		}
 		if _, exists := nodes[file.ID]; exists {
@@ -250,18 +233,13 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		var row struct {
-			Parent   string          `json:"parent"`
-			Child    string          `json:"child"`
-			Type     string          `json:"type"`
-			Metadata json.RawMessage `json:"metadata"`
-		}
+		var row nativeRelationship
 		if json.Unmarshal(raw, &row) != nil || !identifier.MatchString(row.Parent) || !identifier.MatchString(row.Child) || !identifier.MatchString(row.Type) {
 			return nil, ErrInvalid
 		}
 		var rowFields map[string]json.RawMessage
 		_ = json.Unmarshal(raw, &rowFields)
-		if !canonicalFields(rowFields, reflect.TypeOf(row)) {
+		if !canonicalFields(rowFields, &relationshipFields) {
 			return nil, ErrInvalid
 		}
 		key := row.Parent + "\x00" + row.Child + "\x00" + row.Type
@@ -315,20 +293,6 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
 	return report, nil
 }
 
-// encoding/json folds struct field names, while native Syft field names are
-// case-sensitive. Reject aliases before they can replace canonical evidence.
-// Arbitrary metadata objects retain their own case-sensitive key namespace.
-func canonicalFields(fields map[string]json.RawMessage, shape reflect.Type) bool {
-	for i := 0; i < shape.NumField(); i++ {
-		name := strings.Split(shape.Field(i).Tag.Get("json"), ",")[0]
-		for key := range fields {
-			if key != name && strings.EqualFold(key, name) {
-				return false
-			}
-		}
-	}
-	return true
-}
 func effectiveLimits(in Limits) (Limits, error) {
 	out := DefaultLimits()
 	if in.Bytes != 0 {
