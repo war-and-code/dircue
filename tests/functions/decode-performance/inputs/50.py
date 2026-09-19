@@ -1,0 +1,100 @@
+def f0():
+    return 0
+def f1():
+    return 1
+def f2():
+    return 2
+def f3():
+    return 3
+def f4():
+    return 4
+def f5():
+    return 5
+def f6():
+    return 6
+def f7():
+    return 7
+def f8():
+    return 8
+def f9():
+    return 9
+def f10():
+    return 10
+def f11():
+    return 11
+def f12():
+    return 12
+def f13():
+    return 13
+def f14():
+    return 14
+def f15():
+    return 15
+def f16():
+    return 16
+def f17():
+    return 17
+def f18():
+    return 18
+def f19():
+    return 19
+def f20():
+    return 20
+def f21():
+    return 21
+def f22():
+    return 22
+def f23():
+    return 23
+def f24():
+    return 24
+def f25():
+    return 25
+def f26():
+    return 26
+def f27():
+    return 27
+def f28():
+    return 28
+def f29():
+    return 29
+def f30():
+    return 30
+def f31():
+    return 31
+def f32():
+    return 32
+def f33():
+    return 33
+def f34():
+    return 34
+def f35():
+    return 35
+def f36():
+    return 36
+def f37():
+    return 37
+def f38():
+    return 38
+def f39():
+    return 39
+def f40():
+    return 40
+def f41():
+    return 41
+def f42():
+    return 42
+def f43():
+    return 43
+def f44():
+    return 44
+def f45():
+    return 45
+def f46():
+    return 46
+def f47():
+    return 47
+def f48():
+    return 48
+def f49():
+    return 49

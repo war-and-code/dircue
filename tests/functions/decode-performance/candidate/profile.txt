@@ -1,0 +1,6 @@
+goos: darwin
+goarch: arm64
+pkg: dircue/pkg/structure
+cpu: Apple M1 Max
+BenchmarkFunctionResponse/spaces=128/functions=true         	     232	  25571730 ns/op	   8.56 MB/s	 9007387 B/op	  255773 allocs/op
+PASS

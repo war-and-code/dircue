@@ -76,3 +76,15 @@ The existing [structural input selection, deadlines, and size bounds](STRUCTURE.
 still apply. This feature supplies evidence for future review views and report
 comparisons; it does not rank files, set quality thresholds, or recommend
 skipping other analysis.
+
+
+## Validation and measured cost
+
+The [function-evidence checks](../tests/functions/README.md) include all enabled
+languages, hand-counted examples, nested functions, parser recovery, and bounded
+selection. The [recorded measurements](../tests/functions/results/README.md)
+compare default and function-enabled reports for eight small or selected-file
+cases. They show increased time and output size; they do not establish costs
+for whole repositories or a universal performance bound.
+
+A [decoder profile](../tests/functions/decode-performance/RESULTS.md) identified redundant strict JSON traversal. Reusing the already successful enclosing validation reduced the measured 128-entry Go decode time by 26.3% and allocated bytes by 29.9%, with unchanged accepted/rejected contracts. This measures response decoding, not total scan time or peak RSS.
