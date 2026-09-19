@@ -1,0 +1,1278 @@
+{
+  "experiment": "http-declaration-feasibility",
+  "binary_sha256": "923036b54cc7675e5f239076640570604d52f3a6a2975da598a2e9759b0e9fd1",
+  "probe_source_sha256": "9426809a2c08fd93abc8aa9c837ee7d0fc470672a66121be15a6e241625af294",
+  "harness_sha256": "520c220f88bb408a1346026bc892bc351dded9ad74c272f5144903dcca58bc12",
+  "lockfile_sha256": "d2040722bf517b52c31613434c3111bb2317db4f317603413a8767b89360c307",
+  "fixture_sha256": {
+    "SpringExample.java": "20ca47641bc38359f3eed6eb8b1c081ca7575aa1ce3fb9623e590b502423701b",
+    "AliasController.cs": "3b6fb4d89146aebd3396a4f1dd4743e6129b89d2080bf781e9ce514a1e2e9ad0",
+    "fastapi_alias.py": "42ba816959b59afc51f2409c2ea6faa3ef08440d14844c627b322d1c75437a46",
+    "Foreign.java": "88345f6bb6d40e5835d774ed6d812b97c645371bf23ea381bd88c1def4b9cfac",
+    "Shadow.java": "b6f1fe7ecf5b07034699d55be58a27edade8db031c405dd5bd33a4201a0633b3",
+    "Foreign.cs": "15eb5b09ead4d96afbdfd4c39906df8b6287738d07055ea116b950362394fe6f",
+    "rebound.py": "649d19299ba74ce4615c366d2c701d77bc9d9f45fabd26d39d78e1012dd68fa1",
+    "nested.py": "51af02fdb4ebf21c4094a6f4d31ba5b37b8ee25491401e000e3fd8aa0f6ddb32",
+    "module_alias.py": "98b5d3e8611c41d67ddc97f39cd53b37b5c40e5dad6ff480a385b72ec455fc95",
+    "function_rebound.py": "c087cd821c3b4be0b7c04fb0bf031ced3c3c63ef25a56029d2dbc9a3c087a888",
+    "deleted.py": "1e4a2a4941f4e0d871b7f8d2267ede848ab066b8e3854037bb7c12c86edee108",
+    "loop_rebound.py": "9a2eba45cd82b5ee227e7fb5a2658480f26e8b4a04582444c7ecf1eb1190ab8d",
+    "method_replaced.py": "e5d4f9ac628b7095c25ee13c3e7bc958645f57e64101beba54fb0bdd5f38191b",
+    "Qualified.java": "0496616b2cf9ff016b2e2fa8b18631c1ed176b82cdb6964d89eed70d9d9b24e8",
+    "Qualified.cs": "76aa5615ecd758e8b0b03088e7a5a353d40ab9e489f5876b8fb028a08e1ded88"
+  },
+  "checks": [
+    {
+      "case": "SpringExample.java",
+      "expected": [
+        [
+          "/api",
+          null,
+          "declared"
+        ],
+        [
+          "/items",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ],
+        [
+          "${configured}/items",
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/api",
+          null,
+          "declared"
+        ],
+        [
+          "/items",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ],
+        [
+          "${configured}/items",
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "AliasController.cs",
+      "expected": [
+        [
+          "api/[controller]",
+          null,
+          "unresolved"
+        ],
+        [
+          "items",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          null,
+          "unresolved"
+        ],
+        [
+          "/candidate",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "api/[controller]",
+          null,
+          "unresolved"
+        ],
+        [
+          "items",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          null,
+          "unresolved"
+        ],
+        [
+          "/candidate",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "fastapi_alias.py",
+      "expected": [
+        [
+          "/items",
+          null,
+          "unresolved"
+        ],
+        [
+          null,
+          null,
+          "unresolved"
+        ],
+        [
+          "/detail",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/items",
+          null,
+          "unresolved"
+        ],
+        [
+          null,
+          null,
+          "unresolved"
+        ],
+        [
+          "/detail",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "Foreign.java",
+      "expected": [
+        [
+          "/foreign",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/foreign",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "Shadow.java",
+      "expected": [
+        [
+          "/shadow",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/shadow",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "Foreign.cs",
+      "expected": [
+        [
+          "/foreign",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/foreign",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "rebound.py",
+      "expected": [
+        [
+          "/rebound",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/rebound",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "nested.py",
+      "expected": [
+        [
+          "/nested",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/nested",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "module_alias.py",
+      "expected": [
+        [
+          "/module-alias",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/module-alias",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "function_rebound.py",
+      "expected": [
+        [
+          "/function-rebound",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/function-rebound",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "deleted.py",
+      "expected": [
+        [
+          "/deleted",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/deleted",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "loop_rebound.py",
+      "expected": [
+        [
+          "/loop",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/loop",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "method_replaced.py",
+      "expected": [
+        [
+          "/method",
+          null,
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/method",
+          null,
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "Qualified.java",
+      "expected": [
+        [
+          "/qualified",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/qualified",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "Qualified.cs",
+      "expected": [
+        [
+          "/qualified",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "actual": [
+        [
+          "/qualified",
+          "GET",
+          "declared"
+        ],
+        [
+          null,
+          "GET",
+          "unresolved"
+        ]
+      ],
+      "passed": true
+    },
+    {
+      "case": "spring-framework/spring-webmvc/src/test/java/org/springframework/web/servlet/mvc/annotation/CglibProxyControllerTests.java",
+      "expected_routes": [
+        "/test",
+        null,
+        "/test",
+        "/hotels",
+        "/bookings"
+      ],
+      "actual_routes": [
+        "/test",
+        null,
+        "/test",
+        "/hotels",
+        "/bookings"
+      ],
+      "passed": true
+    },
+    {
+      "case": "aspnetcore/src/Mvc/test/WebSites/BasicWebSite/Controllers/NonNullableApiController.cs",
+      "expected_routes": [
+        "api/NonNullable",
+        null
+      ],
+      "actual_routes": [
+        "api/NonNullable",
+        null
+      ],
+      "passed": true
+    },
+    {
+      "case": "aspnetcore/src/Http/samples/MinimalSample/Program.cs",
+      "expected_routes": [
+        "/plaintext",
+        "/",
+        "/outerget",
+        "/innerget",
+        "/",
+        "/json",
+        "/hello/{name}",
+        "/null-result",
+        "/todo/{id}",
+        "/problem/{problemType}",
+        "/todos",
+        "/todos"
+      ],
+      "actual_routes": [
+        "/plaintext",
+        "/",
+        "/outerget",
+        "/innerget",
+        "/",
+        "/json",
+        "/hello/{name}",
+        "/null-result",
+        "/todo/{id}",
+        "/problem/{problemType}",
+        "/todos",
+        "/todos"
+      ],
+      "passed": true
+    },
+    {
+      "case": "refusal-path",
+      "passed": true
+    },
+    {
+      "case": "refusal-source-size",
+      "passed": true
+    },
+    {
+      "case": "refusal-depth",
+      "passed": true
+    }
+  ],
+  "all_passed": true,
+  "limitations": [
+    "No endpoint resolution or runtime execution",
+    "Timings are incidental diagnostic samples, not quiet-window benchmarks",
+    "Declared means syntactic evidence, not actual symbol binding or a runtime route",
+    "All Python receiver-dependent candidates remain unresolved",
+    "Single-file lexical import/assignment evidence does not establish dependency identity",
+    "No dependency manifest is required or consulted",
+    "Unsupported spellings and APIs are outside the experiment coverage"
+  ],
+  "source_checkpoint": "ef8c571a10f7d4fb92682966b095a07788538357",
+  "source_state": "isolated uncommitted experiment; source hashes are authoritative",
+  "platform": {
+    "system": "Darwin",
+    "machine": "arm64"
+  },
+  "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)",
+  "raw_receipt_sha256": "2424a16f313e52803d85b9273a5d4d94866ebb946f99e06694a309670e84fda9",
+  "results": [
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Java",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "SpringExample.java",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 472,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 158,
+      "timings_ns": {
+        "bounds": 157291,
+        "evidence": 73709,
+        "metrics": 76166,
+        "parse": 101000
+      },
+      "total_candidates": 4,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "20ca47641bc38359f3eed6eb8b1c081ca7575aa1ce3fb9623e590b502423701b",
+      "source_hash_computed_by": "experiment-harness",
+      "independently_expected_spans": 4,
+      "retained_by_status": {
+        "declared": 2,
+        "unresolved": 2
+      },
+      "retained_by_qualification": {
+        "explicit-import": 4
+      },
+      "source_spans_verified": 4,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "C#",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "AliasController.cs",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 419,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 160,
+      "timings_ns": {
+        "bounds": 205166,
+        "evidence": 83792,
+        "metrics": 75708,
+        "parse": 224791
+      },
+      "total_candidates": 4,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "3b6fb4d89146aebd3396a4f1dd4743e6129b89d2080bf781e9ce514a1e2e9ad0",
+      "source_hash_computed_by": "experiment-harness",
+      "independently_expected_spans": 4,
+      "retained_by_status": {
+        "unresolved": 3,
+        "declared": 1
+      },
+      "retained_by_qualification": {
+        "namespace-import-candidate": 2,
+        "explicit-import-alias": 1,
+        "receiver-type-unresolved": 1
+      },
+      "source_spans_verified": 4,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "fastapi_alias.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 352,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 149,
+      "timings_ns": {
+        "bounds": 101250,
+        "evidence": 76042,
+        "metrics": 56292,
+        "parse": 127833
+      },
+      "total_candidates": 3,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "42ba816959b59afc51f2409c2ea6faa3ef08440d14844c627b322d1c75437a46",
+      "source_hash_computed_by": "experiment-harness",
+      "independently_expected_spans": 3,
+      "retained_by_status": {
+        "unresolved": 3
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 3
+      },
+      "source_spans_verified": 3,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Java",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "Foreign.java",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 81,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 34,
+      "timings_ns": {
+        "bounds": 24333,
+        "evidence": 29625,
+        "metrics": 35000,
+        "parse": 54917
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "88345f6bb6d40e5835d774ed6d812b97c645371bf23ea381bd88c1def4b9cfac",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "foreign-symbol": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Java",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "Shadow.java",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 153,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 58,
+      "timings_ns": {
+        "bounds": 42208,
+        "evidence": 42875,
+        "metrics": 51917,
+        "parse": 74750
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "b6f1fe7ecf5b07034699d55be58a27edade8db031c405dd5bd33a4201a0633b3",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "shadowed-or-ambiguous-symbol": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "C#",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "Foreign.cs",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 67,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 33,
+      "timings_ns": {
+        "bounds": 33500,
+        "evidence": 30250,
+        "metrics": 36959,
+        "parse": 133334
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "15eb5b09ead4d96afbdfd4c39906df8b6287738d07055ea116b950362394fe6f",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "unqualified-symbol": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "rebound.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 93,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 51,
+      "timings_ns": {
+        "bounds": 26708,
+        "evidence": 50167,
+        "metrics": 41958,
+        "parse": 86583
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "649d19299ba74ce4615c366d2c701d77bc9d9f45fabd26d39d78e1012dd68fa1",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "rebound-or-nested-receiver": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "nested.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 124,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 53,
+      "timings_ns": {
+        "bounds": 42542,
+        "evidence": 48583,
+        "metrics": 45083,
+        "parse": 94917
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "51af02fdb4ebf21c4094a6f4d31ba5b37b8ee25491401e000e3fd8aa0f6ddb32",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "rebound-or-nested-receiver": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "module_alias.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 98,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 45,
+      "timings_ns": {
+        "bounds": 23459,
+        "evidence": 31750,
+        "metrics": 28375,
+        "parse": 60250
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "98b5d3e8611c41d67ddc97f39cd53b37b5c40e5dad6ff480a385b72ec455fc95",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "receiver-type-unresolved": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "function_rebound.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 108,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 52,
+      "timings_ns": {
+        "bounds": 25333,
+        "evidence": 41708,
+        "metrics": 38166,
+        "parse": 74709
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "c087cd821c3b4be0b7c04fb0bf031ced3c3c63ef25a56029d2dbc9a3c087a888",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "rebound-or-nested-receiver": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "deleted.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 87,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 45,
+      "timings_ns": {
+        "bounds": 22875,
+        "evidence": 42083,
+        "metrics": 40209,
+        "parse": 99584
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "1e4a2a4941f4e0d871b7f8d2267ede848ab066b8e3854037bb7c12c86edee108",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "loop_rebound.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 104,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 51,
+      "timings_ns": {
+        "bounds": 24917,
+        "evidence": 37500,
+        "metrics": 31792,
+        "parse": 70542
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "9a2eba45cd82b5ee227e7fb5a2658480f26e8b4a04582444c7ecf1eb1190ab8d",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "method_replaced.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 98,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 50,
+      "timings_ns": {
+        "bounds": 24584,
+        "evidence": 43500,
+        "metrics": 38375,
+        "parse": 78125
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "e5d4f9ac628b7095c25ee13c3e7bc958645f57e64101beba54fb0bdd5f38191b",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Java",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "Qualified.java",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 191,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 88,
+      "timings_ns": {
+        "bounds": 97250,
+        "evidence": 53041,
+        "metrics": 68667,
+        "parse": 84584
+      },
+      "total_candidates": 2,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "0496616b2cf9ff016b2e2fa8b18631c1ed176b82cdb6964d89eed70d9d9b24e8",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "declared": 1,
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "fully-qualified-symbol": 2
+      },
+      "source_spans_verified": 2,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "C#",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "Qualified.cs",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 152,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 74,
+      "timings_ns": {
+        "bounds": 103042,
+        "evidence": 44875,
+        "metrics": 56708,
+        "parse": 152542
+      },
+      "total_candidates": 2,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "76aa5615ecd758e8b0b03088e7a5a353d40ab9e489f5876b8fb028a08e1ded88",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "declared": 1,
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "fully-qualified-symbol": 2
+      },
+      "source_spans_verified": 2,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "recovery.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 83,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "partial",
+      "syntax_errors": true,
+      "syntax_nodes": 42,
+      "timings_ns": {
+        "bounds": 22584,
+        "evidence": 53666,
+        "metrics": 44833,
+        "parse": 94709
+      },
+      "total_candidates": 1,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "816e09d973b7db3ae11dc1848e6750ceec8099038905a6b2e414ef1747fc2d22",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 1
+      },
+      "source_spans_verified": 1,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Python",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 12,
+      "parse_count": 1,
+      "path": "cap.py",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 5284,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "partial",
+      "syntax_errors": false,
+      "syntax_nodes": 3517,
+      "timings_ns": {
+        "bounds": 3282292,
+        "evidence": 993750,
+        "metrics": 695417,
+        "parse": 808458
+      },
+      "total_candidates": 140,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "3691c374663a9e036ca525bfd78363194401d9bd2cf2d80ba616634b7d7debaa",
+      "source_hash_computed_by": "experiment-harness",
+      "retained_by_status": {
+        "unresolved": 128
+      },
+      "retained_by_qualification": {
+        "same-file-constructor-import": 128
+      },
+      "source_spans_verified": 128,
+      "all_python_receivers_unresolved": true
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "Java",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "spring-webmvc/src/test/java/org/springframework/web/servlet/mvc/annotation/CglibProxyControllerTests.java",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 4594,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 1056,
+      "timings_ns": {
+        "bounds": 2380917,
+        "evidence": 292542,
+        "metrics": 293917,
+        "parse": 387709
+      },
+      "total_candidates": 5,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "79028d6f3183b005ba42dce4315609c54434fca2134e6dc2e69660f180e99dfd",
+      "source_hash_computed_by": "experiment-harness",
+      "source_origin": {
+        "repository": "https://github.com/spring-projects/spring-framework",
+        "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+        "path": "spring-webmvc/src/test/java/org/springframework/web/servlet/mvc/annotation/CglibProxyControllerTests.java",
+        "license": "Apache-2.0"
+      },
+      "retained_by_status": {
+        "declared": 4,
+        "unresolved": 1
+      },
+      "retained_by_qualification": {
+        "explicit-import": 5
+      },
+      "source_spans_verified": 5,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "C#",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "src/Mvc/test/WebSites/BasicWebSite/Controllers/NonNullableApiController.cs",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 470,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 86,
+      "timings_ns": {
+        "bounds": 83458,
+        "evidence": 62208,
+        "metrics": 64375,
+        "parse": 225084
+      },
+      "total_candidates": 2,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "bded0d283ab21d927d1c5037a91a3c752eb60435367977c28b26846bfa9aafb6",
+      "source_hash_computed_by": "experiment-harness",
+      "source_origin": {
+        "repository": "https://github.com/dotnet/aspnetcore",
+        "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+        "path": "src/Mvc/test/WebSites/BasicWebSite/Controllers/NonNullableApiController.cs",
+        "license": "MIT"
+      },
+      "retained_by_status": {
+        "unresolved": 2
+      },
+      "retained_by_qualification": {
+        "namespace-import-candidate": 2
+      },
+      "source_spans_verified": 2,
+      "all_python_receivers_unresolved": null
+    },
+    {
+      "coverage": "supported-spellings-only;not-all-http-apis",
+      "entry_limit": 128,
+      "experiment": "http-declarations",
+      "language": "C#",
+      "metrics_computed": true,
+      "metrics_space_kind": "Unit",
+      "omitted_candidates": 0,
+      "parse_count": 1,
+      "path": "src/Http/samples/MinimalSample/Program.cs",
+      "provider": "big-code-analysis@2.2.0",
+      "same_tree_after_metrics": true,
+      "schema_version": "0.0.1",
+      "scope": "single-file-syntactic-declarations",
+      "source_bytes": 4071,
+      "span_convention": "zero-based-half-open-bytes;one-based-lines",
+      "status": "complete",
+      "syntax_errors": false,
+      "syntax_nodes": 1487,
+      "timings_ns": {
+        "bounds": 4625625,
+        "evidence": 508875,
+        "metrics": 470250,
+        "parse": 1050250
+      },
+      "total_candidates": 12,
+      "tree_sitter": "0.26.12",
+      "source_sha256": "0db34359ac4d97955d8c0cecaf0d83a7632ad31615b2a3a66d0d798f762e10e2",
+      "source_hash_computed_by": "experiment-harness",
+      "source_origin": {
+        "repository": "https://github.com/dotnet/aspnetcore",
+        "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+        "path": "src/Http/samples/MinimalSample/Program.cs",
+        "license": "MIT"
+      },
+      "retained_by_status": {
+        "unresolved": 12
+      },
+      "retained_by_qualification": {
+        "receiver-type-unresolved": 12
+      },
+      "source_spans_verified": 12,
+      "all_python_receivers_unresolved": null
+    }
+  ]
+}

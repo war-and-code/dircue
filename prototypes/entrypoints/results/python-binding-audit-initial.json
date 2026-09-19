@@ -1,0 +1,171 @@
+{
+  "initial_binary_sha256": "c5ec320a997a365c189d71b21a8f066712d03f80deececc5518bbca381cd5dce",
+  "initial_probe_source_sha256": "f4af2f77ebd686125cfbc3a42d6ce3db75cab2c1249edc0b6636e684bc62a25e",
+  "finding": "A constructor/import heuristic incorrectly classified three rebound receivers as declared. Final contract keeps every Python receiver-dependent decorator unresolved.",
+  "cases": [
+    {
+      "case": "delete",
+      "source": "from fastapi import FastAPI\napp = FastAPI()\ndel app\n@app.get(\"/candidate\")\ndef f(): pass\n",
+      "entries": [
+        {
+          "declaration": "decorator",
+          "evidence": [
+            {
+              "end_byte": 27,
+              "end_line": 1,
+              "start_byte": 0,
+              "start_line": 1
+            },
+            {
+              "end_byte": 43,
+              "end_line": 2,
+              "start_byte": 28,
+              "start_line": 2
+            }
+          ],
+          "framework_candidate": "fastapi",
+          "index": 1,
+          "method": "GET",
+          "qualification": "same-file-constructor-import",
+          "reasons": [
+            "router-inclusion-and-prefix-not-composed",
+            "runtime-registration-not-evaluated"
+          ],
+          "route_literal": "/candidate",
+          "rule": "fastapi-operation-decorator",
+          "rule_version": "0.0.1-experiment",
+          "scope": "file",
+          "span": {
+            "end_byte": 74,
+            "end_line": 4,
+            "start_byte": 52,
+            "start_line": 4
+          },
+          "status": "declared"
+        }
+      ],
+      "expectation": "unresolved receiver identity",
+      "source_sha256": "275b83f15dd7fd63113d268e41c22f49f907b704a342b859b9bbbfdfe5242f48"
+    },
+    {
+      "case": "loop",
+      "source": "from fastapi import FastAPI\napp = FastAPI()\nfor app in others:\n    pass\n@app.get(\"/candidate\")\ndef f(): pass\n",
+      "entries": [
+        {
+          "declaration": "decorator",
+          "evidence": [
+            {
+              "end_byte": 27,
+              "end_line": 1,
+              "start_byte": 0,
+              "start_line": 1
+            },
+            {
+              "end_byte": 43,
+              "end_line": 2,
+              "start_byte": 28,
+              "start_line": 2
+            }
+          ],
+          "framework_candidate": "fastapi",
+          "index": 1,
+          "method": "GET",
+          "qualification": "same-file-constructor-import",
+          "reasons": [
+            "router-inclusion-and-prefix-not-composed",
+            "runtime-registration-not-evaluated"
+          ],
+          "route_literal": "/candidate",
+          "rule": "fastapi-operation-decorator",
+          "rule_version": "0.0.1-experiment",
+          "scope": "file",
+          "span": {
+            "end_byte": 94,
+            "end_line": 5,
+            "start_byte": 72,
+            "start_line": 5
+          },
+          "status": "declared"
+        }
+      ],
+      "expectation": "unresolved receiver identity",
+      "source_sha256": "f6cc048ee9f785af53d325e41d600d69680116b407a074edc1ae0bcb73728962"
+    },
+    {
+      "case": "method_replace",
+      "source": "from fastapi import FastAPI\napp = FastAPI()\napp.get = unrelated\n@app.get(\"/candidate\")\ndef f(): pass\n",
+      "entries": [
+        {
+          "declaration": "decorator",
+          "evidence": [
+            {
+              "end_byte": 27,
+              "end_line": 1,
+              "start_byte": 0,
+              "start_line": 1
+            },
+            {
+              "end_byte": 43,
+              "end_line": 2,
+              "start_byte": 28,
+              "start_line": 2
+            }
+          ],
+          "framework_candidate": "fastapi",
+          "index": 1,
+          "method": "GET",
+          "qualification": "same-file-constructor-import",
+          "reasons": [
+            "router-inclusion-and-prefix-not-composed",
+            "runtime-registration-not-evaluated"
+          ],
+          "route_literal": "/candidate",
+          "rule": "fastapi-operation-decorator",
+          "rule_version": "0.0.1-experiment",
+          "scope": "file",
+          "span": {
+            "end_byte": 86,
+            "end_line": 4,
+            "start_byte": 64,
+            "start_line": 4
+          },
+          "status": "declared"
+        }
+      ],
+      "expectation": "unresolved receiver identity",
+      "source_sha256": "783952f818f5a83d2f9a558a3fb4af456b681af6e2e91d85a8e8cdf063f95014"
+    },
+    {
+      "case": "late_function_constructor",
+      "source": "from fastapi import FastAPI\napp = FastAPI()\ndef FastAPI(): return other\n@app.get(\"/candidate\")\ndef f(): pass\n",
+      "entries": [
+        {
+          "declaration": "decorator",
+          "evidence": [],
+          "framework_candidate": "fastapi",
+          "index": 1,
+          "method": null,
+          "qualification": "receiver-type-unresolved",
+          "reasons": [
+            "framework-identity-not-proven",
+            "router-inclusion-and-prefix-not-composed",
+            "runtime-registration-not-evaluated"
+          ],
+          "route_literal": "/candidate",
+          "rule": "fastapi-operation-decorator",
+          "rule_version": "0.0.1-experiment",
+          "scope": "file",
+          "span": {
+            "end_byte": 94,
+            "end_line": 4,
+            "start_byte": 72,
+            "start_line": 4
+          },
+          "status": "unresolved"
+        }
+      ],
+      "expectation": "unresolved receiver identity",
+      "source_sha256": "092d3d6198169486c535fe4a31bf0543b9efa7178ba94d30f798d3fc27fbcbbe"
+    }
+  ]
+}
