@@ -1,0 +1,29 @@
+package packageevidence
+
+import (
+ "bytes"
+ "context"
+ "encoding/json"
+ "fmt"
+ "os"
+ "testing"
+ baseline "dircue/.cache/import-capacity/baseline"
+)
+
+type differentialContext struct{context.Context;cancel bool;limit,checks int}
+func(c *differentialContext)Err()error{c.checks++;if c.cancel&&c.checks>c.limit{return context.Canceled};return nil}
+func FuzzCapacityDifferential(f *testing.F){
+ for _,path:=range []string{"../../tests/packageevidence/fixtures/syft-1.52.0.json","../../.cache/import-capacity/cases/empty-report.json","../../.cache/import-capacity/cases/duplicate-key.json","../../.cache/import-capacity/cases/case-alias.json"}{data,err:=os.ReadFile(path);if err!=nil{f.Fatal(err)};f.Add(data,false,uint16(0));f.Add(data,true,uint16(5))}
+ f.Fuzz(func(t *testing.T,data []byte,cancel bool,limit uint16){
+  if len(data)>1<<20{t.Skip()}
+  untouched:=bytes.Clone(data)
+  a:=&differentialContext{Context:context.Background(),cancel:cancel,limit:int(limit)%1000}
+  b:=&differentialContext{Context:context.Background(),cancel:cancel,limit:int(limit)%1000}
+  old,oldErr:=baseline.Import(a,bytes.NewReader(data),baseline.Options{})
+  current,currentErr:=Import(b,bytes.NewReader(data),Options{})
+  if fmt.Sprint(oldErr)!=fmt.Sprint(currentErr)||a.checks!=b.checks{t.Fatalf("rejection/cancellation differs: old %v checks%d new %v checks%d",oldErr,a.checks,currentErr,b.checks)}
+  oldJSON,err:=json.Marshal(old);if err!=nil{t.Fatal(err)};currentJSON,err:=json.Marshal(current);if err!=nil{t.Fatal(err)}
+  if !bytes.Equal(oldJSON,currentJSON){t.Fatal("serialized output changed")}
+  if !bytes.Equal(data,untouched){t.Fatal("input mutation")}
+ })
+}

@@ -1,0 +1,42 @@
+{
+  "candidate-import.patch": {
+    "sha256": "54f6ab3ba8dbd32a6f3f70ca8504105d7aac8ac4f2c6a2c7cb85eca0697967ad",
+    "bytes": 1212
+  },
+  "capacity.go.txt": {
+    "sha256": "1ec0e3add7c56f27887129724fc5909c84042328e1dfa8aadfbdbe4a3bfff38d",
+    "bytes": 582
+  },
+  "capacity_test.go.txt": {
+    "sha256": "6fb81d933138e96cca93224b2d75d45fcd14a65b98aefdf05d2046a821bd7aca",
+    "bytes": 1430
+  },
+  "contracts-macos-arm64.json.gz": {
+    "sha256": "9fa1f663c29e7a8682318660db37955c1a481822a0993883c6e31b5cddb324d1",
+    "bytes": 6904
+  },
+  "differential-fuzz.log": {
+    "sha256": "4a958dbd73bb44d2ab8cf7c4c82c8b709db548a738e5e947e8caa4d6e608c4d7",
+    "bytes": 1754
+  },
+  "race.log": {
+    "sha256": "3b5785fcc6e6f39763b51e685a7a411069b41695c91fcf223fb4930e906e1004",
+    "bytes": 39
+  },
+  "rss-repeat-macos-arm64.json.gz": {
+    "sha256": "8e266553cc12e165ae80068631609ac32defa8c7859c8e8639cd891e97dc4308",
+    "bytes": 3328
+  },
+  "summary.json": {
+    "sha256": "e2cca1ae42fbf13334c88838b369dc1f503e17723368a42dea8514d3131bf4de",
+    "bytes": 8921
+  },
+  "timings-macos-arm64.json.gz": {
+    "sha256": "0e1edc0ada78c784b2f62681b82f7994aa0dcd0d19a4064d69f9e1a198c2e436",
+    "bytes": 5560
+  },
+  "vet.log": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  }
+}
