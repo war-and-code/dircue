@@ -41,6 +41,9 @@ jobs:
             target: x86_64-pc-windows-msvc
             suffix: '.exe'
     runs-on: ${{ matrix.os }}
+    env:
+      # Test-fixture version only; this selects no release version and creates no tags/releases.
+      DIRCUE_CI_VERSION: '0.4.0-rc.1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -72,7 +75,7 @@ jobs:
       - name: Test native worker
         run: rustup run 1.94.0 cargo test --locked --manifest-path prototypes/structural/worker/Cargo.toml
       - name: Build and package worker with dependency sources
-        run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version 0.3.0 --smoke-test
+        run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version ${{ env.DIRCUE_CI_VERSION }} --smoke-test
       - name: Test Go process adapter against native worker
         env:
           DIRCUE_STRUCTURAL_WORKER: ${{ github.workspace }}/prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }}
@@ -81,8 +84,41 @@ jobs:
         env:
           CGO_ENABLED: '0'
         run: |
-          go build -trimpath -o bin/dircue${{ matrix.suffix }} .
+          go build -trimpath -ldflags "-X dircue/internal/cli.Version=${{ env.DIRCUE_CI_VERSION }}" -o bin/dircue${{ matrix.suffix }} .
           python tests/structural_breadth/run.py --candidate bin/dircue${{ matrix.suffix }} --worker prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }} --output dist/structural-worker/breadth-${{ matrix.platform }}.json
+      - name: Check function evidence with the packaged worker
+        env:
+          WORKER_PLATFORM: ${{ matrix.platform }}
+          EXE_SUFFIX: ${{ matrix.suffix }}
+        shell: python {0}
+        run: |
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          sys.path.insert(0, 'scripts')
+          import draft_release
+
+          platform = os.environ['WORKER_PLATFORM']
+          version = os.environ['DIRCUE_CI_VERSION']
+          suffix = os.environ['EXE_SUFFIX']
+          archive_suffix = '.zip' if platform.startswith('windows') else '.tar.gz'
+          folder = Path('dist/structural-worker')
+          archive = folder / f'dircue-structural-worker_{version}_{platform}{archive_suffix}'
+          commit = subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip()
+          _, payload = draft_release.verify_worker(archive, platform, version, commit)
+          name = 'dircue-structural-worker' + suffix
+          worker = Path('bin/packaged-worker') / name
+          worker.parent.mkdir(parents=True, exist_ok=True)
+          worker.write_bytes(payload[name])
+          worker.chmod(0o755)
+          subprocess.run([
+              sys.executable, 'scripts/function_release_smoke.py',
+              '--candidate', 'bin/dircue' + suffix,
+              '--worker', str(worker), '--version', version,
+              '--output', str(folder / f'functions-{platform}.json'),
+          ], check=True)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           retention-days: 7

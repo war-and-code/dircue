@@ -36,6 +36,8 @@ Candidates starting with 0.4.0 (including alpha, beta and release candidates) mu
 
 The function smoke receipt records the executable and test-input hashes. Assembly requires it for every platform on 0.4.0 and later, and rejects missing checks or mismatched identities. Prior-version artifact checks retain the default structural path; they do not require a flag absent from 0.3.0. The standalone helper can additionally check clear refusal with an explicitly supplied older worker via `--baseline-worker`; the workflow does not download an older worker or require that optional check.
 
+The separate **Structural worker** workflow also runs the function smoke on all five native platforms, without requiring a release tag. It gives the core and worker the same CI-only fixture version, `0.4.0-rc.1`; this label neither selects nor creates a release. After the existing native tests and structural breadth check, it verifies the worker archive's provenance, checksums and source inputs, extracts its executable, and runs the function helper against that packaged worker and the newly built core. The existing per-platform Actions artifact retains `functions-<platform>.json` alongside the breadth receipt and worker archive for seven days. Draft pull requests remain skipped unless the workflow is manually dispatched. This workflow has read-only repository permissions and creates no tags or releases.
+
 The final job requires all five platform artifacts. It verifies:
 
 - Core version, commit, Git tree, archive and executable hashes, plus committed README and license bytes.
@@ -68,6 +70,7 @@ If uploading fails partway through, inspect the resulting draft. The workflow wi
 ```sh
 python3 -m unittest discover -s tests/release -p 'test_*.py'
 actionlint .github/workflows/release-candidate.yml
+actionlint .github/workflows/structural-worker.yml
 ```
 
 The new orchestration has been checked locally with packaging-contract tests and actionlint. The function-smoke receipt contract has unit tests for prior-version handling, missing checks, omitted coverage and mismatched executable/source hashes. It has **not been dispatched or tested end to end on GitHub**. A deliberate five-runner rehearsal is still required before relying on it for a release. The native runner labels and existing packagers come from the already exercised structural-worker workflow; that does not prove this new orchestration has run.
