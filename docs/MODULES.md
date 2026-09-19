@@ -1,7 +1,7 @@
 # Profiling module boundaries
 
 This document describes the current scanner and the constraints for extending
-it. The discovery, graph, package-import, and function-evidence rows refer to the development
+it. The discovery, rules, graph, package-import, and function-evidence rows refer to the development
 branch after 0.3.0. There is no runtime plugin loader or declarative module
 registry.
 
@@ -25,6 +25,7 @@ ordinary directory profiling.
 | Languages | Selected regular files, attributes, bounded content; Linguist inclusion rules apply | Classifies a prefix of at most 128 KiB; full selected file sizes contribute to totals |
 | Detector hooks | Eligible file views, including recognized manifests and CI configuration; vendor exclusions still apply | Stateless, concurrent observation hooks |
 | Discovery | Regular-file metadata, including paths excluded from language totals | Filename/extension candidates and overlapping path/attribute roles; no source-payload reads |
+| Rules | Selected regular files and an explicit caller-supplied ruleset | Metadata matching and optional bounded complete-file literal checks; independent coverage |
 | Projects | Selected inventory and recognized manifests, independently of XML language inclusion | Bounded manifest parsing, declarations, configuration candidates, composition, attribution |
 | Metrics | Explicit source or text scope | Complete-file scc counting, with size bounds and omission reasons |
 | Structure | Selected supported source files | Complete bounded source sent to an explicit native worker; per-file syntax and metrics |

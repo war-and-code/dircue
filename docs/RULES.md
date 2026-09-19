@@ -11,6 +11,12 @@ dircue analyze all --rules-file /pipeline/policy/rules.json --json /checkout
 
 The first command runs rule matching without language classification, project parsing, metrics, or a structural worker. The second adds rules to the usual `all` report. Neither command discovers a ruleset from repository files. A caller that requires trusted policy must choose a trusted path; dircue cannot establish who authored a supplied file.
 
+Add `--discovery` to `analyze rules` to collect regular-file counts and candidate manifests in the same traversal. This combination keeps language classification and the other content profilers disabled; only explicitly requested content rules read file payloads:
+
+```sh
+dircue analyze rules --discovery --rules-file /pipeline/policy/rules.json --json /checkout
+```
+
 Rules cannot disable language analysis, change `.gitattributes`, execute commands, or launch other tools. They do not assign severity, quality grades, or scanner recommendations.
 
 ## Ruleset format

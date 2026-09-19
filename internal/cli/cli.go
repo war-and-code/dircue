@@ -114,8 +114,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().StringVar(&opts.metricsScope, "metrics-scope", "source", "Metrics selection: source (language statistics) or text (all detected text languages)")
 			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
 		}
-		if mode == "all" {
+		if mode == "rules" || mode == "all" {
 			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
+		}
+		if mode == "all" {
 			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
@@ -238,7 +240,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Detectors:         hooks,
 		Metrics:           metrics,
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
-		Discovery:         mode == "discovery" || (mode == "all" && opts.discovery),
+		Discovery:         mode == "discovery" || opts.discovery,
 		DiscoveryOnly:     mode == "discovery",
 		Rules:             ruleProgram,
 		RulesOnly:         mode == "rules",
@@ -289,6 +291,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	case "discovery":
 		return writeDiscovery(out, report.Discovery)
 	case "rules":
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
 		return writeRules(out, report.Rules)
 	case "graph":
 		return writeGraph(out, report.Graph)

@@ -11,7 +11,7 @@ func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	case "rules":
 		cmd.Short = "Apply explicit rules to selected file metadata and bounded content"
 		cmd.Long = "Apply a caller-supplied JSON ruleset to selected regular files, including files outside language statistics. Metadata predicates run before bounded complete-file literal matching. Rules add observations; they cannot disable modules, change language inclusion, execute commands, or load other configuration. Inspect coverage and omitted candidates before treating results as complete."
-		cmd.Example = "  dircue analyze rules --rules-file /trusted/observations.json --json /checkout\n  dircue analyze all --rules-file /trusted/observations.json --source directory --json /content"
+		cmd.Example = "  dircue analyze rules --rules-file /trusted/observations.json --json /checkout\n  dircue analyze rules --discovery --rules-file /trusted/observations.json --source directory --json /content\n  dircue analyze all --rules-file /trusted/observations.json --json /checkout"
 	case "graph":
 		cmd.Short = "Describe static .NET project-reference graphs"
 		cmd.Long = "Read project declarations and derive .NET ProjectReference components, cycles, and degrees. Conditional, unresolved, and missing targets remain separate evidence. Does not execute MSBuild or establish that a build succeeds. JSON includes the project inventory and graph coverage."

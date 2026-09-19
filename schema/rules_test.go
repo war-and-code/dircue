@@ -27,7 +27,7 @@ func TestRulesSchema(t *testing.T) {
 	if err := os.WriteFile(policy, []byte(`{"schema_version":"1.0.0","rules":[{"id":"text","match":{"extensions":[".txt"]}},{"id":"marker","match":{"extensions":[".txt"]},"content":{"contains_utf8":"marker"}}]}`), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, args := range [][]string{{"analyze", "rules"}, {"analyze", "all"}, {"analyze", "rules", "--tree-size", "1"}, {"analyze", "rules", "--max-file-bytes", "1"}} {
+	for _, args := range [][]string{{"analyze", "rules"}, {"analyze", "rules", "--discovery"}, {"analyze", "all"}, {"analyze", "rules", "--discovery", "--tree-size", "1"}, {"analyze", "rules", "--max-file-bytes", "1"}} {
 		var out, stderr bytes.Buffer
 		args = append(args, "--rules-file", policy, "--json", "--source", "directory", root)
 		if err := cli.Execute(context.Background(), args, &out, &stderr); err != nil {
@@ -71,6 +71,7 @@ func TestRulesSchema(t *testing.T) {
 			}
 		}
 		delete(value, "rules")
+		delete(value, "discovery")
 		if err := s.Validate(value); err == nil {
 			t.Fatal("1.3.0 accepted no new module")
 		}

@@ -45,6 +45,8 @@ func TestRulesCLIExplicitAndAdditive(t *testing.T) {
 		t.Fatal("repository file enabled rules implicitly")
 	}
 	separate := run("analyze", "rules", "--rules-file", policyPath)
+	withDiscovery := run("analyze", "rules", "--discovery", "--rules-file", policyPath)
+	discovery := run("analyze", "discovery")
 	combined := run("analyze", "all", "--rules-file", policyPath)
 	digest := sha256.Sum256(policy)
 	if separate.Rules == nil || separate.Rules.TotalMatches != 2 || separate.Rules.Status != "complete" || separate.Rules.RulesSHA256 != hex.EncodeToString(digest[:]) {
@@ -55,6 +57,13 @@ func TestRulesCLIExplicitAndAdditive(t *testing.T) {
 	}
 	if !bytes.Equal(mustJSON(t, separate.Rules), mustJSON(t, combined.Rules)) {
 		t.Fatal("combined rules changed evidence")
+	}
+	if !bytes.Equal(mustJSON(t, withDiscovery.Discovery), mustJSON(t, discovery.Discovery)) {
+		t.Fatal("adding rules changed metadata discovery")
+	}
+	withDiscovery.Discovery = nil
+	if !bytes.Equal(mustJSON(t, withDiscovery), mustJSON(t, separate)) {
+		t.Fatal("adding discovery changed rules or enabled unrelated analysis")
 	}
 	combined.Rules = nil
 	combined.SchemaVersion = baseline.SchemaVersion
@@ -70,6 +79,13 @@ func TestRulesCLIExplicitAndAdditive(t *testing.T) {
 	}
 	if strings.Contains(out.String(), "custom.build") {
 		t.Fatal("output exposed policy content")
+	}
+	out.Reset()
+	if err := Execute(context.Background(), []string{"analyze", "rules", "--discovery", "--rules-file", policyPath, root}, &out, &stderr); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "Metadata discovery;") || !strings.Contains(out.String(), "Observation rules:") || strings.Contains(out.String(), "Languages:") {
+		t.Fatal("combined text output must describe both selected modules:", out.String())
 	}
 }
 
