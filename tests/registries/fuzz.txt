@@ -1,0 +1,15 @@
+fuzz: elapsed: 0s, gathering baseline coverage: 0/4 completed
+fuzz: elapsed: 0s, gathering baseline coverage: 4/4 completed, now fuzzing with 2 workers
+fuzz: elapsed: 3s, execs: 130657 (43537/sec), new interesting: 137 (total: 141)
+fuzz: elapsed: 6s, execs: 130657 (0/sec), new interesting: 137 (total: 141)
+fuzz: elapsed: 9s, execs: 130657 (0/sec), new interesting: 137 (total: 141)
+fuzz: elapsed: 12s, execs: 433656 (101000/sec), new interesting: 143 (total: 147)
+fuzz: elapsed: 15s, execs: 434136 (160/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 18s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 21s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 24s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 27s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 30s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+fuzz: elapsed: 31s, execs: 434136 (0/sec), new interesting: 144 (total: 148)
+PASS
+ok  	dircue/pkg/registries	31.015s

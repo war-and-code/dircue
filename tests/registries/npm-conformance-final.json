@@ -1,0 +1,148 @@
+{
+  "passed": true,
+  "upstream_url": "https://raw.githubusercontent.com/npm/ini/180a8d5c72d7f13ed70c53619132f3a8ee5ac6ed/lib/ini.js",
+  "upstream_revision": "180a8d5c72d7f13ed70c53619132f3a8ee5ac6ed",
+  "upstream_source_sha256": "007123836ffec243f41c8b35584fb3db0498aa12a440a9e0efc675d0000f4c32",
+  "node_version": "v24.18.0",
+  "go_version": "go version go1.26.6 darwin/arm64",
+  "cases": [
+    {
+      "id": "plain",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "inline-comment",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "escaped-comment",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "double-quoted",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "single-quoted",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "scoped-crlf",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://scope.example:443",
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "quoted-trailing-comment",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "array-unsupported",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "section-unsupported",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "quoted-key-unsupported",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "boolean-unsupported",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "null-unsupported",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "credentials-discarded",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    },
+    {
+      "id": "single-quoted-number",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-array",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-object",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-array-member",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-true",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-null",
+      "passed": true,
+      "status": "partial",
+      "origins": []
+    },
+    {
+      "id": "single-quoted-json-string",
+      "passed": true,
+      "status": "complete",
+      "origins": [
+        "https://registry.example"
+      ]
+    }
+  ],
+  "scope": "Synthetic fixture comparison of a documented subset, not general npm compatibility. No raw oracle values retained."
+}

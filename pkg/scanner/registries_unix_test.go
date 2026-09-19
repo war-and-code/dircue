@@ -1,0 +1,78 @@
+//go:build linux || darwin
+
+package scanner
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"syscall"
+	"testing"
+	"time"
+
+	"dircue/pkg/registries"
+)
+
+func TestRegistriesSpecialFilesAreNeverOpened(t *testing.T) {
+	dir := fixtures(t, map[string]string{"real/NuGet.Config": registryNuGet})
+	if err := syscall.Mkfifo(filepath.Join(dir, ".npmrc"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	outside := fixtures(t, map[string]string{"NuGet.Config": "SECRET"})
+	if err := os.Symlink(filepath.Join(outside, "NuGet.Config"), filepath.Join(dir, "NuGet.Config")); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	r, err := Scan(ctx, dir, registryOptions())
+	if err != nil || r.Registries.Coverage.ReadFiles != 1 || r.Registries.Omissions["non_regular_file"] != 2 {
+		t.Fatalf("special files %+v %v", r, err)
+	}
+}
+
+func TestRegistriesDeferredDirectoryReadRemainsConfined(t *testing.T) {
+	for _, change := range []string{"grow", "delete", "symlink", "parent-symlink"} {
+		t.Run(change, func(t *testing.T) {
+			dir := fixtures(t, map[string]string{"sub/.npmrc": registryNPM})
+			root, err := os.OpenRoot(dir)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer root.Close()
+			a, err := newRegistryAccumulator(registryOptions(), nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			candidate := registryCandidate(root, job{path: "sub/.npmrc", size: int64(len(registryNPM))})
+			if err := a.add(result{path: "sub/.npmrc", registryFile: candidate}); err != nil {
+				t.Fatal(err)
+			}
+			outside := fixtures(t, map[string]string{".npmrc": "registry=https://SECRET.invalid\n"})
+			switch change {
+			case "grow":
+				err = os.WriteFile(filepath.Join(dir, "sub/.npmrc"), []byte(registryNPM+"x"), 0600)
+			case "delete":
+				err = os.Remove(filepath.Join(dir, "sub/.npmrc"))
+			case "symlink":
+				if err = os.Remove(filepath.Join(dir, "sub/.npmrc")); err == nil {
+					err = os.Symlink(filepath.Join(outside, ".npmrc"), filepath.Join(dir, "sub/.npmrc"))
+				}
+			case "parent-symlink":
+				if err = os.Rename(filepath.Join(dir, "sub"), filepath.Join(dir, "original")); err == nil {
+					err = os.Symlink(outside, filepath.Join(dir, "sub"))
+				}
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			r, err := a.finish(context.Background())
+			if change == "grow" {
+				if err != nil || r.Configurations[0].Omissions["incomplete_content"] != 1 {
+					t.Fatalf("growth %+v %v", r, err)
+				}
+			} else if r != nil || err != registries.ErrRead {
+				t.Fatalf("unsafe deferred read %+v %v", r, err)
+			}
+		})
+	}
+}
