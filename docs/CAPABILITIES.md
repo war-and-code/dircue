@@ -2,12 +2,13 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the 0.3.0 release's enabled integrations, rather than every feature
+describe the 0.4.0 candidate's enabled integrations, rather than every feature
 provided by its upstream dependencies.
 
-The development branch additionally offers [metadata discovery](DISCOVERY.md),
+Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
 [.NET declaration graphs](GRAPH.md), [Syft report import](PACKAGE_EVIDENCE.md),
-[caller-supplied rules](RULES.md), and [bounded function metrics](FUNCTIONS.md).
+[caller-supplied rules](RULES.md), [package-source declarations](REGISTRIES.md),
+and [bounded function metrics](FUNCTIONS.md).
 These additions have their own scope and coverage fields; they do not expand
 the structural grammar list or turn filename hints into parsed declarations.
 
@@ -15,6 +16,10 @@ the structural grammar list or turn filename hints into parsed declarations.
 
 | Layer | Coverage | Result and limits |
 | --- | --- | --- |
+| Metadata discovery | Selected regular files, including non-code and vendor paths | Filename and size inventory, manifest/artifact candidates, explicit coverage; no source-payload reads. |
+| Package-source declarations | Selected NuGet.Config and .npmrc files | Bounded declarations and sanitized origins; no effective feed resolution. |
+| Caller rules | Explicit bounded JSON ruleset | Factual filename/path/literal matches; no automatic configuration or execution. |
+| Imported package evidence | Existing supported native Syft JSON | Explicit source binding and coordinate mapping; does not run Syft. |
 | Language identification | Maintained Enry/Linguist catalog | Language and byte totals, selected file metadata, and Linguist attributes. The [compatibility notes](../tests/conformance/DISCREPANCIES.md) describe the pinned reference and deliberate differences. |
 | Line metrics | Explicit [Enry-to-scc mappings](../pkg/codemetrics/grammars.go) | Lines, code, comments, blanks, bytes, and lexical complexity. Unsupported mappings and read limits have omission reasons. See [metrics](METRICS.md). |
 | Structural metrics | 20 source languages listed below | Per-file BCA metrics and syntax health from one Tree-sitter parse. Optional native worker; no compiler type resolution or cross-file call graph. |

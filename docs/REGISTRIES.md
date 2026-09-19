@@ -1,6 +1,6 @@
 # Package-source declarations
 
-Development-branch feature; not included in the released 0.3.0 binaries.
+Added in the 0.4.0 candidate.
 
 Read selected NuGet and npm configuration explicitly:
 

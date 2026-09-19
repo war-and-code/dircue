@@ -1,6 +1,6 @@
 # Caller-supplied observation rules
 
-Development-branch feature; not included in the released 0.3.0 binaries.
+Added in the 0.4.0 candidate.
 
 Rules add factual observations about selected files. Supply a JSON ruleset explicitly:
 
@@ -49,7 +49,7 @@ Each rule needs a unique ID and at least one nonempty metadata selector. IDs con
 
 Selectors are case-sensitive. Values within one selector are alternatives; different selectors must all match. `filenames` matches the exact basename. `extensions` matches a literal suffix, including compound suffixes such as `.d.ts`. `path_prefixes` uses clean relative directory paths ending in `/`, such as `process/`. Paths use `/` on all platforms. There are no glob or regular-expression operators: a filename containing `*` means a literal asterisk.
 
-A rule with `content.contains_utf8` first matches metadata, then checks for the exact UTF-8 byte sequence in the complete file. A prefix of a large file cannot establish a negative result. Matched text and rule literals are not copied into reports. Content matches include the SHA-256 digest of the complete bytes inspected.
+A rule with `content.contains_utf8` first matches metadata, then checks for the exact UTF-8 byte sequence in the complete file. A prefix of a large file cannot establish a negative result. Matched text and rule literals are not copied into reports. Content matches include the SHA-256 digest of the complete bytes inspected; metadata-only matches have no source-content digest.
 
 Invalid rulesets fail before scanning. Unknown fields, duplicate JSON keys or rule IDs, malformed Unicode, and exceeded limits are errors. There are no includes, environment substitutions, or named profiles.
 

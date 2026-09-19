@@ -1,4 +1,4 @@
-# Direction after 0.3.0
+# Profiling roadmap
 
 Dircue profiles source repositories and other directories of computer content.
 The next step is to make its observations easier to reuse: first discover what
@@ -13,7 +13,7 @@ remaining plans. Linked issues hold the acceptance criteria and decisions;
 the [capability matrix](CAPABILITIES.md) distinguishes released support from
 development additions.
 
-## Development status after 0.3.0
+## 0.4.0 candidate status
 
 These additions are on the development branch, not in the downloadable 0.3.0
 binaries. They remain subject to candidate validation and review.
@@ -24,6 +24,7 @@ binaries. They remain subject to candidate validation and review.
 | Project relationships | Static .NET graph components, cycles, and degrees from supported declarations | Broader workspace adapters and relationship types |
 | Package evidence | Bounded import of existing native Syft JSON with explicit mapping and source binding | Optional execution of an installed Syft binary |
 | Caller rules | Explicit bounded JSON rules over filenames, paths, and complete-file literals | Named profiles and additional rule operations |
+| Package-source declarations | Bounded NuGet/npm declarations with sanitized origins | Additional package-manager adapters and effective-configuration questions |
 | Function evidence | Optional bounded BCA function-space metrics with spans, hashes, and coverage | Comparable distributions, explainable hotspot selection, and report comparison |
 | Semantic analysis | Retained Bifrost feasibility and isolation findings | A validated production provider contract and broader cost measurements |
 | Distribution | Manual workflow for verified draft-release assembly and local packaged function checks | Full cross-platform workflow rehearsal and any public/PyPI publication |
@@ -111,10 +112,11 @@ Imported reports must disclose unknown or mismatched source identity.
 
 ## Useful metrics without a universal grade
 
-Dircue already exposes scc's lexical complexity and BCA's per-file metric
-groups. A review view should reuse those results before adding another engine.
-Function hotspots require function-level measurements and source locations;
-they cannot be inferred from a file total alone.
+Dircue exposes scc's lexical complexity and BCA's per-file metric groups. The
+0.4.0 candidate adds bounded function-space measurements and source locations.
+A review view should reuse those results before adding another engine, and
+preserve their sampling limits. Function hotspots cannot be inferred from a
+file total alone.
 
 Show distributions, outliers, and comparable changes with their definitions
 and measured populations. Keep lexical, cyclomatic, cognitive, and graph

@@ -4,16 +4,17 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-Version 0.3.0 adds project mapping and declared build requirements, content composition, and optional structural analysis across 20 languages. Language statistics and [scc](https://github.com/boyter/scc) line counts remain available through the existing commands. Deeper parsing uses a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+Version 0.4.0 adds metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
+dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
 
-The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [0.3.0 release archives and wheels](https://github.com/war-and-code/dircue/releases/tag/v0.3.0). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
+The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [latest release archives and wheels](https://github.com/war-and-code/dircue/releases/latest). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
 
 ## Quick start
 
@@ -33,7 +34,7 @@ export PATH="$HOME/.local/bin:$PATH"
 dircue --breakdown --json /path/to/checkout
 ```
 
-`go run .` is useful during development, but execution beyond that should use the built binary.
+Use `go run .` during development and the built binary for repeated or automated runs.
 
 ## Replace `github-linguist --json`
 
@@ -73,11 +74,11 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Project declarations and references, content composition, framework/CI observations, optional scc metrics and structural analysis |
+| Additional profiling | Language metadata | Language metadata | Metadata discovery, project declarations and graphs, package/configuration observations, caller rules, optional scc and structural metrics |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
-[Verification section](#verification) here links the measurements, separate Enry comparison, and their limitations.
+The [verification section](#verification) links these measurements, the separate Enry comparison, and their limitations.
 
 ## Content selection
 
@@ -148,28 +149,29 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 `analyze structure` sends selected source in 20 supported languages to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies syntax observations and BCA metrics. Java and C# also receive custom declaration counts; other languages expose syntax-node and recovery counts alongside BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [capability matrix](docs/CAPABILITIES.md) for language and ecosystem coverage, and the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
 
-For staged workflows, start with `analyze all --projects --source directory --json`, then choose additional work from the evidence and coverage. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes an executable report consumer and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
+For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md), adding `--source directory` when you want current files rather than the committed Git tree. It inventories file metadata and candidate manifests without reading source payloads. Then choose project, line, or structural analysis from that evidence. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes a consumer for the earlier projects-report schema and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
 
 Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
-The [roadmap](docs/ROADMAP.md) tracks proposed discovery, entry-point and relationship mapping, reusable analysis context, and explainable complexity hotspots. These are future extensions of the general-purpose profiler; the [capability matrix](docs/CAPABILITIES.md) describes what is available today.
+The [roadmap](docs/ROADMAP.md) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
 
-The development branch after 0.3.0 adds these explicit options:
+New in 0.4.0:
 
 - [`analyze discovery`](docs/DISCOVERY.md) inventories regular-file metadata without reading source payloads. It includes filename hints for manifests and packaged artifacts, including paths excluded from language statistics.
 - [`analyze graph`](docs/GRAPH.md) derives .NET project-reference components, cycles, and degrees from static declarations, keeping conditional and unresolved edges separate.
 - [`analyze packages --syft-report FILE`](docs/PACKAGE_EVIDENCE.md) imports an existing Syft JSON report. Coordinate mapping and source binding are explicit; it does not execute Syft.
 - [`analyze rules --rules-file FILE`](docs/RULES.md) applies explicit, bounded filename/path/content rules and reports matches, provenance, and omissions.
-- [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires a matching development worker.
+- [`analyze registries`](docs/REGISTRIES.md) reads selected NuGet and npm package-source declarations, retaining qualified names and sanitized URL origins without evaluating an effective feed set.
+- [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires the matching 0.4.0 worker.
 
-Select combinations explicitly, such as `analyze all --discovery --graph` or `analyze all --structure --functions`. Add `--rules-file FILE` or `--syft-report FILE` when supplying those inputs. These options are not part of the downloadable 0.3.0 binaries. Existing invocations retain their output contracts.
+Select combinations explicitly, such as `analyze all --discovery --graph` or `analyze all --structure --functions`. Add `--registries` to inspect package-source declarations, or `--rules-file FILE` and `--syft-report FILE` when supplying those inputs. These new modules are opt-in. Existing invocations retain their output contracts.
 
 | Requested output | Schema version |
 | --- | --- |
 | Existing aggregate report without optional modules | `1.0.0` |
 | Metrics, without projects or structure | `1.1.0` |
 | Projects or structure, with optional metrics | `1.2.0` |
-| Discovery, graph, imported package evidence, rules, or function metrics (development branch) | `1.3.0` |
+| Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
@@ -184,12 +186,13 @@ Committed Git tree or directory
               |
      bounded file-worker pool
               |
-   attributes + Enry classification
+   metadata inventory + attributes
               |
-              +-- language totals and detector findings
+              +-- optional discovery, rules, and registry declarations
+              +-- Enry language totals and detector findings
               +-- optional scc counts
-              +-- optional project declarations and composition
-              +-- optional native worker: one tree, two consumers
+              +-- optional project declarations, composition, and graphs
+              +-- optional native worker: one parse, syntax and metrics
               |
    deterministic text or JSON report
 ```
@@ -220,10 +223,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.3.0 -t dircue:0.3.0 .
+docker build --build-arg VERSION=0.4.0 -t dircue:0.4.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.3.0 --breakdown --json /repo
+  dircue:0.4.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -231,17 +234,17 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.3.0 --output dist/release-0.3.0
-python3 scripts/wheels.py --release-dir dist/release-0.3.0 --output dist/wheels-0.3.0
+python3 scripts/release.py --version 0.4.0 --output dist/release-0.4.0
+python3 scripts/wheels.py --release-dir dist/release-0.4.0 --output dist/wheels-0.4.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
 
 ## GitHub Releases and PyPI
 
-The primary distribution channels will be GitHub Release binaries and PyPI wheels for `uvx dircue@0.3.0` or `uv tool install 'dircue==0.3.0'`. These public commands will become available after publication. Local wheel preparation, offline use, platform requirements, and release steps are described in the [distribution guide](docs/DISTRIBUTION.md).
+GitHub Releases provide binaries and wheels. uv can install a compatible wheel from a local file or a GitHub Release URL; see the [distribution guide](docs/DISTRIBUTION.md) for authentication, offline use, and platform requirements.
 
-uv can also install a compatible wheel from a local file or a GitHub Release URL. We may not immediately publish to PyPI.
+PyPI publication is deferred. Package-name commands such as `uvx dircue@0.4.0` and `uv tool install 'dircue==0.4.0'` will work only after that version is published to the configured package index.
 
 ## Troubleshooting
 
@@ -256,6 +259,8 @@ uv can also install a compatible wheel from a local file or a GitHub Release URL
 ## Verification
 
 Keep development PRs in draft for lightweight CI. Marking a PR ready runs the full platform and conformance suites; later commits on a ready PR rerun them. See the [CI guide](docs/CI.md) for local checks, runner selection, and release preparation.
+
+The [0.4.0 candidate report](docs/releases/0.4.0-validation.md) separates final-candidate checks from earlier experiments and outstanding release gates. It links the 209-case comparison with 0.3.0, optional-module validation, and measured costs. Results below retain the versions and inputs they originally tested.
 
 The 0.3 candidate adds [project-map validation](tests/projects/README.md) on Roslyn, ASP.NET Core, Spring Framework, and Apache Maven, plus schema checks covering combined reports. The [production structural check](tests/structure/README.md) compares 150 Java/C# files with the pinned worker and preserves known grammar limitations. The [structural breadth harness](tests/structural_breadth/README.md) adds small fixtures for every enabled parser; these do not provide equivalent real-project coverage for every language. [CLI compatibility](tests/compatibility_v030/README.md) compares existing invocations with the shipped 0.2.0 binary; [performance and scale checks](tests/performance_v030/README.md) record the cost of project mapping. The [structural prototype](prototypes/structural/README.md) records parse reuse and offline execution. These checks have a different scope from the historical language and scc benchmarks below; they do not establish that structural parsing has the same cost as language classification.
 

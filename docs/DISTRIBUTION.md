@@ -5,8 +5,9 @@ executable bytes for a given operating system, architecture, and version.
 Existing releases include both formats. GitHub assets require authenticated
 access while the repository is private; PyPI publication remains deferred.
 
-The 0.3.0 archives and wheels are attached to the private GitHub Release.
-The examples below cover downloading them and reproducing their packaging;
+The examples below target 0.4.0. Tagged download URLs become available when
+the release is published; local packaging works from the prepared source. For
+an earlier release, substitute its version consistently in commands and filenames.
 PyPI publication remains deferred.
 
 ## Pipeline use after PyPI publication
@@ -14,14 +15,14 @@ PyPI publication remains deferred.
 For a pinned invocation without a persistent tool installation:
 
 ```sh
-uvx dircue@0.3.0 --breakdown --json /path/to/checkout
-uvx dircue@0.3.0 analyze all --json /path/to/checkout
+uvx dircue@0.4.0 --breakdown --json /path/to/checkout
+uvx dircue@0.4.0 analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==0.3.0'
+uv tool install 'dircue==0.4.0'
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -48,8 +49,8 @@ and [cache behavior](https://docs.astral.sh/uv/concepts/tools/#tool-environments
 From a clean committed checkout, choose fresh output directories:
 
 ```sh
-python3 scripts/release.py --version 0.3.0 --output dist/release-0.3.0
-python3 scripts/wheels.py --release-dir dist/release-0.3.0 --output dist/wheels-0.3.0
+python3 scripts/release.py --version 0.4.0 --output dist/release-0.4.0
+python3 scripts/wheels.py --release-dir dist/release-0.4.0 --output dist/wheels-0.4.0
 ```
 
 The wheel builder consumes existing release archives; it does not compile Go,
@@ -82,7 +83,7 @@ Test a local wheel on an Apple Silicon Mac without accessing a package index:
 
 ```sh
 uvx --offline --no-index \
-  --from ./dist/wheels-0.3.0/dircue-0.3.0-py3-none-macosx_12_0_arm64.whl \
+  --from ./dist/wheels-0.4.0/dircue-0.4.0-py3-none-macosx_12_0_arm64.whl \
   dircue --version
 ```
 
@@ -99,7 +100,7 @@ uv can install it directly. For a Linux amd64 runner, the release URL would be:
 
 ```sh
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v0.3.0/dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.4.0/dircue-0.4.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -117,11 +118,11 @@ authenticated GitHub CLI, download the compatible wheel first, then give uv the
 local file:
 
 ```sh
-gh release download v0.3.0 --repo war-and-code/dircue \
-  --pattern 'dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl' \
+gh release download v0.4.0 --repo war-and-code/dircue \
+  --pattern 'dircue-0.4.0-py3-none-manylinux_2_17_x86_64.whl' \
   --dir ./dircue-download
 uvx --offline --no-index \
-  --from ./dircue-download/dircue-0.3.0-py3-none-manylinux_2_17_x86_64.whl \
+  --from ./dircue-download/dircue-0.4.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue analyze projects --json /path/to/checkout
 ```
 
@@ -131,7 +132,8 @@ be available locally. Replace the wheel filename for another platform.
 ## Optional structural worker
 
 The archives and wheels above contain the core Go executable. Language profiling,
-project mapping, and scc counting do not require a separate parser. Structural
+discovery, project/graph mapping, rules, package-source declarations, imported
+package evidence, and scc counting do not require a separate parser. Structural
 analysis adds a native `dircue-structural-worker` selected by explicit path:
 
 ```sh
@@ -142,8 +144,8 @@ dircue analyze structure --json --files \
 Build its platform archive separately:
 
 ```sh
-python3 scripts/structural_worker_release.py --version 0.3.0 \
-  --platform darwin-arm64 --output dist/structural-worker-0.3.0 --smoke-test
+python3 scripts/structural_worker_release.py --version 0.4.0 \
+  --platform darwin-arm64 --output dist/structural-worker-0.4.0 --smoke-test
 ```
 
 See the [worker guide](STRUCTURE.md#building-the-add-on) for the pinned Rust

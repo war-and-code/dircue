@@ -12,8 +12,8 @@ executable: obtain it from a source you trust, and pass its actual filesystem
 path. Filenames and source text are delivered through standard input, not shell
 commands.
 
-The development branch also supports [`--functions`](FUNCTIONS.md) for bounded
-function-space metrics. This is not available in the 0.3.0 binaries.
+Version 0.4.0 also supports [`--functions`](FUNCTIONS.md) for bounded
+function-space metrics. This opt-in requires the matching 0.4.0 worker.
 
 ## Commands
 
@@ -97,8 +97,9 @@ metrics instead of presenting one cross-language quality score.
 
 For future review views, the [roadmap](ROADMAP.md#useful-metrics-without-a-universal-grade)
 describes how to combine measurements with their scope, definitions, and missing
-evidence. Function-level hotspots and cross-file dependency graphs require
-additional observations; neither can be inferred from the current file totals.
+evidence. Optional [function entries](FUNCTIONS.md) provide bounded measurements
+for that work; they do not rank hotspots. Cross-file dependency graphs cannot
+be inferred from file totals.
 
 The [breadth harness](../tests/structural_breadth/README.md) covers every enabled
 language with small source fixtures, direct-worker comparison, and deterministic
@@ -139,7 +140,7 @@ target, then build a local archive in a fresh output location:
 
 ```sh
 rustup toolchain install 1.94.0 --profile minimal
-python3 scripts/structural_worker_release.py --platform darwin-arm64 --smoke-test
+python3 scripts/structural_worker_release.py --version 0.4.0 --platform darwin-arm64 --smoke-test
 ```
 
 Use the platform matching the build host unless its native cross-compilation
