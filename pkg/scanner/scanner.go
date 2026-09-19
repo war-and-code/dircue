@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"dircue/pkg/discovery"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
 	"dircue/pkg/structure"
@@ -27,6 +28,10 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Discovery adds metadata evidence independently of language inclusion.
+	Discovery bool
+	// DiscoveryOnly inventories metadata without language or content analysis.
+	DiscoveryOnly bool
 	// Source selects committed Git content when auto discovers a repository.
 	Source            string
 	Revision          string
@@ -50,6 +55,7 @@ type job struct {
 	read  func(int64) ([]byte, int64, error)
 }
 type result struct {
+	discoveryFile   *discovery.File
 	path            string
 	size            int64
 	language        string
@@ -69,8 +75,12 @@ type result struct {
 // capped at 16. By default only a 128 KiB prefix is classified, while full file
 // sizes contribute to totals, matching Linguist LazyBlob. I/O failures are
 // fatal; detector failures become warnings and preserve partial findings.
-// An explicit MaxFileBytes limit skips larger files entirely.
+// An explicit MaxFileBytes limit skips larger file contents; metadata discovery
+// still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.DiscoveryOnly && (!opts.Discovery || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
+		return nil, errors.New("discovery-only requires discovery and cannot run detectors, projects, metrics, or structure")
+	}
 	if opts.Structure != nil {
 		opts.structureGate = make(chan struct{}, 1)
 	}
@@ -143,6 +153,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		if exceeded {
 			report := newReport(abs)
+			if opts.Discovery {
+				report.Discovery = discovery.New("directory", "", opts.MaxTreeSize).Skip("tree_size_limit")
+			}
 			if opts.Projects {
 				report.Projects = projects.New("directory", "").Skip("tree_size_limit")
 				report.SchemaVersion = profile.ExpandedSchemaVersion
@@ -161,6 +174,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			}
 			if opts.Projects || opts.Structure != nil {
 				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
+			if opts.Discovery {
+				report.SchemaVersion = profile.EnhancedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
 			return report, nil
@@ -304,6 +320,14 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	var discoveryCollector *discovery.Collector
+	if opts.Discovery {
+		source, tree := "directory", ""
+		if snapshot != nil {
+			source, tree = "git", snapshot.tree.Hash.String()
+		}
+		discoveryCollector = discovery.New(source, tree, opts.MaxTreeSize)
+	}
 	var metrics *metricsAccumulator
 	if opts.Metrics != nil {
 		report.SchemaVersion = profile.MetricsSchemaVersion
@@ -331,6 +355,13 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if discoveryCollector != nil {
+			if value.discoveryFile != nil {
+				discoveryCollector.Add(*value.discoveryFile)
+			} else if value.path != "" {
+				discoveryCollector.Omit("non_regular_file")
+			}
+		}
 		if projectCollector != nil {
 			if value.inventoried {
 				projectCollector.Add(value.path, value.inventorySize, value.role, value.projectDocument)
@@ -410,6 +441,18 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	if report.Structure != nil {
 		finishStructure(report.Structure)
+	}
+	if discoveryCollector != nil {
+		report.Discovery = discoveryCollector.Finish()
+		for _, warning := range report.Warnings {
+			switch warning.Code {
+			case "tree_size_limit":
+				report.Discovery = discoveryCollector.Skip("tree_size_limit")
+			case "unsupported_gitattributes":
+				discoveryCollector.Partial("unsupported_gitattributes")
+			}
+		}
+		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

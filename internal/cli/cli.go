@@ -14,6 +14,7 @@ import (
 
 	"dircue/pkg/detectors"
 	"dircue/pkg/profile"
+	"dircue/pkg/projects"
 	"dircue/pkg/scanner"
 	"dircue/pkg/structure"
 	"github.com/spf13/cobra"
@@ -37,10 +38,17 @@ type options struct {
 	metricsMaxFileBytes    int64
 	metricsFiles           bool
 	projects               bool
+	discovery              bool
+	graph                  bool
 	structure              bool
 	structuralWorker       string
 	structuralMaxFileBytes int64
 	structuralTimeout      time.Duration
+	syftReport             string
+	syftRoot               string
+	syftReportSHA256       string
+	syftSourceTree         string
+	syftMaxBytes           int64
 }
 
 // Execute runs one invocation. Errors are returned without printing; the caller
@@ -80,16 +88,17 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, metrics, projects, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "metrics", "projects", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
 			Args:  pathArgs,
 			RunE:  func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, mode) },
 		}
+		setExtendedCommandHelp(command, mode)
 		if mode == "metrics" || mode == "all" || mode == "structure" {
 			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include per-file metrics or structural observations")
 		}
@@ -103,9 +112,14 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
+			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
 			command.Flags().BoolVar(&opts.metrics, "metrics", false, "Count code, comment, and blank lines and estimate complexity with scc")
+		}
+		if mode == "packages" || mode == "all" {
+			addPackageFlags(command, opts)
 		}
 		analyze.AddCommand(command)
 	}
@@ -126,6 +140,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	}
 	if opts.maxFileBytes < 0 {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
+	}
+	packageReport, err := loadPackageEvidence(cmd, opts, mode)
+	if err != nil {
+		return err
 	}
 	var metrics *scanner.MetricsOptions
 	if mode == "metrics" || (mode == "all" && opts.metrics) {
@@ -209,12 +227,25 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		IncludeStrategies: opts.strategies,
 		Detectors:         hooks,
 		Metrics:           metrics,
-		Projects:          mode == "projects" || (mode == "all" && opts.projects),
+		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
+		Discovery:         mode == "discovery" || (mode == "all" && opts.discovery),
+		DiscoveryOnly:     mode == "discovery",
 		Structure:         structural,
 		StructureFiles:    opts.metricsFiles,
 	})
 	if err != nil {
 		return err
+	}
+	if mode == "graph" || (mode == "all" && opts.graph) {
+		report.Graph = projects.AnalyzeGraph(report.Projects)
+		report.SchemaVersion = profile.EnhancedSchemaVersion
+	}
+	if packageReport != nil {
+		report.PackageEvidence, err = associatePackages(packageReport, report.Projects, opts)
+		if err != nil {
+			return err
+		}
+		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
 	for _, warning := range report.Warnings {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
@@ -243,11 +274,26 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Ecosystems)
 	case "projects":
 		return writeProjects(out, report.Projects)
+	case "discovery":
+		return writeDiscovery(out, report.Discovery)
+	case "graph":
+		return writeGraph(out, report.Graph)
+	case "packages":
+		return writePackageEvidence(out, report.PackageEvidence)
 	case "structure":
 		return writeStructure(out, report.Structure)
 	case "metrics":
 		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
+		if err := writePackageEvidence(out, report.PackageEvidence); err != nil {
+			return err
+		}
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
+		if err := writeGraph(out, report.Graph); err != nil {
+			return err
+		}
 		if _, err := fmt.Fprintln(out, "Languages:"); err != nil {
 			return err
 		}

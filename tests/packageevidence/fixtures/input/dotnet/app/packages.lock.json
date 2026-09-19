@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net8.0": {
+      "Example.Core": {
+        "type": "Direct",
+        "requested": "[1.2.3, )",
+        "resolved": "1.2.3",
+        "contentHash": "abc",
+        "dependencies": {
+          "Example.Transitive": "2.0.0"
+        }
+      },
+      "Example.Transitive": {
+        "type": "Transitive",
+        "resolved": "2.0.0",
+        "contentHash": "def"
+      }
+    }
+  }
+}

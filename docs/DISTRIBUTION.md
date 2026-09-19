@@ -5,9 +5,9 @@ executable bytes for a given operating system, architecture, and version.
 Existing releases include both formats. GitHub assets require authenticated
 access while the repository is private; PyPI publication remains deferred.
 
-The 0.3.0 examples below describe candidate preparation and use after its
-artifacts are available. They do not assert that 0.3.0 or a PyPI package has been
-published.
+The 0.3.0 archives and wheels are attached to the private GitHub Release.
+The examples below cover downloading them and reproducing their packaging;
+PyPI publication remains deferred.
 
 ## Pipeline use after PyPI publication
 
