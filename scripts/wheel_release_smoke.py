@@ -11,6 +11,7 @@ import sys
 import tempfile
 
 import declarations_release_smoke as declarations
+import formats_release_smoke as formats
 import wheels
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +57,8 @@ def validate_receipt(receipt, version, target, core_sha256, wheel_name, wheel_sh
     require(receipt.get('observed_facts') == (declarations.FACTS if required else {}) and
             receipt.get('negative_cases') == (['duplicate-json-key', 'malformed-json'] if required else []),
             'native wheel smoke coverage differs')
+    if formats.required(version):
+        formats.validate_receipt(receipt.get('formats'), version, receipt['launcher_sha256'])
     return receipt
 
 
@@ -159,6 +162,11 @@ def run(core, directory, target, version):
                 'source_removed_before_compare': smoke['source_removed_before_compare'],
                 'fixture_sha256': smoke['fixture_sha256'], 'observed_facts': smoke['observed_facts'],
                 'negative_cases': smoke['negative_cases'], 'harness_sha256': source_inputs(), 'scope': SCOPE}
+        if formats.required(version):
+            format_file = area / 'launcher-formats.json'
+            execute([python, '-E', '-s', ROOT / 'scripts/formats_release_smoke.py',
+                     '--candidate', launcher, '--version', version, '--output', format_file], env, area)
+            receipt['formats'] = json.loads(format_file.read_bytes())
         return validate_receipt(receipt, version, target, row['binary_sha256'], wheel.name, wheel_hash)
 
 

@@ -4,15 +4,17 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-Version 0.5.0 adds opt-in [project declarations and interfaces](docs/DECLARATIONS.md) for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers. It also adds [offline comparison of saved profiles](docs/COMPARISON.md). Existing profiling commands keep their output contracts.
+Version 0.6.0 adds opt-in [file format evidence](docs/FORMATS.md) and [function hotspot distributions](docs/HOTSPOTS.md). Inspect mixed data and artifact directories, or find large and highly branched function spaces with their source locations and measurement limits. [Saved-report comparison](docs/COMPARISON.md) includes these observations.
 
-Version 0.4.0 introduced metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze declarations --json /path/to/checkout
+dircue analyze formats --json /path/to/content
+dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
@@ -21,7 +23,7 @@ The repository is currently private, and PyPI publication is deferred. Authentic
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
+Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .

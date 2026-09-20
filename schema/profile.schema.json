@@ -6,7 +6,9 @@
   "additionalProperties": false,
   "required": ["schema_version", "root", "summary", "languages", "ecosystems", "frameworks", "layouts", "warnings"],
   "allOf": [
-    {"if": {"required": ["declarations"]}, "then": {"properties": {"schema_version": {"const": "1.4.0"}}}},
+    {"if": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}, "then": {"properties": {"schema_version": {"const": "1.5.0"}}}},
+    {"if": {"properties": {"schema_version": {"const": "1.5.0"}}}, "then": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}},
+    {"if": {"required": ["declarations"]}, "then": {"properties": {"schema_version": {"enum": ["1.4.0", "1.5.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.4.0"}}}, "then": {"required": ["declarations"]}},
     {"if": {"properties": {"schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]}}}, "then": {"not": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["registries"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}}},
     {"if": {"properties": {"schema_version": {"const": "1.3.0"}}}, "then": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["registries"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}},
@@ -73,13 +75,14 @@
     }
   ],
   "properties": {
+    "formats": {"$ref": "formats.schema.json"},
     "registries": {"$ref": "#/$defs/registries"},
     "rules": {"$ref": "#/$defs/rules"},
     "package_evidence": {"$ref": "#/$defs/package_evidence"},
     "discovery": {"$ref": "#/$defs/discovery"},
     "graph": {"$ref": "#/$defs/graph"},
     "schema_version": {
-      "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0"]
+      "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"]
     },
     "root": {"type": "string", "minLength": 1},
     "summary": {
@@ -2943,6 +2946,7 @@
         "observations"
       ],
       "properties": {
+        "hotspots": {"$ref": "hotspots.schema.json"},
         "functions": {"$ref": "#/$defs/function_report"},
         "supported_languages": {
           "type": "array",

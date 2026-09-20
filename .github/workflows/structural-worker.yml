@@ -43,7 +43,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       # Test-fixture version only; this selects no release version and creates no tags/releases.
-      DIRCUE_CI_VERSION: '0.4.0-rc.1'
+      DIRCUE_CI_VERSION: '0.6.0-rc.1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -119,6 +119,13 @@ jobs:
               '--worker', str(worker), '--version', version,
               '--output', str(folder / f'functions-{platform}.json'),
           ], check=True)
+          for helper in ('formats', 'hotspots'):
+              command = [sys.executable, f'scripts/{helper}_release_smoke.py',
+                         '--candidate', 'bin/dircue' + suffix, '--version', version,
+                         '--output', str(folder / f'{helper}-{platform}.json')]
+              if helper == 'hotspots':
+                  command += ['--worker', str(worker)]
+              subprocess.run(command, check=True)
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           retention-days: 7

@@ -86,3 +86,28 @@ an identical archive. The final bundle includes both provenance records.
 Historical `results/linux-amd64-smoke.json` records version output and Git-free language/ecosystem profiling by the RC1 Linux amd64 executable under Docker Desktop's emulation on arm64. The final bundle retains a fresh equivalent smoke test for its archive executable. These verify execution under emulation, not native amd64 performance. Windows and macOS amd64 are compile-checked locally; their native CI runs remain pending a remote setup.
 
 The release profile uses `CGO_ENABLED=0`, `-trimpath`, `-buildvcs=false`, and a fixed version through linker flags. Source revision is recorded separately, so documentation/evidence commits do not change executable bytes. The final bundle identifies both native and Linux executables and their original source commits; historical reports retain their own binary identities. The packager itself does not publish a release or upload artifacts.
+
+## 0.6 capability proofs
+
+For 0.6.0 and later, native release assembly also runs `formats_release_smoke.py`
+and `hotspots_release_smoke.py` against the extracted binaries. Their receipts
+are nested in each platform's `release-candidate.json` record; they do not add
+release assets. Assembly checks current harness/fixture hashes, executable
+identity, required checks and authored facts, and rejects missing proofs.
+
+Format checks cover valid and misleading extensions, malformed JSON/XML, depth
+limits, truncated prefixes, signature-only container observations, text/binary
+content, 4,097-file selection, and a cumulative 32 MiB inspection budget. The
+installed-wheel proof repeats these checks through its actual console launcher.
+No archive payload is decompressed and no package index is contacted.
+
+Hotspot checks use 1,315 authored Java, C# and Python function spaces. The largest
+function occurs after both the old per-file and aggregate retention boundaries.
+Checks cover full-population counts, histogram partitions, deterministic top
+ordering, source hashes/spans, clean and recovered syntax cohorts, independent
+function opt-in, and unchanged default outputs. Deliberately corrupted
+observations must fail both helpers' semantic checks. An optional
+`--baseline-worker` also checks the older worker's explicit refusal.
+
+These fixtures test the stated behavior. They do not establish universal format
+validation, semantic complexity, or a whole-repository quality score.

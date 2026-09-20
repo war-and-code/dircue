@@ -130,5 +130,8 @@ func writeStructure(out io.Writer, r *profile.StructureReport) error {
 			}
 		}
 	}
-	return writeFunctions(out, r.Functions)
+	if err := writeFunctions(out, r.Functions); err != nil {
+		return err
+	}
+	return writeHotspots(out, r.Hotspots)
 }

@@ -14,6 +14,9 @@ commands.
 
 The [`--functions`](FUNCTIONS.md) option adds bounded function-space metrics.
 It requires a worker with that capability, introduced in 0.4.0.
+The independent [`--hotspots`](HOTSPOTS.md) option adds distributions and top-ten
+evidence over measured function populations. It requires a 0.6.0-capable worker
+and makes one bounded capability probe before scanning.
 
 ## Commands
 
@@ -95,11 +98,10 @@ applicability vary by language; an upstream zero or null is not evidence that
 an equivalent language feature was measured. Dircue preserves these per-file
 metrics instead of presenting one cross-language quality score.
 
-For future review views, the [hotspot proposal](https://github.com/war-and-code/dircue/issues/27)
-describes how to combine measurements with their scope, definitions, and missing
-evidence. Optional [function entries](FUNCTIONS.md) provide bounded measurements
-for that work; they do not rank hotspots. Cross-file dependency graphs cannot
-be inferred from file totals.
+[Hotspot distributions](HOTSPOTS.md) inspect eligible function spaces before
+evidence retention. The existing [function entries](FUNCTIONS.md) remain a
+bounded sample and are not used as the ranking population. Cross-file dependency
+graphs cannot be inferred from file totals.
 
 The [breadth harness](../tests/structural_breadth/README.md) covers every enabled
 language with small source fixtures, direct-worker comparison, and deterministic

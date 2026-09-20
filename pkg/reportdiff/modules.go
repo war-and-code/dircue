@@ -65,6 +65,7 @@ func observedModule(present bool, status, reason string) moduleData {
 
 func moduleInputs(p profile.Report) map[string]moduleData {
 	result := map[string]moduleData{}
+	contentModules(p, result)
 	// These original fields do not identify the classifier or complete source
 	// selection policy. Numeric differences are report observations only.
 	legacyComplete := len(p.Warnings) == 0
