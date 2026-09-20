@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "all_four_binaries_and_effective_input_maps_match_historical_capture": true,
+  "baseline_revision": "bf211aeb0ba272bf5819dd326c805b68011dac7a",
+  "executable_sha256": {
+    "baseline": "0ec849e2950a7b7c8d4cd726dc2d8d55cacb6885ab5467a4eb6547e32712b35b",
+    "growth": "bc79509c78e74b6bd8bfb3faf0cd852c0e5b0dc1fe81c331404fd3eb3384803a",
+    "growth128": "f5c39fc2cfa25f9ec014c0eda51f6b37bfa22f88a20e0ed5e9c428a70c8cc281",
+    "growth512": "d5e7b0fb4cb31a2b01a0b515d2ab7244032ca05e0c27f43b9d2bb6619542c18d"
+  },
+  "baseline_tree_guard": {
+    "compiled_source_and_module_count": 383,
+    "instrumentation_main_exception": false,
+    "tracked_blob_count": 1361,
+    "tree_entries_sha256": "7fe94b8001677c1b75e42ce62ff6ad562f03ab61df72b55abe282ef46a98607a"
+  },
+  "build_receipt_sha256": "7d1ead975a1a35f7a40cfb859e1e6ba0db869f36f754c50ed2edf9753c5dd375",
+  "harness_hashes": {
+    "build_variants.py": "59c566019f9fbf37723046340ce7a118790c69fdf9736f01867c44e6160ffb7e",
+    "profile_allocations.py": "fc91ca787f920b0d9c675f691fd7fe37fadc782fd70eb17d1080bf4a0544b06c"
+  },
+  "timing_claim": false
+}

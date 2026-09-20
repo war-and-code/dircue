@@ -285,7 +285,7 @@ func blobRead(blob *object.Blob, filename string, limit int64) ([]byte, int64, e
 		return nil, 0, fmt.Errorf("read Git blob %s: %w", filename, err)
 	}
 	defer reader.Close()
-	data, err := io.ReadAll(io.LimitReader(reader, limit))
+	data, err := readAllBounded(reader, limit, blob.Size)
 	if err != nil {
 		return nil, 0, fmt.Errorf("read Git blob %s: %w", filename, err)
 	}

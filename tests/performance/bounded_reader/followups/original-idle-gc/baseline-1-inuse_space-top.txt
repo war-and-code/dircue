@@ -1,0 +1,37 @@
+File: baseline-profile
+Type: inuse_space
+Time: 2026-09-20 17:11:31 EDT
+Showing nodes accounting for 378968B, 98.49% of 384760B total
+Dropped 73 nodes (cum <= 1923B)
+Showing top 30 nodes out of 84
+      flat  flat%   sum%        cum   cum%
+   238400B 61.96% 61.96%    285504B 74.20%  encoding/json.typeFields
+    56000B 14.55% 76.52%     56000B 14.55%  regexp/syntax.(*compiler).inst (inline)
+    37944B  9.86% 86.38%     37944B  9.86%  runtime.mallocgc
+    16640B  4.32% 90.70%     16640B  4.32%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+    14064B  3.66% 94.36%     14064B  3.66%  internal/sync.newEntryNode[go.shape.interface {},go.shape.interface {}] (inline)
+     4080B  1.06% 95.42%    285760B 74.27%  encoding/json.cachedTypeFields
+     4080B  1.06% 96.48%    285808B 74.28%  encoding/json.newStructEncoder (inline)
+     2688B   0.7% 97.18%     10392B  2.70%  reflect.(*rtype).ptrTo
+     2368B  0.62% 97.79%      2368B  0.62%  reflect.addReflectOff
+      896B  0.23% 98.02%      3808B  0.99%  dircue/pkg/scanner.Scan.func4
+      704B  0.18% 98.21%    131672B 34.22%  encoding/json.newArrayEncoder
+      704B  0.18% 98.39%    132152B 34.35%  encoding/json.newSliceEncoder
+      400B   0.1% 98.49%    285872B 74.30%  encoding/json.newPtrEncoder
+         0     0% 98.49%    283920B 73.79%  dircue/internal/cli.Execute
+         0     0% 98.49%    285520B 74.21%  dircue/internal/cli.Execute.func3
+         0     0% 98.49%    285664B 74.24%  dircue/internal/cli.run
+         0     0% 98.49%    286080B 74.35%  dircue/internal/cli.writeJSON
+         0     0% 98.49%      2912B  0.76%  dircue/pkg/scanner.analyzeFile
+         0     0% 98.49%      2912B  0.76%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 98.49%    286080B 74.35%  encoding/json.(*Encoder).Encode
+         0     0% 98.49%    286080B 74.35%  encoding/json.(*encodeState).marshal
+         0     0% 98.49%    286080B 74.35%  encoding/json.(*encodeState).reflectValue
+         0     0% 98.49%    285872B 74.30%  encoding/json.newTypeEncoder
+         0     0% 98.49%    286080B 74.35%  encoding/json.typeEncoder
+         0     0% 98.49%    285872B 74.30%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0% 98.49%    285872B 74.30%  encoding/json.typeEncoder.func1
+         0     0% 98.49%    285872B 74.30%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0% 98.49%    286080B 74.35%  encoding/json.valueEncoder
+         0     0% 98.49%     31424B  8.17%  github.com/go-enry/go-enry/v2/data.init
+         0     0% 98.49%     24576B  6.39%  github.com/go-enry/go-enry/v2/internal/tokenizer.compileLexer

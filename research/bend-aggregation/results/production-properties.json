@@ -1,0 +1,258 @@
+{
+  "schema": "dircue-production-mutation-check-1",
+  "status": "passed",
+  "runtime_sha256": {
+    "prototypes/structural/worker/src/hotspots.rs": "2d7fb19f09b44e6fab3cbfa12a9e59710040877c4b9532d80f37ea7c8935a84f",
+    "pkg/structure/hotspots.go": "c322067df881a28afbe723f17fc4aecf1c8ab6aee9b64905fa567ad20deb8737"
+  },
+  "inputs_sha256": {
+    "go.mod": "8e98b7e8a8783475ae3f7133e093fa76be14e6e0b46a4415d4bf63941ca47964",
+    "go.sum": "996b1932286516c022679ed686cd8367dba10e06b6554f27ad32d6c636b26f42",
+    "internal/jsontext/unicode.go": "621551eda96160d06af3ef2254fda767ef06ea6329cd21aab6e2bb899b5cba37",
+    "internal/jsontext/unicode_test.go": "0d707394d02d6fd492bfa97f4f9221ee08c7d86f7e4c77b1bc858883c5fdb0a6",
+    "pkg/structure/capabilities.go": "e5f25b73795c3bcfc7bd64f2e11cdefe6d202e8aad95e15b053b00466817a1d4",
+    "pkg/structure/functions.go": "0aef8fbe8a8c130d3cff6b2b6a4ee5a05cc506bab894b730fc86a010122f1c2d",
+    "pkg/structure/functions_bench_test.go": "a6c9686204623a993f8c2f904d8a6d0226c489c7adef6daa497d3d3db5fc2749",
+    "pkg/structure/functions_test.go": "7935632c9054b32c7c3adbe69fc1b2e8447ac741bbf37cc93b199848f30f8ac1",
+    "pkg/structure/functions_validation_test.go": "5709733166c225fee73831cceee191fe88f3d89b44945fc2c4088d8211fc05bf",
+    "pkg/structure/hotspots.go": "c322067df881a28afbe723f17fc4aecf1c8ab6aee9b64905fa567ad20deb8737",
+    "pkg/structure/hotspots_properties_test.go": "174fdd94716aace65a7717d06ea98c9575000b9254619fd18219067fb49d82c7",
+    "pkg/structure/hotspots_review_test.go": "f6ca746890a83c488baa1ca3efd7390a488c9cd7f7b27c8453ac9e60bdc8d7de",
+    "pkg/structure/hotspots_test.go": "e22849c2d1a36542686f72bd6cd57ce452deeb69958f43c638d27015a84c40e3",
+    "pkg/structure/structure.go": "d4d3f19667d17f4dbd4e9e74816538a56034be41e338d85cfd388256126934fc",
+    "pkg/structure/structure_test.go": "a7be2433ae089d9ed42b241c221b87c8b6853d4a04558deaa23eb4cbbd5f624e",
+    "prototypes/structural/worker/Cargo.lock": "d2040722bf517b52c31613434c3111bb2317db4f317603413a8767b89360c307",
+    "prototypes/structural/worker/Cargo.toml": "36df8e3126453c8a47561300fbc518782f7ac852c5a190edd11a830c7400ea8e",
+    "prototypes/structural/worker/src/functions.rs": "1b14006b3db08114d9d9166079ba04e47cc1bca478a11e88a985179c69e24a2a",
+    "prototypes/structural/worker/src/hotspots.rs": "0175eef638381c31072f8018263b4cb816c226e506f0e9c49b754fabf91cedc0",
+    "prototypes/structural/worker/src/main.rs": "a410672206052f69e7066e2a1b390a64fc64bd1ceb9976b56b857b1493ef9fde",
+    "research/bend-aggregation/production_mutations.py": "2341c8a7b441371b4a2bfe180ab8150d4a37a1d86b3c9abf16b51037b342194d"
+  },
+  "go_inputs_sha256": {
+    "go.mod": "8e98b7e8a8783475ae3f7133e093fa76be14e6e0b46a4415d4bf63941ca47964",
+    "go.sum": "996b1932286516c022679ed686cd8367dba10e06b6554f27ad32d6c636b26f42",
+    "internal/jsontext/unicode.go": "621551eda96160d06af3ef2254fda767ef06ea6329cd21aab6e2bb899b5cba37",
+    "internal/jsontext/unicode_test.go": "0d707394d02d6fd492bfa97f4f9221ee08c7d86f7e4c77b1bc858883c5fdb0a6",
+    "pkg/structure/capabilities.go": "e5f25b73795c3bcfc7bd64f2e11cdefe6d202e8aad95e15b053b00466817a1d4",
+    "pkg/structure/functions.go": "0aef8fbe8a8c130d3cff6b2b6a4ee5a05cc506bab894b730fc86a010122f1c2d",
+    "pkg/structure/functions_bench_test.go": "a6c9686204623a993f8c2f904d8a6d0226c489c7adef6daa497d3d3db5fc2749",
+    "pkg/structure/functions_test.go": "7935632c9054b32c7c3adbe69fc1b2e8447ac741bbf37cc93b199848f30f8ac1",
+    "pkg/structure/functions_validation_test.go": "5709733166c225fee73831cceee191fe88f3d89b44945fc2c4088d8211fc05bf",
+    "pkg/structure/hotspots.go": "c322067df881a28afbe723f17fc4aecf1c8ab6aee9b64905fa567ad20deb8737",
+    "pkg/structure/hotspots_properties_test.go": "174fdd94716aace65a7717d06ea98c9575000b9254619fd18219067fb49d82c7",
+    "pkg/structure/hotspots_review_test.go": "f6ca746890a83c488baa1ca3efd7390a488c9cd7f7b27c8453ac9e60bdc8d7de",
+    "pkg/structure/hotspots_test.go": "e22849c2d1a36542686f72bd6cd57ce452deeb69958f43c638d27015a84c40e3",
+    "pkg/structure/structure.go": "d4d3f19667d17f4dbd4e9e74816538a56034be41e338d85cfd388256126934fc",
+    "pkg/structure/structure_test.go": "a7be2433ae089d9ed42b241c221b87c8b6853d4a04558deaa23eb4cbbd5f624e"
+  },
+  "rust_inputs_sha256": {
+    "prototypes/structural/worker/Cargo.lock": "d2040722bf517b52c31613434c3111bb2317db4f317603413a8767b89360c307",
+    "prototypes/structural/worker/Cargo.toml": "36df8e3126453c8a47561300fbc518782f7ac852c5a190edd11a830c7400ea8e",
+    "prototypes/structural/worker/src/functions.rs": "1b14006b3db08114d9d9166079ba04e47cc1bca478a11e88a985179c69e24a2a",
+    "prototypes/structural/worker/src/hotspots.rs": "0175eef638381c31072f8018263b4cb816c226e506f0e9c49b754fabf91cedc0",
+    "prototypes/structural/worker/src/main.rs": "a410672206052f69e7066e2a1b390a64fc64bd1ceb9976b56b857b1493ef9fde"
+  },
+  "harness_sha256": "2341c8a7b441371b4a2bfe180ab8150d4a37a1d86b3c9abf16b51037b342194d",
+  "versions": {
+    "go": "go version go1.26.6 darwin/arm64",
+    "cargo": "cargo 1.94.0 (85eff7c80 2026-01-15)",
+    "rustc": "rustc 1.94.0 (4a4ef493e 2026-03-02)"
+  },
+  "scope": "deterministic finite generated tests; not a proof of production correctness",
+  "results": [
+    {
+      "name": "rust-baseline",
+      "language": "rust",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 1.61,
+      "log": "rust-baseline.log"
+    },
+    {
+      "name": "worker-reverse-ties",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.524,
+      "log": "worker-reverse-ties.log",
+      "mutated_source_sha256": "4aa784efcbfb6209de4252cae5fa86b5021dd0b93acc67c29be3b56eabf5f138"
+    },
+    {
+      "name": "worker-top-nine",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.407,
+      "log": "worker-top-nine.log",
+      "mutated_source_sha256": "d4fe3a4e889fe39b0b9bf765782c258eda29ea2c100450e067422f0077aa88fe"
+    },
+    {
+      "name": "worker-bucket64-wrap",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.426,
+      "log": "worker-bucket64-wrap.log",
+      "mutated_source_sha256": "60eff922c7b403cc60011d5bd3c9bea264e4d85144db86903833be4a686e3396"
+    },
+    {
+      "name": "worker-max-as-min",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.394,
+      "log": "worker-max-as-min.log",
+      "mutated_source_sha256": "60482c2ce89d4e7d6fc5ed8752f1bef805e73c8e68c39b62f28002780bf87bf1"
+    },
+    {
+      "name": "worker-retain-before-count",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.449,
+      "log": "worker-retain-before-count.log",
+      "mutated_source_sha256": "d19ad70e597dcb02a1d25f92d2ad4d91491462e02648ac54cab5493195b5786e"
+    },
+    {
+      "name": "worker-strict-end-boundary",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.596,
+      "log": "worker-strict-end-boundary.log",
+      "mutated_source_sha256": "336a23728c8539924b0fcaa0b33f0309ac45b552e8aa302af533f281f44def54"
+    },
+    {
+      "name": "worker-zero-based-index",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.52,
+      "log": "worker-zero-based-index.log",
+      "mutated_source_sha256": "177660d3ae39e9fd6802906744b8fd3d75131f901298a96fa2b1f40ce0f0b381"
+    },
+    {
+      "name": "worker-skip-invalid-subtree",
+      "language": "rust",
+      "status": "detected",
+      "exit_code": 101,
+      "seconds": 0.555,
+      "log": "worker-skip-invalid-subtree.log",
+      "mutated_source_sha256": "459a5a9de1dcd532b57072ee6c9997f309b895592292a4a452a82a013072e47c"
+    },
+    {
+      "name": "rust-restored",
+      "language": "rust",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.505,
+      "log": "rust-restored.log"
+    },
+    {
+      "name": "go-baseline",
+      "language": "go",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.473,
+      "log": "go-baseline.log"
+    },
+    {
+      "name": "merge-reverse-values",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.243,
+      "log": "merge-reverse-values.log",
+      "mutated_source_sha256": "0726d27cfb95f75ebe8bbd2a6c2bc55be4c81cdbe0696661687e8d5ae4e9465d"
+    },
+    {
+      "name": "merge-reverse-path-ties",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.247,
+      "log": "merge-reverse-path-ties.log",
+      "mutated_source_sha256": "1eb9ec184dd8434cba6bf52acec869ea15d91ed791088d43a689db170b9a14f1"
+    },
+    {
+      "name": "merge-display-path-ties",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.266,
+      "log": "merge-display-path-ties.log",
+      "mutated_source_sha256": "c08ecec4a7ee9451ec9e65e5ad86d721847baecb98f72e6fe489742d19408545"
+    },
+    {
+      "name": "merge-reverse-index-ties",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.229,
+      "log": "merge-reverse-index-ties.log",
+      "mutated_source_sha256": "6607fce3928ac766744c1a0647477cfa7e9ff4a538fcf68344cdffe205d08974"
+    },
+    {
+      "name": "merge-last-file-histogram",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.22,
+      "log": "merge-last-file-histogram.log",
+      "mutated_source_sha256": "009998cd052105914479e2fcd59435fd765e8b8cfdd11fc9e9aa6fd76621d1e6"
+    },
+    {
+      "name": "merge-retained-count-only",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.227,
+      "log": "merge-retained-count-only.log",
+      "mutated_source_sha256": "0f9252d6092eab67ae70b4f9a1399b769772c8ffe601c11a7b43f12f4ec1dd67"
+    },
+    {
+      "name": "merge-mixed-syntax-cohorts",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.216,
+      "log": "merge-mixed-syntax-cohorts.log",
+      "mutated_source_sha256": "73638d3ad7a57a2ac47cc7007227494e92ad21f77dfa18b4daecdb166ca06489"
+    },
+    {
+      "name": "merge-top-nine",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.242,
+      "log": "merge-top-nine.log",
+      "mutated_source_sha256": "c77a8b15b0cff6f3bd1c040b2854cc9ac5995bbc6838fe8f7b6ede73cb7370fb"
+    },
+    {
+      "name": "merge-counter-overflow",
+      "language": "go",
+      "status": "detected",
+      "exit_code": 1,
+      "seconds": 0.395,
+      "log": "merge-counter-overflow.log",
+      "mutated_source_sha256": "c26ea757394e061ea8b70b4c3b723b285a0efa4b044fee7ed319b1bf82ce7a37"
+    },
+    {
+      "name": "go-restored",
+      "language": "go",
+      "status": "passed",
+      "exit_code": 0,
+      "seconds": 0.372,
+      "log": "go-restored.log"
+    }
+  ],
+  "source_binding": {
+    "go_input_membership_and_hashes_unchanged": true,
+    "rust_input_membership_and_hashes_unchanged": true,
+    "harness_unchanged": true,
+    "isolated_worker_restored": true
+  },
+  "repository_runtime_unchanged": true,
+  "mutants_detected": 17,
+  "mutants_total": 17
+}
