@@ -3,6 +3,7 @@ package scanner
 import (
 	"bytes"
 	"context"
+	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
 	"dircue/pkg/projects"
 	"dircue/pkg/registries"
@@ -17,6 +18,16 @@ import (
 // Project manifests have their own selection policy. In particular, XML
 // manifests remain visible even when XML is excluded from language statistics.
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	var declarationFile *declarations.Candidate
+	if opts.Declarations {
+		declarationFile = declarationCandidate(root, item)
+	}
+	if opts.DeclarationsOnly {
+		if err := ctx.Err(); err != nil {
+			return result{}, err
+		}
+		return result{path: item.path, skipped: true, declarationSelected: true, declarationFile: declarationFile}, nil
+	}
 	var registryFile *registries.Candidate
 	if opts.Registries {
 		registryFile = registryCandidate(root, item)
@@ -52,6 +63,8 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 		item.read = cachedFileReader(root, item)
 	}
 	value, err := analyzeFileBase(ctx, root, item, opts)
+	value.declarationFile = declarationFile
+	value.declarationSelected = opts.Declarations
 	value.discoveryFile = metadata
 	value.registryFile = registryFile
 	if err != nil && registryFile != nil {
@@ -94,6 +107,9 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	}
 	value.inventorySize = size
 	value.projectDocument = projects.Parse(item.path, data)
+	if declarationFile != nil && (projects.IsDotnet(item.path) || projects.IsJVM(item.path)) {
+		declarationFile.Legacy = &value.projectDocument
+	}
 	return value, nil
 }
 

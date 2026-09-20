@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0 (unreleased)
+
+- Add explicit project declaration profiling for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers. Report workspace membership, supported local relationships, toolchain requirements and named interfaces with their evidence and limitations.
+- Add `analyze declarations` for bounded manifest-only reads and `analyze all --declarations` for combined profiling. The standalone command avoids classifying unrelated file contents.
+- Add offline `compare` for two saved aggregate reports. Compare supported observations by module, separate provider and policy differences, and qualify incomplete coverage or missing provenance.
+- Use aggregate schema 1.4.0 only when declarations are requested, plus a separate comparison schema. Existing profiling commands keep their prior JSON contracts.
+
 ## 0.4.0 (release candidate)
 
 This candidate extends the optional profilers while preserving existing command

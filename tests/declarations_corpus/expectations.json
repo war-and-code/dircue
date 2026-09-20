@@ -1,0 +1,295 @@
+{
+  "schema": "dircue-declarations-corpus-expectations-1",
+  "method": "Selected facts transcribed from pinned manifest bytes before running the candidate; this is not a generated output golden.",
+  "cases": {
+    "cobra": {
+      "commit": "88b30ab89da2d0d0abb153818746c5a2d30eccec",
+      "url": "https://github.com/spf13/cobra",
+      "witnesses": {
+        "go.mod": [
+          "module github.com/spf13/cobra",
+          "go 1.15",
+          "github.com/spf13/pflag v1.0.9"
+        ]
+      },
+      "facts": [
+        {
+          "id": "go.mod",
+          "project": {
+            "name": "github.com/spf13/cobra"
+          }
+        },
+        {
+          "id": "go.mod",
+          "requirements": {
+            "kind": "go-language-minimum",
+            "value": "1.15",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "go.mod",
+          "references": {
+            "kind": "go-require",
+            "value": "github.com/spf13/pflag@v1.0.9",
+            "target_status": "external"
+          }
+        }
+      ]
+    },
+    "express": {
+      "commit": "cd7d4397c398a3f3ecadeaf9ef6ac1377bd414c4",
+      "url": "https://github.com/expressjs/express",
+      "witnesses": {
+        "package.json": [
+          "\"version\": \"5.1.0\"",
+          "\"node\": \">= 18\"",
+          "\"lint\": \"eslint .\""
+        ]
+      },
+      "facts": [
+        {
+          "id": "package.json",
+          "project": {
+            "name": "express",
+            "version": "5.1.0"
+          }
+        },
+        {
+          "id": "package.json",
+          "requirements": {
+            "kind": "npm-engine",
+            "value": "node >= 18"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "script",
+            "name": "lint"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "script",
+            "name": "test-ci"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "prerequisite",
+            "name": "node",
+            "target": ">= 18"
+          }
+        }
+      ],
+      "forbidden": [
+        "eslint .",
+        "mocha --require test/support/env"
+      ]
+    },
+    "flask": {
+      "commit": "2c1b30d0503cfb064f1cb252e6614a06915a362a",
+      "url": "https://github.com/pallets/flask",
+      "witnesses": {
+        "pyproject.toml": [
+          "name = \"Flask\"",
+          "version = \"3.1.2\"",
+          "requires-python = \">=3.9\"",
+          "build-backend = \"flit_core.buildapi\"",
+          "flask = \"flask.cli:main\""
+        ]
+      },
+      "facts": [
+        {
+          "id": "pyproject.toml",
+          "project": {
+            "name": "Flask",
+            "version": "3.1.2"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-requires-python",
+            "value": ">=3.9",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-build-backend",
+            "value": "flit_core.buildapi"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "interfaces": {
+            "kind": "python-console-script",
+            "name": "flask",
+            "target": "flask.cli:main"
+          }
+        }
+      ]
+    },
+    "ripgrep": {
+      "commit": "4649aa9700619f94cf9c66876e9549d83420e16c",
+      "url": "https://github.com/BurntSushi/ripgrep",
+      "witnesses": {
+        "Cargo.toml": [
+          "name = \"ripgrep\"",
+          "version = \"14.1.1\"",
+          "rust-version = \"1.72\"",
+          "path = \"crates/grep\"",
+          "path = \"crates/core/main.rs\""
+        ]
+      },
+      "facts": [
+        {
+          "id": "Cargo.toml",
+          "project": {
+            "name": "ripgrep",
+            "version": "14.1.1"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "requirements": {
+            "kind": "cargo-rust-version",
+            "value": "1.72"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "requirements": {
+            "kind": "cargo-edition",
+            "value": "2021"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "references": {
+            "kind": "cargo-workspace-member",
+            "target": "crates/grep/Cargo.toml",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "references": {
+            "kind": "cargo-path-dependency",
+            "target": "crates/grep/Cargo.toml",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "interfaces": {
+            "kind": "cargo-bin",
+            "name": "rg",
+            "target": "crates/core/main.rs"
+          }
+        },
+        {
+          "id": "Cargo.toml",
+          "interfaces": {
+            "kind": "cargo-build-script",
+            "target": "build.rs"
+          }
+        }
+      ],
+      "directory_warnings": [
+        "warning: HomebrewFormula: symlink or special file skipped (non_regular_file)"
+      ]
+    },
+    "roslyn": {
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "url": "https://github.com/dotnet/roslyn",
+      "witnesses": {
+        "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj": [
+          "$(NetRoslynSourceBuild);netstandard2.0",
+          "Microsoft.NET.Sdk",
+          "..\\..\\Core\\Portable\\Microsoft.CodeAnalysis.csproj"
+        ],
+        "src/Workspaces/MSBuild/Test/Resources/XmlSolutionFiles/InvalidXmlSolution.slnx": [
+          "This is an invalid SLNX"
+        ]
+      },
+      "facts": [
+        {
+          "id": "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
+          "requirements": {
+            "kind": "target-framework",
+            "value": "netstandard2.0",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
+          "requirements": {
+            "kind": "target-framework",
+            "value": "$(NetRoslynSourceBuild)",
+            "state": "unresolved"
+          }
+        },
+        {
+          "id": "src/Compilers/CSharp/Portable/Microsoft.CodeAnalysis.CSharp.csproj",
+          "references": {
+            "kind": "project-reference",
+            "target": "src/Compilers/Core/Portable/Microsoft.CodeAnalysis.csproj",
+            "target_status": "present"
+          }
+        }
+      ],
+      "expected_diagnostics": [
+        {
+          "path": "src/Workspaces/MSBuild/Test/Resources/XmlSolutionFiles/InvalidXmlSolution.slnx",
+          "code": "invalid-xml"
+        }
+      ]
+    },
+    "spring-framework": {
+      "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "url": "https://github.com/spring-projects/spring-framework",
+      "witnesses": {
+        "settings.gradle": [
+          "include \"spring-core\"",
+          "project.buildFileName = \"${project.name}.gradle\""
+        ],
+        "build.gradle": [
+          "id 'io.freefair.aspectj' version '8.13.1' apply false"
+        ]
+      },
+      "facts": [
+        {
+          "id": "settings.gradle",
+          "requirements": {
+            "kind": "build-evaluation",
+            "state": "unresolved"
+          }
+        },
+        {
+          "id": "settings.gradle",
+          "references": {
+            "kind": "gradle-module",
+            "value": "spring-core",
+            "state": "conditional"
+          }
+        },
+        {
+          "id": "build.gradle",
+          "requirements": {
+            "kind": "build-evaluation",
+            "state": "unresolved"
+          }
+        }
+      ],
+      "directory_warnings": [
+        "warning: framework-docs/modules/ROOT/examples/docs-src: symlink or special file skipped (non_regular_file)"
+      ]
+    }
+  }
+}

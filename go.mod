@@ -6,8 +6,10 @@ require (
 	github.com/boyter/scc/v4 v4.1.0
 	github.com/go-enry/go-enry/v2 v2.9.6
 	github.com/go-git/go-git/v5 v5.19.2
+	github.com/pelletier/go-toml/v2 v2.4.3
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1
 	github.com/spf13/cobra v1.10.2
+	golang.org/x/mod v0.39.0
 )
 
 require (
