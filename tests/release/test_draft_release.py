@@ -258,6 +258,12 @@ class AssemblyContracts(unittest.TestCase):
                 receipt = declarations.DeclarationReleaseContracts().receipt(version)
                 receipt['candidate_sha256'] = selected['binary_sha256']
                 (folder / 'declarations.json').write_text(json.dumps(receipt))
+                launcher_contracts = fixture_module('native_wheel_contract_fixture', 'test_wheel_release_smoke.py')
+                launcher = launcher_contracts.NativeWheelSmokeTests().receipt(version, platform)
+                wheel_receipt = json.loads((folder / 'wheels/wheel-provenance.json').read_bytes())
+                native_wheel = next(row for row in wheel_receipt['wheels'] if row['platform'] == launcher['wheel_tag_executed'])
+                launcher.update(installed_core_sha256=selected['binary_sha256'], wheel=native_wheel['name'], wheel_sha256=native_wheel['sha256'])
+                (folder / 'wheel-launcher.json').write_text(json.dumps(launcher))
         return incoming, worker_hash
 
     def assemble_fixture(self, incoming, output, version, worker_hash):
@@ -277,6 +283,27 @@ class AssemblyContracts(unittest.TestCase):
                 self.assertEqual(expected_count - 1, len(draft.checksums((base / 'out/SHA256SUMS').read_bytes())))
                 wanted = {'declarations-smoke-' + platform + '.json' for platform in draft.PLATFORMS} if version.startswith('0.5.') else set()
                 self.assertEqual(wanted, {name for name in receipt['assets'] if name.startswith('declarations-smoke-')})
+                for platform in receipt['platforms']:
+                    self.assertEqual(version.startswith('0.5.'), 'wheel_launcher' in platform)
+
+    def test_native_wheel_proof_is_required_and_source_bound(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            incoming, worker_hash = self.declaration_assembly_fixture(base, '0.5.0')
+            filename = incoming / 'candidate-linux-amd64/wheel-launcher.json'
+            raw = filename.read_bytes()
+            filename.unlink()
+            with self.assertRaises(FileNotFoundError):
+                self.assemble_fixture(incoming, base / 'missing-launcher', '0.5.0', worker_hash)
+            for index, (field, value) in enumerate([
+                    ('wheel_sha256', 'e' * 64), ('installed_core_sha256', 'f' * 64), ('version', '0.4.0'),
+                    ('harness_sha256', {}), ('checks', []), ('source_removed_before_compare', False)]):
+                changed = json.loads(raw)
+                changed[field] = value
+                filename.write_text(json.dumps(changed))
+                with self.subTest(field=field), self.assertRaises(ValueError):
+                    self.assemble_fixture(incoming, base / ('tampered-launcher-' + str(index)), '0.5.0', worker_hash)
+            filename.write_bytes(raw)
 
     def test_native_smoke_uses_extracted_core_and_version_gate(self):
         # This checks orchestration only; the helper has separate real-core tests.

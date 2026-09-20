@@ -118,6 +118,8 @@ jobs:
         run: |
           python scripts/release.py --version "$RELEASE_VERSION" --target ${{ matrix.core }} --output .cache/draft-release/platform/core
           python scripts/wheels.py --release-dir .cache/draft-release/platform/core --output .cache/draft-release/platform/wheels
+      - name: Install and test the native wheel console launcher offline
+        run: python scripts/wheel_release_smoke.py --release-dir .cache/draft-release/platform/core --wheel-dir .cache/draft-release/platform/wheels --platform ${{ matrix.platform }} --version "$RELEASE_VERSION" --output .cache/draft-release/platform/wheel-launcher.json
       - name: Package native worker and complete dependency sources
         run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version "$RELEASE_VERSION" --smoke-test --output .cache/draft-release/platform/worker
       - name: Test actual packaged core and worker together across 20 languages
