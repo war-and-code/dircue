@@ -1,6 +1,6 @@
 # Metadata discovery
 
-Added in the 0.4.0 candidate.
+Added in 0.4.0.
 
 ```sh
 dircue analyze discovery --source directory --json /path/to/content
@@ -79,4 +79,4 @@ Use the evidence to choose explicit follow-ups by project or subtree, retaining
 relevant shared configuration. Small manifests beside large datasets must not
 disappear behind byte percentages. Unknown formats and empty source counts
 are not a guarantee that further analysis is unnecessary. See the
-[staged-analysis guide](STAGED_ANALYSIS.md) and [roadmap](ROADMAP.md).
+[staged-analysis guide](STAGED_ANALYSIS.md) and [roadmap](https://github.com/war-and-code/dircue/issues/41).

@@ -1,6 +1,6 @@
 # Static project-reference graphs
 
-Added in the 0.4.0 candidate.
+Added in 0.4.0.
 
 ```sh
 dircue analyze graph --source directory --json /path/to/checkout
@@ -62,4 +62,4 @@ succeeds or that all effective project references are known.
 Cycles and high fan-in can help choose where to investigate architecture or
 build behavior. They are observations, not automatic defects or a universal
 quality grade. The [project guide](PROJECTS.md) describes parser limits, and
-the [roadmap](ROADMAP.md) records broader relationship and hotspot proposals.
+the [roadmap](https://github.com/war-and-code/dircue/issues/41) records broader relationship and hotspot proposals.

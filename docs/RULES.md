@@ -1,6 +1,6 @@
 # Caller-supplied observation rules
 
-Added in the 0.4.0 candidate.
+Added in 0.4.0.
 
 Rules add factual observations about selected files. Supply a JSON ruleset explicitly:
 

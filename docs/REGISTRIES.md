@@ -1,6 +1,6 @@
 # Package-source declarations
 
-Added in the 0.4.0 candidate.
+Added in 0.4.0.
 
 Read selected NuGet and npm configuration explicitly:
 
