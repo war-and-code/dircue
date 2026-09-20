@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.6.1 (2026-09-20)
 
 - Reduce allocation in bounded file reads using capped size hints, while preserving read limits and handling files that grow or shrink. [Measurements](tests/performance/bounded_reader/README.md) record workload-specific speed gains and memory tradeoffs.
 - Strengthen aggregation tests with independent full-population references and mutation checks. Add optional checked Bend models with explicit proof boundaries; Bend is not a runtime or ordinary CI dependency.

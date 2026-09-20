@@ -21,7 +21,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.6.0"
+var Version = "0.6.1"
 
 type options struct {
 	json                   bool

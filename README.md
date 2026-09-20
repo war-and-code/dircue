@@ -6,6 +6,8 @@ Dircue identifies languages, maps declared projects and their relationships, and
 
 Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
 
+Version 0.6.1 reduces allocation during bounded reads and strengthens aggregation tests, preserving existing CLI and report contracts. The [performance evidence](tests/performance/bounded_reader/README.md) records workload-specific improvements and memory tradeoffs; the [release notes](docs/releases/0.6.1.md) summarize the patch.
+
 Version 0.6.0 adds opt-in [file format evidence](docs/FORMATS.md) and [function hotspot distributions](docs/HOTSPOTS.md). Inspect mixed data and artifact directories, or find large and highly branched function spaces with their source locations and measurement limits. [Saved-report comparison](docs/COMPARISON.md) includes these observations.
 
 The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
@@ -252,8 +254,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.5.0 --output dist/release-0.5.0
-python3 scripts/wheels.py --release-dir dist/release-0.5.0 --output dist/wheels-0.5.0
+python3 scripts/release.py --version 0.6.1 --output dist/release-0.6.1
+python3 scripts/wheels.py --release-dir dist/release-0.6.1 --output dist/wheels-0.6.1
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
