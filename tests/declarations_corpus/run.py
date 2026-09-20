@@ -21,7 +21,8 @@ def sha(data):
 
 
 def git(root, *args):
-    return subprocess.check_output(['git', '-C', str(root), *args])
+    env = {**os.environ, 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull, 'GIT_TERMINAL_PROMPT': '0'}
+    return subprocess.check_output(['git', '-C', str(root), '-c', 'core.hooksPath=' + os.devnull, '-c', 'core.fsmonitor=false', *args], env=env)
 
 
 def save(path, data):
@@ -52,6 +53,9 @@ def facts(module, expected):
     projects = {p['id']: p for p in module['projects']}
     if len(projects) != len(module['projects']):
         errors.append('duplicate project IDs')
+    for segment in expected.get('excluded_manifest_segments', []):
+        if any(segment in identity.split('/') for identity in projects):
+            errors.append('excluded manifest segment retained: ' + segment)
     for fact in expected.get('facts', []):
         project = projects.get(fact['id'])
         if project is None:
@@ -61,8 +65,19 @@ def facts(module, expected):
             if field == 'id':
                 continue
             rows = [project] if field == 'project' else project.get(field, [])
-            if not any(all(row.get(k) == v for k, v in subset.items()) for row in rows):
+            if not any(all(k not in row if v is None else row.get(k) == v for k, v in subset.items()) for row in rows):
                 errors.append('missing fact: ' + json.dumps(fact, sort_keys=True))
+    for fact in expected.get('forbidden_facts', []):
+        project = projects.get(fact['id'])
+        if project is None:
+            errors.append('missing project for forbidden fact: ' + fact['id'])
+            continue
+        for field, subset in fact.items():
+            if field == 'id':
+                continue
+            rows = [project] if field == 'project' else project.get(field, [])
+            if any(all(k not in row if v is None else row.get(k) == v for k, v in subset.items()) for row in rows):
+                errors.append('unsupported inferred fact: ' + json.dumps(fact, sort_keys=True))
     for expected_diagnostic in expected.get('expected_diagnostics', []):
         if not any(all(d.get(k) == v for k, v in expected_diagnostic.items()) for d in module['diagnostics']):
             errors.append('expected diagnostic lost: ' + json.dumps(expected_diagnostic, sort_keys=True))
@@ -129,6 +144,7 @@ def main():
     parser.add_argument('--build-receipt', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--corpus', type=Path, default=ROOT / '.cache/corpus')
+    parser.add_argument('--case', action='append', dest='cases', help='Run only the named case; repeat to select multiple cases. Default: every case.')
     args = parser.parse_args()
     binary = args.candidate.resolve()
     receipt_raw = args.build_receipt.read_bytes()
@@ -141,9 +157,15 @@ def main():
     save(output / 'build.json', receipt_raw)
     expected_raw = (HERE / 'expectations.json').read_bytes()
     expected = json.loads(expected_raw)['cases']
+    selected_cases = set(args.cases or [*expected, 'dircue-selected-working-tree', 'multi-workspace'])
+    unknown = selected_cases - {*expected, 'dircue-selected-working-tree', 'multi-workspace'}
+    if unknown:
+        parser.error('unknown case: ' + ', '.join(sorted(unknown)))
     cases = []
     # Verify pin, cleanliness and literal witnesses before any candidate run.
     for name, spec in expected.items():
+        if name not in selected_cases:
+            continue
         path = args.corpus.resolve() / name
         assert git(path, 'rev-parse', 'HEAD').decode().strip() == spec['commit'], name + ': incorrect commit'
         assert not git(path, 'status', '--porcelain=v1', '--untracked-files=all'), name + ': dirty input'
@@ -154,27 +176,29 @@ def main():
             assert all(fragment in text for fragment in fragments), name + ': manifest witness differs'
             witnesses[filename] = sha(data)
         cases.append((name, path, spec, ['git', 'directory'], {'commit': spec['commit'], 'url': spec['url'], 'witness_sha256': witnesses, 'inventory': inventory(path)}))
-    own = output / 'dircue-selected-working-tree'
-    own.mkdir()
-    selected = git(ROOT, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0')
-    for raw in sorted(set(selected)):
-        if not raw:
-            continue
-        relative = os.fsdecode(raw)
-        source = ROOT / relative
-        target = own / relative
-        if source.is_symlink():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.symlink_to(os.readlink(source))
-        elif source.is_file():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(source, target)
-    own_spec = {'facts': [{'id': 'go.mod', 'project': {'name': 'dircue'}}, {'id': 'go.mod', 'references': {'kind': 'go-local-replacement', 'target': 'third_party/go-enry/go.mod', 'target_status': 'present'}}]}
-    cases.append(('dircue-selected-working-tree', own, own_spec, ['directory'], {'selection': 'working-tree tracked and nonignored untracked files; no .git or ignored .cache', 'inventory': inventory(own)}))
-    synth = output / 'synthetic-input'
-    synth.mkdir()
-    synth_spec = synthetic(synth)
-    cases.append(('multi-workspace', synth, synth_spec, ['directory'], {'selection': 'hand-authored mixed workspace and malformed npm manifest', 'inventory': inventory(synth)}))
+    if 'dircue-selected-working-tree' in selected_cases:
+        own = output / 'dircue-selected-working-tree'
+        own.mkdir()
+        selected = git(ROOT, 'ls-files', '-z', '--cached', '--others', '--exclude-standard').split(b'\0')
+        for raw in sorted(set(selected)):
+            if not raw:
+                continue
+            relative = os.fsdecode(raw)
+            source = ROOT / relative
+            target = own / relative
+            if source.is_symlink():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                target.symlink_to(os.readlink(source))
+            elif source.is_file():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(source, target)
+        own_spec = {'facts': [{'id': 'go.mod', 'project': {'name': 'dircue'}}, {'id': 'go.mod', 'references': {'kind': 'go-local-replacement', 'target': 'third_party/go-enry/go.mod', 'target_status': 'present'}}]}
+        cases.append(('dircue-selected-working-tree', own, own_spec, ['directory'], {'selection': 'working-tree tracked and nonignored untracked files; no .git or ignored .cache', 'inventory': inventory(own)}))
+    if 'multi-workspace' in selected_cases:
+        synth = output / 'synthetic-input'
+        synth.mkdir()
+        synth_spec = synthetic(synth)
+        cases.append(('multi-workspace', synth, synth_spec, ['directory'], {'selection': 'hand-authored mixed workspace and malformed npm manifest', 'inventory': inventory(synth)}))
     results, all_errors = [], []
     for name, path, spec, sources, provenance in cases:
         canonical = None
