@@ -16,6 +16,7 @@ import zipfile
 
 import release
 import function_release_smoke
+import declarations_release_smoke
 import structural_worker_release as worker_release
 import wheels
 
@@ -189,6 +190,9 @@ def native_smoke(directory, platform, version, commit):
         if function_release_smoke.functions_required(version):
             receipt = function_release_smoke.run(folder / executable, folder / native_worker, version)
             (directory / 'functions.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
+        if declarations_release_smoke.declarations_required(version):
+            receipt = declarations_release_smoke.run(folder / executable, version)
+            (directory / 'declarations.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
 
 
 def assemble(input_dir, output, version, commit, notes):
@@ -249,6 +253,10 @@ def assemble(input_dir, output, version, commit, notes):
             raw_functions = (folder / 'functions.json').read_bytes()
             function_release_smoke.validate_receipt(json.loads(raw_functions), version, core_row['binary_sha256'], wp['binary_sha256'])
             add('function-smoke-' + platform + '.json', raw_functions)
+        if declarations_release_smoke.declarations_required(version):
+            raw_declarations = (folder / 'declarations.json').read_bytes()
+            declarations_release_smoke.validate_receipt(json.loads(raw_declarations), version, core_row['binary_sha256'])
+            add('declarations-smoke-' + platform + '.json', raw_declarations)
         validations.append({'platform': platform, 'core_sha256': core_row['binary_sha256'], 'worker_sha256': wp['binary_sha256'], 'wheels': len(receipt['wheels'])})
     checked(sum(row['wheels'] for row in validations) == 7, 'expected seven platform wheels')
     receipt = {'schema_version': '1.0.0', 'version': version, 'commit': commit, 'notes_sha256': digest(notes),

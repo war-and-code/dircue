@@ -1,0 +1,12 @@
+[project]
+name="suite"
+version="1.0.0"
+requires-python=">=3.11"
+dependencies=["common"]
+[tool.uv]
+package=false
+[tool.uv.workspace]
+members=["packages/*","services/*"]
+exclude=["packages/ignored"]
+[tool.uv.sources]
+common={workspace=true}

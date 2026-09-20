@@ -21,7 +21,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.4.0"
+var Version = "0.5.0-dev"
 
 type options struct {
 	json                   bool
@@ -38,6 +38,7 @@ type options struct {
 	metricsMaxFileBytes    int64
 	metricsFiles           bool
 	projects               bool
+	declarations           bool
 	discovery              bool
 	registries             bool
 	graph                  bool
@@ -91,10 +92,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, rules, registries, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, rules, registries, metrics, projects, declarations, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "rules", "registries", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "rules", "registries", "metrics", "projects", "declarations", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -119,6 +120,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.declarations, "declarations", false, "Read declared project identities, workspace relationships, requirements, and interfaces")
 			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet.Config and .npmrc declarations; disclose qualified names and sanitized origins")
 			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
@@ -134,6 +136,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		analyze.AddCommand(command)
 	}
 	root.AddCommand(analyze)
+	root.AddCommand(newCompareCommand(opts))
 	return root.ExecuteContext(ctx)
 }
 
@@ -242,6 +245,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Detectors:         hooks,
 		Metrics:           metrics,
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
+		Declarations:      mode == "declarations" || (mode == "all" && opts.declarations),
+		DeclarationsOnly:  mode == "declarations",
 		Discovery:         mode == "discovery" || opts.discovery,
 		DiscoveryOnly:     mode == "discovery",
 		Rules:             ruleProgram,
@@ -264,6 +269,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			return err
 		}
 		report.SchemaVersion = profile.EnhancedSchemaVersion
+	}
+	if report.Declarations != nil {
+		report.SchemaVersion = profile.DeclarationsSchemaVersion
 	}
 	for _, warning := range report.Warnings {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
@@ -292,6 +300,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Ecosystems)
 	case "projects":
 		return writeProjects(out, report.Projects)
+	case "declarations":
+		return writeProjectDeclarations(out, report.Declarations)
 	case "discovery":
 		return writeDiscovery(out, report.Discovery)
 	case "rules":
@@ -346,6 +356,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			if err := writeFindings(out, section.findings); err != nil {
 				return err
 			}
+		}
+		if err := writeProjectDeclarations(out, report.Declarations); err != nil {
+			return err
 		}
 		if report.Projects != nil {
 			if _, err := fmt.Fprintln(out, "\nProjects:"); err != nil {

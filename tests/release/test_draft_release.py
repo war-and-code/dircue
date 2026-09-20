@@ -1,3 +1,4 @@
+import copy
 import importlib.util
 import io
 import json
@@ -208,6 +209,144 @@ class AssemblyContracts(unittest.TestCase):
                 bad.write_text(json.dumps(smoke))
                 with self.assertRaisesRegex(ValueError, 'native smoke'):
                     draft.assemble(incoming, base / 'bad', '0.1.0', '0' * 40, b'notes')
+
+    def declaration_assembly_fixture(self, base, version):
+        # Header binaries and synthetic smoke receipts test assembly contracts.
+        # They are not native-execution evidence and never leave this temp tree.
+        def fixture_module(name, filename):
+            spec = importlib.util.spec_from_file_location(name, ROOT / 'tests/release' / filename)
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            return module
+        archives = fixture_module('declaration_archive_fixtures', 'test_wheels.py')
+        functions = fixture_module('declaration_function_fixtures', 'test_function_smoke.py')
+        declarations = fixture_module('declaration_receipt_fixtures', 'test_declarations_release_smoke.py')
+        incoming = base / 'input'
+        incoming.mkdir()
+        worker_hash = 'b' * 64
+        for platform in draft.PLATFORMS:
+            folder = incoming / ('candidate-' + platform)
+            folder.mkdir()
+            prov = archives.fixture_release(folder / 'core')
+            selected = next(row for row in prov['archives'] if row['os'] + '-' + row['arch'] == platform)
+            for row in prov['archives']:
+                if row != selected:
+                    (folder / 'core' / row['name']).unlink()
+            old_name = selected['name']
+            selected['name'] = old_name.replace('0.1.0', version)
+            (folder / 'core' / old_name).rename(folder / 'core' / selected['name'])
+            prov.update(version=version, archives=[selected], git_tree='fixture-tree')
+            prov['build_flags'] = [flag.replace('Version=0.1.0', 'Version=' + version) for flag in prov['build_flags']]
+            (folder / 'core/provenance.json').write_text(json.dumps(prov))
+            (folder / 'core/SHA256SUMS').write_text(selected['sha256'] + '  ' + selected['name'] + '\n')
+            draft.wheels.package(folder / 'core', folder / 'wheels')
+            (folder / 'worker').mkdir()
+            suffix = '.zip' if platform.startswith('windows') else '.tar.gz'
+            name = 'dircue-structural-worker_' + version + '_' + platform + suffix
+            (folder / 'worker' / name).write_bytes(b'worker validation is tested separately')
+            (folder / 'worker' / (name + '.sha256')).write_text(draft.digest((folder / 'worker' / name).read_bytes()) + '  ' + name + '\n')
+            breadth = {'passed': True, 'fixture_count': 21, 'language_count': 20,
+                       'candidate_sha256': selected['binary_sha256'], 'worker_sha256': worker_hash,
+                       'harness_sha256': draft.digest((ROOT / 'tests/structural_breadth/run.py').read_bytes()),
+                       'manifest_sha256': draft.digest((ROOT / 'tests/structural_breadth/fixtures.json').read_bytes())}
+            (folder / 'breadth.json').write_text(json.dumps(breadth))
+            if draft.function_release_smoke.functions_required(version):
+                receipt = functions.FunctionReleaseContracts().receipt(version)
+                receipt.update(candidate_sha256=selected['binary_sha256'], worker_sha256=worker_hash)
+                (folder / 'functions.json').write_text(json.dumps(receipt))
+            if draft.declarations_release_smoke.declarations_required(version):
+                receipt = declarations.DeclarationReleaseContracts().receipt(version)
+                receipt['candidate_sha256'] = selected['binary_sha256']
+                (folder / 'declarations.json').write_text(json.dumps(receipt))
+        return incoming, worker_hash
+
+    def assemble_fixture(self, incoming, output, version, worker_hash):
+        texts = {'LICENSE': b'MIT\n', 'THIRD_PARTY_NOTICES.md': b'Dependency licenses\n', 'README.md': b'# dircue\n'}
+        def git(_root, operation, *args):
+            return b'fixture-tree\n' if operation == 'rev-parse' else texts[args[0].split(':', 1)[1]]
+        with mock.patch.object(draft.release, 'git', side_effect=git), mock.patch.object(draft, 'verify_worker', return_value=({'binary_sha256': worker_hash}, {})):
+            return draft.assemble(incoming, output, version, '0' * 40, b'notes')
+
+    def test_declaration_receipts_add_five_assets_only_from_v050(self):
+        for version, expected_count in [('0.4.0', 39), ('0.5.0-rc.1', 44), ('0.5.0', 44)]:
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                incoming, worker_hash = self.declaration_assembly_fixture(base, version)
+                receipt = self.assemble_fixture(incoming, base / 'out', version, worker_hash)
+                self.assertEqual(expected_count, len(list((base / 'out').iterdir())))
+                self.assertEqual(expected_count - 1, len(draft.checksums((base / 'out/SHA256SUMS').read_bytes())))
+                wanted = {'declarations-smoke-' + platform + '.json' for platform in draft.PLATFORMS} if version.startswith('0.5.') else set()
+                self.assertEqual(wanted, {name for name in receipt['assets'] if name.startswith('declarations-smoke-')})
+
+    def test_native_smoke_uses_extracted_core_and_version_gate(self):
+        # This checks orchestration only; the helper has separate real-core tests.
+        for version in ('0.4.0', '0.5.0-rc.1'):
+            with self.subTest(version=version), tempfile.TemporaryDirectory() as temp:
+                base = Path(temp)
+                incoming, worker_hash = self.declaration_assembly_fixture(base, version)
+                platform = 'linux-amd64'
+                folder = incoming / ('candidate-' + platform)
+                expected = json.loads((folder / 'core/provenance.json').read_bytes())['archives'][0]['binary_sha256']
+                declarations_path = folder / 'declarations.json'
+                declarations_path.unlink(missing_ok=True)
+                seen = []
+                def check_core(binary, selected_version):
+                    self.assertEqual(version, selected_version)
+                    self.assertEqual('dircue', binary.name)
+                    self.assertEqual(expected, draft.digest(binary.read_bytes()))
+                    seen.append(binary)
+                    return {'test-only-orchestration': True}
+                worker_payload = {'dircue-structural-worker': b'worker-header-fixture'}
+                with mock.patch.object(draft, 'verify_worker', return_value=({'binary_sha256': worker_hash}, worker_payload)), \
+                     mock.patch.object(draft.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, f'dircue {version}\n'.encode(), b'')), \
+                     mock.patch.object(draft.function_release_smoke, 'run', return_value={'function-orchestration-only': True}), \
+                     mock.patch.object(draft.declarations_release_smoke, 'run', side_effect=check_core):
+                    draft.native_smoke(folder, platform, version, '0' * 40)
+                required = version.startswith('0.5.')
+                self.assertEqual(required, declarations_path.exists())
+                self.assertEqual(int(required), len(seen))
+                if required:
+                    self.assertEqual({'test-only-orchestration': True}, json.loads(declarations_path.read_bytes()))
+
+    def test_all_five_declaration_receipts_are_mandatory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            incoming, worker_hash = self.declaration_assembly_fixture(base, '0.5.0')
+            for platform in draft.PLATFORMS:
+                receipt = incoming / ('candidate-' + platform) / 'declarations.json'
+                original = receipt.read_bytes()
+                receipt.unlink()
+                with self.subTest(platform=platform), self.assertRaises(FileNotFoundError):
+                    self.assemble_fixture(incoming, base / ('missing-' + platform), '0.5.0', worker_hash)
+                self.assertFalse((base / ('missing-' + platform)).exists())
+                receipt.write_bytes(original)
+
+    def test_declaration_assembly_rejects_tampered_receipts(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            incoming, worker_hash = self.declaration_assembly_fixture(base, '0.5.0')
+            target = incoming / ('candidate-' + draft.PLATFORMS[0]) / 'declarations.json'
+            original = json.loads(target.read_bytes())
+            mutations = {
+                'version': lambda r: r.update(version='0.4.0'),
+                'source': lambda r: r.update(source_sha256={}),
+                'fixture': lambda r: r.update(fixture_sha256={}),
+                'core_hash': lambda r: r.update(candidate_sha256='f' * 64),
+                'checks_missing': lambda r: r['checks'].remove('offline_compare_after_source_removal'),
+                'checks_duplicate': lambda r: r['checks'].append('one_eight_workers'),
+                'facts': lambda r: r['observed_facts'].update(java_release='8'),
+                'passed': lambda r: r.update(passed=False),
+            }
+            for name, mutate in mutations.items():
+                changed = copy.deepcopy(original)
+                mutate(changed)
+                target.write_text(json.dumps(changed))
+                with self.subTest(case=name), self.assertRaisesRegex(ValueError, 'declaration smoke'):
+                    self.assemble_fixture(incoming, base / ('bad-' + name), '0.5.0', worker_hash)
+                self.assertFalse((base / ('bad-' + name)).exists())
+            target.write_bytes(b'{')
+            with self.assertRaises(ValueError):
+                self.assemble_fixture(incoming, base / 'malformed', '0.5.0', worker_hash)
 
     def test_downloaded_draft_assets_are_verified_and_mismatch_fails(self):
         with tempfile.TemporaryDirectory() as temp:

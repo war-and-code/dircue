@@ -4,6 +4,10 @@ import "github.com/spf13/cobra"
 
 func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	switch mode {
+	case "declarations":
+		cmd.Short = "Read static project declarations and named interfaces"
+		cmd.Long = "Read bounded npm, Go, Python/uv, Cargo, and supported .NET/JVM manifests from the selected source. Describe workspace membership, local references, requirements, and named interfaces without executing package managers or build scripts. Standalone declaration analysis does not classify unrelated file contents. Inspect declaration states, target status, diagnostics, and coverage before interpreting absence."
+		cmd.Example = "  dircue analyze declarations --json /checkout\n  dircue analyze declarations --source git --rev HEAD --json /checkout\n  dircue analyze all --declarations --discovery --json /checkout"
 	case "discovery":
 		cmd.Short = "Inventory file metadata and candidate manifests or artifacts"
 		cmd.Long = "Inventory regular-file metadata, including vendor and data paths, without reading source payloads. Filename hints do not validate formats or parse manifests. Git storage and bounded attributes may still be read. Inspect status and omissions before treating counts as complete."

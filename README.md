@@ -4,12 +4,15 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
+Development for 0.5.0 adds opt-in [project declarations and interfaces](docs/DECLARATIONS.md) for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers. It also adds [offline comparison of saved profiles](docs/COMPARISON.md). Existing commands keep their output contracts.
+
 Version 0.4.0 adds metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
+dircue analyze declarations --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
@@ -100,7 +103,7 @@ Single-file mode follows Linguist's separate inspection layout, including langua
 
 ## CLI compatibility
 
-Flags can appear before or after the path. With no path, the current directory is used. Use `--` to disambiguate a path named `analyze` or beginning with `-`.
+Flags can appear before or after the path. With no path, the current directory is used. Use `--` to disambiguate a path named `analyze` or `compare`, or beginning with `-`.
 
 | Flag | Behavior |
 | --- | --- |
@@ -147,6 +150,8 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 `analyze projects` reports .NET and Maven declarations, conservative Gradle observations, and filename-based project discovery for other ecosystems. It records references, configuration candidates, and file/byte composition. Dynamic build expressions remain conditional or unresolved; a present reference target does not establish a working build. Directory-based file attribution reports ambiguous and unassigned files. See the [project guide](docs/PROJECTS.md).
 
+`analyze declarations` reads supported manifests for project identities, workspace relationships, requirements and named interfaces without running repository code. Standalone use avoids reading unrelated file contents; `analyze all --declarations` adds the same module to a broader profile. Script bodies are withheld. See the [declaration guide](docs/DECLARATIONS.md) for supported syntax and limits.
+
 `analyze structure` sends selected source in 20 supported languages to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies syntax observations and BCA metrics. Java and C# also receive custom declaration counts; other languages expose syntax-node and recovery counts alongside BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [capability matrix](docs/CAPABILITIES.md) for language and ecosystem coverage, and the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
 
 For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md), adding `--source directory` when you want current files rather than the committed Git tree. It inventories file metadata and candidate manifests without reading source payloads. Then choose project, line, or structural analysis from that evidence. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes a consumer for the earlier projects-report schema and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
@@ -172,6 +177,7 @@ Select combinations explicitly, such as `analyze all --discovery --graph` or `an
 | Metrics, without projects or structure | `1.1.0` |
 | Projects or structure, with optional metrics | `1.2.0` |
 | Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
+| Project declarations, alone or with other modules | `1.4.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
@@ -196,6 +202,14 @@ Committed Git tree or directory
               |
    deterministic text or JSON report
 ```
+
+Saved reports can be compared without rescanning their source directories:
+
+```sh
+dircue compare before.json after.json --json
+```
+
+Use aggregate reports such as those from `analyze all --json`. Comparison reports distinguish observation changes from changes in provider or selection policy; incomplete coverage limits what absence can establish. See [saved-report comparison](docs/COMPARISON.md).
 
 ## Attributes and boundaries
 
