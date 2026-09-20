@@ -1,0 +1,56 @@
+{
+  "base_commit": "18d2c3ab40e65230e77e76e867ec16d49f2cef4d",
+  "source_sha256": {
+    "pkg/packageevidence/associate.go": "b830b5d4dbe17e6711e1a54836cc224ac62bed77585ca0e53e98da4018a5b887",
+    "pkg/packageevidence/fields.go": "fbe6e58752b45edb2b64e9cd83ae74ec0e036e3f17a30596fadb9d38e51d1258",
+    "pkg/packageevidence/fields_test.go": "a128eacbc747600e6b3f5ff3daf670fc229740f2b0ca02efe488015c23171169",
+    "pkg/packageevidence/fuzz_test.go": "9c8447f170e66306b018412a25b295fa00fc971c670d4cd22eb0f3f1c5939302",
+    "pkg/packageevidence/hardening_test.go": "479163c4badd724b9e4d626758524b6c25bdacd60c961e19a1e044461e53d554",
+    "pkg/packageevidence/import.go": "1a34290a7ead1dc15fbd41f0e00be368fe235bc4b06d1d8c17af200d127c316f",
+    "pkg/packageevidence/import_test.go": "41f333d7fd33bdfa5b6772b00f0e969b920e770ba2687f96a6da40ce029208f0",
+    "pkg/packageevidence/json.go": "3fc6951ac41e99d877731153abe5762a65b376db9539ab9bd4b1d976cbd49b34",
+    "pkg/packageevidence/types.go": "24a4bce04aed429402deb10167d375ba26798f1d2de00437a2f3da9d5e097706"
+  },
+  "go_mod_sha256": "b5535c1379d9b9929577d9f8efa20a8f26731488dc8e46646f21b0a4f1fa2cf6",
+  "go_sum_sha256": "4b42506ce769e9f9d887e62010ae64c185b71a0466bdd72aebbc4bda499c4ce1",
+  "binaries": {
+    ".cache/import-field-tables/after": "b911594d0b9a1ccdcea7d0057368b7a197a9a560656daaaef4aaf48fd1e602a0",
+    ".cache/import-field-tables/warm-after": "c4e1de419f55da7ec9149dd6812115ec4c6b21e14fa4882340196fa3758506fd"
+  },
+  "build_commands": [
+    "CGO_ENABLED=0 GOMAXPROCS=2 go build -mod=readonly -trimpath -buildvcs=false -o .cache/import-field-tables/after tests/packageevidence/field-table-performance/contract.go",
+    "CGO_ENABLED=0 GOMAXPROCS=2 go build -mod=readonly -trimpath -buildvcs=false -o .cache/import-field-tables/warm-after ./tests/packageevidence/bench"
+  ],
+  "baseline_binary_source_match": "before-inputs.json and warm-before.json verify importer production sources identical to retained baseline benchmark sources",
+  "profile_basis": "main .cache/next-sprint/import-profile/large-no-poll-cpu.pb.gz and large-heap.pb.gz; exclude initial polluted CPU capture",
+  "files": {
+    "after-build-info.txt": "9885ebd52c398943f11baa7fb513db33249d7fd6252c7ba318e50b959c06a4a7",
+    "before-inputs.json": "e4bcae07485487b1b951920e8151ef5766c49186a2322429718834c371fc8733",
+    "cases.json": "ea23498af85fd1e451d3134008c46b7b399c2a1327c01a84452d948e74a8025c",
+    "cold-tiny.json.gz": "ea7fe112880a93d75c01f8472a6fb6a1ccc17f725f092bbfa8a14b6bd3d935d5",
+    "contracts.json.gz": "8664497675793000d057b3ae17cd21cf254bb7a167d04653d6dc7c0db4576e33",
+    "differential_test.go.txt": "b7e3a82ea2d9aa3ac341e0b447ebf7b6e68c01b2a748b96b4e3a1e705112c2c0",
+    "fuzz.log": "d4559eba387a04c0a86eef19c8da1a3783756ae56638c8f1ccc174c27e454dfd",
+    "host.txt": "a366114717938d2143f8beab0d2606dc4a0c062d92eeb80bcd24e906dfe0dc75",
+    "race.log": "32fe4eea42a2de2ca2f640da04d975e57eb455151226067e2bac1569df414f38",
+    "rss-repeat.json.gz": "fe04154cc4aad643248b91a624c38d8d13823db742cf1ae44a6f5d5bf30b85d3",
+    "shape-proof.json": "592b035cba2a7efb389d9b6293972399ba81255346599cf99e101063b31c6f8a",
+    "summary.json": "831f3c9d3811376d2588ca590832161040d5653dec6a5fbd8a0cf06d7e927ffe",
+    "tiny-document-alias.json": "997b2261c233bc96d84cc5fd7f041f6c921d3db3bb91e77d91c98dcc1670d47b",
+    "tiny-schema-alias.json": "38de418ffa8ab5163c46979d40c08f29c8cf56c97b4b092a62e5eaa9b07bb0ee",
+    "tiny-unicode-source-alias.json": "2b9714d0a8fd645c7ed0cff8923b84552314f43d94235934c4d853561a4029f7",
+    "tiny-unknown-field.json": "3086f9cc0db3e91767aa3a2599e48f53ac3c13a19d5a22c7072e7222b76b6915",
+    "tiny-valid.json": "1bab80c8f48cc45310ac3c17d59801251f82400be10987220d459c47a5e119ca",
+    "vet.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "warm-20000.json.gz": "d1e74aa0216763ba874165fdc3952fdb2bd3cb2f1b5b37b36c62f47ed614c32f",
+    "warm-after-build-info.txt": "1598e2b4fdfb88d90fb9e77fa96ea098b0b61d54a6494e7b0ad840be95637306",
+    "warm-before.json": "1a56f2b3e1719c82078985439608b082482ca4136afe2643905da6347df23183"
+  },
+  "harness_sha256": {
+    "tests/packageevidence/field-table-performance/README.md": "949dde5d587a6d3fe28101c1dd3b91f0e8a0db93c973c0b5f3c86536da27f28a",
+    "tests/packageevidence/field-table-performance/compare.py": "57a25342131cdceac2a6e3f05516f96744f730277d1fae84718272001b0dcf48",
+    "tests/packageevidence/field-table-performance/contract.go": "47ddd4d1b0ec65c777f6bad89d616602e2577cbbe469f30d3a8cbc90aff4fb68",
+    "tests/packageevidence/field-table-performance/shape_proof.go": "b0f4110d32117c471f9d922ebc2964f5d353fdcd6732882ff8ce4bb3ab8077d0",
+    "tests/packageevidence/field-table-performance/warm_compare.py": "7c83d1c999dd03e2dc522eafe4265e5e8a3f724431e50e66f26d2cc5ab359294"
+  }
+}

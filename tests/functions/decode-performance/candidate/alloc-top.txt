@@ -1,0 +1,55 @@
+File: candidate.test
+Type: alloc_space
+Time: 2026-09-19 18:16:45 EDT
+Showing nodes accounting for 1923.05MB, 98.89% of 1944.72MB total
+Dropped 42 nodes (cum <= 9.72MB)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%  1942.21MB 99.87%  dircue/pkg/structure.BenchmarkFunctionResponse.func1
+         0     0%     0%  1942.21MB 99.87%  testing.(*B).run1.func1
+         0     0%     0%  1942.21MB 99.87%  testing.(*B).runN
+         0     0%     0%  1941.59MB 99.84%  dircue/pkg/structure.decodeResponse
+         0     0%     0%  1138.25MB 58.53%  encoding/json.(*Decoder).Decode
+         0     0%     0%   993.40MB 51.08%  dircue/pkg/structure.decodeValidatedFunctions
+         0     0%     0%   885.76MB 45.55%  dircue/pkg/structure.strictFunctionResponse
+  100.55MB  5.17%  5.17%   837.07MB 43.04%  dircue/pkg/structure.functionJSONValue
+     152MB  7.82% 12.99%   736.52MB 37.87%  encoding/json.(*Decoder).Token
+         0     0% 12.99%   734.35MB 37.76%  encoding/json.(*decodeState).unmarshal
+         0     0% 12.99%   734.35MB 37.76%  encoding/json.(*decodeState).value
+         0     0% 12.99%   686.05MB 35.28%  encoding/json.(*Decoder).readValue
+    2.50MB  0.13% 13.11%   666.85MB 34.29%  encoding/json.(*decodeState).object
+  425.02MB 21.85% 34.97%   516.52MB 26.56%  encoding/json.(*scanner).error (inline)
+         0     0% 34.97%   516.52MB 26.56%  encoding/json.stateEndTop
+         0     0% 34.97%   516.52MB 26.56%  encoding/json.stateEndValue
+         0     0% 34.97%   515.15MB 26.49%  dircue/pkg/structure.decodeMetrics
+  308.19MB 15.85% 50.82%   308.19MB 15.85%  encoding/json.(*RawMessage).UnmarshalJSON
+  217.10MB 11.16% 61.98%   303.10MB 15.59%  encoding/json.(*decodeState).objectInterface
+         0     0% 61.98%   282.65MB 14.53%  encoding/json.Unmarshal
+   43.57MB  2.24% 64.22%   258.14MB 13.27%  encoding/json.Marshal
+         0     0% 64.22%   214.57MB 11.03%  encoding/json.(*encodeState).marshal
+         0     0% 64.22%   214.57MB 11.03%  encoding/json.(*encodeState).reflectValue
+  124.56MB  6.41% 70.63%   214.57MB 11.03%  encoding/json.mapEncoder.encode
+         0     0% 70.63%   195.56MB 10.06%  encoding/json.interfaceEncoder
+         0     0% 70.63%   183.54MB  9.44%  encoding/json.(*decodeState).array
+  169.03MB  8.69% 79.32%   169.03MB  8.69%  encoding/json.(*Decoder).refill
+         0     0% 79.32%   162.01MB  8.33%  encoding/json.state0
+   97.50MB  5.01% 84.33%    97.50MB  5.01%  reflect.unsafe_New
+      30MB  1.54% 85.87%    91.50MB  4.71%  encoding/json.quoteChar
+         0     0% 85.87%    88.50MB  4.55%  reflect.copyVal
+   86.50MB  4.45% 90.32%    86.50MB  4.45%  encoding/json.(*decodeState).convertNumber
+         0     0% 90.32%    85.50MB  4.40%  encoding/json.state1
+   30.50MB  1.57% 91.89%       69MB  3.55%  encoding/json.(*decodeState).literalStore
+         0     0% 91.89%       66MB  3.39%  encoding/json.stateDot0
+         0     0% 91.89%    61.50MB  3.16%  strconv.Quote (inline)
+         0     0% 91.89%    61.50MB  3.16%  strconv.appendEscapedRune
+         0     0% 91.89%    61.50MB  3.16%  strconv.appendQuotedWith
+         0     0% 91.89%    61.50MB  3.16%  strconv.quoteWith (inline)
+   61.50MB  3.16% 95.05%    61.50MB  3.16%  unicode/utf8.AppendRune (inline)
+         0     0% 95.05%    60.50MB  3.11%  encoding/json.(*decodeState).valueInterface
+    4.50MB  0.23% 95.29%       54MB  2.78%  encoding/json.(*decodeState).literalInterface
+         0     0% 95.29%    50.50MB  2.60%  reflect.(*MapIter).Key
+       1MB 0.051% 95.34%    48.58MB  2.50%  dircue/pkg/structure.boundedFunctionEntries
+         0     0% 95.34%       38MB  1.95%  reflect.(*MapIter).Value
+         0     0% 95.34%    37.01MB  1.90%  reflect.Value.SetMapIndex
+         0     0% 95.34%    37.01MB  1.90%  reflect.mapassign_faststr
+   37.01MB  1.90% 97.24%    37.01MB  1.90%  reflect.mapassign_faststr0
+      32MB  1.65% 98.89%       32MB  1.65%  encoding/json.unquote (inline)

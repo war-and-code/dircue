@@ -14,13 +14,14 @@ import (
 
 	"dircue/pkg/detectors"
 	"dircue/pkg/profile"
+	"dircue/pkg/projects"
 	"dircue/pkg/scanner"
 	"dircue/pkg/structure"
 	"github.com/spf13/cobra"
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.3.0"
+var Version = "0.4.0"
 
 type options struct {
 	json                   bool
@@ -37,10 +38,20 @@ type options struct {
 	metricsMaxFileBytes    int64
 	metricsFiles           bool
 	projects               bool
+	discovery              bool
+	registries             bool
+	graph                  bool
 	structure              bool
+	structureFunctions     bool
 	structuralWorker       string
 	structuralMaxFileBytes int64
 	structuralTimeout      time.Duration
+	rulesFile              string
+	syftReport             string
+	syftRoot               string
+	syftReportSHA256       string
+	syftSourceTree         string
+	syftMaxBytes           int64
 }
 
 // Execute runs one invocation. Errors are returned without printing; the caller
@@ -80,20 +91,22 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, metrics, projects, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, rules, registries, metrics, projects, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "metrics", "projects", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "rules", "registries", "metrics", "projects", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
 			Args:  pathArgs,
 			RunE:  func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, mode) },
 		}
+		setExtendedCommandHelp(command, mode)
 		if mode == "metrics" || mode == "all" || mode == "structure" {
 			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include per-file metrics or structural observations")
 		}
 		if mode == "structure" || mode == "all" {
+			command.Flags().BoolVar(&opts.structureFunctions, "functions", false, "Include bounded function-space metrics from the structural worker")
 			command.Flags().StringVar(&opts.structuralWorker, "structural-worker", "", "Path to the optional native structural worker")
 			command.Flags().Int64Var(&opts.structuralMaxFileBytes, "structural-max-file-bytes", structure.MaxSourceBytes, "Maximum complete source bytes for structural analysis (at most 8388608)")
 			command.Flags().DurationVar(&opts.structuralTimeout, "structural-timeout", 10*time.Second, "Time limit for each structural worker invocation")
@@ -102,10 +115,21 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().StringVar(&opts.metricsScope, "metrics-scope", "source", "Metrics selection: source (language statistics) or text (all detected text languages)")
 			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
 		}
+		if mode == "rules" || mode == "registries" || mode == "all" {
+			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
+		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet.Config and .npmrc declarations; disclose qualified names and sanitized origins")
+			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
 			command.Flags().BoolVar(&opts.metrics, "metrics", false, "Count code, comment, and blank lines and estimate complexity with scc")
+		}
+		if mode == "rules" || mode == "all" {
+			command.Flags().StringVar(&opts.rulesFile, "rules-file", "", "Apply an explicit caller-supplied JSON ruleset; never discovers rulesets automatically")
+		}
+		if mode == "packages" || mode == "all" {
+			addPackageFlags(command, opts)
 		}
 		analyze.AddCommand(command)
 	}
@@ -126,6 +150,14 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	}
 	if opts.maxFileBytes < 0 {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
+	}
+	packageReport, err := loadPackageEvidence(cmd, opts, mode)
+	if err != nil {
+		return err
+	}
+	ruleProgram, err := loadRules(cmd, opts, mode)
+	if err != nil {
+		return err
 	}
 	var metrics *scanner.MetricsOptions
 	if mode == "metrics" || (mode == "all" && opts.metrics) {
@@ -152,12 +184,12 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			return fmt.Errorf("--structural-timeout must be positive")
 		}
 		var err error
-		structural, err = structure.New(structure.Options{Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})
+		structural, err = structure.New(structure.Options{Functions: opts.structureFunctions, Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})
 		if err != nil {
 			return err
 		}
 	} else if mode == "all" {
-		for _, flag := range []string{"structural-worker", "structural-max-file-bytes", "structural-timeout"} {
+		for _, flag := range []string{"functions", "structural-worker", "structural-max-file-bytes", "structural-timeout"} {
 			if cmd.Flags().Changed(flag) {
 				return fmt.Errorf("--%s requires --structure", flag)
 			}
@@ -209,12 +241,29 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		IncludeStrategies: opts.strategies,
 		Detectors:         hooks,
 		Metrics:           metrics,
-		Projects:          mode == "projects" || (mode == "all" && opts.projects),
+		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
+		Discovery:         mode == "discovery" || opts.discovery,
+		DiscoveryOnly:     mode == "discovery",
+		Rules:             ruleProgram,
+		RulesOnly:         mode == "rules",
+		Registries:        mode == "registries" || (mode == "all" && opts.registries),
+		RegistriesOnly:    mode == "registries",
 		Structure:         structural,
 		StructureFiles:    opts.metricsFiles,
 	})
 	if err != nil {
 		return err
+	}
+	if mode == "graph" || (mode == "all" && opts.graph) {
+		report.Graph = projects.AnalyzeGraph(report.Projects)
+		report.SchemaVersion = profile.EnhancedSchemaVersion
+	}
+	if packageReport != nil {
+		report.PackageEvidence, err = associatePackages(packageReport, report.Projects, opts)
+		if err != nil {
+			return err
+		}
+		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
 	for _, warning := range report.Warnings {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
@@ -243,11 +292,42 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Ecosystems)
 	case "projects":
 		return writeProjects(out, report.Projects)
+	case "discovery":
+		return writeDiscovery(out, report.Discovery)
+	case "rules":
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
+		return writeRules(out, report.Rules)
+	case "registries":
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
+		return writeRegistries(out, report.Registries)
+	case "graph":
+		return writeGraph(out, report.Graph)
+	case "packages":
+		return writePackageEvidence(out, report.PackageEvidence)
 	case "structure":
 		return writeStructure(out, report.Structure)
 	case "metrics":
 		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
+		if err := writeRegistries(out, report.Registries); err != nil {
+			return err
+		}
+		if err := writeRules(out, report.Rules); err != nil {
+			return err
+		}
+		if err := writePackageEvidence(out, report.PackageEvidence); err != nil {
+			return err
+		}
+		if err := writeDiscovery(out, report.Discovery); err != nil {
+			return err
+		}
+		if err := writeGraph(out, report.Graph); err != nil {
+			return err
+		}
 		if _, err := fmt.Fprintln(out, "Languages:"); err != nil {
 			return err
 		}

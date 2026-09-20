@@ -1,0 +1,278 @@
+{
+  "binary_sha256": "1caf283cf00e71583fd8eb721250d475af9cb8ecafbba9feebd2e532b0e391be",
+  "build_inputs_sha256": "651aaa632ce68d8c83f03c131bb652786a1d19bda2f9a34c0a9764eec3601621",
+  "cases": [
+    {
+      "checks": [
+        "byte-identical-repeated-output",
+        "selected-source-tree",
+        "independent-XML-declarations",
+        "unique-degree-counts",
+        "weak-components",
+        "transitive-closure-cycle-oracle",
+        "conditional-and-unresolved-edge-exclusion"
+      ],
+      "graph_coverage": {
+        "ambiguous_targets": 0,
+        "conditional_edges": 93,
+        "duplicate_observations": 2,
+        "excluded_project_kinds": {
+          "solution": 35
+        },
+        "excluded_reference_kinds": {
+          "configuration:import": 86,
+          "import": 367
+        },
+        "external_targets": 1,
+        "included_observations": 1605,
+        "input_omitted_files": 0,
+        "missing_targets": 18,
+        "projects": 508,
+        "reference_observations": 1720,
+        "unique_edges": 1605,
+        "unrecognized_targets": 0,
+        "unresolved_edges": 4
+      },
+      "graph_math": {
+        "cyclic_nodes": 2,
+        "cyclic_strong_components": 1,
+        "nodes": 508,
+        "unique_edges": 1605,
+        "weak_components": 140
+      },
+      "graph_status": "partial",
+      "name": "roslyn",
+      "project_status": "partial",
+      "source": {
+        "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+        "mode": "git",
+        "project_xml_inventory_sha256": "e5862dcc67b6fd302f296ec24ad90429a6844b85df58b5ef766e02911aa27041",
+        "regular_files": 35220,
+        "tree": "92c61cf64fddd9667128418b8224c8c4bbb00a81"
+      },
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "495698d69680be6e2fc74e17a731015560f49677bcacb17272b4787fce49afc6",
+      "upstream": {
+        "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+        "tag": "main snapshot 2026-09-07",
+        "url": "https://github.com/dotnet/roslyn.git"
+      },
+      "xml_oracle": {
+        "audited_observations": {
+          "conditional/in_scope": 37,
+          "unconditional/in_scope": 1607,
+          "unconditional/missing": 18,
+          "unresolved/external": 1,
+          "unresolved/unresolved": 3
+        },
+        "audited_unique_unconditional_in_scope_pairs": 1605,
+        "included_pairs_outside_literal_oracle": 0,
+        "omitted_xml": {},
+        "parsed_projects": 508,
+        "unaudited_container_observations": {
+          "target-or-choose-container": 56
+        },
+        "xml_reference_observations": 1722
+      }
+    },
+    {
+      "checks": [
+        "byte-identical-repeated-output",
+        "selected-source-tree",
+        "independent-XML-declarations",
+        "unique-degree-counts",
+        "weak-components",
+        "transitive-closure-cycle-oracle",
+        "conditional-and-unresolved-edge-exclusion"
+      ],
+      "graph_coverage": {
+        "ambiguous_targets": 0,
+        "conditional_edges": 14,
+        "duplicate_observations": 1,
+        "excluded_project_kinds": {
+          "gradle": 4,
+          "npm": 15,
+          "solution": 2
+        },
+        "excluded_reference_kinds": {
+          "configuration:gradle-module": 3,
+          "configuration:import": 99,
+          "configuration:project-reference": 16,
+          "import": 50
+        },
+        "external_targets": 0,
+        "included_observations": 128,
+        "input_omitted_files": 2,
+        "missing_targets": 0,
+        "projects": 605,
+        "reference_observations": 221,
+        "unique_edges": 128,
+        "unrecognized_targets": 1,
+        "unresolved_edges": 79
+      },
+      "graph_math": {
+        "cyclic_nodes": 0,
+        "cyclic_strong_components": 0,
+        "nodes": 605,
+        "unique_edges": 128,
+        "weak_components": 496
+      },
+      "graph_status": "partial",
+      "name": "aspnetcore",
+      "project_status": "partial",
+      "source": {
+        "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+        "mode": "git",
+        "project_xml_inventory_sha256": "00c0220835a4b4932ff4b82d41860a7d293d3a9072545240f1b74e644e04a162",
+        "regular_files": 16515,
+        "tree": "2f918f113774dc7edfb54e8a4fb7bb105e9fcb9d"
+      },
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9b2945b6ae478fef953473a9944001bcf512852762868674e4bbab79d5665c4b",
+      "upstream": {
+        "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+        "tag": "v10.0.0",
+        "url": "https://github.com/dotnet/aspnetcore.git"
+      },
+      "xml_oracle": {
+        "audited_observations": {
+          "conditional/in_scope": 13,
+          "conditional/unrecognized_target": 1,
+          "unconditional/in_scope": 129,
+          "unresolved/unresolved": 79
+        },
+        "audited_unique_unconditional_in_scope_pairs": 128,
+        "included_pairs_outside_literal_oracle": 0,
+        "omitted_xml": {},
+        "parsed_projects": 605,
+        "unaudited_container_observations": {},
+        "xml_reference_observations": 222
+      }
+    },
+    {
+      "checks": [
+        "byte-identical-repeated-output",
+        "selected-source-tree",
+        "independent-XML-declarations",
+        "unique-degree-counts",
+        "weak-components",
+        "transitive-closure-cycle-oracle",
+        "conditional-and-unresolved-edge-exclusion",
+        "original-2048-stress-generator-edge-set"
+      ],
+      "graph_coverage": {
+        "ambiguous_targets": 0,
+        "conditional_edges": 0,
+        "duplicate_observations": 0,
+        "excluded_project_kinds": {},
+        "excluded_reference_kinds": {},
+        "external_targets": 0,
+        "included_observations": 4094,
+        "input_omitted_files": 0,
+        "missing_targets": 0,
+        "projects": 2048,
+        "reference_observations": 4094,
+        "unique_edges": 4094,
+        "unrecognized_targets": 0,
+        "unresolved_edges": 0
+      },
+      "graph_math": {
+        "cyclic_nodes": 2048,
+        "cyclic_strong_components": 1,
+        "nodes": 2048,
+        "unique_edges": 4094,
+        "weak_components": 1
+      },
+      "graph_status": "complete",
+      "name": "synthetic2048",
+      "original_stress_graph_sha256": "9efdfb26f73277f5b5358e25a195e2a42d59a9c939b7fd34dd12ae507b071848",
+      "project_status": "complete",
+      "source": {
+        "mode": "directory",
+        "project_xml_inventory_sha256": "f62345020590e0c3d399717b90de6fb5e71baa70ab498c32f6ce3b4bd632f211",
+        "regular_files": 4100
+      },
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "1f96e4b8ad05ec4e391d9942a2e8405114edeec7f00167ed91a66e54b5c5fd2e",
+      "xml_oracle": {
+        "audited_observations": {
+          "unconditional/in_scope": 4094
+        },
+        "audited_unique_unconditional_in_scope_pairs": 4094,
+        "included_pairs_outside_literal_oracle": 0,
+        "omitted_xml": {},
+        "parsed_projects": 2048,
+        "unaudited_container_observations": {},
+        "xml_reference_observations": 4094
+      }
+    },
+    {
+      "checks": [
+        "byte-identical-repeated-output",
+        "selected-source-tree",
+        "independent-XML-declarations",
+        "unique-degree-counts",
+        "weak-components",
+        "transitive-closure-cycle-oracle",
+        "conditional-and-unresolved-edge-exclusion"
+      ],
+      "graph_coverage": {
+        "ambiguous_targets": 0,
+        "conditional_edges": 1,
+        "duplicate_observations": 0,
+        "excluded_project_kinds": {
+          "solution": 1
+        },
+        "excluded_reference_kinds": {},
+        "external_targets": 0,
+        "included_observations": 3,
+        "input_omitted_files": 0,
+        "missing_targets": 1,
+        "projects": 4,
+        "reference_observations": 5,
+        "unique_edges": 3,
+        "unrecognized_targets": 0,
+        "unresolved_edges": 0
+      },
+      "graph_math": {
+        "cyclic_nodes": 3,
+        "cyclic_strong_components": 2,
+        "nodes": 4,
+        "unique_edges": 3,
+        "weak_components": 3
+      },
+      "graph_status": "partial",
+      "name": "small",
+      "project_status": "complete",
+      "source": {
+        "mode": "directory",
+        "project_xml_inventory_sha256": "0a6a74bc070152c40f3b2907bb552f4267c5ae033202cfee277cfe052135e53b",
+        "regular_files": 5
+      },
+      "stderr_bytes": 0,
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "4907a20ec6de212c9bec695c475ab9cae48d8542ad162a3033b73992c5fb7d80",
+      "xml_oracle": {
+        "audited_observations": {
+          "conditional/in_scope": 1,
+          "unconditional/in_scope": 3,
+          "unconditional/missing": 1
+        },
+        "audited_unique_unconditional_in_scope_pairs": 3,
+        "included_pairs_outside_literal_oracle": 0,
+        "omitted_xml": {},
+        "parsed_projects": 4,
+        "unaudited_container_observations": {},
+        "xml_reference_observations": 5
+      }
+    }
+  ],
+  "harness_sha256": "4d2846af5ba673546210be7e9bf7a769bc2a82b7fd0f652736619b9c232bda8d",
+  "passed": true,
+  "scope": "Static declaration graphs, not evaluated MSBuild membership. XML oracle audits literal references and explicit inherited conditions; target/Choose containers remain outside its certainty oracle. Graph mathematics is checked over every reported included edge.",
+  "source_commit": "b566daaae8d1c8ed07db3583a479bf35e37cdd4c",
+  "source_dirty": true
+}

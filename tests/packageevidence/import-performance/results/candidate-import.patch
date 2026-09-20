@@ -1,0 +1,22 @@
+diff --git a/pkg/packageevidence/import.go b/pkg/packageevidence/import.go
+index 5d5a4e4..29fc45b 100644
+--- a/pkg/packageevidence/import.go
++++ b/pkg/packageevidence/import.go
+@@ -216,7 +216,7 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
+ 			item.Locations = append(item.Locations, newLocation(location))
+ 		}
+ 		slices.SortFunc(item.Locations, func(a, b Location) int { return strings.Compare(a.OriginalSHA256, b.OriginalSHA256) })
+-		report.Packages = append(report.Packages, item)
++		report.Packages = appendResult(report.Packages, item, len(native.Artifacts))
+ 	}
+ 	for _, raw := range native.Files {
+ 		if err := ctx.Err(); err != nil {
+@@ -289,7 +289,7 @@ func Import(ctx context.Context, reader io.Reader, opts Options) (*Report, error
+ 		if row.Metadata != nil {
+ 			item.MetadataSHA256 = digest(row.Metadata)
+ 		}
+-		report.Relationships = append(report.Relationships, item)
++		report.Relationships = appendResult(report.Relationships, item, len(native.Relationships))
+ 	}
+ 	slices.SortFunc(report.Packages, func(a, b Package) int { return strings.Compare(a.ID, b.ID) })
+ 	slices.SortFunc(report.Files, func(a, b File) int { return strings.Compare(a.ID, b.ID) })

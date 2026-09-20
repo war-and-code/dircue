@@ -1,0 +1,12 @@
+{
+  "pkg/packageevidence/associate.go": "b830b5d4dbe17e6711e1a54836cc224ac62bed77585ca0e53e98da4018a5b887",
+  "pkg/packageevidence/fuzz_test.go": "9c8447f170e66306b018412a25b295fa00fc971c670d4cd22eb0f3f1c5939302",
+  "pkg/packageevidence/hardening_test.go": "479163c4badd724b9e4d626758524b6c25bdacd60c961e19a1e044461e53d554",
+  "pkg/packageevidence/import.go": "8fb567f71e6388cf25898ea7ef31720414db7339bed524448ba85062870d6b91",
+  "pkg/packageevidence/import_test.go": "41f333d7fd33bdfa5b6772b00f0e969b920e770ba2687f96a6da40ce029208f0",
+  "pkg/packageevidence/json.go": "3fc6951ac41e99d877731153abe5762a65b376db9539ab9bd4b1d976cbd49b34",
+  "pkg/packageevidence/types.go": "24a4bce04aed429402deb10167d375ba26798f1d2de00437a2f3da9d5e097706",
+  "baseline_commit": "18d2c3ab40e65230e77e76e867ec16d49f2cef4d",
+  "baseline_binary": "/tmp/dircue-import-performance-20260919/.cache/import-capacity/before",
+  "baseline_binary_sha256": "806e4e0aedd275026245e8378ab44d6b22b39f6974da9ab6cd40c0e2677b5740"
+}

@@ -1,0 +1,131 @@
+File: candidate.test
+Type: cpu
+Time: 2026-09-19 18:16:39 EDT
+Duration: 6.06s, Total samples = 5.38s (88.77%)
+Showing nodes accounting for 4.73s, 87.92% of 5.38s total
+Dropped 124 nodes (cum <= 0.03s)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      3.14s 58.36%  runtime.systemstack
+         0     0%     0%      2.36s 43.87%  dircue/pkg/structure.BenchmarkFunctionResponse.func1
+         0     0%     0%      2.36s 43.87%  dircue/pkg/structure.decodeResponse
+         0     0%     0%      2.36s 43.87%  testing.(*B).run1.func1
+         0     0%     0%      2.36s 43.87%  testing.(*B).runN
+     1.78s 33.09% 33.09%      1.78s 33.09%  runtime.kevent
+         0     0% 33.09%      1.78s 33.09%  runtime.netpoll
+         0     0% 33.09%      1.78s 33.09%  runtime.startTheWorldWithSema
+         0     0% 33.09%      1.24s 23.05%  dircue/pkg/structure.decodeValidatedFunctions
+     1.06s 19.70% 52.79%      1.06s 19.70%  runtime.madvise
+         0     0% 52.79%      1.03s 19.14%  runtime.(*mheap).alloc.func1
+         0     0% 52.79%      1.03s 19.14%  runtime.(*mheap).allocSpan
+         0     0% 52.79%      1.01s 18.77%  encoding/json.(*Decoder).Decode
+         0     0% 52.79%      1.01s 18.77%  runtime.sysUsed (inline)
+         0     0% 52.79%      1.01s 18.77%  runtime.sysUsedOS (inline)
+         0     0% 52.79%         1s 18.59%  dircue/pkg/structure.strictFunctionResponse
+         0     0% 52.79%      0.99s 18.40%  runtime.gcStart.func4
+         0     0% 52.79%      0.97s 18.03%  encoding/json.Unmarshal
+         0     0% 52.79%      0.92s 17.10%  encoding/json.(*decodeState).unmarshal
+         0     0% 52.79%      0.91s 16.91%  encoding/json.(*decodeState).value
+         0     0% 52.79%      0.79s 14.68%  runtime.gcMarkTermination.func3
+         0     0% 52.79%      0.78s 14.50%  dircue/pkg/structure.functionJSONValue
+         0     0% 52.79%      0.73s 13.57%  encoding/json.(*decodeState).object
+     0.05s  0.93% 53.72%      0.70s 13.01%  encoding/json.(*Decoder).Token
+     0.08s  1.49% 55.20%      0.56s 10.41%  encoding/json.(*Decoder).readValue
+     0.19s  3.53% 58.74%      0.50s  9.29%  encoding/json.(*decodeState).skip
+     0.13s  2.42% 61.15%      0.48s  8.92%  encoding/json.checkValid
+     0.03s  0.56% 61.71%      0.45s  8.36%  runtime.mallocgc
+     0.08s  1.49% 63.20%      0.44s  8.18%  encoding/json.stateEndValue
+         0     0% 63.20%      0.33s  6.13%  encoding/json.(*decodeState).array
+     0.01s  0.19% 63.38%      0.30s  5.58%  encoding/json.stateEndTop
+         0     0% 63.38%      0.29s  5.39%  encoding/json.(*scanner).error (inline)
+     0.27s  5.02% 68.40%      0.29s  5.39%  encoding/json.stateInString
+         0     0% 68.40%      0.27s  5.02%  dircue/pkg/structure.decodeMetrics
+     0.06s  1.12% 69.52%      0.26s  4.83%  gcWriteBarrier
+     0.05s  0.93% 70.45%      0.20s  3.72%  encoding/json.state0
+     0.07s  1.30% 71.75%      0.20s  3.72%  runtime.mallocgcSmallScanNoHeader
+         0     0% 71.75%      0.20s  3.72%  runtime.wbBufFlush
+         0     0% 71.75%      0.20s  3.72%  runtime.wbBufFlush.func1
+     0.03s  0.56% 72.30%      0.20s  3.72%  runtime.wbBufFlush1
+         0     0% 72.30%      0.19s  3.53%  dircue/pkg/structure.boundedFunctionEntries
+     0.10s  1.86% 74.16%      0.17s  3.16%  encoding/json.stateBeginValue
+         0     0% 74.16%      0.15s  2.79%  encoding/json.(*decodeState).objectInterface
+         0     0% 74.16%      0.15s  2.79%  encoding/json.(*encodeState).marshal
+         0     0% 74.16%      0.15s  2.79%  encoding/json.(*encodeState).reflectValue
+         0     0% 74.16%      0.15s  2.79%  encoding/json.Marshal
+         0     0% 74.16%      0.15s  2.79%  encoding/json.mapEncoder.encode
+     0.01s  0.19% 74.35%      0.14s  2.60%  encoding/json.(*decodeState).literalStore
+         0     0% 74.35%      0.14s  2.60%  encoding/json.quoteChar
+     0.04s  0.74% 75.09%      0.14s  2.60%  runtime.concatstrings
+         0     0% 75.09%      0.13s  2.42%  encoding/json.interfaceEncoder
+     0.07s  1.30% 76.39%      0.13s  2.42%  encoding/json.stateBeginString
+         0     0% 76.39%      0.12s  2.23%  encoding/json.state1
+         0     0% 76.39%      0.11s  2.04%  runtime.newobject
+         0     0% 76.39%      0.10s  1.86%  runtime.concatstring4
+     0.02s  0.37% 76.77%      0.10s  1.86%  runtime.mapassign_faststr
+     0.03s  0.56% 77.32%      0.10s  1.86%  runtime.tryDeferToSpanScan
+     0.03s  0.56% 77.88%      0.09s  1.67%  runtime.mallocgcTiny
+     0.05s  0.93% 78.81%      0.08s  1.49%  runtime.findObject
+     0.01s  0.19% 79.00%      0.08s  1.49%  runtime.rawstringtmp
+         0     0% 79.00%      0.08s  1.49%  strconv.Quote (inline)
+         0     0% 79.00%      0.08s  1.49%  strconv.appendQuotedWith
+         0     0% 79.00%      0.08s  1.49%  strconv.quoteWith (inline)
+     0.04s  0.74% 79.74%      0.07s  1.30%  runtime.heapArenaOf (inline)
+     0.07s  1.30% 81.04%      0.07s  1.30%  runtime.nextFreeFast (inline)
+         0     0% 81.04%      0.07s  1.30%  runtime.rawstring (inline)
+     0.01s  0.19% 81.23%      0.07s  1.30%  strconv.appendEscapedRune
+     0.01s  0.19% 81.41%      0.06s  1.12%  encoding/json.stateDot0
+     0.04s  0.74% 82.16%      0.06s  1.12%  reflect.Value.Elem
+     0.02s  0.37% 82.53%      0.06s  1.12%  runtime.concatstring3
+         0     0% 82.53%      0.06s  1.12%  runtime.makeslice
+         0     0% 82.53%      0.06s  1.12%  runtime.mallocgcSmallNoscan
+     0.01s  0.19% 82.71%      0.06s  1.12%  runtime.newstack
+     0.02s  0.37% 83.09%      0.05s  0.93%  encoding/json.(*decodeState).convertNumber
+     0.05s  0.93% 84.01%      0.05s  0.93%  encoding/json.(*decodeState).rescanLiteral
+         0     0% 84.01%      0.05s  0.93%  encoding/json.indirect
+         0     0% 84.01%      0.05s  0.93%  encoding/json.unquote (inline)
+     0.01s  0.19% 84.20%      0.05s  0.93%  internal/runtime/maps.(*Map).growToTable
+         0     0% 84.20%      0.05s  0.93%  runtime.(*mcache).nextFree
+         0     0% 84.20%      0.05s  0.93%  runtime.(*mcache).refill
+         0     0% 84.20%      0.05s  0.93%  runtime.(*pageAlloc).scavenge.func1
+         0     0% 84.20%      0.05s  0.93%  runtime.(*pageAlloc).scavengeOne
+         0     0% 84.20%      0.05s  0.93%  runtime.convTstring
+         0     0% 84.20%      0.05s  0.93%  runtime.gopreempt_m (inline)
+         0     0% 84.20%      0.05s  0.93%  runtime.goschedImpl
+     0.01s  0.19% 84.39%      0.05s  0.93%  runtime.growslice
+         0     0% 84.39%      0.05s  0.93%  runtime.schedule
+         0     0% 84.39%      0.05s  0.93%  runtime.slicebytetostring
+         0     0% 84.39%      0.05s  0.93%  runtime.sysUnused (inline)
+         0     0% 84.39%      0.05s  0.93%  runtime.sysUnusedOS (inline)
+     0.01s  0.19% 84.57%      0.05s  0.93%  unicode/utf8.AppendRune (inline)
+     0.04s  0.74% 85.32%      0.04s  0.74%  internal/runtime/atomic.(*UnsafePointer).Load (inline)
+         0     0% 85.32%      0.04s  0.74%  internal/runtime/maps.newGroups (inline)
+         0     0% 85.32%      0.04s  0.74%  internal/runtime/maps.newTable
+         0     0% 85.32%      0.04s  0.74%  internal/runtime/maps.newarray
+         0     0% 85.32%      0.04s  0.74%  reflect.unsafe_New
+         0     0% 85.32%      0.04s  0.74%  runtime.(*mcentral).cacheSpan
+     0.01s  0.19% 85.50%      0.04s  0.74%  runtime.bgsweep
+         0     0% 85.50%      0.04s  0.74%  runtime.mProf_Malloc
+         0     0% 85.50%      0.04s  0.74%  runtime.mallocgcSmallScanHeader
+         0     0% 85.50%      0.04s  0.74%  runtime.morestack
+     0.01s  0.19% 85.69%      0.04s  0.74%  runtime.newarray
+         0     0% 85.69%      0.04s  0.74%  runtime.profilealloc
+     0.01s  0.19% 85.87%      0.04s  0.74%  runtime.scanObject
+         0     0% 85.87%      0.04s  0.74%  runtime.stkbucket
+         0     0% 85.87%      0.04s  0.74%  runtime.sweepone
+         0     0% 85.87%      0.04s  0.74%  slices.SortFunc[go.shape.[]encoding/json.reflectWithString,go.shape.struct { encoding/json.v reflect.Value; encoding/json.ks string }] (inline)
+         0     0% 85.87%      0.04s  0.74%  slices.pdqsortCmpFunc[go.shape.struct { encoding/json.v reflect.Value; encoding/json.ks string }]
+         0     0% 85.87%      0.03s  0.56%  internal/runtime/maps.(*table).reset
+         0     0% 85.87%      0.03s  0.56%  reflect.copyVal
+     0.01s  0.19% 86.06%      0.03s  0.56%  runtime.(*mspan).writeHeapBitsSmall
+     0.01s  0.19% 86.25%      0.03s  0.56%  runtime.(*sweepLocked).sweep
+     0.03s  0.56% 86.80%      0.03s  0.56%  runtime.arenaIndex (inline)
+         0     0% 86.80%      0.03s  0.56%  runtime.deductAssistCredit
+         0     0% 86.80%      0.03s  0.56%  runtime.gcAssistAlloc
+         0     0% 86.80%      0.03s  0.56%  runtime.gcAssistAlloc.func2
+         0     0% 86.80%      0.03s  0.56%  runtime.gcAssistAlloc1
+         0     0% 86.80%      0.03s  0.56%  runtime.gcBgMarkWorker
+     0.01s  0.19% 86.99%      0.03s  0.56%  runtime.gcBgMarkWorker.func2
+         0     0% 86.99%      0.03s  0.56%  runtime.gcDrainN
+         0     0% 86.99%      0.03s  0.56%  runtime.heapSetTypeNoHeader (inline)
+     0.01s  0.19% 87.17%      0.03s  0.56%  runtime.mapaccess1_faststr
+     0.03s  0.56% 87.73%      0.03s  0.56%  runtime.spanOf (inline)
+     0.01s  0.19% 87.92%      0.03s  0.56%  slices.insertionSortCmpFunc[go.shape.struct { encoding/json.v reflect.Value; encoding/json.ks string }] (inline)

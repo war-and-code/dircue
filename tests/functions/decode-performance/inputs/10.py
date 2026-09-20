@@ -1,0 +1,20 @@
+def f0():
+    return 0
+def f1():
+    return 1
+def f2():
+    return 2
+def f3():
+    return 3
+def f4():
+    return 4
+def f5():
+    return 5
+def f6():
+    return 6
+def f7():
+    return 7
+def f8():
+    return 8
+def f9():
+    return 9

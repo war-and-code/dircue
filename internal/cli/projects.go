@@ -130,5 +130,5 @@ func writeStructure(out io.Writer, r *profile.StructureReport) error {
 			}
 		}
 	}
-	return nil
+	return writeFunctions(out, r.Functions)
 }

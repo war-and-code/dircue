@@ -1,0 +1,15 @@
+package packageevidence
+
+// appendResult grows a validated output prefix geometrically, without reserving
+// storage for unvalidated rows. total is the already bounded native row count;
+// callers append no more than one result for each native row. The final growth
+// stops at total instead of retaining unused capacity beyond that bound.
+func appendResult[T any](rows []T, row T, total int) []T {
+	if len(rows) == cap(rows) {
+		capacity := min(total, max(1, len(rows)*2))
+		grown := make([]T, len(rows), capacity)
+		copy(grown, rows)
+		rows = grown
+	}
+	return append(rows, row)
+}

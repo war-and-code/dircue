@@ -1,0 +1,464 @@
+[
+  {
+    "name": "packages-default-invalid-first",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-invalid-first.json",
+    "input_sha256": "34261df61ef9a01123afd4cc1dc871bf2b92421738bef9106f88cbc30229f6ab",
+    "input_bytes": 60346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-default-invalid-second",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-invalid-second.json",
+    "input_sha256": "71d4fa7089db5af5dc79d6fc3963c2d80040ef738361c3bfc1b81e0bd367b678",
+    "input_bytes": 60467,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-default-invalid-middle",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-invalid-middle.json",
+    "input_sha256": "d2dc14b7d74583ab4ccb3ba9d66f66fb741dc689c93e0710183abab64191a65b",
+    "input_bytes": 1299236,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-default-invalid-growth-edge",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-invalid-growth-edge.json",
+    "input_sha256": "5351067c2bd4e3371021a03e4333ef25ba3024a0dc1e78dc01970a5bfb536e82",
+    "input_bytes": 1075168,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-default-invalid-last",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-invalid-last.json",
+    "input_sha256": "1e38b0e56c32a77f4adadd6cdca1a12db584fbaac77d37238806c972312a9c37",
+    "input_bytes": 2549111,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-default-tiny-invalid-rows",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-default-tiny-invalid-rows.json",
+    "input_sha256": "34261df61ef9a01123afd4cc1dc871bf2b92421738bef9106f88cbc30229f6ab",
+    "input_bytes": 60346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-invalid-first",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-invalid-first.json",
+    "input_sha256": "1219a7f336c9af3ed25f1586453c95e26677214242d423e4e19613b9c5a2b81d",
+    "input_bytes": 300346,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-invalid-second",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-invalid-second.json",
+    "input_sha256": "17ff49f9e605dae5a647b1bb0961485ad0daf8aa93ac74695b97ced8fbde14bd",
+    "input_bytes": 300467,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-invalid-middle",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-invalid-middle.json",
+    "input_sha256": "2b89e4653a65bbd764c67bfce6b44bf8880706528d63570889d12f1c30eb8a6b",
+    "input_bytes": 6539236,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-invalid-growth-edge",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-invalid-growth-edge.json",
+    "input_sha256": "3396a20968fbd3d0248a68ed2f2d9f13cb8aedfcee3cebb94cf9cb44b4a23374",
+    "input_bytes": 4385361,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-invalid-last",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-invalid-last.json",
+    "input_sha256": "c40f602d3271539757de0a0e591bfb7ce89987e52aa94890350c8b750bf9d778",
+    "input_bytes": 12789111,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "packages-hard-tiny-invalid-rows",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/packages-hard-tiny-invalid-rows.json",
+    "input_sha256": "1219a7f336c9af3ed25f1586453c95e26677214242d423e4e19613b9c5a2b81d",
+    "input_bytes": 300346,
+    "limits": {
+      "bytes": 134217728,
+      "artifacts": 100000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-invalid-first",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-invalid-first.json",
+    "input_sha256": "b824351d5a33b3825060d6c802ead5c7dd5d6ebfdef52507fdc5f22896263dc7",
+    "input_bytes": 150346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-invalid-second",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-invalid-second.json",
+    "input_sha256": "071ef68685d5e84daee5a50c78d2fe933a87def8d0d0520e503b7f3f6f7ee360",
+    "input_bytes": 150394,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-invalid-middle",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-invalid-middle.json",
+    "input_sha256": "d80baf1d883e0caeb11e2f5a94e20343e2159df56347a9907fda5f29579f8518",
+    "input_bytes": 1439236,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-invalid-growth-edge",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-invalid-growth-edge.json",
+    "input_sha256": "9fb09f6ddc99697ae0b1e003567510c1b150b3d375344df1b3899179102d46dc",
+    "input_bytes": 991256,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-invalid-last",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-invalid-last.json",
+    "input_sha256": "a00a8f51255ad154036c568890f29eba333f402727546a7ffd3d3965a7754659",
+    "input_bytes": 2739184,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-default-duplicates",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-default-duplicates.json",
+    "input_sha256": "9bf56ecced5dae73b6b4f92126ac762482252252c08f4be6a39e61044c637091",
+    "input_bytes": 2750346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "relationships-hard-invalid-first",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-invalid-first.json",
+    "input_sha256": "79cc70aa25b347143e3db216d54a6dd18ad466720cb80ff32f87414c64857ac9",
+    "input_bytes": 750346,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-hard-invalid-second",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-invalid-second.json",
+    "input_sha256": "0e159d1cc24ccdf20b668040f0c45116313c04e8f5cac273ab6d0f56145ddf3c",
+    "input_bytes": 750394,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-hard-invalid-middle",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-invalid-middle.json",
+    "input_sha256": "adc0858263b9daab1a5fc34b92be2ed9193580258508da199be61d694a94c4a6",
+    "input_bytes": 7264236,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-hard-invalid-growth-edge",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-invalid-growth-edge.json",
+    "input_sha256": "f5c8995263e6f226caa7690bbab1bcb17a0b635bfe38437e99444c9ae8a119e6",
+    "input_bytes": 4147160,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-hard-invalid-last",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-invalid-last.json",
+    "input_sha256": "34666b81b890791331024730617c02b69532ae98a684a545c8ef764d86d82d2b",
+    "input_bytes": 13889183,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "relationships-hard-duplicates",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/relationships-hard-duplicates.json",
+    "input_sha256": "fa8911331cf5ba3a4d5ca2d1a84b1ba35cf136048046bc9af999b2e68c186a65",
+    "input_bytes": 13750346,
+    "limits": {
+      "bytes": 134217728,
+      "relationships": 250000
+    },
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "empty-report",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/empty-report.json",
+    "input_sha256": "8769e96b42f7e0a9cf343ceaba8d106d743252e2568cb83047cdba174427b0f0",
+    "input_bytes": 347,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "actual-syft-fixture",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/actual-syft-fixture.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "synthetic-1000",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/package-import-bench/synthetic-1000.json",
+    "input_sha256": "d0f755488ce047def859d26e0b65f3131b990706d24220d60d6817bdbf3cfb8f",
+    "input_bytes": 643312,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "synthetic-20000",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/package-import-bench/synthetic-20000.json",
+    "input_sha256": "7f482cac68cf11a79b5a657f24c345c93d162a667587d440a3be43055c753bb5",
+    "input_bytes": 12860312,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "cancellation-0",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/cancellation-0.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--cancel-checks",
+      "0"
+    ],
+    "expected_error": "canceled"
+  },
+  {
+    "name": "cancellation-1",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/cancellation-1.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--cancel-checks",
+      "1"
+    ],
+    "expected_error": "canceled"
+  },
+  {
+    "name": "cancellation-16",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/cancellation-16.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--cancel-checks",
+      "16"
+    ],
+    "expected_error": "canceled"
+  },
+  {
+    "name": "cancellation-100",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/cancellation-100.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--cancel-checks",
+      "100"
+    ],
+    "expected_error": null
+  },
+  {
+    "name": "reader-error-0",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/reader-error-0.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--reader-error-after",
+      "0"
+    ],
+    "expected_error": "reader_unexpected_eof"
+  },
+  {
+    "name": "reader-error-1",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/reader-error-1.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--reader-error-after",
+      "1"
+    ],
+    "expected_error": "reader_unexpected_eof"
+  },
+  {
+    "name": "reader-error-4096",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/reader-error-4096.json",
+    "input_sha256": "8988c1194fa2f71cc687457f4945520e47a9c2248aa34ec62812e0eceb98f887",
+    "input_bytes": 12507,
+    "limits": {},
+    "arguments": [
+      "--reader-error-after",
+      "4096"
+    ],
+    "expected_error": "reader_unexpected_eof"
+  },
+  {
+    "name": "duplicate-key",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/duplicate-key.json",
+    "input_sha256": "e03e36d95bd934f184a9916ce2f67f45a7fb7c18c8a2ccc7017e6c2575e9358a",
+    "input_bytes": 361,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "case-alias",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/case-alias.json",
+    "input_sha256": "3a38cfc70bdd94f53acdcc69ca3b60caeff08ab65bca8589ebfb26287abfdf74",
+    "input_bytes": 346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "invalid-utf8",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/invalid-utf8.json",
+    "input_sha256": "f83a920cfcb9df7c40e5242b12dbed716d45870ca619e044ff94743c8fe09eaa",
+    "input_bytes": 338,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "trailing-json",
+    "path": "/private/tmp/dircue-import-performance-20260919/.cache/import-capacity/cases/trailing-json.json",
+    "input_sha256": "4cd85646781590669d17900e1d739ef8b82fdc1fcd17a79650ba0b5cfac68cd1",
+    "input_bytes": 348,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "tiny-valid",
+    "path": "/private/tmp/dircue-import-field-table-20260919/.cache/import-field-tables/tiny-valid.json",
+    "input_sha256": "1bab80c8f48cc45310ac3c17d59801251f82400be10987220d459c47a5e119ca",
+    "input_bytes": 346,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "tiny-document-alias",
+    "path": "/private/tmp/dircue-import-field-table-20260919/.cache/import-field-tables/tiny-document-alias.json",
+    "input_sha256": "997b2261c233bc96d84cc5fd7f041f6c921d3db3bb91e77d91c98dcc1670d47b",
+    "input_bytes": 361,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "tiny-schema-alias",
+    "path": "/private/tmp/dircue-import-field-table-20260919/.cache/import-field-tables/tiny-schema-alias.json",
+    "input_sha256": "38de418ffa8ab5163c46979d40c08f29c8cf56c97b4b092a62e5eaa9b07bb0ee",
+    "input_bytes": 366,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "tiny-unicode-source-alias",
+    "path": "/private/tmp/dircue-import-field-table-20260919/.cache/import-field-tables/tiny-unicode-source-alias.json",
+    "input_sha256": "2b9714d0a8fd645c7ed0cff8923b84552314f43d94235934c4d853561a4029f7",
+    "input_bytes": 437,
+    "limits": {},
+    "arguments": [],
+    "expected_error": "invalid"
+  },
+  {
+    "name": "tiny-unknown-field",
+    "path": "/private/tmp/dircue-import-field-table-20260919/.cache/import-field-tables/tiny-unknown-field.json",
+    "input_sha256": "3086f9cc0db3e91767aa3a2599e48f53ac3c13a19d5a22c7072e7222b76b6915",
+    "input_bytes": 362,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  },
+  {
+    "name": "actual-native-exact-bytes",
+    "path": "/Users/gingeleski/Workspace/dircue/tests/packageevidence/fixtures/syft-1.52.0.json",
+    "input_sha256": "f45eab535e14ce25a9c93f6f9abb3ceebb6fb490a8736c9c4a2da4fbcec1b7ef",
+    "input_bytes": 19120,
+    "limits": {},
+    "arguments": [],
+    "expected_error": null
+  }
+]

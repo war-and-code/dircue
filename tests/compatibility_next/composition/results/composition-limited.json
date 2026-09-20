@@ -1,0 +1,1476 @@
+{
+  "registries": {
+    "status": "partial",
+    "engine": "dircue-registry-declarations",
+    "rule_version": "1.0.0",
+    "source": {
+      "mode": "directory",
+      "consistency": "live_directory"
+    },
+    "scope": {
+      "supported_configurations": [
+        "nuget_config_basename_case_insensitive",
+        "npmrc_basename_exact"
+      ],
+      "population": "selected_regular_files_including_vendor_and_data",
+      "evaluation": "declarations_only_no_effective_source_set",
+      "external_configuration": false,
+      "environment_expansion": false,
+      "network_access": false,
+      "identifier_disclosure": "qualified_identifiers_and_origins_may_reveal_internal_names_not_secret_detection",
+      "max_configurations_per_ecosystem": 64,
+      "max_file_bytes": 1,
+      "max_declarations_per_configuration": 256,
+      "max_declarations_per_ecosystem": 1024
+    },
+    "coverage": {
+      "candidate_files": 2,
+      "admitted_files": 2,
+      "read_files": 0,
+      "parsed_files": 0,
+      "bytes_read": 0,
+      "observed_declarations": 0,
+      "retained_declarations": 0,
+      "enumeration_complete": true
+    },
+    "configurations": [
+      {
+        "path": ".npmrc",
+        "ecosystem": "npm",
+        "status": "partial",
+        "syntax_status": "not_read",
+        "ancestor_candidates": [],
+        "observed_declarations": 0,
+        "omitted_declarations": 0,
+        "declaration_count_complete": false,
+        "declarations": [],
+        "omissions": {
+          "file_size_limit": 1
+        }
+      },
+      {
+        "path": "NuGet.Config",
+        "ecosystem": "nuget",
+        "status": "partial",
+        "syntax_status": "not_read",
+        "ancestor_candidates": [],
+        "observed_declarations": 0,
+        "omitted_declarations": 0,
+        "declaration_count_complete": false,
+        "declarations": [],
+        "omissions": {
+          "file_size_limit": 1
+        }
+      }
+    ],
+    "omissions": {}
+  },
+  "rules": {
+    "provider": "dircue",
+    "evaluator_version": "1.0.0",
+    "rules_schema_version": "1.0.0",
+    "rules_sha256": "c919d7ca62270b84287267469902302d95095df4dd9a79fee125eb46d8b64ed0",
+    "source": {
+      "kind": "directory"
+    },
+    "source_consistency": "live_directory",
+    "scope": "selected_regular_files_including_vendor_generated_and_data",
+    "status": "partial",
+    "order": "path_then_rule_id",
+    "limits": {
+      "config_bytes": 262144,
+      "rules": 256,
+      "selector_values": 64,
+      "total_selectors": 4096,
+      "literal_bytes": 4096,
+      "path_bytes": 4096,
+      "content_bytes": 1,
+      "content_files": 256,
+      "observations": 1024,
+      "caller_max_file_bytes": 1
+    },
+    "inventory_files": 7,
+    "candidate_files": 3,
+    "content_candidate_files": 3,
+    "content_eligible_files": 0,
+    "content_admitted_files": 0,
+    "content_evaluated_files": 0,
+    "content_omitted_files": 3,
+    "total_matches": 0,
+    "omitted_matches": 0,
+    "omissions": {
+      "caller_file_limit": 3
+    },
+    "rules": [
+      {
+        "id": "source-return",
+        "requires_content": true,
+        "candidate_files": 3,
+        "evaluated_files": 0,
+        "matched_files": 0,
+        "content_omitted_files": 3
+      }
+    ],
+    "observations": []
+  },
+  "package_evidence": {
+    "status": "partial",
+    "report_sha256": "f45eab535e14ce25a9c93f6f9abb3ceebb6fb490a8736c9c4a2da4fbcec1b7ef",
+    "report_bytes": 19120,
+    "provider": {
+      "name": "syft",
+      "version": "1.52.0",
+      "schema_version": "16.1.10",
+      "configuration": {
+        "sha256": "c540a84c38beca36f73fa428868e542d2f3e559508266dc00974e84e244e1469",
+        "catalogers": [
+          "alpm-db-cataloger",
+          "apk-db-cataloger",
+          "apple-app-bundle-cataloger",
+          "binary-classifier-cataloger",
+          "cargo-auditable-binary-cataloger",
+          "cocoapods-cataloger",
+          "conan-cataloger",
+          "conda-meta-cataloger",
+          "dart-pubspec-cataloger",
+          "dart-pubspec-lock-cataloger",
+          "deb-archive-cataloger",
+          "dotnet-deps-binary-cataloger",
+          "dotnet-packages-lock-cataloger",
+          "dpkg-db-cataloger",
+          "elf-binary-package-cataloger",
+          "elixir-mix-lock-cataloger",
+          "erlang-otp-application-cataloger",
+          "erlang-rebar-lock-cataloger",
+          "file-content-cataloger",
+          "file-digest-cataloger",
+          "file-executable-cataloger",
+          "file-metadata-cataloger",
+          "gguf-cataloger",
+          "github-action-workflow-usage-cataloger",
+          "github-actions-usage-cataloger",
+          "go-module-binary-cataloger",
+          "go-module-file-cataloger",
+          "graalvm-native-image-cataloger",
+          "haskell-cataloger",
+          "homebrew-cataloger",
+          "java-archive-cataloger",
+          "java-gradle-lockfile-cataloger",
+          "java-jvm-cataloger",
+          "java-pom-cataloger",
+          "javascript-lock-cataloger",
+          "linux-kernel-cataloger",
+          "lua-rock-cataloger",
+          "nix-cataloger",
+          "opam-cataloger",
+          "pe-binary-package-cataloger",
+          "php-composer-lock-cataloger",
+          "php-interpreter-cataloger",
+          "php-pear-serialized-cataloger",
+          "portage-cataloger",
+          "python-installed-package-cataloger",
+          "python-package-cataloger",
+          "r-package-cataloger",
+          "rpm-archive-cataloger",
+          "rpm-db-cataloger",
+          "ruby-gemfile-cataloger",
+          "ruby-gemspec-cataloger",
+          "rust-cargo-lock-cataloger",
+          "safetensors-cataloger",
+          "snap-cataloger",
+          "swift-package-manager-cataloger",
+          "swipl-pack-cataloger",
+          "terraform-lock-cataloger",
+          "vcpkg-manifest-cataloger",
+          "wordpress-plugins-cataloger"
+        ],
+        "requested_catalogers": [
+          "directory",
+          "file"
+        ],
+        "scope": "squashed",
+        "settings": {
+          "packages.golang.search-remote-licenses": false,
+          "packages.java-archive.include-indexed-archives": true,
+          "packages.java-archive.include-unindexed-archives": false,
+          "packages.java-archive.resolve-transitive-dependencies": false,
+          "packages.java-archive.use-network": false,
+          "packages.javascript.search-remote-licenses": false,
+          "packages.python.search-remote-licenses": false,
+          "relationships.package-file-ownership": true
+        },
+        "detail": "allowlisted-subset; other configuration retained by digest only"
+      }
+    },
+    "source": {
+      "reported_id": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+      "type": "directory",
+      "id_sha256": "c7ca91a19397dd88d04115a5b086a2b565d8870c5c2c2944b95f0ea8cabc00d7",
+      "metadata_sha256": "322161de3dff774e1670b65743c01db227e2995e48e01f93a8203d2f99645d28",
+      "match": "unknown",
+      "match_basis": "No digest-bound source snapshot identity was supplied"
+    },
+    "coverage": {
+      "import": "complete",
+      "provider_scan": "unknown",
+      "snapshot": "unknown",
+      "metadata": "supported-subset"
+    },
+    "limits": {
+      "bytes": 16777216,
+      "artifacts": 20000,
+      "relationships": 50000,
+      "files": 50000,
+      "locations": 100000
+    },
+    "packages": [
+      {
+        "id": "0ab28651f68dfde4",
+        "name": "app",
+        "version": "1.0.0",
+        "type": "java-archive",
+        "language": "java",
+        "purl": "pkg:maven/example/app@1.0.0",
+        "found_by": "java-archive-cataloger",
+        "basis": "built-artifact",
+        "locations": [
+          {
+            "path": "java/app.jar",
+            "access_path": "java/app.jar",
+            "original_sha256": "a7c54c155e3a9ccd6ccf574ba1ead8b2603142bd9da2f3b44e5d29f44fd91ec4",
+            "state": "mapped",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "project-inventory-incomplete"
+          }
+        ],
+        "metadata": {
+          "type": "java-archive",
+          "sha256": "44139c0e3a844645956a255c47615a9cd2af06159e8e36212bdcb2123d90c8a0",
+          "digests": [
+            {
+              "algorithm": "sha1",
+              "value": "9d33fefd86087cda91b8f670fb4cb4f9bc9ac521"
+            }
+          ]
+        }
+      },
+      {
+        "id": "1e7067fe6a24fd58",
+        "name": "Example.Core",
+        "version": "1.2.3",
+        "type": "dotnet",
+        "language": "dotnet",
+        "purl": "pkg:nuget/Example.Core@1.2.3",
+        "found_by": "dotnet-deps-binary-cataloger",
+        "basis": "built-artifact-manifest",
+        "locations": [
+          {
+            "path": "dotnet/app/app.deps.json",
+            "access_path": "dotnet/app/app.deps.json",
+            "original_sha256": "bb6fbca2ed58691b5a4da55ab464073248a1e207e455cf56442794eca483ff88",
+            "state": "mapped",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "project-inventory-incomplete"
+          }
+        ],
+        "metadata": {
+          "type": "dotnet-deps-entry",
+          "sha256": "c4e898ad8630eee8a98f3389d9a533b9f1d1a58b83f5c6ec690f8a2db4081de5",
+          "dependency_type": "package",
+          "digests": []
+        }
+      },
+      {
+        "id": "2f0b6a6bff9dc114",
+        "name": "inner",
+        "version": "2.0.0",
+        "type": "java-archive",
+        "language": "java",
+        "purl": "pkg:maven/example/inner@2.0.0",
+        "found_by": "java-archive-cataloger",
+        "basis": "built-artifact",
+        "locations": [
+          {
+            "path": "java/app.jar",
+            "access_path": "java/app.jar:BOOT-INF/lib/inner.jar",
+            "original_sha256": "be385c929af908808c3ca465c5a385ca2273f4d3b7569007c7a690df27096684",
+            "state": "nested-archive",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "nested-archive"
+          }
+        ],
+        "metadata": {
+          "type": "java-archive",
+          "sha256": "93945386779b68732a1abed382a91ef7d20742024604b7959306004b7950396f",
+          "digests": [
+            {
+              "algorithm": "sha1",
+              "value": "69546d652f0d1e06abe6302dd0f0734ede5c9dc5"
+            }
+          ]
+        }
+      },
+      {
+        "id": "46de9b534711cf50",
+        "name": "Example.Core",
+        "version": "1.2.3",
+        "type": "dotnet",
+        "language": "dotnet",
+        "purl": "pkg:nuget/Example.Core@1.2.3",
+        "found_by": "dotnet-packages-lock-cataloger",
+        "basis": "lockfile-resolution",
+        "locations": [
+          {
+            "path": "dotnet/app/packages.lock.json",
+            "access_path": "dotnet/app/packages.lock.json",
+            "original_sha256": "1b7755f494a7587f8433bdc16ed40da5d1408fea11b685f8db38d42b57de9b84",
+            "state": "mapped",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "project-inventory-incomplete"
+          }
+        ],
+        "metadata": {
+          "type": "dotnet-packages-lock-entry",
+          "sha256": "bb9e2fd2ab6eafb41833960f9fac9c50440673843b63c7984a88df9d9fd0a9fd",
+          "dependency_type": "Direct",
+          "digests": []
+        }
+      },
+      {
+        "id": "601eefac951322b3",
+        "name": "Example.Transitive",
+        "version": "2.0.0",
+        "type": "dotnet",
+        "language": "dotnet",
+        "purl": "pkg:nuget/Example.Transitive@2.0.0",
+        "found_by": "dotnet-deps-binary-cataloger",
+        "basis": "built-artifact-manifest",
+        "locations": [
+          {
+            "path": "dotnet/app/app.deps.json",
+            "access_path": "dotnet/app/app.deps.json",
+            "original_sha256": "bb6fbca2ed58691b5a4da55ab464073248a1e207e455cf56442794eca483ff88",
+            "state": "mapped",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "project-inventory-incomplete"
+          }
+        ],
+        "metadata": {
+          "type": "dotnet-deps-entry",
+          "sha256": "7f13b37d7633dd5ecd220c72a9e1fd6ee9837ee2226327402c2121805196247c",
+          "dependency_type": "package",
+          "digests": []
+        }
+      },
+      {
+        "id": "b251b66f5e1ba15f",
+        "name": "Example.Transitive",
+        "version": "2.0.0",
+        "type": "dotnet",
+        "language": "dotnet",
+        "purl": "pkg:nuget/Example.Transitive@2.0.0",
+        "found_by": "dotnet-packages-lock-cataloger",
+        "basis": "lockfile-resolution",
+        "locations": [
+          {
+            "path": "dotnet/app/packages.lock.json",
+            "access_path": "dotnet/app/packages.lock.json",
+            "original_sha256": "1b7755f494a7587f8433bdc16ed40da5d1408fea11b685f8db38d42b57de9b84",
+            "state": "mapped",
+            "evidence": "primary",
+            "project_ids": [],
+            "association": "project-inventory-incomplete"
+          }
+        ],
+        "metadata": {
+          "type": "dotnet-packages-lock-entry",
+          "sha256": "037131da376fc537e8ce1fa11b35befc5b8776c2a0cc8cca4e009282b770c051",
+          "dependency_type": "Transitive",
+          "digests": []
+        }
+      }
+    ],
+    "files": [
+      {
+        "id": "0480439a69f82e6f",
+        "location": {
+          "path": "dotnet/app/app.deps.json",
+          "access_path": "dotnet/app/app.deps.json",
+          "original_sha256": "8ed3b2e1225cc252dbc446c558a7234bcbd9847470752d97331faa0268835b1f",
+          "state": "mapped",
+          "evidence": "unknown",
+          "project_ids": [],
+          "association": "project-inventory-incomplete"
+        }
+      },
+      {
+        "id": "736b0dc5c6ab52d9",
+        "location": {
+          "path": "java/app.jar",
+          "access_path": "java/app.jar",
+          "original_sha256": "39d3653e682a386e56e07478d03e781464e5a030409f41b9404bd604dd180c39",
+          "state": "mapped",
+          "evidence": "unknown",
+          "project_ids": [],
+          "association": "project-inventory-incomplete"
+        }
+      },
+      {
+        "id": "e0b544e2371ea97d",
+        "location": {
+          "path": "dotnet/app/packages.lock.json",
+          "access_path": "dotnet/app/packages.lock.json",
+          "original_sha256": "48b111df0052673a626fa1f34cec654624ed9af24d098ca1710ad1130044858e",
+          "state": "mapped",
+          "evidence": "unknown",
+          "project_ids": [],
+          "association": "project-inventory-incomplete"
+        }
+      }
+    ],
+    "relationships": [
+      {
+        "parent": "0ab28651f68dfde4",
+        "child": "736b0dc5c6ab52d9",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "1e7067fe6a24fd58",
+        "child": "0480439a69f82e6f",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "2f0b6a6bff9dc114",
+        "child": "0ab28651f68dfde4",
+        "type": "dependency-of",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "package"
+      },
+      {
+        "parent": "2f0b6a6bff9dc114",
+        "child": "736b0dc5c6ab52d9",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "46de9b534711cf50",
+        "child": "e0b544e2371ea97d",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "601eefac951322b3",
+        "child": "0480439a69f82e6f",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "601eefac951322b3",
+        "child": "1e7067fe6a24fd58",
+        "type": "dependency-of",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "package"
+      },
+      {
+        "parent": "b251b66f5e1ba15f",
+        "child": "46de9b534711cf50",
+        "type": "dependency-of",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "package"
+      },
+      {
+        "parent": "b251b66f5e1ba15f",
+        "child": "e0b544e2371ea97d",
+        "type": "evident-by",
+        "state": "reported",
+        "parent_kind": "package",
+        "child_kind": "file",
+        "metadata_sha256": "3d730f837e2fb6e02f8532e78a18d7a72715d2d50278d5a23b9c7c18f7085876"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "0ab28651f68dfde4",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "1e7067fe6a24fd58",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "2f0b6a6bff9dc114",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "46de9b534711cf50",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "601eefac951322b3",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      },
+      {
+        "parent": "d8a92511096e77ea67285d5f2ff5bf9ec5980be0df39b5e8427a473d548d41a5",
+        "child": "b251b66f5e1ba15f",
+        "type": "contains",
+        "state": "reported",
+        "parent_kind": "source",
+        "child_kind": "package"
+      }
+    ],
+    "diagnostics": [
+      {
+        "code": "partial-project-inventory",
+        "count": 1
+      }
+    ]
+  },
+  "discovery": {
+    "linguist_data_commit": "e0c78d62c42abae6122235d8e68a7aa43eef89da",
+    "status": "complete",
+    "engine": "dircue-metadata",
+    "rule_version": "1.0.0",
+    "source": {
+      "mode": "directory",
+      "consistency": "live_directory_metadata"
+    },
+    "scope": {
+      "population": "regular_files_including_vendor_and_data",
+      "content_inspection": "none",
+      "attributes": "existing_scanner_attribute_policy",
+      "archive_expansion": false,
+      "max_tree_size": 100000,
+      "evidence_limit_per_kind": 256
+    },
+    "inventory": {
+      "files": 7,
+      "bytes": 854
+    },
+    "categories": [
+      {
+        "name": "manifest",
+        "basis": "extension",
+        "files": 2,
+        "bytes": 300
+      },
+      {
+        "name": "shared_configuration",
+        "basis": "filename",
+        "files": 2,
+        "bytes": 289
+      },
+      {
+        "name": "source_candidate",
+        "basis": "enry_extension",
+        "files": 3,
+        "bytes": 265
+      }
+    ],
+    "roles": [],
+    "candidate_counts": [
+      {
+        "name": "manifest",
+        "basis": "extension",
+        "files": 2,
+        "bytes": 300
+      },
+      {
+        "name": "shared_configuration",
+        "basis": "filename",
+        "files": 2,
+        "bytes": 289
+      }
+    ],
+    "candidates": [
+      {
+        "path": ".npmrc",
+        "root": ".",
+        "kind": "shared_configuration",
+        "format": "npm",
+        "basis": "filename",
+        "bytes": 125
+      },
+      {
+        "path": "App/App.csproj",
+        "root": "App",
+        "kind": "manifest",
+        "format": "dotnet",
+        "basis": "extension",
+        "bytes": 185
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "root": "Lib",
+        "kind": "manifest",
+        "format": "dotnet",
+        "basis": "extension",
+        "bytes": 115
+      },
+      {
+        "path": "NuGet.Config",
+        "root": ".",
+        "kind": "shared_configuration",
+        "format": "nuget",
+        "basis": "filename",
+        "bytes": 164
+      }
+    ],
+    "omitted_candidates": {},
+    "omissions": {},
+    "classification_bytes_read": 0
+  },
+  "graph": {
+    "provider": "dircue",
+    "provider_version": "1.0.0",
+    "kind": "dotnet-project-reference",
+    "status": "partial",
+    "reason": "incomplete_project_inventory",
+    "source": "directory",
+    "input_status": "partial",
+    "edge_rule": "Direct, unconditional project-manifest ProjectReference declarations to present parsed .NET projects; not evaluated build membership.",
+    "coverage": {
+      "projects": 0,
+      "reference_observations": 0,
+      "duplicate_observations": 0,
+      "included_observations": 0,
+      "unique_edges": 0,
+      "conditional_edges": 0,
+      "unresolved_edges": 0,
+      "missing_targets": 0,
+      "external_targets": 0,
+      "unrecognized_targets": 0,
+      "ambiguous_targets": 0,
+      "input_omitted_files": 0,
+      "excluded_project_kinds": {},
+      "excluded_reference_kinds": {}
+    },
+    "nodes": [],
+    "edges": [],
+    "components": [],
+    "cycles": [],
+    "diagnostics": [
+      {
+        "path": "App/App.csproj",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      },
+      {
+        "path": "NuGet.Config",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      }
+    ]
+  },
+  "projects": {
+    "status": "partial",
+    "source": "directory",
+    "attribution": "nearest-unique-project-directory",
+    "max_manifest_bytes": 1048576,
+    "projects": [],
+    "configurations": [
+      {
+        "path": "NuGet.Config",
+        "requirements": [],
+        "references": []
+      }
+    ],
+    "composition": [
+      {
+        "name": "unknown",
+        "basis": "not-established",
+        "files": 7,
+        "bytes": 854
+      }
+    ],
+    "unassigned": {
+      "files": 7,
+      "bytes": 854
+    },
+    "ambiguous": {
+      "files": 0,
+      "bytes": 0
+    },
+    "omitted_files": 0,
+    "diagnostics": [
+      {
+        "path": "App/App.csproj",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      },
+      {
+        "path": "NuGet.Config",
+        "code": "manifest_too_large",
+        "message": "manifest omitted because it exceeds the configured read limit"
+      }
+    ]
+  },
+  "structure": {
+    "functions": {
+      "provider": "big-code-analysis@2.2.0",
+      "rule": "space-kind-function",
+      "rule_version": "1.0.0",
+      "scope": "selected-source-files",
+      "status": "partial",
+      "parent_status": "partial",
+      "metric_scope": "includes_nested_spaces",
+      "metric_groups": [
+        "abc",
+        "cognitive",
+        "cyclomatic",
+        "halstead",
+        "loc",
+        "mi",
+        "nargs",
+        "nexits",
+        "nom",
+        "tokens"
+      ],
+      "order": "path_then_provider_preorder",
+      "limit": 1024,
+      "per_file_limit": 128,
+      "name_max_bytes": 256,
+      "analyzed_files": 0,
+      "partial_files": 0,
+      "omissions": {
+        "file_too_large": 7
+      },
+      "total_spaces": 0,
+      "omitted_spaces": 0,
+      "per_file_omitted_spaces": 0,
+      "report_omitted_spaces": 0,
+      "invalid_span_spaces": 0,
+      "entries": []
+    },
+    "supported_languages": [
+      {
+        "language": "C",
+        "grammar": "tree-sitter-c@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "C#",
+        "grammar": "tree-sitter-c-sharp@0.23.5",
+        "observations": [
+          "classes",
+          "interfaces",
+          "records",
+          "structs",
+          "enums",
+          "methods",
+          "constructors",
+          "properties",
+          "imports",
+          "lambdas",
+          "local_functions",
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "C++",
+        "grammar": "tree-sitter-cpp@0.23.4",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Elixir",
+        "grammar": "tree-sitter-elixir@0.3.5",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Go",
+        "grammar": "tree-sitter-go@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens",
+          "npa",
+          "npm"
+        ]
+      },
+      {
+        "language": "Groovy",
+        "grammar": "dekobon-tree-sitter-groovy@0.2.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Java",
+        "grammar": "tree-sitter-java@0.23.5",
+        "observations": [
+          "classes",
+          "interfaces",
+          "records",
+          "structs",
+          "enums",
+          "methods",
+          "constructors",
+          "properties",
+          "imports",
+          "lambdas",
+          "local_functions",
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "JavaScript",
+        "grammar": "tree-sitter-javascript@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Kotlin",
+        "grammar": "tree-sitter-kotlin-ng@1.1.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Lua",
+        "grammar": "tree-sitter-lua@0.5.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "Objective-C",
+        "grammar": "tree-sitter-objc@3.0.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "PHP",
+        "grammar": "tree-sitter-php@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Perl",
+        "grammar": "tree-sitter-perl@1.1.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "Python",
+        "grammar": "tree-sitter-python@0.25.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Ruby",
+        "grammar": "tree-sitter-ruby@0.23.1",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Rust",
+        "grammar": "tree-sitter-rust@0.24.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Shell",
+        "grammar": "tree-sitter-bash@0.25.1",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "TSX",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      },
+      {
+        "language": "Tcl",
+        "grammar": "bca-tree-sitter-tcl@2.2.0",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "tokens"
+        ]
+      },
+      {
+        "language": "TypeScript",
+        "grammar": "tree-sitter-typescript@0.23.2",
+        "observations": [
+          "syntax_nodes",
+          "error_nodes",
+          "missing_nodes"
+        ],
+        "metric_groups": [
+          "abc",
+          "cognitive",
+          "cyclomatic",
+          "halstead",
+          "loc",
+          "mi",
+          "nargs",
+          "nexits",
+          "nom",
+          "npa",
+          "npm",
+          "tokens",
+          "wmc"
+        ]
+      }
+    ],
+    "observation_files": {},
+    "engine": "big-code-analysis",
+    "engine_version": "2.2.0",
+    "status": "partial",
+    "scope": "source",
+    "source": "directory",
+    "max_file_bytes": 8388608,
+    "analyzed_files": 0,
+    "partial_files": 0,
+    "parse_count": 0,
+    "omissions": {
+      "file_too_large": 7
+    },
+    "observations": {},
+    "files": [
+      {
+        "path": ".npmrc",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 125,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "App/App.csproj",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 185,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "App/main.cs",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 100,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "Java/Main.java",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 87,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 115,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "Lib/lib.cs",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 78,
+        "parse_count": 0,
+        "syntax_errors": false
+      },
+      {
+        "path": "NuGet.Config",
+        "language": "",
+        "status": "skipped",
+        "reason": "file_too_large",
+        "source_bytes": 164,
+        "parse_count": 0,
+        "syntax_errors": false
+      }
+    ]
+  },
+  "schema_version": "1.3.0",
+  "root": "/Users/gingeleski/Workspace/dircue/.cache/final-v040-audit/composition-fixture",
+  "summary": {
+    "scanned_files": 7,
+    "analyzed_files": 0,
+    "skipped_files": 7,
+    "language_bytes": 0
+  },
+  "languages": [],
+  "ecosystems": [],
+  "frameworks": [],
+  "layouts": [],
+  "warnings": [
+    {
+      "path": ".npmrc",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "App/App.csproj",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "App/main.cs",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "Java/Main.java",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "Lib/Lib.csproj",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "Lib/lib.cs",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    },
+    {
+      "path": "NuGet.Config",
+      "code": "file_too_large",
+      "message": "file exceeds 1 byte limit"
+    }
+  ],
+  "metrics": {
+    "engine": "scc",
+    "engine_version": "4.1.0",
+    "status": "partial",
+    "scope": "source",
+    "max_file_bytes": 16777216,
+    "source": "directory",
+    "totals": {
+      "files": 0,
+      "bytes": 0,
+      "lines": 0,
+      "code": 0,
+      "comment": 0,
+      "blank": 0,
+      "complexity": 0
+    },
+    "languages": [],
+    "directories": [],
+    "skipped": [
+      {
+        "reason": "file_too_large",
+        "files": 7
+      }
+    ],
+    "files": [
+      {
+        "path": ".npmrc",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "App/App.csproj",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "App/main.cs",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "Java/Main.java",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "Lib/Lib.csproj",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "Lib/lib.cs",
+        "status": "skipped",
+        "reason": "file_too_large"
+      },
+      {
+        "path": "NuGet.Config",
+        "status": "skipped",
+        "reason": "file_too_large"
+      }
+    ]
+  }
+}

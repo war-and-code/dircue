@@ -1,0 +1,104 @@
+{
+  "reviewed_at": "2026-09-19T23:24:51.522707+00:00",
+  "skill": "codebase-audit",
+  "domain": "untrusted-input/privacy correctness",
+  "scope": [
+    "pkg/registries",
+    "pkg/scanner/registries.go",
+    "pkg/scanner/projects.go",
+    "pkg/scanner/scanner.go",
+    "internal/cli/registries.go"
+  ],
+  "findings": [
+    {
+      "id": "npm-single-quoted-types",
+      "severity": "medium",
+      "location": "pkg/registries/npm.go:npmValue",
+      "reproduction": "registry='123'; registry='[]'; registry='{}'; registry='[1]'",
+      "root_cause": "Single-quoted payload returned verbatim as string; upstream ini parses valid inner JSON into numbers/arrays/objects.",
+      "impact": "A non-string registry value becomes a complete local-path declaration.",
+      "fix": "Reject typed inner JSON; preserve string coercion and exact upstream quote semantics.",
+      "status": "fixed by parser owner; original reproduction independently verified after correction",
+      "evidence": [
+        "typed-values-before.jsonl",
+        "typed-oracle.jsonl",
+        "probe.go"
+      ]
+    },
+    {
+      "id": "cancel-during-final-parse",
+      "severity": "medium",
+      "location": "pkg/registries/collector.go:Finish",
+      "reproduction": "240KiB XML containing30,000 comments; callback schedules cancel after100us.10/10 successful nonnil reports while context was canceled.",
+      "root_cause": "No cancellation check after Parse or before final report publication.",
+      "impact": "Last-file parse can return success despite an already-canceled context.",
+      "fix": "Check cancellation after Parse and before publishing report.",
+      "status": "fixed by parser owner; original reproduction independently verified after correction",
+      "evidence": [
+        "cancel-during-last-parse-before.jsonl",
+        "cancel_probe.go"
+      ]
+    },
+    {
+      "id": "xml-declaration-validation",
+      "severity": "medium",
+      "location": "pkg/registries/nuget.go:xml.ProcInst",
+      "reproduction": "Duplicate XML declaration; <?xml garbage?>; <?xml?>; XML declaration after comment.",
+      "root_cause": "encoding/xml does not validate this declaration grammar/placement; current check accepts every xml-target PI before root.",
+      "impact": "Malformed XML marked syntax complete and declaration count complete.",
+      "fix": "Only accept a single supported syntactically valid leading declaration; reject malformed/misplaced declarations transactionally.",
+      "primary_source": "https://www.w3.org/TR/xml/#sec-prolog-dtd",
+      "status": "fixed by parser owner; original reproduction independently verified after correction",
+      "evidence": [
+        "xml-declarations-before.jsonl",
+        "xml_probe.go"
+      ]
+    }
+  ],
+  "privacy_probe": "race-enabled independent overlay passed17 endpoint cases, namespace/directive transactionality, immutable output, explicit qualified-name disclosure",
+  "limits": "No general secret detection guarantee; qualified identifiers, origins and source paths may identify internal infrastructure. No TLS/network/effective-feed policy assessment. No package installation, inspected-project builds, or inspected-project code execution; only audit probes and package tests executed.",
+  "files_sha256": {
+    "audit-initial.json": "c9614fa7c576c9669fd285398ef9df1aceaeeab92b122571817f19c04be0f8a8",
+    "cancel-during-last-parse-after.jsonl": "bc26cd956c528c356922b7f066293f1c1e7775ba9392a49cf2b7f58ffe49f996",
+    "cancel-during-last-parse-before.jsonl": "c1fd118b9522c27de5e86581579a233094d7660ce31312f16f6e9838e97021b5",
+    "cancel_probe.go": "baae232e10e587a0ea2e7cdb769374b1377bf7757605b4ec851fc342ba86dedd",
+    "final-parser-race.log": "f9dd09f868418b71576ee2fe8416fb54e53648ae4914a269ade44bd22f1f13bf",
+    "final-scanner-race.log": "f5694d6eedcdc187f0ec23627baf5b57c8a5df812ae3d62f4ffd1bbf7f1d1573",
+    "independent_security_audit_test.go": "0a5e87c6425c7c21f20036b0b09b7683a9f77e79d5dde90b70ac82996707cf2f",
+    "overlay.json": "1ffbf0f33535bf2c468c89b569f71fe93c6c448e60af7dc9081878ac46a4dcb0",
+    "privacy-race.log": "867c088910195c9ee94c515f10357a034fcb6f6fad5aab9de08a624aaeb37232",
+    "probe.go": "284a69b87c981f5095d60e64148a910ec0e5c9dec5dd3afdd927be7135f38a88",
+    "typed-oracle.jsonl": "9511fee696627c6d7a210b6a9629b7e994239c808ec68879d082ab2adf38b5b5",
+    "typed-values-after.jsonl": "06750d28aa722632b450ee8fb645ffcf201139c302802bec8859bdb2bf3ca6c3",
+    "typed-values-before.jsonl": "e98957cce0550132aad83002275d807d5e3ff9885d0969a6fb9e7ac468afcba7",
+    "xml-declarations-after.jsonl": "d521487ebaec15cfb7ca94b438c99b4e80468a2dda888cf1d00992324e789bf2",
+    "xml-declarations-before.jsonl": "baeccf487f9ffa0ab6d7a7787210b88807a6d971bc07aa55c7fa5d6653a806b6",
+    "xml_probe.go": "707c539a8c588a677082df3fbc8ad74fc2a3be3e79e97b118ce9f468b4da5262"
+  },
+  "status": "all_three_findings_fixed_and_independently_verified",
+  "remaining_actionable_findings": [],
+  "verification": {
+    "typed_oracle_matrix": "24 quoting/type combinations plus3 nested boolean/null strings and1 nested URL string passed",
+    "cancel_during_last_parse": "10/10 return nil report and context.Canceled after fix (10/10 returned success before)",
+    "xml_declarations": "all4 malformed/misplaced/duplicate declaration repros now partial, syntax unsupported, count incomplete, no declarations",
+    "privacy": "17 endpoint variants passed; namespace/directive errors transactional; caller input mutation does not alter output; qualified internal feed-name disclosure explicitly preserved",
+    "race": "entire pkg/registries plus independent audit overlay passed; scanner TestRegistries race passed",
+    "parser_limit": "Cancellation occurs after the bounded last parse, not on every XML token; maximum256KiB/config and32,768XML tokens bound this interval",
+    "method": "Isolated synthetic probes and tests, no inspected-project execution or network access to registries"
+  },
+  "verified_source_sha256": {
+    "internal/cli/cli.go": "c2fdfc9f5ce6758db7792f3fadb8333ec992303bbc5d951951d99c83e0030365",
+    "internal/cli/registries.go": "8e5f80fa496da1603070d6d31f8907bb89cc7912e9bea4d7b3cbc513d08ffa60",
+    "pkg/registries/collector.go": "b7632b46d5319b307f222da29f1adc58db8fb85823a11e00e99cee347169c13a",
+    "pkg/registries/npm.go": "af413755cab6ba7c1544b87311d29b4211693832c478c0c41d155ac11581d3da",
+    "pkg/registries/nuget.go": "0bed29b55075122f60685593c815ba46bf6e4273bc02466d21ee1cdfd6d1e762",
+    "pkg/registries/parse.go": "844c0dd73f3cebbc8fc6a2b92d4ac43cbfb57bdfd076d4cb3f0e4f3f3acf7699",
+    "pkg/registries/registries_test.go": "de6c33d991d1fe7764229e5518142b948cc13ef7417160849bdf3f8b0bd49795",
+    "pkg/registries/sanitize.go": "accf193b4767b86a457b9c0201339d1acbc2fd9f33dcb75ad0fd3be1ab43e8bb",
+    "pkg/registries/types.go": "f4087d19d826d2f2d8e60c0dd89fd7cef7c86b724c8d4fbcfe80a0ab9c1d0408",
+    "pkg/scanner/open_unix.go": "e41f571d73c5c801defef91b77abbfa4217f5615689acb87e4858566cbd84967",
+    "pkg/scanner/projects.go": "7504aeb16c0900742fa590a6e922daef401b34e35a52c69653d8e82171e3401d",
+    "pkg/scanner/registries.go": "e949db09506aba0ccaa6bab61f0a23963c9ec7cc725d20cc4f334a55e8d96641",
+    "pkg/scanner/scanner.go": "31031d033331adb2dd543dcf8fac135d276089b89600ef2f4292027b99b74d90"
+  }
+}

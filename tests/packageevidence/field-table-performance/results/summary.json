@@ -1,0 +1,198 @@
+{
+  "recommendation": "accept_for_allocation_reduction_only_pending_independent_review",
+  "runtime_scope": "optional native Syft JSON Import; no scan, capacity or JSON validator changes",
+  "warm_20000_medians": {
+    "before": {
+      "ns_per_import": 953150812.5,
+      "allocated_bytes_per_import": 408029856.0,
+      "allocations_per_import": 10120850.0,
+      "process_peak_rss_bytes": 126836736.0
+    },
+    "after": {
+      "ns_per_import": 908889354.5,
+      "allocated_bytes_per_import": 401309496.0,
+      "allocations_per_import": 9700836.5,
+      "process_peak_rss_bytes": 123060224.0
+    }
+  },
+  "warm_20000_changes_percent": {
+    "ns_per_import": -4.643699341126039,
+    "allocated_bytes_per_import": -1.647026535234719,
+    "allocations_per_import": -4.149982461947365,
+    "process_peak_rss_bytes": -2.9774591487437885
+  },
+  "cold_cases": {
+    "tiny-valid": {
+      "before": {
+        "median_ms": 0.080125,
+        "p95_ms": 0.10033190000000002,
+        "minimum_ms": 0.070209,
+        "maximum_ms": 0.112167,
+        "coefficient_of_variation": 0.11427170061961739,
+        "median_allocated_bytes": 23624.0,
+        "median_allocations": 501.5,
+        "maximum_process_peak_rss_bytes": 6488064
+      },
+      "after": {
+        "median_ms": 0.0817085,
+        "p95_ms": 0.11000830000000002,
+        "minimum_ms": 0.074666,
+        "maximum_ms": 0.126791,
+        "coefficient_of_variation": 0.14842696739212538,
+        "median_allocated_bytes": 23240.0,
+        "median_allocations": 483.0,
+        "maximum_process_peak_rss_bytes": 6422528
+      }
+    },
+    "tiny-document-alias": {
+      "before": {
+        "median_ms": 0.0356875,
+        "p95_ms": 0.04800770000000001,
+        "minimum_ms": 0.030792,
+        "maximum_ms": 0.04975,
+        "coefficient_of_variation": 0.1338221594074424,
+        "median_allocated_bytes": 6240.0,
+        "median_allocations": 223.5,
+        "maximum_process_peak_rss_bytes": 6455296
+      },
+      "after": {
+        "median_ms": 0.037084,
+        "p95_ms": 0.0424524,
+        "minimum_ms": 0.031917,
+        "maximum_ms": 0.0455,
+        "coefficient_of_variation": 0.09793138817748612,
+        "median_allocated_bytes": 6328.0,
+        "median_allocations": 224.0,
+        "maximum_process_peak_rss_bytes": 6471680
+      }
+    },
+    "tiny-schema-alias": {
+      "before": {
+        "median_ms": 0.05825,
+        "p95_ms": 0.0703423,
+        "minimum_ms": 0.051375,
+        "maximum_ms": 0.0705,
+        "coefficient_of_variation": 0.09486383270831834,
+        "median_allocated_bytes": 14680.0,
+        "median_allocations": 372.0,
+        "maximum_process_peak_rss_bytes": 6471680
+      },
+      "after": {
+        "median_ms": 0.0588545,
+        "p95_ms": 0.0668875,
+        "minimum_ms": 0.050917,
+        "maximum_ms": 0.0695,
+        "coefficient_of_variation": 0.09605210359179434,
+        "median_allocated_bytes": 14392.0,
+        "median_allocations": 361.0,
+        "maximum_process_peak_rss_bytes": 6389760
+      }
+    },
+    "tiny-unicode-source-alias": {
+      "before": {
+        "median_ms": 0.041083,
+        "p95_ms": 0.05183895,
+        "minimum_ms": 0.035042,
+        "maximum_ms": 0.059875,
+        "coefficient_of_variation": 0.13547513112335277,
+        "median_allocated_bytes": 7456.0,
+        "median_allocations": 288.0,
+        "maximum_process_peak_rss_bytes": 6356992
+      },
+      "after": {
+        "median_ms": 0.0415835,
+        "p95_ms": 0.05452225000000001,
+        "minimum_ms": 0.036959,
+        "maximum_ms": 0.066041,
+        "coefficient_of_variation": 0.1566664432160467,
+        "median_allocated_bytes": 7488.0,
+        "median_allocations": 285.0,
+        "maximum_process_peak_rss_bytes": 6455296
+      }
+    },
+    "tiny-unknown-field": {
+      "before": {
+        "median_ms": 0.088208,
+        "p95_ms": 0.10339375,
+        "minimum_ms": 0.079167,
+        "maximum_ms": 0.110875,
+        "coefficient_of_variation": 0.10068449117534525,
+        "median_allocated_bytes": 23912.0,
+        "median_allocations": 513.0,
+        "maximum_process_peak_rss_bytes": 6569984
+      },
+      "after": {
+        "median_ms": 0.091625,
+        "p95_ms": 0.10640625,
+        "minimum_ms": 0.0785,
+        "maximum_ms": 0.109375,
+        "coefficient_of_variation": 0.09731455307794137,
+        "median_allocated_bytes": 23520.0,
+        "median_allocations": 494.0,
+        "maximum_process_peak_rss_bytes": 6553600
+      }
+    }
+  },
+  "adversarial_repeated_peak_rss_bytes": {
+    "packages-hard-invalid-last": {
+      "before": [
+        164544512,
+        150913024,
+        164577280,
+        149733376,
+        187465728
+      ],
+      "after": [
+        165380096,
+        151830528,
+        165167104,
+        149504000,
+        145276928
+      ]
+    },
+    "relationships-hard-invalid-first": {
+      "before": [
+        36421632,
+        30556160,
+        35520512,
+        30605312,
+        30343168
+      ],
+      "after": [
+        30261248,
+        30949376,
+        30605312,
+        30621696,
+        30916608
+      ]
+    },
+    "relationships-hard-invalid-last": {
+      "before": [
+        201555968,
+        212549632,
+        203341824,
+        215318528,
+        215957504
+      ],
+      "after": [
+        209371136,
+        238714880,
+        217792512,
+        209092608,
+        213123072
+      ]
+    }
+  },
+  "contract_cases": 45,
+  "cold_timing_pairs": 100,
+  "warm_timing_pairs": 20,
+  "adversarial_repeat_pairs": 15,
+  "fuzz_comparisons": 206182,
+  "fuzz_seconds": 61,
+  "race": "pass",
+  "vet": "pass",
+  "ast_shape_proof": "pass all8 shapes; names/order/recursively expanded types/literal JSON tags equal",
+  "latency_claim": "none; local warmed median improvement4.64% is within10% noise envelope",
+  "rss_claim": "none; broad overlapping distributions and candidate relationship-last outlier227.66MiB versus baseline max205.95MiB; five pairs do not certify a peak ceiling",
+  "cold_tradeoff": "First-document alias+88 cumulative allocated bytes and Unicode-source alias+32 bytes from one-time fixed-table initialization; other sampled tiny cases allocate less. No changed rejection/cancellation checkpoint."
+}

@@ -1,0 +1,232 @@
+{
+  "checked_at_utc": "2026-09-19T23:52:01.756791+00:00",
+  "source_commit": "3e8e8ad52a78caf047f8901e0986ecb01adff5f7",
+  "comparison_version_override": "0.3.0",
+  "go_input_count": 280,
+  "go_inputs_match": true,
+  "observed_native_inputs_match": true,
+  "binary_sha256": {
+    ".cache/v040-final-validation/dircue-comparison": "0a0587135b7f906db7c2add58623dd4a3908e6d236b8b95cee79fd5941f99214",
+    ".cache/release-v030/archive-audit/extracted/darwin_arm64/dircue": "ff0d723411657a61dc4385c84fc011c1392ce7696066fc13f1c663b1c3967ade",
+    ".cache/next-sprint/v030-structural-worker": "dac0c16d4cd5d030d4fbb7b710e61f4ef3dc84e5cf9d9f14753cdc50a44323ba",
+    ".cache/next-sprint/dircue-worker-functions": "5f9a06323fb30b93dbc7e98a52bd74bfd108da009931548775a8102f015919a5"
+  },
+  "exact_compatibility_matches": 209,
+  "native_default_comparisons": 67,
+  "native_breadth_requests": 21,
+  "native_counterexamples": 11,
+  "ordinary_timed_samples": 100,
+  "registry_timed_samples": 60,
+  "warmups": 32,
+  "ordinary_comparisons": {
+    "cobra-git": {
+      "languages": {
+        "median_time_change_percent": 2.2942569551583247,
+        "median_rss_change_percent": -0.6561679790026198,
+        "paired_time_change_percent": [
+          -1.0808650183358526,
+          -3.0407590790627825,
+          0.9137202114021248,
+          3.566444184084694,
+          2.6191519910949923
+        ]
+      },
+      "projects": {
+        "median_time_change_percent": -0.2825238618491044,
+        "median_rss_change_percent": 4.394141145139807,
+        "paired_time_change_percent": [
+          -3.1087333404335893,
+          1.1395786879232483,
+          -0.3145232849298907,
+          -3.5761286961133343,
+          3.0111915532976097
+        ]
+      }
+    },
+    "spring-framework-git": {
+      "languages": {
+        "median_time_change_percent": -0.5219691776395807,
+        "median_rss_change_percent": 1.431866231020562,
+        "paired_time_change_percent": [
+          -1.4258526549771,
+          -1.8557430584048795,
+          0.08287130803619203,
+          6.058564545590439,
+          2.3852110193113063
+        ]
+      },
+      "projects": {
+        "median_time_change_percent": -1.4915965639355377,
+        "median_rss_change_percent": 0.945179584120992,
+        "paired_time_change_percent": [
+          -3.447864869998718,
+          -8.216530791430564,
+          3.033066049903188,
+          -1.823124645633023,
+          5.3134154735272165
+        ]
+      }
+    },
+    "roslyn-directory": {
+      "languages": {
+        "median_time_change_percent": 0.3778122075251522,
+        "median_rss_change_percent": -0.5954825462012314,
+        "paired_time_change_percent": [
+          -0.4266038442796827,
+          3.2051300549762463,
+          -1.0588792779998912,
+          -1.012356050241836,
+          2.973137263920922
+        ]
+      },
+      "projects": {
+        "median_time_change_percent": -0.5893803960302924,
+        "median_rss_change_percent": 0.8668111351892049,
+        "paired_time_change_percent": [
+          0.011499059455855054,
+          -0.29690709380968405,
+          -0.7602403083560305,
+          -2.7136256868890207,
+          -1.1147227475311938
+        ]
+      }
+    },
+    "roslyn-git": {
+      "languages": {
+        "median_time_change_percent": 0.3417985145908853,
+        "median_rss_change_percent": 0.355966895078752,
+        "paired_time_change_percent": [
+          -1.6804842124444552,
+          0.3417985145908853,
+          1.226256195629416,
+          3.1757736442910023,
+          -0.8923999270999405
+        ]
+      },
+      "projects": {
+        "median_time_change_percent": -0.6346284455816864,
+        "median_rss_change_percent": 0.393339451947039,
+        "paired_time_change_percent": [
+          -1.48320196162266,
+          1.385244833668775,
+          -0.9806359263664022,
+          -0.6346284455816864,
+          -0.5126456376854271
+        ]
+      }
+    },
+    "xml-and-dotnet": {
+      "languages": {
+        "median_time_change_percent": 3.5953213624959846,
+        "median_rss_change_percent": -2.8865979381443307,
+        "paired_time_change_percent": [
+          2.355805090294738,
+          7.950050260468955,
+          -6.781982069254433,
+          -0.8038054774171965,
+          7.972340007613332
+        ]
+      },
+      "projects": {
+        "median_time_change_percent": 2.658306910639019,
+        "median_rss_change_percent": -2.346985734008289,
+        "paired_time_change_percent": [
+          -1.576824347399064,
+          7.103943780528987,
+          -6.790752900088826,
+          -0.8661901196238775,
+          4.491564122161229
+        ]
+      }
+    }
+  },
+  "registry_incremental": {
+    "cobra-directory": {
+      "median_seconds_added": 4.375353455543518e-06,
+      "median_time_change_percent": 0.018386702648975906,
+      "median_rss_bytes_added": -1064960,
+      "paired_time_change_percent": [
+        6.160565568130361,
+        12.988902024016568,
+        -15.523668914304745,
+        5.334435488574418,
+        -4.391091349036835
+      ]
+    },
+    "roslyn-directory": {
+      "median_seconds_added": 0.025800123810768127,
+      "median_time_change_percent": 0.787121417122405,
+      "median_rss_bytes_added": -2211840,
+      "paired_time_change_percent": [
+        -0.04207996364304911,
+        -2.863119814559978,
+        0.7747953373717698,
+        3.8621006255911805,
+        6.011968154786729
+      ]
+    },
+    "xml-and-dotnet": {
+      "median_seconds_added": 0.0007596258074045181,
+      "median_time_change_percent": 1.3642899014259413,
+      "median_rss_bytes_added": 8388608,
+      "paired_time_change_percent": [
+        -2.2416711077487217,
+        3.8626382157053385,
+        -3.986564811303517,
+        3.866551681277386,
+        -7.307709510333793
+      ]
+    },
+    "synthetic-registry-project": {
+      "median_seconds_added": 0.00010770745575428009,
+      "median_time_change_percent": 0.40928893718015225,
+      "median_rss_bytes_added": 180224,
+      "paired_time_change_percent": [
+        -1.7291256250092424,
+        -3.1506681499494094,
+        -2.2701712299110666,
+        4.225740542802869,
+        -0.5958064888983094
+      ]
+    }
+  },
+  "limitations": [
+    "Five paired or rotated samples on one warm-cache macOS arm64 host; no universal performance guarantee.",
+    "XML combined registry mode used 8 MiB more median peak RSS, with all five paired increases, despite zero matching configuration reads. Cause unestablished.",
+    "New Rust research example is not a Go binary input; the observed worker runtime sources and tested worker binary remain unchanged.",
+    "Native source hashes observed locally are not an independent build provenance proof."
+  ],
+  "artifacts": {
+    "tests/compatibility_next/results/v040-final-build-inputs.json.gz": "7da83f782cd42b26e41f8f0262fdf267afd8dfbbfbee97714df35e450b77d026",
+    "tests/compatibility_next/results/v040-final-macos-arm64.json.gz": "42b10e14c02a1149ef2fe675abbd0b4d8d40aeb21d13c5b3786107365ce698dd",
+    "tests/compatibility_next/results/v040-final-native.json.gz": "80e39e81be22bb2a5c54654a6b139ca0bacf2a85bc5c59b4af0cdb90d58db4ee",
+    "tests/performance/v040_candidate/README.md": "b03e80cd121dedace75bff3a78ef0c4cf20a32bc1d38dfb594fcfcb89c954360",
+    "tests/performance/v040_candidate/benchmark.py": "7ec214b6a32696ec1ff15a2ebe6322c8eceb6b102d7cc425dc5db885ece6782f",
+    "tests/performance/v040_candidate/registries.py": "fa084e69a150846a5b44db766d0a2cd719b97bd52570b914c3fe1dcdd2fbca9f",
+    "tests/performance/v040_candidate/results/cobra-git-languages.json.gz": "764737f1934e0d31838b6a6b71b572b6bfbe97abeefa85d6595952e350f3eb6e",
+    "tests/performance/v040_candidate/results/cobra-git-projects.json.gz": "71cae382cb1370645f661b32461c4f58d3433a0ac09c79216298e909666ab88e",
+    "tests/performance/v040_candidate/results/default-macos-arm64.json.gz": "78addfbf6934bc45fa4f6f3ab9326fe061b9ae7ae7af468884200b547028c4b0",
+    "tests/performance/v040_candidate/results/registries-macos-arm64.json.gz": "c351bfab2e1426461912de5e9b90bc7eef866d79fd14c38ad81943148aacef57",
+    "tests/performance/v040_candidate/results/registry-cobra-directory-projects.json.gz": "101a5c4471c6ccc2850d0a230193c2015f1ce5a547e04fefe36e4a2adf9bd23d",
+    "tests/performance/v040_candidate/results/registry-cobra-directory-projects_registries.json.gz": "e73afa9d500b0b070cb8e99c1d157840bdb3016dd94214b10b044a2184fd20ca",
+    "tests/performance/v040_candidate/results/registry-cobra-directory-registries.json.gz": "a2cce0c1bde7774d4707fb62e3784816dc9372224174450121df84d937594192",
+    "tests/performance/v040_candidate/results/registry-roslyn-directory-projects.json.gz": "290da2b8b4dc4f6b4eb095575187cbb3f56ff3ee2560267e3aff447c09e20af5",
+    "tests/performance/v040_candidate/results/registry-roslyn-directory-projects_registries.json.gz": "06ade363f8f67722ae030e81f90a9015e4c52314128a84063c898a0477738dfe",
+    "tests/performance/v040_candidate/results/registry-roslyn-directory-registries.json.gz": "c04bb50b9af053b4452032026f8204dcd0fb7ff6061c787baf900f1936f1ed75",
+    "tests/performance/v040_candidate/results/registry-synthetic-registry-project-projects.json.gz": "85506b9aa05fd14a1479bebde17d6196dd2300f668a92f386aca874cc4feddd5",
+    "tests/performance/v040_candidate/results/registry-synthetic-registry-project-projects_registries.json.gz": "a0c4a410f66a68160d074cde02fcaf91d358f0cf094f115fb4b0ad522ca0824b",
+    "tests/performance/v040_candidate/results/registry-synthetic-registry-project-registries.json.gz": "4cfb65fe1895d1dd2cd9c6c33a105aeb230d41f8920c8cbc360c28d909c9111d",
+    "tests/performance/v040_candidate/results/registry-xml-and-dotnet-projects.json.gz": "0624d620b9281fff96948fb780e654af70eb9788dd1e40ef55acffb996cf0492",
+    "tests/performance/v040_candidate/results/registry-xml-and-dotnet-projects_registries.json.gz": "3e417b2c7b21fb04719b1c51424e40687861d229e33789fa33c8de34192adc6b",
+    "tests/performance/v040_candidate/results/registry-xml-and-dotnet-registries.json.gz": "0fc2ec8472532ea864d20b4b8b3f3a54f64bf3fdca27c125b71c6355783b6cc1",
+    "tests/performance/v040_candidate/results/roslyn-directory-languages.json.gz": "bdcee05149ed52d58b39fd33206c0a24970cca3e95616cb2ae8ea0ff9277e61a",
+    "tests/performance/v040_candidate/results/roslyn-directory-projects.json.gz": "290da2b8b4dc4f6b4eb095575187cbb3f56ff3ee2560267e3aff447c09e20af5",
+    "tests/performance/v040_candidate/results/roslyn-git-languages.json.gz": "bdcee05149ed52d58b39fd33206c0a24970cca3e95616cb2ae8ea0ff9277e61a",
+    "tests/performance/v040_candidate/results/roslyn-git-projects.json.gz": "8b6bd4e4a81d6dfb4000bfbe72bf976a62e148a7cde8e8f46f031cf0f36435c3",
+    "tests/performance/v040_candidate/results/spring-framework-git-languages.json.gz": "461b8f4e649fe6b3a90c0c51554c137e5b02111ac982ee3946cea58eb4ec83d7",
+    "tests/performance/v040_candidate/results/spring-framework-git-projects.json.gz": "8d3a8ac806f647237b7224ce22c4dfead58d7d4f4ee0e8375ac1067a98b9729f",
+    "tests/performance/v040_candidate/results/xml-and-dotnet-languages.json.gz": "d3559d0b16ddcd8d62d76b236e25070a04656d987cd1884868b36aae76a4e59b",
+    "tests/performance/v040_candidate/results/xml-and-dotnet-projects.json.gz": "0624d620b9281fff96948fb780e654af70eb9788dd1e40ef55acffb996cf0492",
+    "tests/performance/v040_candidate/verify.py": "dc1afb784aa0ac39b68c68ed9b6dfe08cb79cd5b1c554dd6ee0766e25146dc3b"
+  }
+}
