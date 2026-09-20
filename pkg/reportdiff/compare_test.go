@@ -205,7 +205,7 @@ func TestLanguagePercentagesRetainTheirDenominatorAndLimits(t *testing.T) {
 	base.Languages = []profile.Language{{Name: "Go", Bytes: 100, FileCount: 1, Percentage: 100}}
 	head.Languages = []profile.Language{{Name: "Go", Bytes: 100, FileCount: 1, Percentage: 50}, {Name: "Python", Bytes: 100, FileCount: 1, Percentage: 50}}
 	m := moduleNamed(t, comparison(t, base, head), "languages")
-	if m.Compatibility != "observed_only" || m.Counts.Changed != 1 || m.Counts.Added != 1 {
+	if m.Compatibility != "observed_only" || m.Counts.Changed != 1 || m.Counts.Unavailable != 1 {
 		t.Fatalf("languages: %+v", m)
 	}
 	for _, change := range m.Changes {
@@ -320,7 +320,7 @@ func TestBoundedComparisonRetainsCounts(t *testing.T) {
 	}
 	r := comparison(t, base, head)
 	m := moduleNamed(t, r, "languages")
-	if r.Status != "partial" || m.Counts.Added != MaxChanges+10 || m.Counts.OmittedChanges != 10 || len(m.Changes) != MaxChanges {
+	if r.Status != "partial" || m.Counts.Unavailable != MaxChanges+10 || m.Counts.OmittedChanges != 10 || len(m.Changes) != MaxChanges {
 		t.Fatalf("cap: %+v", m.Counts)
 	}
 	data, _ := json.Marshal(r)

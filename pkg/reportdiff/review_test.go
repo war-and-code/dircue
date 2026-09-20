@@ -117,8 +117,8 @@ func TestReviewLongIDsValuesAndOutputCounts(t *testing.T) {
 		}
 	}
 	m := reviewModule(t, r, "languages")
-	if m.Counts.Added != reportdiff.MaxChanges+5 || m.Counts.OmittedChanges == 0 {
-		t.Fatalf("added counts: %+v", m.Counts)
+	if m.Counts.Unavailable != reportdiff.MaxChanges+5 || m.Counts.OmittedChanges == 0 {
+		t.Fatalf("unavailable counts: %+v", m.Counts)
 	}
 }
 
@@ -251,5 +251,45 @@ func TestReviewMetricsIdentityIncludesGrammar(t *testing.T) {
 	m = reviewModule(t, reviewCompare(t, a, build(2, 1)), "metrics")
 	if m.Counts.Changed != 2 || len(m.Changes) != 2 || m.Changes[0].ID == m.Changes[1].ID {
 		t.Fatalf("grammar-specific deltas lost: %+v", m)
+	}
+}
+
+func TestReviewModuleOnlyDoesNotClaimLegacyRemoval(t *testing.T) {
+	root := t.TempDir()
+	for name, data := range map[string]string{"main.go": "package main\nfunc main() {}\n", "go.mod": "module example.test/demo\n\ngo 1.26\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(data), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	run := func(args ...string) *reportdiff.Snapshot {
+		t.Helper()
+		var out, stderr bytes.Buffer
+		args = append(args, "--source", "directory", "--json", root)
+		if err := cli.Execute(context.Background(), args, &out, &stderr); err != nil {
+			t.Fatalf("%v: %v %s", args, err, &stderr)
+		}
+		snapshot, err := reportdiff.Load(&out)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return snapshot
+	}
+	full := run("analyze", "all", "--declarations")
+	for _, mode := range []string{"declarations", "discovery", "registries"} {
+		t.Run(mode, func(t *testing.T) {
+			limited := run("analyze", mode)
+			for _, pair := range [][2]*reportdiff.Snapshot{{full, limited}, {limited, full}} {
+				result, err := reportdiff.Compare(pair[0], pair[1])
+				if err != nil {
+					t.Fatal(err)
+				}
+				for _, name := range []string{"languages", "ecosystems"} {
+					m := reviewModule(t, result, name)
+					if m.Counts.Removed != 0 || m.Counts.Added != 0 || m.Counts.Unavailable == 0 {
+						t.Fatalf("%s claimed absence for an unexecuted profiler: %+v", name, m)
+					}
+				}
+			}
+		})
 	}
 }

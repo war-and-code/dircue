@@ -69,7 +69,9 @@ func moduleInputs(p profile.Report) map[string]moduleData {
 	// selection policy. Numeric differences are report observations only.
 	legacyComplete := len(p.Warnings) == 0
 	languages := observedModule(true, "complete", "language_provider_and_selection_provenance_unavailable")
-	languages.complete = legacyComplete
+	// Empty legacy arrays do not distinguish an executed profiler with no
+	// observations from a module-only command that did not run that profiler.
+	languages.complete = false
 	languages.metadata["warnings"] = p.Warnings
 	for _, language := range p.Languages {
 		fields := object(language)
@@ -85,7 +87,7 @@ func moduleInputs(p profile.Report) map[string]moduleData {
 	result["summary"] = summary
 	for name, findings := range map[string][]profile.Finding{"ecosystems": p.Ecosystems, "frameworks": p.Frameworks, "layouts": p.Layouts} {
 		m := observedModule(true, "complete", "finding_provider_version_and_selection_provenance_unavailable")
-		m.complete = legacyComplete
+		m.complete = false
 		for _, finding := range findings {
 			m.add(key(finding.Kind, finding.Name, finding.Root, finding.Detector), finding, finding.Evidence...)
 		}
