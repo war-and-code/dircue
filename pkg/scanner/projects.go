@@ -5,6 +5,7 @@ import (
 	"context"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/formats"
 	"dircue/pkg/projects"
 	"dircue/pkg/registries"
 	"dircue/pkg/rules"
@@ -18,6 +19,16 @@ import (
 // Project manifests have their own selection policy. In particular, XML
 // manifests remain visible even when XML is excluded from language statistics.
 func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	var formatFile *formats.Candidate
+	if opts.Formats {
+		formatFile = formatCandidate(root, item)
+	}
+	if opts.FormatsOnly {
+		if err := ctx.Err(); err != nil {
+			return result{}, err
+		}
+		return result{path: item.path, skipped: true, formatFile: formatFile}, nil
+	}
 	var declarationFile *declarations.Candidate
 	if opts.Declarations {
 		declarationFile = declarationCandidate(root, item)
@@ -63,6 +74,7 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 		item.read = cachedFileReader(root, item)
 	}
 	value, err := analyzeFileBase(ctx, root, item, opts)
+	value.formatFile = formatFile
 	value.declarationFile = declarationFile
 	value.declarationSelected = opts.Declarations
 	value.discoveryFile = metadata

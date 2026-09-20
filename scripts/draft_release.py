@@ -17,6 +17,8 @@ import zipfile
 import release
 import function_release_smoke
 import declarations_release_smoke
+import formats_release_smoke
+import hotspots_release_smoke
 import structural_worker_release as worker_release
 import wheels
 import wheel_release_smoke
@@ -194,6 +196,11 @@ def native_smoke(directory, platform, version, commit):
         if declarations_release_smoke.declarations_required(version):
             receipt = declarations_release_smoke.run(folder / executable, version)
             (directory / 'declarations.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
+        if formats_release_smoke.required(version):
+            receipt = formats_release_smoke.run(folder / executable, version)
+            (directory / 'formats.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
+            receipt = hotspots_release_smoke.run(folder / executable, folder / native_worker, version)
+            (directory / 'hotspots.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
 
 
 def assemble(input_dir, output, version, commit, notes):
@@ -259,6 +266,13 @@ def assemble(input_dir, output, version, commit, notes):
             declarations_release_smoke.validate_receipt(json.loads(raw_declarations), version, core_row['binary_sha256'])
             add('declarations-smoke-' + platform + '.json', raw_declarations)
         validation = {'platform': platform, 'core_sha256': core_row['binary_sha256'], 'worker_sha256': wp['binary_sha256'], 'wheels': len(receipt['wheels'])}
+        if formats_release_smoke.required(version):
+            formats = json.loads((folder / 'formats.json').read_bytes())
+            hotspots = json.loads((folder / 'hotspots.json').read_bytes())
+            formats_release_smoke.validate_receipt(formats, version, core_row['binary_sha256'])
+            hotspots_release_smoke.validate_receipt(hotspots, version, core_row['binary_sha256'], wp['binary_sha256'])
+            validation['formats'] = formats
+            validation['hotspots'] = hotspots
         if declarations_release_smoke.declarations_required(version):
             tag = wheels.PLATFORMS[(core_row['os'], core_row['arch'])][0]
             native_wheels = [row for row in actual_receipt['wheels'] if row['platform'] == tag]

@@ -1,0 +1,733 @@
+{
+  "schema": "dircue-v060-rss-investigation-1",
+  "created_at_utc": "2026-09-20T19:57:42.590706+00:00",
+  "purpose": "Investigate the original XML default-aggregate RSS increase without replacing the original measurements.",
+  "outcome": "No production-source optimization applied. Additional first-marshal reflection is measurable but small; available evidence does not attribute the larger RSS difference to that allocation.",
+  "source_binding": {
+    "candidate_commit": "b4fb6f4849c6327c04a65318578d417f0b1bd2c7",
+    "candidate_sha256": "0ec849e2950a7b7c8d4cd726dc2d8d55cacb6885ab5467a4eb6547e32712b35b",
+    "baseline_commit": "d75bc1ad2094f3683c8fc718bad18483e77716f0",
+    "baseline_sha256": "ab4de3aec442d70f0849a52a5aa1a5540fecc4540145e3226aafaba11930b3f4",
+    "candidate_local_go_inputs_verified_unchanged": 321,
+    "candidate_build_identity": "build-identity.json",
+    "profiling_binaries": {
+      "baseline": {
+        "sha256": "a9c7f02c862a549274d69c0703f1f8abdbb2dfade6447425944dac83dcdcf1cc",
+        "release_binary": false
+      },
+      "candidate": {
+        "sha256": "d57cef14e727139fda0db7070c2ed3c1d940216872064de939dc5171e85a74ba",
+        "release_binary": false
+      }
+    },
+    "baseline_overlay_replacement_sha256": {
+      "schema/profile.schema.json": "0e3062a6e0c743172ca2b0c3699ea3f9103b5e062bf90e078036542ca28b6db0",
+      "schema/validate.go": "75b180ab1d4dc42fefb9b921d4811e1174c7fe07864b7514ca3a20afad90f98b",
+      "schema/comparison.schema.json": "77c7e465a6b3a6188b34f5ec9196ffeaf36bd17bcac87d1d082de62163e948e4",
+      "internal/cli/cli.go": "dad53bfb8dc3064555bc9c7e9bada860ac4df41d6d26fcd6dc59c4b7ecef8b7a",
+      "internal/cli/extended_help.go": "d29aa604a8b8251856caee153867071a396c04102401505456f18f8185b278ec",
+      "internal/cli/projects.go": "d52f246812ecae54ef90f906ce927514493e17dd1ca35868babd04dca8d86521",
+      "pkg/profile/types.go": "8a53f5b98232f4ab2dac2719b6b973253fccdd9c9815a4f2a7e0ef54264c041d",
+      "pkg/profile/structure.go": "3543f0312876b32064cc4c7dc23bd9c81a59fdf7f32223767ac1432b678abc94",
+      "pkg/reportdiff/compare.go": "ec6aa7aa666c467371208f5990c5431fbed440b6aea620f94ac11caa4c42d7bc",
+      "pkg/reportdiff/load.go": "6d868beec35b49e12f9b82b45047e1e4eafbc647dd6a7196abc484152ac75d47",
+      "pkg/reportdiff/modules.go": "c6349c1d40f9a8ed53aeca11e6dae9557bf29d40392df12f9430a7a11133f344",
+      "pkg/scanner/scanner.go": "7e5870dfffc16fe3e415a1a6d74edd69b777abdac26817cfcee9524b917ff628",
+      "pkg/scanner/structure.go": "7822bb4ee8ba3b3905de6d7257634ece764719a3dacf070f32361ee41352f8bd",
+      "pkg/scanner/projects.go": "6667c2b3d90bb6bd27cee31251d15f2e7a35dee406278a7424d757676906e8e5",
+      "pkg/structure/functions.go": "e0bc9cd4627be11a66177c5acd55fdc550fad8a7551467884bc2659033d37ad1",
+      "pkg/structure/structure.go": "d07835eead67d698e25be06bb0b1ffd69008423b907c969bd009f1c6a5e9ea5d"
+    }
+  },
+  "original_experiment": {
+    "public_receipt": "results.json",
+    "public_receipt_sha256": "7c9c4d085ebaeaad25d3b1d6141ffd38b71903bbd5140e3bec65c8a8adac06f0",
+    "original_local_receipt_sha256": "ca44706f59b219d274014478c76f13c6ca786aabe215838c526e422767ceec00",
+    "case": "large-xml-directory",
+    "source_inventory": {
+      "selection": "regular-file SHA256 and directory/symlink metadata, excluding .git directories",
+      "entries": 128,
+      "bytes": 2147483648,
+      "xml_bytes": 2147483648,
+      "manifest_sha256": "b78eb319d88560bddfcdb5d1de7227beb2806126450f859f469b0ccd67a376cd"
+    },
+    "measured_repetitions_per_lane": 10,
+    "baseline_all_median_rss_bytes": 67919872.0,
+    "candidate_all_median_rss_bytes": 76111872.0,
+    "median_rss_change_percent": 12.06127125799059,
+    "retained_without_replacement": true
+  },
+  "repeat_experiment": {
+    "method": "20 fresh-process paired default analyze all invocations, alternating baseline/candidate then candidate/baseline; JSON/source=directory/workers=8/tree-size=1000000. Same existing 128-file XML corpus. No instrumentation in these timing/RSS runs.",
+    "samples": {
+      "baseline": [
+        {
+          "seconds": 0.05907337460666895,
+          "peak_rss_bytes": 82575360,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.07 sys\n            82575360  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5359  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 463  signals received\n                 237  voluntary context switches\n                4421  involuntary context switches\n          1138845740  instructions retired\n           573331646  cycles elapsed\n            70681176  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05688529089093208,
+          "peak_rss_bytes": 69320704,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            69320704  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4555  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 480  signals received\n                 139  voluntary context switches\n                3343  involuntary context switches\n          1112710493  instructions retired\n           538468927  cycles elapsed\n            57115248  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.0527946250513196,
+          "peak_rss_bytes": 81182720,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            81182720  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5278  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 484  signals received\n                 195  voluntary context switches\n                3256  involuntary context switches\n          1093970291  instructions retired\n           521550563  cycles elapsed\n            69206616  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05835400056093931,
+          "peak_rss_bytes": 62881792,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            62881792  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4165  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 563  signals received\n                 242  voluntary context switches\n                4609  involuntary context switches\n          1237490753  instructions retired\n           588905278  cycles elapsed\n            49562248  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05112320836633444,
+          "peak_rss_bytes": 73236480,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.04 real         0.10 user         0.06 sys\n            73236480  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4793  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 422  signals received\n                 174  voluntary context switches\n                2704  involuntary context switches\n          1079416665  instructions retired\n           514660512  cycles elapsed\n            60883568  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05605554115027189,
+          "peak_rss_bytes": 78708736,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            78708736  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5130  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 466  signals received\n                 177  voluntary context switches\n                3097  involuntary context switches\n          1115902469  instructions retired\n           525235715  cycles elapsed\n            66830960  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05378070846199989,
+          "peak_rss_bytes": 87293952,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            87293952  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5649  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 512  signals received\n                 232  voluntary context switches\n                4004  involuntary context switches\n          1132336489  instructions retired\n           551538160  cycles elapsed\n            75203160  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05543091520667076,
+          "peak_rss_bytes": 68665344,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            68665344  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4510  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 452  signals received\n                 187  voluntary context switches\n                3472  involuntary context switches\n          1143299182  instructions retired\n           548844413  cycles elapsed\n            56722032  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.04990633297711611,
+          "peak_rss_bytes": 87277568,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.04 real         0.10 user         0.06 sys\n            87277568  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5647  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 450  signals received\n                 202  voluntary context switches\n                2735  involuntary context switches\n          1040974695  instructions retired\n           492362218  cycles elapsed\n            74842736  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.0792993325740099,
+          "peak_rss_bytes": 67534848,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.07 real         0.11 user         0.06 sys\n            67534848  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4457  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 432  signals received\n                  84  voluntary context switches\n                3462  involuntary context switches\n          1150392747  instructions retired\n           542111384  cycles elapsed\n            55542384  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.056660667061805725,
+          "peak_rss_bytes": 74792960,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            74792960  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4888  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 491  signals received\n                 195  voluntary context switches\n                3519  involuntary context switches\n          1134027743  instructions retired\n           540183305  cycles elapsed\n            60555912  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05712858308106661,
+          "peak_rss_bytes": 75104256,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.07 sys\n            75104256  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4912  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 433  signals received\n                 152  voluntary context switches\n                3939  involuntary context switches\n          1091569333  instructions retired\n           550590211  cycles elapsed\n            62505608  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.057434916496276855,
+          "peak_rss_bytes": 79953920,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            79953920  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5202  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 472  signals received\n                 159  voluntary context switches\n                3042  involuntary context switches\n          1078603310  instructions retired\n           526406997  cycles elapsed\n            68010584  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05789829231798649,
+          "peak_rss_bytes": 68599808,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.07 sys\n            68599808  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4517  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 516  signals received\n                 190  voluntary context switches\n                4473  involuntary context switches\n          1181654295  instructions retired\n           579629087  cycles elapsed\n            56377944  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.056369791738688946,
+          "peak_rss_bytes": 73891840,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.07 sys\n            73891840  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4845  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 526  signals received\n                 173  voluntary context switches\n                4405  involuntary context switches\n          1140887224  instructions retired\n           566488336  cycles elapsed\n            61964936  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05609066691249609,
+          "peak_rss_bytes": 71516160,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            71516160  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4684  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 517  signals received\n                 189  voluntary context switches\n                4118  involuntary context switches\n          1145521208  instructions retired\n           556645596  cycles elapsed\n            59589208  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.055562625639140606,
+          "peak_rss_bytes": 69369856,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            69369856  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4562  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 457  signals received\n                 196  voluntary context switches\n                3254  involuntary context switches\n          1106642531  instructions retired\n           536429765  cycles elapsed\n            57197192  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.059395791962742805,
+          "peak_rss_bytes": 67076096,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            67076096  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4413  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 449  signals received\n                 152  voluntary context switches\n                3060  involuntary context switches\n          1161684686  instructions retired\n           562022947  cycles elapsed\n            55427744  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05795254185795784,
+          "peak_rss_bytes": 66158592,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            66158592  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4362  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 482  signals received\n                 174  voluntary context switches\n                4247  involuntary context switches\n          1166163692  instructions retired\n           567927533  cycles elapsed\n            54182488  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05805225018411875,
+          "peak_rss_bytes": 65126400,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.05 sys\n            65126400  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4295  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 472  signals received\n                 175  voluntary context switches\n                2868  involuntary context switches\n          1111490895  instructions retired\n           513721556  cycles elapsed\n            53068352  peak memory footprint\n"
+        }
+      ],
+      "candidate": [
+        {
+          "seconds": 0.055667124688625336,
+          "peak_rss_bytes": 75825152,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.10 user         0.06 sys\n            75825152  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4959  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 492  signals received\n                 212  voluntary context switches\n                3026  involuntary context switches\n          1088001512  instructions retired\n           508950446  cycles elapsed\n            63783536  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05500162485986948,
+          "peak_rss_bytes": 77004800,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.07 sys\n            77004800  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5027  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 504  signals received\n                 204  voluntary context switches\n                3909  involuntary context switches\n          1094095074  instructions retired\n           549869937  cycles elapsed\n            64914008  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.054444833658635616,
+          "peak_rss_bytes": 71680000,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            71680000  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4700  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 535  signals received\n                 213  voluntary context switches\n                3973  involuntary context switches\n          1094726842  instructions retired\n           533158476  cycles elapsed\n            59441752  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05799099989235401,
+          "peak_rss_bytes": 77709312,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            77709312  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5072  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 457  signals received\n                 183  voluntary context switches\n                3403  involuntary context switches\n          1159632502  instructions retired\n           553026725  cycles elapsed\n            65684056  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05475958436727524,
+          "peak_rss_bytes": 68747264,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            68747264  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4533  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 472  signals received\n                 193  voluntary context switches\n                2938  involuntary context switches\n          1056310499  instructions retired\n           514090983  cycles elapsed\n            56410760  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05844195745885372,
+          "peak_rss_bytes": 69959680,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            69959680  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4592  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 617  signals received\n                 292  voluntary context switches\n                3464  involuntary context switches\n          1181376549  instructions retired\n           556973309  cycles elapsed\n            57901680  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.0574409170076251,
+          "peak_rss_bytes": 65863680,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.06 sys\n            65863680  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4345  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 468  signals received\n                 159  voluntary context switches\n                4633  involuntary context switches\n          1180051567  instructions retired\n           565239154  cycles elapsed\n            53838424  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.054521082900464535,
+          "peak_rss_bytes": 73678848,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            73678848  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4819  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 496  signals received\n                 213  voluntary context switches\n                3176  involuntary context switches\n          1120137682  instructions retired\n           541996593  cycles elapsed\n            61702816  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.07001245766878128,
+          "peak_rss_bytes": 77676544,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.06 real         0.11 user         0.07 sys\n            77676544  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5066  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 455  signals received\n                 126  voluntary context switches\n                3080  involuntary context switches\n          1089458522  instructions retired\n           536064847  cycles elapsed\n            65602160  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.13916779216378927,
+          "peak_rss_bytes": 118030336,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.13 real         0.09 user         0.06 sys\n           118030336  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                7520  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 273  signals received\n                  30  voluntary context switches\n                1619  involuntary context switches\n           952340584  instructions retired\n           449198755  cycles elapsed\n           105775728  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.059070833027362823,
+          "peak_rss_bytes": 65372160,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            65372160  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4315  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 521  signals received\n                 165  voluntary context switches\n                3366  involuntary context switches\n          1142810406  instructions retired\n           538377988  cycles elapsed\n            53379696  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05924304202198982,
+          "peak_rss_bytes": 79511552,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            79511552  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5175  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 479  signals received\n                 173  voluntary context switches\n                3338  involuntary context switches\n          1110732137  instructions retired\n           525360105  cycles elapsed\n            66404976  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05846854206174612,
+          "peak_rss_bytes": 68059136,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            68059136  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4479  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 479  signals received\n                 195  voluntary context switches\n                3413  involuntary context switches\n          1112270384  instructions retired\n           540380485  cycles elapsed\n            55837296  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.06533216778188944,
+          "peak_rss_bytes": 67698688,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.06 real         0.12 user         0.07 sys\n            67698688  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4463  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 588  signals received\n                 243  voluntary context switches\n                3887  involuntary context switches\n          1187650396  instructions retired\n           601463145  cycles elapsed\n            55394928  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05679791606962681,
+          "peak_rss_bytes": 81952768,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            81952768  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5327  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 513  signals received\n                 193  voluntary context switches\n                3304  involuntary context switches\n          1107179709  instructions retired\n           545511075  cycles elapsed\n            69829208  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05855333432555199,
+          "peak_rss_bytes": 78692352,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            78692352  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5126  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 517  signals received\n                 208  voluntary context switches\n                3325  involuntary context switches\n          1127811538  instructions retired\n           532114778  cycles elapsed\n            66716296  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.056863333098590374,
+          "peak_rss_bytes": 85868544,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.07 sys\n            85868544  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                5569  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 469  signals received\n                 215  voluntary context switches\n                3339  involuntary context switches\n          1087420143  instructions retired\n           536060573  cycles elapsed\n            73876104  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.05870299972593784,
+          "peak_rss_bytes": 70647808,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.12 user         0.07 sys\n            70647808  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4642  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 520  signals received\n                 236  voluntary context switches\n                4547  involuntary context switches\n          1164388173  instructions retired\n           563728351  cycles elapsed\n            59572800  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.06385758332908154,
+          "peak_rss_bytes": 66322432,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.06 real         0.12 user         0.06 sys\n            66322432  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4373  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 479  signals received\n                 164  voluntary context switches\n                3459  involuntary context switches\n          1143669187  instructions retired\n           554522308  cycles elapsed\n            54248072  peak memory footprint\n"
+        },
+        {
+          "seconds": 0.06182262487709522,
+          "peak_rss_bytes": 74088448,
+          "exit_code": 0,
+          "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "time_diagnostics": "        0.05 real         0.11 user         0.06 sys\n            74088448  maximum resident set size\n                   0  average shared memory size\n                   0  average unshared data size\n                   0  average unshared stack size\n                4848  page reclaims\n                   0  page faults\n                   0  swaps\n                   0  block input operations\n                   0  block output operations\n                   0  messages sent\n                   0  messages received\n                 453  signals received\n                 163  voluntary context switches\n                3871  involuntary context switches\n          1083717634  instructions retired\n           539677367  cycles elapsed\n            62046808  peak memory footprint\n"
+        }
+      ]
+    },
+    "summary": {
+      "baseline": {
+        "count": 20,
+        "median_seconds": 0.056772978976368904,
+        "sample_p95_seconds": 0.059395791962742805,
+        "sample_p99_seconds": 0.0792993325740099,
+        "min_seconds": 0.04990633297711611,
+        "max_seconds": 0.0792993325740099,
+        "median_peak_rss_bytes": 72376320.0,
+        "sample_p95_peak_rss_bytes": 87277568,
+        "min_peak_rss_bytes": 62881792,
+        "max_peak_rss_bytes": 87293952,
+        "invocations_per_second_at_median": 17.614013180746397
+      },
+      "candidate": {
+        "count": 20,
+        "median_seconds": 0.05845524976029992,
+        "sample_p95_seconds": 0.07001245766878128,
+        "sample_p99_seconds": 0.13916779216378927,
+        "min_seconds": 0.054444833658635616,
+        "max_seconds": 0.13916779216378927,
+        "median_peak_rss_bytes": 73883648.0,
+        "sample_p95_peak_rss_bytes": 85868544,
+        "min_peak_rss_bytes": 65372160,
+        "max_peak_rss_bytes": 118030336,
+        "invocations_per_second_at_median": 17.107103367115425
+      }
+    },
+    "golden_stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+    "output_exactly_equal_all_runs": true,
+    "median_rss_change_percent": 2.082625919637815,
+    "limitations": [
+      "Warm caches and same host, without CPU/memory isolation; uncontrolled desktop activity remained.",
+      "Only 20 observations per lane: upper sample quantiles are descriptive, not reliable population-tail estimates.",
+      "The candidate 112.5625 MiB maximum is retained, not discarded as an outlier.",
+      "The additional experiment supplements the original 10-repetition result; it does not establish memory equivalence or erase the original 12.06 percent increase.",
+      "No throughput claim is made for reading all 2 GiB; profiling reads selected bounded prefixes."
+    ]
+  },
+  "allocation_instrumentation": {
+    "method": "Fresh optimized Go binaries with symbols retained and only main replaced by the documented temporary overlay. runtime.MemProfileRate=1 after package initialization; ReadMemStats immediately before/after operation, followed by forced GC and allocation/heap profiles. Three fresh processes per version/mode.",
+    "production_timings": false,
+    "measurements": {
+      "baseline": {
+        "empty": [
+          {
+            "capture": "baseline-empty-0",
+            "allocated_bytes": 363080,
+            "allocation_count": 4833,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4253792,
+            "after_heap_alloc_bytes": 4616872,
+            "post_gc_live_heap_bytes": 4074248,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          },
+          {
+            "capture": "baseline-empty-1",
+            "allocated_bytes": 363880,
+            "allocation_count": 4838,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4688520,
+            "after_heap_alloc_bytes": 5052400,
+            "post_gc_live_heap_bytes": 4080464,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          },
+          {
+            "capture": "baseline-empty-2",
+            "allocated_bytes": 365160,
+            "allocation_count": 4846,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4637000,
+            "after_heap_alloc_bytes": 5002160,
+            "post_gc_live_heap_bytes": 4082176,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          }
+        ],
+        "cli": [
+          {
+            "capture": "baseline-cli-0",
+            "allocated_bytes": 354774648,
+            "allocation_count": 23343,
+            "gc_cycles_during_operation": 21,
+            "before_heap_alloc_bytes": 4694080,
+            "after_heap_alloc_bytes": 29793520,
+            "post_gc_live_heap_bytes": 5870600,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          },
+          {
+            "capture": "baseline-cli-1",
+            "allocated_bytes": 338442128,
+            "allocation_count": 20405,
+            "gc_cycles_during_operation": 19,
+            "before_heap_alloc_bytes": 4523608,
+            "after_heap_alloc_bytes": 35420152,
+            "post_gc_live_heap_bytes": 7238400,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          },
+          {
+            "capture": "baseline-cli-2",
+            "allocated_bytes": 351530512,
+            "allocation_count": 22762,
+            "gc_cycles_during_operation": 22,
+            "before_heap_alloc_bytes": 4293216,
+            "after_heap_alloc_bytes": 9315200,
+            "post_gc_live_heap_bytes": 4178368,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          }
+        ]
+      },
+      "candidate": {
+        "empty": [
+          {
+            "capture": "candidate-empty-0",
+            "allocated_bytes": 444168,
+            "allocation_count": 5813,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4253432,
+            "after_heap_alloc_bytes": 4697600,
+            "post_gc_live_heap_bytes": 4124848,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          },
+          {
+            "capture": "candidate-empty-1",
+            "allocated_bytes": 444328,
+            "allocation_count": 5814,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4791816,
+            "after_heap_alloc_bytes": 5236144,
+            "post_gc_live_heap_bytes": 4119720,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          },
+          {
+            "capture": "candidate-empty-2",
+            "allocated_bytes": 445288,
+            "allocation_count": 5820,
+            "gc_cycles_during_operation": 0,
+            "before_heap_alloc_bytes": 4558984,
+            "after_heap_alloc_bytes": 5004272,
+            "post_gc_live_heap_bytes": 4131848,
+            "stdout_sha256": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f"
+          }
+        ],
+        "cli": [
+          {
+            "capture": "candidate-cli-0",
+            "allocated_bytes": 341814392,
+            "allocation_count": 21990,
+            "gc_cycles_during_operation": 20,
+            "before_heap_alloc_bytes": 4272480,
+            "after_heap_alloc_bytes": 15341008,
+            "post_gc_live_heap_bytes": 5056000,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          },
+          {
+            "capture": "candidate-cli-1",
+            "allocated_bytes": 348548104,
+            "allocation_count": 23221,
+            "gc_cycles_during_operation": 22,
+            "before_heap_alloc_bytes": 4234744,
+            "after_heap_alloc_bytes": 12187192,
+            "post_gc_live_heap_bytes": 4262000,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          },
+          {
+            "capture": "candidate-cli-2",
+            "allocated_bytes": 347189952,
+            "allocation_count": 22976,
+            "gc_cycles_during_operation": 19,
+            "before_heap_alloc_bytes": 4269512,
+            "after_heap_alloc_bytes": 33451824,
+            "post_gc_live_heap_bytes": 8726056,
+            "stdout_sha256": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30"
+          }
+        ]
+      }
+    },
+    "cold_empty_report_median_allocation_delta_bytes": 80448,
+    "cold_empty_report_definition": "First json.Marshal(&profile.Report{}) with every optional module nil. Report bytes match between variants.",
+    "ranked_allocation_capture": [
+      {
+        "rank": 1,
+        "location": "io.ReadAll",
+        "flat_allocated_bytes": 286229600,
+        "flat_percent": 83.72,
+        "capture": "candidate-cli-0/allocs.pprof"
+      },
+      {
+        "rank": 2,
+        "location": "regexp.(*Regexp).get",
+        "flat_allocated_bytes": 42024048,
+        "flat_percent": 12.29,
+        "capture": "candidate-cli-0/allocs.pprof"
+      },
+      {
+        "rank": 3,
+        "location": "bytes.genSplit",
+        "flat_allocated_bytes": 5242992,
+        "flat_percent": 1.53,
+        "capture": "candidate-cli-0/allocs.pprof"
+      },
+      {
+        "rank": 4,
+        "location": "regexp.(*machine).alloc",
+        "flat_allocated_bytes": 3920320,
+        "flat_percent": 1.15,
+        "capture": "candidate-cli-0/allocs.pprof"
+      },
+      {
+        "rank": 5,
+        "location": "regexp.(*bitState).reset",
+        "flat_allocated_bytes": 3359744,
+        "flat_percent": 0.98,
+        "capture": "candidate-cli-0/allocs.pprof"
+      }
+    ],
+    "limits": [
+      "Profiling startup and forced GC perturb execution. These captures attribute allocated bytes, not production latency or peak RSS.",
+      "Global package initialization occurs before MemProfileRate changes; global allocations are not uniformly sampled at one-byte rate.",
+      "The root profiling main uses context.Background and bypasses production signal-handler setup equally for both versions.",
+      "Concurrent regexp caches and GC produce run-to-run allocation variation; three captures do not prove allocation equivalence.",
+      "The ranking is one candidate CLI attribution capture; it is not a repository-wide cost model."
+    ]
+  },
+  "hypothesis_ledger": [
+    {
+      "hypothesis": "New optional report types cause eager JSON encoder construction even when modules are absent.",
+      "verdict": "supported_as_small_fixed_allocation",
+      "evidence": [
+        "baseline-empty-0/json-alloc-top.txt",
+        "candidate-empty-0/json-alloc-top.txt"
+      ],
+      "measured_median_extra_bytes": 80448
+    },
+    {
+      "hypothesis": "That new encoder allocation explains the original approximately 8 MiB RSS median increase.",
+      "verdict": "not_supported",
+      "evidence": "Approximately 81 KB extra isolated first-marshal allocation versus approximately 340 MB total CLI allocations; encoder contribution is around 0.13 percent of one candidate capture. No causal GC/RSS reduction was demonstrated."
+    },
+    {
+      "hypothesis": "New functionality causes a material increase in total allocations for default XML analysis.",
+      "verdict": "not_established",
+      "evidence": "Three instrumented CLI captures overlap: baseline338442128..354774648 allocated bytes; candidate341814392..348548104 allocated bytes. Both have19..22 GC cycles."
+    },
+    {
+      "hypothesis": "GC/scheduling and peak-RSS variability contribute to the observed difference.",
+      "verdict": "plausible_not_causally_proven",
+      "evidence": "20-pair repeat has broad RSS ranges, median increase about 2.1 percent rather than original 12.06 percent, and a retained 112.5625 MiB candidate maximum."
+    }
+  ],
+  "recommendation": "Do not add lazy MarshalJSON hooks for this release on this evidence. The small eager reflection cost can be considered separately with serialization API parity checks. Keep the original measured RSS increase and limitations visible.",
+  "environment": {
+    "platform": "macOS-26.5.2-arm64-arm-64bit",
+    "go": "go version go1.26.6 darwin/arm64",
+    "hardware": "hw.model: MacBookPro18,2\nhw.memsize: 34359738368\nhw.logicalcpu: 10\nmachdep.cpu.brand_string: Apple M1 Max\nvm.swapusage: total = 15360.00M  used = 14610.44M  free = 749.56M  (encrypted)\n",
+    "runtime_environment": {
+      "GOMAXPROCS": null,
+      "GOGC": null,
+      "GOMEMLIMIT": null,
+      "GODEBUG": null
+    },
+    "conditions": "Same host, warm caches, no tuning or eviction; root paused other heavy work; desktop processes uncontrolled",
+    "filesystem": "macOS host volume; df output retained locally; filesystem type not independently verified"
+  },
+  "reproduction": {
+    "instrumentation_main_go": "package main\nimport(\"context\";\"encoding/json\";\"fmt\";\"os\";\"runtime\";\"runtime/pprof\";\"dircue/internal/cli\";\"dircue/pkg/profile\")\nfunc main(){\n runtime.MemProfileRate=1\n dir:=os.Getenv(\"DIRCUE_PROFILE_DIR\")\n var before,after,live runtime.MemStats\n runtime.ReadMemStats(&before)\n var err error\n if os.Getenv(\"DIRCUE_PROFILE_KIND\")==\"empty\" { var b []byte;b,err=json.Marshal(&profile.Report{});if err==nil{os.Stdout.Write(b)}} else {err=cli.Execute(context.Background(),os.Args[1:],os.Stdout,os.Stderr)}\n runtime.ReadMemStats(&after)\n runtime.GC();runtime.ReadMemStats(&live)\n out,_:=os.Create(dir+\"/allocs.pprof\");pprof.Lookup(\"allocs\").WriteTo(out,0);out.Close()\n out,_=os.Create(dir+\"/heap.pprof\");pprof.WriteHeapProfile(out);out.Close()\n out,_=os.Create(dir+\"/stats.json\");json.NewEncoder(out).Encode(map[string]any{\"before\":before,\"after\":after,\"live\":live,\"allocated_bytes\":after.TotalAlloc-before.TotalAlloc,\"allocation_count\":after.Mallocs-before.Mallocs});out.Close()\n if err!=nil{fmt.Fprintln(os.Stderr,err);os.Exit(1)}\n}\n",
+    "instrumentation_main_sha256": "d2b53f8f220628b0cc11dc1dcb51d72d3e4b0eb7aff7b5a0c5d647324fb38db2",
+    "steps": [
+      "Use the pinned 0.5 release and the candidate identified by build-identity.json for the uninstrumented 20 alternating paired invocations; preserve every RSS sample and exact stdout/stderr/exits.",
+      "For allocation attribution, create an ignored Go overlay mapping main.go to instrumentation_main_go. For the reference profile also overlay each changed production Go or embedded *.schema.json file with its v0.5.0 content and map newly added production Go files to deletion. Keep go.mod/go.sum at the reference revision if changed.",
+      "Build each profiling executable with CGO_ENABLED=0, go build -overlay=<overlay.json> -trimpath -buildvcs=false -ldflags=-X dircue/internal/cli.Version=0.5.0. Do not add -s/-w; retain symbols.",
+      "Set DIRCUE_PROFILE_DIR to a fresh output directory. Set DIRCUE_PROFILE_KIND=empty for first-marshal attribution or cli for analyze all --json --source directory --workers 8 --tree-size 1000000 <XML corpus>. Repeat each mode/version 3 times in fresh processes.",
+      "Read stats.json and use go tool pprof -top -sample_index=alloc_space on allocs.pprof; focus=encoding/json isolates encoder construction. No inspected code is executed."
+    ],
+    "artifact_sha256": {
+      "baseline-empty-0/json-alloc-top.txt": "1bd2172478cc706b25ff6e06d2677e51aa146a9d217ed02d4e43a77451b7fb1d",
+      "baseline-empty-0/allocs.pprof": "2827fbc3c123a770707ace96e173be9bdc400c1e66d83884c11e85c0345c853a",
+      "baseline-empty-0/heap.pprof": "3bb0c053c6206edfdd372845f200680360bd6888248cb6a27001615b97ceaced",
+      "baseline-empty-0/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "baseline-empty-0/stats.json": "4a5e3c2813e6eccb481335e590195ebc134d53e85b936971c8f3e0d7597cea2f",
+      "baseline-empty-1/json-alloc-top.txt": "2bacc8072b6aa8c73d71d9fe9b964eda9ede96e3c577a57799b3adc03072eae6",
+      "baseline-empty-1/allocs.pprof": "0299552d150c9f4ea3fd8cbadb5f855aef9168bf4f785c7a7515fe42c15504fd",
+      "baseline-empty-1/heap.pprof": "fa889d1e5706f85313f1eafe3b0b07612171be1ff8091adc9047f1f5033b415d",
+      "baseline-empty-1/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "baseline-empty-1/stats.json": "f1f794f1f9ae6b4de034b1e4d2e3e36c0d20b1c554d69011eb6642c7cb420849",
+      "baseline-empty-2/json-alloc-top.txt": "281cdfcbce922e0d20d0438d3e460fb680dfe630be2f1c2d518810d62eb20bde",
+      "baseline-empty-2/allocs.pprof": "a297572025b7090dfe9bc51145a9d319231e81f9bf2015ec39b1ebbc6cc1d13f",
+      "baseline-empty-2/heap.pprof": "c55473930aa2e2a24195e60d0c7aae4dd22ee74546449d818680a2c954d035a4",
+      "baseline-empty-2/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "baseline-empty-2/stats.json": "cc21f6ddfd35bfc1d1e7c19f9f58c9f2a5e8cf9087c2f48f61e0f9ef24467c95",
+      "baseline-cli-0/json-alloc-top.txt": "6abef03cd2f7d9a520605c7c702d5e9910a9d62490cf3cf05ff5f9cc82f26d26",
+      "baseline-cli-0/allocs.pprof": "21f57d6bcc9b06cdfdfc107627efc8c2d2f1d2b26c7c22be949e44225360c64a",
+      "baseline-cli-0/heap.pprof": "3f08c6f36a2a7ad5b0587439bf8559e08ac7e689064ed89fed9eb755978550b8",
+      "baseline-cli-0/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "baseline-cli-0/stats.json": "be25ed563c7c4594db760e3d2f81f0dd569df0a437e1855096ba07d8c46a7c9f",
+      "baseline-cli-1/json-alloc-top.txt": "01e2448fb8b264d3282fe14f6e9f0704c021106b6d88e6c1808698acb886b8cb",
+      "baseline-cli-1/allocs.pprof": "bec6698dbec310919949be376e4fdd17075b159758f42c39d4d0c1c1a4ea9322",
+      "baseline-cli-1/heap.pprof": "99dc33d5089b89505bd86f2eec5288b851900e2096439b0ead65e88d5e1166a9",
+      "baseline-cli-1/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "baseline-cli-1/stats.json": "19b2a0ba94165e913fadd95e9f3a38a4ee11324a3bc259db830f16247123ffb9",
+      "baseline-cli-2/json-alloc-top.txt": "b3b0a303eac98eb911bfe41909c89f5a606d772d047bfe9bfb808f0f4eb45852",
+      "baseline-cli-2/allocs.pprof": "2e72f7b887133188c1f8e87a06f116cb9b12ea2a0eee354ffa375d9169b1d44a",
+      "baseline-cli-2/heap.pprof": "780869bc535bf0d18824bb47982c7f302cd971522122321482086b73a41c8690",
+      "baseline-cli-2/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "baseline-cli-2/stats.json": "12a009547af3281fee77b3af131e02deb5ceab385949f8671636c16faf05403a",
+      "candidate-empty-0/json-alloc-top.txt": "e637268a07a4124f3614a0e1035f30442363b69e59f2b808cc7b14f973011a3e",
+      "candidate-empty-0/allocs.pprof": "68ed73afeacb5e9863f03194af1ddf60dcd9815ab98dc2130a5bbc0c046b0ce3",
+      "candidate-empty-0/heap.pprof": "5728153b7b241c50f1696b20014cef11e2c790ded5eec43ae2edfc5e4b837391",
+      "candidate-empty-0/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "candidate-empty-0/stats.json": "fed580ef754e16c36e2f0a3618e58424b747914d6bfe84e60bd301d51338e01b",
+      "candidate-empty-1/json-alloc-top.txt": "6588b4bc1c68cc047c4cdc2f9e4ac15657bafc39c687179aafc0ea86714cd936",
+      "candidate-empty-1/allocs.pprof": "6957f4b1f3b02b2440d874cacf8771de19ec99b458e5a16f46610ad8d2dd0fe8",
+      "candidate-empty-1/heap.pprof": "8b2c044cf3fb5b5ad373e91a56889221dbebea76456102f128a7a1442fc57416",
+      "candidate-empty-1/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "candidate-empty-1/stats.json": "b9f9f7ae44780edbb8e4586f0841792c448f8ebe878ba3dd3ddae561264c37e7",
+      "candidate-empty-2/json-alloc-top.txt": "01fe41d936648c22e61fcfeafb1cebc5b0261043a5690b2b1c04e56584431ef4",
+      "candidate-empty-2/allocs.pprof": "310fdba966f843da84d4347eff8bdd27eaf6bec8b8f5abcbbcc5a139e23e5983",
+      "candidate-empty-2/heap.pprof": "642c59a7ff6a751336246c3bc89650508e71dda8590174802c08737a8fc97bdb",
+      "candidate-empty-2/stdout.json": "cc8dcdf72844bf15d95826222d93c716c1c7ddc3056ae11ac73b66c0389b459f",
+      "candidate-empty-2/stats.json": "a0938208e2b4fb7f54ba55520bf3968a03070555692c7cc0af252ad4df48e96f",
+      "candidate-cli-0/json-alloc-top.txt": "28462e30cf167ae7d1255dd1dc1cb02a79c0e10a69197e1f279d6aff115f6e9f",
+      "candidate-cli-0/allocs.pprof": "4047e5da5e4256de9c9132654773f0ff484a0b1eecb1162445d41507324fc97a",
+      "candidate-cli-0/heap.pprof": "81c6312820f01d596c9f1aa3c4af1f48944849d81b4217ac03679909c3745181",
+      "candidate-cli-0/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "candidate-cli-0/stats.json": "ef9fa15f2eaed7600bfd50fb2784d23b31e5e5dfbb57d1db346c0a59b5e7396e",
+      "candidate-cli-1/json-alloc-top.txt": "903aa2533e7f97b4102b95e11851b7ca1d5baff9d32156a60939c455558e4ffa",
+      "candidate-cli-1/allocs.pprof": "463b36b02e15df25548207618c210b15457492f7fa79cb06c38df8b810e2bd84",
+      "candidate-cli-1/heap.pprof": "d8bf0c986eb77eb1e5d2a2a2b3d2d7365fd359359f59405cc8e23207d883744b",
+      "candidate-cli-1/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "candidate-cli-1/stats.json": "a4a8b017121ea6dedede3e7a15d9a894e1639b0d7039d5f63563a490b89e77ad",
+      "candidate-cli-2/json-alloc-top.txt": "0977bca44447db007b466308ca96981ac50af61f523028b82e29786340dd5231",
+      "candidate-cli-2/allocs.pprof": "57a7329191304ffe273c011712c85fb6b9f6e5d473e2a237cb3095de49459027",
+      "candidate-cli-2/heap.pprof": "0c1bfebc82742ae4fcb7b5ac9321c823beb4ea0c06c6cd78fe6d8617e93a39f0",
+      "candidate-cli-2/stdout.json": "7eb3f75dfc49649a94332f0b533720d54fcc2f2033874039d32cd266eb43be30",
+      "candidate-cli-2/stats.json": "46ba34c17cc08351a3439e59adc1910c42265eb201ec924d6a17a9664043a13b",
+      "main-profile.go": "d2b53f8f220628b0cc11dc1dcb51d72d3e4b0eb7aff7b5a0c5d647324fb38db2",
+      "profile.py": "0fb7eabda079048e54f1c564f4298799ea0ec1a1e83b80fb19a0d18dc4323665",
+      "candidate-profile-overlay.json": "3b0f2a289c3d2e3a818b311597ad4e069e79559c8c30601efe034932a59e0311",
+      "baseline-profile-overlay.json": "c74d808a6d34c9013608138cd7e77fc3403f690e1de90644277c02d8ec7e236e",
+      "baseline-rss.json": "c6a8801d51f891adbd31724a01d4da0978291539db20faf120b12bee4cf54794",
+      "fingerprint.json": "ac4eb4b4d33676a4cb1bcdda2388bb7b188eb643f3a5aad6ff0135377fadb431",
+      "candidate-alloc-top.txt": "7eeae25e25ad7e732561523bac29d318347bc1f1e86729004e5bb83a9975b1ee",
+      "candidate-alloc-top-bytes.txt": "ff69626815441b3daf01b21fc061e9fd7d396eaca66cca538cc951e2f72bb664",
+      "baseline-alloc-top-bytes.txt": "b263f95a1d8e1365995125251162c1cf86133063e2c4a8121a71d27d67421842"
+    }
+  }
+}

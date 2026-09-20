@@ -264,6 +264,14 @@ class AssemblyContracts(unittest.TestCase):
                 native_wheel = next(row for row in wheel_receipt['wheels'] if row['platform'] == launcher['wheel_tag_executed'])
                 launcher.update(installed_core_sha256=selected['binary_sha256'], wheel=native_wheel['name'], wheel_sha256=native_wheel['sha256'])
                 (folder / 'wheel-launcher.json').write_text(json.dumps(launcher))
+            if draft.formats_release_smoke.required(version):
+                current = fixture_module('v060_capability_proof_fixture', 'test_v060_smoke.py')
+                format_proof = current.formats_receipt(version)
+                format_proof['candidate_sha256'] = selected['binary_sha256']
+                hotspot_proof = current.hotspots_receipt(version)
+                hotspot_proof.update(candidate_sha256=selected['binary_sha256'], worker_sha256=worker_hash)
+                (folder / 'formats.json').write_text(json.dumps(format_proof))
+                (folder / 'hotspots.json').write_text(json.dumps(hotspot_proof))
         return incoming, worker_hash
 
     def assemble_fixture(self, incoming, output, version, worker_hash):
@@ -272,6 +280,31 @@ class AssemblyContracts(unittest.TestCase):
             return b'fixture-tree\n' if operation == 'rev-parse' else texts[args[0].split(':', 1)[1]]
         with mock.patch.object(draft.release, 'git', side_effect=git), mock.patch.object(draft, 'verify_worker', return_value=({'binary_sha256': worker_hash}, {})):
             return draft.assemble(incoming, output, version, '0' * 40, b'notes')
+
+    def test_v060_capability_proofs_are_nested_and_mandatory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            incoming, worker_hash = self.declaration_assembly_fixture(base, '0.6.0')
+            result = self.assemble_fixture(incoming, base / 'complete-060', '0.6.0', worker_hash)
+            self.assertEqual(44, len(list((base / 'complete-060').iterdir())))
+            for platform in result['platforms']:
+                self.assertTrue(platform['formats']['passed'])
+                self.assertTrue(platform['hotspots']['passed'])
+                self.assertTrue(platform['wheel_launcher']['formats']['passed'])
+            folder = incoming / ('candidate-' + draft.PLATFORMS[0])
+            for index, name in enumerate(('formats', 'hotspots')):
+                path = folder / (name + '.json')
+                original = path.read_bytes()
+                path.unlink()
+                with self.assertRaises(FileNotFoundError):
+                    self.assemble_fixture(incoming, base / ('missing-060-' + name), '0.6.0', worker_hash)
+                path.write_bytes(original)
+                receipt = json.loads(original)
+                receipt['candidate_sha256'] = 'f' * 64
+                path.write_text(json.dumps(receipt))
+                with self.assertRaisesRegex(ValueError, 'executable identity'):
+                    self.assemble_fixture(incoming, base / ('changed-060-' + name), '0.6.0', worker_hash)
+                path.write_bytes(original)
 
     def test_declaration_receipts_add_five_assets_only_from_v050(self):
         for version, expected_count in [('0.4.0', 39), ('0.5.0-rc.1', 44), ('0.5.0', 44)]:
@@ -307,7 +340,7 @@ class AssemblyContracts(unittest.TestCase):
 
     def test_native_smoke_uses_extracted_core_and_version_gate(self):
         # This checks orchestration only; the helper has separate real-core tests.
-        for version in ('0.4.0', '0.5.0-rc.1'):
+        for version in ('0.4.0', '0.5.0-rc.1', '0.6.0-rc.1'):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp:
                 base = Path(temp)
                 incoming, worker_hash = self.declaration_assembly_fixture(base, version)
@@ -323,15 +356,25 @@ class AssemblyContracts(unittest.TestCase):
                     self.assertEqual(expected, draft.digest(binary.read_bytes()))
                     seen.append(binary)
                     return {'test-only-orchestration': True}
+                for name in ('formats', 'hotspots'):
+                    (folder / (name + '.json')).unlink(missing_ok=True)
+                def check_hotspots(binary, worker, selected_version):
+                    self.assertEqual(b'worker-header-fixture', worker.read_bytes())
+                    return check_core(binary, selected_version)
                 worker_payload = {'dircue-structural-worker': b'worker-header-fixture'}
                 with mock.patch.object(draft, 'verify_worker', return_value=({'binary_sha256': worker_hash}, worker_payload)), \
                      mock.patch.object(draft.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, f'dircue {version}\n'.encode(), b'')), \
                      mock.patch.object(draft.function_release_smoke, 'run', return_value={'function-orchestration-only': True}), \
-                     mock.patch.object(draft.declarations_release_smoke, 'run', side_effect=check_core):
+                     mock.patch.object(draft.declarations_release_smoke, 'run', side_effect=check_core), \
+                     mock.patch.object(draft.formats_release_smoke, 'run', side_effect=check_core), \
+                     mock.patch.object(draft.hotspots_release_smoke, 'run', side_effect=check_hotspots):
                     draft.native_smoke(folder, platform, version, '0' * 40)
-                required = version.startswith('0.5.')
+                required = draft.declarations_release_smoke.declarations_required(version)
+                content_required = draft.formats_release_smoke.required(version)
                 self.assertEqual(required, declarations_path.exists())
-                self.assertEqual(int(required), len(seen))
+                self.assertEqual(int(required) + 2 * int(content_required), len(seen))
+                for name in ('formats', 'hotspots'):
+                    self.assertEqual(content_required, (folder / (name + '.json')).exists())
                 if required:
                     self.assertEqual({'test-only-orchestration': True}, json.loads(declarations_path.read_bytes()))
 

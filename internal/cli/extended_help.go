@@ -4,6 +4,10 @@ import "github.com/spf13/cobra"
 
 func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	switch mode {
+	case "formats":
+		cmd.Short = "Inspect bounded content for format evidence"
+		cmd.Long = "Inspect selected regular files, including data and vendor paths, for supported format evidence. Distinguish filename hints, header signatures, parsed prefixes, and complete syntax checks. Does not expand archives, execute content, or infer that XML contains logs. Inspect read scope, coverage, and omissions before interpreting results."
+		cmd.Example = "  dircue analyze formats --source directory --json /content\n  dircue analyze all --formats --discovery --json /checkout"
 	case "declarations":
 		cmd.Short = "Read static project declarations and named interfaces"
 		cmd.Long = "Read bounded npm, Go, Python/uv, Cargo, and supported .NET/JVM manifests from the selected source. Describe workspace membership, local references, requirements, and named interfaces without executing package managers or build scripts. Standalone declaration analysis does not classify unrelated file contents. Inspect declaration states, target status, diagnostics, and coverage before interpreting absence."

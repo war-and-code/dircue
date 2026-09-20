@@ -4,15 +4,17 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-Version 0.5.0 adds opt-in [project declarations and interfaces](docs/DECLARATIONS.md) for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers. It also adds [offline comparison of saved profiles](docs/COMPARISON.md). Existing profiling commands keep their output contracts.
+Version 0.6.0 adds opt-in [file format evidence](docs/FORMATS.md) and [function hotspot distributions](docs/HOTSPOTS.md). Inspect mixed data and artifact directories, or find large and highly branched function spaces with their source locations and measurement limits. [Saved-report comparison](docs/COMPARISON.md) includes these observations.
 
-Version 0.4.0 introduced metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze declarations --json /path/to/checkout
+dircue analyze formats --json /path/to/content
+dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
@@ -21,7 +23,7 @@ The repository is currently private, and PyPI publication is deferred. Authentic
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
+Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .
@@ -77,7 +79,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Metadata discovery, project declarations and graphs, package/configuration observations, caller rules, optional scc and structural metrics |
+| Additional profiling | Language metadata | Language metadata | Metadata and format evidence, project declarations and graphs, package/configuration observations, caller rules, optional scc and structural metrics/hotspots |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -273,6 +275,8 @@ PyPI publication is deferred. Package-name commands such as `uvx dircue@0.5.0` a
 ## Verification
 
 Keep development PRs in draft for lightweight CI. Marking a PR ready runs the full platform and conformance suites; later commits on a ready PR rerun them. See the [CI guide](docs/CI.md) for local checks, runner selection, and release preparation.
+
+The [0.6.0 candidate report](docs/releases/0.6.0-validation.md) records 278 compatibility cases, format and hotspot evidence, and measured default and opt-in costs against 0.5.0.
 
 The [0.5.0 candidate report](docs/releases/0.5.0-validation.md) records declaration and comparison coverage, compatibility checks, and measured default and opt-in costs against 0.4.0. Its source-bound evidence distinguishes local validation from the separate release packaging gates.
 

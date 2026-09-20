@@ -2,6 +2,7 @@ package structure
 
 import (
 	"bytes"
+	"dircue/internal/jsontext"
 	"encoding/json"
 	"io"
 	"strings"
@@ -47,7 +48,7 @@ type FunctionSpaces struct {
 }
 
 func decodeFunctions(data []byte, content []byte, syntaxErrors bool, syntaxNodes uint64) (*FunctionSpaces, bool) {
-	if !utf8.Valid(data) {
+	if !jsontext.ValidUnicode(data) {
 		return nil, false
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -213,7 +214,7 @@ func functionJSONValue(decoder *json.Decoder, depth int) bool {
 // The opt-in response is decoded into typed structs. Reject JSON duplicates and
 // aliases that encoding/json would otherwise match without regard to case.
 func strictFunctionResponse(data []byte) bool {
-	if !utf8.Valid(data) {
+	if !jsontext.ValidUnicode(data) {
 		return false
 	}
 	decoder := json.NewDecoder(bytes.NewReader(data))
@@ -228,7 +229,7 @@ func strictFunctionResponse(data []byte) bool {
 	if json.Unmarshal(data, &object) != nil {
 		return false
 	}
-	if !functionFieldSpelling(object, []string{"path", "language", "status", "reason", "source_bytes", "parse_count", "syntax_errors", "observations", "metrics", "provenance", "functions", "source_sha256"}) {
+	if !functionFieldSpelling(object, []string{"path", "language", "status", "reason", "source_bytes", "parse_count", "syntax_errors", "observations", "metrics", "provenance", "functions", "hotspots", "source_sha256"}) {
 		return false
 	}
 	var provenance map[string]json.RawMessage

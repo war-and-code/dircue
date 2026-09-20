@@ -17,6 +17,9 @@ func newStructureReport(opts Options, snapshot *gitSnapshot) *profile.StructureR
 		r.Source = "git"
 		r.Tree = snapshot.tree.Hash.String()
 	}
+	if opts.Structure.HotspotsEnabled() {
+		r.Hotspots = structure.NewHotspotReport()
+	}
 	if opts.Structure.FunctionMetricsEnabled() {
 		r.Functions = newFunctionReport()
 	}
@@ -110,6 +113,11 @@ func addStructure(r *profile.StructureReport, value result) error {
 			r.ObservationFiles[k]++
 		}
 	}
+	if r.Hotspots != nil && f.Hotspots != nil {
+		if err := r.Hotspots.Add(*f); err != nil {
+			return err
+		}
+	}
 	if r.Functions != nil && f.Functions != nil {
 		if err := addFunctions(r.Functions, *f); err != nil {
 			return err
@@ -117,6 +125,7 @@ func addStructure(r *profile.StructureReport, value result) error {
 	}
 	if r.Files != nil {
 		retained := *f
+		retained.Hotspots = nil
 		retained.Functions = nil
 		retained.SourceSHA256 = ""
 		*r.Files = append(*r.Files, retained)
@@ -125,6 +134,14 @@ func addStructure(r *profile.StructureReport, value result) error {
 }
 func finishStructure(r *profile.StructureReport) {
 	defer finishFunctions(r)
+	defer func() {
+		if r.Hotspots != nil {
+			r.Hotspots.Finish(r.Status, r.Omissions)
+			if r.Hotspots.Status == "partial" {
+				r.Status = "partial"
+			}
+		}
+	}()
 	if r.Status == "skipped" {
 		return
 	}

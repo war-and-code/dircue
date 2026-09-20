@@ -36,7 +36,7 @@ pub struct Report<'a> {
     entries: Vec<Entry<'a>>,
 }
 
-fn name(value: Option<&str>) -> (Option<&str>, &'static str) {
+pub(crate) fn name(value: Option<&str>) -> (Option<&str>, &'static str) {
     match value {
         None | Some("") => (None, "unavailable"),
         Some(value) if value.len() > NAME_MAX_BYTES => (None, "omitted"),

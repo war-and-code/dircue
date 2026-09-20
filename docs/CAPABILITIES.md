@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the upcoming 0.5.0 release's enabled integrations, rather than every feature
+describe the 0.6.0 release's enabled integrations, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
@@ -16,11 +16,15 @@ Version 0.5.0 adds explicit [project declarations](DECLARATIONS.md) for npm, Go,
 Python/uv and Cargo, alongside the existing .NET/JVM readers, and
 [offline comparison](COMPARISON.md) of saved reports. These are opt-in operations.
 
+Version 0.6.0 adds [format evidence](FORMATS.md) and [population-aware function hotspots](HOTSPOTS.md), both explicit selections. Existing language, line-count and structural grammar coverage is unchanged.
+
 ## Analysis layers
 
 | Layer | Coverage | Result and limits |
 | --- | --- | --- |
 | Metadata discovery | Selected regular files, including non-code and vendor paths | Filename and size inventory, manifest/artifact candidates, explicit coverage; no source-payload reads. |
+| Format evidence | Bounded prefixes of selected regular files | Separate filename hints, signatures and supported syntax checks; no archive expansion or purpose inference. |
+| Function hotspots | Eligible BCA Function-kind spaces in selected parsed files | Fixed-bin distributions and top-ten evidence by language/grammar and clean/recovered syntax; includes overlapping nested spaces. |
 | Package-source declarations | Selected NuGet.Config and .npmrc files | Bounded declarations and sanitized origins; no effective feed resolution. |
 | Caller rules | Explicit bounded JSON ruleset | Factual filename/path/literal matches; no automatic configuration or execution. |
 | Imported package evidence | Existing supported native Syft JSON | Explicit source binding and coordinate mapping; does not run Syft. |

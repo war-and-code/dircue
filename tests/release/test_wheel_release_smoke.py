@@ -30,7 +30,7 @@ class NativeWheelSmokeTests(unittest.TestCase):
         required = smoke.declarations.declarations_required(version)
         tag = smoke.wheels.PLATFORMS[tuple(target.split('-'))][0]
         keys = {'default_languages', 'default_all'} | ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set())
-        return {'schema_version': '1.0.0', 'passed': True, 'version': version, 'platform': target,
+        receipt = {'schema_version': '1.0.0', 'passed': True, 'version': version, 'platform': target,
                 'wheel': f'dircue-{smoke.wheels.python_version(version)}-py3-none-{tag}.whl',
                 'wheel_sha256': 'a' * 64, 'wheel_tag_executed': tag, 'installed_core_sha256': 'b' * 64,
                 'launcher_sha256': 'c' * 64, 'installation': smoke.INSTALLATION, 'scope': smoke.SCOPE,
@@ -39,6 +39,11 @@ class NativeWheelSmokeTests(unittest.TestCase):
                 'fixture_sha256': smoke.declarations.fixture_inputs(), 'observed_facts': smoke.declarations.FACTS if required else {},
                 'negative_cases': ['duplicate-json-key', 'malformed-json'] if required else [],
                 'harness_sha256': smoke.source_inputs()}
+        if smoke.formats.required(version):
+            from test_v060_smoke import formats_receipt
+            receipt['formats'] = formats_receipt(version)
+            receipt['formats']['candidate_sha256'] = receipt['launcher_sha256']
+        return receipt
 
     def test_receipt_scope_and_identity_are_required(self):
         baseline = self.receipt()
@@ -59,6 +64,17 @@ class NativeWheelSmokeTests(unittest.TestCase):
         duplicate['checks'].append(duplicate['checks'][0])
         with self.assertRaises(ValueError):
             validate(duplicate)
+
+    def test_060_requires_format_proof_from_actual_launcher(self):
+        receipt = self.receipt('0.6.0')
+        def validate(value):
+            return smoke.validate_receipt(value, '0.6.0', 'linux-amd64', 'b' * 64, receipt['wheel'], 'a' * 64)
+        self.assertEqual(receipt, validate(receipt))
+        for value in (None, {}, {**receipt['formats'], 'candidate_sha256': 'b' * 64}):
+            changed = copy.deepcopy(receipt)
+            changed['formats'] = value
+            with self.assertRaises(ValueError):
+                validate(changed)
 
     def test_inherited_python_and_pip_controls_removed(self):
         env = smoke.environment({'PATH': 'keep', 'SystemRoot': 'keep-windows', 'PYTHONPATH': 'bad',

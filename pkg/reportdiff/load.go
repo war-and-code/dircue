@@ -57,7 +57,7 @@ func Load(reader io.Reader) (*Snapshot, error) {
 		return nil, ErrInvalid
 	}
 	level := -1
-	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0"} {
+	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"} {
 		if version == known {
 			level = i
 		}
@@ -65,7 +65,7 @@ func Load(reader io.Reader) (*Snapshot, error) {
 	if level < 0 {
 		return nil, ErrUnsupported
 	}
-	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4} {
+	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5} {
 		if _, found := object[field]; found && level < minimum {
 			return nil, ErrInvalid
 		}
@@ -197,8 +197,16 @@ func shapeFields(typ reflect.Type, fields map[string]fieldType) {
 // Exact field names prevent encoding/json's case-insensitive alias matching.
 // Required fields cannot silently acquire zero values from missing JSON.
 func validShape(value any, typ reflect.Type) bool {
+	// Raw provider metrics retain their JSON shape. The bounded decoder and
+	// report schema validate their contents before they reach a Snapshot.
+	if typ == reflect.TypeFor[json.RawMessage]() {
+		return true
+	}
 	if value == nil {
-		return false
+		// Nullable scalar bounds (such as an empty histogram's extrema) use
+		// pointers. The JSON Schema still decides which fields permit null;
+		// optional module pointers do not thereby become nullable reports.
+		return typ.Kind() == reflect.Pointer
 	}
 	if typ.Kind() == reflect.Pointer {
 		return validShape(value, typ.Elem())
@@ -299,6 +307,9 @@ func validShape(value any, typ reflect.Type) bool {
 func validStates(p profile.Report) bool {
 	status := func(s string) bool {
 		return s == "complete" || s == "partial" || s == "skipped" || s == "not_applicable"
+	}
+	if p.Formats != nil && (!status(p.Formats.Status) || !sourceMode(p.Formats.Source.Mode)) {
+		return false
 	}
 	if p.Declarations != nil && (!status(p.Declarations.Status) || !sourceMode(p.Declarations.Source)) {
 		return false

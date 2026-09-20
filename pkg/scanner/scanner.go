@@ -18,6 +18,7 @@ import (
 
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/formats"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
 	"dircue/pkg/registries"
@@ -33,6 +34,10 @@ const ClassificationBytes int64 = 128 * 1024
 type Options struct {
 	// Discovery adds metadata evidence independently of language inclusion.
 	Discovery bool
+	// Formats inspects bounded prefixes independently of language inclusion.
+	Formats bool
+	// FormatsOnly inspects formats without language classification or other profilers.
+	FormatsOnly bool
 	// DiscoveryOnly inventories metadata without language or content analysis.
 	DiscoveryOnly bool
 	// Rules evaluates explicit caller-supplied observations independently of language inclusion.
@@ -69,6 +74,7 @@ type job struct {
 	read  func(int64) ([]byte, int64, error)
 }
 type result struct {
+	formatFile          *formats.Candidate
 	declarationFile     *declarations.Candidate
 	declarationSelected bool
 	registryFile        *registries.Candidate
@@ -97,6 +103,12 @@ type result struct {
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.FormatsOnly && (!opts.Formats || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Declarations || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
+		return nil, errors.New("formats-only requires formats and cannot run other profilers")
+	}
+	if opts.Formats && (opts.DiscoveryOnly || opts.DeclarationsOnly || opts.RegistriesOnly || opts.RulesOnly) {
+		return nil, errors.New("formats cannot run in another module-only scan")
+	}
 	if opts.DeclarationsOnly && (!opts.Declarations || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
 		return nil, errors.New("declarations-only requires declarations and cannot run other profilers")
 	}
@@ -122,6 +134,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return nil, errors.New("rules-only requires rules and cannot run detectors, projects, metrics, structure, or discovery-only")
 	}
 	if opts.Structure != nil {
+		if err := opts.Structure.CheckCapabilities(ctx); err != nil {
+			return nil, err
+		}
 		opts.structureGate = make(chan struct{}, 1)
 	}
 	if opts.Metrics != nil {
@@ -219,6 +234,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 					return nil, err
 				}
 			}
+			if opts.Formats {
+				report.Formats = formats.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
+				report.SchemaVersion = profile.ContentSchemaVersion
+			}
 			if opts.Discovery {
 				report.Discovery = discovery.New("directory", "", opts.MaxTreeSize).Skip("tree_size_limit")
 			}
@@ -249,6 +268,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if opts.Declarations {
 				report.Declarations = declarations.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
 				report.SchemaVersion = profile.DeclarationsSchemaVersion
+			}
+			if opts.Formats || (opts.Structure != nil && opts.Structure.HotspotsEnabled()) {
+				report.SchemaVersion = profile.ContentSchemaVersion
 			}
 			return report, nil
 		}
@@ -391,6 +413,14 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	var formatCollector *formats.Collector
+	if opts.Formats {
+		source, tree := "directory", ""
+		if snapshot != nil {
+			source, tree = "git", snapshot.tree.Hash.String()
+		}
+		formatCollector = formats.New(source, tree, opts.MaxFileBytes)
+	}
 	var declarationCollector *declarations.Collector
 	if opts.Declarations {
 		source, tree := "directory", ""
@@ -434,6 +464,13 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if formatCollector != nil {
+			if value.formatFile != nil {
+				formatCollector.Add(*value.formatFile)
+			} else if value.path != "" {
+				formatCollector.Omit("non_regular_file")
+			}
+		}
 		if declarationCollector != nil {
 			if value.declarationSelected {
 				declarationCollector.Add(value.path, value.declarationFile)
@@ -599,6 +636,21 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			}
 		}
 		report.SchemaVersion = profile.DeclarationsSchemaVersion
+	}
+	if formatCollector != nil {
+		report.Formats, err = formatCollector.Finish(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, warning := range report.Warnings {
+			if warning.Code == "tree_size_limit" {
+				report.Formats = formatCollector.Skip("tree_size_limit")
+			}
+		}
+		report.SchemaVersion = profile.ContentSchemaVersion
+	}
+	if report.Structure != nil && report.Structure.Hotspots != nil {
+		report.SchemaVersion = profile.ContentSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

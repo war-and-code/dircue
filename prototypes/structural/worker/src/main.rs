@@ -1,6 +1,7 @@
 //! Optional one-file worker. BCA owns the parse shared by both consumers.
 
 mod functions;
+mod hotspots;
 
 use big_code_analysis::{Ast, LANG, MetricsOptions, Source};
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,8 @@ struct Request {
     mode: Mode,
     #[serde(default)]
     functions: bool,
+    #[serde(default)]
+    hotspots: bool,
 }
 
 #[derive(Default, Debug, Serialize, PartialEq)]
@@ -159,7 +162,7 @@ fn analyze(request: Request) -> Result<Value, Failure> {
     }
     let (language, grammar) = select_language(&request.language)?;
     let source_bytes = request.source.len();
-    let source_lines = if request.functions {
+    let source_lines = if request.functions || request.hotspots {
         request.source.lines().count()
     } else {
         0
@@ -218,7 +221,7 @@ fn analyze(request: Request) -> Result<Value, Failure> {
         }
         result["observations"] = observations;
     }
-    if request.mode != Mode::Structure || request.functions {
+    if request.mode != Mode::Structure || request.functions || request.hotspots {
         let started = Instant::now();
         let space = ast
             .metrics(MetricsOptions::default())
@@ -234,6 +237,15 @@ fn analyze(request: Request) -> Result<Value, Failure> {
                 message: error.to_string(),
                 parse_count,
             })?;
+        }
+        if request.hotspots {
+            result["hotspots"] =
+                serde_json::to_value(hotspots::collect(&space, source_lines, syntax_errors))
+                    .map_err(|error| Failure {
+                        code: "serialization_failed",
+                        message: error.to_string(),
+                        parse_count,
+                    })?;
         }
         if request.functions {
             result["functions"] =
@@ -266,15 +278,24 @@ fn read_request(input: impl Read) -> Result<Request, Failure> {
         .map_err(|error| Failure::before_parse("invalid_request", error.to_string()))
 }
 
+fn worker_capabilities() -> Value {
+    json!({"protocol":"dircue-structural-worker", "version":1, "parse_count":0, "features":["functions", "hotspots"]})
+}
+
 fn main() {
-    let (response, exit_code) = match read_request(io::stdin().lock()).and_then(analyze) {
-        Ok(response) => (response, 0),
-        Err(error) => (
-            json!({"status": "error", "parse_count": error.parse_count,
+    let (response, exit_code) =
+        if std::env::args_os().nth(1).as_deref() == Some(std::ffi::OsStr::new("--capabilities")) {
+            (worker_capabilities(), 0)
+        } else {
+            match read_request(io::stdin().lock()).and_then(analyze) {
+                Ok(response) => (response, 0),
+                Err(error) => (
+                    json!({"status": "error", "parse_count": error.parse_count,
             "error": {"code": error.code, "message": error.message}}),
-            2,
-        ),
-    };
+                    2,
+                ),
+            }
+        };
     let mut stdout = io::stdout().lock();
     if serde_json::to_writer(&mut stdout, &response).is_err() || stdout.write_all(b"\n").is_err() {
         std::process::exit(2);
@@ -293,6 +314,7 @@ mod tests {
             source: source.into(),
             mode,
             functions: false,
+            hotspots: false,
         }
     }
 
@@ -484,6 +506,100 @@ mod tests {
                 default, enriched,
                 "{language}: opt-in changed existing fields"
             );
+        }
+    }
+
+    #[test]
+    fn hotspot_population_matches_direct_provider_and_preserves_existing_consumers() {
+        for &(language, source) in LANGUAGE_FIXTURES {
+            let mut default = analyze(request(language, source, Mode::Combined)).unwrap();
+            let mut selected = request(language, source, Mode::Combined);
+            selected.functions = true;
+            selected.hotspots = true;
+            let mut enriched = analyze(selected).unwrap();
+            assert_eq!(enriched["parse_count"], 1);
+            let hotspots = enriched
+                .as_object_mut()
+                .unwrap()
+                .remove("hotspots")
+                .unwrap();
+            let functions = enriched
+                .as_object_mut()
+                .unwrap()
+                .remove("functions")
+                .unwrap();
+            assert_eq!(
+                hotspots["total_spaces"], functions["total_spaces"],
+                "{language}"
+            );
+            assert_eq!(hotspots["invalid_span_spaces"], 0, "{language}");
+            let entries = functions["entries"].as_array().unwrap();
+            for metric in hotspots["metrics"].as_array().unwrap() {
+                assert_eq!(metric["count"], entries.len() as u64, "{language}");
+                assert_eq!(
+                    metric["histogram"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(|n| n.as_u64().unwrap())
+                        .sum::<u64>(),
+                    entries.len() as u64,
+                    "{language}"
+                );
+                for top in metric["top"].as_array().unwrap() {
+                    let original = entries
+                        .iter()
+                        .find(|entry| entry["index"] == top["index"])
+                        .unwrap();
+                    assert_eq!(top["start_line"], original["start_line"]);
+                    assert_eq!(top["end_line"], original["end_line"]);
+                    if metric["metric"] == "cyclomatic_sum" {
+                        assert_eq!(
+                            top["value"].as_u64().unwrap() as f64,
+                            original["metrics"]["cyclomatic"]["sum"].as_f64().unwrap(),
+                            "{language}"
+                        );
+                    } else {
+                        assert_eq!(
+                            top["value"].as_u64().unwrap(),
+                            top["end_line"].as_u64().unwrap() - top["start_line"].as_u64().unwrap()
+                                + 1
+                        );
+                    }
+                }
+            }
+            default.as_object_mut().unwrap().remove("timings_ns");
+            enriched.as_object_mut().unwrap().remove("timings_ns");
+            assert_eq!(
+                default, enriched,
+                "{language}: hotspot option changed prior output"
+            );
+        }
+    }
+
+    #[test]
+    fn hotspot_empty_and_recovered_inputs_keep_population_qualification() {
+        for (source, recovered) in [
+            ("", false),
+            (
+                "def valid(x):\n    return x\ndef broken(:\n    return",
+                true,
+            ),
+        ] {
+            let mut selected = request("Python", source, Mode::Structure);
+            selected.hotspots = true;
+            let result = analyze(selected).unwrap();
+            assert!(result.get("metrics").is_none());
+            assert!(result.get("functions").is_none());
+            assert_eq!(result["hotspots"]["syntax_errors"], recovered);
+            if source.is_empty() {
+                assert_eq!(result["hotspots"]["total_spaces"], 0);
+                for metric in result["hotspots"]["metrics"].as_array().unwrap() {
+                    assert!(metric["min"].is_null());
+                    assert!(metric["max"].is_null());
+                    assert!(metric["top"].as_array().unwrap().is_empty());
+                }
+            }
         }
     }
 

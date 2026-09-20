@@ -36,6 +36,12 @@ diagnostics and coverage before interpreting missing relationships. It does not
 run the declared interfaces or determine which package-manager invocation succeeds.
 See [project declarations](DECLARATIONS.md).
 
+For bounded format evidence on mixed data or artifact directories, use
+[`analyze formats`](FORMATS.md). For measured function distributions after selecting
+source for deeper parsing, use [`analyze structure --hotspots`](HOTSPOTS.md) with
+an explicitly supplied worker. Both are separate choices; metadata discovery
+stays free of source-payload reads.
+
 ## Read evidence before selecting work
 
 | Report field | What it can establish | What it does not establish |
