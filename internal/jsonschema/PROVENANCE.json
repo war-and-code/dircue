@@ -1,0 +1,41 @@
+{
+  "archive_sha256": "6c953c3751cca3003d0e7f6d775c7c3b2e4b1eeb1fa2e8d68786ead53b083094",
+  "files": {
+    "LICENSE": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b",
+    "compiler.go": "5a0e896eeaa2096cb694a8dd59a183515d30d3bb452870e81ea770f084470df3",
+    "content.go": "e25b6e8ee8a6d769e6236cb002d49ca39df970cc94b7d7e08fa7b8d0b704e0a7",
+    "doc.go": "a886f3b207d506323945cedebb999efef0ab13e375f5ff50563abdd8d26e54bf",
+    "draft.go": "6b08f9b15c3779ae8e104f1fc4e263d37f88dc8bab87f6ec2f832e8d0fd4f0d9",
+    "errors.go": "4e19da316dfaf5c3954c18b9e9a357bf21cca68df7de057c14dcca526fa2a846",
+    "extension.go": "32983ca993440feb9664dd632ec648ec7645ed671a30bd064f67befc43fe75f0",
+    "format.go": "f1fff1a946118b31a8415606766d8c170755294051b429bf9bf1651d3a3a6859",
+    "loader.go": "1336b53a129c1f5f1cf48bdee04f5be80862b6c5fbf8b7df0d000c15400eec45",
+    "output.go": "ac0612c9e2eb933d53888ab47d8ae0ba1acaa95d9c6c0d238e5627ce14b87f14",
+    "resource.go": "054ff4f19c10ea3a76764fe5433b7a0bd09e1aa098cefd84c5ba5adb7d565ba6",
+    "schema.go": "433dabfc5811c86a5703951697b920835c56c083a3286c5ce06a8f699a951cd5"
+  },
+  "generator_script": "third_party/update_jsonschema.py",
+  "generator_script_sha256": "11351ce0858243d94d75cccc37762ccf71f7f891f4241d7acb7d11639a73ced6",
+  "go_mod_sum": "h1:uToXkOrWAZ6/Oc07xWQrPOhJotwFIyu2bBVN41fcDUY=",
+  "module": "github.com/santhosh-tekuri/jsonschema/v5",
+  "module_sum": "h1:lZUw3E0/J3roVtGQ+SCrUrg3ON6NgVqpn3+iol9aGu4=",
+  "patch": "third_party/patches/jsonschema-lazy-metaschemas.patch",
+  "patch_sha256": "c0a79f7223ad5945ea3c60597898c9e91f67cdd2d7bfe13a985f9cc3b76f8e39",
+  "selection": "Root production Go files and LICENSE; excludes upstream tests, module file and optional HTTP loader. Project-owned README/tests are outside the upstream snapshot.",
+  "upstream_commit": "16bce71af51f6a4a775f11e649a347a8803940d3",
+  "upstream_files": {
+    "LICENSE": "c8858a5a76440bbca484e134cf7df46385d090dd18b2c58e650f939258802e5b",
+    "compiler.go": "375d42bbf370e01a665fa540734d50c2985876b1cdaf1fa1daf2518922f1cd14",
+    "content.go": "e25b6e8ee8a6d769e6236cb002d49ca39df970cc94b7d7e08fa7b8d0b704e0a7",
+    "doc.go": "a886f3b207d506323945cedebb999efef0ab13e375f5ff50563abdd8d26e54bf",
+    "draft.go": "8a5cd15d8dea00c8d363cc6c355b0863dc20983b8007b2c96963861e57f38b3f",
+    "errors.go": "4e19da316dfaf5c3954c18b9e9a357bf21cca68df7de057c14dcca526fa2a846",
+    "extension.go": "32983ca993440feb9664dd632ec648ec7645ed671a30bd064f67befc43fe75f0",
+    "format.go": "f1fff1a946118b31a8415606766d8c170755294051b429bf9bf1651d3a3a6859",
+    "loader.go": "1336b53a129c1f5f1cf48bdee04f5be80862b6c5fbf8b7df0d000c15400eec45",
+    "output.go": "ac0612c9e2eb933d53888ab47d8ae0ba1acaa95d9c6c0d238e5627ce14b87f14",
+    "resource.go": "054ff4f19c10ea3a76764fe5433b7a0bd09e1aa098cefd84c5ba5adb7d565ba6",
+    "schema.go": "b117adb862bf39b9230a9cd177798a526464e4f7222e9d67a183496c74445ac3"
+  },
+  "version": "v5.3.1"
+}
