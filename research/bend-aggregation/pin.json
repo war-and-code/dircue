@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/bendlang/bend",
+  "revision": "981899d6b2fb2c109ed83545cffed9d20910a025",
+  "version": "bend 2.0.16",
+  "bun_version": "1.4.2",
+  "telemetry_environment": {"BEND_NO_TELEMETRY": "1"}
+}
