@@ -1,10 +1,11 @@
 # Changelog
 
-## 0.6.0 (unreleased)
+## 0.6.0 (2026-09-20)
 
 - Add explicit bounded format inspection for mixed directories, with filename hints, signatures, parsed prefixes and complete supported syntax checks kept distinct. Include vendor/data files, selected-source provenance, read accounting and omissions without archive expansion or content execution.
 - Add optional function hotspot distributions using the existing BCA parse. Compute exact fixed-bin counts and top-ten evidence before retention, separated by language/grammar and clean/recovered syntax. Preserve nested-space overlap, bounded names/paths and missing populations.
 - Extend offline comparison to format observations and qualified hotspot distributions. Ranking changes do not establish function additions or removals.
+- Fix saved-report import for per-file structural provider metrics. Existing structural reports can now be loaded without rejecting their embedded JSON objects.
 - Use aggregate schema 1.5.0 only for the new modules; retain existing output contracts. Probe hotspot worker capabilities explicitly, including on empty scans.
 - Extend native release and installed-wheel verification with the new capabilities while retaining source and artifact identity checks.
 
