@@ -1,0 +1,21 @@
+[package]
+name = "demo-app"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+build = "scripts/build.rs"
+default-run = "demo-app"
+
+[dependencies]
+common = { workspace = true, features = ["extra"] }
+
+[target.'cfg(windows)'.dev-dependencies]
+win_common = { package = "common", path = "../common", features = ["extra"] }
+
+[[bin]]
+name = "demo-app"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[features]
+cli = []

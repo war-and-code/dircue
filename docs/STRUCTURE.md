@@ -12,8 +12,8 @@ executable: obtain it from a source you trust, and pass its actual filesystem
 path. Filenames and source text are delivered through standard input, not shell
 commands.
 
-Version 0.4.0 also supports [`--functions`](FUNCTIONS.md) for bounded
-function-space metrics. This opt-in requires the matching 0.4.0 worker.
+The [`--functions`](FUNCTIONS.md) option adds bounded function-space metrics.
+It requires a worker with that capability, introduced in 0.4.0.
 
 ## Commands
 
@@ -95,7 +95,7 @@ applicability vary by language; an upstream zero or null is not evidence that
 an equivalent language feature was measured. Dircue preserves these per-file
 metrics instead of presenting one cross-language quality score.
 
-For future review views, the [roadmap](ROADMAP.md#useful-metrics-without-a-universal-grade)
+For future review views, the [hotspot proposal](https://github.com/war-and-code/dircue/issues/27)
 describes how to combine measurements with their scope, definitions, and missing
 evidence. Optional [function entries](FUNCTIONS.md) provide bounded measurements
 for that work; they do not rank hotspots. Cross-file dependency graphs cannot

@@ -1,0 +1,13 @@
+{
+  "root_manifest": "pyproject.toml",
+  "members": [
+    "api",
+    "common"
+  ],
+  "local_dependencies": [
+    [
+      "api",
+      "common"
+    ]
+  ]
+}

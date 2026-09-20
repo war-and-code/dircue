@@ -1,10 +1,20 @@
 # Changelog
 
-## 0.4.0 (release candidate)
+## 0.5.0 (2026-09-20)
 
-This candidate extends the optional profilers while preserving existing command
-contracts. The [candidate validation report](docs/releases/0.4.0-validation.md)
-tracks completed checks and pending release gates.
+- Add opt-in project declaration profiling for npm, Go, Python/uv and Cargo, alongside the existing .NET/Maven/Gradle readers. Report manifest identities, workspace membership, supported local relationships, requirements and named interfaces with their evidence and limitations. Script bodies are withheld; build logic is not executed.
+- Add `analyze declarations` for bounded manifest reads without classifying unrelated file contents, and `analyze all --declarations` for combined profiling. Supported manifests have a separate population from language statistics; installed `node_modules` manifests are excluded.
+- Add offline `compare` for two saved aggregate reports. Compare supported observations by module, separate provider and policy differences, and qualify incomplete coverage or missing provenance. Source directories and evidence paths are not opened; valid differences retain exit status zero.
+- Compare project/workspace declarations, requirements, interfaces, language/content observations, registry and caller-rule observations, imported package evidence, and aggregate/per-file line metrics. Detailed structural/function and graph comparison remain unsupported; renames are not inferred.
+- Use aggregate schema `1.4.0` only when declarations are requested, plus separate comparison schema `1.0.0`. Existing profiling commands keep their prior JSON and process contracts.
+- Require five additional packaged-core declaration/comparison smoke receipts for release assembly from 0.5.0 onward. Verify executable and fixture identities, expected manifest facts, unchanged defaults, offline comparison, malformed inputs and qualified coverage; retain earlier-version gates unchanged.
+
+## 0.4.0 (2026-09-20)
+
+This release extends the optional profilers while preserving existing command
+contracts. The [validation report](docs/releases/0.4.0-validation.md) records candidate
+evidence. The [release preparation](https://github.com/war-and-code/dircue/actions/runs/35478628605)
+passed all seven jobs and verified all 39 assets before publication.
 
 - Add explicit metadata discovery that includes regular files outside language statistics, with candidate manifest/artifact hints and declared omissions.
 - Add static .NET project-graph components, cycles, and degrees while keeping conditional and unresolved references separate.
@@ -15,7 +25,7 @@ tracks completed checks and pending release gates.
 - Reduce redundant JSON traversal in function-response decoding. [Retained measurements](tests/functions/decode-performance/RESULTS.md) show a 26.3% median decoder-time reduction for the 128-entry fixture; this is not a whole-scan or peak-memory claim.
 - Reuse lazy canonical field tables in the optional Syft importer. The [20,000-package fixture](tests/packageevidence/field-table-performance/README.md) allocates 6.41 MiB less per import (1.65%); measured latency remains within the noise threshold. A separate capacity experiment was rejected after increasing memory on malformed inputs.
 - Use aggregate schema 1.3.0 only when a new optional module is requested. Existing command output and exit contracts remain regression gates; the integrated development binary matches 209 retained 0.3.0 cases.
-- Add a manual workflow for verified draft-release assembly, including packaged native smoke checks and artifact provenance. It does not publish to PyPI or change repository visibility; a full five-runner GitHub rehearsal remains outstanding.
+- Add a manual workflow for verified draft-release assembly, including packaged native smoke checks and artifact provenance. It does not publish to PyPI or change repository visibility. The five native platform jobs passed in both the release-candidate rehearsal and final release preparation; the published assets matched the verified draft assets.
 - Document measured container CPU/memory behavior, conservative evidence interpretation, and the limits of each optional module.
 
 ## 0.3.0 (2026-09-17)

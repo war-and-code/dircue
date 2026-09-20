@@ -1,0 +1,11 @@
+[project]
+name="app"
+version="1.0.0"
+requires-python=">=3.11"
+dependencies=["partner"]
+[tool.uv]
+package=false
+[tool.uv.workspace]
+members=[]
+[tool.uv.sources]
+partner={workspace="../b"}

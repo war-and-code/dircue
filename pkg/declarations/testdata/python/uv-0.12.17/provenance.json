@@ -1,0 +1,17 @@
+{
+  "oracle": "uv workspace metadata",
+  "version": "0.12.17",
+  "upstream_release": "https://github.com/astral-sh/uv/releases/tag/0.12.17",
+  "asset": "uv-aarch64-apple-darwin.tar.gz",
+  "asset_sha256": "85f00cbdc6dd3e97eba4c31b4d014375a9fdfe8f570023b84e5102fc3456896b",
+  "flags": [
+    "--offline",
+    "--no-build",
+    "--no-python-downloads",
+    "--no-config",
+    "--python <explicit interpreter>"
+  ],
+  "metadata_schema": "preview",
+  "scope": "Workspace member names and unconditional local package dependency pairs on these synthetic fixtures; not general resolver equivalence.",
+  "expectations": "Authored before oracle execution and checked against both uv and dircue."
+}

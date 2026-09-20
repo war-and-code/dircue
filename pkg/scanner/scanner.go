@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
@@ -53,9 +54,12 @@ type Options struct {
 	Detectors         []profile.Detector
 	Metrics           *MetricsOptions
 	Projects          bool
-	Structure         *structure.Client
-	StructureFiles    bool
-	structureGate     chan struct{}
+	Declarations      bool
+	// DeclarationsOnly reads supported manifests without language classification.
+	DeclarationsOnly bool
+	Structure        *structure.Client
+	StructureFiles   bool
+	structureGate    chan struct{}
 }
 
 type job struct {
@@ -65,23 +69,25 @@ type job struct {
 	read  func(int64) ([]byte, int64, error)
 }
 type result struct {
-	registryFile    *registries.Candidate
-	discoveryFile   *discovery.File
-	rulesFile       *rules.File
-	rulesRead       func(int64) ([]byte, int64, error)
-	path            string
-	size            int64
-	language        string
-	strategy        string
-	skipped         bool
-	warnings        []profile.Warning
-	findings        []profile.Finding
-	metrics         *profile.FileMetrics
-	projectDocument projects.Document
-	inventorySize   int64
-	inventoried     bool
-	role            string
-	structural      *structure.File
+	declarationFile     *declarations.Candidate
+	declarationSelected bool
+	registryFile        *registries.Candidate
+	discoveryFile       *discovery.File
+	rulesFile           *rules.File
+	rulesRead           func(int64) ([]byte, int64, error)
+	path                string
+	size                int64
+	language            string
+	strategy            string
+	skipped             bool
+	warnings            []profile.Warning
+	findings            []profile.Finding
+	metrics             *profile.FileMetrics
+	projectDocument     projects.Document
+	inventorySize       int64
+	inventoried         bool
+	role                string
+	structural          *structure.File
 }
 
 // Scan returns a deterministic report. A zero worker count uses GOMAXPROCS,
@@ -91,6 +97,12 @@ type result struct {
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if opts.DeclarationsOnly && (!opts.Declarations || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
+		return nil, errors.New("declarations-only requires declarations and cannot run other profilers")
+	}
+	if opts.Declarations && (opts.DiscoveryOnly || opts.RegistriesOnly || opts.RulesOnly) {
+		return nil, errors.New("declarations cannot run in a metadata-only or other module-only scan")
+	}
 	if opts.DiscoveryOnly && (opts.Registries || opts.RegistriesOnly) {
 		return nil, errors.New("discovery-only cannot run registries")
 	}
@@ -234,6 +246,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				report.SchemaVersion = profile.EnhancedSchemaVersion
 			}
 			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
+			if opts.Declarations {
+				report.Declarations = declarations.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
+				report.SchemaVersion = profile.DeclarationsSchemaVersion
+			}
 			return report, nil
 		}
 	}
@@ -375,6 +391,14 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	var declarationCollector *declarations.Collector
+	if opts.Declarations {
+		source, tree := "directory", ""
+		if snapshot != nil {
+			source, tree = "git", snapshot.tree.Hash.String()
+		}
+		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
+	}
 	var discoveryCollector *discovery.Collector
 	if opts.Discovery {
 		source, tree := "directory", ""
@@ -410,6 +434,13 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Strategies = make(map[string]string)
 	}
 	for value := range results {
+		if declarationCollector != nil {
+			if value.declarationSelected {
+				declarationCollector.Add(value.path, value.declarationFile)
+			} else if value.path != "" {
+				declarationCollector.Omit()
+			}
+		}
 		if registryCollector != nil {
 			if err := registryCollector.add(value); err != nil {
 				fail(err)
@@ -556,6 +587,18 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	}
 	if ruleCollector != nil {
 		report.SchemaVersion = profile.EnhancedSchemaVersion
+	}
+	if declarationCollector != nil {
+		report.Declarations, err = declarationCollector.Finish(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, warning := range report.Warnings {
+			if warning.Code == "tree_size_limit" {
+				report.Declarations = declarationCollector.Skip("tree_size_limit")
+			}
+		}
+		report.SchemaVersion = profile.DeclarationsSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

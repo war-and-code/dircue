@@ -1,6 +1,6 @@
 # Profiling module boundaries
 
-This document describes the 0.4.0 scanner and the constraints for
+This document describes the upcoming 0.5.0 scanner and the constraints for
 extending it. There is no runtime plugin loader or declarative
 module registry.
 
@@ -27,6 +27,7 @@ ordinary directory profiling.
 | Registry declarations | Supported selected configuration filenames, including vendor paths | Bounded complete-file NuGet/npm reads; declaration order, sanitized origins, and independent coverage |
 | Rules | Selected regular files and an explicit caller-supplied ruleset | Metadata matching and optional bounded complete-file literal checks; independent coverage |
 | Projects | Selected inventory and recognized manifests, independently of XML language inclusion | Bounded manifest parsing, declarations, configuration candidates, composition, attribution |
+| Declarations | Selected supported manifests, including those excluded from language statistics; installed node_modules omitted | Bounded lexical inventory and complete manifest reads; static cross-project interpretation. Standalone mode skips language classification. |
 | Metrics | Explicit source or text scope | Complete-file scc counting, with size bounds and omission reasons |
 | Structure | Selected supported source files | Complete bounded source sent to an explicit native worker; per-file syntax and metrics |
 | Function evidence | Explicit structural opt-in over selected supported source | Reuses the native metrics tree; bounded entries, source hashes, and coverage |
@@ -109,3 +110,11 @@ compatibility work. See [#4](https://github.com/war-and-code/dircue/issues/4),
 the [capability matrix](CAPABILITIES.md), and the module-specific guides.
 
 Caller-supplied [observation rules](RULES.md) are compiled explicitly by the CLI. The scanner delivers metadata independently of language inclusion, admits bounded content candidates in lexical order, and owns source reads. `pkg/rules` owns matching, counting, and coverage; it performs no filesystem access and cannot change another module’s scope.
+
+## Saved reports
+
+`compare` operates on two explicit saved aggregate reports, outside the scanner.
+It validates bounded JSON against the bundled report schema, then compares supported
+module observations and reports policy/provenance differences separately. It does
+not open declared roots or evidence paths. Schema validation is initialized only
+for this operation; ordinary profiling does not compile schemas.

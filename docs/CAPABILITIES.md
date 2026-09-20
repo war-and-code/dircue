@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the 0.4.0 release's enabled integrations, rather than every feature
+describe the upcoming 0.5.0 release's enabled integrations, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
@@ -11,6 +11,10 @@ Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
 and [bounded function metrics](FUNCTIONS.md).
 These additions have their own scope and coverage fields; they do not expand
 the structural grammar list or turn filename hints into parsed declarations.
+
+Version 0.5.0 adds explicit [project declarations](DECLARATIONS.md) for npm, Go,
+Python/uv and Cargo, alongside the existing .NET/JVM readers, and
+[offline comparison](COMPARISON.md) of saved reports. These are opt-in operations.
 
 ## Analysis layers
 
@@ -24,6 +28,8 @@ the structural grammar list or turn filename hints into parsed declarations.
 | Line metrics | Explicit [Enry-to-scc mappings](../pkg/codemetrics/grammars.go) | Lines, code, comments, blanks, bytes, and lexical complexity. Unsupported mappings and read limits have omission reasons. See [metrics](METRICS.md). |
 | Structural metrics | 20 source languages listed below | Per-file BCA metrics and syntax health from one Tree-sitter parse. Optional native worker; no compiler type resolution or cross-file call graph. |
 | Custom syntax declarations | Java and C# | Counts of selected declarations, imports, lambdas, and local functions. These additional fields are absent for other languages. |
+| Project declarations (opt-in) | Selected supported manifests | Bounded workspace, local dependency, requirement and interface declarations; no package-manager or build execution. |
+| Saved-report comparison | Two explicit aggregate JSON files | Per-module observation changes with provenance and coverage qualifications; no rescanning. |
 | Project and build observations | Recognized manifest families | Detailed .NET/Maven declarations, conservative Gradle observations, and filename-based discovery elsewhere. A project relationship is not a resolved package dependency graph. |
 
 The language and metrics paths cover substantially more languages than structural
@@ -44,22 +50,22 @@ The extra Java/C# declaration fields should not be inferred for other rows.
 | C++ | C++ | No dedicated C++ build-manifest reader |
 | C# | C# | .NET project/solution declarations and references |
 | Elixir | Elixir | No dedicated Mix project reader |
-| Go | Go | `go.mod` and `go.work` filename discovery |
+| Go | Go | Opt-in `go.mod`/`go.work` declarations and local relationships |
 | Groovy | Groovy | Conservative literal Gradle declarations where those manifests exist |
 | Java | Java | Maven declarations and references; conservative Gradle observations |
-| JavaScript, including JSX | JavaScript | `package.json` filename discovery |
+| JavaScript, including JSX | JavaScript | Opt-in npm workspace, dependency and interface declarations |
 | Kotlin | Kotlin | Maven/Gradle observations where those manifests exist |
 | Lua | Lua | No dedicated Lua package-manifest reader |
 | Objective-C | Objective-C | No dedicated Xcode project reader |
 | Perl | Perl | No dedicated Perl package-manifest reader |
 | PHP | PHP | `composer.json` filename discovery |
-| Python | Python | `pyproject.toml`, `setup.py`, `setup.cfg`, and `requirements.txt` filename discovery |
+| Python | Python | Opt-in `pyproject.toml`/uv declarations; filename discovery for other recognized manifests |
 | Ruby | Ruby | `Gemfile` filename discovery |
-| Rust | Rust | `Cargo.toml` filename discovery |
+| Rust | Rust | Opt-in Cargo package/workspace declarations and local relationships |
 | Shell | Bash | No dedicated shell project reader; other shell dialects may recover or misparse |
 | Tcl | Tcl | No dedicated Tcl package-manifest reader |
-| TSX | TSX | `package.json` filename discovery |
-| TypeScript | TypeScript | `package.json` filename discovery |
+| TSX | TSX | Opt-in npm workspace, dependency and interface declarations |
+| TypeScript | TypeScript | Opt-in npm workspace, dependency and interface declarations |
 
 Project readers follow manifests, not source-file language labels. A Maven
 project's presence does not prove how Kotlin or another JVM language is compiled.

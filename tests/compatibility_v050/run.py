@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+"""Compare released 0.4.0 with a candidate using raw outputs and exit codes."""
+import argparse
+from datetime import datetime, timezone
+import gzip
+import hashlib
+import importlib.util
+import json
+import os
+from pathlib import Path
+import platform
+import tempfile
+
+ROOT = Path(__file__).resolve().parents[2]
+REFERENCE_SHA256 = '0d4fd9167d11b590c32713a3ec2da2b3628dc72d12bc8fd58fd6873624af5d91'
+PREVIOUS = ROOT / 'tests/compatibility_next/run.py'
+spec = importlib.util.spec_from_file_location('previous_compatibility', PREVIOUS)
+previous = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(previous)
+
+
+def extra_cases(base, worker):
+    root = base / 'v040-modules'
+    previous.write_files(root, {
+        'App.csproj': '<Project><ItemGroup><ProjectReference Include="lib/Lib.csproj"/></ItemGroup></Project>',
+        'lib/Lib.csproj': '<Project/>',
+        'App.cs': 'class App { int Twice(int x) { return x * 2; } }\n',
+        'logs/events.xml': '<events/>\n',
+        'data.txt': 'plain text\n',
+        '.npmrc': 'registry=https://registry.example.invalid/path\n//registry.example.invalid/:_authToken=DO_NOT_DISCLOSE\n',
+        'NuGet.Config': '<configuration><packageSources><add key="example" value="https://packages.example.invalid/v3/index.json"/></packageSources></configuration>',
+        'dotnet/app/App.csproj': '<Project/>',
+    })
+    policy = base / 'policy.json'
+    policy.write_text(json.dumps({'schema_version': '1.0.0', 'rules': [
+        {'id': 'source', 'match': {'extensions': ['.cs']}},
+        {'id': 'content', 'match': {'filenames': ['data.txt']}, 'content': {'contains_utf8': 'plain'}}]}))
+    syft = ROOT / 'tests/packageevidence/fixtures/syft-1.52.0.json'
+    commands = []
+    for mode in ('discovery', 'graph', 'registries'):
+        commands.extend([
+            ['analyze', mode], ['analyze', mode, '--json'],
+            ['analyze', mode, '--json', '--tree-size', '1'],
+            ['analyze', mode, '--json', '--max-file-bytes', '1'],
+        ])
+    for prefix in (['analyze', 'rules'], ['analyze', 'all']):
+        commands.extend([[*prefix, '--rules-file', str(policy), '--json'],
+                         [*prefix, '--rules-file', str(policy), '--discovery'],
+                         [*prefix, '--rules-file', str(policy), '--json', '--tree-size', '1']])
+    for prefix in (['analyze', 'packages'], ['analyze', 'all']):
+        commands.extend([[*prefix, '--syft-report', str(syft), '--syft-root', '/', '--json'],
+                         [*prefix, '--syft-report', str(syft), '--json'],
+                         [*prefix, '--syft-report', str(syft), '--syft-root', '/']])
+    commands.append(['analyze', 'all', '--json', '--discovery', '--graph', '--registries', '--rules-file', str(policy)])
+    commands.extend([['analyze', 'rules'], ['analyze', 'rules', '--rules-file', str(base / 'absent')],
+                     ['analyze', 'packages'], ['analyze', 'packages', '--syft-report', str(policy)]])
+    if worker:
+        commands.extend([
+            ['analyze', 'structure', '--functions', '--json', '--structural-worker', str(worker)],
+            ['analyze', 'all', '--structure', '--functions', '--files', '--json', '--structural-worker', str(worker)],
+            ['analyze', 'structure', '--functions', '--structural-worker', str(worker)],
+        ])
+    return [(f'v040-modules-{i:03}', 'v040-modules', root, args) for i, args in enumerate(commands, 1)]
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--baseline', required=True, type=Path)
+    parser.add_argument('--baseline-sha256', default=REFERENCE_SHA256)
+    parser.add_argument('--candidate', required=True, type=Path)
+    parser.add_argument('--build-receipt', required=True, type=Path,
+                        help='Historical candidate receipt from the v050 performance harness build command')
+    parser.add_argument('--worker', type=Path)
+    parser.add_argument('--worker-sha256')
+    parser.add_argument('--output', required=True, type=Path)
+    args = parser.parse_args()
+    baseline, candidate = args.baseline.resolve(), args.candidate.resolve()
+    worker = args.worker.resolve() if args.worker else None
+    assert previous.sha(baseline) == args.baseline_sha256, 'unverified reference binary'
+    build_record = json.loads(args.build_receipt.read_text())
+    assert build_record.get('schema') == 'dircue-v050-benchmark-build-1', 'unsupported build receipt'
+    assert build_record.get('files') and build_record.get('source_at_build'), 'missing source binding'
+    assert build_record.get('candidate_sha256') == previous.sha(candidate), 'candidate differs from build receipt'
+    if worker:
+        assert args.worker_sha256 and previous.sha(worker) == args.worker_sha256, 'unverified worker'
+    assert not args.output.exists(), 'choose a fresh output receipt'
+    legacy = previous.load_legacy()
+    report = {'schema_version': '1.0.0', 'started_at_utc': datetime.now(timezone.utc).isoformat(),
+        'baseline_release': 'v0.4.0', 'baseline_sha256': previous.sha(baseline),
+        'candidate_sha256': previous.sha(candidate), 'platform': platform.platform(),
+        'harness_sha256': previous.sha(__file__), 'fixture_helpers': {str(p.relative_to(ROOT)): previous.sha(p) for p in (PREVIOUS, previous.LEGACY_HARNESS)},
+        'build_receipt': build_record, 'build_receipt_sha256': previous.sha(args.build_receipt),
+        'cases': [], 'interface_changes': [],
+        'method': 'Released reference and candidate run on identical source paths/environment. Raw stdout, stderr and exit code must match; no normalization. Version/help changes are recorded separately. Candidate comparison build sets only its reported version to 0.4.0.',
+        'untested': [] if worker else ['native structural parsing: worker not supplied']}
+    if worker:
+        report['worker_sha256'] = previous.sha(worker)
+    with tempfile.TemporaryDirectory(prefix='dircue-v050-compat-') as temporary:
+        base = Path(temporary)
+        env, flat, inherited = legacy.fixture(base)
+        env.pop('DIRCUE_STRUCTURAL_WORKER', None)
+        env.update(NO_COLOR='1', LC_ALL='C')
+        matrix, languages = previous.cases(base, env, inherited, worker)
+        matrix += extra_cases(base, worker)
+        report['fixtures_sha256'] = previous.fixture_manifest(base)
+        for case_id, group, cwd, options in matrix:
+            old, new = [previous.capture(binary, options, cwd, env) for binary in (baseline, candidate)]
+            previous.check_reference(case_id, old, languages)
+            row = {'id': case_id, 'group': group, 'args': options, 'cwd': str(cwd.relative_to(base)), 'equal': old == new,
+                   'baseline': previous.recorded(old), 'candidate': {'identical_to_baseline': True} if old == new else previous.recorded(new)}
+            report['cases'].append(row)
+        for options in (['--version'], ['--help'], ['analyze'], ['analyze', '--help'], ['analyze', 'all', '--help']):
+            report['interface_changes'].append({'args': options, 'baseline': previous.recorded(previous.capture(baseline, options, flat, env)), 'candidate': previous.recorded(previous.capture(candidate, options, flat, env))})
+        assert previous.fixture_manifest(base) == report['fixtures_sha256'], 'fixtures changed during execution'
+    report['total'] = len(report['cases'])
+    report['exact_matches'] = sum(row['equal'] for row in report['cases'])
+    report['passed'] = report['total'] == report['exact_matches']
+    report['finished_at_utc'] = datetime.now(timezone.utc).isoformat()
+    assert previous.sha(baseline) == report['baseline_sha256'] and previous.sha(candidate) == report['candidate_sha256'], 'binary changed during execution'
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    payload = (json.dumps(report, indent=2) + '\n').encode()
+    args.output.write_bytes(gzip.compress(payload, mtime=0) if args.output.suffix == '.gz' else payload)
+    print(json.dumps({k: report[k] for k in ('passed', 'total', 'exact_matches', 'untested')}))
+    raise SystemExit(0 if report['passed'] else 1)
+
+
+if __name__ == '__main__':
+    main()

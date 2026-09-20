@@ -1,9 +1,9 @@
 # Optional function-space metrics
 
-Version 0.4.0 can report bounded function-space metrics
+Dircue can report bounded function-space metrics
 from [big-code-analysis](https://github.com/dekobon/big-code-analysis) (BCA).
-This option needs the matching 0.4.0 worker. The
-downloadable 0.3.0 worker does not provide it.
+This option needs a separately packaged worker with function-metric support,
+introduced in 0.4.0. The downloadable 0.3.0 worker does not provide it.
 
 ```sh
 dircue analyze structure --functions --json \

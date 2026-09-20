@@ -4,12 +4,15 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
 
-Version 0.4.0 adds metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+Version 0.5.0 adds opt-in [project declarations and interfaces](docs/DECLARATIONS.md) for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers. It also adds [offline comparison of saved profiles](docs/COMPARISON.md). Existing profiling commands keep their output contracts.
+
+Version 0.4.0 introduced metadata discovery, static .NET project graphs, import of existing Syft reports, caller-supplied observation rules, package-source declarations, and optional function metrics. Existing language statistics, [scc](https://github.com/boyter/scc) line counts, and project mapping keep their commands. Structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
+dircue analyze declarations --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
 ```
@@ -18,7 +21,7 @@ The repository is currently private, and PyPI publication is deferred. Authentic
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
+Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .
@@ -100,7 +103,7 @@ Single-file mode follows Linguist's separate inspection layout, including langua
 
 ## CLI compatibility
 
-Flags can appear before or after the path. With no path, the current directory is used. Use `--` to disambiguate a path named `analyze` or beginning with `-`.
+Flags can appear before or after the path. With no path, the current directory is used. Use `--` to disambiguate a path named `analyze` or `compare`, or beginning with `-`. For a directory named `compare`, `dircue ./compare --json` also retains language analysis; bare `dircue compare` selects the new comparison command.
 
 | Flag | Behavior |
 | --- | --- |
@@ -147,24 +150,26 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 `analyze projects` reports .NET and Maven declarations, conservative Gradle observations, and filename-based project discovery for other ecosystems. It records references, configuration candidates, and file/byte composition. Dynamic build expressions remain conditional or unresolved; a present reference target does not establish a working build. Directory-based file attribution reports ambiguous and unassigned files. See the [project guide](docs/PROJECTS.md).
 
+`analyze declarations` reads supported manifests for project identities, workspace relationships, requirements and named interfaces without running repository code. Standalone use avoids reading unrelated file contents; `analyze all --declarations` adds the same module to a broader profile. Script bodies are withheld. See the [declaration guide](docs/DECLARATIONS.md) for supported syntax and limits.
+
 `analyze structure` sends selected source in 20 supported languages to an explicitly selected worker. Each file is parsed once; the same Tree-sitter tree supplies syntax observations and BCA metrics. Java and C# also receive custom declaration counts; other languages expose syntax-node and recovery counts alongside BCA metrics. `--files` includes per-file metrics and parser provenance. Syntax recovery produces partial results, and unsupported inputs have omission reasons. There is no compiler type checking or cross-file call graph. See the [capability matrix](docs/CAPABILITIES.md) for language and ecosystem coverage, and the [structural analysis guide](docs/STRUCTURE.md) for grammar limitations, offline worker packaging, and resource bounds.
 
 For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md), adding `--source directory` when you want current files rather than the committed Git tree. It inventories file metadata and candidate manifests without reading source payloads. Then choose project, line, or structural analysis from that evidence. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes a consumer for the earlier projects-report schema and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
 
-Plain `analyze all` retains its existing behavior. Add `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
+Plain `analyze all` retains its existing behavior. Add `--declarations`, `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
 The [roadmap](https://github.com/war-and-code/dircue/issues/41) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
 
-New in 0.4.0:
+Available since 0.4.0:
 
 - [`analyze discovery`](docs/DISCOVERY.md) inventories regular-file metadata without reading source payloads. It includes filename hints for manifests and packaged artifacts, including paths excluded from language statistics.
 - [`analyze graph`](docs/GRAPH.md) derives .NET project-reference components, cycles, and degrees from static declarations, keeping conditional and unresolved edges separate.
 - [`analyze packages --syft-report FILE`](docs/PACKAGE_EVIDENCE.md) imports an existing Syft JSON report. Coordinate mapping and source binding are explicit; it does not execute Syft.
 - [`analyze rules --rules-file FILE`](docs/RULES.md) applies explicit, bounded filename/path/content rules and reports matches, provenance, and omissions.
 - [`analyze registries`](docs/REGISTRIES.md) reads selected NuGet and npm package-source declarations, retaining qualified names and sanitized URL origins without evaluating an effective feed set.
-- [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires the matching 0.4.0 worker.
+- [`analyze structure --functions`](docs/FUNCTIONS.md) retains bounded function-space metrics with source spans, source hashes, and coverage. It reuses the worker's existing parse and requires a separately packaged worker with function-metric support, introduced in 0.4.0.
 
-Select combinations explicitly, such as `analyze all --discovery --graph` or `analyze all --structure --functions`. Add `--registries` to inspect package-source declarations, or `--rules-file FILE` and `--syft-report FILE` when supplying those inputs. These new modules are opt-in. Existing invocations retain their output contracts.
+Select combinations explicitly, such as `analyze all --discovery --graph` or `analyze all --structure --functions`. Add `--registries` to inspect package-source declarations, or `--rules-file FILE` and `--syft-report FILE` when supplying those inputs. These modules are opt-in. Existing profiling invocations retain their output contracts.
 
 | Requested output | Schema version |
 | --- | --- |
@@ -172,6 +177,7 @@ Select combinations explicitly, such as `analyze all --discovery --graph` or `an
 | Metrics, without projects or structure | `1.1.0` |
 | Projects or structure, with optional metrics | `1.2.0` |
 | Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
+| Project declarations, alone or with other modules | `1.4.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
@@ -197,6 +203,14 @@ Committed Git tree or directory
    deterministic text or JSON report
 ```
 
+Saved reports can be compared without rescanning their source directories:
+
+```sh
+dircue compare before.json after.json --json
+```
+
+Use aggregate reports such as those from `analyze all --json`. Comparison reports distinguish observation changes from changes in provider or selection policy; incomplete coverage limits what absence can establish. The caller chooses the pair; dircue does not verify repository identity. Valid comparisons exit zero even when observations differ. See [saved-report comparison](docs/COMPARISON.md).
+
 ## Attributes and boundaries
 
 Dircue is configured through CLI flags and `.gitattributes`; there is no dircue YAML configuration file. For example, these opt-in overrides include XML and generated Java in language statistics:
@@ -214,7 +228,7 @@ The [conformance scope](tests/conformance/COVERAGE.md) and [documented differenc
 
 Dircue reads source and Git objects without invoking project hooks, package managers, Git executables, or build scripts. Directory reads use `os.Root`; normal traversal excludes symlinks and special files. Unix reads additionally reject final-component symlinks and use nonblocking opens to prevent FIFO substitutions from hanging workers. Use a stable checkout: neither filesystem mode nor local Git metadata is an atomic snapshot of an actively modified directory.
 
-Read failures, invalid arguments, and resource-policy violations fail with a nonzero exit status. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
+Read failures, invalid arguments, and hard policy violations such as the attribute-rule limit fail with a nonzero exit status. Some bounds instead produce skipped or partial reports with exit status zero; check the requested module’s status and coverage as well as the process result. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
 Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary. For shared runners, the [resource-budget guide](docs/RESOURCE_BUDGETS.md) describes external container limits and measured behavior under CPU and memory constraints.
 
@@ -223,10 +237,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.4.0 -t dircue:0.4.0 .
+docker build --build-arg VERSION=0.5.0 -t dircue:0.5.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.4.0 --breakdown --json /repo
+  dircue:0.5.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -234,8 +248,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.4.0 --output dist/release-0.4.0
-python3 scripts/wheels.py --release-dir dist/release-0.4.0 --output dist/wheels-0.4.0
+python3 scripts/release.py --version 0.5.0 --output dist/release-0.5.0
+python3 scripts/wheels.py --release-dir dist/release-0.5.0 --output dist/wheels-0.5.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
@@ -244,7 +258,7 @@ These commands do not publish anything. Wheels package the same Go binaries as t
 
 GitHub Releases provide binaries and wheels. uv can install a compatible wheel from a local file or a GitHub Release URL; see the [distribution guide](docs/DISTRIBUTION.md) for authentication, offline use, and platform requirements.
 
-PyPI publication is deferred. Package-name commands such as `uvx dircue@0.4.0` and `uv tool install 'dircue==0.4.0'` will work only after that version is published to the configured package index.
+PyPI publication is deferred. Package-name commands such as `uvx dircue@0.5.0` and `uv tool install 'dircue==0.5.0'` will work only after that version is published to the configured package index.
 
 ## Troubleshooting
 
@@ -259,6 +273,8 @@ PyPI publication is deferred. Package-name commands such as `uvx dircue@0.4.0` a
 ## Verification
 
 Keep development PRs in draft for lightweight CI. Marking a PR ready runs the full platform and conformance suites; later commits on a ready PR rerun them. See the [CI guide](docs/CI.md) for local checks, runner selection, and release preparation.
+
+The [0.5.0 candidate report](docs/releases/0.5.0-validation.md) records declaration and comparison coverage, compatibility checks, and measured default and opt-in costs against 0.4.0. Its source-bound evidence distinguishes local validation from the separate release packaging gates.
 
 The [0.4.0 candidate report](docs/releases/0.4.0-validation.md) separates final-candidate checks from earlier experiments and outstanding release gates. It links the 209-case comparison with 0.3.0, optional-module validation, and measured costs. Results below retain the versions and inputs they originally tested.
 
