@@ -33,11 +33,11 @@ func ParseGo(name string, content []byte) *Document {
 		f, err := modfile.ParseWork(name, content, nil)
 		if err != nil || goPlatformReplacement(f.Replace) {
 			d.Parsed = false
-			AddDiagnostic(d, "invalid-go-manifest", "Cannot parse go.work with golang.org/x/mod v0.39.0; no declarations were retained.")
+			AddDiagnostic(d, "invalid-go-manifest", "Cannot parse go.work with golang.org/x/mod v0.40.0; no declarations were retained.")
 			return d
 		}
 		d.Data = goDeclarationData{valid: true}
-		goAddRequirement(d, "declaration-format", "go-work-x-mod-v0.39.0", "")
+		goAddRequirement(d, "declaration-format", "go-work-x-mod-v0.40.0", "")
 		goDirectives(d, f.Go, f.Toolchain, f.Godebug)
 		for _, use := range f.Use {
 			goLocalReference(d, "go-workspace-member", use.Path, "")
@@ -48,14 +48,14 @@ func ParseGo(name string, content []byte) *Document {
 	f, err := modfile.Parse(name, content, nil)
 	if err != nil || f.Module == nil || module.CheckImportPath(f.Module.Mod.Path) != nil || goPlatformReplacement(f.Replace) {
 		d.Parsed = false
-		AddDiagnostic(d, "invalid-go-manifest", "Cannot parse a module identity with golang.org/x/mod v0.39.0; no declarations were retained.")
+		AddDiagnostic(d, "invalid-go-manifest", "Cannot parse a module identity with golang.org/x/mod v0.40.0; no declarations were retained.")
 		return d
 	}
 	d.Data = goDeclarationData{valid: true}
 	if goAddRequirement(d, "go-module", f.Module.Mod.Path, "") {
 		d.Project.Name = f.Module.Mod.Path
 	}
-	goAddRequirement(d, "declaration-format", "go-mod-x-mod-v0.39.0", "")
+	goAddRequirement(d, "declaration-format", "go-mod-x-mod-v0.40.0", "")
 	goDirectives(d, f.Go, f.Toolchain, f.Godebug)
 	for _, req := range f.Require {
 		if !goSupportedModule(d, req.Mod.Path) {
