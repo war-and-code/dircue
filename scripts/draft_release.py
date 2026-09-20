@@ -19,6 +19,7 @@ import function_release_smoke
 import declarations_release_smoke
 import structural_worker_release as worker_release
 import wheels
+import wheel_release_smoke
 
 ROOT = Path(__file__).resolve().parents[1]
 PLATFORMS = tuple(worker_release.TARGETS)
@@ -257,7 +258,19 @@ def assemble(input_dir, output, version, commit, notes):
             raw_declarations = (folder / 'declarations.json').read_bytes()
             declarations_release_smoke.validate_receipt(json.loads(raw_declarations), version, core_row['binary_sha256'])
             add('declarations-smoke-' + platform + '.json', raw_declarations)
-        validations.append({'platform': platform, 'core_sha256': core_row['binary_sha256'], 'worker_sha256': wp['binary_sha256'], 'wheels': len(receipt['wheels'])})
+        validation = {'platform': platform, 'core_sha256': core_row['binary_sha256'], 'worker_sha256': wp['binary_sha256'], 'wheels': len(receipt['wheels'])}
+        if declarations_release_smoke.declarations_required(version):
+            tag = wheels.PLATFORMS[(core_row['os'], core_row['arch'])][0]
+            native_wheels = [row for row in actual_receipt['wheels'] if row['platform'] == tag]
+            checked(len(native_wheels) == 1, 'native wheel proof target is missing or duplicated')
+            native_wheel = native_wheels[0]
+            launcher = json.loads((folder / 'wheel-launcher.json').read_bytes())
+            wheel_release_smoke.validate_receipt(launcher, version, platform, core_row['binary_sha256'],
+                                                native_wheel['name'], native_wheel['sha256'])
+            # Preserve native installation evidence inside the existing receipt,
+            # without creating another downloadable asset or altering core proof.
+            validation['wheel_launcher'] = launcher
+        validations.append(validation)
     checked(sum(row['wheels'] for row in validations) == 7, 'expected seven platform wheels')
     receipt = {'schema_version': '1.0.0', 'version': version, 'commit': commit, 'notes_sha256': digest(notes),
                'platforms': validations, 'workflow_sha256': digest((ROOT / '.github/workflows/release-candidate.yml').read_bytes()),
