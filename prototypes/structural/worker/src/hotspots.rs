@@ -183,4 +183,162 @@ mod tests {
         assert_eq!(metric.max, Some(u64::MAX));
         assert_eq!(metric.min, Some(0));
     }
+
+    // Full sorting and division deliberately avoid the production insertion and
+    // leading-zero algorithms. The input index is assigned in traversal order.
+    fn assert_metric_oracle(metric: &Metric<'_>, values: &[(usize, u64)]) {
+        let mut histogram = vec![0; 65];
+        for &(_, mut value) in values {
+            let mut bucket = 0;
+            while value != 0 {
+                value /= 2;
+                bucket += 1;
+            }
+            histogram[bucket] += 1;
+        }
+        let mut expected = values.to_vec();
+        expected.sort_by_key(|&(index, value)| (std::cmp::Reverse(value), index));
+        expected.truncate(10);
+        let actual: Vec<_> = metric.top.iter().map(|e| (e.index, e.value)).collect();
+        assert_eq!(metric.count, values.len());
+        assert_eq!(metric.min, values.iter().map(|v| v.1).min());
+        assert_eq!(metric.max, values.iter().map(|v| v.1).max());
+        assert_eq!(metric.histogram, histogram);
+        assert_eq!(actual, expected);
+    }
+
+    fn next_generated(state: &mut u64) -> u64 {
+        *state = state
+            .wrapping_mul(6364136223846793005)
+            .wrapping_add(1442695040888963407);
+        *state
+    }
+
+    #[test]
+    fn generated_metric_matches_full_population_sort_and_histogram() {
+        let tree = parse("def f():\n    return 0\n");
+        let space = &tree.spaces[0];
+        for seed in 0..128 {
+            let mut state = seed;
+            let mut values = vec![0, u64::MAX];
+            for bit in 0..64 {
+                let boundary = 1u64 << bit;
+                values.extend([boundary - 1, boundary, boundary.saturating_add(1)]);
+            }
+            for _ in 0..(seed * 5) {
+                // Small values deliberately create ties at the retention boundary.
+                let random = next_generated(&mut state);
+                values.push(if random % 3 == 0 { random % 16 } else { random });
+            }
+            for order in 0..3 {
+                if order == 1 {
+                    values.reverse();
+                } else if order == 2 {
+                    for i in (1..values.len()).rev() {
+                        let j = next_generated(&mut state) as usize % (i + 1);
+                        values.swap(i, j);
+                    }
+                }
+                let mut metric = Metric::new("test");
+                let indexed: Vec<_> = values
+                    .iter()
+                    .enumerate()
+                    .map(|(i, &v)| (i + 1, v))
+                    .collect();
+                for &(index, value) in &indexed {
+                    metric.add(space, index, value);
+                }
+                assert_metric_oracle(&metric, &indexed);
+            }
+        }
+        // Every retention transition is exercised separately, including empty.
+        for count in 0..=21 {
+            let mut metric = Metric::new("test");
+            let indexed: Vec<_> = (1..=count).map(|i| (i, 7)).collect();
+            for &(index, value) in &indexed {
+                metric.add(space, index, value);
+            }
+            assert_metric_oracle(&metric, &indexed);
+        }
+    }
+
+    #[test]
+    fn generated_collector_matches_recursive_population_oracle() {
+        fn flatten<'a>(node: &'a FuncSpace, out: &mut Vec<&'a FuncSpace>) {
+            if node.kind == SpaceKind::Function {
+                out.push(node);
+            }
+            for child in &node.spaces {
+                flatten(child, out);
+            }
+        }
+        let template = parse("def f(x):\n    if x:\n        return 1\n    return 0\n");
+        let function = template.spaces[0].clone();
+        for seed in 0..96 {
+            let mut state = seed;
+            let mut tree = template.clone();
+            tree.spaces.clear();
+            // Four levels, with non-function containers and invalid ancestors.
+            // A child remains eligible even if its enclosing function is invalid.
+            for i in 0..(seed % 17 + 1) {
+                let mut outer = function.clone();
+                outer.spaces.clear();
+                if i % 3 == 0 {
+                    outer.kind = tree.kind;
+                }
+                for j in 0..(seed % 13 + 1) {
+                    let mut child = function.clone();
+                    let draw = next_generated(&mut state);
+                    child.start_line = (draw % 60) as usize;
+                    child.end_line = child.start_line + (draw % 12) as usize;
+                    if j % 4 == 0 {
+                        child.end_line = child.start_line.saturating_sub(1);
+                    }
+                    if j % 3 == 0 {
+                        let mut grandchild = function.clone();
+                        grandchild.spaces = vec![function.clone()];
+                        child.spaces.push(grandchild);
+                    }
+                    outer.spaces.push(child);
+                }
+                tree.spaces.push(outer);
+            }
+            for source_lines in [0, 1, 4, 32, 64] {
+                let report = collect(&tree, source_lines, seed % 2 == 0);
+                let mut all = Vec::new();
+                flatten(&tree, &mut all);
+                let valid: Vec<_> = all
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, node)| {
+                        node.start_line >= 1
+                            && node.end_line >= node.start_line
+                            && node.end_line <= source_lines
+                    })
+                    .collect();
+                assert_eq!(report.total_spaces, all.len());
+                assert_eq!(report.invalid_span_spaces, all.len() - valid.len());
+                assert_eq!(report.syntax_errors, seed % 2 == 0);
+                let cyclomatic: Vec<_> = valid
+                    .iter()
+                    .map(|(i, node)| (i + 1, node.metrics.cyclomatic.cyclomatic_sum()))
+                    .collect();
+                let spans: Vec<_> = valid
+                    .iter()
+                    .map(|(i, node)| (i + 1, (node.end_line - node.start_line + 1) as u64))
+                    .collect();
+                assert_metric_oracle(&report.metrics[0], &cyclomatic);
+                assert_metric_oracle(&report.metrics[1], &spans);
+                for metric in &report.metrics {
+                    for entry in &metric.top {
+                        let source = all[entry.index - 1];
+                        assert_eq!(entry.start_line, source.start_line);
+                        assert_eq!(entry.end_line, source.end_line);
+                        assert_eq!(entry.name, source.name.as_deref());
+                        assert_eq!(entry.name_status, "present");
+                    }
+                }
+            }
+        }
+    }
 }
