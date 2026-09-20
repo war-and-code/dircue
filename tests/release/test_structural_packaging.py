@@ -12,6 +12,10 @@ SPEC.loader.exec_module(worker)
 
 
 class StructuralPackagingTests(unittest.TestCase):
+    def test_hotspot_source_enters_recursive_provenance(self):
+        key = worker.WORKER.relative_to(worker.ROOT).as_posix() + "/src/hotspots.rs"
+        self.assertEqual(worker.digest(worker.WORKER / "src/hotspots.rs"), worker.source_hashes()[key])
+
     def test_existing_archive_or_checksum_is_never_replaced(self):
         for platform in worker.TARGETS:
             with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temporary:
@@ -33,6 +37,7 @@ class StructuralPackagingTests(unittest.TestCase):
                 f"{prefix}/Cargo.toml": "source/Cargo.toml",
                 f"{prefix}/Cargo.lock": "source/Cargo.lock",
                 f"{prefix}/src/main.rs": "source/src/main.rs",
+                f"{prefix}/src/hotspots.rs": "source/src/hotspots.rs",
                 "LICENSE": "LICENSE",
                 "docs/STRUCTURE.md": "README.md",
             }

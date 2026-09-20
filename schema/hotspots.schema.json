@@ -1,0 +1,340 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Measured function population distributions and hotspot evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "provider": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "rule": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "rule_version": {
+      "type": "string",
+      "maxLength": 32
+    },
+    "scope": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "file_coverage_status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "population": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "histogram_rule": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "order": {
+      "type": "string",
+      "maxLength": 256
+    },
+    "limit": {
+      "const": 10
+    },
+    "name_max_bytes": {
+      "const": 256
+    },
+    "analyzed_files": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "recovered_files": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "total_spaces": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "invalid_span_spaces": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "omissions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "groups": {
+      "type": "array",
+      "maxItems": 40,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "language": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "grammar": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "syntax_cohort": {
+            "enum": [
+              "clean",
+              "recovered"
+            ]
+          },
+          "analyzed_files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "total_spaces": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "invalid_span_spaces": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "metrics": {
+            "type": "array",
+            "maxItems": 2,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "metric": {
+                  "enum": [
+                    "cyclomatic_sum",
+                    "span_lines"
+                  ]
+                },
+                "definition": {
+                  "type": "string",
+                  "maxLength": 512
+                },
+                "unit": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "metric_scope": {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "min": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "max": {
+                  "anyOf": [
+                    {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "histogram": {
+                  "type": "array",
+                  "minItems": 65,
+                  "maxItems": 65,
+                  "items": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "top": {
+                  "type": "array",
+                  "maxItems": 10,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "properties": {
+                      "path": {
+                        "type": "string",
+                        "minLength": 1,
+                        "maxLength": 1024
+                      },
+                      "source_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      },
+                      "index": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "name": {
+                        "type": "string",
+                        "maxLength": 256
+                      },
+                      "name_status": {
+                        "enum": [
+                          "present",
+                          "unavailable",
+                          "omitted"
+                        ]
+                      },
+                      "start_line": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "end_line": {
+                        "type": "integer",
+                        "minimum": 1
+                      },
+                      "value": {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      "path_status": {
+                        "enum": [
+                          "present",
+                          "omitted"
+                        ]
+                      },
+                      "path_sha256": {
+                        "type": "string",
+                        "pattern": "^[0-9a-f]{64}$"
+                      }
+                    },
+                    "required": [
+                      "source_sha256",
+                      "index",
+                      "name_status",
+                      "start_line",
+                      "end_line",
+                      "value",
+                      "path_status",
+                      "path_sha256"
+                    ],
+                    "allOf": [
+                      {
+                        "if": {
+                          "properties": {
+                            "path_status": {
+                              "const": "present"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "path"
+                          ]
+                        },
+                        "else": {
+                          "required": [
+                            "path_sha256"
+                          ],
+                          "not": {
+                            "required": [
+                              "path"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "if": {
+                          "properties": {
+                            "name_status": {
+                              "const": "present"
+                            }
+                          }
+                        },
+                        "then": {
+                          "required": [
+                            "name"
+                          ],
+                          "properties": {
+                            "name": {
+                              "minLength": 1
+                            }
+                          }
+                        },
+                        "else": {
+                          "not": {
+                            "required": [
+                              "name"
+                            ]
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              },
+              "required": [
+                "metric",
+                "definition",
+                "unit",
+                "metric_scope",
+                "count",
+                "min",
+                "max",
+                "histogram",
+                "top"
+              ]
+            },
+            "minItems": 2
+          }
+        },
+        "required": [
+          "language",
+          "grammar",
+          "syntax_cohort",
+          "analyzed_files",
+          "total_spaces",
+          "invalid_span_spaces",
+          "metrics"
+        ]
+      }
+    },
+    "path_max_bytes": {
+      "const": 1024
+    }
+  },
+  "required": [
+    "provider",
+    "rule",
+    "rule_version",
+    "scope",
+    "status",
+    "file_coverage_status",
+    "population",
+    "histogram_rule",
+    "order",
+    "limit",
+    "name_max_bytes",
+    "analyzed_files",
+    "recovered_files",
+    "total_spaces",
+    "invalid_span_spaces",
+    "omissions",
+    "groups",
+    "path_max_bytes"
+  ]
+}

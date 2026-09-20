@@ -11,7 +11,7 @@ dircue compare before.json after.json --json > changes.json
 
 `compare` reads the two supplied files. It does not open their declared roots, follow evidence paths, rescan content, fetch Git history, or invoke another tool. Keep report files outside the inspected directory when taking filesystem snapshots so they do not become part of the next inventory.
 
-Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.4. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
+Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.5. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
 
 ## Read compatibility before changes
 
@@ -37,8 +37,10 @@ Language, finding, project and metrics reports, including those produced by 0.5.
 - Discovery counts and candidates, registry declarations and caller-rule observations.
 - Imported package, relationship and file observations, with imported-source qualifications retained.
 - Aggregate line metrics and a separate `metrics_files` module when both reports include per-file details.
+- Format evidence by path, with inspected population, read extent and supported validation profiles.
+- Hotspot distributions and retained top evidence by language, grammar, syntax cohort and metric.
 
-Detailed structural/function and graph comparisons are not supported in this version; their presence is reported explicitly. Renames are not inferred. Project IDs are manifest paths. Per-file metrics use paths; imported package and file observations retain provider IDs. Compound observation identities preserve their component boundaries. Relevant denominators accompany compared language and metric populations.
+Detailed per-file structural/function and graph comparisons remain unsupported; their presence is reported explicitly. The separate `hotspots` comparison describes measured distributions and rankings. It does not match function identities or infer deletion when an entry leaves a top-ten list. Missing populations remain unavailable, and changes to provider, rule or selection policy are incomparable. Renames are not inferred. Project IDs are manifest paths. Per-file metrics use paths; imported package and file observations retain provider IDs. Compound observation identities preserve their component boundaries. Relevant denominators accompany compared language and metric populations.
 
 Collections are compared independently of presentation order. Large field values are represented by canonical-value digests and sizes instead of being copied in full. Thus a field can be known to differ even when its value is omitted from the comparison output.
 

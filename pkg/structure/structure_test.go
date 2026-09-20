@@ -29,6 +29,11 @@ func validResponse(path, language string, n int) map[string]any {
 func TestMain(m *testing.M) {
 	if mode := os.Getenv("DIRCUE_STRUCTURE_TEST_HELPER"); mode != "" {
 		switch mode {
+		case "capabilities":
+			if len(os.Args) != 2 || os.Args[1] != "--capabilities" {
+				os.Exit(8)
+			}
+			fmt.Print(`{"protocol":"dircue-structural-worker","version":1,"parse_count":0,"features":["functions","hotspots"]}`)
 		case "timeout":
 			time.Sleep(time.Minute)
 		case "overflow":
@@ -56,7 +61,7 @@ func TestMain(m *testing.M) {
 				f["entries"].([]any)[0].(map[string]any)["end_line"] = 1
 				response["functions"] = f
 			}
-			if mode == "default-request" && strings.Contains(string(body), `"functions"`) {
+			if mode == "default-request" && (strings.Contains(string(body), `"functions"`) || strings.Contains(string(body), `"hotspots"`)) {
 				os.Exit(5)
 			}
 			json.NewEncoder(os.Stdout).Encode(response)
