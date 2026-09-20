@@ -55,12 +55,13 @@ jq '.modules[] | select(.name == "declarations") | .changes' changes.json
 | JSON nesting depth | 64 |
 | JSON nodes per input | 1,000,000 |
 | Individual decoded string | 64 KiB |
+| Numeric token | 128 bytes; decimal exponent magnitude at most 1,024 |
 | Retained changes across modules | 4,096 |
 | Retained field value | 2 KiB; larger values keep a digest and size |
 | Evidence paths per side of a change | 16, each at most 1 KiB |
 | Structured comparison output | 8 MiB |
 
-Input files must be regular files; symlinks are refused. The command does not accept scan-selection flags such as `--source`, `--rev`, or `--workers`. Limits are validation and output bounds, not a process-memory ceiling.
+Input files must be regular files; symlinks are refused. The command does not accept scan-selection flags such as `--source`, `--rev`, or `--workers`. Numbers must fit their report field types. Floating-point fields reject nonfinite values and nonzero values that underflow to zero; representable subnormal values remain supported. Numeric tokens retain their original precision during validation. Limits are validation and output bounds, not a process-memory ceiling.
 
 A successful comparison exits zero even when observations differ or a module is unavailable. Invalid input, failed reads and failed writes return an error. The top-level comparison status describes whether comparison output was retained completely; it does not upgrade the coverage or compatibility of any input module. Inspect module statuses and reasons as well as that top-level status. Text output shows at most 200 changed observations; JSON exposes the bounded full result and omission counts.
 
