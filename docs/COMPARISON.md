@@ -28,7 +28,7 @@ Each module reports its comparison `scope`, `compatibility`, input statuses, rea
 
 A module missing from one report is unavailable, not an empty result. With incomplete input coverage, a missing observation is not necessarily a removal. The change is marked unavailable when the absent side cannot establish absence. A retained observation can still be compared with its counterpart.
 
-Language, finding, project and metrics reports, including those produced by 0.5.0, do not record every provider or selection detail needed for stronger attribution. Their comparisons remain qualified even when their values match. Changes in module provider, scope, limits or rule policy appear separately from changes in observed entities. A changed Git tree is source metadata, not a reason to suppress an otherwise applicable comparison.
+Language, finding, project and metrics reports, including those produced by 0.5.0, do not record every provider or selection detail needed for stronger attribution. Their comparisons remain qualified even when their values match. Empty language and finding arrays do not distinguish an empty result from a profiler that did not run; observations missing on either side are therefore unavailable, rather than additions or removals. Changes in module provider, scope, limits or rule policy appear separately from changes in observed entities. A changed Git tree is source metadata, not a reason to suppress an otherwise applicable comparison.
 
 ## Compared populations
 
