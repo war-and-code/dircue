@@ -1,0 +1,56 @@
+{
+  "candidate_sha256": "0a0587135b7f906db7c2add58623dd4a3908e6d236b8b95cee79fd5941f99214",
+  "worker_sha256": "5f9a06323fb30b93dbc7e98a52bd74bfd108da009931548775a8102f015919a5",
+  "fixture_sha256": {
+    ".npmrc": "4d123738b6fa4be613d0ac2bb1408e107c412a2823c075efec8c58529afd20de",
+    "App/App.csproj": "021f5ec2574ee405a1160cfaae1e6692381c95af47409c3bbd87f007d3e168d4",
+    "App/main.cs": "5d028cce0618fc1701ed9e22fff0224b670b95d1086510a762fc758a98295c9f",
+    "Java/Main.java": "02f0a09fe26ec92537c76ee49816d8b5f218c13d9aa9be417d9088d331afd543",
+    "Lib/Lib.csproj": "8de16da49ae0ce1859e74d52e884575ea0ecb4b79891f272017625b0b42d4d7c",
+    "Lib/lib.cs": "895daad380034564f1eb68cd2c206162dca8095404685472a15731ecb884269b",
+    "NuGet.Config": "a5dda64bc007b268a62036d4830bd3690a362e3efbb1ed0d3aeefacccd75fd46"
+  },
+  "policy_sha256": "c919d7ca62270b84287267469902302d95095df4dd9a79fee125eb46d8b64ed0",
+  "syft_report_sha256": "f45eab535e14ce25a9c93f6f9abb3ceebb6fb490a8736c9c4a2da4fbcec1b7ef",
+  "passed": true,
+  "checks": [
+    "all8 optional/profile fields coexist",
+    "schema versions1.2/1.3 selected correctly",
+    "one/eight workers identical",
+    "all old baseline fields exactly equal after removal of requested additions",
+    "two sanitized registry declarations",
+    "three source-return rule matches",
+    "two .NET graph nodes",
+    "native function evidence present",
+    "file limits prevent registry reads",
+    "tree refusal marks new modules skipped",
+    "no credential marker on stdout/stderr"
+  ],
+  "commands": [
+    [
+      "analyze",
+      "all",
+      "--source",
+      "directory",
+      "--json",
+      "--projects",
+      "--metrics",
+      "--structure",
+      "--files",
+      "--structural-worker",
+      "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/dircue-worker-functions"
+    ],
+    [
+      "--functions",
+      "--graph",
+      "--discovery",
+      "--registries",
+      "--rules-file",
+      "/Users/gingeleski/Workspace/dircue/.cache/final-v040-audit/composition-policy.json",
+      "--syft-report",
+      "/Users/gingeleski/Workspace/dircue/tests/packageevidence/fixtures/syft-1.52.0.json",
+      "--syft-root",
+      "/"
+    ]
+  ]
+}

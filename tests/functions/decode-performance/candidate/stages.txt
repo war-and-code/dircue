@@ -1,0 +1,45 @@
+goos: darwin
+goarch: arm64
+pkg: dircue/pkg/structure
+cpu: Apple M1 Max
+BenchmarkFunctionStages/strict-whole-response         	      12	   9917007 ns/op	 4108990 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9958983 ns/op	 4108986 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9844542 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10668285 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9985320 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9989490 ns/op	 4108986 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10023691 ns/op	 4108989 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10150372 ns/op	 4108994 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10069403 ns/op	 4108989 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9977427 ns/op	 4108992 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10559976 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      10	  10444542 ns/op	 4108990 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9942128 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9995764 ns/op	 4108985 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      10	  10357079 ns/op	 4108990 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10337990 ns/op	 4108985 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10104285 ns/op	 4108990 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9947045 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	   9930733 ns/op	 4108988 B/op	  184939 allocs/op
+BenchmarkFunctionStages/strict-whole-response         	      12	  10607212 ns/op	 4108989 B/op	  184939 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  22639908 ns/op	 8477560 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  22516858 ns/op	 8477600 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  22589025 ns/op	 8477563 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  22181633 ns/op	 8477539 B/op	  253099 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  23697450 ns/op	 8475764 B/op	  253093 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21361125 ns/op	 8477563 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       6	  21034090 ns/op	 8477570 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  22068433 ns/op	 8477563 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21865375 ns/op	 8477596 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  23166000 ns/op	 8477569 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  20999300 ns/op	 8477590 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21529050 ns/op	 8477539 B/op	  253099 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21313067 ns/op	 8477560 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21716067 ns/op	 8477563 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21321033 ns/op	 8477566 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21139400 ns/op	 8477569 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  20968117 ns/op	 8477560 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       6	  21708569 ns/op	 8477558 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       6	  20878347 ns/op	 8477556 B/op	  253100 allocs/op
+BenchmarkFunctionStages/standalone-function-block     	       5	  21429125 ns/op	 8477569 B/op	  253100 allocs/op
+PASS

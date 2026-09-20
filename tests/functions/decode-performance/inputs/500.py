@@ -1,0 +1,1000 @@
+def f0():
+    return 0
+def f1():
+    return 1
+def f2():
+    return 2
+def f3():
+    return 3
+def f4():
+    return 4
+def f5():
+    return 5
+def f6():
+    return 6
+def f7():
+    return 7
+def f8():
+    return 8
+def f9():
+    return 9
+def f10():
+    return 10
+def f11():
+    return 11
+def f12():
+    return 12
+def f13():
+    return 13
+def f14():
+    return 14
+def f15():
+    return 15
+def f16():
+    return 16
+def f17():
+    return 17
+def f18():
+    return 18
+def f19():
+    return 19
+def f20():
+    return 20
+def f21():
+    return 21
+def f22():
+    return 22
+def f23():
+    return 23
+def f24():
+    return 24
+def f25():
+    return 25
+def f26():
+    return 26
+def f27():
+    return 27
+def f28():
+    return 28
+def f29():
+    return 29
+def f30():
+    return 30
+def f31():
+    return 31
+def f32():
+    return 32
+def f33():
+    return 33
+def f34():
+    return 34
+def f35():
+    return 35
+def f36():
+    return 36
+def f37():
+    return 37
+def f38():
+    return 38
+def f39():
+    return 39
+def f40():
+    return 40
+def f41():
+    return 41
+def f42():
+    return 42
+def f43():
+    return 43
+def f44():
+    return 44
+def f45():
+    return 45
+def f46():
+    return 46
+def f47():
+    return 47
+def f48():
+    return 48
+def f49():
+    return 49
+def f50():
+    return 50
+def f51():
+    return 51
+def f52():
+    return 52
+def f53():
+    return 53
+def f54():
+    return 54
+def f55():
+    return 55
+def f56():
+    return 56
+def f57():
+    return 57
+def f58():
+    return 58
+def f59():
+    return 59
+def f60():
+    return 60
+def f61():
+    return 61
+def f62():
+    return 62
+def f63():
+    return 63
+def f64():
+    return 64
+def f65():
+    return 65
+def f66():
+    return 66
+def f67():
+    return 67
+def f68():
+    return 68
+def f69():
+    return 69
+def f70():
+    return 70
+def f71():
+    return 71
+def f72():
+    return 72
+def f73():
+    return 73
+def f74():
+    return 74
+def f75():
+    return 75
+def f76():
+    return 76
+def f77():
+    return 77
+def f78():
+    return 78
+def f79():
+    return 79
+def f80():
+    return 80
+def f81():
+    return 81
+def f82():
+    return 82
+def f83():
+    return 83
+def f84():
+    return 84
+def f85():
+    return 85
+def f86():
+    return 86
+def f87():
+    return 87
+def f88():
+    return 88
+def f89():
+    return 89
+def f90():
+    return 90
+def f91():
+    return 91
+def f92():
+    return 92
+def f93():
+    return 93
+def f94():
+    return 94
+def f95():
+    return 95
+def f96():
+    return 96
+def f97():
+    return 97
+def f98():
+    return 98
+def f99():
+    return 99
+def f100():
+    return 100
+def f101():
+    return 101
+def f102():
+    return 102
+def f103():
+    return 103
+def f104():
+    return 104
+def f105():
+    return 105
+def f106():
+    return 106
+def f107():
+    return 107
+def f108():
+    return 108
+def f109():
+    return 109
+def f110():
+    return 110
+def f111():
+    return 111
+def f112():
+    return 112
+def f113():
+    return 113
+def f114():
+    return 114
+def f115():
+    return 115
+def f116():
+    return 116
+def f117():
+    return 117
+def f118():
+    return 118
+def f119():
+    return 119
+def f120():
+    return 120
+def f121():
+    return 121
+def f122():
+    return 122
+def f123():
+    return 123
+def f124():
+    return 124
+def f125():
+    return 125
+def f126():
+    return 126
+def f127():
+    return 127
+def f128():
+    return 128
+def f129():
+    return 129
+def f130():
+    return 130
+def f131():
+    return 131
+def f132():
+    return 132
+def f133():
+    return 133
+def f134():
+    return 134
+def f135():
+    return 135
+def f136():
+    return 136
+def f137():
+    return 137
+def f138():
+    return 138
+def f139():
+    return 139
+def f140():
+    return 140
+def f141():
+    return 141
+def f142():
+    return 142
+def f143():
+    return 143
+def f144():
+    return 144
+def f145():
+    return 145
+def f146():
+    return 146
+def f147():
+    return 147
+def f148():
+    return 148
+def f149():
+    return 149
+def f150():
+    return 150
+def f151():
+    return 151
+def f152():
+    return 152
+def f153():
+    return 153
+def f154():
+    return 154
+def f155():
+    return 155
+def f156():
+    return 156
+def f157():
+    return 157
+def f158():
+    return 158
+def f159():
+    return 159
+def f160():
+    return 160
+def f161():
+    return 161
+def f162():
+    return 162
+def f163():
+    return 163
+def f164():
+    return 164
+def f165():
+    return 165
+def f166():
+    return 166
+def f167():
+    return 167
+def f168():
+    return 168
+def f169():
+    return 169
+def f170():
+    return 170
+def f171():
+    return 171
+def f172():
+    return 172
+def f173():
+    return 173
+def f174():
+    return 174
+def f175():
+    return 175
+def f176():
+    return 176
+def f177():
+    return 177
+def f178():
+    return 178
+def f179():
+    return 179
+def f180():
+    return 180
+def f181():
+    return 181
+def f182():
+    return 182
+def f183():
+    return 183
+def f184():
+    return 184
+def f185():
+    return 185
+def f186():
+    return 186
+def f187():
+    return 187
+def f188():
+    return 188
+def f189():
+    return 189
+def f190():
+    return 190
+def f191():
+    return 191
+def f192():
+    return 192
+def f193():
+    return 193
+def f194():
+    return 194
+def f195():
+    return 195
+def f196():
+    return 196
+def f197():
+    return 197
+def f198():
+    return 198
+def f199():
+    return 199
+def f200():
+    return 200
+def f201():
+    return 201
+def f202():
+    return 202
+def f203():
+    return 203
+def f204():
+    return 204
+def f205():
+    return 205
+def f206():
+    return 206
+def f207():
+    return 207
+def f208():
+    return 208
+def f209():
+    return 209
+def f210():
+    return 210
+def f211():
+    return 211
+def f212():
+    return 212
+def f213():
+    return 213
+def f214():
+    return 214
+def f215():
+    return 215
+def f216():
+    return 216
+def f217():
+    return 217
+def f218():
+    return 218
+def f219():
+    return 219
+def f220():
+    return 220
+def f221():
+    return 221
+def f222():
+    return 222
+def f223():
+    return 223
+def f224():
+    return 224
+def f225():
+    return 225
+def f226():
+    return 226
+def f227():
+    return 227
+def f228():
+    return 228
+def f229():
+    return 229
+def f230():
+    return 230
+def f231():
+    return 231
+def f232():
+    return 232
+def f233():
+    return 233
+def f234():
+    return 234
+def f235():
+    return 235
+def f236():
+    return 236
+def f237():
+    return 237
+def f238():
+    return 238
+def f239():
+    return 239
+def f240():
+    return 240
+def f241():
+    return 241
+def f242():
+    return 242
+def f243():
+    return 243
+def f244():
+    return 244
+def f245():
+    return 245
+def f246():
+    return 246
+def f247():
+    return 247
+def f248():
+    return 248
+def f249():
+    return 249
+def f250():
+    return 250
+def f251():
+    return 251
+def f252():
+    return 252
+def f253():
+    return 253
+def f254():
+    return 254
+def f255():
+    return 255
+def f256():
+    return 256
+def f257():
+    return 257
+def f258():
+    return 258
+def f259():
+    return 259
+def f260():
+    return 260
+def f261():
+    return 261
+def f262():
+    return 262
+def f263():
+    return 263
+def f264():
+    return 264
+def f265():
+    return 265
+def f266():
+    return 266
+def f267():
+    return 267
+def f268():
+    return 268
+def f269():
+    return 269
+def f270():
+    return 270
+def f271():
+    return 271
+def f272():
+    return 272
+def f273():
+    return 273
+def f274():
+    return 274
+def f275():
+    return 275
+def f276():
+    return 276
+def f277():
+    return 277
+def f278():
+    return 278
+def f279():
+    return 279
+def f280():
+    return 280
+def f281():
+    return 281
+def f282():
+    return 282
+def f283():
+    return 283
+def f284():
+    return 284
+def f285():
+    return 285
+def f286():
+    return 286
+def f287():
+    return 287
+def f288():
+    return 288
+def f289():
+    return 289
+def f290():
+    return 290
+def f291():
+    return 291
+def f292():
+    return 292
+def f293():
+    return 293
+def f294():
+    return 294
+def f295():
+    return 295
+def f296():
+    return 296
+def f297():
+    return 297
+def f298():
+    return 298
+def f299():
+    return 299
+def f300():
+    return 300
+def f301():
+    return 301
+def f302():
+    return 302
+def f303():
+    return 303
+def f304():
+    return 304
+def f305():
+    return 305
+def f306():
+    return 306
+def f307():
+    return 307
+def f308():
+    return 308
+def f309():
+    return 309
+def f310():
+    return 310
+def f311():
+    return 311
+def f312():
+    return 312
+def f313():
+    return 313
+def f314():
+    return 314
+def f315():
+    return 315
+def f316():
+    return 316
+def f317():
+    return 317
+def f318():
+    return 318
+def f319():
+    return 319
+def f320():
+    return 320
+def f321():
+    return 321
+def f322():
+    return 322
+def f323():
+    return 323
+def f324():
+    return 324
+def f325():
+    return 325
+def f326():
+    return 326
+def f327():
+    return 327
+def f328():
+    return 328
+def f329():
+    return 329
+def f330():
+    return 330
+def f331():
+    return 331
+def f332():
+    return 332
+def f333():
+    return 333
+def f334():
+    return 334
+def f335():
+    return 335
+def f336():
+    return 336
+def f337():
+    return 337
+def f338():
+    return 338
+def f339():
+    return 339
+def f340():
+    return 340
+def f341():
+    return 341
+def f342():
+    return 342
+def f343():
+    return 343
+def f344():
+    return 344
+def f345():
+    return 345
+def f346():
+    return 346
+def f347():
+    return 347
+def f348():
+    return 348
+def f349():
+    return 349
+def f350():
+    return 350
+def f351():
+    return 351
+def f352():
+    return 352
+def f353():
+    return 353
+def f354():
+    return 354
+def f355():
+    return 355
+def f356():
+    return 356
+def f357():
+    return 357
+def f358():
+    return 358
+def f359():
+    return 359
+def f360():
+    return 360
+def f361():
+    return 361
+def f362():
+    return 362
+def f363():
+    return 363
+def f364():
+    return 364
+def f365():
+    return 365
+def f366():
+    return 366
+def f367():
+    return 367
+def f368():
+    return 368
+def f369():
+    return 369
+def f370():
+    return 370
+def f371():
+    return 371
+def f372():
+    return 372
+def f373():
+    return 373
+def f374():
+    return 374
+def f375():
+    return 375
+def f376():
+    return 376
+def f377():
+    return 377
+def f378():
+    return 378
+def f379():
+    return 379
+def f380():
+    return 380
+def f381():
+    return 381
+def f382():
+    return 382
+def f383():
+    return 383
+def f384():
+    return 384
+def f385():
+    return 385
+def f386():
+    return 386
+def f387():
+    return 387
+def f388():
+    return 388
+def f389():
+    return 389
+def f390():
+    return 390
+def f391():
+    return 391
+def f392():
+    return 392
+def f393():
+    return 393
+def f394():
+    return 394
+def f395():
+    return 395
+def f396():
+    return 396
+def f397():
+    return 397
+def f398():
+    return 398
+def f399():
+    return 399
+def f400():
+    return 400
+def f401():
+    return 401
+def f402():
+    return 402
+def f403():
+    return 403
+def f404():
+    return 404
+def f405():
+    return 405
+def f406():
+    return 406
+def f407():
+    return 407
+def f408():
+    return 408
+def f409():
+    return 409
+def f410():
+    return 410
+def f411():
+    return 411
+def f412():
+    return 412
+def f413():
+    return 413
+def f414():
+    return 414
+def f415():
+    return 415
+def f416():
+    return 416
+def f417():
+    return 417
+def f418():
+    return 418
+def f419():
+    return 419
+def f420():
+    return 420
+def f421():
+    return 421
+def f422():
+    return 422
+def f423():
+    return 423
+def f424():
+    return 424
+def f425():
+    return 425
+def f426():
+    return 426
+def f427():
+    return 427
+def f428():
+    return 428
+def f429():
+    return 429
+def f430():
+    return 430
+def f431():
+    return 431
+def f432():
+    return 432
+def f433():
+    return 433
+def f434():
+    return 434
+def f435():
+    return 435
+def f436():
+    return 436
+def f437():
+    return 437
+def f438():
+    return 438
+def f439():
+    return 439
+def f440():
+    return 440
+def f441():
+    return 441
+def f442():
+    return 442
+def f443():
+    return 443
+def f444():
+    return 444
+def f445():
+    return 445
+def f446():
+    return 446
+def f447():
+    return 447
+def f448():
+    return 448
+def f449():
+    return 449
+def f450():
+    return 450
+def f451():
+    return 451
+def f452():
+    return 452
+def f453():
+    return 453
+def f454():
+    return 454
+def f455():
+    return 455
+def f456():
+    return 456
+def f457():
+    return 457
+def f458():
+    return 458
+def f459():
+    return 459
+def f460():
+    return 460
+def f461():
+    return 461
+def f462():
+    return 462
+def f463():
+    return 463
+def f464():
+    return 464
+def f465():
+    return 465
+def f466():
+    return 466
+def f467():
+    return 467
+def f468():
+    return 468
+def f469():
+    return 469
+def f470():
+    return 470
+def f471():
+    return 471
+def f472():
+    return 472
+def f473():
+    return 473
+def f474():
+    return 474
+def f475():
+    return 475
+def f476():
+    return 476
+def f477():
+    return 477
+def f478():
+    return 478
+def f479():
+    return 479
+def f480():
+    return 480
+def f481():
+    return 481
+def f482():
+    return 482
+def f483():
+    return 483
+def f484():
+    return 484
+def f485():
+    return 485
+def f486():
+    return 486
+def f487():
+    return 487
+def f488():
+    return 488
+def f489():
+    return 489
+def f490():
+    return 490
+def f491():
+    return 491
+def f492():
+    return 492
+def f493():
+    return 493
+def f494():
+    return 494
+def f495():
+    return 495
+def f496():
+    return 496
+def f497():
+    return 497
+def f498():
+    return 498
+def f499():
+    return 499

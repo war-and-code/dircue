@@ -1,5 +1,5 @@
 FROM golang:1.26.6-bookworm@sha256:116d58cbd88c1297624acc6e967a060012422bacf9930927e23fb719189c6f36 AS build
-ARG VERSION=0.3.0
+ARG VERSION=0.4.0
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags="-s -w -X dircue/internal/cli.Version=${VERSION}" -o /out/dircue .

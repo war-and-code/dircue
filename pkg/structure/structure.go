@@ -5,6 +5,7 @@ package structure
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,7 @@ const DefaultTimeout = 10 * time.Second
 
 type Options struct {
 	Worker       string
+	Functions    bool
 	MaxFileBytes int64
 	Timeout      time.Duration
 }
@@ -36,6 +38,8 @@ type Provenance struct {
 // Partial means the grammar recovered from missing or unrecognized syntax.
 type File struct {
 	Path         string            `json:"path"`
+	Functions    *FunctionSpaces   `json:"functions,omitempty"`
+	SourceSHA256 string            `json:"source_sha256,omitempty"`
 	Language     string            `json:"language"`
 	Status       string            `json:"status"`
 	Reason       string            `json:"reason,omitempty"`
@@ -89,6 +93,8 @@ func New(options Options) (*Client, error) {
 	return &Client{options: options, admission: make(chan struct{}, 1)}, nil
 }
 
+func (c *Client) FunctionMetricsEnabled() bool { return c.options.Functions }
+
 func (c *Client) MaxFileBytes() int64 { return c.options.MaxFileBytes }
 func (c *Client) WorkerPath() string  { return c.options.Worker }
 
@@ -124,11 +130,12 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		return result, err
 	}
 	request := struct {
-		Path     string `json:"path"`
-		Language string `json:"language"`
-		Source   string `json:"source"`
-		Mode     string `json:"mode"`
-	}{path, language, string(content), "combined"}
+		Path      string `json:"path"`
+		Language  string `json:"language"`
+		Source    string `json:"source"`
+		Mode      string `json:"mode"`
+		Functions bool   `json:"functions,omitempty"`
+	}{path, language, string(content), "combined", c.options.Functions}
 	body, err := json.Marshal(request)
 	if err != nil {
 		return result, err
@@ -149,17 +156,28 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		return result, fmt.Errorf("structure worker: %w", child.Err())
 	}
 	if err != nil {
+		if c.options.Functions && unsupportedFunctionRequest(stdout.buf.Bytes()) {
+			return result, fmt.Errorf("structure worker does not support function-space metrics; use an updated worker: %w", err)
+		}
 		return result, fmt.Errorf("structure worker: %w; stderr: %s", err, strings.TrimSpace(stderr.buf.String()))
 	}
-	return decode(stdout.buf.Bytes(), result)
+	return decodeResponse(stdout.buf.Bytes(), result, content, c.options.Functions)
 }
 
 func decode(data []byte, submitted File) (File, error) {
+	return decodeResponse(data, submitted, nil, false)
+}
+
+func decodeResponse(data []byte, submitted File, content []byte, functions bool) (File, error) {
+	if functions && !strictFunctionResponse(data) {
+		return submitted, errors.New("structure worker function response contains invalid JSON, duplicate keys, or field aliases")
+	}
 	var response struct {
 		File
-		SourceBytes  *int64 `json:"source_bytes"`
-		ParseCount   *int   `json:"parse_count"`
-		SyntaxErrors *bool  `json:"syntax_errors"`
+		Functions    json.RawMessage `json:"functions"`
+		SourceBytes  *int64          `json:"source_bytes"`
+		ParseCount   *int            `json:"parse_count"`
+		SyntaxErrors *bool           `json:"syntax_errors"`
 	}
 	if err := json.Unmarshal(data, &response); err != nil {
 		return submitted, fmt.Errorf("structure worker invalid JSON: %w", err)
@@ -211,6 +229,22 @@ func decode(data []byte, submitted File) (File, error) {
 	response.File.Reason = ""
 	if *response.SyntaxErrors {
 		response.File.Reason = "syntax_errors"
+	}
+	response.File.Functions = nil
+	response.File.SourceSHA256 = ""
+	if functions {
+		if len(response.Functions) == 0 {
+			return submitted, errors.New("structure worker did not return requested function-space metrics; use a worker with function support")
+		}
+		// strictFunctionResponse already checked every nested function metric.
+		decoded, ok := decodeValidatedFunctions(response.Functions, content, *response.SyntaxErrors, response.Observations["syntax_nodes"])
+		if !ok {
+			return submitted, errors.New("structure worker function-space response violates its metrics, bounds, or coverage contract")
+		}
+		response.File.Functions = decoded
+		response.File.SourceSHA256 = fmt.Sprintf("%x", sha256.Sum256(content))
+	} else if len(response.Functions) != 0 {
+		return fail()
 	}
 	// Marshal again to remove whitespace from the native wire representation.
 	response.File.Metrics, _ = json.Marshal(metrics)

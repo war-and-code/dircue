@@ -1,0 +1,1 @@
+{"schema_version": "1.0.0", "rules": [{"id": "source-return", "match": {"extensions": [".cs", ".java"]}, "content": {"contains_utf8": "return"}}]}

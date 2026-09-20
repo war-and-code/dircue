@@ -1,0 +1,7 @@
+warning: .npmrc: file exceeds 1 byte limit (file_too_large)
+warning: App/App.csproj: file exceeds 1 byte limit (file_too_large)
+warning: App/main.cs: file exceeds 1 byte limit (file_too_large)
+warning: Java/Main.java: file exceeds 1 byte limit (file_too_large)
+warning: Lib/Lib.csproj: file exceeds 1 byte limit (file_too_large)
+warning: Lib/lib.cs: file exceeds 1 byte limit (file_too_large)
+warning: NuGet.Config: file exceeds 1 byte limit (file_too_large)

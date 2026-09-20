@@ -1,0 +1,72 @@
+{
+  "reviewed_at": "2026-09-19T23:22:49.179185+00:00",
+  "skill": "codebase-audit",
+  "domain": "untrusted-input/privacy correctness",
+  "scope": [
+    "pkg/registries",
+    "pkg/scanner/registries.go",
+    "pkg/scanner/projects.go",
+    "pkg/scanner/scanner.go",
+    "internal/cli/registries.go"
+  ],
+  "findings": [
+    {
+      "id": "npm-single-quoted-types",
+      "severity": "medium",
+      "location": "pkg/registries/npm.go:npmValue",
+      "reproduction": "registry='123'; registry='[]'; registry='{}'; registry='[1]'",
+      "root_cause": "Single-quoted payload returned verbatim as string; upstream ini parses valid inner JSON into numbers/arrays/objects.",
+      "impact": "A non-string registry value becomes a complete local-path declaration.",
+      "fix": "Reject typed inner JSON; preserve string coercion and exact upstream quote semantics.",
+      "status": "accepted by root; parser owner implementing",
+      "evidence": [
+        "typed-values-before.jsonl",
+        "typed-oracle.jsonl",
+        "probe.go"
+      ]
+    },
+    {
+      "id": "cancel-during-final-parse",
+      "severity": "medium",
+      "location": "pkg/registries/collector.go:Finish",
+      "reproduction": "240KiB XML containing30,000 comments; callback schedules cancel after100us.10/10 successful nonnil reports while context was canceled.",
+      "root_cause": "No cancellation check after Parse or before final report publication.",
+      "impact": "Last-file parse can return success despite an already-canceled context.",
+      "fix": "Check cancellation after Parse and before publishing report.",
+      "status": "accepted by root; parser owner implementing",
+      "evidence": [
+        "cancel-during-last-parse-before.jsonl",
+        "cancel_probe.go"
+      ]
+    },
+    {
+      "id": "xml-declaration-validation",
+      "severity": "medium",
+      "location": "pkg/registries/nuget.go:xml.ProcInst",
+      "reproduction": "Duplicate XML declaration; <?xml garbage?>; <?xml?>; XML declaration after comment.",
+      "root_cause": "encoding/xml does not validate this declaration grammar/placement; current check accepts every xml-target PI before root.",
+      "impact": "Malformed XML marked syntax complete and declaration count complete.",
+      "fix": "Only accept a single supported syntactically valid leading declaration; reject malformed/misplaced declarations transactionally.",
+      "primary_source": "https://www.w3.org/TR/xml/#sec-prolog-dtd",
+      "status": "accepted by root; parser owner implementing",
+      "evidence": [
+        "xml-declarations-before.jsonl",
+        "xml_probe.go"
+      ]
+    }
+  ],
+  "privacy_probe": "race-enabled independent overlay passed17 endpoint cases, namespace/directive transactionality, immutable output, explicit qualified-name disclosure",
+  "limits": "No general secret detection guarantee; qualified identifiers, origins and source paths may identify internal infrastructure. No TLS/network/effective-feed policy assessment. No package installation, inspected-project builds, or inspected-project code execution; only audit probes and package tests executed.",
+  "files_sha256": {
+    "cancel-during-last-parse-before.jsonl": "c1fd118b9522c27de5e86581579a233094d7660ce31312f16f6e9838e97021b5",
+    "cancel_probe.go": "baae232e10e587a0ea2e7cdb769374b1377bf7757605b4ec851fc342ba86dedd",
+    "independent_security_audit_test.go": "d73ccdccbf235fcab5f657b4b2c4873e79d10fc6a8dc65741e96cfde65033612",
+    "overlay.json": "1ffbf0f33535bf2c468c89b569f71fe93c6c448e60af7dc9081878ac46a4dcb0",
+    "privacy-race.log": "867c088910195c9ee94c515f10357a034fcb6f6fad5aab9de08a624aaeb37232",
+    "probe.go": "284a69b87c981f5095d60e64148a910ec0e5c9dec5dd3afdd927be7135f38a88",
+    "typed-oracle.jsonl": "9511fee696627c6d7a210b6a9629b7e994239c808ec68879d082ab2adf38b5b5",
+    "typed-values-before.jsonl": "e98957cce0550132aad83002275d807d5e3ff9885d0969a6fb9e7ac468afcba7",
+    "xml-declarations-before.jsonl": "baeccf487f9ffa0ab6d7a7787210b88807a6d971bc07aa55c7fa5d6653a806b6",
+    "xml_probe.go": "707c539a8c588a677082df3fbc8ad74fc2a3be3e79e97b118ce9f468b4da5262"
+  }
+}

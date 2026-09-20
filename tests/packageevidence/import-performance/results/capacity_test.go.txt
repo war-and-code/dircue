@@ -1,0 +1,57 @@
+package packageevidence
+
+import (
+	"encoding/json"
+	"reflect"
+	"testing"
+)
+
+func TestResultGrowthPreservesPrefixesAndBounds(t *testing.T) {
+	for _, total := range []int{1, 2, 3, 255, 256, 257, 1023, 1024, 1025, 20000, 50000, 100000, 250000} {
+		rows := []int{}
+		for i := 0; i < total; i++ {
+			oldCapacity := cap(rows)
+			rows = appendResult(rows, i, total)
+			if len(rows) != i+1 || cap(rows) > total || cap(rows) > 2*len(rows) {
+				t.Fatalf("total%d prefix%d len%d cap%d", total, i, len(rows), cap(rows))
+			}
+			if oldCapacity != cap(rows) {
+				for j, value := range rows {
+					if value != j {
+						t.Fatalf("prefix changed at%d: %d", j, value)
+					}
+				}
+			}
+		}
+		for i, value := range rows {
+			if value != i {
+				t.Fatal("output changed")
+			}
+		}
+	}
+}
+func TestResultGrowthKeepsPointersAndEmptyJSON(t *testing.T) {
+	type item struct {
+		Name   string
+		Values []int
+	}
+	original := []item{}
+	raw, err := json.Marshal(original)
+	if err != nil || string(raw) != "[]" {
+		t.Fatal("empty output changed")
+	}
+	var actual []item
+	expected := []item{}
+	for i := 0; i < 1000; i++ {
+		value := item{Name: "same", Values: []int{i}}
+		actual = appendResult(actual, value, 1000)
+		expected = append(expected, value)
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatal("nested values changed")
+	}
+	expected[500].Values[0] = -1
+	if actual[500].Values[0] != -1 {
+		t.Fatal("append must preserve nested slice identity")
+	}
+}

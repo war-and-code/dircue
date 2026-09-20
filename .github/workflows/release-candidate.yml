@@ -1,0 +1,164 @@
+name: Prepare draft release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version without v; existing v-prefixed tag must match this main revision'
+        type: string
+        required: true
+      commit:
+        description: 'Exact 40-character commit SHA, equal to the dispatched main revision'
+        type: string
+        required: true
+      notes:
+        description: 'Committed Markdown release-notes path, relative to repository root'
+        type: string
+        required: true
+
+concurrency:
+  group: draft-release-${{ inputs.version }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  RELEASE_VERSION: ${{ inputs.version }}
+  RELEASE_COMMIT: ${{ inputs.commit }}
+  RELEASE_NOTES: ${{ inputs.notes }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-slim
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Validate exact source, existing tag and unused release version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/draft_release.py validate --github --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES"
+      - name: Test release contracts
+        run: python -m unittest discover -s tests/release -p 'test_*.py'
+
+  native:
+    needs: validate
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux-amd64
+            core: linux/amd64
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
+            platform: linux-arm64
+            core: linux/arm64
+            target: aarch64-unknown-linux-gnu
+          - os: macos-14
+            platform: darwin-arm64
+            core: darwin/arm64
+            target: aarch64-apple-darwin
+          - os: macos-15-intel
+            platform: darwin-amd64
+            core: darwin/amd64
+            target: x86_64-apple-darwin
+          - os: windows-latest
+            platform: windows-amd64
+            core: windows/amd64
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - name: Validate checkout and tag before building
+        run: python scripts/draft_release.py validate --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES"
+      - name: Check Go core
+        if: matrix.platform == 'linux-amd64'
+        run: |
+          go vet ./...
+          go test -race ./...
+      - name: Install pinned native Rust toolchain
+        run: rustup toolchain install 1.94.0 --profile minimal --target ${{ matrix.target }}
+      - name: Cache Cargo registry archives and native build inputs
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/registry/src
+            ~/.cargo/git
+            prototypes/structural/worker/target
+          key: rust-draft-release-v1-${{ matrix.os }}-${{ runner.arch }}-${{ matrix.target }}-1.94.0-${{ hashFiles('prototypes/structural/worker/Cargo.lock', 'prototypes/structural/worker/Cargo.toml', '.cargo/config.toml', 'prototypes/structural/worker/.cargo/config.toml') }}
+      - name: Test native parser
+        run: rustup run 1.94.0 cargo test --locked --manifest-path prototypes/structural/worker/Cargo.toml
+      - name: Package committed core and matching wheels
+        run: |
+          python scripts/release.py --version "$RELEASE_VERSION" --target ${{ matrix.core }} --output .cache/draft-release/platform/core
+          python scripts/wheels.py --release-dir .cache/draft-release/platform/core --output .cache/draft-release/platform/wheels
+      - name: Package native worker and complete dependency sources
+        run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version "$RELEASE_VERSION" --smoke-test --output .cache/draft-release/platform/worker
+      - name: Test actual packaged core and worker together across 20 languages
+        run: python scripts/draft_release.py smoke --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES" --platform ${{ matrix.platform }} --input .cache/draft-release/platform
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: candidate-${{ matrix.platform }}
+          path: .cache/draft-release/platform/*
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 7
+
+  draft:
+    needs: [validate, native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: candidate-*
+          path: .cache/draft-release/downloaded
+      - name: Verify every platform, source, license, wheel and native smoke receipt
+        run: python scripts/draft_release.py assemble --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES" --input .cache/draft-release/downloaded --output .cache/draft-release/assets
+      - name: Create new draft with exact committed release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/draft_release.py upload --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES" --output .cache/draft-release/assets
+      - name: Retain download verification receipt
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-download-verification
+          path: .cache/draft-release/download-verification.json
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

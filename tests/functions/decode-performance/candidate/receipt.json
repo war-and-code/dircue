@@ -1,0 +1,2218 @@
+{
+  "started_at_utc": "2026-09-19T22:15:57.928372+00:00",
+  "binary_sha256": "0211f15addf71e1262032e94f64476fb313a1679233268f79489a90d6f98ea35",
+  "harness_sha256": "a3daf5f640d772808a49793462f231c93c7afe9f8824eca6294ce193132a03ff",
+  "source_sha256": {
+    "pkg/structure/capabilities.go": "e5f25b73795c3bcfc7bd64f2e11cdefe6d202e8aad95e15b053b00466817a1d4",
+    "pkg/structure/functions.go": "e0bc9cd4627be11a66177c5acd55fdc550fad8a7551467884bc2659033d37ad1",
+    "pkg/structure/functions_bench_test.go": "a6c9686204623a993f8c2f904d8a6d0226c489c7adef6daa497d3d3db5fc2749",
+    "pkg/structure/functions_test.go": "7935632c9054b32c7c3adbe69fc1b2e8447ac741bbf37cc93b199848f30f8ac1",
+    "pkg/structure/functions_validation_test.go": "5709733166c225fee73831cceee191fe88f3d89b44945fc2c4088d8211fc05bf",
+    "pkg/structure/structure.go": "d07835eead67d698e25be06bb0b1ffd69008423b907c969bd009f1c6a5e9ea5d",
+    "pkg/structure/structure_test.go": "1446dfc9a90e4e087da2158f4bb4cda052281e4d1b949c32b4d044c99ad3752e"
+  },
+  "commands": [
+    {
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/candidate.test",
+        "-test.run",
+        "^$",
+        "-test.cpu",
+        "1",
+        "-test.bench",
+        "^BenchmarkFunctionResponse$",
+        "-test.benchmem",
+        "-test.benchtime",
+        "100ms",
+        "-test.count",
+        "20"
+      ],
+      "elapsed_seconds": 36.39562258403748,
+      "stdout_sha256": "fa7a1ed4f0d6d24ea76653e85ef47516a47fe9b9a51373674359ba794953cb3f",
+      "stderr_sha256": "91b374aff434d8800805c77f83d04d886320a41879162f926b9ad417e360d41c"
+    },
+    {
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/candidate.test",
+        "-test.run",
+        "^$",
+        "-test.cpu",
+        "1",
+        "-test.bench",
+        "^BenchmarkFunctionStages$",
+        "-test.benchmem",
+        "-test.benchtime",
+        "100ms",
+        "-test.count",
+        "20"
+      ],
+      "elapsed_seconds": 4.724037500098348,
+      "stdout_sha256": "e28e4591d8d1c0abb21584bdc0eb99431e9e43ab9745adb8a003e8e519545a47",
+      "stderr_sha256": "53141cfa8c37a7edafb83ec29c5d987dbae3eb29bfc462dfe4831262bb83d1f9"
+    },
+    {
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/candidate.test",
+        "-test.run",
+        "^$",
+        "-test.cpu",
+        "1",
+        "-test.bench",
+        "^BenchmarkFunctionResponse/spaces=128/functions=true$",
+        "-test.benchmem",
+        "-test.benchtime",
+        "5s",
+        "-test.count",
+        "1",
+        "-test.cpuprofile",
+        "/private/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/candidate/cpu.pprof",
+        "-test.memprofile",
+        "/private/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/candidate/heap.pprof"
+      ],
+      "elapsed_seconds": 6.07427716627717,
+      "stdout_sha256": "53374934e33617e1719bd480c20579576a565eec672d1b44bdddd9253b429aa1",
+      "stderr_sha256": "91fc6df641612e46a75fc89922be06e2a480fd4f47fbd7af9a36d073231efdf2"
+    }
+  ],
+  "method": "20 independent benchmark batch averages per case; optimized Go, GOMAXPROCS=1. Percentiles are of batch means, not request latencies. Extreme quantiles collapse to the maximum with 20 samples.",
+  "samples": {
+    "BenchmarkFunctionResponse/spaces=1/functions=false": [
+      {
+        "iterations": 1729,
+        "ns_per_op": 76934.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1478,
+        "ns_per_op": 81208.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1528,
+        "ns_per_op": 81002.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1568,
+        "ns_per_op": 78866.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1590,
+        "ns_per_op": 79490.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1582,
+        "ns_per_op": 77739.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1555,
+        "ns_per_op": 81675.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1574,
+        "ns_per_op": 78451.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1584,
+        "ns_per_op": 80109.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1416,
+        "ns_per_op": 85136.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1521,
+        "ns_per_op": 80161.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1576,
+        "ns_per_op": 79871.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1563,
+        "ns_per_op": 79088.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1582,
+        "ns_per_op": 78097.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1580,
+        "ns_per_op": 80145.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1551,
+        "ns_per_op": 82189.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1437,
+        "ns_per_op": 83911.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1485,
+        "ns_per_op": 84923.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1430,
+        "ns_per_op": 86082.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      },
+      {
+        "iterations": 1402,
+        "ns_per_op": 82952.0,
+        "bytes_per_op": 36281.0,
+        "allocs_per_op": 667
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=1/functions=true": [
+      {
+        "iterations": 273,
+        "ns_per_op": 438025.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 290,
+        "ns_per_op": 421636.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 292,
+        "ns_per_op": 419886.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 289,
+        "ns_per_op": 423620.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 290,
+        "ns_per_op": 425920.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 289,
+        "ns_per_op": 425944.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 274,
+        "ns_per_op": 453102.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 272,
+        "ns_per_op": 424186.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 283,
+        "ns_per_op": 428271.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 294,
+        "ns_per_op": 411889.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 294,
+        "ns_per_op": 425258.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 283,
+        "ns_per_op": 435535.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 274,
+        "ns_per_op": 453991.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 266,
+        "ns_per_op": 452766.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 266,
+        "ns_per_op": 461970.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 271,
+        "ns_per_op": 440545.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 276,
+        "ns_per_op": 444132.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 272,
+        "ns_per_op": 442471.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 276,
+        "ns_per_op": 440431.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      },
+      {
+        "iterations": 291,
+        "ns_per_op": 412412.0,
+        "bytes_per_op": 167608.0,
+        "allocs_per_op": 4889
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=10/functions=false": [
+      {
+        "iterations": 1506,
+        "ns_per_op": 81251.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1435,
+        "ns_per_op": 82244.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1496,
+        "ns_per_op": 82738.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1424,
+        "ns_per_op": 85075.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1371,
+        "ns_per_op": 89986.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1417,
+        "ns_per_op": 81961.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1525,
+        "ns_per_op": 82053.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1488,
+        "ns_per_op": 81426.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1542,
+        "ns_per_op": 87714.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1452,
+        "ns_per_op": 87973.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1390,
+        "ns_per_op": 86946.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1390,
+        "ns_per_op": 89061.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1474,
+        "ns_per_op": 89314.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1387,
+        "ns_per_op": 84089.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1488,
+        "ns_per_op": 85846.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1428,
+        "ns_per_op": 82751.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1479,
+        "ns_per_op": 84108.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1533,
+        "ns_per_op": 84277.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1425,
+        "ns_per_op": 82622.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1422,
+        "ns_per_op": 82440.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=10/functions=true": [
+      {
+        "iterations": 62,
+        "ns_per_op": 2180024.0,
+        "bytes_per_op": 798433.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 63,
+        "ns_per_op": 2323287.0,
+        "bytes_per_op": 798432.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2281531.0,
+        "bytes_per_op": 798422.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2214507.0,
+        "bytes_per_op": 798431.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2174912.0,
+        "bytes_per_op": 798435.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 67,
+        "ns_per_op": 2254632.0,
+        "bytes_per_op": 798431.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 62,
+        "ns_per_op": 2204655.0,
+        "bytes_per_op": 798433.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 67,
+        "ns_per_op": 2158095.0,
+        "bytes_per_op": 798431.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 66,
+        "ns_per_op": 2221953.0,
+        "bytes_per_op": 798433.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 67,
+        "ns_per_op": 2193484.0,
+        "bytes_per_op": 798431.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 61,
+        "ns_per_op": 2202156.0,
+        "bytes_per_op": 798434.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2238680.0,
+        "bytes_per_op": 798434.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 67,
+        "ns_per_op": 2229483.0,
+        "bytes_per_op": 798431.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2153169.0,
+        "bytes_per_op": 798435.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 68,
+        "ns_per_op": 2142884.0,
+        "bytes_per_op": 798435.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 67,
+        "ns_per_op": 2296324.0,
+        "bytes_per_op": 798432.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 61,
+        "ns_per_op": 2223533.0,
+        "bytes_per_op": 798435.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 62,
+        "ns_per_op": 2328997.0,
+        "bytes_per_op": 798434.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 62,
+        "ns_per_op": 2342693.0,
+        "bytes_per_op": 798433.0,
+        "allocs_per_op": 22693
+      },
+      {
+        "iterations": 63,
+        "ns_per_op": 2368484.0,
+        "bytes_per_op": 798432.0,
+        "allocs_per_op": 22693
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=50/functions=false": [
+      {
+        "iterations": 1454,
+        "ns_per_op": 86974.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1440,
+        "ns_per_op": 85348.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1371,
+        "ns_per_op": 83746.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1484,
+        "ns_per_op": 86555.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1479,
+        "ns_per_op": 89560.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1472,
+        "ns_per_op": 86537.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1456,
+        "ns_per_op": 83994.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1473,
+        "ns_per_op": 84964.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1501,
+        "ns_per_op": 81230.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1476,
+        "ns_per_op": 82000.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1503,
+        "ns_per_op": 82620.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1477,
+        "ns_per_op": 85659.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1348,
+        "ns_per_op": 89002.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1508,
+        "ns_per_op": 81910.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1504,
+        "ns_per_op": 83529.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1395,
+        "ns_per_op": 85962.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1425,
+        "ns_per_op": 82671.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1530,
+        "ns_per_op": 80909.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1537,
+        "ns_per_op": 81462.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1504,
+        "ns_per_op": 84448.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=50/functions=true": [
+      {
+        "iterations": 12,
+        "ns_per_op": 9699736.0,
+        "bytes_per_op": 3589266.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9779128.0,
+        "bytes_per_op": 3589268.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10556611.0,
+        "bytes_per_op": 3589269.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10763674.0,
+        "bytes_per_op": 3589270.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10761492.0,
+        "bytes_per_op": 3589296.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10484925.0,
+        "bytes_per_op": 3589299.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 13,
+        "ns_per_op": 10341930.0,
+        "bytes_per_op": 3589292.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10739088.0,
+        "bytes_per_op": 3589297.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10931008.0,
+        "bytes_per_op": 3589299.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10963052.0,
+        "bytes_per_op": 3589268.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10744050.0,
+        "bytes_per_op": 3589297.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10703675.0,
+        "bytes_per_op": 3589294.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10651862.0,
+        "bytes_per_op": 3589297.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10350512.0,
+        "bytes_per_op": 3589296.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10684083.0,
+        "bytes_per_op": 3589266.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9865979.0,
+        "bytes_per_op": 3589265.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10032847.0,
+        "bytes_per_op": 3589264.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9806639.0,
+        "bytes_per_op": 3589265.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10157438.0,
+        "bytes_per_op": 3589265.0,
+        "allocs_per_op": 101702
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10074162.0,
+        "bytes_per_op": 3589296.0,
+        "allocs_per_op": 101702
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=100/functions=false": [
+      {
+        "iterations": 1466,
+        "ns_per_op": 83371.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1388,
+        "ns_per_op": 82601.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1507,
+        "ns_per_op": 81932.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1527,
+        "ns_per_op": 83599.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1458,
+        "ns_per_op": 82083.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1514,
+        "ns_per_op": 82233.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1460,
+        "ns_per_op": 90360.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1356,
+        "ns_per_op": 85861.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1538,
+        "ns_per_op": 87090.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1436,
+        "ns_per_op": 82794.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1502,
+        "ns_per_op": 84812.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1380,
+        "ns_per_op": 83876.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1476,
+        "ns_per_op": 82583.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1533,
+        "ns_per_op": 86033.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1333,
+        "ns_per_op": 89757.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1419,
+        "ns_per_op": 93149.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1333,
+        "ns_per_op": 91909.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1384,
+        "ns_per_op": 91861.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1341,
+        "ns_per_op": 93221.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1327,
+        "ns_per_op": 93363.0,
+        "bytes_per_op": 37057.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=100/functions=true": [
+      {
+        "iterations": 5,
+        "ns_per_op": 21913183.0,
+        "bytes_per_op": 7062236.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21749133.0,
+        "bytes_per_op": 7062240.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21864083.0,
+        "bytes_per_op": 7062249.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 22005175.0,
+        "bytes_per_op": 7062243.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21858192.0,
+        "bytes_per_op": 7062243.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21462133.0,
+        "bytes_per_op": 7062240.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 26512533.0,
+        "bytes_per_op": 7062246.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 30848229.0,
+        "bytes_per_op": 7061824.0,
+        "allocs_per_op": 200470
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25707281.0,
+        "bytes_per_op": 7061820.0,
+        "allocs_per_op": 200470
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 20099033.0,
+        "bytes_per_op": 7062240.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19979382.0,
+        "bytes_per_op": 7061150.0,
+        "allocs_per_op": 200469
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19806618.0,
+        "bytes_per_op": 7061156.0,
+        "allocs_per_op": 200469
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19467826.0,
+        "bytes_per_op": 7062520.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19749292.0,
+        "bytes_per_op": 7062517.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19708979.0,
+        "bytes_per_op": 7059766.0,
+        "allocs_per_op": 200466
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19452590.0,
+        "bytes_per_op": 7061150.0,
+        "allocs_per_op": 200469
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 20843076.0,
+        "bytes_per_op": 7058226.0,
+        "allocs_per_op": 200462
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 20049442.0,
+        "bytes_per_op": 7062240.0,
+        "allocs_per_op": 200471
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 19824653.0,
+        "bytes_per_op": 7059764.0,
+        "allocs_per_op": 200466
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 20962642.0,
+        "bytes_per_op": 7062240.0,
+        "allocs_per_op": 200471
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=128/functions=false": [
+      {
+        "iterations": 1431,
+        "ns_per_op": 81362.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1496,
+        "ns_per_op": 90866.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1472,
+        "ns_per_op": 85683.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1512,
+        "ns_per_op": 83431.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1443,
+        "ns_per_op": 85239.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1425,
+        "ns_per_op": 87452.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1442,
+        "ns_per_op": 86341.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1418,
+        "ns_per_op": 85177.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1430,
+        "ns_per_op": 80178.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1533,
+        "ns_per_op": 84958.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1518,
+        "ns_per_op": 81162.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1456,
+        "ns_per_op": 86639.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1386,
+        "ns_per_op": 87019.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1449,
+        "ns_per_op": 88134.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1512,
+        "ns_per_op": 87563.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1472,
+        "ns_per_op": 87912.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1366,
+        "ns_per_op": 88984.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1465,
+        "ns_per_op": 86884.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1512,
+        "ns_per_op": 85097.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1530,
+        "ns_per_op": 81679.0,
+        "bytes_per_op": 37041.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=128/functions=true": [
+      {
+        "iterations": 4,
+        "ns_per_op": 25120906.0,
+        "bytes_per_op": 9007214.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25093708.0,
+        "bytes_per_op": 9007210.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24401833.0,
+        "bytes_per_op": 9007164.0,
+        "allocs_per_op": 255773
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24590225.0,
+        "bytes_per_op": 9007192.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25080198.0,
+        "bytes_per_op": 9007214.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25116594.0,
+        "bytes_per_op": 9007184.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25055469.0,
+        "bytes_per_op": 9007188.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25359094.0,
+        "bytes_per_op": 9007210.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25201812.0,
+        "bytes_per_op": 9007184.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24817358.0,
+        "bytes_per_op": 9007195.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24944692.0,
+        "bytes_per_op": 9007219.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24588108.0,
+        "bytes_per_op": 9007164.0,
+        "allocs_per_op": 255773
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 27392646.0,
+        "bytes_per_op": 9007214.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24785892.0,
+        "bytes_per_op": 9007192.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25083604.0,
+        "bytes_per_op": 9007222.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25858521.0,
+        "bytes_per_op": 9007214.0,
+        "allocs_per_op": 255774
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24769300.0,
+        "bytes_per_op": 9007168.0,
+        "allocs_per_op": 255773
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24452175.0,
+        "bytes_per_op": 9007161.0,
+        "allocs_per_op": 255773
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24374575.0,
+        "bytes_per_op": 9007168.0,
+        "allocs_per_op": 255773
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25544594.0,
+        "bytes_per_op": 9007222.0,
+        "allocs_per_op": 255774
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=500/functions=false": [
+      {
+        "iterations": 1362,
+        "ns_per_op": 87365.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1357,
+        "ns_per_op": 90664.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1293,
+        "ns_per_op": 92085.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1398,
+        "ns_per_op": 89867.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1419,
+        "ns_per_op": 86864.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1418,
+        "ns_per_op": 87587.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1549,
+        "ns_per_op": 83859.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1480,
+        "ns_per_op": 88301.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1435,
+        "ns_per_op": 89152.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1376,
+        "ns_per_op": 89459.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1400,
+        "ns_per_op": 86841.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1380,
+        "ns_per_op": 85168.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1533,
+        "ns_per_op": 81773.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1536,
+        "ns_per_op": 81301.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1521,
+        "ns_per_op": 82363.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1566,
+        "ns_per_op": 83561.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1441,
+        "ns_per_op": 81678.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1550,
+        "ns_per_op": 80672.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1554,
+        "ns_per_op": 80917.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1545,
+        "ns_per_op": 83936.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=500/functions=true": [
+      {
+        "iterations": 5,
+        "ns_per_op": 24583717.0,
+        "bytes_per_op": 9007280.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24703375.0,
+        "bytes_per_op": 9007243.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25876948.0,
+        "bytes_per_op": 9007262.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24592358.0,
+        "bytes_per_op": 9007267.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25379375.0,
+        "bytes_per_op": 9007228.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26565552.0,
+        "bytes_per_op": 9007224.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25888344.0,
+        "bytes_per_op": 9007262.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24817750.0,
+        "bytes_per_op": 9007236.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25731802.0,
+        "bytes_per_op": 9007274.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24678950.0,
+        "bytes_per_op": 9007216.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25224500.0,
+        "bytes_per_op": 9007258.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25128073.0,
+        "bytes_per_op": 9007224.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25014136.0,
+        "bytes_per_op": 9007232.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24993950.0,
+        "bytes_per_op": 9007243.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24959275.0,
+        "bytes_per_op": 9007216.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25278521.0,
+        "bytes_per_op": 9007232.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 25105975.0,
+        "bytes_per_op": 9007240.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25828188.0,
+        "bytes_per_op": 9007224.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26168990.0,
+        "bytes_per_op": 9007258.0,
+        "allocs_per_op": 255777
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26438333.0,
+        "bytes_per_op": 9007262.0,
+        "allocs_per_op": 255777
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=1000/functions=false": [
+      {
+        "iterations": 1322,
+        "ns_per_op": 87602.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1381,
+        "ns_per_op": 89741.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1405,
+        "ns_per_op": 82317.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1532,
+        "ns_per_op": 82470.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1489,
+        "ns_per_op": 81860.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1560,
+        "ns_per_op": 82002.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1544,
+        "ns_per_op": 81890.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1542,
+        "ns_per_op": 82030.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1556,
+        "ns_per_op": 80479.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1548,
+        "ns_per_op": 83784.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1545,
+        "ns_per_op": 81710.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1546,
+        "ns_per_op": 80095.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1542,
+        "ns_per_op": 84969.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1472,
+        "ns_per_op": 88651.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1446,
+        "ns_per_op": 86851.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1448,
+        "ns_per_op": 87012.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1464,
+        "ns_per_op": 87051.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1470,
+        "ns_per_op": 89106.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1411,
+        "ns_per_op": 87600.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      },
+      {
+        "iterations": 1513,
+        "ns_per_op": 80767.0,
+        "bytes_per_op": 37065.0,
+        "allocs_per_op": 684
+      }
+    ],
+    "BenchmarkFunctionResponse/spaces=1000/functions=true": [
+      {
+        "iterations": 5,
+        "ns_per_op": 24485125.0,
+        "bytes_per_op": 9007220.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25816042.0,
+        "bytes_per_op": 9007212.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24560117.0,
+        "bytes_per_op": 9007220.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25019719.0,
+        "bytes_per_op": 9007246.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 25109200.0,
+        "bytes_per_op": 9007227.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25057260.0,
+        "bytes_per_op": 9007258.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25248031.0,
+        "bytes_per_op": 9007208.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25542469.0,
+        "bytes_per_op": 9007212.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26593396.0,
+        "bytes_per_op": 9007246.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26596614.0,
+        "bytes_per_op": 9007212.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26671656.0,
+        "bytes_per_op": 9007212.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 26608427.0,
+        "bytes_per_op": 9007216.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25600917.0,
+        "bytes_per_op": 9007232.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 25203717.0,
+        "bytes_per_op": 9007224.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 27250177.0,
+        "bytes_per_op": 9007246.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25480469.0,
+        "bytes_per_op": 9007178.0,
+        "allocs_per_op": 255775
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25722136.0,
+        "bytes_per_op": 9007216.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 24654733.0,
+        "bytes_per_op": 9007193.0,
+        "allocs_per_op": 255775
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 25080925.0,
+        "bytes_per_op": 9007220.0,
+        "allocs_per_op": 255776
+      },
+      {
+        "iterations": 4,
+        "ns_per_op": 25503562.0,
+        "bytes_per_op": 9007246.0,
+        "allocs_per_op": 255776
+      }
+    ],
+    "BenchmarkFunctionStages/strict-whole-response": [
+      {
+        "iterations": 12,
+        "ns_per_op": 9917007.0,
+        "bytes_per_op": 4108990.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9958983.0,
+        "bytes_per_op": 4108986.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9844542.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10668285.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9985320.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9989490.0,
+        "bytes_per_op": 4108986.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10023691.0,
+        "bytes_per_op": 4108989.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10150372.0,
+        "bytes_per_op": 4108994.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10069403.0,
+        "bytes_per_op": 4108989.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9977427.0,
+        "bytes_per_op": 4108992.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10559976.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10444542.0,
+        "bytes_per_op": 4108990.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9942128.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9995764.0,
+        "bytes_per_op": 4108985.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 10,
+        "ns_per_op": 10357079.0,
+        "bytes_per_op": 4108990.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10337990.0,
+        "bytes_per_op": 4108985.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10104285.0,
+        "bytes_per_op": 4108990.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9947045.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 9930733.0,
+        "bytes_per_op": 4108988.0,
+        "allocs_per_op": 184939
+      },
+      {
+        "iterations": 12,
+        "ns_per_op": 10607212.0,
+        "bytes_per_op": 4108989.0,
+        "allocs_per_op": 184939
+      }
+    ],
+    "BenchmarkFunctionStages/standalone-function-block": [
+      {
+        "iterations": 5,
+        "ns_per_op": 22639908.0,
+        "bytes_per_op": 8477560.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 22516858.0,
+        "bytes_per_op": 8477600.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 22589025.0,
+        "bytes_per_op": 8477563.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 22181633.0,
+        "bytes_per_op": 8477539.0,
+        "allocs_per_op": 253099
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 23697450.0,
+        "bytes_per_op": 8475764.0,
+        "allocs_per_op": 253093
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21361125.0,
+        "bytes_per_op": 8477563.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 21034090.0,
+        "bytes_per_op": 8477570.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 22068433.0,
+        "bytes_per_op": 8477563.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21865375.0,
+        "bytes_per_op": 8477596.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 23166000.0,
+        "bytes_per_op": 8477569.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 20999300.0,
+        "bytes_per_op": 8477590.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21529050.0,
+        "bytes_per_op": 8477539.0,
+        "allocs_per_op": 253099
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21313067.0,
+        "bytes_per_op": 8477560.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21716067.0,
+        "bytes_per_op": 8477563.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21321033.0,
+        "bytes_per_op": 8477566.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21139400.0,
+        "bytes_per_op": 8477569.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 20968117.0,
+        "bytes_per_op": 8477560.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 21708569.0,
+        "bytes_per_op": 8477558.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 6,
+        "ns_per_op": 20878347.0,
+        "bytes_per_op": 8477556.0,
+        "allocs_per_op": 253100
+      },
+      {
+        "iterations": 5,
+        "ns_per_op": 21429125.0,
+        "bytes_per_op": 8477569.0,
+        "allocs_per_op": 253100
+      }
+    ]
+  },
+  "summary": {
+    "BenchmarkFunctionResponse/spaces=1/functions=false": {
+      "batch_mean_ns_p50": 80153.0,
+      "batch_mean_ns_p95": 85136.0,
+      "batch_mean_ns_p99": 86082.0,
+      "batch_mean_ns_p99.9": 86082.0,
+      "batch_mean_ns_p99.99": 86082.0,
+      "batch_mean_ns_max": 86082.0,
+      "median_ops_per_second": 12476.139383429192,
+      "median_bytes_per_op": 36281.0,
+      "median_allocs_per_op": 667.0
+    },
+    "BenchmarkFunctionResponse/spaces=1/functions=true": {
+      "batch_mean_ns_p50": 431903.0,
+      "batch_mean_ns_p95": 453991.0,
+      "batch_mean_ns_p99": 461970.0,
+      "batch_mean_ns_p99.9": 461970.0,
+      "batch_mean_ns_p99.99": 461970.0,
+      "batch_mean_ns_max": 461970.0,
+      "median_ops_per_second": 2315.3346932065765,
+      "median_bytes_per_op": 167608.0,
+      "median_allocs_per_op": 4889.0
+    },
+    "BenchmarkFunctionResponse/spaces=10/functions=false": {
+      "batch_mean_ns_p50": 84098.5,
+      "batch_mean_ns_p95": 89314.0,
+      "batch_mean_ns_p99": 89986.0,
+      "batch_mean_ns_p99.9": 89986.0,
+      "batch_mean_ns_p99.99": 89986.0,
+      "batch_mean_ns_max": 89986.0,
+      "median_ops_per_second": 11890.818504491757,
+      "median_bytes_per_op": 37057.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=10/functions=true": {
+      "batch_mean_ns_p50": 2222743.0,
+      "batch_mean_ns_p95": 2342693.0,
+      "batch_mean_ns_p99": 2368484.0,
+      "batch_mean_ns_p99.9": 2368484.0,
+      "batch_mean_ns_p99.99": 2368484.0,
+      "batch_mean_ns_max": 2368484.0,
+      "median_ops_per_second": 449.89456720817475,
+      "median_bytes_per_op": 798433.0,
+      "median_allocs_per_op": 22693.0
+    },
+    "BenchmarkFunctionResponse/spaces=50/functions=false": {
+      "batch_mean_ns_p50": 84221.0,
+      "batch_mean_ns_p95": 89002.0,
+      "batch_mean_ns_p99": 89560.0,
+      "batch_mean_ns_p99.9": 89560.0,
+      "batch_mean_ns_p99.99": 89560.0,
+      "batch_mean_ns_max": 89560.0,
+      "median_ops_per_second": 11873.5232305482,
+      "median_bytes_per_op": 37057.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=50/functions=true": {
+      "batch_mean_ns_p50": 10520768.0,
+      "batch_mean_ns_p95": 10931008.0,
+      "batch_mean_ns_p99": 10963052.0,
+      "batch_mean_ns_p99.9": 10963052.0,
+      "batch_mean_ns_p99.99": 10963052.0,
+      "batch_mean_ns_max": 10963052.0,
+      "median_ops_per_second": 95.05009520217536,
+      "median_bytes_per_op": 3589281.0,
+      "median_allocs_per_op": 101702.0
+    },
+    "BenchmarkFunctionResponse/spaces=100/functions=false": {
+      "batch_mean_ns_p50": 85336.5,
+      "batch_mean_ns_p95": 93221.0,
+      "batch_mean_ns_p99": 93363.0,
+      "batch_mean_ns_p99.9": 93363.0,
+      "batch_mean_ns_p99.99": 93363.0,
+      "batch_mean_ns_max": 93363.0,
+      "median_ops_per_second": 11718.315140649078,
+      "median_bytes_per_op": 37057.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=100/functions=true": {
+      "batch_mean_ns_p50": 20902859.0,
+      "batch_mean_ns_p95": 26512533.0,
+      "batch_mean_ns_p99": 30848229.0,
+      "batch_mean_ns_p99.9": 30848229.0,
+      "batch_mean_ns_p99.99": 30848229.0,
+      "batch_mean_ns_max": 30848229.0,
+      "median_ops_per_second": 47.8403456675472,
+      "median_bytes_per_op": 7062240.0,
+      "median_allocs_per_op": 200471.0
+    },
+    "BenchmarkFunctionResponse/spaces=128/functions=false": {
+      "batch_mean_ns_p50": 86012.0,
+      "batch_mean_ns_p95": 88984.0,
+      "batch_mean_ns_p99": 90866.0,
+      "batch_mean_ns_p99.9": 90866.0,
+      "batch_mean_ns_p99.99": 90866.0,
+      "batch_mean_ns_max": 90866.0,
+      "median_ops_per_second": 11626.284704459842,
+      "median_bytes_per_op": 37041.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=128/functions=true": {
+      "batch_mean_ns_p50": 25067833.5,
+      "batch_mean_ns_p95": 25858521.0,
+      "batch_mean_ns_p99": 27392646.0,
+      "batch_mean_ns_p99.9": 27392646.0,
+      "batch_mean_ns_p99.99": 27392646.0,
+      "batch_mean_ns_max": 27392646.0,
+      "median_ops_per_second": 39.89176009167286,
+      "median_bytes_per_op": 9007193.5,
+      "median_allocs_per_op": 255774.0
+    },
+    "BenchmarkFunctionResponse/spaces=500/functions=false": {
+      "batch_mean_ns_p50": 86004.5,
+      "batch_mean_ns_p95": 90664.0,
+      "batch_mean_ns_p99": 92085.0,
+      "batch_mean_ns_p99.9": 92085.0,
+      "batch_mean_ns_p99.99": 92085.0,
+      "batch_mean_ns_max": 92085.0,
+      "median_ops_per_second": 11627.29857158637,
+      "median_bytes_per_op": 37065.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=500/functions=true": {
+      "batch_mean_ns_p50": 25176286.5,
+      "batch_mean_ns_p95": 26438333.0,
+      "batch_mean_ns_p99": 26565552.0,
+      "batch_mean_ns_p99.9": 26565552.0,
+      "batch_mean_ns_p99.99": 26565552.0,
+      "batch_mean_ns_max": 26565552.0,
+      "median_ops_per_second": 39.71991659691353,
+      "median_bytes_per_op": 9007241.5,
+      "median_allocs_per_op": 255777.0
+    },
+    "BenchmarkFunctionResponse/spaces=1000/functions=false": {
+      "batch_mean_ns_p50": 83127.0,
+      "batch_mean_ns_p95": 89106.0,
+      "batch_mean_ns_p99": 89741.0,
+      "batch_mean_ns_p99.9": 89741.0,
+      "batch_mean_ns_p99.99": 89741.0,
+      "batch_mean_ns_max": 89741.0,
+      "median_ops_per_second": 12029.7857495158,
+      "median_bytes_per_op": 37065.0,
+      "median_allocs_per_op": 684.0
+    },
+    "BenchmarkFunctionResponse/spaces=1000/functions=true": {
+      "batch_mean_ns_p50": 25492015.5,
+      "batch_mean_ns_p95": 26671656.0,
+      "batch_mean_ns_p99": 27250177.0,
+      "batch_mean_ns_p99.9": 27250177.0,
+      "batch_mean_ns_p99.99": 27250177.0,
+      "batch_mean_ns_max": 27250177.0,
+      "median_ops_per_second": 39.22796924393836,
+      "median_bytes_per_op": 9007220.0,
+      "median_allocs_per_op": 255776.0
+    },
+    "BenchmarkFunctionStages/strict-whole-response": {
+      "batch_mean_ns_p50": 10009727.5,
+      "batch_mean_ns_p95": 10607212.0,
+      "batch_mean_ns_p99": 10668285.0,
+      "batch_mean_ns_p99.9": 10668285.0,
+      "batch_mean_ns_p99.99": 10668285.0,
+      "batch_mean_ns_max": 10668285.0,
+      "median_ops_per_second": 99.90281953229996,
+      "median_bytes_per_op": 4108988.0,
+      "median_allocs_per_op": 184939.0
+    },
+    "BenchmarkFunctionStages/standalone-function-block": {
+      "batch_mean_ns_p50": 21618809.5,
+      "batch_mean_ns_p95": 23166000.0,
+      "batch_mean_ns_p99": 23697450.0,
+      "batch_mean_ns_p99.9": 23697450.0,
+      "batch_mean_ns_p99.99": 23697450.0,
+      "batch_mean_ns_max": 23697450.0,
+      "median_ops_per_second": 46.2560160863622,
+      "median_bytes_per_op": 8477563.0,
+      "median_allocs_per_op": 253100.0
+    }
+  },
+  "passed": true,
+  "completed_at_utc": "2026-09-19T22:16:45.566328+00:00"
+}

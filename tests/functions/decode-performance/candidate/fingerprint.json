@@ -1,0 +1,39 @@
+{
+  "run_id": "function-decode-candidate-20260919",
+  "captured_at_utc": "2026-09-19T22:13:25.880299+00:00",
+  "git_sha": "ec0e3379dc05582f88a8302b013f5c0140a47454",
+  "build_profile": "go test -c; optimized default Go flags, symbols retained; benchmark cpu=1",
+  "toolchain": "go version go1.26.6 darwin/arm64",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "cpu_model": "Apple M1 Max",
+  "logical_cpus": "10",
+  "ram_bytes": "34359738368",
+  "swap": "vm.swapusage: total = 8192.00M  used = 6963.06M  free = 1228.94M  (encrypted)",
+  "storage": {
+    "FilesystemName": "APFS",
+    "FilesystemType": "apfs",
+    "MountPoint": "/System/Volumes/Data",
+    "DeviceIdentifier": "disk3s1",
+    "SolidState": true
+  },
+  "power_settings": "Battery Power:\n Sleep On Power Button 1\n powermode            0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         2\n womp                 0\n networkoversleep     0\n sleep                1\n lessbright           1\n tcpkeepalive         1\n disksleep            10\nAC Power:\n Sleep On Power Button 1\n powermode            0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         20\n womp                 1\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10",
+  "tuning": "none; governor/turbo/PSS/Linux per-core counters unavailable on this macOS host",
+  "source_hashes": {
+    "pkg/structure/capabilities.go": "e5f25b73795c3bcfc7bd64f2e11cdefe6d202e8aad95e15b053b00466817a1d4",
+    "pkg/structure/functions.go": "e0bc9cd4627be11a66177c5acd55fdc550fad8a7551467884bc2659033d37ad1",
+    "pkg/structure/functions_bench_test.go": "a6c9686204623a993f8c2f904d8a6d0226c489c7adef6daa497d3d3db5fc2749",
+    "pkg/structure/functions_test.go": "7935632c9054b32c7c3adbe69fc1b2e8447ac741bbf37cc93b199848f30f8ac1",
+    "pkg/structure/functions_validation_test.go": "5709733166c225fee73831cceee191fe88f3d89b44945fc2c4088d8211fc05bf",
+    "pkg/structure/structure.go": "d07835eead67d698e25be06bb0b1ffd69008423b907c969bd009f1c6a5e9ea5d",
+    "pkg/structure/structure_test.go": "1446dfc9a90e4e087da2158f4bb4cda052281e4d1b949c32b4d044c99ad3752e"
+  },
+  "test_binary_sha256": "0211f15addf71e1262032e94f64476fb313a1679233268f79489a90d6f98ea35",
+  "go_environment": {
+    "CGO_ENABLED": "1",
+    "GOARCH": "arm64",
+    "GOEXPERIMENT": "",
+    "GOFLAGS": "",
+    "GOOS": "darwin"
+  },
+  "baseline_host_fingerprint": "../baseline/fingerprint.json"
+}
