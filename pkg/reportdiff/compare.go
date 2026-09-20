@@ -18,7 +18,15 @@ func Compare(base, head *Snapshot) (*Report, error) {
 	a, b := moduleInputs(base.profile), moduleInputs(head.profile)
 	remaining := MaxChanges
 	byteBudget := MaxOutputBytes - (1 << 20)
-	for _, name := range []string{"languages", "summary", "ecosystems", "frameworks", "layouts", "projects", "declarations", "discovery", "registries", "package_evidence", "metrics", "metrics_files", "rules", "graph", "structure"} {
+	names := []string{"languages", "summary", "ecosystems", "frameworks", "layouts", "projects", "declarations", "discovery", "registries", "package_evidence", "metrics", "metrics_files", "rules", "graph", "structure"}
+	// Keep historical comparison output intact when neither report requests
+	// the newer modules. Their presence on just one side is still disclosed.
+	for _, name := range []string{"formats", "hotspots"} {
+		if a[name].present || b[name].present {
+			names = append(names, name)
+		}
+	}
+	for _, name := range names {
 		m := compareModule(name, a[name], b[name], &remaining, &byteBudget)
 		if m.Counts.OmittedChanges > 0 {
 			r.Status = "partial"
@@ -204,6 +212,10 @@ func comparisonScope(name string) string {
 		return "Explicitly included per-file metrics matched by path; unavailable when either report omits file details."
 	case "rules":
 		return "Rule summaries and retained observations; source and evaluation coverage counters are separate metadata."
+	case "formats":
+		return "Retained format evidence matched by file path; prefixes and signatures do not validate entire files or establish their purpose."
+	case "hotspots":
+		return "Measured distributions and retained top evidence by language, grammar, syntax cohort and metric; leaving a ranking does not establish function removal."
 	default:
 		return "Detailed comparison is not supported for this module."
 	}

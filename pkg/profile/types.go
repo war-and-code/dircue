@@ -5,6 +5,7 @@ import (
 	"context"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/formats"
 	"dircue/pkg/packageevidence"
 	"dircue/pkg/projects"
 	"dircue/pkg/registries"
@@ -71,7 +72,10 @@ const EnhancedSchemaVersion = "1.3.0"
 
 const DeclarationsSchemaVersion = "1.4.0"
 
+const ContentSchemaVersion = "1.5.0"
+
 type Report struct {
+	Formats         *formats.Report         `json:"formats,omitempty"`
 	Declarations    *declarations.Report    `json:"declarations,omitempty"`
 	Registries      *registries.Report      `json:"registries,omitempty"`
 	Rules           *rules.Report           `json:"rules,omitempty"`

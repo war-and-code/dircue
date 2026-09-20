@@ -24,6 +24,7 @@ const DefaultTimeout = 10 * time.Second
 type Options struct {
 	Worker       string
 	Functions    bool
+	Hotspots     bool
 	MaxFileBytes int64
 	Timeout      time.Duration
 }
@@ -38,6 +39,7 @@ type Provenance struct {
 // Partial means the grammar recovered from missing or unrecognized syntax.
 type File struct {
 	Path         string            `json:"path"`
+	Hotspots     *FileHotspots     `json:"hotspots,omitempty"`
 	Functions    *FunctionSpaces   `json:"functions,omitempty"`
 	SourceSHA256 string            `json:"source_sha256,omitempty"`
 	Language     string            `json:"language"`
@@ -93,6 +95,8 @@ func New(options Options) (*Client, error) {
 	return &Client{options: options, admission: make(chan struct{}, 1)}, nil
 }
 
+func (c *Client) HotspotsEnabled() bool { return c.options.Hotspots }
+
 func (c *Client) FunctionMetricsEnabled() bool { return c.options.Functions }
 
 func (c *Client) MaxFileBytes() int64 { return c.options.MaxFileBytes }
@@ -135,7 +139,8 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		Source    string `json:"source"`
 		Mode      string `json:"mode"`
 		Functions bool   `json:"functions,omitempty"`
-	}{path, language, string(content), "combined", c.options.Functions}
+		Hotspots  bool   `json:"hotspots,omitempty"`
+	}{path, language, string(content), "combined", c.options.Functions, c.options.Hotspots}
 	body, err := json.Marshal(request)
 	if err != nil {
 		return result, err
@@ -156,12 +161,15 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		return result, fmt.Errorf("structure worker: %w", child.Err())
 	}
 	if err != nil {
+		if c.options.Hotspots && unsupportedHotspotRequest(stdout.buf.Bytes()) {
+			return result, fmt.Errorf("structure worker does not support hotspots; use an updated worker: %w", err)
+		}
 		if c.options.Functions && unsupportedFunctionRequest(stdout.buf.Bytes()) {
 			return result, fmt.Errorf("structure worker does not support function-space metrics; use an updated worker: %w", err)
 		}
 		return result, fmt.Errorf("structure worker: %w; stderr: %s", err, strings.TrimSpace(stderr.buf.String()))
 	}
-	return decodeResponse(stdout.buf.Bytes(), result, content, c.options.Functions)
+	return decodeEnrichedResponse(stdout.buf.Bytes(), result, content, c.options.Functions, c.options.Hotspots)
 }
 
 func decode(data []byte, submitted File) (File, error) {
@@ -169,12 +177,17 @@ func decode(data []byte, submitted File) (File, error) {
 }
 
 func decodeResponse(data []byte, submitted File, content []byte, functions bool) (File, error) {
-	if functions && !strictFunctionResponse(data) {
+	return decodeEnrichedResponse(data, submitted, content, functions, false)
+}
+
+func decodeEnrichedResponse(data []byte, submitted File, content []byte, functions, hotspots bool) (File, error) {
+	if (functions || hotspots) && !strictFunctionResponse(data) {
 		return submitted, errors.New("structure worker function response contains invalid JSON, duplicate keys, or field aliases")
 	}
 	var response struct {
 		File
 		Functions    json.RawMessage `json:"functions"`
+		Hotspots     json.RawMessage `json:"hotspots"`
 		SourceBytes  *int64          `json:"source_bytes"`
 		ParseCount   *int            `json:"parse_count"`
 		SyntaxErrors *bool           `json:"syntax_errors"`
@@ -230,6 +243,7 @@ func decodeResponse(data []byte, submitted File, content []byte, functions bool)
 	if *response.SyntaxErrors {
 		response.File.Reason = "syntax_errors"
 	}
+	response.File.Hotspots = nil
 	response.File.Functions = nil
 	response.File.SourceSHA256 = ""
 	if functions {
@@ -244,6 +258,19 @@ func decodeResponse(data []byte, submitted File, content []byte, functions bool)
 		response.File.Functions = decoded
 		response.File.SourceSHA256 = fmt.Sprintf("%x", sha256.Sum256(content))
 	} else if len(response.Functions) != 0 {
+		return fail()
+	}
+	if hotspots {
+		if len(response.Hotspots) == 0 {
+			return submitted, errors.New("structure worker did not return requested hotspots; use a worker with hotspot support")
+		}
+		decoded, ok := decodeHotspots(response.Hotspots, content, *response.SyntaxErrors, response.Observations["syntax_nodes"])
+		if !ok {
+			return submitted, hotspotFailure()
+		}
+		response.File.Hotspots = decoded
+		response.File.SourceSHA256 = fmt.Sprintf("%x", sha256.Sum256(content))
+	} else if len(response.Hotspots) != 0 {
 		return fail()
 	}
 	// Marshal again to remove whitespace from the native wire representation.

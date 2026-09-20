@@ -28,7 +28,9 @@ jobs:
       - name: Test staged-analysis consumer contracts
         run: python examples/staged_analysis/test_route.py -v
       - name: Test compatibility receipt verification
-        run: python -m unittest discover -s tests/compatibility_next -p 'test_*.py' -v
+        run: |
+          python -m unittest discover -s tests/compatibility_next -p 'test_*.py' -v
+          python -m unittest discover -s tests/compatibility_v060 -p 'test_*.py' -v
       - name: Test graph evidence and resource failure checks
         run: |
           python -m unittest discover -s tests/projects/graph -p 'test_*.py' -v

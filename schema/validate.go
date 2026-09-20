@@ -18,6 +18,12 @@ var profileJSON []byte
 //go:embed declarations.schema.json
 var declarationsJSON []byte
 
+//go:embed formats.schema.json
+var formatsJSON []byte
+
+//go:embed hotspots.schema.json
+var hotspotsJSON []byte
+
 var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	compiler := jsonschema.NewCompiler()
 	// All references must resolve to bundled resources. Report validation never
@@ -28,6 +34,8 @@ var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	for name, data := range map[string][]byte{
 		"profile.schema.json":      profileJSON,
 		"declarations.schema.json": declarationsJSON,
+		"formats.schema.json":      formatsJSON,
+		"hotspots.schema.json":     hotspotsJSON,
 	} {
 		if err := compiler.AddResource("https://dircue.invalid/schema/"+name, bytes.NewReader(data)); err != nil {
 			return nil, err
