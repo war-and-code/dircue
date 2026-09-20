@@ -1,0 +1,37 @@
+File: baseline-profile
+Type: inuse_space
+Time: 2026-09-20 17:11:31 EDT
+Showing nodes accounting for 358344B, 98.26% of 364696B total
+Dropped 78 nodes (cum <= 1823B)
+Showing top 30 nodes out of 82
+      flat  flat%   sum%        cum   cum%
+   238400B 65.37% 65.37%    285344B 78.24%  encoding/json.typeFields
+    40960B 11.23% 76.60%     40960B 11.23%  github.com/go-enry/go-enry/v2/data.map.init.0
+    25576B  7.01% 83.61%     25576B  7.01%  runtime.mallocgc
+    16480B  4.52% 88.13%     16480B  4.52%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+    14064B  3.86% 91.99%     14064B  3.86%  internal/sync.newEntryNode[go.shape.interface {},go.shape.interface {}] (inline)
+     6848B  1.88% 93.87%      6848B  1.88%  regexp/syntax.(*compiler).inst (inline)
+     4080B  1.12% 94.99%    285600B 78.31%  encoding/json.cachedTypeFields
+     4080B  1.12% 96.10%    285648B 78.32%  encoding/json.newStructEncoder (inline)
+     2688B  0.74% 96.84%     10872B  2.98%  reflect.(*rtype).ptrTo
+     2368B  0.65% 97.49%      2368B  0.65%  reflect.addReflectOff
+      704B  0.19% 97.68%    130072B 35.67%  encoding/json.newArrayEncoder
+      704B  0.19% 97.88%    130552B 35.80%  encoding/json.newSliceEncoder
+      672B  0.18% 98.06%      3584B  0.98%  dircue/pkg/scanner.Scan.func4
+      400B  0.11% 98.17%    285712B 78.34%  encoding/json.newPtrEncoder
+      320B 0.088% 98.26%      7360B  2.02%  regexp.compile
+         0     0% 98.26%    283872B 77.84%  dircue/internal/cli.Execute
+         0     0% 98.26%    285472B 78.28%  dircue/internal/cli.Execute.func3
+         0     0% 98.26%    285616B 78.32%  dircue/internal/cli.run
+         0     0% 98.26%    285920B 78.40%  dircue/internal/cli.writeJSON
+         0     0% 98.26%      2912B   0.8%  dircue/pkg/scanner.analyzeFile
+         0     0% 98.26%      2912B   0.8%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 98.26%    285920B 78.40%  encoding/json.(*Encoder).Encode
+         0     0% 98.26%    285920B 78.40%  encoding/json.(*encodeState).marshal
+         0     0% 98.26%    285920B 78.40%  encoding/json.(*encodeState).reflectValue
+         0     0% 98.26%    285712B 78.34%  encoding/json.newTypeEncoder
+         0     0% 98.26%    285920B 78.40%  encoding/json.typeEncoder
+         0     0% 98.26%    285712B 78.34%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0% 98.26%    285712B 78.34%  encoding/json.typeEncoder.func1
+         0     0% 98.26%    285712B 78.34%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0% 98.26%    285920B 78.40%  encoding/json.valueEncoder

@@ -1,0 +1,30 @@
+File: baseline-profile
+Type: alloc_space
+Time: 2026-09-20 17:08:23 EDT
+Showing nodes accounting for 344978384B, 99.71% of 345988024B total
+Dropped 291 nodes (cum <= 1729940B)
+      flat  flat%   sum%        cum   cum%
+286229488B 82.73% 82.73% 286229488B 82.73%  io.ReadAll
+ 45964128B 13.28% 96.01%  45985656B 13.29%  regexp.(*Regexp).get
+  5242880B  1.52% 97.53%   5242880B  1.52%  bytes.genSplit
+  4287696B  1.24% 98.77%   4287696B  1.24%  regexp.(*machine).alloc (inline)
+  3212336B  0.93% 99.70%   3212336B  0.93%  regexp.(*bitState).reset
+    41072B 0.012% 99.71% 345339824B 99.81%  dircue/pkg/scanner.analyzeFile
+      784B 0.00023% 99.71% 345340608B 99.81%  dircue/pkg/scanner.Scan.func4
+         0     0% 99.71%   5242880B  1.52%  bytes.Split (inline)
+         0     0% 99.71%   2789032B  0.81%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.71% 345298752B 99.80%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 99.71% 286319824B 82.75%  dircue/pkg/scanner.readBoundedSize
+         0     0% 99.71%   2695800B  0.78%  github.com/go-enry/go-enry/v2.GetLanguagesByEmacsModeline
+         0     0% 99.71%   2789032B  0.81%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 99.71%   5282992B  1.53%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 99.71%  50354040B 14.55%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 99.71%   5242880B  1.52%  github.com/go-enry/go-enry/v2/data.isGeneratedNetDocfile
+         0     0% 99.71%   2698808B  0.78%  regexp.(*Regexp).FindAllSubmatch
+         0     0% 99.71%  50943944B 14.72%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 99.71%   2698808B  0.78%  regexp.(*Regexp).allMatches
+         0     0% 99.71%   3254936B  0.94%  regexp.(*Regexp).backtrack
+         0     0% 99.71%  53642752B 15.50%  regexp.(*Regexp).doExecute
+         0     0% 99.71%  50943944B 14.72%  regexp.(*Regexp).doMatch (inline)
+         0     0% 99.71%   4287696B  1.24%  regexp.(*machine).add
+         0     0% 99.71%   4358816B  1.26%  regexp.(*machine).match

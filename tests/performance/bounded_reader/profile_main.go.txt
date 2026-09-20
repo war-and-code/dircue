@@ -1,0 +1,78 @@
+package main
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"runtime"
+	"runtime/pprof"
+
+	"dircue/internal/cli"
+)
+
+func profileFile(directory, name string, write func(*os.File) error) error {
+	file, err := os.OpenFile(filepath.Join(directory, name), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	writeErr := write(file)
+	closeErr := file.Close()
+	if writeErr != nil {
+		return writeErr
+	}
+	return closeErr
+}
+
+func main() {
+	// Package initialization has already happened. Attribute subsequent CLI
+	// allocations, not process startup or production latency.
+	runtime.MemProfileRate = 1
+	directory := os.Getenv("DIRCUE_PROFILE_DIR")
+	if directory == "" {
+		fmt.Fprintln(os.Stderr, "DIRCUE_PROFILE_DIR is required")
+		os.Exit(2)
+	}
+	var before, after, live runtime.MemStats
+	runtime.ReadMemStats(&before)
+	cliErr := cli.Execute(context.Background(), os.Args[1:], os.Stdout, os.Stderr)
+	runtime.ReadMemStats(&after)
+	runtime.GC()
+	runtime.ReadMemStats(&live)
+	if err := profileFile(directory, "allocs.pprof", func(file *os.File) error {
+		return pprof.Lookup("allocs").WriteTo(file, 0)
+	}); err != nil {
+		fmt.Fprintln(os.Stderr, "allocation profile:", err)
+		os.Exit(2)
+	}
+	if err := profileFile(directory, "heap.pprof", func(file *os.File) error {
+		return pprof.WriteHeapProfile(file)
+	}); err != nil {
+		fmt.Fprintln(os.Stderr, "heap profile:", err)
+		os.Exit(2)
+	}
+	stats := map[string]any{
+		"allocated_bytes": after.TotalAlloc - before.TotalAlloc,
+		"allocation_count": after.Mallocs - before.Mallocs,
+		"gc_cycles_during_operation": after.NumGC - before.NumGC,
+		"before_heap_alloc_bytes": before.HeapAlloc,
+		"after_heap_alloc_bytes": after.HeapAlloc,
+		"after_heap_inuse_bytes": after.HeapInuse,
+		"after_heap_objects": after.HeapObjects,
+		"post_gc_live_heap_bytes": live.HeapAlloc,
+		"post_gc_heap_inuse_bytes": live.HeapInuse,
+		"post_gc_heap_objects": live.HeapObjects,
+		"mem_profile_rate": runtime.MemProfileRate,
+	}
+	if err := profileFile(directory, "stats.json", func(file *os.File) error {
+		return json.NewEncoder(file).Encode(stats)
+	}); err != nil {
+		fmt.Fprintln(os.Stderr, "allocation statistics:", err)
+		os.Exit(2)
+	}
+	if cliErr != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", cliErr)
+		os.Exit(1)
+	}
+}

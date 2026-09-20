@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Reduce allocation in bounded file reads using capped size hints, while preserving read limits and handling files that grow or shrink. [Measurements](tests/performance/bounded_reader/README.md) record workload-specific speed gains and memory tradeoffs.
+- Strengthen aggregation tests with independent full-population references and mutation checks. Add optional checked Bend models with explicit proof boundaries; Bend is not a runtime or ordinary CI dependency.
+- Document [design principles](docs/DESIGN_PRINCIPLES.md) and the distinction between analysis scope, execution preferences, and externally enforced resource limits.
+
 ## 0.6.0 (2026-09-20)
 
 - Add explicit bounded format inspection for mixed directories, with filename hints, signatures, parsed prefixes and complete supported syntax checks kept distinct. Include vendor/data files, selected-source provenance, read accounting and omissions without archive expansion or content execution.

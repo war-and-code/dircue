@@ -1,0 +1,27 @@
+File: candidate-profile
+Type: alloc_space
+Time: 2026-09-20 17:08:22 EDT
+Showing nodes accounting for 160249584B, 99.44% of 161158064B total
+Dropped 312 nodes (cum <= 805790B)
+      flat  flat%   sum%        cum   cum%
+135266304B 83.93% 83.93% 135269376B 83.94%  dircue/pkg/scanner.readAllBounded
+ 17072224B 10.59% 94.53%  17080840B 10.60%  regexp.(*Regexp).get
+  5242880B  3.25% 97.78%   5242880B  3.25%  bytes.genSplit
+  1592560B  0.99% 98.77%   1592560B  0.99%  regexp.(*machine).alloc (inline)
+  1033984B  0.64% 99.41%   1033984B  0.64%  regexp.(*bitState).reset
+    40960B 0.025% 99.44% 160501000B 99.59%  dircue/pkg/scanner.analyzeFile
+      672B 0.00042% 99.44% 160501672B 99.59%  dircue/pkg/scanner.Scan.func4
+         0     0% 99.44%   5242880B  3.25%  bytes.Split (inline)
+         0     0% 99.44%    841184B  0.52%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.44% 160460040B 99.57%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 99.44% 135356416B 83.99%  dircue/pkg/scanner.readBoundedSize
+         0     0% 99.44%    841184B  0.52%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 99.44%   5245952B  3.26%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 99.44%  18703192B 11.61%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 99.44%   5242880B  3.25%  github.com/go-enry/go-enry/v2/data.isGeneratedNetDocfile
+         0     0% 99.44%  19016488B 11.80%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 99.44%   1051048B  0.65%  regexp.(*Regexp).backtrack
+         0     0% 99.44%  19767560B 12.27%  regexp.(*Regexp).doExecute
+         0     0% 99.44%  19016488B 11.80%  regexp.(*Regexp).doMatch (inline)
+         0     0% 99.44%   1592560B  0.99%  regexp.(*machine).add
+         0     0% 99.44%   1618976B  1.00%  regexp.(*machine).match

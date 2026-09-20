@@ -1,0 +1,37 @@
+File: candidate-profile
+Type: inuse_space
+Time: 2026-09-20 17:11:30 EDT
+Showing nodes accounting for 323576B, 98.60% of 328168B total
+Dropped 68 nodes (cum <= 1640B)
+Showing top 30 nodes out of 80
+      flat  flat%   sum%        cum   cum%
+   238400B 72.65% 72.65%    284224B 86.61%  encoding/json.typeFields
+    27400B  8.35% 81.00%     27400B  8.35%  runtime.mallocgc
+    15360B  4.68% 85.68%     15360B  4.68%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+    14064B  4.29% 89.96%     14064B  4.29%  internal/sync.newEntryNode[go.shape.interface {},go.shape.interface {}] (inline)
+     9472B  2.89% 92.85%      9472B  2.89%  dircue/pkg/codemetrics.map.init.0
+     4080B  1.24% 94.09%    284480B 86.69%  encoding/json.cachedTypeFields
+     4080B  1.24% 95.33%    284528B 86.70%  encoding/json.newStructEncoder (inline)
+     2816B  0.86% 96.19%      2816B  0.86%  regexp/syntax.(*compiler).inst (inline)
+     2688B  0.82% 97.01%     10872B  3.31%  reflect.(*rtype).ptrTo
+     2368B  0.72% 97.73%      2368B  0.72%  reflect.addReflectOff
+      784B  0.24% 97.97%      2240B  0.68%  dircue/pkg/scanner.Scan.func4
+      704B  0.21% 98.19%    129432B 39.44%  encoding/json.newArrayEncoder
+      704B  0.21% 98.40%    129912B 39.59%  encoding/json.newSliceEncoder
+      400B  0.12% 98.52%    284592B 86.72%  encoding/json.newPtrEncoder
+      256B 0.078% 98.60%      3248B  0.99%  github.com/go-enry/go-enry/v2/data.init
+         0     0% 98.60%    282752B 86.16%  dircue/internal/cli.Execute
+         0     0% 98.60%    284352B 86.65%  dircue/internal/cli.Execute.func3
+         0     0% 98.60%    284496B 86.69%  dircue/internal/cli.run
+         0     0% 98.60%    284800B 86.78%  dircue/internal/cli.writeJSON
+         0     0% 98.60%      9472B  2.89%  dircue/pkg/codemetrics.init
+         0     0% 98.60%    284800B 86.78%  encoding/json.(*Encoder).Encode
+         0     0% 98.60%    284800B 86.78%  encoding/json.(*encodeState).marshal
+         0     0% 98.60%    284800B 86.78%  encoding/json.(*encodeState).reflectValue
+         0     0% 98.60%    284592B 86.72%  encoding/json.newTypeEncoder
+         0     0% 98.60%    284800B 86.78%  encoding/json.typeEncoder
+         0     0% 98.60%    284592B 86.72%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0% 98.60%    284592B 86.72%  encoding/json.typeEncoder.func1
+         0     0% 98.60%    284592B 86.72%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0% 98.60%    284800B 86.78%  encoding/json.valueEncoder
+         0     0% 98.60%      2928B  0.89%  github.com/go-enry/go-enry/v2/regex.MustCompileMultiline
