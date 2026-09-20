@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"io"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -15,6 +16,11 @@ import (
 	"dircue/pkg/profile"
 	"dircue/schema"
 )
+
+// Numeric tokens remain exact json.Number values. These bounds prevent the
+// schema validator's rational arithmetic from amplifying tiny exponent inputs.
+const MaxNumberBytes = 128
+const MaxNumberExponent = 1024
 
 // Load accepts aggregate dircue profiles, not Linguist's language-only JSON.
 // Error text deliberately excludes payload values and parser excerpts.
@@ -96,6 +102,11 @@ func readValue(d *json.Decoder, depth int, nodes *int) (any, error) {
 		}
 		return value, nil
 	}
+	if number, ok := token.(json.Number); ok {
+		if err := boundedNumber(number); err != nil {
+			return nil, err
+		}
+	}
 	delimiter, ok := token.(json.Delim)
 	if !ok {
 		return token, nil
@@ -140,6 +151,20 @@ func readValue(d *json.Decoder, depth int, nodes *int) (any, error) {
 		return result, nil
 	}
 	return nil, ErrInvalid
+}
+
+func boundedNumber(number json.Number) error {
+	raw := string(number)
+	if len(raw) > MaxNumberBytes {
+		return ErrLimit
+	}
+	if i := strings.IndexAny(raw, "eE"); i >= 0 {
+		exponent, err := strconv.ParseInt(raw[i+1:], 10, 32)
+		if err != nil || exponent < -MaxNumberExponent || exponent > MaxNumberExponent {
+			return ErrLimit
+		}
+	}
+	return nil
 }
 
 type fieldType struct {
@@ -252,7 +277,21 @@ func validShape(value any, typ reflect.Type) bool {
 			return false
 		}
 		n, err := strconv.ParseFloat(string(number), typ.Bits())
-		return err == nil && n >= 0
+		if err != nil || n < 0 || math.IsInf(n, 0) || math.IsNaN(n) {
+			return false
+		}
+		if n == 0 {
+			coefficient := string(number)
+			if i := strings.IndexAny(coefficient, "eE"); i >= 0 {
+				coefficient = coefficient[:i]
+			}
+			// A producer can emit a subnormal float, but cannot emit a nonzero
+			// value that would disappear when decoded into this float field.
+			if strings.ContainsAny(coefficient, "123456789") {
+				return false
+			}
+		}
+		return true
 	}
 	return false
 }

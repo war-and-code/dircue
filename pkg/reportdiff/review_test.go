@@ -5,11 +5,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"dircue/internal/cli"
 	"dircue/pkg/declarations"
@@ -292,4 +297,72 @@ func TestReviewModuleOnlyDoesNotClaimLegacyRemoval(t *testing.T) {
 			}
 		})
 	}
+}
+
+func reviewNumericReport(t testing.TB, number string) []byte {
+	t.Helper()
+	p := reviewProfile(t, 0)
+	p.Languages = []profile.Language{{Name: "Go", Bytes: 1, FileCount: 1, Percentage: 79}}
+	p.Summary.LanguageBytes = 1
+	encoded, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return bytes.Replace(encoded, []byte(`"percentage":79`), []byte(`"percentage":`+number), 1)
+}
+
+func TestReviewNumericBoundFreshProcess(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestReviewNumericBoundChild$", "-test.timeout=10s")
+	command.Env = append(os.Environ(), "DIRCUE_COMPARE_NUMERIC_CHILD=1", "GOMEMLIMIT=64MiB")
+	if output, err := command.CombinedOutput(); err != nil {
+		t.Fatalf("numeric probe failed: %v\n%s", err, output)
+	}
+}
+
+func TestReviewNumericBoundChild(t *testing.T) {
+	if os.Getenv("DIRCUE_COMPARE_NUMERIC_CHILD") != "1" {
+		t.Skip("isolated numeric probe")
+	}
+	var before, after runtime.MemStats
+	runtime.ReadMemStats(&before)
+	for _, number := range []string{"1e-10000001", "0e-10000001", "-0e-10000001", "1e10000001", "0e10000001", "1e-1025", "0e+1025", "1e-1024", "1e-325", "1e309", "1e-" + strings.Repeat("9", 100), "0." + strings.Repeat("0", 200) + "1", strings.Repeat("9", 200)} {
+		for i := 0; i < 20; i++ {
+			if _, err := reportdiff.Load(bytes.NewReader(reviewNumericReport(t, number))); err == nil {
+				t.Fatalf("accepted unrepresentable or unbounded number %q", number)
+			}
+		}
+	}
+	for _, number := range []string{"0", "-0", "0e-1024", "0e1024", "5e-324", "1e-300", "1.25"} {
+		if _, err := reportdiff.Load(bytes.NewReader(reviewNumericReport(t, number))); err != nil {
+			t.Fatalf("rejected bounded representable %s: %v", number, err)
+		}
+	}
+	runtime.ReadMemStats(&after)
+	if after.TotalAlloc-before.TotalAlloc > 64<<20 {
+		t.Fatalf("tiny numeric cases allocated %d bytes", after.TotalAlloc-before.TotalAlloc)
+	}
+}
+
+func FuzzReviewNumbers(f *testing.F) {
+	for _, bits := range []uint64{0, 1, 2, math.Float64bits(1e-300), math.Float64bits(1), math.Float64bits(99.9)} {
+		f.Add(bits, int32(-10000001))
+	}
+	f.Fuzz(func(t *testing.T, bits uint64, exponent int32) {
+		number := math.Float64frombits(bits)
+		if !math.IsNaN(number) && !math.IsInf(number, 0) && number >= 0 && number <= 100 {
+			text := strconv.FormatFloat(number, 'g', -1, 64)
+			if _, err := reportdiff.Load(bytes.NewReader(reviewNumericReport(t, text))); err != nil {
+				t.Fatalf("producer float %s rejected: %v", text, err)
+			}
+		}
+		for _, coefficient := range []string{"0", "1"} {
+			text := coefficient + "e" + strconv.FormatInt(int64(exponent), 10)
+			_, err := reportdiff.Load(bytes.NewReader(reviewNumericReport(t, text)))
+			if (exponent < -reportdiff.MaxNumberExponent || exponent > reportdiff.MaxNumberExponent) && err == nil {
+				t.Fatalf("out-of-bounds exponent accepted: %s", text)
+			}
+		}
+	})
 }
