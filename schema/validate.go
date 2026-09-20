@@ -9,7 +9,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/santhosh-tekuri/jsonschema/v5"
+	"dircue/internal/jsonschema"
 )
 
 //go:embed profile.schema.json
