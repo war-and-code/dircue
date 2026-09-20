@@ -1,21 +1,21 @@
 {
   "schema": "dircue-v050-public-validation-summary-1",
-  "source_commit": "c3401217a4eba75656d48770fd1a38880fd3eaaf",
+  "source_commit": "4f32b22a54bdfb208d22a5227624baa1ef9c4178",
   "build_identity_file": "build-identity.json",
   "compatibility": {
     "schema_version": "1.0.0",
-    "started_at_utc": "2026-09-20T17:24:36.260354+00:00",
-    "finished_at_utc": "2026-09-20T17:24:47.822227+00:00",
+    "started_at_utc": "2026-09-20T17:50:23.562465+00:00",
+    "finished_at_utc": "2026-09-20T17:50:34.363401+00:00",
     "baseline_release": "v0.4.0",
     "baseline_sha256": "0d4fd9167d11b590c32713a3ec2da2b3628dc72d12bc8fd58fd6873624af5d91",
-    "candidate_sha256": "7893fccf03040e9f234738b9ef7c5c1a167e4e8790193976ba8c0ea040403d7f",
+    "candidate_sha256": "152d656de1a499cea30e67e87edabb27b5e25651c83fc013bac8554c0404cf56",
     "platform": "macOS-26.5.2-arm64-arm-64bit",
     "harness_sha256": "cca7a69d19d97720638aa859788d6ba1d15bb28209fb50c5fbeda057f81798de",
     "fixture_helpers": {
       "tests/compatibility_next/run.py": "d019388e1877e77ba2a59edf8b7a2c7cae570ec2f761e12d6ee39e805d64c321",
       "tests/compatibility_v030/run.py": "95e8a5e542be2a6254949d8473b03bea157ca07ab7e71900a88ec16cbb9934da"
     },
-    "build_receipt_sha256": "eb1a7a7fc8e2476e06c7f0db49d1180a41b95514aa039c4028cfbe1c132b7031",
+    "build_receipt_sha256": "179d46c58dac6638d913691b95d0c56a6b7ec30bce6c23c7dbb365929db052e4",
     "method": "Released reference and candidate run on identical source paths/environment. Raw stdout, stderr and exit code must match; no normalization. Version/help changes are recorded separately. Candidate comparison build sets only its reported version to 0.4.0.",
     "untested": [],
     "worker_sha256": "64f5390d1de90b3762b7f2258c0a21433a662041724815b9e3439a92d1208821",
@@ -289,7 +289,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "eef91797928216bc701b3c67be7223e1d265e0c2947d3fb7f1ce1284d4ad0a35",
+          "stdout_sha256": "cf032fd31eb8d032a750c1111732ef4e5bb3b14abfa6f50a69699b74b478b9e8",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -393,7 +393,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "a6efcf3c754b3c054b10f67609c1c4c4f73f0e61bb4f6d03857fa8b1a78e416d",
+          "stdout_sha256": "69c02bd127e7dc957f4e1a2a311fb8bfddc0c11395c7c90c2a22a8b3817cf25e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -406,7 +406,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9e7b47d231ced6e821f285701080485a93d6a8cf521e23080bd428a9a5d524f8",
+          "stdout_sha256": "9be5434e43d05d3e40eac8d10577e6e4c97df56a2b1522fb2e3efb35b021c121",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -419,7 +419,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "4bee4869ba4b21b73b63b71f434ec209ee70e1ca43d563eccf33013ffcd91587",
+          "stdout_sha256": "ddb2b4f13e5cade49c1603b5a9850e2ea4c58743a380656d547555d9cf0a74e1",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -432,7 +432,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "81b6f2dd4d0929cc97337727ac23dc61190fd894e61e21364146a39ba9389444",
+          "stdout_sha256": "807101e09c970b42103d01a698c3207b1d24b0a6abcc5f593c069c836b61ef5e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -445,7 +445,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "54a31c10ee00c59fbc8ea6e5e8073d88479feb82b9e98549e834c5b48585f06b",
+          "stdout_sha256": "75c9132a377211ab5f45042cfd5c26dc27286b9078a7ef446c34d345b57bd11a",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -458,7 +458,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "bb0f461d47e01fef1c8d088eef699b9750a1dab70a85ccc2223261f1eb8ab103",
+          "stdout_sha256": "551e5b658d0fb80d52e64dd19839ed55f47cdab344071747bcbb557f722a9131",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -549,7 +549,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "673d013b4d5826c35c6683cd79c59f31d5a6c995aba59fc4cf5eafbea830b17e",
+          "stdout_sha256": "4c32d9d74577e6c5f4b37bab3968adf8c578723467305ba5f5fc4010bef46184",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -653,7 +653,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "996b85da33e2084a89c906c913ff27e1cd1584adf863e6986d36790b5f10546a",
+          "stdout_sha256": "4f40faca65707fa1b34f40f872330d8fedd6e4d81ab3ff9a2777c0ab94e68a03",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -666,7 +666,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f623cebf2efc11f70ad406aed11acb064133588735edb19632e7bff604695085",
+          "stdout_sha256": "e46f2b0bc70fe931a95ed9b3d3d052cdd6cbf25d4a86d562871bcab21aa7929b",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -679,7 +679,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "65f05b47f58deebc98dfc495a6029cf60bafc0e479a70035924379b72b6a01ce",
+          "stdout_sha256": "1d40eb0e366401f02112af22bd46e04675803c0b0f343cc608d9341a8c8738c7",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -692,7 +692,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "1e816ab3a0c9bba8054d0009d4397a348e38c165ff1fbc0654f22bb6333c0dd2",
+          "stdout_sha256": "6891fc384743719802164521d3ef2cc3924836a26ffe4ddbb5f6402d0656d48e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -705,7 +705,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "5429e113039b67ebb3f6e1209f3565fa94a185cc986d284932a9e411d8130c6c",
+          "stdout_sha256": "4ff661a30b40d90c5fb34cc8b2c04274244674c64c4671d4bff411b373f96176",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -718,7 +718,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "3b714ef005ff73d78606f1e5905ac1e4630ca510f8b0991b33397a2c87ef4b70",
+          "stdout_sha256": "1d67d9ca29dcffd7ad23ed3b70e7fce46f87c5bc344ae8df032b568ecc6b48d6",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -809,7 +809,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "43960f7ba191cc9fac630824468c1b5ce05400ec901651ebe031908864393fd6",
+          "stdout_sha256": "d5aa5ff8ccb4be3476fd91e958ea0b7876765f464310d7471aef99e029a8637e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -913,7 +913,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "5fd1fadc15a8e471f5dabb973c4a0fc8d81323af0002a546a87bbf5f29eb29de",
+          "stdout_sha256": "73f1240919dbe8d9a01646ce31646f640b324d8f39287cd32ee3b59697c508e9",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -926,7 +926,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "e606b25ea31adef5c0be3b0e339294c5d06f1a2b43a3f90baea48dae1ebed98b",
+          "stdout_sha256": "785f051e41f1ce7ff0541f55a8abf903a1c84fc8448a9754aebb4cdfa4237830",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -939,7 +939,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "57a52db3923f54dc0490e05cfeff856912cb4598adee5db9ccd2bc2449668a40",
+          "stdout_sha256": "e782d8da6d3cddeba484ce17a2bacd5c57d4c07f552cff68cd4b594cbfcbadb0",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -952,7 +952,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "ce7ce18759ae3da0389194da271dc1134f38721b021cd562ef26c64d81ab1657",
+          "stdout_sha256": "57149b1fd93718c68c2cd4fb3207f30e765b51fe66ba23abf6615a81f29a9846",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -965,7 +965,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "5fd1fadc15a8e471f5dabb973c4a0fc8d81323af0002a546a87bbf5f29eb29de",
+          "stdout_sha256": "73f1240919dbe8d9a01646ce31646f640b324d8f39287cd32ee3b59697c508e9",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -978,7 +978,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "e606b25ea31adef5c0be3b0e339294c5d06f1a2b43a3f90baea48dae1ebed98b",
+          "stdout_sha256": "785f051e41f1ce7ff0541f55a8abf903a1c84fc8448a9754aebb4cdfa4237830",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1069,7 +1069,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "aa75d3dac82b87ad6b49eeaeac8363eb4ebf473081524c5525afa8f2167e9e63",
+          "stdout_sha256": "acdefd7fd373f7b8cc16fcc19575ceb22b9668e0cf1a0359285eda5a0eab67df",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1173,7 +1173,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "bb90c54d1763957c4fcad36b821661a2e907056f20ca273d7ef7ab65e0138680",
+          "stdout_sha256": "93a77fef81df3e26b74bcbab88d2c5ed248540d95ed9e75c77cddf26578972bb",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1186,7 +1186,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9bde6cb9df5bf5b47e067257e8be46ca43c0f46081547baacac8c1440fafb534",
+          "stdout_sha256": "94620771af32ce108b80d2b8d9b13532ad61811d113be724dbcdec0570c302aa",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1199,7 +1199,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9f89eea745cb61adc9c312e21dee851cd0f8e613e83a7e7333b33dd57eb76a00",
+          "stdout_sha256": "0c1d17df2847ad358ae496b451b10dfb04667ff0a409579aa6914961f2d15df8",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1212,7 +1212,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "589eae7ae6a1a8be43aaf9eb55aadc2c2f84d133a896610f4d1d49ce6f71399e",
+          "stdout_sha256": "fdff50a1c3c33c3dad9f39b279c456778c40727c215207e6a565cabd874ff06f",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1225,7 +1225,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "bb90c54d1763957c4fcad36b821661a2e907056f20ca273d7ef7ab65e0138680",
+          "stdout_sha256": "93a77fef81df3e26b74bcbab88d2c5ed248540d95ed9e75c77cddf26578972bb",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1238,7 +1238,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9bde6cb9df5bf5b47e067257e8be46ca43c0f46081547baacac8c1440fafb534",
+          "stdout_sha256": "94620771af32ce108b80d2b8d9b13532ad61811d113be724dbcdec0570c302aa",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1355,7 +1355,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "a075708e46e3a31a9d1a581ad7abfd2e960eae45ad9f07875fe1015ce98346ae",
+          "stdout_sha256": "b4c30436c7c1f71b33cffcca9d70170a3f5e4768cb561be9643d310687185ff6",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1368,7 +1368,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "282cf3d63a1fecd465de14e8e495673ae21bc4abcdd0356e364a65712c639658",
+          "stdout_sha256": "907dbf320079ac49e9d65e5ce7a050d8a4587f0c81ba48c89f244c2b97096565",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1381,7 +1381,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "b9281571bcf6c9cd2dfa683c87439846b4c8db972a2b7fd9cc1e0f7c6ecae0b2",
+          "stdout_sha256": "d728fed33bede9aa6587d78be5795e07fca6c663261af56c96d24ad9a3326ebb",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1395,7 +1395,7 @@
         "baseline": {
           "exit": 1,
           "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "stderr_sha256": "6d9fc7263a6ee16314f3f5ee457b3c27ee56a1a67254edd6d084eb8a8885dccf"
+          "stderr_sha256": "65e1ffd623f460c98dbf55b5995cc205145c1b1072e7eff828e7f17d9f9cf924"
         },
         "candidate": {
           "identical_to_baseline": true
@@ -1629,7 +1629,7 @@
         "baseline": {
           "exit": 1,
           "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "stderr_sha256": "1f0ea7a9d766230cc00e4cdd64758067e4fd9858f96f38dde384ff7be97b6c1d"
+          "stderr_sha256": "a5b590bd9ca53349fab2def2e6711fd6986373088f697659d3cfb1afded690ea"
         },
         "candidate": {
           "identical_to_baseline": true
@@ -1758,7 +1758,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f1cc070934acf30d5aa8212dcd228d609806094fd9b9b81f0bd37ab8e8c6452f",
+          "stdout_sha256": "208297469440ca2c3d344b5c53d0ecf2a1b76bb2c8f20f3ee1a9a7a1ab9de505",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1784,7 +1784,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "eb74ca4d20e7c0829824ef6ddab4b2658f64a505b9898472ab831af341fd3ca3",
+          "stdout_sha256": "3b28242bf784d7f4a97868d5a3bbf225a084ef0e6751cebf1383bcb0a471efd2",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1797,7 +1797,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "aead9d57214d379a64ff3002e9547dd6de10972c0f5b80eac3ef0f15d449e3cf",
+          "stdout_sha256": "9c425cb0590a4283268cc9189003de2e7b5d26ca8585b10035988e8f9e3f73c1",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1810,7 +1810,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f1cc070934acf30d5aa8212dcd228d609806094fd9b9b81f0bd37ab8e8c6452f",
+          "stdout_sha256": "208297469440ca2c3d344b5c53d0ecf2a1b76bb2c8f20f3ee1a9a7a1ab9de505",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1823,7 +1823,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "287640b47203382cb6220d8289060b3979e02cd24e170156208d00d4902ab5a5",
+          "stdout_sha256": "7b6dcf653355595f419279579d9e141ef7f2d752479ff735f00e88b990ca9d37",
           "stderr_sha256": "1d799ff0d5a7a5273780139998e2cb3a6f8326c10b5d2535b16aea165436ca0d"
         },
         "candidate": {
@@ -1836,7 +1836,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "49611d7f459c5fa7928a02519a40a0a70e96137ba25c131864ad5f158e4230c0",
+          "stdout_sha256": "097b47b65e2f65b3f23a8c3b55a243f3f4634b1abacbe66e0e0009e128d7a69b",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -1849,7 +1849,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f1cc070934acf30d5aa8212dcd228d609806094fd9b9b81f0bd37ab8e8c6452f",
+          "stdout_sha256": "208297469440ca2c3d344b5c53d0ecf2a1b76bb2c8f20f3ee1a9a7a1ab9de505",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1862,7 +1862,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f1cc070934acf30d5aa8212dcd228d609806094fd9b9b81f0bd37ab8e8c6452f",
+          "stdout_sha256": "208297469440ca2c3d344b5c53d0ecf2a1b76bb2c8f20f3ee1a9a7a1ab9de505",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1888,7 +1888,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "65421be806c0306500a6693ef0a4d737f30b46b7f952acab66779ede2ed81c37",
+          "stdout_sha256": "8b7fcf23aa2463999273ffb6072c5de89a0c0a534db838ad45918ce35820b3ed",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1914,7 +1914,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "3aa1486bc20dfcfb280b6207d674e5205a41df298a769d5e0f5c050d9b63c89e",
+          "stdout_sha256": "1e354740671c71db823d4b92096bc24f7a3f38c2884e730002e2bd04de876643",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1927,7 +1927,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "1128b78ba73af9f3eef97a8b76e91b40c2803f4c13c8c8048b6ace1f8b3e6179",
+          "stdout_sha256": "110959dfb14c6b2f0336f6e5eb7f5d5e63a2ef119ae1fffb6116f6f07e1ed8d7",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1940,7 +1940,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "1f38ac9d2d54642a0d2ca0a5506fd9801cd104349c775fc13b5d763d1ac3bcfd",
+          "stdout_sha256": "59371a73da99cde0425e534c07c1c3523c12f652156f3bad6daa45566a1c695c",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1953,7 +1953,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "4f176fa1607e6b4a60dcd25251a8ce5ab46ff6b11f0f461ba85f644b6ff11d40",
+          "stdout_sha256": "98d389b750020de6ddc55296002d8b08ee4b4634c07697b78dd2f2787754035f",
           "stderr_sha256": "1d799ff0d5a7a5273780139998e2cb3a6f8326c10b5d2535b16aea165436ca0d"
         },
         "candidate": {
@@ -1966,7 +1966,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "fee4b3d4b0e985321b120096e59c71a4bdbfe85d25438e2e76e933fbb06db69f",
+          "stdout_sha256": "837d5c2e05d76f383043a40117e9af4a3433848e2a7f8e0834b11b12b2acbbc4",
           "stderr_sha256": "5dac7cdaf829794e8a06ccf3d90eff8d8614a661190c5deb91bbfd5e74587446"
         },
         "candidate": {
@@ -1979,7 +1979,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "65421be806c0306500a6693ef0a4d737f30b46b7f952acab66779ede2ed81c37",
+          "stdout_sha256": "8b7fcf23aa2463999273ffb6072c5de89a0c0a534db838ad45918ce35820b3ed",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -1992,7 +1992,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "65421be806c0306500a6693ef0a4d737f30b46b7f952acab66779ede2ed81c37",
+          "stdout_sha256": "8b7fcf23aa2463999273ffb6072c5de89a0c0a534db838ad45918ce35820b3ed",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2018,7 +2018,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "317847eb3969e43da3c5d3663d54590d82c61af1745fc1a1fa6069dba6b22c2f",
+          "stdout_sha256": "1ac983dbbe812d39e79ced9f4cebf07a4c746e7cc2ba4738a3c4b5790f2c91b5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2044,7 +2044,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "b00ec1e1bf684a55c9229df31232d7f54d1c2dfff65c0cd1e60fbd4bba4d8b54",
+          "stdout_sha256": "3d6ecb936a0087d4c99d1e23cfc257279032cc7df956ec6a7913978b2f9eaa58",
           "stderr_sha256": "9c455d171036d20bf1efac3c8e2b185baafb4a3f7dfc1a4aec66b592453a86b2"
         },
         "candidate": {
@@ -2057,7 +2057,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "95ab685cd751c189e10a068df7a0053bc186db7ba2819583b56964854a800742",
+          "stdout_sha256": "e3f915b966ad4c8c7db3c92618d53f048e14b7040ed36941247e88808d07534b",
           "stderr_sha256": "9c455d171036d20bf1efac3c8e2b185baafb4a3f7dfc1a4aec66b592453a86b2"
         },
         "candidate": {
@@ -2070,7 +2070,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "317847eb3969e43da3c5d3663d54590d82c61af1745fc1a1fa6069dba6b22c2f",
+          "stdout_sha256": "1ac983dbbe812d39e79ced9f4cebf07a4c746e7cc2ba4738a3c4b5790f2c91b5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2083,7 +2083,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "c28291561147a505fa0178f15d4e5c965e0ca5f932b25979183348e81e258f1c",
+          "stdout_sha256": "d988922d4448c9fdb50b6d28e325ec4a285fdfbd8611100e367b1662dfc9cf62",
           "stderr_sha256": "0dfa1171b0e14333b25b6a0d401dc3fad1d275f1ace45ca1cf4c398f2d95424e"
         },
         "candidate": {
@@ -2096,7 +2096,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "221b5c93ae621001e5d1e6e6d96e576dd40dce48a802930a094fd3ce1677b0d8",
+          "stdout_sha256": "17bade7f18ffb402db1f2bdc200d22486054f09844df30b5d8a45f26706662e4",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -2109,7 +2109,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "317847eb3969e43da3c5d3663d54590d82c61af1745fc1a1fa6069dba6b22c2f",
+          "stdout_sha256": "1ac983dbbe812d39e79ced9f4cebf07a4c746e7cc2ba4738a3c4b5790f2c91b5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2122,7 +2122,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "317847eb3969e43da3c5d3663d54590d82c61af1745fc1a1fa6069dba6b22c2f",
+          "stdout_sha256": "1ac983dbbe812d39e79ced9f4cebf07a4c746e7cc2ba4738a3c4b5790f2c91b5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2148,7 +2148,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2174,7 +2174,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2187,7 +2187,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "e4896a7bac3c12968a24bc3528901bda0658419dd4477be583cbe282ac1c7126",
+          "stdout_sha256": "795e010c4394565e815c9f7b3aebe26911e5d837819d85ddb496b475fc2ca421",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2200,7 +2200,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2213,7 +2213,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2226,7 +2226,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2239,7 +2239,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2252,7 +2252,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f0dda6cc9be8e8f0c4215e94f2a155bfcd1dc6f3bcc5a29b771c9e1186da1874",
+          "stdout_sha256": "2be8a7deea3dff63f0f6be99e7cd09a27c1fcecadfcf135c8d3358763b358109",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2278,7 +2278,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2304,7 +2304,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2317,7 +2317,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "17014ea828e847a3802220f93767c8557fe07604d3b79a1969a37475f74882c6",
+          "stdout_sha256": "3c5346e5b5d149389b0dba315b03066c4d7ece33802dae919be5081c8656ee68",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2330,7 +2330,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2343,7 +2343,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2356,7 +2356,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "011b0de1af986ab2ecfa64c343944fab89b47a7bce73c45757a90d6dd3b0116f",
+          "stdout_sha256": "51d67bae09e4c11c9c7fc77f92812fde7572cb080b27a90bde32ff93dbc1a3e9",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -2369,7 +2369,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2382,7 +2382,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8aff531dea94392a3ae0259b21918546a6fb59f9fa6b3213304a85159acf7ad6",
+          "stdout_sha256": "db14bdfb1409a529e94f6bf4a902653eb63d538203309107ed9fcb7695d0f275",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2395,7 +2395,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "ef89a2b730b7688265e980c63ed954a7b19bd9138d7b5a38924d5f2537696044",
+          "stdout_sha256": "389c9430782cb2a09585ee544b9254cfd5bec5ca7d6cb8bcac99590d380a0be3",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2408,7 +2408,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "6098fabca88c2f0e50e0388746d87e0ffbca6f6c0a1e6fe1e244673be15f4323",
+          "stdout_sha256": "1048d475b8cafd89741a325aeb62570d08e38d64c9f186e13ebfff8a060f7aba",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2487,7 +2487,7 @@
         "baseline": {
           "exit": 1,
           "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "stderr_sha256": "16dd8de27ab8a119dffe696b8d635e591455d5f1d29b6f8f4e07666dfd269255"
+          "stderr_sha256": "def0f2a3ae8c0c799f281cd4c5e973010f4efe7f18a670a599b222554064d8ce"
         },
         "candidate": {
           "identical_to_baseline": true
@@ -2538,7 +2538,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "01e9ccb5c20d59fa2c1c7aecaa46a0b24335c9eb75b249b611cc771a1a016d19",
+          "stdout_sha256": "3b54e582ba808f191613b90ee60cee8aed999e50ef47d229bd2945d8b0ed56be",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2551,7 +2551,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "01e9ccb5c20d59fa2c1c7aecaa46a0b24335c9eb75b249b611cc771a1a016d19",
+          "stdout_sha256": "3b54e582ba808f191613b90ee60cee8aed999e50ef47d229bd2945d8b0ed56be",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2577,7 +2577,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "dabcbee161f88c77c06a585e00cc6f088989704ec191671d35189705185b1076",
+          "stdout_sha256": "83a1a4d49a2377150ace7ff5d9823ae8e8f64a7133b990c24242872cc903e276",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2590,7 +2590,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9fdaf333075e81e40992ac99101d5d1dcd9828096d512b20b820eb81b7b68781",
+          "stdout_sha256": "3e3e552ba8661b4a171b74e9eb6e368068529f6fd17e1e09e5d757ecc934017d",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2603,7 +2603,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "5bb27c216a26679dfed9cda4d94604a878a4092857c0c4b1cba5bf8d2a350723",
+          "stdout_sha256": "a82d7601be74766cab2ead697962077679d041b60ab75697bb324ecbda08edd5",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -2616,7 +2616,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "330d6d09c224cb8e7d42f7c998c81226b9cdc6d0e71ab679a48840733b651307",
+          "stdout_sha256": "8b0cd13b97102c9cf1ef040c0a7a84b1ca97484e9a073e8328599e3cc1b1ebd2",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2629,7 +2629,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "8dbeef2c41decf983bdd79724bf61838991bad9150185c8eadc16a6e33e94e4f",
+          "stdout_sha256": "29cf4a24d01eda7b978f44b0fc2e1c041eea0c43a50dc98566020c18d6ce2aba",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2642,7 +2642,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "4b76f66ad4e4013828c703ec4915cd7872365992aab1e67471a524bc8d1394b7",
+          "stdout_sha256": "7a86b9bebb32b18fd1465829eff6cabda8902129446c2900488b9b5a5a49b7dd",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2655,7 +2655,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "4db7554d2ba421a8699b3a5227a6a288d7e4e9cd0e88c6c9c359ef0cab1dd707",
+          "stdout_sha256": "d469dbc6599657d8ea6d1534902482e204acd192f17be7b25c3390588bcbc3ce",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2668,7 +2668,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f941aaaf5032b06a988e08224705b3d3af25009d4446459ee0e2771042f641f4",
+          "stdout_sha256": "1ddc091dad5d9443f771ba0b23a0f0a6253ed14666a6832f6fd09db532491dbf",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2681,7 +2681,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "6131c922a17e1a012f1552a1fdb274a920c12c63c650abead1cd23ff023e23d5",
+          "stdout_sha256": "70e869de26dc731c36cef8d721e5c2f26d1e1690794af8a63f0106a17b8f4fb5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2694,7 +2694,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "fc5053fea6ba6805a13f40e564d72f32870f5ef335cae1c1645654ffe187f415",
+          "stdout_sha256": "2f12a59c0aabc220d5fdaeac5170be7647bf734a18abbc29f98798a0a98812f5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2707,7 +2707,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "851631b36dd92998f15825e8db89c780ef0b6e60b8ed2e6f92f5c4a714ce7c0e",
+          "stdout_sha256": "1bf8ab301e99b51b00d42a8992cae02538c7124b1ac7fac97dbf0d5a8fb2406d",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2720,7 +2720,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "19014c023601dfccc6da3f615db99e90c310346de271e2b9535634d5e893f579",
+          "stdout_sha256": "ca9302a62241b933be11452366194d979130f5a537fa8223ed42940187e97b9e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2733,7 +2733,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "9cb58cf24cb619aec2a412bfcc239ea58e7c637c3e3b308e49c677f8577ae943",
+          "stdout_sha256": "1bfba9c8931d5c9777c01b0a6227203b69321ef85d211bdaccd7c98c0597f545",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2746,7 +2746,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "21ddc7a9ca49cd32c1cb2a9d4bc488ccb2acd54e05395767190084ceef3a3d07",
+          "stdout_sha256": "ecd84a8639d760f56c7a77a992575ac89290702ccec2f4c784d0f706c56921c7",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2759,7 +2759,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "fcc0a83c7aaa42f071510ba7f8b350a72251e91766b80fbbb6125c70dccfb2ad",
+          "stdout_sha256": "5ad614de9cbc2826fba6c9c70deebb3ea6ad3afd30721174f1ac4ed9070c674f",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2772,7 +2772,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f2fd93b91e6f89e6a20abdc14e84f058a8f0f92fd4c6eb943bc1a734c78dbfb0",
+          "stdout_sha256": "dee1cabe7deec1c3ce5d4b5a5b0b6e6c7826a46a1b76991f1b1f7f75b57c720b",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2785,7 +2785,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "c2473aa89e65543f584bf5a8a8e94ecb018e5750a12de027f0c1730ebce4ec21",
+          "stdout_sha256": "6a97acb5c6d14058ef82d326c58084e29be78316c64e2ab0d7064daa74b6a467",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2798,7 +2798,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "6372d1856a62158c198069c8367c848843a549dc64921f6aa7db387948adeb33",
+          "stdout_sha256": "06df3a19ef396ec4b11a71b0ef3f5bcfb547a3e29306dc1c161717e97b20980c",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2811,7 +2811,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "53aaeea81d4be1df276094716f7b4899b87ce4a5a62705a30667e5d610bc8e2d",
+          "stdout_sha256": "8cc03a7eced7b49ba7282ed50967b42364fc5f2146d460525aac5864cc62e4de",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2824,7 +2824,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "b50daaa89802d23945c6a9c9ca8f4c69608241d61019f262002c26ae5eb5a6aa",
+          "stdout_sha256": "cd0d6467c98ebb5e678e8985a4efd085435394ea318a94b1c50b46e432c4cc83",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2837,7 +2837,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "2bf98ba358732bc326f196fe9dafa10ec7da5aaac128e88283726a8e4ef8fb03",
+          "stdout_sha256": "4119493d44129131838fd68b61a71a9bf7e79a798c9c659d6b665671882c70a5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2850,7 +2850,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "99426e248b0cae6fb196d0ed2a9162f4a585814d55e2ddae0abc0b7cfb560cd3",
+          "stdout_sha256": "288975cd19960dd073ee4e30c881b08ae48628982feb14c8f62426ec6abd110e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2863,7 +2863,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "cced0fb72d9178828d7870c7de927a1873a8b051f9df768523a34353a5b9d993",
+          "stdout_sha256": "40dee784acda77b7a4b2a78d9b9e2439ae2a35c5b44ba3e87cfd55bfe2875332",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2876,7 +2876,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "c25bb5af7164fc2d942c51a1428958c95d926cf27ba91e7227c2729e3a0b8504",
+          "stdout_sha256": "bafbeae3efc3398fb6668e734d4477ba2e13bad6dfba9c809d23881f695f84f8",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2889,7 +2889,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "7988b4f17434aed6523a68f3d7115b64632ff3c8ffb444e1609c6a8e0322911d",
+          "stdout_sha256": "18ed1ce8db2f12a22147780725789f07f7db72e572ac786f805b8cd49f54bc6d",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2902,7 +2902,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "11d9cc9e96f0870ffc51747d6d0e98beed9be02f1708dd209eabe10622a8a096",
+          "stdout_sha256": "29bbc4fe9a1a62375e0bb0550dc89f6032d63f018701bbce9c927abffc446ae8",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2915,7 +2915,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "a45c537104c216178bb8d508adec2123e351abd888f5cccdbb54c3bb31f797a8",
+          "stdout_sha256": "b8d2138f436c1faf28b6caad23d772307b44a480b42d77a0fce2ad2913bc52f9",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2941,7 +2941,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "bc4ad81c1803034c33247328052a4ef41780dbf849aca56897bee4ace8bdf5c3",
+          "stdout_sha256": "dc8c839c691dad28518eec26e13bda35626488c5d2d5fdc2e791534d48893606",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2954,7 +2954,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "cafb1bc5273fc336935ba6c6731bcdd629b1d3a12663eb0c24d3c2f27b559684",
+          "stdout_sha256": "11ae613f666cc139a1c63e28060349dd99efa92c4d325f052d22276520e51b4e",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -2967,7 +2967,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "bc4ad81c1803034c33247328052a4ef41780dbf849aca56897bee4ace8bdf5c3",
+          "stdout_sha256": "dc8c839c691dad28518eec26e13bda35626488c5d2d5fdc2e791534d48893606",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -2993,7 +2993,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "80b69880d0ed1eaf8e57a63bb87587149c3ef263b4a2bd3f1b94cb4e79993404",
+          "stdout_sha256": "6df0196dcd326e440612acf2070986debe2b0a6b1f1c1e654b914bd30e71b972",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3006,7 +3006,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "25cf950b1588efddc48904c61b82b6d76b976ab7e77bf0435e2ce494a99ba5dc",
+          "stdout_sha256": "93d940fe6d9482bcbaf35e5b532ddab8083df745556a02cf50dde74664a98b32",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -3019,7 +3019,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "dfc5061dec9725e4128d1861d1929d467f3812843ae7b3280617688626eb415e",
+          "stdout_sha256": "7310612ec1422a6a7c1a94963b3c66a5646935f353a8003447dcf72adf1661f9",
           "stderr_sha256": "77eae3c31202ec4c50e0475863df1f7190c0d6733f88134e7c0c4f2d79a164f3"
         },
         "candidate": {
@@ -3045,7 +3045,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "43bccf38da10ad72e77bebd389c883fef08057f41184308741e945bfed2d7f33",
+          "stdout_sha256": "ba2538b15daea0b1dd5c6a8ed1586390283dc3af12087c5a047a5f0e03381321",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3058,7 +3058,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f352ebddb178d970d78f20561ba5e59c1a22eb1a6ed60ddd6dcf5d04c3ead25f",
+          "stdout_sha256": "3188e5558b1ef366f5614ea85ec731d238394e8bea4e7a6f9bd0718c6378184f",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -3071,7 +3071,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "35b66ab136374ec11cc166925d8287670d79444b0691538bdc031e14204454f0",
+          "stdout_sha256": "f6d22e41516f6d4d22c9b91d9d6bf47e5ed748d9eeaf8d6dd473f6c7bcb8c36c",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3084,7 +3084,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "39495600b12957651636403de3f63a96b0e2cd4f0f391207bcaf60113f5b5ba6",
+          "stdout_sha256": "61898cd4a1b08cf2ee89622a1bb7bd64876cecf0072ba6f28b2cfc0d02b50ece",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3110,7 +3110,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "1ea94e1463e4ac43927964220baac0d9f56bdf1d5450e907b61c4d72f25c1d9f",
+          "stdout_sha256": "7d3d2429859e9a43b6680250e924293702ce00fc33c1f7b726d761cce563fd1f",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -3123,7 +3123,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f9e20ca33ece428e71ed90dbed1e1f123731c34581a5703c092e3b5e11b60669",
+          "stdout_sha256": "37039661716bfb2634249a96c1b7d3a1f154405a63ffcd19f46e46f5441c1bba",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3149,7 +3149,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "1ea94e1463e4ac43927964220baac0d9f56bdf1d5450e907b61c4d72f25c1d9f",
+          "stdout_sha256": "7d3d2429859e9a43b6680250e924293702ce00fc33c1f7b726d761cce563fd1f",
           "stderr_sha256": "56bf650fa6c1b8a78a925ee1aacf2d7ade1d44eaa8be59ec2b05df207ed092a2"
         },
         "candidate": {
@@ -3162,7 +3162,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "462eef9c7fac63bfc6def061938250335007d94196660abe9cd5b306b3e6c961",
+          "stdout_sha256": "5af6e61c87e7d4f8604259c03d7714a22ffae96782611cba73c7f6b649e32bdd",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3175,7 +3175,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "f22ada0ddcf6dda8f25546a894ef5d16978e16a77180fdb9e9d8bc6a43eeb9a9",
+          "stdout_sha256": "5d9ad4b85a860e30a308aae2cf5a1a49526464371a6faeaf94219901fae3ebcc",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3201,7 +3201,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "7e3fd8b1872c4079937c4998df8ebb75b4b56481f7840299fd938db18c5cb855",
+          "stdout_sha256": "67d479dd7fec57d382037a9fb58becafa5af7132d3540a75a30fe2984c28ae8e",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3214,7 +3214,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "44e28a7520c92bfa276155aebfc58f1425cb4e1050ac2f5249ca833febdd30ef",
+          "stdout_sha256": "d486a6b9ea71e5a95078ee1291f7de27524e3aa9e5c25e007eb72bdc01a63560",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3240,7 +3240,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "2a713fca69968480051f9012711ab511c2db21e54ceff030c1d2c0e7e0367521",
+          "stdout_sha256": "3772b1edf6e324fa21f8cc23e4e46b120198e77e3523950d5f2390201b18abbb",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3267,7 +3267,7 @@
         "baseline": {
           "exit": 1,
           "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "stderr_sha256": "6f3996371c29741dce07f5a94d1fc4b3716d00be36deb74a7bc25ab15eba7393"
+          "stderr_sha256": "ae9a299e1c721dbb6fb7e15a841044445e1f0788435ac8df20b680671496f17f"
         },
         "candidate": {
           "identical_to_baseline": true
@@ -3305,7 +3305,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "5c2c2cf45f73d3ebbaccfb96df59ae8db483c0269b59624a68dcf26c1a5d95b8",
+          "stdout_sha256": "158b9958b4b65e46455f9fed4b6a883e4642a07a67551c4da5f862be3625d2e5",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3318,7 +3318,7 @@
         "equal": true,
         "baseline": {
           "exit": 0,
-          "stdout_sha256": "beab53cd731d2a2abc544d194745a706e0487b0863536a0c228373160b3887d7",
+          "stdout_sha256": "1de587f23f95e24d44ad43e00fa52a65f27dfb74da0abf7fa236ac074d31e5a9",
           "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         },
         "candidate": {
@@ -3422,10 +3422,10 @@
   },
   "declaration_corpus": {
     "schema": "dircue-declarations-corpus-result-1",
-    "expectations_sha256": "a98236cb7d93cf02002f2e73babed7666ad2f4a3994f93a91a03f2320aecbf04",
-    "harness_sha256": "7dba3c0f37c357b8a1f2de118aa628f1a26ca2bf1c78a7adf2f0b07e857a0183",
-    "candidate_sha256": "7893fccf03040e9f234738b9ef7c5c1a167e4e8790193976ba8c0ea040403d7f",
-    "build_receipt_sha256": "eb1a7a7fc8e2476e06c7f0db49d1180a41b95514aa039c4028cfbe1c132b7031",
+    "expectations_sha256": "a19f46a85ffbf6071ae79d0db1cd3f9f4b7c53c3d0c0120ad9082393a46b184b",
+    "harness_sha256": "4c58f9b251f77fbb08c5675bbe4ba3c059edcadb4f9622b37ac5c499eb28240d",
+    "candidate_sha256": "152d656de1a499cea30e67e87edabb27b5e25651c83fc013bac8554c0404cf56",
+    "build_receipt_sha256": "179d46c58dac6638d913691b95d0c56a6b7ec30bce6c23c7dbb365929db052e4",
     "provenance": {
       "cobra": {
         "commit": "88b30ab89da2d0d0abb153818746c5a2d30eccec",
@@ -3495,1264 +3495,6 @@
           "sha256": "3100219a9cd2e0bac5c4627ab6a75e568b4313af786279aab831d1ddc1a03729"
         }
       },
-      "dircue-selected-working-tree": {
-        "selection": "working-tree tracked and nonignored untracked files; no .git or ignored .cache",
-        "inventory": {
-          "files": 1314,
-          "sha256": "749079f3e3e2a7e5f0d95df3f1b6873014744096f44086a0076dc6223a165ad1"
-        }
-      },
-      "multi-workspace": {
-        "selection": "hand-authored mixed workspace and malformed npm manifest",
-        "inventory": {
-          "files": 15,
-          "sha256": "8ceea8b04fd90c4aef9c56a90030868dd519eb0e4b484cd3d937a08ce4232f35"
-        }
-      }
-    },
-    "errors": [],
-    "passed": true,
-    "scope": "Selected literal facts and deterministic acquisition, not full build evaluation or exhaustive parser conformance.",
-    "runs": [
-      {
-        "case": "cobra",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "0cbf395984e3a1de410fd9c2eca1705dec5f8d438d1f53550f49c668858342a7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "0cbf395984e3a1de410fd9c2eca1705dec5f8d438d1f53550f49c668858342a7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "2ba270a9dcdffc3641a33d510cde6411344d9236d377e724e3bae3f8ec7b01a7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "2ba270a9dcdffc3641a33d510cde6411344d9236d377e724e3bae3f8ec7b01a7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "35a64407ee36bcec6d47da22afe0279ce18cd161770f71ef18a8d8c72b5d0cb4",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "35a64407ee36bcec6d47da22afe0279ce18cd161770f71ef18a8d8c72b5d0cb4",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "a5832372d6951188c3873c22d694b7434dad6194e5e65b06cf1a88a48cfe5945",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "cobra",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "a5832372d6951188c3873c22d694b7434dad6194e5e65b06cf1a88a48cfe5945",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 66,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 8,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "e16112b7be2aaae795faa00c53d976652b11e576ed4434f793c24927b2c654cf",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "e16112b7be2aaae795faa00c53d976652b11e576ed4434f793c24927b2c654cf",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "ccdd2b5d927cf7f26ff4e600e2d9fafb0ca29cc4155f0bc5d54a0854b00ddf48",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "ccdd2b5d927cf7f26ff4e600e2d9fafb0ca29cc4155f0bc5d54a0854b00ddf48",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "25e5a911fcb29597264a35ec6e70121ad59ad8e8aa5ed0fb6fa048aa8ec898ff",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "25e5a911fcb29597264a35ec6e70121ad59ad8e8aa5ed0fb6fa048aa8ec898ff",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "bcc9564eb6c9c92d77ccb88cb919252b8a708cd5fce04485adac2d688e15a1de",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "express",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "bcc9564eb6c9c92d77ccb88cb919252b8a708cd5fce04485adac2d688e15a1de",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 225,
-          "manifest_candidates": 1,
-          "parsed_manifests": 1,
-          "omitted_files": 0,
-          "retained_observations": 53,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 1
-      },
-      {
-        "case": "flask",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "364f0dc6daa1e2195af93f3980afd603db6ce4479c1ea8d5d81bdb461b94045b",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "364f0dc6daa1e2195af93f3980afd603db6ce4479c1ea8d5d81bdb461b94045b",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "06978922e13911e5df55a0572ffab0d540720d4393867450bf723db70f92a25f",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "06978922e13911e5df55a0572ffab0d540720d4393867450bf723db70f92a25f",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "8269b14473b018b66f673c1f0d07c1b7f23daaf891585db1de85ed1dcf93f42f",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "8269b14473b018b66f673c1f0d07c1b7f23daaf891585db1de85ed1dcf93f42f",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "40bca7f4c4e50fdc53a41dba059a64842f96c91c5a564c3c14ef5b13e942e9f8",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "flask",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "40bca7f4c4e50fdc53a41dba059a64842f96c91c5a564c3c14ef5b13e942e9f8",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 234,
-          "manifest_candidates": 4,
-          "parsed_manifests": 4,
-          "omitted_files": 0,
-          "retained_observations": 68,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 4
-      },
-      {
-        "case": "ripgrep",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "8c83a25080e0b82ab20b98c97dd4389cf34311249fbd0e47ca0cb83e7acdccf1",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "8c83a25080e0b82ab20b98c97dd4389cf34311249fbd0e47ca0cb83e7acdccf1",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "c159d9d2258f90f7d321ffdaeeecdfaa00051bea44dbb5492d96546b6fdd0d89",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "c159d9d2258f90f7d321ffdaeeecdfaa00051bea44dbb5492d96546b6fdd0d89",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "7ae36082fe0ba03248d1703a97d899a24845609cbefe92e7eeee5781f6d8e517",
-        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "7ae36082fe0ba03248d1703a97d899a24845609cbefe92e7eeee5781f6d8e517",
-        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "382359e881ed677707d76612402cb91dda370948444ed2d166e7006f1e654bed",
-        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "ripgrep",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "382359e881ed677707d76612402cb91dda370948444ed2d166e7006f1e654bed",
-        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 212,
-          "manifest_candidates": 10,
-          "parsed_manifests": 10,
-          "omitted_files": 1,
-          "retained_observations": 128,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 10
-      },
-      {
-        "case": "roslyn",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "63a75e39693d7bd4d95e91d42920149ec9db653ebe74b21b5a718488fbf1632a",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "63a75e39693d7bd4d95e91d42920149ec9db653ebe74b21b5a718488fbf1632a",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "49a5e490fcedbf96bc29c169742bcb68e74d1dfedc1aa4bc984f45c71ed661ba",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "49a5e490fcedbf96bc29c169742bcb68e74d1dfedc1aa4bc984f45c71ed661ba",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "d0712d3da6b51e43fa83aea82d239171dade2b6865a71184ec5d04c9f540241a",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "d0712d3da6b51e43fa83aea82d239171dade2b6865a71184ec5d04c9f540241a",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "d6352543f822e9a3e4eec96ff3aa9196ef6d07a5c044d463eb2693ffbf4129b0",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "roslyn",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "d6352543f822e9a3e4eec96ff3aa9196ef6d07a5c044d463eb2693ffbf4129b0",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 35220,
-          "manifest_candidates": 619,
-          "parsed_manifests": 618,
-          "omitted_files": 0,
-          "retained_observations": 5050,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-xml": 1
-        },
-        "project_count": 619
-      },
-      {
-        "case": "spring-framework",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "28cc6c0881a5e4816108888ee46f31e02532136c84a10639748d4e5cb6f73493",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "28cc6c0881a5e4816108888ee46f31e02532136c84a10639748d4e5cb6f73493",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "afff7f5dc5975b783ce355cd61ba27529d0bae8315f36e3c4c2c050ee12baea9",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "afff7f5dc5975b783ce355cd61ba27529d0bae8315f36e3c4c2c050ee12baea9",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "6bc8544ead7eb896b9b7f2a6cb828f0dafb7e73d25a7f29361a5b2a6219a833a",
-        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "6bc8544ead7eb896b9b7f2a6cb828f0dafb7e73d25a7f29361a5b2a6219a833a",
-        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "c7bb87d4a9ece399ad0bd5eb15afb34dded61c8c9dcf0409ecbb8a11b5e5ce86",
-        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "spring-framework",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "c7bb87d4a9ece399ad0bd5eb15afb34dded61c8c9dcf0409ecbb8a11b5e5ce86",
-        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 11347,
-          "manifest_candidates": 8,
-          "parsed_manifests": 8,
-          "omitted_files": 1,
-          "retained_observations": 40,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 8
-      },
-      {
-        "case": "dircue-selected-working-tree",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "8173935c6bf9682e5ec8873101e9f0d27602246bd3e088839485f49703c621f4",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 1314,
-          "manifest_candidates": 35,
-          "parsed_manifests": 35,
-          "omitted_files": 0,
-          "retained_observations": 280,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 35
-      },
-      {
-        "case": "dircue-selected-working-tree",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "8173935c6bf9682e5ec8873101e9f0d27602246bd3e088839485f49703c621f4",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 1314,
-          "manifest_candidates": 35,
-          "parsed_manifests": 35,
-          "omitted_files": 0,
-          "retained_observations": 280,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 35
-      },
-      {
-        "case": "dircue-selected-working-tree",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "2a080978dd378503ae187c044496e3669fc9170cbd9721019e89eab2ed4c19e7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 1314,
-          "manifest_candidates": 35,
-          "parsed_manifests": 35,
-          "omitted_files": 0,
-          "retained_observations": 280,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 35
-      },
-      {
-        "case": "dircue-selected-working-tree",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "2a080978dd378503ae187c044496e3669fc9170cbd9721019e89eab2ed4c19e7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "complete",
-        "coverage": {
-          "selected_files": 1314,
-          "manifest_candidates": 35,
-          "parsed_manifests": 35,
-          "omitted_files": 0,
-          "retained_observations": 280,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {},
-        "project_count": 35
-      },
-      {
-        "case": "multi-workspace",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "45c08c4d9a77b5200c2330aa00ad6b3f27c9909b847d379ce322e466ef8113bd",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 15,
-          "manifest_candidates": 13,
-          "parsed_manifests": 12,
-          "omitted_files": 0,
-          "retained_observations": 64,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 1
-        },
-        "project_count": 13
-      },
-      {
-        "case": "multi-workspace",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "45c08c4d9a77b5200c2330aa00ad6b3f27c9909b847d379ce322e466ef8113bd",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 15,
-          "manifest_candidates": 13,
-          "parsed_manifests": 12,
-          "omitted_files": 0,
-          "retained_observations": 64,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 1
-        },
-        "project_count": 13
-      },
-      {
-        "case": "multi-workspace",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "17e24e01342cbcc01d899d6eb781bd860e17e6b83654cadacd626dbb70d246b0",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 15,
-          "manifest_candidates": 13,
-          "parsed_manifests": 12,
-          "omitted_files": 0,
-          "retained_observations": 64,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 1
-        },
-        "project_count": 13
-      },
-      {
-        "case": "multi-workspace",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "17e24e01342cbcc01d899d6eb781bd860e17e6b83654cadacd626dbb70d246b0",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 15,
-          "manifest_candidates": 13,
-          "parsed_manifests": 12,
-          "omitted_files": 0,
-          "retained_observations": 64,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 1
-        },
-        "project_count": 13
-      }
-    ]
-  },
-  "public_derivation": {
-    "byte_identical_to_original": false,
-    "source_sha256": {
-      "compatibility_final_compressed": "a1e671c6ae182774c4c1f8343df563946d8827e55a51729f5bab6211cb200b03",
-      "declaration_corpus_final": "94ecac57b96fcf77e7749c9bbbe30b36e2a9e973a363c9fcb142fb59f24d4cdf",
-      "additional_public_workspace_corpus": "be7e9f3760958cadebd3b73c88e14d0e5e5dde977f37eb84a3d902a29becfb47",
-      "hosted_linguist": "dc893a16b56a9d66b5bd9e56a8339e45328a427b15b8e61c1cd41cbe043e185b",
-      "hosted_linguist_samples": "c7e0c662c221d9b3d52fa7bd281979896be7df64f005215937b8535919525bbf",
-      "hosted_metrics": "6bced655960ca14525bb34a2bef3d7a959867597a37df81ae61e7f3a43e0ad4d",
-      "local_actual_version_smoke": "2f34f0478d5bd015b523796d59664a00161a9b8f4d9521c576c739b5d8af93e9",
-      "comparison_microbenchmark": "37d9e889dd669755a12d29c67b664e297fbad683e7d9f3e0831dd5e66b57c169",
-      "cargo_synthetic_oracle": "3dacc2a007b3fb2b6982535e4f3c4befa6882618163bff9a31cead1723bae886",
-      "additional_npm_workspace_corpus": "50d21253eb02abd4c1a10bf25e58db7ff832b32d262e66f2fdf5ca13e51f7ec1"
-    },
-    "transformations": [
-      "Retain final source/binary/worker/harness/fixture hashes and all individual check outcomes.",
-      "Replace embedded build receipt with reference to separately exported build-identity.json.",
-      "Omit compatibility case command paths and working directories; preserve stable case IDs, groups, process statuses and output hashes.",
-      "Omit raw stdout/stderr text; identical candidate output is represented by the original identical_to_baseline marker.",
-      "Retain interface-change commands and process/output hashes separately from the 241 exact-output cases.",
-      "Omit corpus incidental elapsed observations and warning strings; retained coverage/status/diagnostic counts qualify the successful expected-facts assertions.",
-      "Add the separately executed 16-case public-workspace corpus without modifying the original 56-case corpus; retain each harness/expectation hash.",
-      "Retain hosted Linguist check outcomes/provenance while omitting raw process payloads, Docker inspection paths and gem listings; retain image ID.",
-      "Retain hosted sample summary and provenance rather than all sample payloads; omit Enry module cache Dir/GoMod host paths; retain the native scc check receipt.",
-      "Retain the local actual-version smoke receipt unmodified inside an explicit local/non-packaged scope wrapper.",
-      "Retain a separate Cargo1.85.0 trusted synthetic oracle receipt with input and raw-output hashes; temporary-directory raw metadata paths are not included.",
-      "Add the separately executed eight-run npm workspace corpus without modifying prior56/16-run receipts; retain its own harness/expectation hashes and qualified coverage."
-    ],
-    "raw_outputs_included": false
-  },
-  "additional_public_workspace_corpus": {
-    "schema": "dircue-declarations-corpus-result-1",
-    "expectations_sha256": "8056470084dd09f34dc2dbdbadf4a909ebaf45bf6d2898f9ee6100c5245675c2",
-    "harness_sha256": "92ff867f362e42572f5e459b68a35ac46e4a24d170eeec2865befe19f94a8075",
-    "candidate_sha256": "7893fccf03040e9f234738b9ef7c5c1a167e4e8790193976ba8c0ea040403d7f",
-    "build_receipt_sha256": "eb1a7a7fc8e2476e06c7f0db49d1180a41b95514aa039c4028cfbe1c132b7031",
-    "provenance": {
       "opentelemetry-go": {
         "commit": "94c37188b908988e6366fde919c1a52a5548143b",
         "url": "https://github.com/open-telemetry/opentelemetry-go",
@@ -4783,6 +3525,34 @@
           "files": 2842,
           "sha256": "7dc27f7d6be667fb15ac0f5baaf5c7a196a881c2f0d614cb2eae2cff92fe214f"
         }
+      },
+      "npm-cli": {
+        "commit": "6400533ab3d830716964bcf0def42b6c47f3fd70",
+        "url": "https://github.com/npm/cli",
+        "witness_sha256": {
+          "package.json": "a8954813e65f341da0ad28a99e0e457b25be905ab55f506346af72d4cb1ceaba",
+          "workspaces/arborist/package.json": "f0ef7d2f36d4c54feecb0b9749280bc4932fe71d49088f09caa8c23254efcdcc",
+          "docs/package.json": "73d701e8cbb6a04d9fa60b55f59e03365c351433e923c155eca1dc3bf8e5c07d",
+          "mock-registry/package.json": "3ea0649f0efed3b0f2b3be5efa2211303ffaf0d9e07d2dad80ce4dc8fbfa9d06"
+        },
+        "inventory": {
+          "files": 6901,
+          "sha256": "eb51441393a18f97face063a081ad22f4b113660d76064d1217247bb9c13ea39"
+        }
+      },
+      "dircue-selected-working-tree": {
+        "selection": "working-tree tracked and nonignored untracked files; no .git or ignored .cache",
+        "inventory": {
+          "files": 1319,
+          "sha256": "177e37fc146329573b74f80c6eb0b3e4b8ba0344771249d635c414749d247a2a"
+        }
+      },
+      "multi-workspace": {
+        "selection": "hand-authored mixed workspace and malformed npm manifest",
+        "inventory": {
+          "files": 15,
+          "sha256": "8ceea8b04fd90c4aef9c56a90030868dd519eb0e4b484cd3d937a08ce4232f35"
+        }
       }
     },
     "errors": [],
@@ -4790,12 +3560,1036 @@
     "scope": "Selected literal facts and deterministic acquisition, not full build evaluation or exhaustive parser conformance.",
     "runs": [
       {
+        "case": "cobra",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "55f861f5e3dae0a2d29645456b0aa62f4aa6ba0c87d7e9a2fb735585f3f568a5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "55f861f5e3dae0a2d29645456b0aa62f4aa6ba0c87d7e9a2fb735585f3f568a5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "38fdf3f0f322c8f0cd1a629b8840a8b88212413ddbfe9fbe47f9d0c68effb629",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "38fdf3f0f322c8f0cd1a629b8840a8b88212413ddbfe9fbe47f9d0c68effb629",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "b023213e52844c795986cc651780e8ba53c7705934baa00871ad002d9f90e08e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "b023213e52844c795986cc651780e8ba53c7705934baa00871ad002d9f90e08e",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "93e450c5b921dca196a5114b8e52056baa351a7c6b5e89109c0d546d90e31b51",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "cobra",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "93e450c5b921dca196a5114b8e52056baa351a7c6b5e89109c0d546d90e31b51",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 66,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 8,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "e16112b7be2aaae795faa00c53d976652b11e576ed4434f793c24927b2c654cf",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "e16112b7be2aaae795faa00c53d976652b11e576ed4434f793c24927b2c654cf",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "ccdd2b5d927cf7f26ff4e600e2d9fafb0ca29cc4155f0bc5d54a0854b00ddf48",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "ccdd2b5d927cf7f26ff4e600e2d9fafb0ca29cc4155f0bc5d54a0854b00ddf48",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "25e5a911fcb29597264a35ec6e70121ad59ad8e8aa5ed0fb6fa048aa8ec898ff",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "25e5a911fcb29597264a35ec6e70121ad59ad8e8aa5ed0fb6fa048aa8ec898ff",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "bcc9564eb6c9c92d77ccb88cb919252b8a708cd5fce04485adac2d688e15a1de",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "express",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "bcc9564eb6c9c92d77ccb88cb919252b8a708cd5fce04485adac2d688e15a1de",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 225,
+          "manifest_candidates": 1,
+          "parsed_manifests": 1,
+          "omitted_files": 0,
+          "retained_observations": 53,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 1
+      },
+      {
+        "case": "flask",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "364f0dc6daa1e2195af93f3980afd603db6ce4479c1ea8d5d81bdb461b94045b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "364f0dc6daa1e2195af93f3980afd603db6ce4479c1ea8d5d81bdb461b94045b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "06978922e13911e5df55a0572ffab0d540720d4393867450bf723db70f92a25f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "06978922e13911e5df55a0572ffab0d540720d4393867450bf723db70f92a25f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "8269b14473b018b66f673c1f0d07c1b7f23daaf891585db1de85ed1dcf93f42f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "8269b14473b018b66f673c1f0d07c1b7f23daaf891585db1de85ed1dcf93f42f",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "40bca7f4c4e50fdc53a41dba059a64842f96c91c5a564c3c14ef5b13e942e9f8",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "flask",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "40bca7f4c4e50fdc53a41dba059a64842f96c91c5a564c3c14ef5b13e942e9f8",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 234,
+          "manifest_candidates": 4,
+          "parsed_manifests": 4,
+          "omitted_files": 0,
+          "retained_observations": 68,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 4
+      },
+      {
+        "case": "ripgrep",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "8c83a25080e0b82ab20b98c97dd4389cf34311249fbd0e47ca0cb83e7acdccf1",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "8c83a25080e0b82ab20b98c97dd4389cf34311249fbd0e47ca0cb83e7acdccf1",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "c159d9d2258f90f7d321ffdaeeecdfaa00051bea44dbb5492d96546b6fdd0d89",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "c159d9d2258f90f7d321ffdaeeecdfaa00051bea44dbb5492d96546b6fdd0d89",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "7ae36082fe0ba03248d1703a97d899a24845609cbefe92e7eeee5781f6d8e517",
+        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "7ae36082fe0ba03248d1703a97d899a24845609cbefe92e7eeee5781f6d8e517",
+        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "382359e881ed677707d76612402cb91dda370948444ed2d166e7006f1e654bed",
+        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "ripgrep",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "382359e881ed677707d76612402cb91dda370948444ed2d166e7006f1e654bed",
+        "stderr_sha256": "4e2882a5fa0f824e066e3e2bcf565427ea77729c1f1653654eddca86bbe63172",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 212,
+          "manifest_candidates": 10,
+          "parsed_manifests": 10,
+          "omitted_files": 1,
+          "retained_observations": 128,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 10
+      },
+      {
+        "case": "roslyn",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "63a75e39693d7bd4d95e91d42920149ec9db653ebe74b21b5a718488fbf1632a",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "63a75e39693d7bd4d95e91d42920149ec9db653ebe74b21b5a718488fbf1632a",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "49a5e490fcedbf96bc29c169742bcb68e74d1dfedc1aa4bc984f45c71ed661ba",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "49a5e490fcedbf96bc29c169742bcb68e74d1dfedc1aa4bc984f45c71ed661ba",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "d0712d3da6b51e43fa83aea82d239171dade2b6865a71184ec5d04c9f540241a",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "d0712d3da6b51e43fa83aea82d239171dade2b6865a71184ec5d04c9f540241a",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "d6352543f822e9a3e4eec96ff3aa9196ef6d07a5c044d463eb2693ffbf4129b0",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "roslyn",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "d6352543f822e9a3e4eec96ff3aa9196ef6d07a5c044d463eb2693ffbf4129b0",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 35220,
+          "manifest_candidates": 619,
+          "parsed_manifests": 618,
+          "omitted_files": 0,
+          "retained_observations": 5050,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-xml": 1
+        },
+        "project_count": 619
+      },
+      {
+        "case": "spring-framework",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "28cc6c0881a5e4816108888ee46f31e02532136c84a10639748d4e5cb6f73493",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "28cc6c0881a5e4816108888ee46f31e02532136c84a10639748d4e5cb6f73493",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "afff7f5dc5975b783ce355cd61ba27529d0bae8315f36e3c4c2c050ee12baea9",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "afff7f5dc5975b783ce355cd61ba27529d0bae8315f36e3c4c2c050ee12baea9",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "6bc8544ead7eb896b9b7f2a6cb828f0dafb7e73d25a7f29361a5b2a6219a833a",
+        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "6bc8544ead7eb896b9b7f2a6cb828f0dafb7e73d25a7f29361a5b2a6219a833a",
+        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "c7bb87d4a9ece399ad0bd5eb15afb34dded61c8c9dcf0409ecbb8a11b5e5ce86",
+        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
+        "case": "spring-framework",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "c7bb87d4a9ece399ad0bd5eb15afb34dded61c8c9dcf0409ecbb8a11b5e5ce86",
+        "stderr_sha256": "019e96e1f248d53e7abf82a2548d36782e92b9a3c598262e7d7d74c933834469",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 11347,
+          "manifest_candidates": 8,
+          "parsed_manifests": 8,
+          "omitted_files": 1,
+          "retained_observations": 40,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 8
+      },
+      {
         "case": "opentelemetry-go",
         "source": "git",
         "command": "declarations",
         "workers": 1,
         "exit_code": 0,
-        "stdout_sha256": "2b0d8b393bdf1b0ac8892b6297f8d40e1a7c1daaeaf97666a680681c9581dc39",
+        "stdout_sha256": "d938b36085ecb7f46f98f1ab696eeecb8c10836bea3bc735eca941a0fd451cdc",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4816,7 +4610,7 @@
         "command": "declarations",
         "workers": 8,
         "exit_code": 0,
-        "stdout_sha256": "2b0d8b393bdf1b0ac8892b6297f8d40e1a7c1daaeaf97666a680681c9581dc39",
+        "stdout_sha256": "d938b36085ecb7f46f98f1ab696eeecb8c10836bea3bc735eca941a0fd451cdc",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4837,7 +4631,7 @@
         "command": "all",
         "workers": 1,
         "exit_code": 0,
-        "stdout_sha256": "9186888486b4a5fd90a90d696ec244c5f5b970c043ee4d6c9a430402667065bd",
+        "stdout_sha256": "f965574c7db77364f8435146df12d5ad5a07d86a72539ea05ead1408aeae5a59",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4858,7 +4652,7 @@
         "command": "all",
         "workers": 8,
         "exit_code": 0,
-        "stdout_sha256": "9186888486b4a5fd90a90d696ec244c5f5b970c043ee4d6c9a430402667065bd",
+        "stdout_sha256": "f965574c7db77364f8435146df12d5ad5a07d86a72539ea05ead1408aeae5a59",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4879,7 +4673,7 @@
         "command": "declarations",
         "workers": 1,
         "exit_code": 0,
-        "stdout_sha256": "5a14209b6e15eacd3705f8d3f142e5e927e52b16301b95778ec2585a03810740",
+        "stdout_sha256": "942fc83d608760c44f057ffe4920d8bcef9ab1feaac9521f0f62dfd4283ee0c5",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4900,7 +4694,7 @@
         "command": "declarations",
         "workers": 8,
         "exit_code": 0,
-        "stdout_sha256": "5a14209b6e15eacd3705f8d3f142e5e927e52b16301b95778ec2585a03810740",
+        "stdout_sha256": "942fc83d608760c44f057ffe4920d8bcef9ab1feaac9521f0f62dfd4283ee0c5",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4921,7 +4715,7 @@
         "command": "all",
         "workers": 1,
         "exit_code": 0,
-        "stdout_sha256": "85fed7c0f3a82e34d09c29989afc55a7aacad7130dbc76878e0120d39b3c9ee2",
+        "stdout_sha256": "17be70288691d2a2d93907b93e7bd05314a3b49b3c6f1a956ebcd3450a189d18",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -4942,7 +4736,7 @@
         "command": "all",
         "workers": 8,
         "exit_code": 0,
-        "stdout_sha256": "85fed7c0f3a82e34d09c29989afc55a7aacad7130dbc76878e0120d39b3c9ee2",
+        "stdout_sha256": "17be70288691d2a2d93907b93e7bd05314a3b49b3c6f1a956ebcd3450a189d18",
         "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "errors": [],
         "status": "complete",
@@ -5140,27 +4934,465 @@
           "python-requirement-source-withheld": 1
         },
         "project_count": 6
+      },
+      {
+        "case": "npm-cli",
+        "source": "git",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "76d081533ebbfa4b48bcdb5c358861b21057a525693cb637fd9b47c3739e78c7",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "git",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "76d081533ebbfa4b48bcdb5c358861b21057a525693cb637fd9b47c3739e78c7",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "git",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "6423a90c9717d44e345399df2c45218d03bfce607b38371f3ad0142a312ce337",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "git",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "6423a90c9717d44e345399df2c45218d03bfce607b38371f3ad0142a312ce337",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "6bcf043886ab1b404f93cb4d12b63cde0b1e4bcefb21a03f81399818d4dafc71",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "6bcf043886ab1b404f93cb4d12b63cde0b1e4bcefb21a03f81399818d4dafc71",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "54b1a13738c756d31cc5a79e65b5296fe320be743c3d0cd48f0c00a3c7134733",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "npm-cli",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "54b1a13738c756d31cc5a79e65b5296fe320be743c3d0cd48f0c00a3c7134733",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 6901,
+          "manifest_candidates": 473,
+          "parsed_manifests": 471,
+          "omitted_files": 0,
+          "retained_observations": 2684,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 2,
+          "unsupported-npm-dependency": 53,
+          "unparsed-npm-target": 1,
+          "external-npm-dependency": 5,
+          "duplicate-npm-workspace-name": 1,
+          "unsupported-npm-workspace-pattern": 1,
+          "unsupported-npm-field": 1
+        },
+        "project_count": 473
+      },
+      {
+        "case": "dircue-selected-working-tree",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "03549c37bad66b661f35f826c9334541d9b67a8bf6408ec54c1924ffccd178d5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 1319,
+          "manifest_candidates": 35,
+          "parsed_manifests": 35,
+          "omitted_files": 0,
+          "retained_observations": 280,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 35
+      },
+      {
+        "case": "dircue-selected-working-tree",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "03549c37bad66b661f35f826c9334541d9b67a8bf6408ec54c1924ffccd178d5",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 1319,
+          "manifest_candidates": 35,
+          "parsed_manifests": 35,
+          "omitted_files": 0,
+          "retained_observations": 280,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 35
+      },
+      {
+        "case": "dircue-selected-working-tree",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "afcac62eeeeeeaf8996359f6c607642d3591cbeb2a4450e1a307982a1f6c852b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 1319,
+          "manifest_candidates": 35,
+          "parsed_manifests": 35,
+          "omitted_files": 0,
+          "retained_observations": 280,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 35
+      },
+      {
+        "case": "dircue-selected-working-tree",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "afcac62eeeeeeaf8996359f6c607642d3591cbeb2a4450e1a307982a1f6c852b",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "complete",
+        "coverage": {
+          "selected_files": 1319,
+          "manifest_candidates": 35,
+          "parsed_manifests": 35,
+          "omitted_files": 0,
+          "retained_observations": 280,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {},
+        "project_count": 35
+      },
+      {
+        "case": "multi-workspace",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "ff5444ab63711500bfabed909d69464c469ed59d1cff8cf1c0598f83c0daefea",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 15,
+          "manifest_candidates": 13,
+          "parsed_manifests": 12,
+          "omitted_files": 0,
+          "retained_observations": 64,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 1
+        },
+        "project_count": 13
+      },
+      {
+        "case": "multi-workspace",
+        "source": "directory",
+        "command": "declarations",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "ff5444ab63711500bfabed909d69464c469ed59d1cff8cf1c0598f83c0daefea",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 15,
+          "manifest_candidates": 13,
+          "parsed_manifests": 12,
+          "omitted_files": 0,
+          "retained_observations": 64,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 1
+        },
+        "project_count": 13
+      },
+      {
+        "case": "multi-workspace",
+        "source": "directory",
+        "command": "all",
+        "workers": 1,
+        "exit_code": 0,
+        "stdout_sha256": "3591322539213d61abea10134082c46c44241b8f7c9d811a06f9e60a14bf50aa",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 15,
+          "manifest_candidates": 13,
+          "parsed_manifests": 12,
+          "omitted_files": 0,
+          "retained_observations": 64,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 1
+        },
+        "project_count": 13
+      },
+      {
+        "case": "multi-workspace",
+        "source": "directory",
+        "command": "all",
+        "workers": 8,
+        "exit_code": 0,
+        "stdout_sha256": "3591322539213d61abea10134082c46c44241b8f7c9d811a06f9e60a14bf50aa",
+        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "errors": [],
+        "status": "partial",
+        "coverage": {
+          "selected_files": 15,
+          "manifest_candidates": 13,
+          "parsed_manifests": 12,
+          "omitted_files": 0,
+          "retained_observations": 64,
+          "omitted_diagnostics": 0
+        },
+        "diagnostics": {
+          "invalid-npm-manifest": 1
+        },
+        "project_count": 13
       }
     ]
   },
+  "public_derivation": {
+    "byte_identical_to_original": false,
+    "source_sha256": {
+      "compatibility_final_compressed": "2a0ea6af0e228ddc1fced4d925d99464b74b29d3b3bc7cde6871a9d4fb09d935",
+      "declaration_corpus_final": "23a33fa635ceb4c5e172140ff4aca8742b5e090bed5d697bc3f0289f5fb20c5d",
+      "hosted_linguist": "1bf1952bca12dd054af7cd6dbc17c004c469998f82eaaadf207468eb0535319c",
+      "hosted_linguist_samples": "5246457a57966e5cfd84b28857b3a55b2e5bdd76a4299f9ef0f4bca37a8908b0",
+      "hosted_metrics": "0e2ea3d94d4b647a39740fb61b04dae8178342280724fe3d5594dab953915525",
+      "packaged_core_smoke": "ca08c93331626b5522aa812b2bfc78d3f7a8478d0e31e7d1ed1f3d9839833798",
+      "wheel_smoke": "4ac829618d5a03d2453761344f460f944b1bfac80b6a9303294e49cb69ad2cde",
+      "archive_binding": "b405f97218a5eb1f907800fb8358b8a8ee70e2f02cfad4864aa802add8bc549e",
+      "comparison_microbenchmark": "55fc49ebf9899a302daa1d18d0ecc9e9c61790be3c48aac999c253ffbeaf258a",
+      "govulncheck": "3f5271714b97cad058d22c2b6bff9e52d6a10f0d7ca9434966c3bded553d579e",
+      "cargo_synthetic_oracle": "3dacc2a007b3fb2b6982535e4f3c4befa6882618163bff9a31cead1723bae886"
+    },
+    "transformations": [
+      "Retain final source/binary/worker/harness/fixture hashes and all individual check outcomes.",
+      "Replace embedded build receipt with reference to separately exported build-identity.json.",
+      "Omit compatibility case command paths and working directories; preserve stable case IDs, groups, process statuses and output hashes.",
+      "Omit raw stdout/stderr text; identical candidate output is represented by the original identical_to_baseline marker.",
+      "Retain interface-change commands and process/output hashes separately from the 241 exact-output cases.",
+      "Omit corpus incidental elapsed observations and warning strings; retained coverage/status/diagnostic counts qualify the successful expected-facts assertions.",
+      "Use the fresh complete80-run corpus receipt and its own harness/expectation hashes; do not combine or relabel the earlier56+16+8 selections.",
+      "Retain hosted Linguist check outcomes/provenance while omitting raw process payloads, Docker inspection paths and gem listings; retain image ID.",
+      "Retain hosted sample summary and provenance rather than all sample payloads; omit Enry module cache Dir/GoMod host paths; retain the native scc check receipt.",
+      "Retain native Darwin ARM64 core/wheel smoke and archive binding receipts unchanged under an explicit platform scope.",
+      "Retain earlier standalone Cargo1.85.0 oracle with original hashes and historical scope qualification."
+    ],
+    "raw_outputs_included": false
+  },
   "hosted_checks": {
-    "runtime_pr_head": "c3401217a4eba75656d48770fd1a38880fd3eaaf",
+    "runtime_pr_head": "4f32b22a54bdfb208d22a5227624baa1ef9c4178",
     "checkout_note": "Hosted PR jobs use the GitHub merge checkout; conformance provenance records its actual ref separately from the locally measured runtime head.",
     "runs": [
       {
-        "id": 35524865684,
+        "id": 35527155046,
         "workflow": "CI",
         "jobs": 6,
         "conclusion": "success"
       },
       {
-        "id": 35524865646,
+        "id": 35527155048,
         "workflow": "Structural prototype",
         "jobs": 2,
         "conclusion": "success"
       },
       {
-        "id": 35524865795,
+        "id": 35527155041,
         "workflow": "Structural worker",
         "jobs": 5,
         "conclusion": "success"
@@ -5177,13 +5409,13 @@
         "reference_image": "dircue-linguist:9.7.0",
         "reference_version": "9.7.0",
         "go_version": "go version go1.26.6 linux/amd64",
-        "auragaze_git_head": "494fb808a45c24803cd82545fcb69bcb2f50494c",
+        "auragaze_git_head": "760b1d6c741aaafe3050f3f9499efa39d96db135",
         "auragaze_worktree_state": {
           "exit_code": 0,
           "dirty": false,
           "porcelain": ""
         },
-        "auragaze_binary_sha256": "798baee27a29a4e5a39f024d00ceef4e8195b176b2b8afc5e7277e984f9e046e",
+        "auragaze_binary_sha256": "53617fb5afd391555ee9c3a1f6236a72e7b5648149f14379c17099f95ec569a2",
         "generator_sha256": "f75d28d2a9da6743789967a690e745dfbaa2f9b3595c38029c74f6ce8d804d68",
         "fixture_cases": [
           {
@@ -5583,8 +5815,8 @@
             "fixture_sha256": "0c4e432a7b2d0ca820cea0a8f99b363db1d1f685ef889036891d81afa6c3f7a3"
           }
         ],
-        "unix_time": 1789924437.2700644,
-        "reference_image_id": "sha256:534ac73fba15464b258a5af51ced5649c632983961101ce8e655e1d7dc825a63"
+        "unix_time": 1789927078.4518142,
+        "reference_image_id": "sha256:7f356eac43a9d3b2ce35ad3e365447bb9c5d4b421ee566dc897751fbee31f1d6"
       },
       "results": [
         {
@@ -8535,7 +8767,7 @@
         "archive_url": "https://codeload.github.com/github-linguist/linguist/tar.gz/refs/tags/v9.7.0",
         "archive_sha256": "e7b85d06f5e61a810303b8d2e03fc199760525c079fef4dd6f8b7c86342234d9",
         "upstream_git_ref": "e0c78d62c42abae6122235d8e68a7aa43eef89da",
-        "image_id": "sha256:534ac73fba15464b258a5af51ced5649c632983961101ce8e655e1d7dc825a63",
+        "image_id": "sha256:7f356eac43a9d3b2ce35ad3e365447bb9c5d4b421ee566dc897751fbee31f1d6",
         "go_version": "go version go1.26.6 linux/amd64",
         "go_enry_module": "github.com/go-enry/go-enry/v2 v2.9.6 => ./third_party/go-enry",
         "official_enry_module": {
@@ -8547,7 +8779,7 @@
           "GoModSum": "h1:9yrj4ES1YrbNb1Wb7/PWYr2bpaCXUGRt0uafN0ISyG8="
         },
         "official_enry_probe_sha256": "ba2ff9cb907992f3cb8717a57fabe653bf6bb46b2577d0c0f8d99002d86c9f51",
-        "probe_sha256": "45a366e71e89f018c27dbe7c14c484aebe306035c76808b79d87437de82bdf95",
+        "probe_sha256": "6b26a56b4d22e7dfc40a27cf3af3849e9f62159324b7d4854a1c5845327de705",
         "generator_sha256": "1678e3680d18e2bf3f7bc40b9cdb0061e77c7054c7ab7760862edffccacbb5ae"
       },
       "summary": {
@@ -8563,8 +8795,8 @@
     },
     "metrics": {
       "schema_version": "1.0.0",
-      "started_at_utc": "2026-09-20T17:10:16Z",
-      "candidate_sha256": "e963bee1ce1b19680c5eca5790c12f1435a32f792fd9f58a9a698b36cef38896",
+      "started_at_utc": "2026-09-20T17:53:12Z",
+      "candidate_sha256": "03a9cefb1bcb781225c8834bb630bf23dd501976eee049e5b040477afa51debc",
       "scc_sha256": "59af9796d6b3bac57658052228956622b5a076e88c6005b046a2ac3891dd0d52",
       "scc_version": "scc version 4.1.0",
       "harness_sha256": "199a98ecc67d7d8a9a4560303bac63d034b1b8691b3c586de40f049c39fd32c9",
@@ -8992,13 +9224,22 @@
       "result": "pass"
     }
   },
-  "local_actual_version_smoke": {
-    "execution_scope": "Locally built Darwin ARM64 core executable, not extracted from a release archive; does not replace any native packaged-release gate.",
-    "receipt": {
+  "native_local_packaging": {
+    "scope": "Darwin ARM64 archive extraction and offline installed wheel launcher. Does not substitute for other native platforms or final uploaded-release asset verification.",
+    "archive_binding": {
+      "version": "0.5.0",
+      "commit": "4f32b22a54bdfb208d22a5227624baa1ef9c4178",
+      "git_tree": "b5ae1fe778b0b4c51174d14b8110597ac6b43b08",
+      "archive": "dircue_0.5.0_darwin_arm64.tar.gz",
+      "archive_sha256": "d483cddbc614be191553df0f90c261269963f3a6387c1c8e9b3be2c9d96c8518",
+      "binary_sha256": "ab4de3aec442d70f0849a52a5aa1a5540fecc4540145e3226aafaba11930b3f4",
+      "core_provenance_sha256": "8116f0dd1aecd8c52b101334c78e6e9278c0e526a84dc8d83f483bc255cf54c7"
+    },
+    "core_declarations": {
       "schema_version": "1.0.0",
       "version": "0.5.0",
       "declarations_required": true,
-      "candidate_sha256": "251039dc1116d0969584039b2be0c0b6076880e9543b28a45f77ff7b73bb79de",
+      "candidate_sha256": "ab4de3aec442d70f0849a52a5aa1a5540fecc4540145e3226aafaba11930b3f4",
       "source_sha256": {
         "scripts/declarations_release_smoke.py": "616cc66301fecfac4f9c32bbb7dc9a47248c2dd7e93bcd381794a4cad8e1cec7",
         "scripts/wheels.py": "f9005f1590b34ca78cdda8f5c07f13c679c573eb255c9e5ca9a4aeb4c9439534"
@@ -9021,12 +9262,12 @@
       },
       "stdout_sha256": {
         "default_languages": "62564d92d66c5682cd3168e0b34447b34b331aa41206d2897ca92535315aaac1",
-        "default_all": "1c05f36b6348331898fc2df682773a7f8d79a81340a1bc43262623a2b59a2f9a",
-        "declarations": "e684abede5375abfb0930a1bcd442510744e388c2edd4d746b837dc7be2de5d7",
-        "combined": "f79397f9b7f4253314de13c43b70a95adc1626f999b406101365b678886f93bb",
-        "changed_compare": "e98e792ca43cbec8cd32e4ea9713ce869a4beb2df9002fde87c7304b57f4cd51",
-        "identical_compare": "9a0d23cca1a24076a7d1e3cc3155a7d7530f90388a477dda0e0753ecff8c299a",
-        "partial_compare": "0e485ab420b273507df073182cfb769fac3d66265b224185cb567bb099607fa7"
+        "default_all": "82f916943990d39efe22fb6e08b2bd518c7528e93a224d311b411f9ec5418db4",
+        "declarations": "53c015f543be9d22e16ce315abc812c5e7bd7615de561a22a6997962a0cac62b",
+        "combined": "8ea3bc02512daa99d3bfc4a39bf580847befd1c6c0e4c81a95dd95c02daaf2ad",
+        "changed_compare": "0b9b79475bbdb92ef5f4ceba7b54ebc56f38a484e7df3a03fcf706a3611ee0ae",
+        "identical_compare": "05438ebd7425e7dcfe687dab8a4af8c129216937b8f8f073058f67581ea19a77",
+        "partial_compare": "c2dc9afb81d1a6c79c78219282b3062444593f31d1e4145c99859080a717496c"
       },
       "worker_required": false,
       "source_removed_before_compare": true,
@@ -9080,30 +9321,100 @@
         "workspace_relationships"
       ],
       "passed": true
+    },
+    "installed_wheel": {
+      "schema_version": "1.0.0",
+      "passed": true,
+      "version": "0.5.0",
+      "platform": "darwin-arm64",
+      "wheel": "dircue-0.5.0-py3-none-macosx_12_0_arm64.whl",
+      "wheel_sha256": "2f8f0505b756e370b781e6f116b886cdbc6bbcebc40e859c33ab9780fb35c515",
+      "wheel_tag_executed": "macosx_12_0_arm64",
+      "installed_core_sha256": "ab4de3aec442d70f0849a52a5aa1a5540fecc4540145e3226aafaba11930b3f4",
+      "launcher_sha256": "56b637df0e99bd8760b3e94026fb3d680da8fde62253130b0b99a80da928035b",
+      "installation": "isolated venv; bundled ensurepip; pip --isolated --no-index --no-deps",
+      "checks": [
+        "core_version",
+        "default_fields_unchanged",
+        "default_omits_declarations",
+        "default_repeat_exact",
+        "identical_report_compare",
+        "malformed_report_rejection",
+        "named_interfaces_without_script_bodies",
+        "offline_compare_after_source_removal",
+        "one_eight_workers",
+        "partial_coverage_qualified",
+        "six_ecosystem_facts",
+        "standalone_combined_parity",
+        "workspace_relationships"
+      ],
+      "stdout_sha256": {
+        "default_languages": "62564d92d66c5682cd3168e0b34447b34b331aa41206d2897ca92535315aaac1",
+        "default_all": "2d0eb2add515388fef5ea931bcc6bfdbdb102857ff8420804760850672bdc1df",
+        "declarations": "a2ee51e20e92ece9c2a99582df907b82878f8b3cb722ca91bb4d238e880d3b75",
+        "combined": "50267522c3bd8b2773d76f2f360a501055aea5bbcd78b9ad73e8f4f196ff2dc9",
+        "changed_compare": "5c84d39a7e1a9a3814295ae2d9bb1b40f363320a95283f9e771a56b7a60e758e",
+        "identical_compare": "5494334e91b565b3735b28fae3c997a743d18c3b14e3d1f26d1bf965831113aa",
+        "partial_compare": "188877d45e39d2653d504aab381115404636c0f580abbd246d05cc894f86a211"
+      },
+      "source_removed_before_compare": true,
+      "fixture_sha256": {
+        "cargo/Cargo.toml": "9d2448b0a78c6df921f3164939b2c84d0effc0c7372111400061c1a05cb5bdc9",
+        "cargo/crates/app/Cargo.toml": "d05001d53bee6f828e1e98cb35cd26bdff5c546be1823de643fce5a994b227f0",
+        "cargo/crates/app/src/main.rs": "536e506bb90914c243a12b397b9a998f85ae2cbd9ba02dfd03a9e155ca5ca0f4",
+        "dotnet/App/App.csproj": "32486110afb5dafc57c6304c24144adce25b4740e18bc9c21abf122f899bee7c",
+        "dotnet/Library/Library.csproj": "68d376e707c5b0af97cd20a82e82428b3cd3e418537fdb77517d93c989a0fe47",
+        "go/app/go.mod": "d29114a99a41615a82576800006c5cc20207792c318e83c633fef456bce33fd6",
+        "go/app/main.go": "15dfc4f51b4ed90211b566886f456d23d6984e1bb298460786c9740b01ac183e",
+        "go/go.work": "a546e91beec0954d3dfd76a0c3cd926777f4aad86504c78be65c482adec1a299",
+        "java/app/pom.xml": "c51bf76d52697a1f21acf84ac13aeadfb7ee41e22aeef63e712b94fb29c3cef7",
+        "java/pom.xml": "30d5502280c43382d2b2fb69ee0e3e2462d1f298916afa6675d2cefb97865024",
+        "npm/package.json": "5379ed0a8e025e87a05f45e00ac975d39e2bd929a4b30f11ff907556148d9bef",
+        "npm/packages/lib/package.json": "4f719032e9bab1f89f359d6621940de33567c12fcdc816ba677af3188b18a468",
+        "python/packages/common/pyproject.toml": "1d5ee8d593164f8d47e49203a33722d711ae15c2e8d057de9dfa448450e2d2a4",
+        "python/pyproject.toml": "754dcd32d53ba7dbf79bf784b2815b9049a828cc7b78de7c34ffc32fe58c859f"
+      },
+      "observed_facts": {
+        "ecosystems": [
+          "cargo",
+          "dotnet",
+          "go",
+          "maven",
+          "npm",
+          "python-uv"
+        ],
+        "manifest_ids": [
+          "cargo/Cargo.toml",
+          "cargo/crates/app/Cargo.toml",
+          "dotnet/App/App.csproj",
+          "dotnet/Library/Library.csproj",
+          "go/app/go.mod",
+          "go/go.work",
+          "java/app/pom.xml",
+          "java/pom.xml",
+          "npm/package.json",
+          "npm/packages/lib/package.json",
+          "python/packages/common/pyproject.toml",
+          "python/pyproject.toml"
+        ],
+        "go_minimum": "1.24.0",
+        "python_minimum": ">=3.11",
+        "cargo_version": "1.2.3",
+        "cargo_edition": "2021",
+        "dotnet_framework": "net8.0",
+        "java_release": "21"
+      },
+      "negative_cases": [
+        "duplicate-json-key",
+        "malformed-json"
+      ],
+      "harness_sha256": {
+        "scripts/wheel_release_smoke.py": "28a96e3a1964499c472bb3e5ec2ed96ef11ba219ffb17138b7267eff7563c90e",
+        "scripts/declarations_release_smoke.py": "616cc66301fecfac4f9c32bbb7dc9a47248c2dd7e93bcd381794a4cad8e1cec7",
+        "scripts/wheels.py": "f9005f1590b34ca78cdda8f5c07f13c679c573eb255c9e5ca9a4aeb4c9439534"
+      },
+      "scope": "Native installed console launcher; Linux execution uses glibc. No package index, package build or publication."
     }
-  },
-  "comparison_microbenchmark": {
-    "file": "comparison-bench.txt",
-    "command": [
-      "go",
-      "test",
-      "./pkg/reportdiff",
-      "-run",
-      "^$",
-      "-bench",
-      ".",
-      "-benchmem",
-      "-count",
-      "5"
-    ],
-    "go_version": "go1.26.6",
-    "scope": "Five process-warm Go benchmark replicates; not CLI startup, wall-clock total or peak RSS. No baseline speedup comparison."
-  },
-  "local_optional_real_core_tests": {
-    "tests": 6,
-    "result": "pass",
-    "version": "0.5.0",
-    "evidence_scope": "Observed terminal test result; no separate retained terminal-log artifact. This is not a native packaged-artifact receipt."
   },
   "cargo_synthetic_oracle": {
     "schema": "dircue-cargo-synthetic-oracle-1",
@@ -9162,264 +9473,32 @@
     "passed": true,
     "scope": "Only this synthetic fixture: workspace members, default selection, inherited app version/edition/rust-version. No build, script execution, dependency fetching or complete Cargo behavior claim."
   },
-  "additional_npm_workspace_corpus": {
-    "schema": "dircue-declarations-corpus-result-1",
-    "expectations_sha256": "a19f46a85ffbf6071ae79d0db1cd3f9f4b7c53c3d0c0120ad9082393a46b184b",
-    "harness_sha256": "4c58f9b251f77fbb08c5675bbe4ba3c059edcadb4f9622b37ac5c499eb28240d",
-    "candidate_sha256": "7893fccf03040e9f234738b9ef7c5c1a167e4e8790193976ba8c0ea040403d7f",
-    "build_receipt_sha256": "eb1a7a7fc8e2476e06c7f0db49d1180a41b95514aa039c4028cfbe1c132b7031",
-    "provenance": {
-      "npm-cli": {
-        "commit": "6400533ab3d830716964bcf0def42b6c47f3fd70",
-        "url": "https://github.com/npm/cli",
-        "witness_sha256": {
-          "package.json": "a8954813e65f341da0ad28a99e0e457b25be905ab55f506346af72d4cb1ceaba",
-          "workspaces/arborist/package.json": "f0ef7d2f36d4c54feecb0b9749280bc4932fe71d49088f09caa8c23254efcdcc",
-          "docs/package.json": "73d701e8cbb6a04d9fa60b55f59e03365c351433e923c155eca1dc3bf8e5c07d",
-          "mock-registry/package.json": "3ea0649f0efed3b0f2b3be5efa2211303ffaf0d9e07d2dad80ce4dc8fbfa9d06"
-        },
-        "inventory": {
-          "files": 6901,
-          "sha256": "eb51441393a18f97face063a081ad22f4b113660d76064d1217247bb9c13ea39"
-        }
-      }
-    },
-    "errors": [],
-    "passed": true,
-    "scope": "Selected literal facts and deterministic acquisition, not full build evaluation or exhaustive parser conformance.",
-    "runs": [
-      {
-        "case": "npm-cli",
-        "source": "git",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "76d081533ebbfa4b48bcdb5c358861b21057a525693cb637fd9b47c3739e78c7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "git",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "76d081533ebbfa4b48bcdb5c358861b21057a525693cb637fd9b47c3739e78c7",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "git",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "6423a90c9717d44e345399df2c45218d03bfce607b38371f3ad0142a312ce337",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "git",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "6423a90c9717d44e345399df2c45218d03bfce607b38371f3ad0142a312ce337",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "6bcf043886ab1b404f93cb4d12b63cde0b1e4bcefb21a03f81399818d4dafc71",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "directory",
-        "command": "declarations",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "6bcf043886ab1b404f93cb4d12b63cde0b1e4bcefb21a03f81399818d4dafc71",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "directory",
-        "command": "all",
-        "workers": 1,
-        "exit_code": 0,
-        "stdout_sha256": "54b1a13738c756d31cc5a79e65b5296fe320be743c3d0cd48f0c00a3c7134733",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      },
-      {
-        "case": "npm-cli",
-        "source": "directory",
-        "command": "all",
-        "workers": 8,
-        "exit_code": 0,
-        "stdout_sha256": "54b1a13738c756d31cc5a79e65b5296fe320be743c3d0cd48f0c00a3c7134733",
-        "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "errors": [],
-        "status": "partial",
-        "coverage": {
-          "selected_files": 6901,
-          "manifest_candidates": 473,
-          "parsed_manifests": 471,
-          "omitted_files": 0,
-          "retained_observations": 2684,
-          "omitted_diagnostics": 0
-        },
-        "diagnostics": {
-          "invalid-npm-manifest": 2,
-          "unsupported-npm-dependency": 53,
-          "unparsed-npm-target": 1,
-          "external-npm-dependency": 5,
-          "duplicate-npm-workspace-name": 1,
-          "unsupported-npm-workspace-pattern": 1,
-          "unsupported-npm-field": 1
-        },
-        "project_count": 473
-      }
-    ]
+  "cargo_synthetic_oracle_scope_note": "Earlier standalone Cargo1.85.0 fixture oracle, retained under its original fixture hashes; not rerun on the patched dircue executable.",
+  "comparison_microbenchmark": {
+    "file": "comparison-bench.txt",
+    "command": [
+      "go",
+      "test",
+      "./pkg/reportdiff",
+      "-run",
+      "^$",
+      "-bench",
+      ".",
+      "-benchmem",
+      "-count",
+      "5"
+    ],
+    "go_version": "go1.26.6",
+    "scope": "Fresh patched-source five process-warm Go benchmark replicates; not CLI startup, wall-clock total or peak RSS. No baseline speedup comparison."
+  },
+  "dependency_scan": {
+    "file": "govulncheck.txt",
+    "tool_version": "v1.1.4",
+    "reachable_findings": 0,
+    "imported_package_findings": 0,
+    "module_only_findings": [
+      "GO-2026-5932"
+    ],
+    "scope": "Database-driven source scan. Remaining advisory concerns unimported golang.org/x/crypto/openpgp, with no fixed version. Private forks and internal copies require separate review; this is not a claim of vulnerability-free software."
   }
 }
