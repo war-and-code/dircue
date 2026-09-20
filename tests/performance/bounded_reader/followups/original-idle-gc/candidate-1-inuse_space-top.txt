@@ -1,0 +1,37 @@
+File: candidate-profile
+Type: inuse_space
+Time: 2026-09-20 17:11:30 EDT
+Showing nodes accounting for 332392B, 98.43% of 337688B total
+Dropped 69 nodes (cum <= 1688B)
+Showing top 30 nodes out of 68
+      flat  flat%   sum%        cum   cum%
+   238400B 70.60% 70.60%    285664B 84.59%  encoding/json.typeFields
+    25416B  7.53% 78.12%     25416B  7.53%  runtime.mallocgc
+    21760B  6.44% 84.57%     21760B  6.44%  github.com/go-enry/go-enry/v2/data.map.init.4
+    16800B  4.98% 89.54%     16800B  4.98%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+    14064B  4.16% 93.71%     14064B  4.16%  internal/sync.newEntryNode[go.shape.interface {},go.shape.interface {}] (inline)
+     4080B  1.21% 94.92%    285920B 84.67%  encoding/json.cachedTypeFields
+     4080B  1.21% 96.12%    285968B 84.68%  encoding/json.newStructEncoder (inline)
+     2688B   0.8% 96.92%     11032B  3.27%  reflect.(*rtype).ptrTo
+     2368B   0.7% 97.62%      2368B   0.7%  reflect.addReflectOff
+      704B  0.21% 97.83%    130232B 38.57%  encoding/json.newArrayEncoder
+      704B  0.21% 98.04%    130712B 38.71%  encoding/json.newSliceEncoder
+      672B   0.2% 98.24%      1792B  0.53%  dircue/pkg/scanner.Scan.func4
+      400B  0.12% 98.36%    286032B 84.70%  encoding/json.newPtrEncoder
+      256B 0.076% 98.43%     22048B  6.53%  github.com/go-enry/go-enry/v2/data.init
+         0     0% 98.43%    284032B 84.11%  dircue/internal/cli.Execute
+         0     0% 98.43%    285632B 84.58%  dircue/internal/cli.Execute.func3
+         0     0% 98.43%    285936B 84.67%  dircue/internal/cli.run
+         0     0% 98.43%    286240B 84.76%  dircue/internal/cli.writeJSON
+         0     0% 98.43%    286240B 84.76%  encoding/json.(*Encoder).Encode
+         0     0% 98.43%    286240B 84.76%  encoding/json.(*encodeState).marshal
+         0     0% 98.43%    286240B 84.76%  encoding/json.(*encodeState).reflectValue
+         0     0% 98.43%    286032B 84.70%  encoding/json.newTypeEncoder
+         0     0% 98.43%    286240B 84.76%  encoding/json.typeEncoder
+         0     0% 98.43%    286032B 84.70%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0% 98.43%    286032B 84.70%  encoding/json.typeEncoder.func1
+         0     0% 98.43%    286032B 84.70%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0% 98.43%    286240B 84.76%  encoding/json.valueEncoder
+         0     0% 98.43%    284032B 84.11%  github.com/spf13/cobra.(*Command).Execute (inline)
+         0     0% 98.43%    285392B 84.51%  github.com/spf13/cobra.(*Command).ExecuteC
+         0     0% 98.43%    284032B 84.11%  github.com/spf13/cobra.(*Command).ExecuteContext (inline)

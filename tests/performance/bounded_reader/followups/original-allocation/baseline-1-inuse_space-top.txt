@@ -1,0 +1,37 @@
+File: baseline-profile
+Type: inuse_space
+Time: 2026-09-20 17:08:23 EDT
+Showing nodes accounting for 3290328B, 98.29% of 3347464B total
+Dropped 103 nodes (cum <= 16737B)
+Showing top 30 nodes out of 51
+      flat  flat%   sum%        cum   cum%
+  2626944B 78.48% 78.48%   2626944B 78.48%  regexp.(*Regexp).get
+   245328B  7.33% 85.80%    245328B  7.33%  regexp.(*machine).alloc (inline)
+   238400B  7.12% 92.93%    284384B  8.50%  encoding/json.typeFields
+   147824B  4.42% 97.34%    147824B  4.42%  regexp.(*bitState).reset
+    20968B  0.63% 97.97%     20968B  0.63%  runtime.mallocgc
+     4080B  0.12% 98.09%    284800B  8.51%  encoding/json.cachedTypeFields
+     4080B  0.12% 98.21%    284848B  8.51%  encoding/json.newStructEncoder (inline)
+      784B 0.023% 98.24%   3030096B 90.52%  dircue/pkg/scanner.Scan.func4
+      704B 0.021% 98.26%    129272B  3.86%  encoding/json.newArrayEncoder
+      704B 0.021% 98.28%    129752B  3.88%  encoding/json.newSliceEncoder
+      400B 0.012% 98.29%    284912B  8.51%  encoding/json.newPtrEncoder
+      112B 0.0033% 98.29%   3029312B 90.50%  dircue/pkg/scanner.analyzeFile
+         0     0% 98.29%    286656B  8.56%  dircue/internal/cli.Execute
+         0     0% 98.29%    288256B  8.61%  dircue/internal/cli.Execute.func3
+         0     0% 98.29%    288400B  8.62%  dircue/internal/cli.run
+         0     0% 98.29%    288704B  8.62%  dircue/internal/cli.writeJSON
+         0     0% 98.29%    113008B  3.38%  dircue/pkg/scanner.DetectLanguage
+         0     0% 98.29%   3029200B 90.49%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 98.29%    288704B  8.62%  encoding/json.(*Encoder).Encode
+         0     0% 98.29%    285632B  8.53%  encoding/json.(*encodeState).marshal
+         0     0% 98.29%    285632B  8.53%  encoding/json.(*encodeState).reflectValue
+         0     0% 98.29%    284912B  8.51%  encoding/json.newTypeEncoder
+         0     0% 98.29%    285120B  8.52%  encoding/json.typeEncoder
+         0     0% 98.29%    284912B  8.51%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0% 98.29%    284912B  8.51%  encoding/json.typeEncoder.func1
+         0     0% 98.29%    284912B  8.51%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0% 98.29%    285120B  8.52%  encoding/json.valueEncoder
+         0     0% 98.29%    112896B  3.37%  github.com/go-enry/go-enry/v2.GetLanguagesByEmacsModeline
+         0     0% 98.29%    113008B  3.38%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 98.29%     39056B  1.17%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
