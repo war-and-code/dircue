@@ -50,6 +50,18 @@ too small for the workload can increase garbage collection and slow execution.
 Choose it from measurements of the actual workload rather than treating it as
 an alternative to external enforcement. [Go garbage collector guide](https://go.dev/doc/gc-guide#Memory_limit)
 
+For example, this requests a 256 MiB Go runtime target and four file workers:
+
+```sh
+GOMEMLIMIT=256MiB dircue --workers 4 --json /path/to/checkout
+```
+
+These settings tune execution without requesting fewer files or different
+analysis. They can trade speed for memory, but their effect depends on the
+workload. The target is not a promise that process RSS stays below 256 MiB.
+In particular, `--max-file-bytes` is a different kind of control: it changes
+coverage by skipping larger files, and is not a substitute for a memory target.
+
 Keep optional native workers within the same externally limited job when
 their memory and CPU should share that budget. A worker running elsewhere
 needs its own limits. This test campaign does not characterize BCA workers,
@@ -86,6 +98,12 @@ was 174.21 MiB; the kernel did not expose a true peak counter. The separate
 32 MiB probe was OOM-killed with exit 137, including its supervisor, and its
 output was rejected. These observations apply to the recorded development
 binary and fixture hashes.
+
+A [September 20 follow-up](../tests/resources/README.md#final-reader-follow-up-september-20-2026)
+repeated the matrix after the bounded-reader optimization. All 18 constrained
+reports again matched their unrestricted references. This validates those
+workloads under the selected limits; the two campaigns are not a controlled
+performance comparison.
 
 Future cooperative admission and resource flags remain tracked in
 [#1](https://github.com/war-and-code/dircue/issues/1) and

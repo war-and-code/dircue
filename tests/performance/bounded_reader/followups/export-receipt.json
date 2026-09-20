@@ -1,0 +1,48 @@
+{
+  "exporter_sha256": "b2b96d6da3f60830cf31a5b708ad8bc729a0bb6902f865c056c4bb6b06080ad7",
+  "reproduction_helpers": {
+    "build_variants.py": "Portable adaptation of the recorded build.py; hashes differ from the collection script.",
+    "measure_memory_targets.py": "Portable adaptation of measure_memory.py; same measured settings and pair ordering.",
+    "measure_variants.py": "Portable adaptation of measure.py with explicit paths and additional environment recording."
+  },
+  "source_receipt_sha256": {
+    "focused-builds.json": "02d48880cd4efc3bc889b1ceb54857a31a79b928bd471a37916a2be467d05aae",
+    "memory-target-results.json": "007aca2f9b8d0718c24d6e2000a5a8018f6f82de47f5ce5f750901ca40e76195",
+    "original-allocation/allocation-results.json": "99e2dba52f60a629d5bbdaed3d6e5fb84961e510f7e68bce4267aec9a1fd3eca",
+    "original-allocation/baseline-0-alloc_space-top.txt": "2a6720ca572704b45255f4460cc4d66882c4b5808b6fb8e1e670ac751c993b54",
+    "original-allocation/baseline-0-inuse_space-top.txt": "5e514761fb6329a51e30182c49c2964d8e58ef4ec4b719d6a1cc8f4451a639ac",
+    "original-allocation/baseline-1-alloc_space-top.txt": "68dde13b3d8499ecd476e92de63e4e7c06193a1246b61cc739a3f91a0810723a",
+    "original-allocation/baseline-1-inuse_space-top.txt": "714828fede22c866f9e1b81c3c3ef1d02f913c788f0932ceebac1ade5054d914",
+    "original-allocation/baseline-2-alloc_space-top.txt": "83df8aab01b09081887370ce9f00d6de49b99ad4d13052c54be021d7dd13219a",
+    "original-allocation/baseline-2-inuse_space-top.txt": "950ef9825d41a3267376e578da9e829fa9e3a43bc0fa1b00ada5ec6718b9aff6",
+    "original-allocation/build-inputs.json": "7039da0dedf044a6c7aa03406c4edf8a88cf86756c4f6df389c7bb1da043412a",
+    "original-allocation/candidate-0-alloc_space-top.txt": "5ecef627233ca53402429250f87051ac0125f7f6040a5283a0f07adf80ff90d3",
+    "original-allocation/candidate-0-inuse_space-top.txt": "8fd952afdb4dc3efd1a2e07916b0f03cb31c32f27e75be8f3727eedf48df3e97",
+    "original-allocation/candidate-1-alloc_space-top.txt": "12b032fec0cb19771239e44e94c2abb1b07c44bb8ce34e9b7ed65bfb7865831e",
+    "original-allocation/candidate-1-inuse_space-top.txt": "c285e83875a93486e918d6d32e73b299a9969bdee5fa78cb6f856fe3c5714a95",
+    "original-allocation/candidate-2-alloc_space-top.txt": "ba991069541d34b969ad80063b03525383171264d8a01b9647f51f7094b6e2e0",
+    "original-allocation/candidate-2-inuse_space-top.txt": "c2f518755bd13574fb63dcad867406d4c6a4f6be3007a35ab398ade0ec0517b2",
+    "original-idle-gc/allocation-results.json": "316366a0c2f7d2dc05922999a51d4aa664a93c1626066c96389f07436cd4cbdf",
+    "original-idle-gc/baseline-0-alloc_space-top.txt": "09a626ac72271f8384270477df840956bf3e0fad5e2f0a3392d0873b530249f2",
+    "original-idle-gc/baseline-0-inuse_space-top.txt": "321c1e16bd20e8e154ae45d7dc770b82b3278996ddd83ba9118b38b7d6f5e64d",
+    "original-idle-gc/baseline-1-alloc_space-top.txt": "d4721e137fface757416471c4317b4bf6ca4b783b9929e2c33d811811b9c6e19",
+    "original-idle-gc/baseline-1-inuse_space-top.txt": "9175097bc27f321e2a48b3d60d50af2ecbf1e4577e90d2dbbe6d9b9a67ae1fbc",
+    "original-idle-gc/baseline-2-alloc_space-top.txt": "7b53bd870169cb6fc3fb91525fe3d6ee44932152553e428e1ba667e84c1f39c7",
+    "original-idle-gc/baseline-2-inuse_space-top.txt": "a9d3d5dea8b98899ef253b5ffef1b8f2945c71e00bdf35e2515386e23f19cf7e",
+    "original-idle-gc/build-inputs.json": "c281fe612682db2297871f728b129e63acdf0977d8718fa51c71ce6c3029aeb8",
+    "original-idle-gc/candidate-0-alloc_space-top.txt": "1018d340937a3cf496542ec96e0a4a11125d9f7f9659f821564da9f716868919",
+    "original-idle-gc/candidate-0-inuse_space-top.txt": "bf5a615fde74df9970214dd3b8052662c9f28848ef0ca32cc92b3d6b0c054c18",
+    "original-idle-gc/candidate-1-alloc_space-top.txt": "8e5a049d74d78e36bab40b9fca9882431790999e39f1be1fd69d620aeeaae73e",
+    "original-idle-gc/candidate-1-inuse_space-top.txt": "e95c676d83a11c2dde5831badb1546b5027a508f36b940db83560a552aa9d090",
+    "original-idle-gc/candidate-2-alloc_space-top.txt": "71b9028d05d352f7e67727ab2e390ccf3d5f9cf39700d18c98fff4298f055da5",
+    "original-idle-gc/candidate-2-inuse_space-top.txt": "433102617e7de639252b63b0544dbace91d2dccc22fd4c657686e513689dbbda",
+    "roslyn-directory-results.json": "e29043973a4e7e9e28772abe0b1e7900d5c2bfc6056cb550547044282cfab6f7",
+    "xml-results.json": "7831c1e5a4e661bb633936380573d4327a865118898c5440eff28f7a3c8a63a0"
+  },
+  "transformations": [
+    "Local paths replaced with placeholders.",
+    "Build-input manifests gzip-compressed without losing fields.",
+    "Original-reader attribution distinguished from final-reader timing.",
+    "All measured samples, source/tool/executable hashes and output hashes preserved."
+  ]
+}

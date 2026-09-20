@@ -6,7 +6,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path"
@@ -870,7 +869,7 @@ func readBoundedSize(root *os.Root, filename string, limit int64) ([]byte, bool,
 	if !info.Mode().IsRegular() {
 		return nil, false, 0, fmt.Errorf("read %s: file changed to a non-regular file", filename)
 	}
-	content, err := io.ReadAll(io.LimitReader(file, limit+1))
+	content, err := readAllBounded(file, limit+1, info.Size())
 	if err != nil {
 		return nil, false, 0, fmt.Errorf("read %s: %w", filename, err)
 	}

@@ -1,0 +1,145 @@
+{
+  "schema": "dircue-bounded-reader-capacity-comparison-1",
+  "scope": "Returned byte-slice capacity from deterministic in-memory readers; not allocation totals, process RSS, disk I/O, or elapsed-time evidence.",
+  "go_version": "go1.26.6",
+  "platform": "darwin/arm64",
+  "content": "input_bytes repetitions of ASCII a",
+  "original_reader_sha256": "6122c13c1962e18e58bfcb167aa8904fe8996c0978f0b3e8b34a2d03a3e66b75",
+  "growth_capped_reader_sha256": "95651e17452aa3144c8247c4dc983ee106ee0dd04953b6554436953aa221667b",
+  "transformation": "After computing ordinary bounded growth, if sizeHint exceeds current capacity, cap growth at sizeHint minus current capacity. Exhausted or smaller hints retain ordinary doubling.",
+  "samples": [
+    {
+      "variant": "original",
+      "input_bytes": 1048575,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1048576,
+      "candidate_capacity_bytes": 1048575
+    },
+    {
+      "variant": "original",
+      "input_bytes": 1048576,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1048576,
+      "candidate_capacity_bytes": 1048576
+    },
+    {
+      "variant": "original",
+      "input_bytes": 1048578,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1056768,
+      "candidate_capacity_bytes": 2097154
+    },
+    {
+      "variant": "original",
+      "input_bytes": 1153433,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1155072,
+      "candidate_capacity_bytes": 2097154
+    },
+    {
+      "variant": "original",
+      "input_bytes": 1310720,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1310720,
+      "candidate_capacity_bytes": 2097154
+    },
+    {
+      "variant": "original",
+      "input_bytes": 1572864,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1572864,
+      "candidate_capacity_bytes": 2097154
+    },
+    {
+      "variant": "original",
+      "input_bytes": 2097155,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 2105344,
+      "candidate_capacity_bytes": 4194308
+    },
+    {
+      "variant": "original",
+      "input_bytes": 2202009,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 2203648,
+      "candidate_capacity_bytes": 4194308
+    },
+    {
+      "variant": "original",
+      "input_bytes": 4194309,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 4202496,
+      "candidate_capacity_bytes": 8388616
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1048575,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1048576,
+      "candidate_capacity_bytes": 1048575
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1048576,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1048576,
+      "candidate_capacity_bytes": 1048576
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1048578,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1056768,
+      "candidate_capacity_bytes": 1048578
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1153433,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1155072,
+      "candidate_capacity_bytes": 1153433
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1310720,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1310720,
+      "candidate_capacity_bytes": 1310720
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 1572864,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 1572864,
+      "candidate_capacity_bytes": 1572864
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 2097155,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 2105344,
+      "candidate_capacity_bytes": 2097155
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 2202009,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 2203648,
+      "candidate_capacity_bytes": 2202009
+    },
+    {
+      "variant": "growth_capped",
+      "input_bytes": 4194309,
+      "policy_limit_bytes": 16777217,
+      "standard_capacity_bytes": 4202496,
+      "candidate_capacity_bytes": 4194309
+    }
+  ],
+  "regression_test": "pkg/scanner/read_test.go:TestReadAllBoundedCapacityWithLargerPolicyLimit",
+  "reproduce_regression": "go test ./pkg/scanner -run TestReadAllBoundedCapacityWithLargerPolicyLimit -count=1",
+  "limitations": [
+    "A size hint remains advisory. Stale hints can still lead to additional allocation or unused retained capacity.",
+    "Existing helper microbenchmarks use limit=input_bytes+1; these checks use the larger fixed 16 MiB + 1 policy employed by default metrics.",
+    "This growth change does not affect XML aggregate prefix reads already filling their initial reservation and limit."
+  ]
+}

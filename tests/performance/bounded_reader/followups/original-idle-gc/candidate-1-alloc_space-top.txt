@@ -1,0 +1,30 @@
+File: candidate-profile
+Type: alloc_space
+Time: 2026-09-20 17:11:30 EDT
+Showing nodes accounting for 172474336B, 99.40% of 173514624B total
+Dropped 294 nodes (cum <= 867573B)
+      flat  flat%   sum%        cum   cum%
+135266528B 77.96% 77.96% 135269600B 77.96%  dircue/pkg/scanner.readAllBounded
+ 27578432B 15.89% 93.85%  27588488B 15.90%  regexp.(*Regexp).get
+  5242992B  3.02% 96.87%   5242992B  3.02%  bytes.genSplit
+  2572416B  1.48% 98.36%   2572416B  1.48%  regexp.(*machine).alloc (inline)
+  1772224B  1.02% 99.38%   1772224B  1.02%  regexp.(*bitState).reset
+    41072B 0.024% 99.40% 172756216B 99.56%  dircue/pkg/scanner.analyzeFile
+      672B 0.00039% 99.40% 172756888B 99.56%  dircue/pkg/scanner.Scan.func4
+         0     0% 99.40%   5242992B  3.02%  bytes.Split (inline)
+         0     0% 99.40%   1328384B  0.77%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.40% 172715144B 99.54%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 99.40% 135356640B 78.01%  dircue/pkg/scanner.readBoundedSize
+         0     0% 99.40%   1237920B  0.71%  github.com/go-enry/go-enry/v2.GetLanguagesByEmacsModeline
+         0     0% 99.40%   1328384B  0.77%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 99.40%   5246064B  3.02%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 99.40%  30209072B 17.41%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 99.40%   5242992B  3.02%  github.com/go-enry/go-enry/v2/data.isGeneratedNetDocfile
+         0     0% 99.40%   1238160B  0.71%  regexp.(*Regexp).FindAllSubmatch
+         0     0% 99.40%  30784056B 17.74%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 99.40%   1238160B  0.71%  regexp.(*Regexp).allMatches
+         0     0% 99.40%   1796056B  1.04%  regexp.(*Regexp).backtrack
+         0     0% 99.40%  32022216B 18.46%  regexp.(*Regexp).doExecute
+         0     0% 99.40%  30784056B 17.74%  regexp.(*Regexp).doMatch (inline)
+         0     0% 99.40%   2572416B  1.48%  regexp.(*machine).add
+         0     0% 99.40%   2615088B  1.51%  regexp.(*machine).match

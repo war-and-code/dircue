@@ -1,0 +1,37 @@
+File: baseline-profile
+Type: inuse_space
+Time: 2026-09-20 17:08:23 EDT
+Showing nodes accounting for 1316304B, 99.25% of 1326288B total
+Dropped 87 nodes (cum <= 6631B)
+Showing top 30 nodes out of 89
+      flat  flat%   sum%        cum   cum%
+   656624B 49.51% 49.51%    656624B 49.51%  regexp.(*Regexp).get
+   238400B 17.97% 67.48%    284704B 21.47%  encoding/json.typeFields
+   184640B 13.92% 81.40%    184640B 13.92%  regexp.(*bitState).reset
+    61808B  4.66% 86.07%     61808B  4.66%  regexp.(*machine).alloc (inline)
+    61184B  4.61% 90.68%     61184B  4.61%  regexp/syntax.(*compiler).inst
+    40960B  3.09% 93.77%     40960B  3.09%  regexp.onePassCopy
+    22192B  1.67% 95.44%     22192B  1.67%  runtime.mallocgc
+    16000B  1.21% 96.65%     16000B  1.21%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+    14064B  1.06% 97.71%     14064B  1.06%  internal/sync.newEntryNode[go.shape.interface {},go.shape.interface {}] (inline)
+     7104B  0.54% 98.24%      7104B  0.54%  sync.(*Pool).pinSlow
+     4080B  0.31% 98.55%    285120B 21.50%  encoding/json.cachedTypeFields
+     4080B  0.31% 98.86%    285168B 21.50%  encoding/json.newStructEncoder (inline)
+     2688B   0.2% 99.06%     10712B  0.81%  reflect.(*rtype).ptrTo
+      704B 0.053% 99.11%    130872B  9.87%  encoding/json.newArrayEncoder
+      704B 0.053% 99.17%    131352B  9.90%  encoding/json.newSliceEncoder
+      672B 0.051% 99.22%    911296B 68.71%  dircue/pkg/scanner.Scan.func4
+      400B  0.03% 99.25%    285232B 21.51%  encoding/json.newPtrEncoder
+         0     0% 99.25%    286976B 21.64%  dircue/internal/cli.Execute
+         0     0% 99.25%    288576B 21.76%  dircue/internal/cli.Execute.func3
+         0     0% 99.25%    288720B 21.77%  dircue/internal/cli.run
+         0     0% 99.25%    289024B 21.79%  dircue/internal/cli.writeJSON
+         0     0% 99.25%     40960B  3.09%  dircue/pkg/packageevidence.init
+         0     0% 99.25%    150224B 11.33%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.25%    910624B 68.66%  dircue/pkg/scanner.analyzeFile
+         0     0% 99.25%    910624B 68.66%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 99.25%    289024B 21.79%  encoding/json.(*Encoder).Encode
+         0     0% 99.25%    285952B 21.56%  encoding/json.(*encodeState).marshal
+         0     0% 99.25%    285952B 21.56%  encoding/json.(*encodeState).reflectValue
+         0     0% 99.25%    285232B 21.51%  encoding/json.newTypeEncoder
+         0     0% 99.25%    285440B 21.52%  encoding/json.typeEncoder
