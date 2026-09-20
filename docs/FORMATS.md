@@ -97,4 +97,4 @@ dircue analyze formats --json ./after > after.json
 dircue compare before.json after.json --json
 ```
 
-Comparison checks source policy, provider version, scope and limits. Missing observations under incomplete coverage cannot prove removal. The comparison describes format observations; it does not establish whether a package is usable, an archive is intact or a file is safe to execute.
+Comparison checks source policy, provider version, scope and limits. Missing observations under incomplete coverage cannot prove removal. Files can change without changing their format observations; this is not a content diff. The comparison does not establish whether a package is usable, an archive is intact or a file is safe to execute.
