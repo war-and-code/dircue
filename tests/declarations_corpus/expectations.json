@@ -290,6 +290,613 @@
       "directory_warnings": [
         "warning: framework-docs/modules/ROOT/examples/docs-src: symlink or special file skipped (non_regular_file)"
       ]
+    },
+    "opentelemetry-go": {
+      "commit": "94c37188b908988e6366fde919c1a52a5548143b",
+      "url": "https://github.com/open-telemetry/opentelemetry-go",
+      "witnesses": {
+        "go.mod": [
+          "module go.opentelemetry.io/otel",
+          "go 1.26.0",
+          "replace go.opentelemetry.io/otel/trace => ./trace",
+          "replace go.opentelemetry.io/otel/metric => ./metric"
+        ],
+        "sdk/go.mod": [
+          "module go.opentelemetry.io/otel/sdk",
+          "replace go.opentelemetry.io/otel => ../",
+          "replace go.opentelemetry.io/otel/sdk/metric => ./metric"
+        ],
+        "sdk/metric/go.mod": [
+          "module go.opentelemetry.io/otel/sdk/metric",
+          "go.opentelemetry.io/otel/metric/x v0.68.0",
+          "replace go.opentelemetry.io/otel => ../..",
+          "replace go.opentelemetry.io/otel/metric/x => ../../metric/x"
+        ],
+        "trace/go.mod": [
+          "module go.opentelemetry.io/otel/trace",
+          "replace go.opentelemetry.io/otel => ../"
+        ],
+        "metric/x/go.mod": [
+          "module go.opentelemetry.io/otel/metric/x"
+        ]
+      },
+      "facts": [
+        {
+          "id": "go.mod",
+          "project": {
+            "kind": "go",
+            "name": "go.opentelemetry.io/otel"
+          }
+        },
+        {
+          "id": "sdk/go.mod",
+          "project": {
+            "kind": "go",
+            "name": "go.opentelemetry.io/otel/sdk"
+          }
+        },
+        {
+          "id": "sdk/metric/go.mod",
+          "project": {
+            "kind": "go",
+            "name": "go.opentelemetry.io/otel/sdk/metric"
+          }
+        },
+        {
+          "id": "trace/go.mod",
+          "project": {
+            "kind": "go",
+            "name": "go.opentelemetry.io/otel/trace"
+          }
+        },
+        {
+          "id": "go.mod",
+          "requirements": {
+            "kind": "go-language-minimum",
+            "value": "1.26.0",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "trace/go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "metric/go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "sdk/go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "sdk/go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "sdk/metric/go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "sdk/metric/go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "sdk/metric/go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "metric/x/go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "trace/go.mod",
+          "references": {
+            "kind": "go-local-replacement",
+            "target": "go.mod",
+            "target_status": "present",
+            "state": "resolved"
+          }
+        },
+        {
+          "id": "sdk/metric/go.mod",
+          "references": {
+            "kind": "go-require",
+            "value": "go.opentelemetry.io/otel/metric/x@v0.68.0",
+            "target_status": "external"
+          }
+        }
+      ],
+      "forbidden_facts": [
+        {
+          "id": "go.mod",
+          "references": {
+            "kind": "go-workspace-member"
+          }
+        }
+      ]
+    },
+    "pydantic-ai": {
+      "commit": "c4898abb54dc25ae6f6aef208a4c0661b30a455e",
+      "url": "https://github.com/pydantic/pydantic-ai",
+      "witnesses": {
+        "pyproject.toml": [
+          "name = \"pydantic-ai\"",
+          "dynamic = [\"version\", \"dependencies\", \"optional-dependencies\"]",
+          "requires-python = \">=3.10\"",
+          "build-backend = \"hatchling.build\"",
+          "[tool.uv.workspace]",
+          "\"pydantic_ai_slim\",",
+          "\"pydantic_evals\",",
+          "\"pydantic_graph\",",
+          "\"clai\",",
+          "\"examples\",",
+          "pydantic-ai-slim = { workspace = true }",
+          "pai = \"pydantic_ai._cli:cli_exit\""
+        ],
+        "pydantic_graph/pyproject.toml": [
+          "name = \"pydantic-graph\"",
+          "dynamic = [\"version\"]",
+          "\"pydantic>=2.12\""
+        ],
+        "clai/pyproject.toml": [
+          "name = \"clai\"",
+          "dynamic = [\"version\", \"dependencies\"]",
+          "clai = \"clai:cli\"",
+          "pydantic-ai = { workspace = true }"
+        ],
+        "pydantic_evals/pyproject.toml": [
+          "name = \"pydantic-evals\"",
+          "pydantic-ai-slim = { workspace = true }"
+        ],
+        "pydantic_ai_slim/pyproject.toml": [
+          "name = \"pydantic-ai-slim\""
+        ],
+        "examples/pyproject.toml": [
+          "name = \"pydantic-ai-examples\""
+        ]
+      },
+      "facts": [
+        {
+          "id": "pyproject.toml",
+          "project": {
+            "name": "pydantic-ai",
+            "version": null
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "version",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "pydantic_graph/pyproject.toml",
+          "project": {
+            "name": "pydantic-graph",
+            "version": null
+          }
+        },
+        {
+          "id": "pydantic_graph/pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "version",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "clai/pyproject.toml",
+          "project": {
+            "name": "clai",
+            "version": null
+          }
+        },
+        {
+          "id": "clai/pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "version",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "pydantic_evals/pyproject.toml",
+          "project": {
+            "name": "pydantic-evals",
+            "version": null
+          }
+        },
+        {
+          "id": "pydantic_evals/pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "version",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "dependencies",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-dynamic-field",
+            "value": "optional-dependencies",
+            "state": "dynamic"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-requires-python",
+            "value": ">=3.10",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "requirements": {
+            "kind": "python-build-backend",
+            "value": "hatchling.build"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "interfaces": {
+            "kind": "python-console-script",
+            "name": "pai",
+            "target": "pydantic_ai._cli:cli_exit"
+          }
+        },
+        {
+          "id": "clai/pyproject.toml",
+          "interfaces": {
+            "kind": "python-console-script",
+            "name": "clai",
+            "target": "clai:cli"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-workspace-member",
+            "target": "pydantic_ai_slim/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-workspace-member",
+            "target": "pydantic_evals/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-workspace-member",
+            "target": "pydantic_graph/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-workspace-member",
+            "target": "clai/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-workspace-member",
+            "target": "examples/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "clai/pyproject.toml",
+          "references": {
+            "kind": "uv-source-workspace",
+            "value": "pydantic-ai",
+            "target": "pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pydantic_evals/pyproject.toml",
+          "references": {
+            "kind": "uv-source-workspace",
+            "value": "pydantic-ai-slim",
+            "target": "pydantic_ai_slim/pyproject.toml",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "pydantic_graph/pyproject.toml",
+          "references": {
+            "kind": "uv-lockfile",
+            "value": "presence-only",
+            "target": "uv.lock",
+            "state": "declared",
+            "target_status": "present"
+          }
+        }
+      ],
+      "forbidden_facts": [
+        {
+          "id": "pyproject.toml",
+          "references": {
+            "kind": "uv-local-dependency",
+            "value": "pydantic-ai-slim"
+          }
+        },
+        {
+          "id": "clai/pyproject.toml",
+          "references": {
+            "kind": "uv-local-dependency",
+            "value": "pydantic-ai"
+          }
+        }
+      ],
+      "directory_warnings": [
+        "warning: .claude/skills/complete-partial-pr: symlink or special file skipped (non_regular_file)",
+        "warning: .claude/skills/i-have-adhd: symlink or special file skipped (non_regular_file)",
+        "warning: .claude/skills/poweruser-feature-audit: symlink or special file skipped (non_regular_file)",
+        "warning: .claude/skills/pushing-commits-to-the-repo: symlink or special file skipped (non_regular_file)",
+        "warning: .github/workflows/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: CONTRIBUTING.md: symlink or special file skipped (non_regular_file)",
+        "warning: docs/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: docs/realtime/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: pydantic_ai_slim/pydantic_ai/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: pydantic_ai_slim/pydantic_ai/models/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: pydantic_ai_slim/pydantic_ai/native_tools/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: pydantic_ai_slim/pydantic_ai/realtime/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: pydantic_ai_slim/pydantic_ai/ui/CLAUDE.md: symlink or special file skipped (non_regular_file)",
+        "warning: tests/CLAUDE.md: symlink or special file skipped (non_regular_file)"
+      ]
+    },
+    "npm-cli": {
+      "commit": "6400533ab3d830716964bcf0def42b6c47f3fd70",
+      "url": "https://github.com/npm/cli",
+      "witnesses": {
+        "package.json": [
+          "\"name\": \"npm\"",
+          "\"version\": \"12.0.2\"",
+          "\"workspaces/*\"",
+          "\"mock-registry\"",
+          "\"node\": \"^22.22.2 || ^24.15.0 || >=26.0.0\"",
+          "\"@npmcli/arborist\": \"^10.0.2\"",
+          "\"npm\": \"bin/npm-cli.js\"",
+          "\"npx\": \"bin/npx-cli.js\""
+        ],
+        "workspaces/arborist/package.json": [
+          "\"name\": \"@npmcli/arborist\"",
+          "\"version\": \"10.0.2\"",
+          "\"arborist\": \"bin/index.js\""
+        ],
+        "docs/package.json": [
+          "\"name\": \"@npmcli/docs\"",
+          "\"private\": true"
+        ],
+        "mock-registry/package.json": [
+          "\"name\": \"@npmcli/mock-registry\"",
+          "\"private\": true"
+        ]
+      },
+      "facts": [
+        {
+          "id": "package.json",
+          "project": {
+            "name": "npm",
+            "version": "12.0.2"
+          }
+        },
+        {
+          "id": "package.json",
+          "requirements": {
+            "kind": "npm-engine",
+            "value": "node ^22.22.2 || ^24.15.0 || >=26.0.0"
+          }
+        },
+        {
+          "id": "package.json",
+          "requirements": {
+            "kind": "npm-workspace-root",
+            "value": "declared"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-dependency",
+            "value": "@npmcli/arborist@^10.0.2",
+            "state": "declared",
+            "target_status": "external"
+          }
+        },
+        {
+          "id": "workspaces/arborist/package.json",
+          "project": {
+            "name": "@npmcli/arborist",
+            "version": "10.0.2"
+          }
+        },
+        {
+          "id": "docs/package.json",
+          "requirements": {
+            "kind": "npm-private",
+            "value": "true"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "docs/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "smoke-tests/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "mock-globals/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "mock-registry/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "workspaces/arborist/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "workspaces/config/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-workspace-member",
+            "target": "workspaces/libnpmpack/package.json",
+            "state": "resolved",
+            "target_status": "present"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "entrypoint",
+            "name": "npm",
+            "target": "bin/npm-cli.js",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "entrypoint",
+            "name": "npx",
+            "target": "bin/npx-cli.js",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "workspaces/arborist/package.json",
+          "interfaces": {
+            "kind": "entrypoint",
+            "name": "arborist",
+            "target": "workspaces/arborist/bin/index.js",
+            "state": "declared"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "script",
+            "name": "test"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "script",
+            "name": "lint"
+          }
+        },
+        {
+          "id": "package.json",
+          "interfaces": {
+            "kind": "script",
+            "name": "prepack"
+          }
+        }
+      ],
+      "forbidden_facts": [
+        {
+          "id": "package.json",
+          "references": {
+            "kind": "npm-local-dependency",
+            "target": "workspaces/arborist/package.json"
+          }
+        }
+      ],
+      "forbidden": [
+        "node . run build -w docs",
+        "node . run test --workspaces --include-workspace-root --if-present"
+      ],
+      "excluded_manifest_segments": [
+        "node_modules"
+      ]
     }
   }
 }

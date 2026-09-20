@@ -21,7 +21,7 @@ Existing `analyze projects` keeps its earlier output, including filename-based d
 | Cargo | `Cargo.toml` | Package and workspace identity, members/default selection, supported inherited fields, scoped dependencies, declared targets and build-script observations |
 | .NET, Maven and Gradle | Existing supported project/configuration manifests | Reused static requirements and references, with the same restrictions on build evaluation as the [project reader](PROJECTS.md) |
 
-The Go grammar uses `golang.org/x/mod v0.39.0`. TOML parsing uses `go-toml v2.4.3`, with additional input and depth limits. Python/uv observations target a documented subset of uv 0.12.17. npm workspace behavior is checked against npm 11.16.0 for the supported pattern subset. These readers do not emulate every package-manager version or configuration option.
+The Go grammar uses `golang.org/x/mod v0.39.0`. TOML parsing uses `go-toml v2.4.3`, with additional input and depth limits. Python/uv observations target a documented subset of uv 0.12.17. npm workspace behavior is checked against npm 11.16.0 for the supported pattern subset. A synthetic Cargo workspace is checked against Cargo 1.85.0 for membership, default-member selection, and inherited version, edition and minimum Rust version; this does not establish complete Cargo behavior. These readers do not emulate every package-manager version or configuration option.
 
 Requirements, references, and interfaces retain evidence identifying the declaring manifest. Project IDs are root-relative manifest paths, rather than package names: two packages with the same name are still distinct observations. Shared or inherited declarations identify their supplying manifest and the relevant context.
 

@@ -40,8 +40,8 @@ only the pinned module through Go's checksum mechanism and applies that patch.
 The optional upstream HTTP-loader package is not included.
 
 The startup change was motivated by alternating process measurements identifying
-metaschema initialization as a top-three startup cost. Its opportunity score was
-3 impact × 5 confidence / 2 effort = 7.5. Behavioral checks use fresh processes
+metaschema initialization as a top-three startup cost. Behavioral checks use
+fresh processes
 for first-use/concurrency and compare accepted/rejected schemas and values
 against unmodified upstream v5.3.1. Ordering and floating-point behavior are
 unchanged; no random behavior is involved. Any speed claim requires the separate
