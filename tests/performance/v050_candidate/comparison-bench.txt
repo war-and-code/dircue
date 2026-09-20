@@ -1,0 +1,16 @@
+goos: darwin
+goarch: arm64
+pkg: dircue/pkg/reportdiff
+cpu: Apple M1 Max
+BenchmarkSavedReportLoad500Projects-10    	     104	  11489417 ns/op	  15.74 MB/s	 6558386 B/op	  195655 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	     100	  11954172 ns/op	  15.13 MB/s	 6558464 B/op	  195655 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	      99	  11934103 ns/op	  15.15 MB/s	 6558421 B/op	  195655 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	      94	  11641764 ns/op	  15.53 MB/s	 6558463 B/op	  195655 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	     100	  11508532 ns/op	  15.71 MB/s	 6558481 B/op	  195655 allocs/op
+BenchmarkCompare500Projects-10            	      54	  21735945 ns/op	25337536 B/op	  266698 allocs/op
+BenchmarkCompare500Projects-10            	      55	  23712562 ns/op	25334576 B/op	  266696 allocs/op
+BenchmarkCompare500Projects-10            	      51	  22202561 ns/op	25334649 B/op	  266699 allocs/op
+BenchmarkCompare500Projects-10            	      55	  21585553 ns/op	25337328 B/op	  266700 allocs/op
+BenchmarkCompare500Projects-10            	      55	  22056861 ns/op	25334415 B/op	  266695 allocs/op
+PASS
+ok  	dircue/pkg/reportdiff	12.682s

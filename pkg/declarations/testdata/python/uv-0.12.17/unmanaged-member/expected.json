@@ -1,0 +1,13 @@
+{
+  "root_manifest": "pyproject.toml",
+  "members": [
+    "common",
+    "suite"
+  ],
+  "local_dependencies": [
+    [
+      "suite",
+      "common"
+    ]
+  ]
+}

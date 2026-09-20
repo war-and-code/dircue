@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dircue saved-report comparison",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "dircue-report-comparison"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "source_pairing": {
+      "type": "string"
+    },
+    "base": {
+      "$ref": "#/$defs/identity"
+    },
+    "head": {
+      "$ref": "#/$defs/identity"
+    },
+    "limits": {
+      "$ref": "#/$defs/limits"
+    },
+    "modules": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/module"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "kind",
+    "status",
+    "source_pairing",
+    "base",
+    "head",
+    "limits",
+    "modules"
+  ],
+  "$defs": {
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "role": {
+          "enum": [
+            "base",
+            "head"
+          ]
+        },
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "report_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schema_version": {
+          "enum": [
+            "1.0.0",
+            "1.1.0",
+            "1.2.0",
+            "1.3.0",
+            "1.4.0"
+          ]
+        },
+        "declared_root": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "role",
+        "report_sha256",
+        "report_bytes",
+        "schema_version",
+        "declared_root"
+      ]
+    },
+    "value": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "data": {},
+        "omitted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "sha256",
+        "bytes",
+        "omitted"
+      ],
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "omitted": {
+                "const": false
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "data"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "data"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "field": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string"
+        },
+        "base": {
+          "$ref": "#/$defs/value"
+        },
+        "head": {
+          "$ref": "#/$defs/value"
+        }
+      },
+      "required": [
+        "field"
+      ],
+      "anyOf": [
+        {
+          "required": [
+            "base"
+          ]
+        },
+        {
+          "required": [
+            "head"
+          ]
+        }
+      ]
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "added",
+            "removed",
+            "changed",
+            "unavailable"
+          ]
+        },
+        "basis": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        },
+        "base_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        },
+        "head_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 16
+        },
+        "base_evidence_omitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "head_evidence_omitted": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "status",
+        "basis",
+        "base_evidence",
+        "head_evidence",
+        "base_evidence_omitted",
+        "head_evidence_omitted",
+        "fields"
+      ]
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "added": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "removed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unavailable": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted_changes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "added",
+        "removed",
+        "changed",
+        "unchanged",
+        "unavailable",
+        "omitted_changes"
+      ]
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "unchanged",
+            "changed",
+            "unavailable",
+            "incomparable"
+          ]
+        },
+        "compatibility": {
+          "enum": [
+            "compatible",
+            "observed_only",
+            "unavailable",
+            "incomparable"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "base_status": {
+          "type": "string"
+        },
+        "head_status": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/field"
+          }
+        },
+        "counts": {
+          "$ref": "#/$defs/counts"
+        },
+        "changes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/change"
+          },
+          "maxItems": 4096
+        }
+      },
+      "required": [
+        "name",
+        "scope",
+        "status",
+        "compatibility",
+        "reasons",
+        "base_status",
+        "head_status",
+        "metadata",
+        "counts",
+        "changes"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "input_bytes": {
+          "const": 33554432
+        },
+        "depth": {
+          "const": 64
+        },
+        "nodes": {
+          "const": 1000000
+        },
+        "string_bytes": {
+          "const": 65536
+        },
+        "changes": {
+          "const": 4096
+        },
+        "field_value_bytes": {
+          "const": 2048
+        },
+        "output_bytes": {
+          "const": 8388608
+        },
+        "evidence_paths": {
+          "const": 16
+        },
+        "evidence_path_bytes": {
+          "const": 1024
+        }
+      },
+      "required": [
+        "input_bytes",
+        "depth",
+        "nodes",
+        "string_bytes",
+        "changes",
+        "field_value_bytes",
+        "output_bytes",
+        "evidence_paths",
+        "evidence_path_bytes"
+      ]
+    }
+  }
+}

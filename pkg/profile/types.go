@@ -3,6 +3,7 @@ package profile
 
 import (
 	"context"
+	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
 	"dircue/pkg/packageevidence"
 	"dircue/pkg/projects"
@@ -68,7 +69,10 @@ const ExpandedSchemaVersion = "1.2.0"
 
 const EnhancedSchemaVersion = "1.3.0"
 
+const DeclarationsSchemaVersion = "1.4.0"
+
 type Report struct {
+	Declarations    *declarations.Report    `json:"declarations,omitempty"`
 	Registries      *registries.Report      `json:"registries,omitempty"`
 	Rules           *rules.Report           `json:"rules,omitempty"`
 	PackageEvidence *packageevidence.Report `json:"package_evidence,omitempty"`

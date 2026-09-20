@@ -2,9 +2,10 @@
 
 Start with a profile of the directory, then decide which additional work its contents justify. Metrics, structural parsing, and external package inventories answer different questions; none needs to run merely because another ran.
 
-The examples below use released 0.3.0 commands and schema. On the development
-branch, [`analyze discovery`](DISCOVERY.md) provides an earlier metadata-only
-pass without source-payload reads. Its manifest and artifact candidates can
+The consumer example below uses the schema 1.2.0 project contract introduced in
+0.3.0, which existing commands still support. For a pass limited to metadata,
+[`analyze discovery`](DISCOVERY.md) inventories selected files without reading their
+source payloads. Its manifest and artifact candidates can
 help choose whether to request project declarations, language analysis, or
 another inventory. Filename hints cannot validate content formats or establish
 that follow-up work is unnecessary. Its schema `1.3.0` is not accepted by the
@@ -21,6 +22,19 @@ This command reports language totals, ecosystem/framework/layout findings, proje
 Use a stable input directory throughout the stages. `--source directory` selects current files on disk, including working files absent from committed Git history. Without it, automatic selection at a Git repository root ordinarily reads committed `HEAD`. A Git profile and a later filesystem scan can therefore describe different inputs. The project report records `projects.source`; Git reports also identify `projects.tree`. Directory reports do not contain an immutable snapshot identifier.
 
 The command emits aggregate schema `1.2.0`. Legacy `dircue --json` emits only Linguist-compatible language totals and cannot supply this discovery evidence. In particular, `{}` does not establish that a directory is empty or lacks packaged software.
+
+For supported manifest details in 0.5.0, request a separate bounded pass:
+
+```sh
+dircue analyze declarations --source directory --json /path/to/checkout
+```
+
+This command reads supported manifests while avoiding language classification of
+unrelated contents. It can establish declared workspace membership, requirements,
+local references and named interfaces for supported ecosystems. Check its states,
+diagnostics and coverage before interpreting missing relationships. It does not
+run the declared interfaces or determine which package-manager invocation succeeds.
+See [project declarations](DECLARATIONS.md).
 
 ## Read evidence before selecting work
 
@@ -102,7 +116,7 @@ The [staged-analysis measurements](../tests/staged_analysis/README.md) compare t
 
 The language-only CLI, default aggregate report, and module opt-ins retain their existing behavior. A successful scan can still contain warnings or partial module results, including a tree-limit result that omits analysis. Check process status first and then report coverage; do not rely on exit status alone to decide that an inventory is complete.
 
-Dircue 0.4.0 also provides [metadata-only discovery](DISCOVERY.md). Further whole-workflow evaluation remains in [#22](https://github.com/war-and-code/dircue/issues/22); saved-report comparison and reusable inventories are tracked in [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
+Dircue 0.4.0 also provides [metadata-only discovery](DISCOVERY.md). Further whole-workflow evaluation remains in [#22](https://github.com/war-and-code/dircue/issues/22); 0.5.0 adds [offline comparison of saved reports](COMPARISON.md). Comparison does not cache inventories or avoid the scans that produced its inputs; incremental reuse remains tracked in [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
 
 The [roadmap](https://github.com/war-and-code/dircue/issues/41) connects those foundations to proposed entry-point
 mapping, optional semantic providers, and portable context for caller-selected
