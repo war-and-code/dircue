@@ -99,6 +99,12 @@ was 174.21 MiB; the kernel did not expose a true peak counter. The separate
 output was rejected. These observations apply to the recorded development
 binary and fixture hashes.
 
+A [September 20 follow-up](../tests/resources/README.md#final-reader-follow-up-september-20-2026)
+repeated the matrix after the bounded-reader optimization. All 18 constrained
+reports again matched their unrestricted references. This validates those
+workloads under the selected limits; the two campaigns are not a controlled
+performance comparison.
+
 Future cooperative admission and resource flags remain tracked in
 [#1](https://github.com/war-and-code/dircue/issues/1) and
 [#2](https://github.com/war-and-code/dircue/issues/2).
