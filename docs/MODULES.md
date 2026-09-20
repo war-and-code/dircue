@@ -1,6 +1,6 @@
 # Profiling module boundaries
 
-This document describes the 0.4.0 candidate's scanner and the constraints for
+This document describes the 0.4.0 scanner and the constraints for
 extending it. There is no runtime plugin loader or declarative
 module registry.
 

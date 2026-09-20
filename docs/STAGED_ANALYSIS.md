@@ -80,9 +80,9 @@ dircue analyze structure --source directory --json --files \
     --structural-worker /path/to/dircue-structural-worker /path/to/checkout
 ```
 
-A pipeline may also run its installed Syft executable. Dircue 0.3.0 neither invokes Syft nor imports its reports. Explicit integration is tracked separately in [#20](https://github.com/war-and-code/dircue/issues/20) and [#21](https://github.com/war-and-code/dircue/issues/21).
+A pipeline may also run its installed Syft executable. Dircue does not invoke Syft; an explicit execution option remains planned in [#21](https://github.com/war-and-code/dircue/issues/21).
 
-The development branch can [import an existing Syft report](PACKAGE_EVIDENCE.md)
+Dircue 0.4.0 can [import an existing Syft report](PACKAGE_EVIDENCE.md)
 with `analyze packages --syft-report FILE`. Importing is separate from choosing
 or executing Syft. Match the cataloged source to the dircue inventory explicitly;
 a plausible path match alone does not establish that both describe the same
@@ -102,8 +102,8 @@ The [staged-analysis measurements](../tests/staged_analysis/README.md) compare t
 
 The language-only CLI, default aggregate report, and module opt-ins retain their existing behavior. A successful scan can still contain warnings or partial module results, including a tree-limit result that omits analysis. Check process status first and then report coverage; do not rely on exit status alone to decide that an inventory is complete.
 
-A lighter dedicated discovery contract and reusable inventories remain future work in [#22](https://github.com/war-and-code/dircue/issues/22) and [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
+Dircue 0.4.0 also provides [metadata-only discovery](DISCOVERY.md). Further whole-workflow evaluation remains in [#22](https://github.com/war-and-code/dircue/issues/22); saved-report comparison and reusable inventories are tracked in [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
 
-The [roadmap](ROADMAP.md) connects those foundations to proposed entry-point
+The [roadmap](https://github.com/war-and-code/dircue/issues/41) connects those foundations to proposed entry-point
 mapping, optional semantic providers, and portable context for caller-selected
 analysis. It keeps observations separate from the policy that selects follow-ups.
