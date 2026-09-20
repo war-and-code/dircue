@@ -37,7 +37,8 @@ var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 })
 
 // ValidateProfile checks an already decoded JSON value. Callers handling
-// untrusted bytes must bound and validate their JSON input before decoding.
+// untrusted bytes must bound and validate their JSON input before decoding,
+// including numeric token lengths, exponents and representability.
 func ValidateProfile(value any) error {
 	compiled, err := compileProfile()
 	if err != nil {
