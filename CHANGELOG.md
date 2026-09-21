@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 (unreleased)
+
+- Add opt-in environment requirement observations from supported project declarations, with bounded .NET `global.json` selection for modeled project-directory invocation contexts. Keep SDK selection, target frameworks, advisory toolchains and unresolved declarations distinct; do not probe installed tools or run builds.
+- Add offline follow-up planning from a saved profile and explicit caller questions or modules. Bind decisions to report bytes and source evidence, expose a machine-readable capability registry, and emit inert argument templates with prerequisites and coverage qualifications.
+- Extend offline comparison to focused project populations, separate line metrics, affected-project observations, and source-availability evidence. Changed scope, policy and incomplete coverage qualify differences; environment and explanation comparison remain explicitly unsupported.
+- Use aggregate schema 1.7.0 only when environment evidence is requested. Existing profiling commands retain their schemas and process contracts.
+
 ## 0.7.0 (2026-09-21)
 
 - Add focused .NET and Python/uv project profiling with original-root attribute context, qualified ownership boundaries, and explicit shared declarations. Count primary and explicitly selected related projects separately with optional scc metrics.

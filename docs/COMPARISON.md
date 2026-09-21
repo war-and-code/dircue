@@ -11,9 +11,9 @@ dircue compare before.json after.json --json > changes.json
 
 `compare` reads the two supplied files. It does not open their declared roots, follow evidence paths, rescan content, fetch Git history, or invoke another tool. Keep report files outside the inspected directory when taking filesystem snapshots so they do not become part of the next inventory.
 
-Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.5. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
+Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.7. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
 
-Targeted reports introduced in 0.7.0 use schema 1.6.0 and are explicitly rejected by `compare`. Focused and repository-wide totals have different populations; comparison must account for that before accepting them. Use `analyze explain --report FILE` to query retained evidence in these reports. Existing unfocused reports still use schemas 1.0–1.5.
+From 0.8.0, comparison accepts the focused and source-availability reports introduced in schema 1.6.0. It also accepts schema 1.7.0 reports containing environment evidence, while explicitly marking environment comparison unsupported. Explanation comparison is likewise unsupported. Other supported modules in these reports can still be compared.
 
 ## Read compatibility before changes
 
@@ -40,11 +40,15 @@ Language, finding, project and metrics reports, including those produced by 0.5.
 - Imported package, relationship and file observations, with imported-source qualifications retained.
 - Aggregate line metrics and a separate `metrics_files` module when both reports include per-file details.
 - Format evidence by path, with inspected population, read extent and supported validation profiles.
+- Focused primary and related project populations, shared context, affected projects, and separate per-population metrics. Different project selections or counting policies are incomparable; incomplete focus coverage cannot establish removals.
+- Source-availability evidence, including LFS pointers, Gitlinks, submodule declarations and checkout observations. Different prerequisite coverage qualifies reference observations; a changed Git tree alone does not prevent comparison.
 - Hotspot distributions and retained top evidence by language, grammar, syntax cohort and metric.
 
 Detailed per-file structural/function and graph comparisons remain unsupported; their presence is reported explicitly. The separate `hotspots` comparison describes measured distributions and rankings. It does not match function identities or infer deletion when an entry leaves a top-ten list. Missing populations remain unavailable, and changes to provider, rule or selection policy are incomparable. Renames are not inferred. Project IDs are manifest paths. Per-file metrics use paths; imported package and file observations retain provider IDs. Compound observation identities preserve their component boundaries. Relevant denominators accompany compared language and metric populations.
 
 Collections are compared independently of presentation order. Large field values are represented by canonical-value digests and sizes instead of being copied in full. Thus a field can be known to differ even when its value is omitted from the comparison output.
+
+Availability reference correlations require declaration evidence from the same source mode and selected tree within each input report. Reports that mix those snapshots are rejected. The base and head reports may still name different Git trees: that is the ordinary revision delta being compared, not a policy incompatibility.
 
 ```sh
 jq '.modules[] | {name, scope, compatibility, reasons, counts}' changes.json

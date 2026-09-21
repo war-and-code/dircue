@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"dircue/pkg/focus"
 	"dircue/pkg/profile"
 )
 
@@ -277,7 +278,226 @@ func moduleInputs(p profile.Report) map[string]moduleData {
 		}
 		result[name] = m
 	}
+	targetedModules(p, result)
 	return result
+}
+
+func targetedModules(p profile.Report, result map[string]moduleData) {
+	if p.Focus != nil {
+		r := p.Focus
+		policy := map[string]any{"provider": r.Provider, "provider_version": r.ProviderVersion, "source": r.Source, "role": r.Scope.Role, "rule": r.Scope.Rule, "primary_project": r.Scope.PrimaryProject, "related_projects": sortedStrings(r.Scope.RelatedProjects), "affected_by": r.Scope.AffectedBy}
+		metadata := map[string]any{"tree": r.Tree, "scope_id": r.Scope.ID, "coverage": r.Coverage, "limits": r.Limits, "boundaries": r.Boundaries, "omissions": r.Omissions}
+		complete := focusComplete(r)
+		primary := scopedModule(r.Status, complete, policy, metadata)
+		if r.PrimaryProject != nil {
+			primary.add("project:"+r.PrimaryProject.ID, *r.PrimaryProject, r.PrimaryProject.ID)
+		}
+		for _, f := range r.Primary {
+			primary.add("file:"+f.Path, f, f.Path)
+		}
+		result["focus_primary"] = primary
+		related := scopedModule(r.Status, complete, policy, metadata)
+		for _, population := range r.Related {
+			related.add("project:"+population.Project.ID, population.Project, population.Project.ID)
+			for _, f := range population.Files {
+				related.add("file:"+key(population.Project.ID, f.Path), f, f.Path)
+			}
+		}
+		result["focus_related"] = related
+		context := scopedModule(r.Status, complete && r.Coverage.OmittedRecords == 0, policy, metadata)
+		for _, item := range r.Context {
+			context.add(key(item.ProjectID, item.Path, item.Kind, item.Basis, item.Evidence), item, item.Path, item.Evidence)
+		}
+		result["focus_context"] = context
+		relations := scopedModule(r.Status, complete && r.Coverage.OmittedRelations == 0, policy, metadata)
+		for _, item := range r.Relations {
+			relations.add(key(item.SourceProject, item.Target, item.Kind, item.Class, item.Value, item.Evidence), item, item.Evidence)
+		}
+		result["focus_relations"] = relations
+		if r.AffectedProjects != nil {
+			query := scopedModule(r.AffectedProjects.Status, complete && r.AffectedProjects.Omitted == 0, policy, metadata)
+			query.metadata["path"] = r.AffectedProjects.Path
+			query.metadata["omitted"] = r.AffectedProjects.Omitted
+			for _, item := range r.AffectedProjects.Projects {
+				query.add(key(item.ProjectID, item.Basis, item.Applicability, item.Evidence), item, item.Evidence)
+			}
+			result["focus_affected_projects"] = query
+		}
+		qualifyLegacyPopulation(result, "repository_population_not_inspected_by_focused_report")
+	}
+	if p.FocusedMetrics != nil && p.Focus != nil {
+		policy := map[string]any{"provider": p.Focus.Provider, "provider_version": p.Focus.ProviderVersion, "source": p.Focus.Source, "role": p.Focus.Scope.Role, "rule": p.Focus.Scope.Rule, "primary_project": p.Focus.Scope.PrimaryProject, "related_projects": sortedStrings(p.Focus.Scope.RelatedProjects), "metrics": metricsPolicy(p.FocusedMetrics.Primary)}
+		metadata := map[string]any{"tree": p.Focus.Tree, "scope_id": p.FocusedMetrics.ScopeID}
+		parentComplete := focusComplete(p.Focus)
+		result["focused_metrics_primary"] = focusedMetricsModule(p.FocusedMetrics.Primary, parentComplete, policy, metadata, "primary")
+		relatedContracts := map[string]any{}
+		for _, item := range p.FocusedMetrics.Related {
+			relatedContracts[item.Project] = metricsPolicy(item.Metrics)
+		}
+		relatedPolicy := cloneMap(policy)
+		relatedPolicy["metrics_by_project"] = relatedContracts
+		delete(relatedPolicy, "metrics")
+		m := scopedModule("complete", parentComplete, relatedPolicy, metadata)
+		for _, item := range p.FocusedMetrics.Related {
+			addMetrics(&m, item.Metrics, "project:"+item.Project+":")
+			if item.Metrics.Status != "complete" || len(item.Metrics.Skipped) != 0 {
+				m.complete, m.observedOnly = false, true
+			}
+		}
+		result["focused_metrics_related"] = m
+	}
+	if p.Availability != nil {
+		availabilityModules(p, result)
+	}
+	if p.Explanation != nil {
+		m := newModule()
+		m.present, m.status, m.unsupported = true, "unavailable", true
+		m.reasons = append(m.reasons, "semantic_trace_comparison_not_supported")
+		result["explanation"] = m
+	}
+	if p.Environments != nil {
+		m := newModule()
+		m.present, m.status, m.unsupported = true, "unavailable", true
+		m.reasons = append(m.reasons, "environment_comparison_not_supported")
+		result["environments"] = m
+		if p.Focus == nil && p.Formats == nil && p.Registries == nil && p.Rules == nil && p.PackageEvidence == nil && p.Discovery == nil && p.Graph == nil && p.Projects == nil && p.Structure == nil && p.Metrics == nil && legacyPopulationEmpty(p) {
+			qualifyLegacyPopulation(result, "repository_population_not_inspected_by_environment_report")
+		}
+	}
+	if p.Focus == nil && (p.Availability != nil || p.Explanation != nil) && p.Formats == nil && p.Declarations == nil && p.Registries == nil && p.Rules == nil && p.PackageEvidence == nil && p.Discovery == nil && p.Graph == nil && p.Projects == nil && p.Structure == nil && p.Metrics == nil {
+		qualifyLegacyPopulation(result, "repository_population_not_inspected_by_standalone_targeted_report")
+	}
+}
+
+func legacyPopulationEmpty(p profile.Report) bool {
+	return len(p.Languages) == 0 && len(p.Ecosystems) == 0 && len(p.Frameworks) == 0 && len(p.Layouts) == 0 && p.Summary.AnalyzedFiles == 0 && p.Summary.LanguageBytes == 0
+}
+
+func qualifyLegacyPopulation(result map[string]moduleData, reason string) {
+	for _, name := range []string{"languages", "summary", "ecosystems", "frameworks", "layouts", "metrics", "metrics_files"} {
+		m := result[name]
+		m.unsupported, m.complete = true, false
+		m.reasons = append(m.reasons, reason)
+		result[name] = m
+	}
+}
+
+func scopedModule(status string, complete bool, policy, metadata map[string]any) moduleData {
+	m := newModule()
+	m.present, m.status, m.complete = true, status, complete
+	m.policy, m.metadata = policy, metadata
+	if !complete {
+		m.observedOnly = true
+	}
+	return m
+}
+
+func focusComplete(r *focus.Report) bool {
+	c := r.Coverage
+	return r.Status == "complete" && c.OmittedFiles == 0 && c.OmittedProjects == 0 && c.OmittedRecords == 0 && c.OmittedRelations == 0 && c.OmittedOutputRecords == 0 && c.AmbiguousFiles == 0 && c.UnresolvedFiles == 0 && len(r.Omissions) == 0
+}
+
+func focusedMetricsModule(r *profile.MetricsReport, parentComplete bool, policy, metadata map[string]any, prefix string) moduleData {
+	if r == nil {
+		return newModule()
+	}
+	m := scopedModule(r.Status, parentComplete && r.Status == "complete" && len(r.Skipped) == 0, policy, metadata)
+	addMetrics(&m, r, prefix+":")
+	return m
+}
+
+func metricsPolicy(r *profile.MetricsReport) map[string]any {
+	if r == nil {
+		return map[string]any{"present": false}
+	}
+	return map[string]any{"present": true, "engine": r.Engine, "engine_version": r.EngineVersion, "source": r.Source, "scope": r.Scope, "max_file_bytes": r.MaxFileBytes, "file_details_included": r.Files != nil}
+}
+
+func cloneMap(in map[string]any) map[string]any {
+	out := make(map[string]any, len(in))
+	for k, v := range in {
+		out[k] = v
+	}
+	return out
+}
+
+func addMetrics(m *moduleData, r *profile.MetricsReport, prefix string) {
+	m.add(prefix+"totals", r.Totals)
+	for _, language := range r.Languages {
+		m.add(prefix+"language:"+key(language.Language, language.Grammar), language)
+	}
+	for _, directory := range r.Directories {
+		m.add(prefix+"directory:"+directory.Path, directory, directory.Path)
+	}
+	if r.Files != nil {
+		for _, file := range *r.Files {
+			m.add(prefix+"file:"+file.Path, file, file.Path)
+		}
+	}
+}
+
+func sortedStrings(in []string) []string {
+	out := append([]string{}, in...)
+	slices.Sort(out)
+	return out
+}
+
+func availabilityModules(p profile.Report, result map[string]moduleData) {
+	r := p.Availability
+	policy := map[string]any{"provider": r.Provider, "provider_version": r.ProviderVersion, "source_mode": r.Source.Mode, "source_consistency": r.Source.Consistency, "checkout_metadata": r.Source.CheckoutMetadata, "bounds": r.Bounds}
+	metadata := map[string]any{"tree": r.Source.Tree, "coverage": r.Coverage, "counts": r.Counts, "omissions": r.Omissions}
+	baseComplete := r.Status == "complete" && r.Coverage.SelectedInventoryComplete && r.Coverage.OmittedEvidence == 0 && r.Coverage.OmittedDiagnostics == 0
+	makeModule := func(complete bool) moduleData { return scopedModule(r.Status, complete, policy, metadata) }
+	lfs := makeModule(baseComplete && r.Coverage.OmittedPointerFiles == 0)
+	for _, item := range r.LFS {
+		lfs.add(item.Path, item, item.Path)
+	}
+	result["availability_lfs"] = lfs
+	boundariesComplete := baseComplete && r.Coverage.OmittedBoundaryPaths == 0
+	gitlinks := makeModule(boundariesComplete)
+	for _, item := range r.Gitlinks {
+		gitlinks.add(item.Path, item, item.Path)
+	}
+	result["availability_gitlinks"] = gitlinks
+	submodules := makeModule(boundariesComplete)
+	for _, item := range r.Submodules {
+		submodules.add(item.Path, item, item.Path, item.Evidence)
+	}
+	result["availability_submodules"] = submodules
+	sparseComplete := r.Source.Mode == "directory" && r.Coverage.CheckoutMetadataInspected && r.Coverage.CheckoutMetadataComplete && r.Coverage.OmittedBoundaryPaths == 0 && r.Coverage.OmittedEvidence == 0
+	sparse := makeModule(sparseComplete)
+	if r.Source.Mode == "git" {
+		sparse.status, sparse.unsupported = "unavailable", true
+		sparse.reasons = append(sparse.reasons, "checkout_metadata_not_inspected_for_git_tree")
+	}
+	for _, item := range r.Sparse {
+		sparse.add(key(item.Kind, item.Path, item.Evidence), item, item.Path, item.Evidence)
+	}
+	result["availability_sparse"] = sparse
+	declarationsComplete := p.Declarations != nil && p.Declarations.Status == "complete" && p.Declarations.Coverage.OmittedFiles == 0 && p.Declarations.Coverage.OmittedDiagnostics == 0 && len(p.Declarations.Diagnostics) == 0
+	referencePolicy := cloneMap(policy)
+	referencePolicy["declaration_input"] = declarationInputPolicy(p)
+	references := makeModule(boundariesComplete && r.Coverage.OmittedCorrelations == 0 && declarationsComplete)
+	references.policy = referencePolicy
+	if !declarationsComplete {
+		references.reasons = append(references.reasons, "retained_declaration_coverage_required_for_reference_absence")
+	}
+	for _, item := range r.References {
+		references.add(key(item.Project, item.Kind, item.Target, item.Evidence), item, item.Evidence, item.BoundaryPath)
+	}
+	result["availability_references"] = references
+	diagnostics := makeModule(false)
+	for _, item := range r.Diagnostics {
+		diagnostics.add(key(item.Path, item.Code, item.Message), item, item.Path)
+	}
+	result["availability_diagnostics"] = diagnostics
+}
+
+func declarationInputPolicy(p profile.Report) map[string]any {
+	if p.Declarations == nil {
+		return map[string]any{"retained": false}
+	}
+	return map[string]any{"retained": true, "provider": p.Declarations.Provider, "provider_version": p.Declarations.ProviderVersion, "source": p.Declarations.Source, "selection": p.Declarations.Selection}
 }
 
 func zeroMap(m map[string]int64) bool {

@@ -4,6 +4,10 @@ import "github.com/spf13/cobra"
 
 func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	switch mode {
+	case "environments":
+		cmd.Short = "Map declared project environments without running builds"
+		cmd.Long = "Reuse supported project requirements and inspect bounded global.json inputs from the selected source. SDK selection is modeled from each project root, not an observed build invocation. Requirements, conditions, missing context and unsupported constraints remain explicit; installed tools are never probed."
+		cmd.Example = "  dircue analyze environments --json /checkout\n  dircue analyze all --environments --json /checkout"
 	case "availability":
 		cmd.Short = "Inspect source-acquisition boundaries without fetching content"
 		cmd.Long = "Inspect bounded file prefixes for Git LFS pointers and retain selected Gitlinks and submodule declarations. Directory mode can inspect supported confined sparse-checkout metadata; committed-tree mode keeps that checkout evidence separate. Does not fetch, hydrate, or execute filters. Inspect inventory, metadata coverage, and omissions before interpreting missing content."
