@@ -24,6 +24,15 @@ var formatsJSON []byte
 //go:embed hotspots.schema.json
 var hotspotsJSON []byte
 
+//go:embed focus.schema.json
+var focusJSON []byte
+
+//go:embed availability.schema.json
+var availabilityJSON []byte
+
+//go:embed explanation.schema.json
+var explanationJSON []byte
+
 var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	compiler := jsonschema.NewCompiler()
 	// All references must resolve to bundled resources. Report validation never
@@ -33,6 +42,9 @@ var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	}
 	for name, data := range map[string][]byte{
 		"profile.schema.json":      profileJSON,
+		"focus.schema.json":        focusJSON,
+		"availability.schema.json": availabilityJSON,
+		"explanation.schema.json":  explanationJSON,
 		"declarations.schema.json": declarationsJSON,
 		"formats.schema.json":      formatsJSON,
 		"hotspots.schema.json":     hotspotsJSON,

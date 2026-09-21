@@ -6,9 +6,7 @@ Dircue identifies languages, maps declared projects and their relationships, and
 
 Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
 
-Version 0.6.1 reduces allocation during bounded reads and strengthens aggregation tests, preserving existing CLI and report contracts. The [performance evidence](tests/performance/bounded_reader/README.md) records workload-specific improvements and memory tradeoffs; the [release notes](docs/releases/0.6.1.md) summarize the patch.
-
-Version 0.6.0 adds opt-in [file format evidence](docs/FORMATS.md) and [function hotspot distributions](docs/HOTSPOTS.md). Inspect mixed data and artifact directories, or find large and highly branched function spaces with their source locations and measurement limits. [Saved-report comparison](docs/COMPARISON.md) includes these observations.
+Version 0.7.0 adds [focused project profiling](docs/FOCUS.md), [source-availability evidence](docs/AVAILABILITY.md), and [targeted explanations](docs/EXPLANATIONS.md). Inspect a project with its shared context, count its lines separately, or find out why a file was included or omitted. These capabilities are explicitly selected; existing language commands keep their output contracts.
 
 The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
@@ -18,6 +16,9 @@ dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze declarations --json /path/to/checkout
 dircue analyze formats --json /path/to/content
+dircue analyze focus --project services/app/app.csproj --metrics --json /path/to/checkout
+dircue analyze availability --json /path/to/checkout
+dircue analyze explain --file src/main.go --json /path/to/checkout
 dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout

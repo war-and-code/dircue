@@ -12,12 +12,13 @@ to assess. GitHub then runs the complete platform and conformance checks.
 | Draft PR opened, updated, or reopened | Python example and packaging checks on `ubuntu-slim` |
 | PR marked ready for review | Full Go, conformance, native-worker, and prototype suites |
 | New commit on a ready PR | Full suites on the new commit |
-| PR converted back to draft | Cancel older runs for that PR; lightweight checks only |
+| PR converted back to draft | Cancel older full-validation runs for that PR; lightweight checks only |
 | Push to `main` | Lightweight checks and the Linux Go suite |
 | Explicit workflow dispatch | Full checks for that workflow on the selected ref |
 
 There are no feature-branch push runs duplicating PR checks. Each workflow has a
-concurrency group per PR or ref and cancels its superseded runs. Ready PRs use the
+separate draft and full concurrency lanes per PR or ref, and cancels superseded
+runs within each lane. Ready PRs use the
 full suite even for documentation-only updates: an earlier successful commit is
 not evidence for a later one. Returning to draft before another editing cycle
 keeps that cycle inexpensive. Workflows use `pull_request`, not privileged
@@ -118,15 +119,26 @@ separate Rust worker requires its native platform build and tests. Our existing
 packaging scripts produce archives, wheels, notices, source bundles, provenance,
 and checksums; they are the starting point for hosted release preparation.
 
-[Issue #13](https://github.com/war-and-code/dircue/issues/13) tracks a manually
-requested release-preparation workflow: select an exact source commit and
-version, build and validate artifacts, then attach them to a draft GitHub Release.
-Publication stays a separate maintainer action. Reusing an existing worker
-artifact requires matching build inputs and provenance, not merely selecting the
-most recent successful run. A PR merge commit must not be represented as the
-final tagged source without an explicit equivalence check.
+The manually dispatched **Prepare draft release** workflow selects an exact
+`main` commit and matching existing tag, builds and validates all five native
+platforms, then attaches assets to a draft GitHub Release. Publication stays a
+separate maintainer action. See [release automation](RELEASE_AUTOMATION.md) for
+inputs, receipts and review steps. Local packaging scripts remain supported.
 
-No release is published by the CI workflows in this change. PyPI publication
+From 0.7.0, both the native PR checks and release preparation exercise focus,
+availability and fresh/retained explanations through the packaged core. Release
+assembly requires matching per-platform targeted smoke receipts. PyPI publication
 remains separate, tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
-Until release automation is implemented, the documented local release scripts
-remain supported.
+
+## Draft and full concurrency lanes
+
+Ordinary draft pull-request events use a separate concurrency group from full
+validation. A delayed draft update therefore cannot cancel or replace a full
+run merely because both concern the same pull request. `converted_to_draft`
+remains in the full lane to cancel older full validation; its job gates still
+avoid expensive work.
+
+Event snapshots do not establish delivery order. A stale conversion event can
+still arrive after a promotion, so release review must check successful full
+validation for the actual candidate commit. The [concurrency tests](../tests/ci/README.md)
+cover both running and pending admission cases.

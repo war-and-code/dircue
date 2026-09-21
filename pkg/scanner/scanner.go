@@ -12,11 +12,15 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 
+	"dircue/pkg/availability"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/explain"
+	"dircue/pkg/focus"
 	"dircue/pkg/formats"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
@@ -31,6 +35,13 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Focus selects a declared project population and contextual inputs.
+	Focus *focus.Request
+	// Availability observes source-acquisition boundaries only when requested.
+	Availability     bool
+	AvailabilityOnly bool
+	// ExplainPath selects one root-relative language decision for a fresh trace.
+	ExplainPath string
 	// Discovery adds metadata evidence independently of language inclusion.
 	Discovery bool
 	// Formats inspects bounded prefixes independently of language inclusion.
@@ -64,15 +75,21 @@ type Options struct {
 	Structure        *structure.Client
 	StructureFiles   bool
 	structureGate    chan struct{}
+	languageTrace    *explain.LanguageTrace
 }
 
 type job struct {
-	path  string
-	size  int64
-	attrs overrides
-	read  func(int64) ([]byte, int64, error)
+	gitlink        *availability.Gitlink
+	path           string
+	size           int64
+	attrs          overrides
+	traceOverrides []explain.Override
+	read           func(int64) ([]byte, int64, error)
 }
 type result struct {
+	languageTrace       *explain.LanguageTrace
+	gitlink             *availability.Gitlink
+	selectedJob         *job
 	formatFile          *formats.Candidate
 	declarationFile     *declarations.Candidate
 	declarationSelected bool
@@ -102,6 +119,12 @@ type result struct {
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
 func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+	if err := validateTargetedOptions(opts); err != nil {
+		return nil, err
+	}
+	if opts.Focus != nil {
+		opts.Declarations = true
+	}
 	if opts.FormatsOnly && (!opts.Formats || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Declarations || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
 		return nil, errors.New("formats-only requires formats and cannot run other profilers")
 	}
@@ -200,6 +223,11 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return nil, fmt.Errorf("open scan root: %w", err)
 	}
 	defer root.Close()
+	availabilityCollector := newAvailabilityAccumulator(opts, snapshot)
+	focusCollector, err := newFocusAccumulator(opts, snapshot)
+	if err != nil {
+		return nil, err
+	}
 	ruleCollector, err := newRulesAccumulator(opts, snapshot)
 	if err != nil {
 		return nil, err
@@ -214,6 +242,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			return nil, err
 		}
 		if exceeded {
+			if opts.Focus != nil {
+				return nil, errors.New("focus inventory omitted: tree size limit reached")
+			}
 			report := newReport(abs)
 			if registryCollector != nil {
 				if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
@@ -270,6 +301,17 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			}
 			if opts.Formats || (opts.Structure != nil && opts.Structure.HotspotsEnabled()) {
 				report.SchemaVersion = profile.ContentSchemaVersion
+			}
+			if availabilityCollector != nil {
+				if err := availabilityCollector.finish(ctx, root, report); err != nil {
+					return nil, err
+				}
+				report.SchemaVersion = profile.TargetedSchemaVersion
+			}
+			if opts.ExplainPath != "" {
+				if err := finishLanguageExplanation(opts, snapshot, report, nil, false); err != nil {
+					return nil, err
+				}
 			}
 			return report, nil
 		}
@@ -376,12 +418,18 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				return nil
 			}
 			depth := strings.Count(filename, "/")
-			attrs, err := resolveAttributeRuleSetsContext(ctx, filename, stack[:depth+1])
+			var attrs overrides
+			var traceOverrides []explain.Override
+			if filename == opts.ExplainPath {
+				attrs, traceOverrides, err = resolveAttributeRuleSetsTraceContext(ctx, filename, stack[:depth+1])
+			} else {
+				attrs, err = resolveAttributeRuleSetsContext(ctx, filename, stack[:depth+1])
+			}
 			if err != nil {
 				return err
 			}
 			select {
-			case jobs <- job{path: filename, size: info.Size(), attrs: attrs}:
+			case jobs <- job{path: filename, size: info.Size(), attrs: attrs, traceOverrides: traceOverrides}:
 				return nil
 			case <-ctx.Done():
 				return ctx.Err()
@@ -399,7 +447,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				if ctx.Err() != nil {
 					return
 				}
-				value, err := analyzeFile(ctx, root, item, opts)
+				value, err := analyzeSelectedFile(ctx, root, item, opts)
 				if err != nil {
 					fail(err)
 					return
@@ -427,6 +475,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
+		if opts.Focus != nil {
+			declarationCollector.EnableProjectRecords()
+		}
 	}
 	var discoveryCollector *discovery.Collector
 	if opts.Discovery {
@@ -437,7 +488,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		discoveryCollector = discovery.New(source, tree, opts.MaxTreeSize)
 	}
 	var metrics *metricsAccumulator
-	if opts.Metrics != nil {
+	if opts.Metrics != nil && opts.Focus == nil {
 		report.SchemaVersion = profile.MetricsSchemaVersion
 		report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
 		metrics = newMetricsAccumulator(report.Metrics)
@@ -462,7 +513,25 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if opts.IncludeStrategies {
 		report.Strategies = make(map[string]string)
 	}
+	var targetTrace *explain.LanguageTrace
+	targetNonRegular := false
 	for value := range results {
+		if opts.ExplainPath != "" && value.path == opts.ExplainPath {
+			targetTrace = value.languageTrace
+			targetNonRegular = value.languageTrace == nil
+		}
+		if availabilityCollector != nil {
+			if err := availabilityCollector.add(value, root); err != nil {
+				fail(err)
+				continue
+			}
+		}
+		if focusCollector != nil {
+			if err := focusCollector.add(value); err != nil {
+				fail(err)
+				continue
+			}
+		}
 		if formatCollector != nil {
 			if value.formatFile != nil {
 				formatCollector.Add(*value.formatFile)
@@ -651,6 +720,23 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if report.Structure != nil && report.Structure.Hotspots != nil {
 		report.SchemaVersion = profile.ContentSchemaVersion
 	}
+	if availabilityCollector != nil {
+		if err := availabilityCollector.finish(ctx, root, report); err != nil {
+			return nil, err
+		}
+		report.SchemaVersion = profile.TargetedSchemaVersion
+	}
+	if opts.ExplainPath != "" {
+		if err := finishLanguageExplanation(opts, snapshot, report, targetTrace, targetNonRegular); err != nil {
+			return nil, err
+		}
+	}
+	if focusCollector != nil {
+		if err := focusCollector.finish(ctx, root, declarationCollector, report); err != nil {
+			return nil, err
+		}
+		report.SchemaVersion = profile.TargetedSchemaVersion
+	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {
 			language.Percentage = 100 * float64(language.Bytes) / float64(report.Summary.LanguageBytes)
@@ -708,6 +794,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 }
 
 func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
+	trace := opts.languageTrace
+	if trace != nil {
+		addLanguageTraceStep(trace, "selected-file", "scanner", "regular-file", fmt.Sprintf("%d bytes in selected source", item.size))
+	}
 	value := result{path: item.path}
 	if opts.Structure != nil {
 		value.size = item.size
@@ -720,13 +810,28 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 	if opts.Metrics != nil {
 		value.metrics = &profile.FileMetrics{Path: item.path, Status: "skipped", Reason: "outside_scope"}
 	}
-	vendored := overrideBool(item.attrs.vendored, enry.IsVendor(item.path))
+	enryVendored := enry.IsVendor(item.path)
+	vendored := overrideBool(item.attrs.vendored, enryVendored)
+	if trace != nil {
+		vendorProvider := "go-enry path rules"
+		if item.attrs.vendored != nil {
+			vendorProvider = languageTraceOverrideProvider(trace, "linguist-vendored")
+		}
+		vendorOutcome := strconv.FormatBool(vendored)
+		if vendored && item.attrs.vendored == nil && isCIHookPath(item.path) {
+			vendorOutcome = "continue-for-ci-hook-evidence"
+		}
+		addLanguageTraceStep(trace, "vendored", vendorProvider, vendorOutcome, fmt.Sprintf("fallback=%t", enryVendored))
+	}
 	if opts.Projects && vendored {
 		value.role = "vendored"
 	}
 	if vendored && !(item.attrs.vendored == nil && isCIHookPath(item.path)) {
 		value.skipped = true
 		if opts.Metrics == nil || opts.Metrics.Scope != "text" {
+			if trace != nil {
+				setLanguageTraceDecision(trace, "excluded", "vendored", "", "", "")
+			}
 			return value, nil
 		}
 	}
@@ -736,6 +841,10 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 			value.metrics.Reason = "file_too_large"
 		}
 		value.warnings = []profile.Warning{{Path: item.path, Code: "file_too_large", Message: fmt.Sprintf("file exceeds %d byte limit", opts.MaxFileBytes)}}
+		if trace != nil {
+			addLanguageTraceStep(trace, "file-read-limit", "scanner", "excluded", fmt.Sprintf("%d bytes exceeds %d-byte limit", item.size, opts.MaxFileBytes))
+			setLanguageTraceDecision(trace, "excluded", "file_too_large", "", "", "")
+		}
 		return value, nil
 	}
 	limit := ClassificationBytes
@@ -763,7 +872,19 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 		}
 	}
 	if err != nil {
+		if trace != nil {
+			addLanguageTraceStep(trace, "content-read", "selected source", "unavailable", "read failed")
+			setLanguageTraceDecision(trace, "unavailable", "read_error", "", "", "")
+		}
 		return result{}, err
+	}
+	if trace != nil {
+		trace.Extent.FileBytes = actualSize
+		trace.Extent.ReadBytes = int64(len(content))
+		trace.Extent.ContentComplete = int64(len(content)) == actualSize
+	}
+	if trace != nil {
+		addLanguageTraceStep(trace, "content-read", "selected source", "bounded", fmt.Sprintf("read %d of %d bytes", len(content), actualSize))
 	}
 	if opts.Projects {
 		value.inventorySize = actualSize
@@ -774,33 +895,100 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 			value.metrics.Reason = "file_too_large"
 		}
 		value.warnings = []profile.Warning{{Path: item.path, Code: "file_too_large", Message: fmt.Sprintf("file exceeds %d byte limit", opts.MaxFileBytes)}}
+		if trace != nil {
+			addLanguageTraceStep(trace, "file-read-limit", "scanner", "excluded", fmt.Sprintf("selected source reports %d bytes above %d-byte limit", actualSize, opts.MaxFileBytes))
+			setLanguageTraceDecision(trace, "excluded", "file_too_large", "", "", "")
+		}
 		return value, nil
 	}
 	if err := ctx.Err(); err != nil {
+		if trace != nil {
+			addLanguageTraceStep(trace, "cancellation", "context", "unavailable", err.Error())
+			setLanguageTraceDecision(trace, "unavailable", "cancelled", "", "", "")
+		}
 		return result{}, err
 	}
 	classContent := content[:min(int64(len(content)), ClassificationBytes)]
+	if trace != nil {
+		trace.Extent.ClassifiedBytes = int64(len(classContent))
+	}
 	// LazyBlob's explicit language override bypasses Linguist.detect's binary
 	// and empty-file checks. Preserve that behavior for attributed content.
-	if opts.Projects && isBinaryContent(classContent) {
+	binary := isBinaryContent(classContent)
+	if opts.Projects && binary {
 		value.role = "binary"
 	}
-	if isBinaryContent(classContent) && (!item.attrs.languageSet || item.attrs.language == "") {
+	if binary && (!item.attrs.languageSet || item.attrs.language == "") {
 		if value.metrics != nil {
 			value.metrics.Reason = "binary"
 		}
 		value.skipped = true
+		if trace != nil {
+			addLanguageTraceStep(trace, "binary-preflight", "dircue Linguist-compatible binary preflight", "excluded", fmt.Sprintf("NUL/signature check over %d bytes", len(classContent)))
+			setLanguageTraceDecision(trace, "excluded", "binary", "", "", "")
+		}
 		return value, nil
 	}
-	language, strategy := DetectLanguage(path.Base(item.path), classContent)
+	if trace != nil {
+		if binary {
+			addLanguageTraceStep(trace, "binary-preflight", "dircue Linguist-compatible binary preflight", "bypassed-by-language-override", fmt.Sprintf("NUL/signature check over %d bytes", len(classContent)))
+		} else {
+			addLanguageTraceStep(trace, "binary-preflight", "dircue Linguist-compatible binary preflight", "text", fmt.Sprintf("checked %d bytes", len(classContent)))
+		}
+	}
+	detectedLanguage, strategy := DetectLanguage(path.Base(item.path), classContent)
+	language := detectedLanguage
 	language, value.strategy = applyLanguageOverride(language, strategy, item.attrs)
+	if trace != nil {
+		detectionOutcome := detectedLanguage
+		if detectedLanguage == "" {
+			detectionOutcome = "unknown"
+		}
+		addLanguageTraceStep(trace, "language-detection", "go-enry default strategies", detectionOutcome, strategy)
+		if item.attrs.languageSet {
+			overrideOutcome := language
+			if overrideOutcome == "" {
+				overrideOutcome = "unknown"
+			}
+			addLanguageTraceStep(trace, "language-override", languageTraceOverrideProvider(trace, "linguist-language"), overrideOutcome, value.strategy)
+		}
+	}
 	if language == enry.OtherLanguage {
 		language = ""
 	}
 	typ := enry.GetLanguageType(language)
-	generated := overrideBool(item.attrs.generated, enry.IsGenerated(item.path, classContent))
-	documentation := overrideBool(item.attrs.documentation, enry.IsDocumentation(item.path))
-	detectable := !vendored && !generated && !documentation && !(item.attrs.lfsTracked && isLFSPointer(classContent)) && overrideBool(item.attrs.detectable, typ == enry.Programming || typ == enry.Markup)
+	enryGenerated := enry.IsGenerated(item.path, classContent)
+	generated := overrideBool(item.attrs.generated, enryGenerated)
+	if trace != nil {
+		generatedProvider := "go-enry generated rules"
+		if item.attrs.generated != nil {
+			generatedProvider = languageTraceOverrideProvider(trace, "linguist-generated")
+		}
+		addLanguageTraceStep(trace, "generated", generatedProvider, strconv.FormatBool(generated), fmt.Sprintf("fallback=%t", enryGenerated))
+	}
+	enryDocumentation := enry.IsDocumentation(item.path)
+	documentation := overrideBool(item.attrs.documentation, enryDocumentation)
+	if trace != nil {
+		documentationProvider := "go-enry documentation rules"
+		if item.attrs.documentation != nil {
+			documentationProvider = languageTraceOverrideProvider(trace, "linguist-documentation")
+		}
+		addLanguageTraceStep(trace, "documentation", documentationProvider, strconv.FormatBool(documentation), fmt.Sprintf("fallback=%t", enryDocumentation))
+	}
+	lfsPointer := item.attrs.lfsTracked && isLFSPointer(classContent)
+	if trace != nil && item.attrs.lfsTracked {
+		addLanguageTraceStep(trace, "git-lfs-pointer", languageTraceOverrideProvider(trace, "filter")+" and pointer syntax", strconv.FormatBool(lfsPointer), "filter=lfs")
+	}
+	typeDetectable := typ == enry.Programming || typ == enry.Markup
+	attributeDetectable := overrideBool(item.attrs.detectable, typeDetectable)
+	detectable := !vendored && !generated && !documentation && !lfsPointer && attributeDetectable
+	if trace != nil {
+		detectableProvider := "Linguist language type"
+		if item.attrs.detectable != nil {
+			detectableProvider = languageTraceOverrideProvider(trace, "linguist-detectable")
+		}
+		addLanguageTraceStep(trace, "detectable", detectableProvider, strconv.FormatBool(detectable), fmt.Sprintf("type_detectable=%t", typeDetectable))
+	}
 	value.size = actualSize
 	if opts.Projects {
 		value.role = contentRole(item.path, language, vendored, generated, documentation)
@@ -810,6 +998,26 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 		if value.language == "" {
 			value.language = language
 		}
+	}
+	if trace != nil {
+		reportedLanguage := value.language
+		reason := "included"
+		status := "included"
+		switch {
+		case vendored:
+			status, reason = "excluded", "vendored"
+		case generated:
+			status, reason = "excluded", "generated"
+		case documentation:
+			status, reason = "excluded", "documentation"
+		case lfsPointer:
+			status, reason = "excluded", "lfs_pointer"
+		case !attributeDetectable:
+			status, reason = "excluded", "not_detectable"
+		case language == "":
+			status, reason = "excluded", "language_unknown"
+		}
+		setLanguageTraceDecision(trace, status, reason, detectedLanguage, reportedLanguage, value.strategy)
 	}
 	if opts.Metrics != nil {
 		if err := countFileMetrics(ctx, root, item, opts, &value, language, content, actualSize, detectable && language != ""); err != nil {

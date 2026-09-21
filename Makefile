@@ -1,4 +1,4 @@
-VERSION ?= 0.6.1
+VERSION ?= 0.7.0
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 
 .PHONY: build test check bench reference conformance samples release

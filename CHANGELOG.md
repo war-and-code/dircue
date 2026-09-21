@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 (2026-09-21)
+
+- Add focused .NET and Python/uv project profiling with original-root attribute context, qualified ownership boundaries, and explicit shared declarations. Count primary and explicitly selected related projects separately with optional scc metrics.
+- Add bounded source-availability observations for Git LFS pointers, Gitlinks, submodule declarations, and supported local sparse-checkout metadata, without fetching or hydrating content.
+- Add fresh language decision traces and bounded explanations of retained project, focus, and availability evidence. Saved-report queries never reopen source paths.
+- Use aggregate schema 1.6.0 only for the new capabilities. Preserve existing command schemas; reject new targeted reports in comparison until their population semantics are supported.
+- Isolate ordinary draft CI concurrency from full validation, preserving inexpensive draft checks.
+
 ## 0.6.1 (2026-09-20)
 
 - Reduce allocation in bounded file reads using capped size hints, while preserving read limits and handling files that grow or shrink. [Measurements](tests/performance/bounded_reader/README.md) record workload-specific speed gains and memory tradeoffs.

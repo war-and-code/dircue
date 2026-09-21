@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"dircue/internal/jsontext"
+	"dircue/pkg/explain"
 	"dircue/pkg/profile"
 	"dircue/schema"
 )
@@ -25,6 +26,21 @@ const MaxNumberExponent = 1024
 // Load accepts aggregate dircue profiles, not Linguist's language-only JSON.
 // Error text deliberately excludes payload values and parser excerpts.
 func Load(reader io.Reader) (*Snapshot, error) {
+	return load(reader, false)
+}
+
+// ReadEvidence decodes a bounded, schema-validated profile for retained-evidence
+// queries. It also accepts targeted reports, which Load deliberately refuses
+// until comparison can account for their distinct population scopes.
+func ReadEvidence(reader io.Reader) (*profile.Report, string, error) {
+	snapshot, err := load(reader, true)
+	if err != nil {
+		return nil, "", err
+	}
+	return &snapshot.profile, snapshot.sha256, nil
+}
+
+func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 	if reader == nil {
 		return nil, ErrInvalid
 	}
@@ -62,10 +78,13 @@ func Load(reader io.Reader) (*Snapshot, error) {
 			level = i
 		}
 	}
+	if targeted && version == "1.6.0" {
+		level = 6
+	}
 	if level < 0 {
 		return nil, ErrUnsupported
 	}
-	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5} {
+	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6} {
 		if _, found := object[field]; found && level < minimum {
 			return nil, ErrInvalid
 		}
@@ -80,7 +99,7 @@ func Load(reader io.Reader) (*Snapshot, error) {
 	if err := json.Unmarshal(data, &result); err != nil {
 		return nil, ErrInvalid
 	}
-	if !validStates(result) {
+	if !validStates(result) || !validTargetedStates(result) {
 		return nil, ErrInvalid
 	}
 	digest := sha256.Sum256(data)
@@ -330,3 +349,38 @@ func validStates(p profile.Report) bool {
 }
 
 func sourceMode(mode string) bool { return mode == "git" || mode == "directory" }
+
+// Targeted metrics must keep the source and population identity declared by
+// their focus plan. This does not authenticate a caller-supplied report.
+func validTargetedStates(p profile.Report) bool {
+	if p.Explanation != nil && explain.ValidateReport(p.Explanation) != nil {
+		return false
+	}
+	if p.FocusedMetrics == nil {
+		return true
+	}
+	if p.Focus == nil || p.Focus.Scope.Role != "project" || p.Focus.PrimaryProject == nil || p.FocusedMetrics.ScopeID != p.Focus.Scope.ID || p.FocusedMetrics.Primary == nil {
+		return false
+	}
+	sameSource := func(m *profile.MetricsReport) bool {
+		return m != nil && m.Source == p.Focus.Source && m.Tree == p.Focus.Tree
+	}
+	if !sameSource(p.FocusedMetrics.Primary) {
+		return false
+	}
+	selected := make(map[string]bool, len(p.Focus.Scope.RelatedProjects))
+	for _, id := range p.Focus.Scope.RelatedProjects {
+		if selected[id] || id == p.Focus.Scope.PrimaryProject {
+			return false
+		}
+		selected[id] = true
+	}
+	seen := make(map[string]bool, len(p.FocusedMetrics.Related))
+	for _, r := range p.FocusedMetrics.Related {
+		if !selected[r.Project] || seen[r.Project] || !sameSource(r.Metrics) {
+			return false
+		}
+		seen[r.Project] = true
+	}
+	return len(seen) == len(selected)
+}

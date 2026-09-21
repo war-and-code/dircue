@@ -1,6 +1,6 @@
 # Profiling module boundaries
 
-This document describes the 0.6.0 scanner and the constraints for
+This document describes the 0.7.0 scanner and the constraints for
 extending it. There is no runtime plugin loader or declarative
 module registry.
 
@@ -29,6 +29,9 @@ ordinary directory profiling.
 | Rules | Selected regular files and an explicit caller-supplied ruleset | Metadata matching and optional bounded complete-file literal checks; independent coverage |
 | Projects | Selected inventory and recognized manifests, independently of XML language inclusion | Bounded manifest parsing, declarations, configuration candidates, composition, attribution |
 | Declarations | Selected supported manifests, including those excluded from language statistics; installed node_modules omitted | Bounded lexical inventory and complete manifest reads; static cross-project interpretation. Standalone mode skips language classification. |
+| Focus | Selected declarations and original-root inventory | Qualified .NET/Python ownership and shared context; optional separate primary/related scc metrics |
+| Availability | Explicit regular-file prefixes, Gitlinks, and supported local checkout metadata | Acquisition boundaries without fetching; separate inventory and metadata coverage |
+| Explanations | One fresh target or explicit saved report | Actual language decision traces or bounded retained facts; no second classifier |
 | Metrics | Explicit source or text scope | Complete-file scc counting, with size bounds and omission reasons |
 | Structure | Selected supported source files | Complete bounded source sent to an explicit native worker; per-file syntax and metrics |
 | Function evidence | Explicit structural opt-in over selected supported source | Reuses the native metrics tree; bounded entries, source hashes, and coverage |
@@ -118,4 +121,4 @@ Caller-supplied [observation rules](RULES.md) are compiled explicitly by the CLI
 It validates bounded JSON against the bundled report schema, then compares supported
 module observations and reports policy/provenance differences separately. It does
 not open declared roots or evidence paths. Schema validation is initialized only
-for this operation; ordinary profiling does not compile schemas.
+for saved-report operations; ordinary profiling does not compile schemas. Targeted saved-report explanations reuse the bounded decoder and schemas, while retaining their own source and population qualifications.

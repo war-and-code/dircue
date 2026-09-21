@@ -3,8 +3,11 @@ package profile
 
 import (
 	"context"
+	"dircue/pkg/availability"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/explain"
+	"dircue/pkg/focus"
 	"dircue/pkg/formats"
 	"dircue/pkg/packageevidence"
 	"dircue/pkg/projects"
@@ -74,7 +77,13 @@ const DeclarationsSchemaVersion = "1.4.0"
 
 const ContentSchemaVersion = "1.5.0"
 
+const TargetedSchemaVersion = "1.6.0"
+
 type Report struct {
+	Explanation     *explain.Report         `json:"explanation,omitempty"`
+	Availability    *availability.Report    `json:"availability,omitempty"`
+	Focus           *focus.Report           `json:"focus,omitempty"`
+	FocusedMetrics  *FocusedMetrics         `json:"focused_metrics,omitempty"`
 	Formats         *formats.Report         `json:"formats,omitempty"`
 	Declarations    *declarations.Report    `json:"declarations,omitempty"`
 	Registries      *registries.Report      `json:"registries,omitempty"`

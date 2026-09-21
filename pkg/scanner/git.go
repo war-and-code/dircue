@@ -14,6 +14,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
+	"dircue/pkg/availability"
 	"dircue/pkg/profile"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -24,6 +25,8 @@ import (
 )
 
 type gitSnapshot struct {
+	availability bool
+	explainPath  string
 	// go-git packed-object/index caches mutate during reads and are not concurrency safe.
 	objectMu     sync.Mutex
 	root         string
@@ -266,7 +269,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 					return nil, fmt.Errorf("Git info attributes exceeds 1 MiB")
 				}
 				var exceeded bool
-				snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBounded(".gitattributes", data, maxAttributeRules)
+				snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBoundedFrom(".gitattributes", ".git/info/attributes", data, maxAttributeRules)
 				if exceeded {
 					return nil, fmt.Errorf("attribute rules exceed %d rule limit", maxAttributeRules)
 				}
@@ -276,6 +279,8 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 			}
 		}
 	}
+	snapshot.availability = opts.Availability
+	snapshot.explainPath = opts.ExplainPath
 	return snapshot, nil
 }
 
@@ -322,7 +327,11 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			continue
 		}
 		if entry.Mode != filemode.Regular && entry.Mode != filemode.Executable && entry.Mode != filemode.Deprecated {
-			entries = append(entries, job{path: filename, size: -1})
+			item := job{path: filename, size: -1}
+			if s.availability && entry.Mode == filemode.Submodule {
+				item.gitlink = &availability.Gitlink{Path: filename, Commit: entry.Hash.String()}
+			}
+			entries = append(entries, item)
 			continue
 		}
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
@@ -367,13 +376,17 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 	}
 	for _, entry := range entries {
 		if entry.size < 0 {
-			if !send(result{path: entry.path, skipped: true}) {
+			if !send(result{path: entry.path, skipped: true, gitlink: entry.gitlink}) {
 				return ctx.Err()
 			}
 			continue
 		}
 		var err error
-		entry.attrs, err = resolveAttributesContext(ctx, entry.path, rules)
+		if entry.path == s.explainPath {
+			entry.attrs, entry.traceOverrides, err = resolveAttributesTraceContext(ctx, entry.path, rules)
+		} else {
+			entry.attrs, err = resolveAttributesContext(ctx, entry.path, rules)
+		}
 		if err != nil {
 			return err
 		}
