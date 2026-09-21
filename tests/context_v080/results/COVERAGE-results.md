@@ -1,6 +1,6 @@
 # 0.8 context evidence results
 
-Verified against source-bound receipt files.
+Historical results for source `6922d1d`. Verified against their source-bound receipt files. See [post-review results](review/) for the corrected candidate.
 
 | Evidence | Result |
 |---|---:|
