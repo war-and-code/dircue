@@ -254,10 +254,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.8.0-dev -t dircue:0.8.0-dev .
+docker build --build-arg VERSION=0.8.0 -t dircue:0.8.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.8.0-dev --breakdown --json /repo
+  dircue:0.8.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
