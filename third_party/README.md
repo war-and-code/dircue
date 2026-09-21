@@ -54,6 +54,8 @@ but leaves the underlying file open. This can accumulate file descriptors and
 prevent repository cleanup on Windows. Linked-worktree `commondir` discovery
 and failed lazy-object reader construction now also close their files. The
 regressions cover valid ownership transfer and cleanup after malformed input.
+A bounded packfile cache also closes a newly opened packfile when eviction of
+the previous entry fails; the original eviction error remains authoritative.
 
 [`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
 runtime changes and regression tests. The snapshot retains upstream production
