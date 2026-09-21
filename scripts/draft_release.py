@@ -207,7 +207,7 @@ def native_smoke(directory, platform, version, commit):
             receipt = targeted_release_smoke.run(folder / executable, version)
             (directory / 'targeted.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
         if context_release_smoke.required(version):
-            receipt = context_release_smoke.run(folder / executable, version)
+            receipt = context_release_smoke.run(folder / executable, version, platform)
             (directory / 'context.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
 
 
@@ -290,7 +290,7 @@ def assemble(input_dir, output, version, commit, notes):
         if context_release_smoke.required(version):
             raw_context = (folder / 'context.json').read_bytes()
             context = json.loads(raw_context)
-            context_release_smoke.validate_receipt(context, version, core_row['binary_sha256'])
+            context_release_smoke.validate_receipt(context, version, core_row['binary_sha256'], platform)
             add('context-smoke-' + platform + '.json', raw_context)
             validation['context'] = context
         if declarations_release_smoke.declarations_required(version):

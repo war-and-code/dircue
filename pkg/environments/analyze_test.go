@@ -57,6 +57,9 @@ func TestMalformedAndUnsupportedGlobalJSON(t *testing.T) {
 		{"null root", `null`, "invalid-global-json"},
 		{"wrong sdk casing", `{"SDK":{"version":"8.0.100"}}`, "unsupported-sdk-casing"},
 		{"trailing prerelease dot", `{"sdk":{"version":"8.0.100-preview."}}`, "unsupported-sdk-version"},
+		{"missing object property", `{"sdk":{,}}`, "invalid-global-json"},
+		{"missing array value", `{"sdk":{"paths":[,]}}`, "invalid-global-json"},
+		{"repeated comma", `{"sdk":{"paths":["x",,]}}`, "invalid-global-json"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -179,6 +182,86 @@ func TestCommentsPathsAndNoSDKProbe(t *testing.T) {
 	}
 	if r.Selections[0].RollForward != "patch" || len(r.Boundaries) != 1 || r.Boundaries[0].Reason != "sdk-search-paths-unresolved" {
 		t.Fatalf("report: %+v", r)
+	}
+}
+
+func TestGlobalJSONMatchesDotnetAcceptedTextAndEmptyPolicySemantics(t *testing.T) {
+	tests := []struct {
+		name, body, state, version string
+		boundaries                 int
+	}{
+		{"bom and trailing commas", "\xef\xbb\xbf{\"sdk\":{\"version\":\"8.0.100\",},}", "declared", "8.0.100", 0},
+		{"null paths", `{"sdk":{"paths":null}}`, "unconstrained", "", 0},
+		{"empty paths", `{"sdk":{"paths":[]}}`, "unconstrained", "", 0},
+		{"paths only", `{"sdk":{"paths":[".dotnet"]}}`, "unconstrained", "", 1},
+		{"empty sdk", `{"sdk":{}}`, "unconstrained", "", 0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r, err := Analyze(t.Context(), envInput(map[string]string{"global.json": tt.body}, []Invocation{{"p", "."}}), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := r.Selections[0]; got.State != tt.state || got.SDKVersion != tt.version || got.RollForward != map[bool]string{true: "patch", false: ""}[tt.version != ""] || len(r.Boundaries) != tt.boundaries {
+				t.Fatalf("report: %+v", r)
+			}
+		})
+	}
+}
+
+func TestSharedGlobalJSONDiagnosticsAreFileLevelAndContextsIncludeSolutions(t *testing.T) {
+	in := envInput(map[string]string{"global.json": `{"sdk":{"futurePolicy":true}}`}, nil)
+	in.ProjectRecords = []declarations.ProjectRecord{
+		{Project: declarations.Project{ID: "App.sln", Root: ".", Kind: "solution"}, Parsed: true, Complete: true},
+		{Project: declarations.Project{ID: "src/App.csproj", Root: "src", Kind: "dotnet"}, Parsed: true, Complete: true},
+	}
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Selections) != 2 || len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "unsupported-sdk-field" {
+		t.Fatalf("report: %+v", r)
+	}
+}
+
+func TestSharedPropertiesAreDisclosedWithoutInferringBuildSemantics(t *testing.T) {
+	in := envInput(map[string]string{"Directory.Build.props": `<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>`}, []Invocation{{"src/App.csproj", "src"}})
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, b := range r.Boundaries {
+		if b.Reason == "shared-properties-applicability-unresolved" && b.ProjectID == "src/App.csproj" {
+			found = true
+		}
+	}
+	if !found || len(r.Requirements) != 0 {
+		t.Fatalf("report: %+v", r)
+	}
+}
+
+func TestLoneGlobalJSONGetsModeledContext(t *testing.T) {
+	in := envInput(map[string]string{"global.json": `{"sdk":{"version":"8.0.100"}}`}, nil)
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "global.json", Root: ".", Kind: "dotnet-configuration"}, Parsed: true, Complete: true}}
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Selections) != 1 || r.Selections[0].SDKVersion != "8.0.100" || r.Selections[0].ProjectID != "global.json" {
+		t.Fatalf("report: %+v", r)
+	}
+}
+
+func TestSingleRequirementPythonConflictIsNotDuplicated(t *testing.T) {
+	in := envInput(nil, nil)
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "pyproject.toml", Root: ".", Requirements: []declarations.Requirement{{Kind: "python-requires-python", Value: ">=3.8,<3.8", State: "declared", Evidence: "pyproject.toml"}}}, Parsed: true, Complete: true}}
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Conflicts) != 1 || len(r.Conflicts[0].Values) != 1 || len(r.Conflicts[0].Evidence) != 1 {
+		t.Fatalf("conflicts: %+v", r.Conflicts)
 	}
 }
 

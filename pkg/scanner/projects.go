@@ -107,7 +107,7 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 		if registryFile != nil {
 			err = registryReadError(err)
 		}
-		return result{}, err
+		return value, recoverable(err)
 	}
 	if size > limit || int64(len(data)) > limit {
 		value.projectDocument.Diagnostics = append(value.projectDocument.Diagnostics, projects.Diagnostic{Path: item.path, Code: "manifest_too_large", Message: "manifest omitted because it exceeds the configured read limit"})

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tamper tests for the independent 0.8 receipt verifier."""
+"""Tamper tests for the 0.8 receipt-integrity verifier."""
 
 from __future__ import annotations
 
@@ -40,6 +40,21 @@ class ReceiptTests(unittest.TestCase):
             path=root/"build.json"; path.write_text(json.dumps(receipt)); verify.verify_build(path,candidate,require_current=False)
             receipt["files"]["go.mod"]="0"*64; path.write_text(json.dumps(receipt))
             with self.assertRaises(AssertionError): verify.verify_build(path,candidate,require_current=False)
+
+    def test_strict_build_rejects_dirty_and_unavailable_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); candidate = root / "candidate"; candidate.write_bytes(b"binary")
+            source = verify.build.source_state()
+            receipt = {"schema": "dircue-context-v080-build-1", "candidate_sha256": common.sha256(candidate),
+                       "source_at_build": source, "files": {"go.mod": common.sha256(common.ROOT / "go.mod")}}
+            path = root / "build.json"
+            source["dirty"] = True
+            path.write_text(json.dumps(receipt))
+            with self.assertRaises(AssertionError): verify.verify_build(path, candidate, require_current=False, strict=True)
+            source.update(dirty=False, commit="0" * 40)
+            path.write_text(json.dumps(receipt))
+            with self.assertRaises((AssertionError, __import__("subprocess").CalledProcessError)):
+                verify.verify_build(path, candidate, require_current=False, strict=True)
 
     def test_performance_summary_and_claim_limit_are_recomputed(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

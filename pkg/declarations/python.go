@@ -30,6 +30,7 @@ type pythonData struct {
 	managed            bool
 	workspace          bool
 	invalidPatterns    bool
+	invalidMembers     bool
 	patterns, excludes []string
 	sources            map[string][]pythonSource
 	dependencies       []pythonDependency
@@ -226,6 +227,8 @@ func ParsePython(name string, content []byte) *Document {
 		}
 		before := len(d.Diagnostics)
 		data.patterns = pythonPatterns(d, ws, "members")
+		data.invalidMembers = len(d.Diagnostics) != before
+		before = len(d.Diagnostics)
 		data.excludes = pythonPatterns(d, ws, "exclude")
 		data.invalidPatterns = len(d.Diagnostics) != before
 		if len(data.patterns)+len(data.excludes) > MaxPatterns {

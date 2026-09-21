@@ -430,10 +430,10 @@ func boundedHotspotArray(data []byte, limit int) bool {
 	return err == nil && token == json.Delim(']')
 }
 
-// CheckCapabilities negotiates only the new opt-in feature. Legacy analysis
+// CheckCapabilities negotiates opt-in features. Legacy analysis
 // never starts a probe. Call once per scan, including scans with no source files.
 func (c *Client) CheckCapabilities(ctx context.Context) error {
-	if !c.options.Hotspots {
+	if !c.options.Hotspots && !c.options.Functions {
 		return nil
 	}
 	options := c.options
@@ -442,6 +442,7 @@ func (c *Client) CheckCapabilities(ctx context.Context) error {
 	stdout := &cappedBuffer{limit: 4096, cancel: cancel}
 	stderr := &cappedBuffer{limit: 4096, cancel: cancel}
 	cmd := exec.CommandContext(ctx, options.Worker, "--capabilities")
+	configureWorkerProcess(cmd)
 	cmd.Stdout = stdout
 	cmd.Stderr = stderr
 	cmd.WaitDelay = time.Second
@@ -452,13 +453,17 @@ func (c *Client) CheckCapabilities(ctx context.Context) error {
 	if ctx.Err() != nil {
 		return fmt.Errorf("structure worker hotspot capability check: %w", ctx.Err())
 	}
-	if err != nil || !validHotspotCapabilities(stdout.buf.Bytes()) {
-		return errors.New("structure worker does not advertise hotspot support; use an updated worker")
+	if err != nil || !validCapabilities(stdout.buf.Bytes(), c.options.Functions, c.options.Hotspots) {
+		return errors.New("structure worker does not advertise requested function or hotspot support; use an updated worker")
 	}
 	return nil
 }
 
 func validHotspotCapabilities(data []byte) bool {
+	return validCapabilities(data, false, true)
+}
+
+func validCapabilities(data []byte, functions, hotspots bool) bool {
 	if !jsontext.ValidUnicode(data) {
 		return false
 	}
@@ -487,5 +492,5 @@ func validHotspotCapabilities(data []byte) bool {
 		}
 		seen[feature] = true
 	}
-	return seen["hotspots"]
+	return (!functions || seen["functions"]) && (!hotspots || seen["hotspots"])
 }

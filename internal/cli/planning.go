@@ -70,7 +70,7 @@ func newPlanCommand(opts *options) *cobra.Command {
 }
 
 func rejectPlanningAnalysisFlags(cmd *cobra.Command) error {
-	for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree-size"} {
+	for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "tree-size", "on-error"} {
 		if cmd.Flags().Changed(flag) {
 			return fmt.Errorf("--%s does not apply to saved-report planning", flag)
 		}

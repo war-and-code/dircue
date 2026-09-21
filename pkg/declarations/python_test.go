@@ -337,6 +337,26 @@ version="1"
 	}
 }
 
+func TestPythonBadMemberPatternKeepsValidSibling(t *testing.T) {
+	docs, _ := pythonTestInventory(t, map[string]string{
+		"pyproject.toml": `[tool.uv.workspace]
+members=["packages/lib", "../outside"]
+`,
+		"packages/lib/pyproject.toml": `[project]
+name="lib"
+version="1"
+`,
+	})
+	root := pythonTestDoc(t, docs, "pyproject.toml")
+	found := false
+	for _, ref := range root.Project.References {
+		found = found || ref.Kind == "uv-workspace-member" && ref.Target == "packages/lib/pyproject.toml"
+	}
+	if !found || !pythonTestDiag(root, "unsupported-python-workspace-pattern") {
+		t.Fatalf("valid uv sibling lost: %+v", root)
+	}
+}
+
 func TestPythonBounds(t *testing.T) {
 	d := ParsePython("pyproject.toml", []byte("value="+strings.Repeat("[", 70)+"0"+strings.Repeat("]", 70)))
 	if d.Parsed {

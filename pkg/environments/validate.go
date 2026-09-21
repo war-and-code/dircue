@@ -33,6 +33,12 @@ func ValidateReport(r *Report) error {
 		if !wireString(s.ContextID) || contexts[s.ContextID] || !wireString(s.ProjectID) || !wireString(s.StartDirectory) || !wireString(s.StartBasis) || !wireOptional(s.GlobalJSON) || !wireOptional(s.SDKVersion) || !wireOptional(s.RollForward) || !wireString(s.Applicability) || (s.State != "declared" && s.State != "unresolved" && s.State != "unconstrained") {
 			return errors.New("environment selection is invalid")
 		}
+		if s.State == "unconstrained" && (s.SDKVersion != "" || s.RollForward != "" || s.AllowPrerelease != nil) {
+			return errors.New("unconstrained environment selection contains a policy")
+		}
+		if s.State == "declared" && s.SDKVersion == "" && s.RollForward == "" && s.AllowPrerelease == nil {
+			return errors.New("declared environment selection lacks a policy")
+		}
 		contexts[s.ContextID] = true
 	}
 	for _, q := range r.Requirements {
@@ -52,7 +58,7 @@ func ValidateReport(r *Report) error {
 		}
 	}
 	for _, x := range r.Conflicts {
-		if !wireString(x.ContextID) || !wireString(x.Dimension) || !wireString(x.Explanation) || len(x.Values) < 2 || len(x.Values) > 16 || len(x.Evidence) != len(x.Values) {
+		if !wireString(x.ContextID) || !wireString(x.Dimension) || !wireString(x.Explanation) || len(x.Values) < 1 || len(x.Values) > 16 || len(x.Evidence) != len(x.Values) {
 			return errors.New("environment conflict is invalid")
 		}
 		for _, v := range append(append([]string{}, x.Values...), x.Evidence...) {

@@ -411,7 +411,7 @@ func legacyCondition(value string) string {
 	return ""
 }
 
-var legacyHostPath = regexp.MustCompile(`(^|[\s"'(=])(?:[/\\]|[A-Za-z]:[/\\])`)
+var legacyHostPath = regexp.MustCompile(`(?:[/\\]|[A-Za-z]:[/\\])`)
 
 func unsafeLegacyText(value string) bool {
 	return strings.Contains(value, "://") || strings.IndexFunc(value, unicode.IsControl) >= 0 || legacyHostPath.MatchString(value)
@@ -427,10 +427,17 @@ func addLegacyRequirement(d *Document, r Requirement) {
 }
 func addLegacyReference(d *Document, r Reference) {
 	r.Condition = legacyCondition(r.Condition)
-	if r.Target == "" || unsafeLegacyText(r.Value) {
+	// A successfully normalized target is already proven confined to the
+	// selected inventory. Backslashes in such references are ordinary MSBuild
+	// separators, not host-path evidence.
+	unsafe := r.Target == "" && unsafeLegacyText(r.Value)
+	if r.Target == "" || unsafe {
 		r.Value = "[unresolved-path-withheld]"
 		r.State = "unresolved"
 		r.Target = ""
+		if unsafe {
+			AddDiagnostic(d, "legacy-reference-withheld", "A declaration reference contains unsupported path, URL, or control text and was withheld.")
+		}
 	}
 	AddReference(d, r)
 }

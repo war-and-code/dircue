@@ -13,6 +13,7 @@ import (
 	"dircue/pkg/focus"
 	"dircue/pkg/planning"
 	"dircue/pkg/profile"
+	"dircue/pkg/projects"
 )
 
 const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -39,8 +40,24 @@ func TestTinyProjectSignalSurvivesLargeDataAndRootIsNeverArgv(t *testing.T) {
 		t.Fatalf("tiny candidate buried: %+v", r.Steps)
 	}
 	encoded, _ := json.Marshal(r.Steps[0].Command.Argv)
-	if strings.Contains(string(encoded), "/untrusted") || r.Steps[0].Command.Executable || r.Steps[0].Command.Argv[len(r.Steps[0].Command.Argv)-1] != "{source}" {
+	if strings.Contains(string(encoded), "/untrusted") || r.Steps[0].Command.Executable || !reflect.DeepEqual(r.Steps[0].Command.Argv[len(r.Steps[0].Command.Argv)-2:], []string{"--", "{source}"}) {
 		t.Fatalf("unsafe argv: %+v", r.Steps[0].Command)
+	}
+}
+
+func TestProjectsSourcePinsTreeAndProjectTraversalIsRejected(t *testing.T) {
+	p := baseReport()
+	p.Discovery = nil
+	p.Projects = &projects.Report{Status: "complete", Source: "git", Tree: "0123456789012345678901234567890123456789", Projects: []projects.Project{}, Configurations: []projects.Configuration{}, Composition: []projects.Role{}, Diagnostics: []projects.Diagnostic{}}
+	r := build(t, p, planning.Selection{Modules: []string{"metrics"}})
+	if r.Identity.Source.Status != "consistent" || !slicesContains(r.Steps[0].Command.Argv, "--tree") || slicesContains(r.Steps[0].Command.Argv, "--rev") {
+		t.Fatalf("projects source not retained: %+v", r)
+	}
+	for _, project := range []string{"..", "../a.csproj", "a/../b.csproj", "-dash.csproj"} {
+		_, err := planning.Build(t.Context(), planning.Input{Profile: baseReport(), ReportSHA256: digest, Capabilities: capabilities.Dircue("test"), Selection: planning.Selection{Modules: []string{"focus"}, Projects: []string{project}}})
+		if err != planning.ErrInvalid {
+			t.Fatalf("accepted project %q: %v", project, err)
+		}
 	}
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independently verify 0.8 context receipts and their current source bindings."""
+"""Verify 0.8 receipt integrity and current source bindings; does not replay scans."""
 
 from __future__ import annotations
 
@@ -25,7 +25,7 @@ def hex_text(value: str, length: int = 64) -> bool:
     return isinstance(value, str) and len(value) == length and all(c in "0123456789abcdef" for c in value)
 
 
-def verify_build(receipt_path: Path, candidate: Path, require_current: bool = True) -> dict[str, Any]:
+def verify_build(receipt_path: Path, candidate: Path, require_current: bool = True, strict: bool = False) -> dict[str, Any]:
     receipt = common.read_json(receipt_path)
     require(receipt.get("schema") == "dircue-context-v080-build-1", "wrong build schema")
     require(candidate.is_file() and common.sha256(candidate) == receipt.get("candidate_sha256"), "candidate hash mismatch")
@@ -40,6 +40,13 @@ def verify_build(receipt_path: Path, candidate: Path, require_current: bool = Tr
     require(hex_text(source["commit"], 40) and hex_text(source["head_tree"], 40), "invalid Git source identity")
     require(hex_text(source["status_sha256"]) and hex_text(source["diff_sha256"]), "invalid source-state digest")
     require(type(source["dirty"]) is bool, "invalid dirty marker")
+    if strict:
+        require(source["dirty"] is False, "strict verification requires a clean build")
+        resolved = subprocess.check_output(["git", "rev-parse", "--verify", source["commit"] + "^{commit}"], cwd=common.ROOT).decode().strip()
+        tree = subprocess.check_output(["git", "rev-parse", "--verify", source["commit"] + "^{tree}"], cwd=common.ROOT).decode().strip()
+        require(resolved == source["commit"] and tree == source["head_tree"], "recorded commit/tree mismatch")
+        empty = hashlib.sha256(b"").hexdigest()
+        require(source["status_sha256"] == empty and source["diff_sha256"] == empty, "clean build has nonempty source-state digests")
     if require_current:
         env = {**__import__("os").environ, "CGO_ENABLED": "0", "GOWORK": "off", "GOFLAGS": ""}
         require(files == build.build_inputs(env), "current Go compilation inputs differ from receipt")
@@ -126,8 +133,9 @@ def main() -> None:
     parser.add_argument("--build-receipt", required=True, type=Path); parser.add_argument("--broad", required=True, type=Path)
     parser.add_argument("--targeted", required=True, type=Path); parser.add_argument("--performance", required=True, type=Path)
     parser.add_argument("--output", type=Path)
+    parser.add_argument("--strict", action="store_true", help="Require a clean build and locally available matching commit/tree")
     args = parser.parse_args(); candidate=args.candidate.resolve(); baseline=args.baseline.resolve(); build_path=args.build_receipt.resolve()
-    verify_baseline(baseline); built=verify_build(build_path,candidate)
+    verify_baseline(baseline); built=verify_build(build_path,candidate,strict=args.strict)
     require(subprocess.check_output([str(candidate),"--version"],env={"PATH":"/usr/bin:/bin","LC_ALL":"C"}).decode().strip()=="dircue 0.8.0-rc.1","candidate is not the 0.8.0 release candidate")
     broad=verify_compatibility(args.broad,"dircue-context-v080-broad-compatibility-1",278,baseline,candidate,built,build_path)
     targeted=verify_compatibility(args.targeted,"dircue-context-v080-targeted-1",18,baseline,candidate,built,build_path); verify_targeted_sources(targeted)

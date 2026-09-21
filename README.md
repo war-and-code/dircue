@@ -31,7 +31,9 @@ The repository is currently private, and PyPI publication is deferred. Authentic
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
+Published archives use exactly Go 1.26.6. Release toolchain changes require coordinated provenance updates; see [release automation](docs/RELEASE_AUTOMATION.md#toolchain-identity).
+
+Build locally with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .
@@ -120,6 +122,8 @@ Flags can appear before or after the path. With no path, the current directory i
 | `-j`, `--json` | Emit JSON. |
 | `-b`, `--breakdown` | Include file paths in language results. |
 | `-s`, `--strategies` | Show each file's detection strategy in text output. |
+| `--tree ID` | Select an exact 40-hex Git tree object; mutually exclusive with `--rev`. |
+| `--on-error fail\|continue` | Fail on per-file read errors by default; opt into explicit partial results for recoverable reads. |
 | `-r`, `--rev REV` | Select a Git revision for directory statistics; default `HEAD`. |
 | `-t`, `--tree-size N` | Return empty statistics with a warning when the tree reaches this entry count; default 100,000. |
 | `--source auto\|git\|directory` | Select the content source; default `auto`. |
@@ -241,7 +245,7 @@ The [conformance scope](tests/conformance/COVERAGE.md) and [documented differenc
 
 Dircue reads source and Git objects without invoking project hooks, package managers, Git executables, or build scripts. Directory reads use `os.Root`; normal traversal excludes symlinks and special files. Unix reads additionally reject final-component symlinks and use nonblocking opens to prevent FIFO substitutions from hanging workers. Use a stable checkout: neither filesystem mode nor local Git metadata is an atomic snapshot of an actively modified directory.
 
-Read failures, invalid arguments, and hard policy violations such as the attribute-rule limit fail with a nonzero exit status. Some bounds instead produce skipped or partial reports with exit status zero; check the requested module’s status and coverage as well as the process result. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
+Read failures and invalid arguments fail with a nonzero exit status by default. `--on-error continue` permits partial results for recoverable per-file reads; cancellation, invalid worker responses, and source-level failures remain fatal. Attribute files beyond the rule budget are omitted with warnings. Some bounds instead produce skipped or partial reports with exit status zero; check the requested module’s status and coverage as well as the process result. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: text output escapes control characters in filenames; JSON retains their exact values. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
 Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary. For shared runners, the [resource-budget guide](docs/RESOURCE_BUDGETS.md) describes external container limits and measured behavior under CPU and memory constraints.
 
@@ -250,10 +254,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.5.0 -t dircue:0.5.0 .
+docker build --build-arg VERSION=0.8.0-dev -t dircue:0.8.0-dev .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.5.0 --breakdown --json /repo
+  dircue:0.8.0-dev --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.

@@ -51,6 +51,35 @@ func TestNPMDeclarationsDoNotRetainCommandsOrURLs(t *testing.T) {
 	}
 }
 
+func TestLegacyWindowsPathsAreWithheldAnywhereInValues(t *testing.T) {
+	d := Parse("App.csproj", []byte(`<Project><PropertyGroup><LangVersion>@C:\config.txt</LangVersion><TargetFramework>.\..\secret</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Example" Version="C:\Users\me\token.txt"/></ItemGroup></Project>`))
+	if d == nil || d.Project == nil {
+		t.Fatal("legacy project missing")
+	}
+	encoded, _ := json.Marshal(d)
+	for _, secret := range []string{`C:\\config.txt`, `C:\\Users`, `token.txt`, `.\\..\\secret`} {
+		if strings.Contains(string(encoded), secret) {
+			t.Fatalf("host path escaped declaration report: %s", encoded)
+		}
+	}
+}
+
+func TestLegacyConfinedRelativeReferencesRemainVisible(t *testing.T) {
+	d := Parse("app/App.csproj", []byte(`<Project><ItemGroup><ProjectReference Include="..\lib\Lib.csproj"/><Import Project="config\Common.props" Condition="'C:\host\secret' != ''"/></ItemGroup></Project>`))
+	if d == nil || d.Project == nil || len(d.Project.References) != 2 {
+		t.Fatalf("legacy project references missing: %+v", d)
+	}
+	want := map[string]string{"..\\lib\\Lib.csproj": "lib/Lib.csproj", "config\\Common.props": "app/config/Common.props"}
+	for _, ref := range d.Project.References {
+		if ref.Value == "[unresolved-path-withheld]" || ref.Target != want[ref.Value] {
+			t.Fatalf("confined relative reference withheld: %+v", ref)
+		}
+		if strings.Contains(ref.Condition, "secret") {
+			t.Fatalf("raw condition leaked: %+v", ref)
+		}
+	}
+}
+
 func TestNPMWorkspaceMembershipAndIndependentPackages(t *testing.T) {
 	root := ParseNPM("package.json", []byte(`{"name":"root","workspaces":["packages/*","!packages/excluded","missing"],"dependencies":{"member":"^1.0.0"}}`))
 	members := map[string]string{
@@ -78,6 +107,51 @@ func TestNPMWorkspaceMembershipAndIndependentPackages(t *testing.T) {
 	}
 	if len(want) != 0 {
 		t.Errorf("missing relationships: %+v", want)
+	}
+}
+
+func TestNPMWorkspaceProtocolRequiresObservedUnambiguousMember(t *testing.T) {
+	root := ParseNPM("package.json", []byte(`{"name":"root","workspaces":["packages/*"]}`))
+	docs, files := npmFixtureDocuments(root, map[string]string{
+		"packages/app/package.json":  `{"name":"app","dependencies":{"util":"workspace:*","missing":"workspace:^"}}`,
+		"packages/util/package.json": `{"name":"util"}`,
+		"unrelated/package.json":     `{"name":"missing"}`,
+	})
+	ResolveNPM(docs, files)
+	app := docs[1]
+	for _, d := range docs {
+		if d.Project.ID == "packages/app/package.json" {
+			app = d
+		}
+	}
+	for _, ref := range app.Project.References {
+		switch ref.Value {
+		case "util":
+			if ref.State != "resolved" || ref.Target != "packages/util/package.json" {
+				t.Fatalf("unambiguous workspace dependency: %+v", ref)
+			}
+		case "missing":
+			if ref.State != "unresolved" || ref.Target != "" {
+				t.Fatalf("unobserved workspace dependency inferred: %+v", ref)
+			}
+		}
+	}
+}
+
+func TestNPMWorkspaceProtocolRejectsUnsafeOrVersionedPayloads(t *testing.T) {
+	for _, payload := range []string{"workspace:", "workspace:https://evil.test/x", "workspace:../other", "workspace:1.2.3", "workspace:^1.2.3"} {
+		root := ParseNPM("package.json", []byte(`{"workspaces":["packages/*"]}`))
+		app := ParseNPM("packages/app/package.json", []byte(`{"name":"app","dependencies":{"util":`+fmt.Sprintf("%q", payload)+`}}`))
+		util := ParseNPM("packages/util/package.json", []byte(`{"name":"util","version":"1.2.3"}`))
+		ResolveNPM([]*Document{root, app, util}, map[string]bool{"package.json": true, "packages/app/package.json": true, "packages/util/package.json": true})
+		ref := app.Project.References[0]
+		if ref.State != "unresolved" || ref.Target != "" || ref.Kind == "npm-workspace-dependency" {
+			t.Fatalf("payload %q inferred a local target: %+v", payload, ref)
+		}
+		encoded, _ := json.Marshal(app)
+		if strings.Contains(string(encoded), "evil.test") || strings.Contains(string(encoded), "../other") {
+			t.Fatalf("payload %q leaked: %s", payload, encoded)
+		}
 	}
 }
 

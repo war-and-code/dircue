@@ -17,7 +17,7 @@ func newCompareCommand(opts *options) *cobra.Command {
 		Long:  "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree-size"} {
+			for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "on-error", "tree-size"} {
 				if cmd.Flags().Changed(flag) {
 					return fmt.Errorf("--%s does not apply to saved-report comparison", flag)
 				}
@@ -76,12 +76,20 @@ func writeComparison(out io.Writer, report *reportdiff.Report) error {
 	if _, err := fmt.Fprintf(out, "Saved-report comparison: %s\nBase: %s\nHead: %s\nSource pairing is caller-selected; repository identity is not verified.\n", report.Status, report.Base.ReportSHA256, report.Head.ReportSHA256); err != nil {
 		return err
 	}
-	shown := 0
+	shown, hidden := 0, 0
 	for _, module := range report.Modules {
 		if module.BaseStatus == "unavailable" && module.HeadStatus == "unavailable" && module.Compatibility == "unavailable" {
 			continue
 		}
-		if _, err := fmt.Fprintf(out, "\n%s: %s (%s) — %d added, %d removed, %d changed, %d unchanged, %d unavailable\n", module.Name, module.Status, module.Compatibility, module.Counts.Added, module.Counts.Removed, module.Counts.Changed, module.Counts.Unchanged, module.Counts.Unavailable); err != nil {
+		if _, err := fmt.Fprintf(out, "\n%s: %s (%s) — %d added, %d removed, %d changed, %d unchanged, %d unavailable", module.Name, module.Status, module.Compatibility, module.Counts.Added, module.Counts.Removed, module.Counts.Changed, module.Counts.Unchanged, module.Counts.Unavailable); err != nil {
+			return err
+		}
+		if module.Counts.OmittedChanges > 0 {
+			if _, err := fmt.Fprintf(out, ", %d omitted changes", module.Counts.OmittedChanges); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(out); err != nil {
 			return err
 		}
 		for _, reason := range module.Reasons {
@@ -96,6 +104,7 @@ func writeComparison(out io.Writer, report *reportdiff.Report) error {
 		}
 		for _, change := range module.Changes {
 			if shown >= 200 {
+				hidden++
 				continue
 			}
 			fields := make([]string, 0, len(change.Fields))
@@ -108,7 +117,7 @@ func writeComparison(out io.Writer, report *reportdiff.Report) error {
 			shown++
 		}
 	}
-	if shown == 200 {
+	if hidden > 0 {
 		if _, err := fmt.Fprintln(out, "\nText output shows at most 200 observations; use --json for the bounded structured comparison."); err != nil {
 			return err
 		}

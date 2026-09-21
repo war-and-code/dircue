@@ -72,15 +72,16 @@ def fixture_inputs():
     return {name: sha(data) for name, data in sorted(FIXTURES.items())}
 
 
-def validate_receipt(receipt, version, candidate_sha256):
+def validate_receipt(receipt, version, candidate_sha256, expected_platform):
     require(isinstance(receipt, dict) and required(version), 'context proof requires release 0.8 or later')
-    require(set(receipt) == {'schema_version', 'version', 'passed', 'candidate_sha256',
+    require(set(receipt) == {'schema_version', 'version', 'platform', 'passed', 'candidate_sha256',
                              'source_sha256', 'fixture_sha256', 'checks', 'observed_facts',
                              'worker_required', 'external_tools_required',
                              'source_removed_before_plan', 'stdout_sha256'},
             'context proof receipt fields differ')
     require(receipt.get('schema_version') == '1.0.0' and receipt.get('version') == version and
             receipt.get('passed') is True, 'context proof version/status mismatch')
+    require(receipt.get('platform') == expected_platform, 'context proof platform mismatch')
     require(valid_digest(candidate_sha256) and receipt.get('candidate_sha256') == candidate_sha256,
             'context proof executable identity mismatch')
     require(receipt.get('source_sha256') == source_inputs() and receipt.get('fixture_sha256') == fixture_inputs(),
@@ -148,7 +149,7 @@ def check_plan(plan, saved_bytes, capabilities):
                 'plan argv retained deleted fixture source')
 
 
-def run(candidate, version):
+def run(candidate, version, platform):
     require(required(version), 'context smoke requires release 0.8 or later')
     candidate = candidate.resolve()
     candidate_hash = sha(candidate.read_bytes())
@@ -214,23 +215,24 @@ def run(candidate, version):
         outputs = {'capabilities': capabilities_raw, 'environment': environment_raw, 'saved_profile': saved_raw,
                    'plan': plan_raw, 'focus_comparison': focus_comparison,
                    'availability_comparison': availability_comparison}
-    receipt = {'schema_version': '1.0.0', 'version': version, 'passed': True,
+    receipt = {'schema_version': '1.0.0', 'version': version, 'platform': platform, 'passed': True,
                'candidate_sha256': candidate_hash, 'source_sha256': source_inputs(),
                'fixture_sha256': fixture_inputs(), 'checks': sorted(CHECKS),
                'observed_facts': copy.deepcopy(FACTS), 'worker_required': False,
                'external_tools_required': False, 'source_removed_before_plan': True,
                'stdout_sha256': {name: sha(data) for name, data in outputs.items()}}
-    return validate_receipt(receipt, version, candidate_hash)
+    return validate_receipt(receipt, version, candidate_hash, platform)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--candidate', type=Path, required=True)
     parser.add_argument('--version', required=True)
+    parser.add_argument('--platform', required=True)
     parser.add_argument('--output', type=Path, required=True)
     args = parser.parse_args()
     require(not args.output.exists(), 'choose a fresh context smoke receipt path')
-    receipt = run(args.candidate, args.version)
+    receipt = run(args.candidate, args.version, args.platform)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
     print('Packaged context smoke passed')

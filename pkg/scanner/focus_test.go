@@ -71,7 +71,7 @@ func TestFocusedMetricsKeepPrimaryRelatedAndContextSeparate(t *testing.T) {
 			contextPaths = append(contextPaths, item.Path)
 		}
 	}
-	if !slices.Contains(contextPaths, "Directory.Build.props") || !slices.Contains(contextPaths, "lib/b/b.csproj") {
+	if !slices.Contains(contextPaths, "Directory.Build.props") || !slices.Contains(contextPaths, "src/a/a.csproj") || !slices.Contains(contextPaths, "lib/b/b.csproj") {
 		t.Fatalf("focus context = %#v", report.Focus.Context)
 	}
 }

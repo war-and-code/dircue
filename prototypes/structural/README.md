@@ -46,6 +46,13 @@ Build requirements: Go 1.24 or newer, Rust 1.94 or newer, and a C compiler.
 Dependencies are fetched at build time. Prebuilt driver and worker executables
 need no compiler, network, grammar download, or Git repository at runtime.
 
+With rustup, install the pinned toolchain explicitly before building:
+
+```sh
+rustup toolchain install 1.94.0
+make -C prototypes/structural CARGO='cargo +1.94.0' demo
+```
+
 From the repository root:
 
 ```sh

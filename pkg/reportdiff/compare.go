@@ -38,6 +38,25 @@ func Compare(base, head *Snapshot) (*Report, error) {
 		}
 		r.Modules = append(r.Modules, m)
 	}
+	// Redistribute retention only when limits bind. Ordinary comparisons retain
+	// their original byte representation; large early modules cannot starve later ones.
+	if r.Status == "partial" {
+		demand := make([]int, len(r.Modules))
+		for i, m := range r.Modules {
+			demand[i] = len(m.Changes) + m.Counts.OmittedChanges
+		}
+		quotas := fairQuotas(demand, MaxChanges)
+		byteDemand := make([]int, len(demand))
+		for i, n := range demand {
+			if n > 0 {
+				byteDemand[i] = MaxOutputBytes
+			}
+		}
+		bytes := fairQuotas(byteDemand, MaxOutputBytes-(1<<20))
+		for i, name := range names {
+			r.Modules[i] = compareModule(name, a[name], b[name], &quotas[i], &bytes[i])
+		}
+	}
 	// Shrink values first; retain field names, identities and observation counts.
 	data, err := json.Marshal(r)
 	if err != nil {
@@ -57,16 +76,19 @@ func Compare(base, head *Snapshot) (*Report, error) {
 	}
 	for len(data) > MaxOutputBytes {
 		removed := false
-		for i := len(r.Modules) - 1; i >= 0; i-- {
-			m := &r.Modules[i]
-			if len(m.Changes) > 0 {
-				drop := max(1, len(m.Changes)/2)
-				m.Changes = m.Changes[:len(m.Changes)-drop]
-				m.Counts.OmittedChanges += drop
-				m.Reasons = appendReason(m.Reasons, "comparison_output_limit")
-				removed = true
-				break
+		largest := -1
+		for i := range r.Modules {
+			if len(r.Modules[i].Changes) > 0 && (largest < 0 || len(r.Modules[i].Changes) > len(r.Modules[largest].Changes)) {
+				largest = i
 			}
+		}
+		if largest >= 0 {
+			m := &r.Modules[largest]
+			drop := max(1, len(m.Changes)/2)
+			m.Changes = m.Changes[:len(m.Changes)-drop]
+			m.Counts.OmittedChanges += drop
+			m.Reasons = appendReason(m.Reasons, "comparison_output_limit")
+			removed = true
 		}
 		if !removed {
 			return nil, ErrLimit
@@ -82,6 +104,12 @@ func identity(role string, s *Snapshot) Identity {
 }
 
 func compareModule(name string, a, b moduleData, remaining, byteBudget *int) Module {
+	if !a.present {
+		a.status = "unavailable"
+	}
+	if !b.present {
+		b.status = "unavailable"
+	}
 	m := Module{Name: name, Scope: comparisonScope(name), Status: "unchanged", Compatibility: "compatible", Reasons: []string{}, BaseStatus: a.status, HeadStatus: b.status, Metadata: []FieldChange{}, Changes: []Change{}}
 	for _, reason := range append(a.reasons, b.reasons...) {
 		m.Reasons = appendReason(m.Reasons, reason)
@@ -353,4 +381,27 @@ func omitValue(v *Value) {
 		v.Data = nil
 		v.Omitted = true
 	}
+}
+
+// fairQuotas allocates small demands completely before sharing the remainder.
+func fairQuotas(demand []int, budget int) []int {
+	out := make([]int, len(demand))
+	for budget > 0 {
+		active := 0
+		for i, n := range demand {
+			if out[i] < n {
+				active++
+			}
+		}
+		if active == 0 {
+			break
+		}
+		share := max(1, budget/active)
+		for i, n := range demand {
+			take := min(n-out[i], share, budget)
+			out[i] += take
+			budget -= take
+		}
+	}
+	return out
 }

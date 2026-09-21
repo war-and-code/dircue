@@ -5,6 +5,7 @@ Environment analysis is an opt-in inventory of declarations. It does not prove t
 ```sh
 dircue analyze environments --json /checkout
 dircue analyze environments --source git --rev HEAD~1 --json /checkout
+dircue analyze environments --source git --tree 0123456789abcdef0123456789abcdef01234567 --json /checkout
 dircue analyze all --environments --json /checkout
 ```
 
@@ -27,7 +28,7 @@ The only constraint intersection currently implemented is comma-separated numeri
 
 For parsed .NET projects, the CLI models SDK selection from the project root. The Go analyzer API can instead receive explicit invocation starts; the 0.8 CLI does not expose an invocation-start option. The analyzer finds the nearest selected-source `global.json` ancestor. This is candidate applicability: the real .NET CLI and MSBuild choose their search start from invocation context, which can differ. The implementation follows the [Microsoft `global.json` documentation](https://learn.microsoft.com/en-us/dotnet/core/tools/global-json), last updated 2026-03-09 and accessed 2026-09-21. SDK selection remains separate from the target framework.
 
-`global.json` is read through the selected source callback and cached once per environment analysis. A Git source is immutable; a live directory can change between the earlier declaration pass and this bounded selection read. Nonregular candidates block ancestor fallback. Incomplete inventory, invalid JSON or Unicode, duplicate members, unsupported SDK fields, unsupported values, and exceeded budgets produce unresolved evidence rather than an absence claim. SDK search paths are reported as a boundary because no installation or filesystem probe is performed.
+`global.json` is read through the selected source callback and cached once per environment analysis. A Git source is bound to the selected commit or exact tree; a live directory can change between the earlier declaration pass and this bounded selection read. Nonregular candidates block ancestor fallback. Incomplete inventory, invalid JSON or Unicode, duplicate members, unsupported SDK fields, unsupported values, and exceeded budgets produce unresolved evidence rather than an absence claim. SDK search paths are reported as a boundary because no installation or filesystem probe is performed. Read failures fail by default; `--on-error continue` can retain a partial report only for recoverable per-file reads, with the omission explicit in coverage.
 
 Requirement evidence identifies the declaring file, and `global.json` evidence identifies the selected file and modeled invocation context. This release does not retain source spans or raw-content digests. A Git report binds those paths to its selected tree. A directory report is explicitly live evidence and does not claim that a later read has the same bytes.
 

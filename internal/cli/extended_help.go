@@ -4,6 +4,31 @@ import "github.com/spf13/cobra"
 
 func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	switch mode {
+	case "languages":
+		cmd.Short = "Classify source languages with Linguist-compatible statistics"
+		cmd.Long = "Report included language bytes and percentages. Git sources use the selected commit or exact tree (HEAD by default); --source directory reads current files. Vendored, generated, binary, and non-detectable files follow Linguist selection rules and supported .gitattributes overrides. Empty statistics do not prove an empty directory; use discovery for a metadata inventory."
+		cmd.Example = "  dircue --json /checkout\n  dircue analyze languages --source directory --breakdown /content"
+	case "all":
+		cmd.Short = "Combine language statistics, ecosystem hints, and selected profilers"
+		cmd.Long = "Run the default language and filename-based detectors in one scan. Optional profilers run only when requested through flags such as --discovery, --declarations, --environments, --metrics, and --structure. Each module retains its own population, coverage, and omissions; totals need not describe identical files. Structural analysis requires an explicitly selected worker."
+		cmd.Example = "  dircue analyze all --discovery --json /content\n  dircue analyze all --declarations --environments --metrics --json /checkout"
+	case "metrics":
+		cmd.Short = "Count lines, comments, code, and lexical complexity with scc"
+		cmd.Long = "Measure selected files using scc. The default scope follows language-statistics inclusion; --metrics-scope text includes all detected text languages. Lexical complexity is a counting heuristic, not a quality score. Use --files for bounded per-file detail and inspect coverage before comparing totals."
+		cmd.Example = "  dircue analyze metrics --files --json /checkout\n  dircue analyze metrics --metrics-scope text --json /content"
+	case "projects":
+		cmd.Short = "Discover supported project manifests and shared build inputs"
+		cmd.Long = "Read bounded .NET and JVM declarations without executing MSBuild, Maven, or Gradle, and retain filename-based project identities for the other documented manifest names. Unresolved expressions, conditions, missing targets, and parser limits remain visible. Project attribution describes static evidence, not the effective build graph. Use declarations for deeper supported ecosystem semantics and graph for .NET reference components."
+		cmd.Example = "  dircue analyze projects --json /checkout\n  dircue analyze all --projects --declarations --json /checkout"
+	case "structure":
+		cmd.Short = "Measure supported syntax through an explicitly supplied native worker"
+		cmd.Long = "Run a trusted structural worker on bounded selected source files. Requires --structural-worker; the worker is executable code, not a sandbox. Unsupported languages, parse errors, file limits, and module scope remain visible. --functions adds function records; --hotspots ranks supported measurements without assigning a software-quality grade."
+		cmd.Example = "  dircue analyze structure --structural-worker /tools/dircue-structural-worker --json /checkout\n  dircue analyze structure --structural-worker /tools/dircue-structural-worker --functions --hotspots --json /checkout"
+	case "frameworks", "ecosystems":
+		cmd.Short = "Report " + mode + " inferred from supported filename and manifest hints"
+		cmd.Long = "Run built-in detectors over selected files and return findings with evidence paths. Findings are hints under the supported detector rules, not proof of installed packages, runtime behavior, or build success. For bounded manifest parsing and workspace relationships, use analyze declarations."
+		cmd.Example = "  dircue analyze " + mode + " --json /checkout"
+
 	case "environments":
 		cmd.Short = "Map declared project environments without running builds"
 		cmd.Long = "Reuse supported project requirements and inspect bounded global.json inputs from the selected source. SDK selection is modeled from each project root, not an observed build invocation. Requirements, conditions, missing context and unsupported constraints remain explicit; installed tools are never probed."

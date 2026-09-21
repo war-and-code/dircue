@@ -38,12 +38,12 @@ func parseNPM(c *Configuration, content []byte) {
 		if !isDefault && !isScoped {
 			continue
 		}
-		if section {
-			c.omit("unsupported_npm_section_registry")
-			continue
-		}
 		if array {
 			c.omit("unsupported_npm_array_registry")
+			continue
+		}
+		if section {
+			c.omit("unsupported_npm_section_registry")
 			continue
 		}
 		if !hasEquals {

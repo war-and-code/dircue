@@ -92,7 +92,7 @@ func addStructure(r *profile.StructureReport, value result) error {
 	}
 	f := value.structural
 	if f == nil {
-		reason := "outside_scope"
+		reason := omissionReason(value, "outside_scope")
 		for _, warning := range value.warnings {
 			if warning.Code == "file_too_large" || warning.Code == "non_regular_file" {
 				reason = warning.Code

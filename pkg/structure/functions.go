@@ -229,7 +229,7 @@ func strictFunctionResponse(data []byte) bool {
 	if json.Unmarshal(data, &object) != nil {
 		return false
 	}
-	if !functionFieldSpelling(object, []string{"path", "language", "status", "reason", "source_bytes", "parse_count", "syntax_errors", "observations", "metrics", "provenance", "functions", "hotspots", "source_sha256"}) {
+	if !functionFieldSpelling(object, []string{"path", "language", "status", "reason", "source_bytes", "parse_count", "syntax_errors", "observations", "metrics", "provenance", "timings_ns", "functions", "hotspots", "source_sha256"}) {
 		return false
 	}
 	var provenance map[string]json.RawMessage
@@ -241,10 +241,15 @@ func strictFunctionResponse(data []byte) bool {
 
 func functionFieldSpelling(object map[string]json.RawMessage, fields []string) bool {
 	for key := range object {
+		known := false
 		for _, field := range fields {
-			if key != field && strings.EqualFold(key, field) {
-				return false
+			if key == field {
+				known = true
+				break
 			}
+		}
+		if !known {
+			return false
 		}
 	}
 	return true

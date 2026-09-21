@@ -107,6 +107,36 @@ func TestGitSnapshotRevisionAndDirectorySource(t *testing.T) {
 	if _, err := Scan(context.Background(), root, Options{Revision: "missing-revision"}); err == nil {
 		t.Fatal("unknown revision accepted")
 	}
+	if _, err := Scan(context.Background(), root, Options{Revision: "HEAD:src/main.go"}); err == nil || !strings.Contains(err.Error(), "rev:path") {
+		t.Fatalf("rev:path was not rejected: %v", err)
+	}
+	commit, err := repo.CommitObject(first)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	byTree, err := Scan(context.Background(), root, Options{Tree: tree.Hash.String(), IncludeFiles: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(byTree.Languages, report.Languages) {
+		t.Fatalf("tree mismatch: %+v", byTree.Languages)
+	}
+	inspectedTree, err := Inspect(context.Background(), filepath.Join(root, "src/main.go"), Options{Tree: tree.Hash.String()})
+	if err != nil || inspectedTree.Language != "Python" || string(inspectedTree.Content) != goSource {
+		t.Fatalf("tree inspection: inspection=%+v err=%v", inspectedTree, err)
+	}
+	for _, opts := range []Options{{Tree: "abc"}, {Revision: "HEAD", Tree: tree.Hash.String()}, {Source: "directory", Tree: tree.Hash.String()}} {
+		if _, err := Scan(context.Background(), root, opts); err == nil {
+			t.Fatalf("invalid tree selection accepted: %+v", opts)
+		}
+		if _, err := Inspect(context.Background(), filepath.Join(root, "src/main.go"), opts); err == nil {
+			t.Fatalf("invalid inspection tree selection accepted: %+v", opts)
+		}
+	}
 	if _, err := Scan(context.Background(), root, Options{Source: "directory", Revision: "HEAD"}); err == nil {
 		t.Fatal("directory revision accepted")
 	}
@@ -449,7 +479,65 @@ func TestGitAttributeRuleLimit(t *testing.T) {
 		".gitattributes": strings.Repeat("*.go linguist-generated\n", maxAttributeRules+1),
 		"main.go":        goSource,
 	})
-	if report, err := Scan(context.Background(), root, Options{}); err == nil || report != nil || !strings.Contains(err.Error(), "attribute rules exceed") {
-		t.Fatalf("attribute rule limit not enforced: report=%+v err=%v", report, err)
+	report, err := Scan(context.Background(), root, Options{})
+	if err != nil || len(report.Warnings) != 1 || report.Warnings[0].Code != "unsupported_gitattributes" || len(report.Languages) != 1 {
+		t.Fatalf("attribute rule limit was not disclosed: report=%+v err=%v", report, err)
+	}
+}
+
+func TestGitMissingBlobPolicyAndCorruptAutoDoNotSilentlyDowngrade(t *testing.T) {
+	root, repo, hash := gitFixture(t, map[string]string{"main.go": goSource, "safe.py": "print('safe')\n"})
+	commit, err := repo.CommitObject(hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry, err := tree.FindEntry("main.go")
+	if err != nil {
+		t.Fatal(err)
+	}
+	objectPath := filepath.Join(root, ".git", "objects", entry.Hash.String()[:2], entry.Hash.String()[2:])
+	if err := os.Remove(objectPath); err != nil {
+		t.Fatal(err)
+	}
+	if report, err := Scan(context.Background(), root, Options{}); err == nil || report != nil {
+		t.Fatalf("missing object silently downgraded: report=%+v err=%v", report, err)
+	}
+	report, err := Scan(context.Background(), root, Options{Source: "git", ErrorPolicy: ErrorPolicyContinue, IncludeFiles: true, Discovery: true, Projects: true, Declarations: true, Metrics: &MetricsOptions{IncludeFiles: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Warnings) != 1 || report.Warnings[0].Code != "missing_git_object" || !reflect.DeepEqual(languageFiles(report), map[string][]string{"Python": {"safe.py"}}) {
+		t.Fatalf("continued report: %+v", report)
+	}
+	if report.Discovery == nil || report.Discovery.Status != "partial" || report.Discovery.Omissions["missing_git_object"] != 1 || report.Projects == nil || report.Projects.Status != "partial" || report.Projects.OmittedFiles != 1 || report.Declarations == nil || report.Declarations.Status != "partial" || report.Declarations.Coverage.OmittedFiles != 1 || report.Metrics == nil || report.Metrics.Status != "partial" {
+		t.Fatalf("continued module coverage was not qualified: %+v", report)
+	}
+	metricOmission := false
+	for _, skipped := range report.Metrics.Skipped {
+		if skipped.Reason == "missing_git_object" && skipped.Files != nil && *skipped.Files == 1 {
+			metricOmission = true
+		}
+	}
+	if !metricOmission {
+		t.Fatalf("missing metric omission: %+v", report.Metrics.Skipped)
+	}
+}
+
+func TestAutoSourceRejectsInvalidHEADWithoutBranchRefs(t *testing.T) {
+	root := t.TempDir()
+	if _, err := git.PlainInit(root, false); err != nil {
+		t.Fatal(err)
+	}
+	// A genuinely unborn repository points HEAD at a branch. A missing
+	// non-branch target is corruption and must not downgrade to directory mode.
+	if err := os.WriteFile(filepath.Join(root, ".git", "HEAD"), []byte("ref: refs/tags/missing\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if report, err := Scan(context.Background(), root, Options{}); err == nil || report != nil {
+		t.Fatalf("invalid HEAD silently downgraded: report=%+v err=%v", report, err)
 	}
 }
