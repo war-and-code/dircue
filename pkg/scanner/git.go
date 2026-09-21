@@ -29,6 +29,7 @@ type gitSnapshot struct {
 	explainPath  string
 	// go-git packed-object/index caches mutate during reads and are not concurrency safe.
 	objectMu     sync.Mutex
+	storage      io.Closer
 	root         string
 	tree         *object.Tree
 	repo         *git.Repository
@@ -39,6 +40,18 @@ type gitSnapshot struct {
 }
 
 const maxGitTreeDepth = 1024
+
+// Bound cached pack readers per snapshot; alternates retain their uncached policy.
+const maxGitPackDescriptors = 8
+
+func (s *gitSnapshot) close() error {
+	if s == nil || s.storage == nil {
+		return nil
+	}
+	storage := s.storage
+	s.storage = nil
+	return storage.Close()
+}
 
 type gitTreeFrame struct {
 	tree *object.Tree
@@ -186,7 +199,7 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (*gitSnapshot, error) {
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (snapshot *gitSnapshot, err error) {
 	if opts.Source == "directory" {
 		return nil, nil
 	}
@@ -200,10 +213,19 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	if err != nil {
 		return nil, fmt.Errorf("open Git repository: %w", err)
 	}
+	var retainedStorage *filesystem.Storage
+	defer func() {
+		if snapshot == nil && retainedStorage != nil {
+			if closeErr := retainedStorage.Close(); err == nil && closeErr != nil {
+				err = fmt.Errorf("close Git storage: %w", closeErr)
+			}
+		}
+	}()
 	// PlainOpen's default storage eagerly materializes every complete object.
 	// Reopen using a bounded threshold so large non-delta objects are streamed.
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		bounded := filesystem.NewStorageWithOptions(storage.Filesystem(), cache.NewObjectLRUDefault(), filesystem.Options{LargeObjectThreshold: ClassificationBytes})
+		bounded := filesystem.NewStorageWithOptions(storage.Filesystem(), cache.NewObjectLRUDefault(), filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: maxGitPackDescriptors})
+		retainedStorage = bounded
 		wt, wtErr := repo.Worktree()
 		if wtErr == nil {
 			repo, err = git.Open(bounded, wt.Filesystem)
@@ -256,7 +278,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	if err != nil {
 		return nil, err
 	}
-	snapshot := &gitSnapshot{root: root, tree: tree, repo: repo, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
+	snapshot = &gitSnapshot{root: root, tree: tree, repo: repo, storage: retainedStorage, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
 		files, err := attributeRoot(storage.Filesystem().Root())
 		if err != nil {
