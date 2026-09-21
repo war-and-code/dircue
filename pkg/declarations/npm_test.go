@@ -52,16 +52,45 @@ func TestNPMDeclarationsDoNotRetainCommandsOrURLs(t *testing.T) {
 }
 
 func TestLegacyWindowsPathsAreWithheldAnywhereInValues(t *testing.T) {
-	d := Parse("App.csproj", []byte(`<Project><PropertyGroup><LangVersion>@C:\config.txt</LangVersion><TargetFramework>.\..\secret</TargetFramework></PropertyGroup><ItemGroup><PackageReference Include="Example" Version="C:\Users\me\token.txt"/></ItemGroup></Project>`))
+	d := Parse("App.csproj", []byte(`<Project><PropertyGroup><LangVersion>@C:\config.txt</LangVersion><TargetFramework>.\..\secret</TargetFramework><RuntimeIdentifier>@/private/host/token</RuntimeIdentifier></PropertyGroup><ItemGroup><PackageReference Include="Example" Version="C:\Users\me\token.txt"/></ItemGroup></Project>`))
 	if d == nil || d.Project == nil {
 		t.Fatal("legacy project missing")
 	}
 	encoded, _ := json.Marshal(d)
-	for _, secret := range []string{`C:\\config.txt`, `C:\\Users`, `token.txt`, `.\\..\\secret`} {
+	for _, secret := range []string{`C:\\config.txt`, `C:\\Users`, `token.txt`, `.\\..\\secret`, `/private/host`} {
 		if strings.Contains(string(encoded), secret) {
 			t.Fatalf("host path escaped declaration report: %s", encoded)
 		}
 	}
+}
+
+func TestLegacyVersionedSDKSlashIsNotAHostPath(t *testing.T) {
+	for value, unsafe := range map[string]bool{
+		"Contoso.Build.Sdk/8.0.100": false,
+		"package/name":              false,
+		"/private/host/token":       true,
+		"@/private/host/token":      true,
+		"x=/private/host/token":     true,
+		`@C:\private\token`:         true,
+		`.\..\private\token`:        true,
+	} {
+		if got := unsafeLegacyText(value); got != unsafe {
+			t.Fatalf("unsafeLegacyText(%q) = %v, want %v", value, got, unsafe)
+		}
+	}
+	d := Parse("App.csproj", []byte(`<Project><Sdk Name="Contoso.Build.Sdk" Version="8.0.100"/></Project>`))
+	if d == nil || d.Project == nil {
+		t.Fatal("legacy project missing")
+	}
+	for _, req := range d.Project.Requirements {
+		if req.Kind == "dotnet-sdk" {
+			if req.Value != "Contoso.Build.Sdk/8.0.100" || req.State != "declared" {
+				t.Fatalf("ordinary SDK identity withheld: %+v", req)
+			}
+			return
+		}
+	}
+	t.Fatalf("versioned SDK requirement missing: %+v", d.Project.Requirements)
 }
 
 func TestLegacyConfinedRelativeReferencesRemainVisible(t *testing.T) {

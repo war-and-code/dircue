@@ -51,7 +51,7 @@ The performance driver performs one warmup and at least five measured samples pe
 
 The pinned baseline SHA-256 is `7bbc81abfc2d9abec4a997c21933492d39959f444560a6d6d631121f499933ad`. The candidate build receipt binds all local Go compilation inputs plus worktree commit, tree, status, and diff digests.
 
-The retained [results](results/) were built from clean source commit `6922d1d3bb1e8bbffae8392144cd6f519710ce98`. The verifier checks that their complete Go compilation input manifest still matches the current checkout. See [candidate validation](../../docs/releases/0.8.0-validation.md) for the measured outcomes.
+The original [results](results/) were built from clean source commit `6922d1d3bb1e8bbffae8392144cd6f519710ce98` and remain historical. The [post-review results](results/review/) identify the corrected candidate separately. Verify each receipt against its own recorded source, not a different revision. See [candidate validation](../../docs/releases/0.8.0-validation.md) for measured outcomes.
 
 ## Reproducing the retained macOS baseline
 
