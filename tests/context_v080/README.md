@@ -52,3 +52,22 @@ The performance driver performs one warmup and at least five measured samples pe
 The pinned baseline SHA-256 is `7bbc81abfc2d9abec4a997c21933492d39959f444560a6d6d631121f499933ad`. The candidate build receipt binds all local Go compilation inputs plus worktree commit, tree, status, and diff digests.
 
 The retained [results](results/) were built from clean source commit `6922d1d3bb1e8bbffae8392144cd6f519710ce98`. The verifier checks that their complete Go compilation input manifest still matches the current checkout. See [candidate validation](../../docs/releases/0.8.0-validation.md) for the measured outcomes.
+
+## Reproducing the retained macOS baseline
+
+The retained benchmark pins the darwin-arm64 binaries from the published v0.7.0 release. From an authenticated checkout, download into a new directory:
+
+```sh
+mkdir -p .cache/baseline070/core .cache/baseline070/worker
+gh release download v0.7.0 --repo war-and-code/dircue --dir .cache/baseline070 \
+  --pattern dircue_0.7.0_darwin_arm64.tar.gz \
+  --pattern dircue-structural-worker_0.7.0_darwin-arm64.tar.gz \
+  --pattern SHA256SUMS
+(cd .cache/baseline070 && shasum -a 256 -c SHA256SUMS --ignore-missing)
+tar -xzf .cache/baseline070/dircue_0.7.0_darwin_arm64.tar.gz -C .cache/baseline070/core
+tar -xzf .cache/baseline070/dircue-structural-worker_0.7.0_darwin-arm64.tar.gz -C .cache/baseline070/worker
+```
+
+Check the extracted core against `7bbc81abfc2d9abec4a997c21933492d39959f444560a6d6d631121f499933ad` and worker against `73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740`. These hashes identify this platform's retained experiment; they are not universal cross-platform hashes. The original result files remain historical evidence for their recorded source commit.
+
+`verify.py` is a **receipt-integrity verifier**. It checks stored raw-output consistency, binary identity, source bindings, and recorded statistics. It does not replay the recorded commands or prove their execution. To reproduce behavior, run `broad.py` and `targeted.py` with the actual binaries as above, then inspect their fresh raw captures. New 0.8 interfaces have separate tests and release smoke checks; they are outside the inherited preservation matrix.

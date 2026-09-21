@@ -20,6 +20,7 @@ type environmentAccumulator struct {
 	files             map[string]environments.File
 	maxFileBytes      int64
 	inventoryComplete bool
+	inventoryOmission string
 }
 
 func newEnvironmentAccumulator(opts Options) *environmentAccumulator {
@@ -33,9 +34,15 @@ func (a *environmentAccumulator) add(value result) error {
 	for _, warning := range value.warnings {
 		if warning.Code == "tree_size_limit" {
 			a.inventoryComplete = false
+			a.inventoryOmission = "tree_size_limit"
 		}
 	}
-	if path.Base(value.path) != "global.json" {
+	if value.omission != "" {
+		a.inventoryComplete = false
+		a.inventoryOmission = value.omission
+	}
+	base := path.Base(value.path)
+	if base != "global.json" && base != "Directory.Build.props" {
 		return nil
 	}
 	if len(a.files) >= environments.DefaultMaxInventoryPaths {
@@ -45,7 +52,7 @@ func (a *environmentAccumulator) add(value result) error {
 		return errors.New("duplicate environment configuration path")
 	}
 	file := environments.File{Path: value.path, NonRegular: value.selectedJob == nil}
-	if value.selectedJob != nil {
+	if value.selectedJob != nil && base == "global.json" {
 		item := *value.selectedJob
 		file.Size = item.size
 		a.jobs[value.path] = item
@@ -56,7 +63,16 @@ func (a *environmentAccumulator) add(value result) error {
 
 func (a *environmentAccumulator) finish(ctx context.Context, root *os.Root, collector *declarations.Collector, report *profile.Report) error {
 	if !a.inventoryComplete {
-		return errors.New("environment inventory omitted: tree size limit reached")
+		source, tree := "directory", ""
+		if report.Declarations != nil {
+			source, tree = report.Declarations.Source, report.Declarations.Tree
+		}
+		reason := a.inventoryOmission
+		if reason == "" {
+			reason = "inventory_incomplete"
+		}
+		report.Environments = environments.Skip(source, tree, reason)
+		return nil
 	}
 	if collector == nil || report.Declarations == nil {
 		return errors.New("environments require declaration evidence")

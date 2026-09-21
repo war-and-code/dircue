@@ -41,7 +41,7 @@ func newExplainCommand(opts *options) *cobra.Command {
 			if len(args) > 0 {
 				return fmt.Errorf("--report cannot be combined with a source directory")
 			}
-			for _, flag := range []string{"workers", "max-file-bytes", "source", "rev", "tree-size"} {
+			for _, flag := range []string{"workers", "max-file-bytes", "source", "rev", "tree", "on-error", "tree-size"} {
 				if cmd.Flags().Changed(flag) {
 					return fmt.Errorf("--%s does not apply to saved-report explanations", flag)
 				}
@@ -86,7 +86,7 @@ func newExplainCommand(opts *options) *cobra.Command {
 				source = "git"
 				rev = opts.revision
 			}
-			scanOptions := scanner.Options{Source: source, Revision: rev, MaxTreeSize: max(1, opts.maxTreeSize), Workers: opts.workers, MaxFileBytes: opts.maxFileBytes, ExplainPath: file}
+			scanOptions := scanner.Options{Source: source, Revision: rev, Tree: opts.tree, ErrorPolicy: scanner.ErrorPolicy(opts.onError), MaxTreeSize: max(1, opts.maxTreeSize), Workers: opts.workers, MaxFileBytes: opts.maxFileBytes, ExplainPath: file}
 			if project != "" {
 				scanOptions.Declarations = true
 				scanOptions.DeclarationsOnly = true
@@ -108,7 +108,7 @@ func newExplainCommand(opts *options) *cobra.Command {
 			return err
 		}
 		for _, warning := range report.Warnings {
-			if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
+			if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", terminalValue(warning.Path), terminalValue(warning.Message), warning.Code); err != nil {
 				return err
 			}
 		}

@@ -69,7 +69,7 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 			continue
 		}
 		data := d.Data.(*pythonData)
-		ws.incomplete = data.invalidPatterns || d.limited
+		ws.incomplete = data.invalidPatterns || data.invalidMembers || d.limited
 		if data.project {
 			pythonIncludeMember(ws, d, d.Project.ID, files, parents)
 		}

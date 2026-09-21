@@ -86,3 +86,7 @@ Local Darwin arm64 archives built from clean commit `58ed625` with the validatio
 The uploader requires GitHub.com Actions URLs and fixes every gh subprocess to `GH_HOST=github.com`. It does not promise GitHub Enterprise compatibility, cryptographic build attestations, automatic tag management or idempotent replacement of drafts. Wheel validation deliberately retains the existing reviewed Go 1.26.6 requirement; changing the compiler needs a coordinated packager update and validation. These limitations fail explicitly rather than silently broadening support.
 
 References: [manual workflow dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch), [GitHub CLI release creation](https://cli.github.com/manual/gh_release_create), and [GitHub CLI release editing](https://cli.github.com/manual/gh_release_edit).
+
+## Toolchain identity
+
+Release archives and wheel provenance require exactly Go 1.26.6. A newer compatible Go toolchain can build the CLI locally, but changing the reviewed release toolchain requires updating its image pin and provenance checks together. The structural worker crate has an internal development version of `0.0.0`; its distribution version, exact source commit, and binary digest are recorded in the release archive provenance. Do not infer the distribution version from Cargo metadata or a strings search.

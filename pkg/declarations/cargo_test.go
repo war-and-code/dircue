@@ -376,7 +376,6 @@ func TestCargoIncompleteWorkspaceSelectionDoesNotInferMembership(t *testing.T) {
 	for _, selection := range []string{
 		"members=['member']\nexclude=['{member,other}/*']\n",
 		"members=['member']\nexclude=42\n",
-		"members=['member',42]\n",
 		"members=['member']\nexclude=['/host/secret']\n",
 		"members=['member']\nexclude=[" + strings.Repeat("'other',", MaxPatterns) + "'more']\n",
 	} {
@@ -396,6 +395,33 @@ func TestCargoIncompleteWorkspaceSelectionDoesNotInferMembership(t *testing.T) {
 		}
 		if member.Project.Version != "" || !cargoTestDiagnostic(member, "cargo-inheritance-unresolved") {
 			t.Fatalf("incomplete workspace supplied inheritance: %+v", member)
+		}
+	}
+}
+
+func TestCargoBadMemberKeepsValidSiblingWithoutSupplyingInheritance(t *testing.T) {
+	for _, bad := range []string{"42", "'../outside'"} {
+		docs, _ := cargoTestDocuments(t, map[string]string{
+			"Cargo.toml":        "[workspace]\nmembers=['member'," + bad + "]\n[workspace.package]\nversion='1.0.0'\n",
+			"member/Cargo.toml": "[package]\nname='member'\nversion.workspace=true\n[features]\ndefault=['cli']\ncli=[]\n",
+		})
+		root := cargoTestProject(t, docs, "Cargo.toml")
+		member := cargoTestProject(t, docs, "member/Cargo.toml")
+		found := false
+		for _, ref := range root.Project.References {
+			found = found || ref.Kind == "cargo-workspace-member" && ref.Target == "member/Cargo.toml"
+		}
+		if !found || member.Project.Version != "" || !cargoTestDiagnostic(member, "cargo-inheritance-unresolved") {
+			t.Fatalf("valid sibling or conservative inheritance lost: root=%+v member=%+v", root, member)
+		}
+		features := map[string]bool{}
+		for _, req := range member.Project.Requirements {
+			if req.Kind == "cargo-feature" {
+				features[req.Value] = true
+			}
+		}
+		if !features["default"] || !features["cli"] {
+			t.Fatalf("Cargo features not retained: %+v", member.Project.Requirements)
 		}
 	}
 }

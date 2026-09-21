@@ -150,6 +150,7 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 	stdout := &cappedBuffer{limit: 16 << 20, cancel: cancel}
 	stderr := &cappedBuffer{limit: 64 << 10, cancel: cancel}
 	cmd := exec.CommandContext(child, c.options.Worker)
+	configureWorkerProcess(cmd)
 	cmd.Stdin = bytes.NewReader(body)
 	cmd.Stdout, cmd.Stderr = stdout, stderr
 	cmd.WaitDelay = time.Second
@@ -181,8 +182,8 @@ func decodeResponse(data []byte, submitted File, content []byte, functions bool)
 }
 
 func decodeEnrichedResponse(data []byte, submitted File, content []byte, functions, hotspots bool) (File, error) {
-	if (functions || hotspots) && !strictFunctionResponse(data) {
-		return submitted, errors.New("structure worker function response contains invalid JSON, duplicate keys, or field aliases")
+	if !strictFunctionResponse(data) {
+		return submitted, errors.New("structure worker response contains invalid JSON, duplicate keys, or unknown fields")
 	}
 	var response struct {
 		File

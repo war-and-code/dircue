@@ -45,6 +45,27 @@ func observingDetector(_ context.Context, file profile.File) ([]profile.Finding,
 	return []profile.Finding{{Kind: "ecosystem", Name: "observed", Root: ".", Evidence: []string{file.Path}}}, nil
 }
 
+func TestRecoverableReadPreservesInventoryAndProtocolErrorsRemainFatal(t *testing.T) {
+	secret := errors.New("open /private/host/secret: permission denied")
+	item := job{path: "app.csproj", size: 42, read: func(int64) ([]byte, int64, error) {
+		return nil, 0, secret
+	}}
+	value, err := analyzeSelectedFile(context.Background(), nil, item, Options{Projects: true, Discovery: true})
+	if !isRecoverableFileError(err) || value.path != item.path || !value.inventoried || value.discoveryFile == nil {
+		t.Fatalf("read failure lost retained metadata: value=%+v err=%v", value, err)
+	}
+	protocol := errors.New("structural worker protocol mismatch")
+	if isRecoverableFileError(protocol) {
+		t.Fatal("worker protocol failure classified as recoverable file I/O")
+	}
+	registryItem := item
+	registryItem.path = ".npmrc"
+	registryValue, registryErr := analyzeSelectedFile(context.Background(), nil, registryItem, Options{Registries: true})
+	if !isRecoverableFileError(registryErr) || strings.Contains(registryErr.Error(), "private") || registryValue.registryFile == nil {
+		t.Fatalf("registry read error was not sanitized with metadata preserved: value=%+v err=%v", registryValue, registryErr)
+	}
+}
+
 func TestScanWithoutGitAndExclusions(t *testing.T) {
 	root := fixtures(t, map[string]string{
 		"main.go":                  goSource,
@@ -512,7 +533,8 @@ func TestDirectoryAttributeRuleLimit(t *testing.T) {
 		".gitattributes": strings.Repeat("*.go linguist-generated\n", maxAttributeRules+1),
 		"main.go":        goSource,
 	})
-	if report, err := Scan(context.Background(), root, Options{Source: "directory"}); err == nil || report != nil || !strings.Contains(err.Error(), "attribute rules exceed") {
-		t.Fatalf("attribute rule limit not enforced: report=%+v err=%v", report, err)
+	report, err := Scan(context.Background(), root, Options{Source: "directory"})
+	if err != nil || len(report.Warnings) != 1 || report.Warnings[0].Code != "unsupported_gitattributes" || len(report.Languages) != 1 {
+		t.Fatalf("attribute rule limit was not disclosed: report=%+v err=%v", report, err)
 	}
 }

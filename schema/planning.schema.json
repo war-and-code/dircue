@@ -340,7 +340,10 @@
           ],
           "properties": {
             "argv": {
-              "$ref": "#/$defs/strings"
+              "allOf": [
+                {"$ref": "#/$defs/strings"},
+                {"contains": {"const": "--"}}
+              ]
             },
             "executable": {
               "const": false

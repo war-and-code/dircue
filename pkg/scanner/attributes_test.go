@@ -66,6 +66,17 @@ func TestAttributeBooleanAndLanguageResets(t *testing.T) {
 	}
 }
 
+func TestUnsetLanguageRestoresDetection(t *testing.T) {
+	rules, warnings := parseAttributes(".gitattributes", []byte("*.go linguist-language=Ruby\n*.go -linguist-language\n"))
+	if len(warnings) != 0 {
+		t.Fatalf("warnings: %+v", warnings)
+	}
+	got := resolveAttributes("main.go", rules)
+	if got.languageSet || got.language != "" {
+		t.Fatalf("unset language remained an override: %+v", got)
+	}
+}
+
 func TestQuotedMacrosDocumentationAndTruthyValues(t *testing.T) {
 	rules, warnings := parseAttributes(".gitattributes", []byte("[attr]private linguist-vendored linguist-generated\n\"with space.go\" private\ntruth.go linguist-documentation=perhaps\n*.json linguist-detectable=true\n\"caf\\303\\251.go\" linguist-language=Python\n"))
 	if len(warnings) != 0 {

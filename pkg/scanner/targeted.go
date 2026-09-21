@@ -39,7 +39,7 @@ func validateTargetedOptions(opts Options) error {
 }
 
 func validTargetPath(name string) bool {
-	return name != "" && name != "." && path.Clean(name) == name && !path.IsAbs(name) && name != ".." && !strings.HasPrefix(name, "../") && !strings.ContainsAny(name, "\\\x00") && !strings.Contains(name, ":")
+	return name != "" && name != "." && path.Clean(name) == name && !path.IsAbs(name) && name != ".." && !strings.HasPrefix(name, "../") && !strings.ContainsAny(name, "\\\x00\r\n")
 }
 
 // The focused prepass retains original selected-source readers and resolved

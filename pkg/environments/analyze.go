@@ -19,6 +19,13 @@ import (
 
 const semanticsReference = "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json (last updated 2026-03-09; accessed 2026-09-21)"
 
+// Skip returns a valid zero-evidence report when source traversal could not
+// safely supply the complete inventory required for environment selection.
+func Skip(source, tree, reason string) *Report {
+	l := defaults(Limits{})
+	return &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "skipped", Source: source, Tree: tree, SemanticsReference: semanticsReference, Limits: l, Requirements: []Requirement{}, Selections: []Selection{}, Conflicts: []Conflict{}, Boundaries: []Boundary{{Reason: reason, Detail: "Environment inventory was omitted because the selected source traversal did not complete."}}, Diagnostics: []Diagnostic{}}
+}
+
 func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
@@ -75,8 +82,15 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	starts := slices.Clone(in.InvocationStarts)
 	if len(starts) == 0 {
 		for _, rec := range records {
-			if rec.Parsed && rec.Project.Kind == "dotnet" {
+			if rec.Parsed && (rec.Project.Kind == "dotnet" || rec.Project.Kind == "solution") {
 				starts = append(starts, Invocation{rec.Project.ID, rec.Project.Root})
+			}
+		}
+		if len(starts) == 0 {
+			for _, rec := range records {
+				if rec.Parsed && rec.Project.Kind == "dotnet-configuration" && path.Base(rec.Project.ID) == "global.json" {
+					starts = append(starts, Invocation{rec.Project.ID, rec.Project.Root})
+				}
 			}
 		}
 	}
@@ -93,6 +107,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		diagnostics []Diagnostic
 	}
 	parseCache := map[string]parsedSelection{}
+	diagnosticsEmitted := map[string]bool{}
 	for i, start := range starts {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -114,6 +129,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		contextID := fmt.Sprintf("%s@%s", start.ProjectID, dir)
 		sel := Selection{ContextID: contextID, ProjectID: start.ProjectID, StartDirectory: dir, StartBasis: basis, State: "unconstrained", Applicability: "candidate SDK selection for an invocation starting at the recorded directory; actual CLI/MSBuild start may differ"}
+		if shared := nearestNamed(dir, files, "Directory.Build.props"); shared != "" && shared != start.ProjectID {
+			r.Boundaries = append(r.Boundaries, Boundary{Path: shared, ProjectID: start.ProjectID, ContextID: contextID, Reason: "shared-properties-applicability-unresolved", Detail: "A nearest ancestor Directory.Build.props may contribute project requirements; MSBuild import and condition semantics were not evaluated."})
+		}
 		candidate := nearestGlobal(dir, files)
 		if candidate == "" {
 			if !inventoryComplete {
@@ -150,7 +168,10 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				b.ContextID = sel.ContextID
 				r.Boundaries = append(r.Boundaries, b)
 			}
-			r.Diagnostics = append(r.Diagnostics, parsed.diagnostics...)
+			if !diagnosticsEmitted[candidate] {
+				r.Diagnostics = append(r.Diagnostics, parsed.diagnostics...)
+				diagnosticsEmitted[candidate] = true
+			}
 			r.Selections = append(r.Selections, sel)
 			r.Coverage.Contexts++
 			continue
@@ -183,6 +204,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		tmp := &Report{Status: "complete", Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 		parseGlobal(tmp, &sel, content)
 		parseCache[candidate] = parsedSelection{selection: sel, status: tmp.Status, boundaries: slices.Clone(tmp.Boundaries), diagnostics: slices.Clone(tmp.Diagnostics)}
+		diagnosticsEmitted[candidate] = true
 		if tmp.Status == "partial" {
 			r.Status = "partial"
 		}
@@ -243,8 +265,11 @@ func cleanDirectory(v string) (string, bool) {
 	return cleanRelative(v)
 }
 func nearestGlobal(dir string, files map[string]File) string {
+	return nearestNamed(dir, files, "global.json")
+}
+func nearestNamed(dir string, files map[string]File, name string) string {
 	for {
-		p := "global.json"
+		p := name
 		if dir != "." {
 			p = path.Join(dir, p)
 		}
@@ -281,6 +306,7 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Status = "partial"
 		return
 	}
+	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	if !jsontext.ValidUnicode(content) {
 		s.State = "unresolved"
 		r.Status = "partial"
@@ -294,6 +320,7 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "invalid-global-json", "global.json contains an unterminated block comment."})
 		return
 	}
+	cleaned = stripTrailingCommas(cleaned)
 	if err := uniqueJSONKeys(cleaned); err != nil {
 		s.State = "unresolved"
 		r.Status = "partial"
@@ -392,16 +419,56 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 			s.State = "unresolved"
 			r.Status = "partial"
 			r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "unsupported-sdk-paths", "sdk.paths must be an array of strings."})
-		} else {
+		} else if len(p) > 0 {
 			r.Boundaries = append(r.Boundaries, Boundary{Path: s.GlobalJSON, ProjectID: s.ProjectID, ContextID: s.ContextID, Reason: "sdk-search-paths-unresolved", Detail: "Declared SDK search paths are retained as a selection boundary; no filesystem or installed SDK probe was performed."})
 		}
 	}
 	if s.State != "unresolved" {
-		if s.SDKVersion == "" && s.RollForward == "" {
-			s.RollForward = "latestMajor"
+		if s.SDKVersion != "" || s.RollForward != "" || s.AllowPrerelease != nil {
+			s.State = "declared"
+		} else {
+			s.State = "unconstrained"
 		}
-		s.State = "declared"
 	}
+}
+
+// stripTrailingCommas replaces commas immediately before an object or array
+// close with whitespace. This matches global.json's documented JSON options
+// while retaining byte offsets and leaving string contents untouched.
+func stripTrailingCommas(in []byte) []byte {
+	out := slices.Clone(in)
+	inString, escaped := false, false
+	for i := 0; i < len(out); i++ {
+		if inString {
+			if escaped {
+				escaped = false
+			} else if out[i] == '\\' {
+				escaped = true
+			} else if out[i] == '"' {
+				inString = false
+			}
+			continue
+		}
+		if out[i] == '"' {
+			inString = true
+			continue
+		}
+		if out[i] != ',' {
+			continue
+		}
+		j := i + 1
+		for j < len(out) && (out[j] == ' ' || out[j] == '\t' || out[j] == '\r' || out[j] == '\n') {
+			j++
+		}
+		k := i - 1
+		for k >= 0 && (out[k] == ' ' || out[k] == '\t' || out[k] == '\r' || out[k] == '\n') {
+			k--
+		}
+		if k >= 0 && !strings.ContainsRune("{[:,", rune(out[k])) && j < len(out) && (out[j] == '}' || out[j] == ']') {
+			out[i] = ' '
+		}
+	}
+	return out
 }
 
 func uniqueJSONKeys(content []byte) error {
@@ -602,7 +669,11 @@ func detectPythonConflicts(r *Report) {
 		if low != nil && high != nil {
 			cmp := compareVersion(low.version, high.version)
 			if cmp > 0 || (cmp == 0 && (!low.inclusive || !high.inclusive)) {
-				r.Conflicts = append(r.Conflicts, Conflict{ContextID: contextID, Dimension: "runtime-version", Values: []string{low.value, high.value}, Evidence: []string{low.evidence, high.evidence}, Explanation: "Supported Python version clauses have an empty intersection in this project context."})
+				values, evidence := []string{low.value}, []string{low.evidence}
+				if high.value != low.value || high.evidence != low.evidence {
+					values, evidence = append(values, high.value), append(evidence, high.evidence)
+				}
+				r.Conflicts = append(r.Conflicts, Conflict{ContextID: contextID, Dimension: "runtime-version", Values: values, Evidence: evidence, Explanation: "Supported Python version clauses have an empty intersection in this project context."})
 			}
 		}
 	}

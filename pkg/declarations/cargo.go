@@ -10,6 +10,7 @@ import (
 
 type cargoData struct {
 	usable                      bool
+	incomplete                  bool
 	packagePresent, workspace   bool
 	members, excludes, defaults []string
 	defaultsSet                 bool
@@ -109,6 +110,20 @@ func ParseCargo(name string, content []byte) *Document {
 	}
 	if _, exists := object["cargo-features"]; exists {
 		AddDiagnostic(d, "cargo-nightly-features", "Nightly Cargo feature declarations are not evaluated.")
+	}
+	if features, exists := object["features"]; exists {
+		if table, ok := cargoTable(features); ok {
+			for _, feature := range cargoKeys(table) {
+				members, valid := cargoStrings(table[feature])
+				if !cargoIdentifier(feature) || !valid || len(members) > MaxPatterns {
+					cargoInvalid(d, "features."+feature)
+					continue
+				}
+				AddRequirement(d, Requirement{Kind: "cargo-feature", Value: feature, State: "declared", Evidence: name})
+			}
+		} else {
+			cargoInvalid(d, "features")
+		}
 	}
 	if hasPackage {
 		if name, ok := pkg["name"].(string); ok && cargoIdentifier(name) {
@@ -266,19 +281,32 @@ func cargoPatterns(d *Document, data *cargoData, table map[string]any, key strin
 		*count++
 		text, ok := value.(string)
 		if !ok || !cargoText(text) {
-			data.usable = false
+			if key == "exclude" {
+				data.usable = false
+			} else {
+				data.incomplete = true
+			}
 			cargoInvalid(d, "workspace."+key)
 			continue
 		}
 		// Invalid external paths are represented without disclosing host paths.
 		if _, ok := LocalTarget(d.Project.ID, text, "Cargo.toml"); !ok {
-			data.usable = false
+			if key == "exclude" {
+				data.usable = false
+			} else {
+				data.incomplete = true
+			}
 			AddReference(d, Reference{Kind: "cargo-workspace-" + key, Value: "[outside-selected-root]", State: "unresolved", TargetStatus: "external", Evidence: d.Project.ID})
+			AddDiagnostic(d, "cargo-workspace-pattern-unresolved", "A Cargo workspace pattern is outside the selected inventory; valid sibling patterns remain eligible for resolution.")
 			continue
 		}
 		if strings.ContainsAny(text, "*?[") {
 			if _, err := MatchPattern(text, ""); err != nil {
-				data.usable = false
+				if key == "exclude" {
+					data.usable = false
+				} else {
+					data.incomplete = true
+				}
 				AddDiagnostic(d, "cargo-unsupported-pattern", "Cargo workspace pattern uses unsupported syntax.")
 				continue
 			}

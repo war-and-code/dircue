@@ -280,6 +280,7 @@ class AssemblyContracts(unittest.TestCase):
                 (folder / 'targeted.json').write_text(json.dumps(targeted_proof))
             if draft.context_release_smoke.required(version):
                 context_proof = context.context_receipt(version)
+                context_proof['platform'] = platform
                 context_proof['candidate_sha256'] = selected['binary_sha256']
                 (folder / 'context.json').write_text(json.dumps(context_proof))
         return incoming, worker_hash
@@ -426,6 +427,9 @@ class AssemblyContracts(unittest.TestCase):
                 def check_hotspots(binary, worker, selected_version):
                     self.assertEqual(b'worker-header-fixture', worker.read_bytes())
                     return check_core(binary, selected_version)
+                def check_context(binary, selected_version, selected_platform):
+                    self.assertEqual(platform, selected_platform)
+                    return check_core(binary, selected_version)
                 worker_payload = {'dircue-structural-worker': b'worker-header-fixture'}
                 with mock.patch.object(draft, 'verify_worker', return_value=({'binary_sha256': worker_hash}, worker_payload)), \
                      mock.patch.object(draft.subprocess, 'run', return_value=subprocess.CompletedProcess([], 0, f'dircue {version}\n'.encode(), b'')), \
@@ -434,7 +438,7 @@ class AssemblyContracts(unittest.TestCase):
                      mock.patch.object(draft.formats_release_smoke, 'run', side_effect=check_core), \
                      mock.patch.object(draft.hotspots_release_smoke, 'run', side_effect=check_hotspots), \
                      mock.patch.object(draft.targeted_release_smoke, 'run', side_effect=check_core), \
-                     mock.patch.object(draft.context_release_smoke, 'run', side_effect=check_core):
+                     mock.patch.object(draft.context_release_smoke, 'run', side_effect=check_context):
                     draft.native_smoke(folder, platform, version, '0' * 40)
                 required = draft.declarations_release_smoke.declarations_required(version)
                 content_required = draft.formats_release_smoke.required(version)

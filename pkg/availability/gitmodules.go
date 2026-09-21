@@ -43,6 +43,16 @@ func ParseGitmodules(evidence string, content []byte, fullSize, maxBytes int64) 
 		diagnostic("incomplete-gitmodules", "The selected .gitmodules content was incomplete or changed during inspection.")
 		return result
 	}
+	for _, b := range content {
+		if b == ' ' || b == '\t' || b == '\r' || b == '\n' {
+			continue
+		}
+		if b < 0x20 || b == 0x7f {
+			diagnostic("binary-gitmodules", "The selected .gitmodules file contains binary control bytes and was not parsed as configuration.")
+			return result
+		}
+		break
+	}
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	scanner.Buffer(make([]byte, 4096), DefaultStringBytes+1)
 	inSubmodule, sectionHasPath := false, false

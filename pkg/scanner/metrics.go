@@ -160,7 +160,7 @@ func (a *metricsAccumulator) add(value result) {
 	}
 	m := value.metrics
 	if m == nil {
-		m = &profile.FileMetrics{Path: value.path, Status: "skipped", Reason: "non_regular_file"}
+		m = &profile.FileMetrics{Path: value.path, Status: "skipped", Reason: omissionReason(value, "non_regular_file")}
 	}
 	if a.report.Files != nil {
 		*a.report.Files = append(*a.report.Files, *m)

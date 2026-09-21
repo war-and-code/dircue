@@ -78,8 +78,14 @@ func Inspect(ctx context.Context, filename string, opts Options) (*Inspection, e
 	if opts.Source != "auto" && opts.Source != "git" && opts.Source != "directory" {
 		return nil, fmt.Errorf("unknown source %q", opts.Source)
 	}
-	if opts.Source == "directory" && opts.Revision != "" {
-		return nil, fmt.Errorf("revision requires Git source")
+	if opts.Revision != "" && opts.Tree != "" {
+		return nil, errors.New("revision and tree are mutually exclusive")
+	}
+	if strings.Contains(opts.Revision, ":") {
+		return nil, errors.New("revision must select a commit, not a rev:path expression")
+	}
+	if opts.Source == "directory" && (opts.Revision != "" || opts.Tree != "") {
+		return nil, fmt.Errorf("revision and tree require Git source")
 	}
 	snapshot, err := openGitSnapshot(ctx, filepath.Dir(full), opts, true)
 	if err != nil {

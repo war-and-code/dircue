@@ -7,8 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
+
+	"dircue/pkg/environments"
 )
 
 func writeEnvironmentFixture(t *testing.T, root string, files map[string]string) {
@@ -38,7 +39,12 @@ func TestEnvironmentsDirectoryNearestGlobalJSON(t *testing.T) {
 	if r.Environments == nil || r.Environments.Status != "complete" || len(r.Environments.Selections) != 1 {
 		t.Fatalf("report: %+v", r.Environments)
 	}
-	s := r.Environments.Selections[0]
+	var s environments.Selection
+	for _, candidate := range r.Environments.Selections {
+		if candidate.ProjectID == "src/App/App.csproj" {
+			s = candidate
+		}
+	}
 	if s.GlobalJSON != "src/global.json" || s.SDKVersion != "9.0.200" || s.StartBasis != "modeled-project-root" {
 		t.Fatalf("selection: %+v", s)
 	}
@@ -77,7 +83,12 @@ func TestEnvironmentsNearestNonregularBlocksParent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := r.Environments.Selections[0]
+	var s environments.Selection
+	for _, candidate := range r.Environments.Selections {
+		if candidate.ProjectID == "src/App.csproj" {
+			s = candidate
+		}
+	}
 	if s.GlobalJSON != "src/global.json" || s.State != "unresolved" || s.SDKVersion != "" {
 		t.Fatalf("selection: %+v", s)
 	}
@@ -107,8 +118,9 @@ func TestEnvironmentsLimitsCancellationAndWorkers(t *testing.T) {
 	if _, err := Scan(ctx, root, Options{Source: "directory", Environments: true, DeclarationsOnly: true}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancel error: %v", err)
 	}
-	if _, err := Scan(context.Background(), root, Options{Source: "directory", Environments: true, DeclarationsOnly: true, MaxTreeSize: 1}); err == nil || !strings.Contains(err.Error(), "environment inventory omitted") {
-		t.Fatalf("tree limit error: %v", err)
+	limited, err := Scan(context.Background(), root, Options{Source: "directory", Environments: true, DeclarationsOnly: true, MaxTreeSize: 1})
+	if err != nil || limited.Environments == nil || limited.Environments.Status != "skipped" || len(limited.Environments.Boundaries) != 1 || limited.Environments.Boundaries[0].Reason != "tree_size_limit" {
+		t.Fatalf("tree limit report: report=%+v err=%v", limited, err)
 	}
 }
 

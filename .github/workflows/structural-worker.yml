@@ -2,6 +2,8 @@ name: Structural worker
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
   pull_request:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
 
@@ -24,28 +26,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - os: ubuntu-22.04
-            platform: linux-amd64
-            target: x86_64-unknown-linux-gnu
-            suffix: ''
-          - os: ubuntu-24.04-arm
-            platform: linux-arm64
-            target: aarch64-unknown-linux-gnu
-            suffix: ''
-          - os: macos-14
-            platform: darwin-arm64
-            target: aarch64-apple-darwin
-            suffix: ''
-          - os: macos-15-intel
-            platform: darwin-amd64
-            target: x86_64-apple-darwin
-            suffix: ''
-          - os: windows-latest
-            platform: windows-amd64
-            target: x86_64-pc-windows-msvc
-            suffix: '.exe'
+      matrix: ${{ fromJSON(github.event_name == 'push' && '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","target":"x86_64-unknown-linux-gnu","suffix":""}]}' || '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","target":"x86_64-unknown-linux-gnu","suffix":""},{"os":"ubuntu-24.04-arm","platform":"linux-arm64","target":"aarch64-unknown-linux-gnu","suffix":""},{"os":"macos-14","platform":"darwin-arm64","target":"aarch64-apple-darwin","suffix":""},{"os":"macos-15-intel","platform":"darwin-amd64","target":"x86_64-apple-darwin","suffix":""},{"os":"windows-latest","platform":"windows-amd64","target":"x86_64-pc-windows-msvc","suffix":".exe"}]}') }}
     runs-on: ${{ matrix.os }}
     env:
       # Test-fixture version only; this selects no release version and creates no tags/releases.
@@ -80,6 +61,11 @@ jobs:
             rust-structural-worker-v1-${{ matrix.os }}-${{ runner.arch }}-${{ matrix.target }}-1.94.0-
       - name: Test native worker
         run: rustup run 1.94.0 cargo test --locked --manifest-path prototypes/structural/worker/Cargo.toml
+      - name: Audit Rust dependencies for known advisories
+        if: matrix.platform == 'linux-amd64'
+        run: |
+          RUSTC="$(rustup which --toolchain 1.94.0 rustc)" rustup run 1.94.0 cargo install cargo-audit --version 0.22.2 --locked
+          rustup run 1.94.0 cargo audit --deny warnings --file prototypes/structural/worker/Cargo.lock
       - name: Build and package worker with dependency sources
         run: python scripts/structural_worker_release.py --platform ${{ matrix.platform }} --version ${{ env.DIRCUE_CI_VERSION }} --smoke-test
       - name: Test Go process adapter against native worker
@@ -129,6 +115,8 @@ jobs:
               command = [sys.executable, f'scripts/{helper}_release_smoke.py',
                          '--candidate', 'bin/dircue' + suffix, '--version', version,
                          '--output', str(folder / f'{helper}-{platform}.json')]
+              if helper == 'context':
+                  command += ['--platform', platform]
               if helper == 'hotspots':
                   command += ['--worker', str(worker)]
               subprocess.run(command, check=True)

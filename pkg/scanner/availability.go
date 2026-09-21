@@ -35,6 +35,10 @@ func (a *availabilityAccumulator) add(value result, root *os.Root) error {
 	if value.gitlink != nil {
 		a.collector.AddGitlink(*value.gitlink)
 	}
+	if value.omission != "" {
+		a.collector.MarkInventoryIncomplete(value.omission)
+		return nil
+	}
 	if value.selectedJob == nil {
 		return nil
 	}

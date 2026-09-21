@@ -1,6 +1,5 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/war-and-code/dircue/schema/environments.schema.json",
   "type": "object",
   "required": [
     "provider",
@@ -328,7 +327,7 @@
         },
         "values": {
           "type": "array",
-          "minItems": 2,
+          "minItems": 1,
           "maxItems": 16,
           "items": {
             "$ref": "#/$defs/requiredText"
@@ -336,7 +335,7 @@
         },
         "evidence": {
           "type": "array",
-          "minItems": 2,
+          "minItems": 1,
           "maxItems": 16,
           "items": {
             "$ref": "#/$defs/requiredText"

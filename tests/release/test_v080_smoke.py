@@ -11,7 +11,7 @@ import context_release_smoke as context
 
 def context_receipt(version='0.8.0'):
     return {
-        'schema_version': '1.0.0', 'version': version, 'passed': True,
+        'schema_version': '1.0.0', 'version': version, 'platform': 'linux-amd64', 'passed': True,
         'candidate_sha256': 'a' * 64, 'source_sha256': context.source_inputs(),
         'fixture_sha256': context.fixture_inputs(), 'checks': sorted(context.CHECKS),
         'observed_facts': copy.deepcopy(context.FACTS), 'worker_required': False,
@@ -34,11 +34,12 @@ class ContextCapabilityProofContracts(unittest.TestCase):
 
     def test_receipt_identity_scope_and_exact_inventory(self):
         receipt = context_receipt()
-        self.assertEqual(receipt, context.validate_receipt(receipt, '0.8.0', 'a' * 64))
+        self.assertEqual(receipt, context.validate_receipt(receipt, '0.8.0', 'a' * 64, 'linux-amd64'))
         mutations = {
             'passed': lambda r: r.update(passed=False),
             'version': lambda r: r.update(version='0.7.0'),
             'candidate': lambda r: r.update(candidate_sha256='b' * 64),
+            'platform': lambda r: r.update(platform='darwin-arm64'),
             'source': lambda r: r.update(source_sha256={}),
             'fixture': lambda r: r.update(fixture_sha256={}),
             'checks missing': lambda r: r['checks'].pop(),
@@ -55,12 +56,12 @@ class ContextCapabilityProofContracts(unittest.TestCase):
             changed = copy.deepcopy(receipt)
             mutate(changed)
             with self.subTest(name=name), self.assertRaises(ValueError):
-                context.validate_receipt(changed, '0.8.0', 'a' * 64)
+                context.validate_receipt(changed, '0.8.0', 'a' * 64, 'linux-amd64')
 
     def test_malformed_receipts_fail_closed(self):
         for value in (None, [], {}, {'checks': None}):
             with self.subTest(value=value), self.assertRaises(ValueError):
-                context.validate_receipt(value, '0.8.0', 'a' * 64)
+                context.validate_receipt(value, '0.8.0', 'a' * 64, 'linux-amd64')
 
     def test_requirements_are_independently_enumerated(self):
         self.assertEqual(13, len(context.CHECKS))

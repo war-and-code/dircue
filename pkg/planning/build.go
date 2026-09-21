@@ -117,7 +117,7 @@ func validateInput(in Input) error {
 		}
 	}
 	for _, v := range in.Selection.Projects {
-		if path.IsAbs(v) || path.Clean(v) != v || v == "." || strings.HasPrefix(v, "../") || strings.ContainsAny(v, "\\\x00\r\n") {
+		if path.IsAbs(v) || path.Clean(v) != v || v == "." || v == ".." || strings.HasPrefix(v, "-") || strings.HasPrefix(v, "../") || strings.Contains(v, "/../") || strings.ContainsAny(v, "\\\x00\r\n") {
 			return ErrInvalid
 		}
 	}
@@ -240,7 +240,7 @@ func decide(in Input, m capabilities.Module, projects []string, inputs map[strin
 	if source.Status == "consistent" && (source.Mode == "git" || source.Mode == "directory") {
 		argv = append(argv, "--source", source.Mode)
 		if source.Mode == "git" && source.Tree != "" {
-			argv = append(argv, "--rev", source.Tree)
+			argv = append(argv, "--tree", source.Tree)
 		}
 	}
 	if m.ID == "focus" {
@@ -254,7 +254,7 @@ func decide(in Input, m capabilities.Module, projects []string, inputs map[strin
 	if m.ID == "structure" {
 		argv = append(argv, "--structural-worker", "{structural-worker}")
 	}
-	argv = append(argv, "{source}")
+	argv = append(argv, "--", "{source}")
 	step := &Step{ID: "step:" + m.ID, DecisionID: d.ID, Question: m.Question, Module: m.ID, Scope: scope, Prerequisites: slices.Clone(m.Prerequisites), UnresolvedInputs: slices.Clone(d.UnresolvedInputs), ExpectedEvidence: slices.Clone(m.ExpectedEvidence), SupportingObservationIDs: []string{}, Cost: Cost{Class: costClass(scope, m), Inspection: m.Cost.Inspection, CandidateFiles: scope.CandidateFiles, CandidateBytes: scope.CandidateBytes, ExternalProcess: m.Cost.ExternalProcess, Qualification: "candidate quantities describe retained evidence only; shared traversal, runtime, and memory are not predicted"}, Command: Command{Argv: argv, Executable: false, SourcePlaceholder: "{source}", RevalidationRequired: []string{"source identity", "source boundary", "report freshness"}}}
 	return d, step, ev, nil
 }
@@ -402,6 +402,9 @@ func sourceIdentity(p *profile.Report) SourceIdentity {
 	if p.Environments != nil {
 		add(p.Environments.Source, p.Environments.Tree)
 	}
+	if p.Projects != nil {
+		add(p.Projects.Source, p.Projects.Tree)
+	}
 	if len(values) == 0 {
 		return SourceIdentity{Status: "unavailable"}
 	}
@@ -440,10 +443,13 @@ func costClass(s Scope, m capabilities.Module) string {
 	if m.Cost.Inspection == "metadata" {
 		return "metadata"
 	}
-	if s.CandidateFiles == 0 {
-		return "unknown-population"
+	if m.Cost.Inspection == "full-content" {
+		return "full-content"
 	}
-	return "bounded-candidates"
+	if s.CandidateFiles == 0 {
+		return "bounded-content-unknown-population"
+	}
+	return "bounded-content"
 }
 func dedupEvidence(in []Evidence) []Evidence {
 	seen := map[string]bool{}

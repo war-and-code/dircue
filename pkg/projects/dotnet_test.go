@@ -1,10 +1,12 @@
 package projects
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"testing"
+	"unicode/utf16"
 )
 
 func TestDotnetProjectDeclarations(t *testing.T) {
@@ -121,7 +123,7 @@ func TestDotnetDoesNotInventoryNugetCredentials(t *testing.T) {
 }
 
 func TestIsDotnet(t *testing.T) {
-	for _, name := range []string{"src/App.csproj", "src/App.FSPROJ", "App.vbproj", "App.sln", "App.slnx", "global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "NuGet.Config", "packages.config"} {
+	for _, name := range []string{"src/App.csproj", "src/App.FSPROJ", "App.vbproj", "Native.vcxproj", "Database.sqlproj", "Setup.wixproj", "Shared.shproj", "Build.proj", "App.sln", "App.slnx", "App.slnf", "global.json", "Directory.Build.props", "Directory.Build.targets", "Directory.Packages.props", "NuGet.Config", "packages.config"} {
 		if !IsDotnet(name) {
 			t.Errorf("not detected: %s", name)
 		}
@@ -129,6 +131,67 @@ func TestIsDotnet(t *testing.T) {
 	for _, name := range []string{"package.json", "README.md", "arbitrary.props"} {
 		if IsDotnet(name) {
 			t.Errorf("unexpected detection: %s", name)
+		}
+	}
+}
+
+func utf16Bytes(text string, order binary.ByteOrder) []byte {
+	units := utf16.Encode([]rune(text))
+	out := []byte{0xff, 0xfe}
+	if order == binary.BigEndian {
+		out = []byte{0xfe, 0xff}
+	}
+	for _, unit := range units {
+		var encoded [2]byte
+		order.PutUint16(encoded[:], unit)
+		out = append(out, encoded[:]...)
+	}
+	return out
+}
+
+func TestDotnetAcceptsBOMUTF16WithoutWeakeningXML(t *testing.T) {
+	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
+		doc := ParseDotnet("App.csproj", utf16Bytes(`<?xml version="1.0" encoding="utf-16"?><Project><ItemGroup><ProjectReference Include="Lib.csproj"/></ItemGroup></Project>`, order))
+		if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 || len(doc.Projects[0].References) != 1 {
+			t.Fatalf("UTF-16 project rejected: %+v", doc)
+		}
+	}
+	sln := "Microsoft Visual Studio Solution File, Format Version 12.00\r\n" + `Project("{GUID}") = "Native", "src\Native.vcxproj", "{ID}"` + "\r\nEndProject\r\n"
+	doc := ParseDotnet("App.sln", utf16Bytes(sln, binary.LittleEndian))
+	if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 || len(doc.Projects[0].References) != 1 {
+		t.Fatalf("UTF-16 solution rejected: %+v", doc)
+	}
+	hostile := ParseDotnet("App.csproj", utf16Bytes(`<!DOCTYPE Project [<!ENTITY x SYSTEM "file:///etc/passwd">]><Project>&x;</Project>`, binary.LittleEndian))
+	if len(hostile.Diagnostics) != 1 || len(hostile.Projects) != 0 {
+		t.Fatalf("UTF-16 DTD accepted: %+v", hostile)
+	}
+	for _, inconsistent := range [][]byte{
+		[]byte(`<?xml version="1.0" encoding="utf-16"?><Project/>`),
+		utf16Bytes(`<?xml version="1.0" encoding="utf-8"?><Project/>`, binary.LittleEndian),
+	} {
+		bad := ParseDotnet("App.csproj", inconsistent)
+		if len(bad.Diagnostics) != 1 || len(bad.Projects) != 0 {
+			t.Fatalf("inconsistent XML encoding accepted: %+v", bad)
+		}
+	}
+}
+
+func TestDotnetSolutionFilterIsPassiveAndBounded(t *testing.T) {
+	doc := ParseDotnet("filters/App.slnf", []byte(`{"solution":{"path":"../solutions/App.sln","projects":["../src/App.csproj"]}}`))
+	if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 || len(doc.Projects[0].References) != 2 {
+		t.Fatalf("solution filter: %+v", doc)
+	}
+	if doc.Projects[0].References[0].Target != "solutions/App.sln" || doc.Projects[0].References[1].Target != "src/App.csproj" {
+		t.Fatalf("solution filter targets: %+v", doc.Projects[0].References)
+	}
+	for _, malformed := range []string{
+		`{"solution":{"path":"App.sln","path":"Other.sln","projects":[]}}`,
+		`{"solution":{"path":"App.sln","projects":[],"execute":true}}`,
+		`{"solution":{"path":"App.sln","projects":[]},"extra":true}`,
+	} {
+		bad := ParseDotnet("App.slnf", []byte(malformed))
+		if len(bad.Diagnostics) != 1 || len(bad.Projects) != 0 {
+			t.Fatalf("non-strict solution filter accepted: %+v", bad)
 		}
 	}
 }
@@ -145,6 +208,37 @@ func TestDotnetSDKImportsAndConditionalVersions(t *testing.T) {
 	for _, r := range p.Requirements[1:] {
 		if r.State != "conditional" || !strings.Contains(r.Condition, "OS") || !strings.Contains(r.Condition, "TargetFramework") {
 			t.Fatalf("lost package version condition: %+v", r)
+		}
+	}
+}
+
+func TestMSBuildNamesFollowStructuralAndDeclarationCaseRules(t *testing.T) {
+	doc := ParseDotnet("App.csproj", []byte(`<Project><PropertyGroup><targetframework>net8.0</targetframework><LANGVERSION>preview</LANGVERSION></PropertyGroup><ItemGroup><projectreference Include="Lib.csproj"/><packagereference Include="Example"><version>1.2.3</version></packagereference></ItemGroup></Project>`))
+	if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 {
+		t.Fatalf("case-insensitive declarations rejected: %+v", doc)
+	}
+	p := doc.Projects[0]
+	wantReq := map[string]bool{"target-framework/net8.0": true, "language-version/preview": true, "package-reference/Example@1.2.3": true}
+	for _, req := range p.Requirements {
+		delete(wantReq, req.Kind+"/"+req.Value)
+	}
+	if len(wantReq) != 0 || len(p.References) != 1 || p.References[0].Target != "Lib.csproj" {
+		t.Fatalf("MSBuild declaration casing lost: requirements=%+v references=%+v", p.Requirements, p.References)
+	}
+	for _, input := range []string{
+		`<project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></project>`,
+		`<Project><propertygroup><TargetFramework>net8.0</TargetFramework></propertygroup></Project>`,
+		`<Project><itemgroup><ProjectReference Include="Lib.csproj"/></itemgroup></Project>`,
+	} {
+		bad := ParseDotnet("App.csproj", []byte(input))
+		if strings.HasPrefix(input, "<project>") {
+			if len(bad.Diagnostics) != 1 || len(bad.Projects) != 0 {
+				t.Fatalf("case-insensitive structural root accepted: %+v", bad)
+			}
+			continue
+		}
+		if len(bad.Projects) != 1 || len(bad.Projects[0].Requirements)+len(bad.Projects[0].References) != 0 {
+			t.Fatalf("case-insensitive structural group accepted: %+v", bad)
 		}
 	}
 }

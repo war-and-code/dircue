@@ -273,7 +273,12 @@ func moduleInputs(p profile.Report) map[string]moduleData {
 		m := newModule()
 		m.present = present
 		if present {
-			m.status, m.unsupported = "unavailable", true
+			m.unsupported = true
+			if name == "graph" {
+				m.status = p.Graph.Status
+			} else {
+				m.status = p.Structure.Status
+			}
 			m.reasons = append(m.reasons, "detailed_comparison_not_supported_for_this_module")
 		}
 		result[name] = m
@@ -351,13 +356,13 @@ func targetedModules(p profile.Report, result map[string]moduleData) {
 	}
 	if p.Explanation != nil {
 		m := newModule()
-		m.present, m.status, m.unsupported = true, "unavailable", true
+		m.present, m.status, m.unsupported = true, p.Explanation.Status, true
 		m.reasons = append(m.reasons, "semantic_trace_comparison_not_supported")
 		result["explanation"] = m
 	}
 	if p.Environments != nil {
 		m := newModule()
-		m.present, m.status, m.unsupported = true, "unavailable", true
+		m.present, m.status, m.unsupported = true, p.Environments.Status, true
 		m.reasons = append(m.reasons, "environment_comparison_not_supported")
 		result["environments"] = m
 		if p.Focus == nil && p.Formats == nil && p.Registries == nil && p.Rules == nil && p.PackageEvidence == nil && p.Discovery == nil && p.Graph == nil && p.Projects == nil && p.Structure == nil && p.Metrics == nil && legacyPopulationEmpty(p) {

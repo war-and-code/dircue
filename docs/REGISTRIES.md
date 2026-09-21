@@ -100,3 +100,7 @@ rule version and source consistency, and reports `complete`, `partial`, or
 `skipped` coverage. Complete refers to the supported declaration inspection,
 not a complete or effective feed set. Existing invocations retain their prior
 output schemas and the Linguist-compatible language interface.
+
+## Uncovered configuration
+
+The current parser covers NuGet.Config and .npmrc only. An empty result does not rule out Maven settings.xml, pip.conf, Cargo config.toml, Yarn configuration, or other package sources. `enumeration_complete` describes the selected inventory under this supported scope; it does not establish registry coverage for every ecosystem.
