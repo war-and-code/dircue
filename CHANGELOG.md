@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.7.0 (unreleased)
+## 0.7.0 (2026-09-21)
 
 - Add focused .NET and Python/uv project profiling with original-root attribute context, qualified ownership boundaries, and explicit shared declarations. Count primary and explicitly selected related projects separately with optional scc metrics.
 - Add bounded source-availability observations for Git LFS pointers, Gitlinks, submodule declarations, and supported local sparse-checkout metadata, without fetching or hydrating content.
