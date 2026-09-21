@@ -37,13 +37,15 @@ func (h *candidates) Push(v any)        { *h = append(*h, v.(Candidate)) }
 func (h *candidates) Pop() any          { v := (*h)[len(*h)-1]; *h = (*h)[:len(*h)-1]; return v }
 
 type Collector struct {
-	report    Report
-	files     map[string]bool
-	paths     candidates
-	inventory candidates
-	readLimit int64
-	finished  bool
-	finishErr error
+	report        Report
+	files         map[string]bool
+	paths         candidates
+	inventory     candidates
+	readLimit     int64
+	finished      bool
+	finishErr     error
+	retainRecords bool
+	records       []ProjectRecord
 }
 
 func New(source, tree string, maxFileBytes int64) *Collector {
@@ -230,6 +232,21 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 	}
 	sortJSON(c.report.Diagnostics)
 	c.boundOutput()
+	if c.retainRecords {
+		retained := make(map[string]Project, len(c.report.Projects))
+		for _, p := range c.report.Projects {
+			retained[p.ID] = p
+		}
+		for _, d := range docs {
+			if d.Project == nil {
+				continue
+			}
+			if p, ok := retained[d.Project.ID]; ok {
+				c.records = append(c.records, ProjectRecord{Project: p, Parsed: d.Parsed, Complete: !d.limited})
+			}
+		}
+		slices.SortFunc(c.records, func(a, b ProjectRecord) int { return strings.Compare(a.Project.ID, b.Project.ID) })
+	}
 	// Adapter metadata and source callbacks need not survive the returned report.
 	c.paths = nil
 	c.files = nil
