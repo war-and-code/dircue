@@ -13,6 +13,8 @@ dircue compare before.json after.json --json > changes.json
 
 Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.5. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
 
+Targeted reports introduced in 0.7.0 use schema 1.6.0 and are explicitly rejected by `compare`. Focused and repository-wide totals have different populations; comparison must account for that before accepting them. Use `analyze explain --report FILE` to query retained evidence in these reports. Existing unfocused reports still use schemas 1.0–1.5.
+
 ## Read compatibility before changes
 
 The caller chooses the pair. Matching root names, hashes or package names do not prove repository identity or report authenticity. `base.report_sha256` and `head.report_sha256` identify the exact input bytes; they are not source-tree signatures.

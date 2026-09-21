@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the 0.6.0 release's enabled integrations, rather than every feature
+describe the enabled integrations in 0.7.0, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
@@ -18,10 +18,15 @@ Python/uv and Cargo, alongside the existing .NET/JVM readers, and
 
 Version 0.6.0 adds [format evidence](FORMATS.md) and [population-aware function hotspots](HOTSPOTS.md), both explicit selections. Existing language, line-count and structural grammar coverage is unchanged.
 
+Version 0.7.0 adds [focused .NET/Python project profiling](FOCUS.md), [source-availability evidence](AVAILABILITY.md), and [targeted explanations](EXPLANATIONS.md). These additions preserve the existing language catalog and structural grammar coverage.
+
 ## Analysis layers
 
 | Layer | Coverage | Result and limits |
 | --- | --- | --- |
+| Focused profiling | Parsed .NET and Python/uv selections | Original-root context and qualified containment; optional separate primary/related scc metrics. |
+| Source availability | Explicit bounded prefixes, selected Gitlinks, supported checkout metadata | Acquisition-boundary evidence; no fetching, hydration, or filter execution. |
+| Explanations | Targeted language decisions and retained project/focus/availability facts | Fresh or saved evidence, with source identity, limits, and unavailable detail. |
 | Metadata discovery | Selected regular files, including non-code and vendor paths | Filename and size inventory, manifest/artifact candidates, explicit coverage; no source-payload reads. |
 | Format evidence | Bounded prefixes of selected regular files | Separate filename hints, signatures and supported syntax checks; no archive expansion or purpose inference. |
 | Function hotspots | Eligible BCA Function-kind spaces in selected parsed files | Fixed-bin distributions and top-ten evidence by language/grammar and clean/recovered syntax; includes overlapping nested spaces. |

@@ -8,7 +8,13 @@ on:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: >-
+    ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.draft &&
+      github.event.action != 'converted_to_draft' &&
+      'draft' || 'full'
+    }}
   cancel-in-progress: true
 
 permissions:
@@ -39,6 +45,10 @@ jobs:
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
         run: python -m unittest discover -s tests/performance/bounded_reader -p 'test_*.py' -v
+      - name: Test focused-analysis receipt contracts
+        run: python -m unittest discover -s tests/focus_v070 -p 'test_*.py' -v
+      - name: Test workflow concurrency contracts
+        run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
 
   test:
     needs: preflight

@@ -19,7 +19,7 @@ func parityOracle(t *testing.T) *upstream.Schema {
 	t.Helper()
 	c := upstream.NewCompiler()
 	c.LoadURL = func(string) (io.ReadCloser, error) { return nil, fmt.Errorf("resource is not bundled") }
-	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json"} {
+	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json", "focus.schema.json", "availability.schema.json", "explanation.schema.json"} {
 		data, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)

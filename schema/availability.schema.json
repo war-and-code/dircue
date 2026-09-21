@@ -1,0 +1,725 @@
+{
+  "$id": "https://dircue.invalid/schema/availability.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "bounds": {
+      "additionalProperties": false,
+      "properties": {
+        "boundary_paths": {
+          "minimum": 1,
+          "maximum": 16384,
+          "type": "integer"
+        },
+        "checkout_metadata_bytes": {
+          "minimum": 1,
+          "maximum": 16777216,
+          "type": "integer"
+        },
+        "content_bytes": {
+          "minimum": 1024,
+          "maximum": 16777216,
+          "type": "integer"
+        },
+        "correlation_work": {
+          "minimum": 1,
+          "maximum": 1048576,
+          "type": "integer"
+        },
+        "diagnostics": {
+          "minimum": 1,
+          "maximum": 1024,
+          "type": "integer"
+        },
+        "evidence_per_kind": {
+          "minimum": 1,
+          "maximum": 4096,
+          "type": "integer"
+        },
+        "gitmodules_bytes": {
+          "minimum": 1,
+          "maximum": 1048576,
+          "type": "integer"
+        },
+        "max_file_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "output_bytes": {
+          "minimum": 4096,
+          "maximum": 8388608,
+          "type": "integer"
+        },
+        "pointer_bytes": {
+          "const": 1024,
+          "type": "integer"
+        },
+        "string_bytes": {
+          "minimum": 1,
+          "maximum": 8192,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pointer_bytes",
+        "max_file_bytes",
+        "content_bytes",
+        "gitmodules_bytes",
+        "checkout_metadata_bytes",
+        "evidence_per_kind",
+        "diagnostics",
+        "boundary_paths",
+        "correlation_work",
+        "output_bytes",
+        "string_bytes"
+      ],
+      "type": "object"
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "canonical_pointers": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "gitlinks": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lfs_attributed_non_pointer_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "lfs_tracked_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "matched_submodules": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "missing_references": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pointer_like_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "qualified_missing_references": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "sparse_indications": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "submodule_declarations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "valid_pointers": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "valid_pointers",
+        "canonical_pointers",
+        "pointer_like_files",
+        "lfs_tracked_files",
+        "lfs_attributed_non_pointer_files",
+        "gitlinks",
+        "submodule_declarations",
+        "matched_submodules",
+        "sparse_indications",
+        "missing_references",
+        "qualified_missing_references"
+      ],
+      "type": "object"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "checkout_metadata_complete": {
+          "type": "boolean"
+        },
+        "checkout_metadata_inspected": {
+          "type": "boolean"
+        },
+        "content_bytes_read": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "correlation_work": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "indexed_boundary_paths": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_boundary_paths": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_correlations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_diagnostics": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_evidence": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_pointer_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pointer_candidates": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "pointer_inspections": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "selected_inventory_complete": {
+          "type": "boolean"
+        },
+        "selected_regular_files": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "selected_inventory_complete",
+        "checkout_metadata_inspected",
+        "checkout_metadata_complete",
+        "selected_regular_files",
+        "pointer_candidates",
+        "pointer_inspections",
+        "content_bytes_read",
+        "omitted_pointer_files",
+        "indexed_boundary_paths",
+        "omitted_boundary_paths",
+        "correlation_work",
+        "omitted_correlations",
+        "omitted_evidence",
+        "omitted_diagnostics"
+      ],
+      "type": "object"
+    },
+    "diagnostics": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "message": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "maxItems": 1024,
+      "type": "array"
+    },
+    "gitlinks": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$",
+            "type": "string"
+          },
+          "declared": {
+            "type": "boolean"
+          },
+          "path": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "commit",
+          "declared"
+        ],
+        "type": "object"
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "lfs": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical": {
+            "type": "boolean"
+          },
+          "declared_object_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "extension_count": {
+            "minimum": 0,
+            "maximum": 128,
+            "type": "integer"
+          },
+          "kind": {
+            "enum": [
+              "valid_pointer",
+              "pointer_like"
+            ]
+          },
+          "lfs_attribute": {
+            "enum": [
+              "tracked",
+              "untracked",
+              "unknown"
+            ]
+          },
+          "metadata_complete": {
+            "type": "boolean"
+          },
+          "oid_algorithm": {
+            "const": "sha256"
+          },
+          "oid_digest": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "path": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "source_file_bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "version": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "kind",
+          "lfs_attribute",
+          "source_file_bytes",
+          "metadata_complete",
+          "declared_object_bytes",
+          "canonical"
+        ],
+        "type": "object",
+        "allOf": [
+          {
+            "if": {"properties": {"kind": {"const": "valid_pointer"}}},
+            "then": {
+              "required": ["version", "oid_algorithm", "oid_digest"],
+              "properties": {
+                "metadata_complete": {"const": true},
+                "version": {
+                  "enum": [
+                    "http://git-media.io/v/2",
+                    "https://hawser.github.com/spec/v1",
+                    "https://git-lfs.github.com/spec/v1"
+                  ]
+                },
+                "source_file_bytes": {"maximum": 1023}
+              },
+              "not": {"required": ["reason"]}
+            }
+          },
+          {
+            "if": {"properties": {"kind": {"const": "pointer_like"}}},
+            "then": {
+              "required": ["reason"],
+              "properties": {
+                "canonical": {"const": false},
+                "declared_object_bytes": {"const": 0},
+                "metadata_complete": {"const": false},
+                "reason": {
+                  "enum": [
+                    "incomplete_content",
+                    "size_cutoff",
+                    "invalid_text",
+                    "invalid_line",
+                    "invalid_header",
+                    "unsupported_version",
+                    "duplicate_key",
+                    "keys_out_of_order",
+                    "invalid_oid",
+                    "invalid_size",
+                    "unsupported_key",
+                    "duplicate_extension_priority",
+                    "invalid_extension_oid",
+                    "missing_required_key"
+                  ]
+                }
+              },
+              "not": {
+                "anyOf": [
+                  {"required": ["version"]},
+                  {"required": ["oid_algorithm"]},
+                  {"required": ["oid_digest"]},
+                  {"required": ["extension_count"]}
+                ]
+              }
+            }
+          },
+          {
+            "if": {"properties": {"declared_object_bytes": {"const": 0}}},
+            "then": {"properties": {"canonical": {"const": false}}}
+          }
+        ]
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "omissions": {
+      "additionalProperties": {
+        "minimum": 0,
+        "type": "integer"
+      },
+      "maxProperties": 4096,
+      "type": "object"
+    },
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "const": "1.0.0"
+    },
+    "references": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "boundary_kind": {
+            "enum": ["lfs_pointer", "gitlink", "skip_worktree", "sparse_directory"]
+          },
+          "boundary_path": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          },
+          "evidence": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "project": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "qualification": {
+            "enum": [
+              "established_boundary",
+              "unqualified",
+              "unknown"
+            ]
+          },
+          "target": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "project",
+          "kind",
+          "target",
+          "evidence",
+          "qualification"
+        ],
+        "type": "object",
+        "allOf": [
+          {
+            "if": {"properties": {"qualification": {"const": "established_boundary"}}},
+            "then": {"required": ["boundary_kind", "boundary_path"]}
+          },
+          {
+            "if": {"properties": {"qualification": {"enum": ["unqualified", "unknown"]}}},
+            "then": {
+              "not": {
+                "anyOf": [
+                  {"required": ["boundary_kind"]},
+                  {"required": ["boundary_path"]}
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "checkout_metadata": {
+          "enum": ["not_inspected_for_git_tree", "confined_local_metadata"]
+        },
+        "consistency": {
+          "enum": [
+            "selected_git_tree",
+            "live_directory"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "git",
+            "directory"
+          ]
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        }
+      },
+      "required": [
+        "mode",
+        "consistency",
+        "checkout_metadata"
+      ],
+      "type": "object",
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "git"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "tree"
+            ],
+            "properties": {
+              "checkout_metadata": {
+                "const": "not_inspected_for_git_tree"
+              },
+              "consistency": {
+                "const": "selected_git_tree"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "directory"
+              }
+            }
+          },
+          "then": {
+            "not": {"required": ["tree"]},
+            "properties": {
+              "checkout_metadata": {
+                "const": "confined_local_metadata"
+              },
+              "consistency": {
+                "const": "live_directory"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "sparse": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "sparse_checkout_enabled",
+              "sparse_checkout_cone",
+              "sparse_index_config",
+              "worktree_config_enabled",
+              "sparse_patterns_file",
+              "sparse_directory",
+              "skip_worktree",
+              "sparse_index_extension",
+              "external_gitdir",
+              "unsupported_config_file",
+              "unsupported_index_file"
+            ]
+          },
+          "path": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          },
+          "supported": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "evidence",
+          "supported"
+        ],
+        "type": "object",
+        "allOf": [
+          {
+            "if": {"properties": {"kind": {"enum": ["sparse_directory", "skip_worktree"]}}},
+            "then": {"required": ["path"], "properties": {"supported": {"const": true}}}
+          },
+          {
+            "if": {"properties": {"kind": {"enum": ["external_gitdir", "unsupported_config_file", "unsupported_index_file"]}}},
+            "then": {"properties": {"supported": {"const": false}}, "not": {"required": ["path"]}}
+          },
+          {
+            "if": {"properties": {"kind": {"enum": ["sparse_checkout_enabled", "sparse_checkout_cone", "sparse_index_config", "worktree_config_enabled", "sparse_patterns_file", "sparse_index_extension"]}}},
+            "then": {"properties": {"supported": {"const": true}}, "not": {"required": ["path"]}}
+          }
+        ]
+      },
+      "maxItems": 4096,
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "submodules": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "const": ".gitmodules"
+          },
+          "has_gitlink": {
+            "type": "boolean"
+          },
+          "path": {
+            "minLength": 1,
+            "maxLength": 8192,
+            "pattern": "^[^\\\\:]+$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "evidence",
+          "has_gitlink"
+        ],
+        "type": "object"
+      },
+      "maxItems": 4096,
+      "type": "array"
+    }
+  },
+  "required": [
+    "provider",
+    "provider_version",
+    "status",
+    "source",
+    "bounds",
+    "coverage",
+    "counts",
+    "lfs",
+    "gitlinks",
+    "submodules",
+    "sparse",
+    "references",
+    "diagnostics",
+    "omissions"
+  ],
+  "type": "object",
+  "allOf": [
+    {
+      "if": {"properties": {"source": {"properties": {"mode": {"const": "git"}}}}},
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "checkout_metadata_inspected": {"const": false},
+              "checkout_metadata_complete": {"const": false}
+            }
+          },
+          "sparse": {"maxItems": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"source": {"properties": {"mode": {"const": "directory"}}}}},
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "checkout_metadata_inspected": {"const": true}
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "complete"}}},
+      "then": {
+        "properties": {
+          "coverage": {
+            "properties": {
+              "selected_inventory_complete": {"const": true},
+              "omitted_pointer_files": {"const": 0},
+              "omitted_boundary_paths": {"const": 0},
+              "omitted_correlations": {"const": 0},
+              "omitted_evidence": {"const": 0},
+              "omitted_diagnostics": {"const": 0}
+            },
+            "anyOf": [
+              {"properties": {"checkout_metadata_inspected": {"const": false}}},
+              {"properties": {"checkout_metadata_complete": {"const": true}}}
+            ]
+          },
+          "omissions": {"maxProperties": 0}
+        }
+      }
+    },
+    {
+      "if": {"properties": {"status": {"const": "partial"}}},
+      "then": {"properties": {"omissions": {"minProperties": 1}}}
+    }
+  ]
+}
