@@ -79,6 +79,10 @@ property under its assumptions, not the correctness of an entire executable.
 
 Provide clear help, examples, versioned schemas, and machine-readable
 capability information that serves both people and automated callers.
+An installed binary should explain its workflows, output contracts, limits,
+and recovery paths offline. Repository documentation can provide more detail,
+but ordinary use should not depend on visiting it. Keep the built-in reference
+aligned with actual commands and test its examples and contracts.
 Disclose optional dependencies and effective settings. Reuse upstream work
 where it fits, preserve its licenses and attribution, and keep updates
 reproducible. Support from an upstream library becomes a dircue capability

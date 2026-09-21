@@ -12,14 +12,20 @@ import (
 
 func newCompareCommand(opts *options) *cobra.Command {
 	command := &cobra.Command{
-		Use:   "compare <base.json> <head.json>",
-		Short: "Compare two saved profiles without rescanning their sources",
-		Long:  "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
-		Args:  cobra.ExactArgs(2),
+		Use:     "compare <base.json> <head.json>",
+		Short:   "Compare two saved profiles without rescanning their sources",
+		Long:    "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
+		Example: "  dircue compare base.json head.json --json\n  dircue analyze discovery --json /checkout > profile.json",
+		Args: func(_ *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("compare requires two saved aggregate reports; use: dircue compare base.json head.json --json")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "on-error", "tree-size"} {
+			for _, flag := range analysisFlagNames {
 				if cmd.Flags().Changed(flag) {
-					return fmt.Errorf("--%s does not apply to saved-report comparison", flag)
+					return fmt.Errorf("--%s does not apply to saved-report comparison; set scan options when creating a report with dircue analyze discovery --json /checkout", flag)
 				}
 			}
 			if err := cmd.Context().Err(); err != nil {
@@ -49,13 +55,14 @@ func newCompareCommand(opts *options) *cobra.Command {
 			return writeComparison(cmd.OutOrStdout(), report)
 		},
 	}
+	setSavedReportHelp(command)
 	return command
 }
 
 func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
 	file, err := openInputFile(name, role+" report")
 	if err != nil {
-		return nil, fmt.Errorf("cannot open %s report", role)
+		return nil, fmt.Errorf("cannot open %s report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout", role)
 	}
 	defer file.Close()
 	opened, err := file.Stat()

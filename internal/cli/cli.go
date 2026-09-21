@@ -22,7 +22,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.8.0"
+var Version = "1.0.0-dev"
 
 type options struct {
 	environments           bool
@@ -77,17 +77,21 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root := &cobra.Command{
 		Use:           "dircue [path]",
 		Short:         "Profile source code repos and other directories of computer content",
-		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repositories use committed HEAD content by default; --source directory scans current files.",
+		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
+		Example:       "  dircue --json /checkout\n  dircue analyze discovery --source directory --json /content\n  dircue analyze all --declarations --json /checkout\n  dircue capabilities --cli --json",
 		Version:       Version,
 		Args:          pathArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
-		RunE:          func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, "languages") },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return missingPathCommandHint(cmd, args, run(cmd, args, opts, "languages"))
+		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
 	root.SetVersionTemplate("dircue {{.Version}}\n")
 	root.SetOut(out)
 	root.SetErr(errOut)
+	root.SetFlagErrorFunc(flagErrorWithHint)
 	root.SetArgs(args)
 	flags := root.PersistentFlags()
 	flags.BoolVarP(&opts.json, "json", "j", false, "Emit JSON")
@@ -102,11 +106,11 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.MarkFlagsMutuallyExclusive("rev", "tree")
 	flags.IntVarP(&opts.maxTreeSize, "tree-size", "t", 100000, "Maximum number of files scanned")
 	analyze := &cobra.Command{
-		Use:   "analyze",
-		Short: "Run a selected profiler",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, environments, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
-		},
+		Use:     "analyze",
+		Short:   "Run a selected profiler",
+		Long:    "Choose the profiler for the evidence you need. Discovery inventories metadata; languages retains Linguist-compatible output; all combines languages and ecosystem hints with explicitly selected optional modules. Git repository roots use committed HEAD unless --source directory is selected. No heavier profiler is enabled by choosing this group.",
+		Example: "  dircue analyze discovery --json /checkout\n  dircue analyze languages --source directory --json /content\n  dircue analyze all --declarations --metrics --json /checkout",
+		RunE:    analysisSelectionError,
 	}
 	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
@@ -208,6 +212,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		}
 		if opts.structuralTimeout <= 0 {
 			return fmt.Errorf("--structural-timeout must be positive")
+		}
+		if opts.structuralWorker == "" {
+			return fmt.Errorf("structure requires --structural-worker /path/to/dircue-structural-worker; select a trusted matching worker explicitly")
 		}
 		var err error
 		structural, err = structure.New(structure.Options{Hotspots: opts.structureHotspots, Functions: opts.structureFunctions, Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})

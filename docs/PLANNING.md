@@ -23,12 +23,24 @@ versioned registry used by the planner. This descriptor covers
 planner-supported modules only. It is not a complete inventory of every dircue
 command or flag.
 
+For the complete CLI catalog, use `dircue capabilities --cli --json`. The
+separate `--guide` view explains workflows in text or JSON, and
+`dircue capabilities --schema planning` exports the plan's JSON Schema for
+offline validation. These explicit views leave the default planner descriptor
+unchanged. Use `dircue plan --help` for currently supported questions, modules,
+and examples without consulting this document.
+
 ## Reading a plan
 
 The plan binds its decisions to the SHA-256 of the exact saved-report bytes,
 the aggregate schema version, and the capability provider and version. The
 profile's `root` is retained as declared evidence. It is never inserted into a
 command.
+
+Plain-text plans also show each step's inert JSON argument array, unresolved
+inputs, inspection class, evidence quantities, and required revalidation.
+These are argument arrays, not shell commands to paste and execute. The JSON
+plan retains its existing contract.
 
 Every planned command is structured `argv`, contains a literal `{source}`
 placeholder, and has `executable: false`. A consumer must revalidate the source

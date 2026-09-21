@@ -3,6 +3,7 @@ package cli
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -164,7 +165,7 @@ func TestPlanProjectFlagPreservesCommaAndBoundsPrimary(t *testing.T) {
 	if len(r.Steps) != 1 || !slicesContainsCLI(r.Steps[0].Command.Argv, "a,b/project.csproj") {
 		t.Fatalf("comma selector changed: %+v", r.Steps)
 	}
-	if err = Execute(t.Context(), []string{"plan", name, "--module", "focus", "--project", "a.csproj", "--project", "b.csproj"}, &out, &errOut); err != planning.ErrLimit {
+	if err = Execute(t.Context(), []string{"plan", name, "--module", "focus", "--project", "a.csproj", "--project", "b.csproj"}, &out, &errOut); !errors.Is(err, planning.ErrLimit) {
 		t.Fatalf("multiple primary selectors: %v", err)
 	}
 }
@@ -173,7 +174,7 @@ func TestPlanRejectsOptionsUnusedBySelectedModule(t *testing.T) {
 	name := savedPlanningProfile(t)
 	for _, args := range [][]string{{"plan", name, "--module", "metrics", "--project", "a.csproj"}, {"plan", name, "--module", "metrics", "--input", "structural-worker"}, {"plan", name, "--module", "structure", "--input", "structural-wroker"}} {
 		var out, errOut bytes.Buffer
-		if err := Execute(t.Context(), args, &out, &errOut); err != planning.ErrInvalid {
+		if err := Execute(t.Context(), args, &out, &errOut); !errors.Is(err, planning.ErrInvalid) {
 			t.Fatalf("accepted unused option %v: %v", args, err)
 		}
 	}
