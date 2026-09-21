@@ -1,0 +1,271 @@
+package scanner
+
+import (
+	"bytes"
+	"context"
+	"errors"
+	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"strings"
+	"testing"
+
+	"dircue/pkg/profile"
+	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+)
+
+func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func(...string) string) {
+	t.Helper()
+	binary, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git needed for packed cache fixture")
+	}
+	files := map[string]string{}
+	names := []string{}
+	for i := 0; i < maxGitPackDescriptors+3; i++ {
+		name := fmt.Sprintf("src/file%02d.py", i)
+		names = append(names, name)
+		files[name] = fmt.Sprintf("# fixture %d\n", i) + strings.Repeat("print('bounded cached pack')\n", 6000)
+	}
+	root, _, _ := gitFixture(t, files)
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(binary, append([]string{"-C", root}, args...)...)
+		b, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, b)
+		}
+		return strings.TrimSpace(string(b))
+	}
+	for _, name := range names {
+		hash := run("rev-parse", "HEAD:"+name)
+		cmd := exec.Command(binary, "-C", root, "pack-objects", "--window=0", filepath.Join(root, ".git", "objects", "pack", "pack"))
+		cmd.Stdin = strings.NewReader(hash + "\n")
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("pack one object: %v: %s", err, out)
+		}
+	}
+	run("prune-packed")
+	packs, err := filepath.Glob(filepath.Join(root, ".git", "objects", "pack", "*.pack"))
+	if err != nil || len(packs) <= maxGitPackDescriptors {
+		t.Fatalf("want more than cache capacity packs: %d, %v", len(packs), err)
+	}
+	return root, names, files, run
+}
+
+func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
+	root, names, files, run := packedCacheFixture(t)
+	snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", MaxTreeSize: 100000}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer snapshot.close()
+	first, err := snapshot.findEntry(names[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	lazy, err := snapshot.repo.BlobObject(first.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range names[1:] {
+		entry, err := snapshot.findEntry(name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err = snapshot.repo.BlobObject(entry.Hash); err != nil {
+			t.Fatal(err)
+		}
+	}
+	got, size, err := blobRead(lazy, names[0], ClassificationBytes)
+	if err != nil || size != int64(len(files[names[0]])) || !bytes.Equal(got, []byte(files[names[0]])[:ClassificationBytes]) {
+		t.Fatalf("lazy reader after eviction: bytes=%d size=%d error=%v", len(got), size, err)
+	}
+	if err := snapshot.close(); err != nil {
+		t.Fatal(err)
+	}
+	expected, err := Scan(context.Background(), root, Options{Source: "directory", Workers: 1, IncludeFiles: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := func(path string) {
+		t.Helper()
+		for _, workers := range []int{1, 8, 16} {
+			actual, err := Scan(context.Background(), path, Options{Source: "git", Workers: workers, IncludeFiles: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(actual.Languages, expected.Languages) {
+				t.Fatalf("packed language mismatch at workers=%d", workers)
+			}
+		}
+	}
+	check(root)
+	linked := filepath.Join(t.TempDir(), "linked")
+	run("worktree", "add", "--detach", linked, "HEAD")
+	check(linked)
+	alternate := filepath.Join(t.TempDir(), "alternate")
+	alternateRepo, err := git.PlainInit(alternate, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	info := filepath.Join(alternate, ".git", "objects", "info")
+	if err := os.MkdirAll(info, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	// The maintained go-git alternate policy confines its filesystem root.
+	// Exercise a supported in-bound alternate; do not expand that policy here.
+	if err := os.CopyFS(filepath.Join(alternate, ".git", "alt", "objects"), os.DirFS(filepath.Join(root, ".git", "objects"))); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(info, "alternates"), []byte("alt/objects\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := alternateRepo.Storer.SetReference(plumbing.NewHashReference(plumbing.HEAD, plumbing.NewHash(run("rev-parse", "HEAD")))); err != nil {
+		t.Fatal(err)
+	}
+	if ref, err := alternateRepo.Head(); err != nil {
+		t.Fatal("alternate HEAD:", err)
+	} else if _, err := alternateRepo.CommitObject(ref.Hash()); err != nil {
+		t.Fatal("alternate commit:", err)
+	}
+	// Alternate object decoding is supported, but this pinned go-git version's
+	// EncodedObjectSize does not search alternates. Preserve that limitation.
+	alternateSnapshot, err := openGitSnapshot(context.Background(), alternate, Options{Source: "git"}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer alternateSnapshot.close()
+	entry, err := alternateSnapshot.findEntry(names[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	alternateBlob, err := alternateSnapshot.repo.BlobObject(entry.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	alternateContent, _, err := blobRead(alternateBlob, names[0], ClassificationBytes)
+	if err != nil || !bytes.Equal(alternateContent, []byte(files[names[0]])[:ClassificationBytes]) {
+		t.Fatalf("alternate reader: %v", err)
+	}
+	if _, err := Scan(context.Background(), alternate, Options{Source: "git"}); !errors.Is(err, plumbing.ErrObjectNotFound) {
+		t.Fatalf("alternate size limitation changed: %v", err)
+	}
+}
+
+type cancelCacheDetector struct{ cancel context.CancelFunc }
+
+func (cancelCacheDetector) Name() string { return "cancel-cache-test" }
+func (d cancelCacheDetector) Detect(ctx context.Context, _ profile.File) ([]profile.Finding, error) {
+	d.cancel()
+	return nil, ctx.Err()
+}
+
+func TestGitPackCacheClosesAcrossSuccessErrorsAndCancellation(t *testing.T) {
+	root, names, _, run := packedCacheFixture(t)
+	// Warm runtime and classifier state before counting the process's descriptors.
+	if _, err := Scan(context.Background(), root, Options{Source: "git", Workers: 8}); err != nil {
+		t.Fatal(err)
+	}
+	count := func(t *testing.T) int {
+		t.Helper()
+		for _, dir := range []string{"/proc/self/fd", "/dev/fd"} {
+			if stream, err := os.Open(dir); err == nil {
+				entries, readErr := stream.Readdirnames(-1)
+				_ = stream.Close()
+				if readErr == nil {
+					return len(entries)
+				}
+			}
+		}
+		t.Skip("descriptor enumeration unavailable on this platform")
+		return 0
+	}
+	firstHash := plumbing.NewHash(run("rev-parse", "HEAD:"+names[0]))
+	cases := []struct {
+		name      string
+		run       func() error
+		wantError bool
+	}{
+		{"scan", func() error {
+			_, err := Scan(context.Background(), root, Options{Source: "git", Workers: 8})
+			return err
+		}, false},
+		{"discovery", func() error {
+			_, err := Scan(context.Background(), root, Options{Source: "git", Discovery: true, DiscoveryOnly: true})
+			return err
+		}, false},
+		{"explain", func() error {
+			_, err := Scan(context.Background(), root, Options{Source: "git", ExplainPath: names[0]})
+			return err
+		}, false},
+		{"availability", func() error {
+			_, err := Scan(context.Background(), root, Options{Source: "git", Availability: true})
+			return err
+		}, false},
+		{"inspect", func() error {
+			_, err := Inspect(context.Background(), filepath.Join(root, names[0]), Options{Source: "git"})
+			return err
+		}, false},
+		{"inspect-size-error", func() error {
+			_, err := Inspect(context.Background(), filepath.Join(root, names[0]), Options{Source: "git", MaxFileBytes: 1})
+			return err
+		}, true},
+		{"snapshot-wrong-object-type", func() error {
+			snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", Tree: firstHash.String()}, false)
+			if snapshot != nil {
+				defer snapshot.close()
+			}
+			return err
+		}, true},
+		{"cancel-after-read", func() error {
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			_, err := Scan(ctx, root, Options{Source: "git", Workers: 8, Detectors: []profile.Detector{cancelCacheDetector{cancel}}})
+			return err
+		}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			before := count(t)
+			for i := 0; i < 12; i++ {
+				err := tc.run()
+				if (err != nil) != tc.wantError {
+					t.Fatalf("run %d error=%v", i, err)
+				}
+			}
+			after := count(t)
+			if after > before+3 {
+				t.Fatalf("retained descriptors: before=%d after=%d", before, after)
+			}
+		})
+	}
+}
+
+type cacheCloseRecorder struct {
+	calls int
+	err   error
+}
+
+func (c *cacheCloseRecorder) Close() error { c.calls++; return c.err }
+func TestGitSnapshotCloseTransfersOwnershipOnce(t *testing.T) {
+	sentinel := errors.New("close failed")
+	owned := &cacheCloseRecorder{err: sentinel}
+	snapshot := &gitSnapshot{storage: owned}
+	if err := snapshot.close(); !errors.Is(err, sentinel) {
+		t.Fatalf("close error=%v", err)
+	}
+	if err := snapshot.close(); err != nil {
+		t.Fatal(err)
+	}
+	if owned.calls != 1 {
+		t.Fatalf("closed %d times", owned.calls)
+	}
+	var absent *gitSnapshot
+	if err := absent.close(); err != nil {
+		t.Fatal(err)
+	}
+}

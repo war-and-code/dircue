@@ -150,7 +150,7 @@ type result struct {
 // fatal; detector failures become warnings and preserve partial findings.
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
-func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+func Scan(ctx context.Context, directory string, opts Options) (out *profile.Report, returnErr error) {
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
 	}
@@ -259,6 +259,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if closeErr := snapshot.close(); returnErr == nil && closeErr != nil {
+			out = nil
+			returnErr = fmt.Errorf("close Git storage: %w", closeErr)
+		}
+	}()
 	if snapshot != nil {
 		abs = snapshot.root
 	}
