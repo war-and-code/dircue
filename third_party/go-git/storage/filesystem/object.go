@@ -1,4 +1,4 @@
-// Modified for dircue: close loose object files after reading their size.
+// Modified for dircue: close loose size readers and uncached packfiles on errors.
 
 package filesystem
 
@@ -235,7 +235,13 @@ func (s *ObjectStorage) packfile(idx idxfile.Index, pack plumbing.Hash) (*packfi
 		p = packfile.NewPackfile(idx, s.dir.Fs(), f, s.options.LargeObjectThreshold)
 	}
 
-	return p, s.storePackfileInCache(pack, p)
+	if err := s.storePackfileInCache(pack, p); err != nil {
+		// A failed eviction leaves the new packfile outside the cache.
+		// Preserve the eviction error while releasing its unowned descriptor.
+		_ = p.Close()
+		return nil, err
+	}
+	return p, nil
 }
 
 func (s *ObjectStorage) packfileFromCache(hash plumbing.Hash) *packfile.Packfile {
