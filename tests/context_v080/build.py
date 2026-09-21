@@ -60,7 +60,7 @@ def main() -> None:
     state = source_state()
     command = [
         "go", "build", "-mod=readonly", "-buildvcs=false", "-trimpath", "-ldflags",
-        "-s -w -X dircue/internal/cli.Version=0.8.0-dev", "-o", str(output), ".",
+        "-s -w -X dircue/internal/cli.Version=0.8.0-rc.1", "-o", str(output), ".",
     ]
     started = datetime.now(timezone.utc).isoformat()
     subprocess.run(command, cwd=common.ROOT, env=env, check=True)
