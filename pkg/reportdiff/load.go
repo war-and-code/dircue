@@ -13,7 +13,9 @@ import (
 	"unicode/utf8"
 
 	"dircue/internal/jsontext"
+	"dircue/pkg/environments"
 	"dircue/pkg/explain"
+	"dircue/pkg/focus"
 	"dircue/pkg/profile"
 	"dircue/schema"
 )
@@ -30,8 +32,8 @@ func Load(reader io.Reader) (*Snapshot, error) {
 }
 
 // ReadEvidence decodes a bounded, schema-validated profile for retained-evidence
-// queries. It also accepts targeted reports, which Load deliberately refuses
-// until comparison can account for their distinct population scopes.
+// queries. It shares comparison's strict validation of targeted population and
+// provider contracts.
 func ReadEvidence(reader io.Reader) (*profile.Report, string, error) {
 	snapshot, err := load(reader, true)
 	if err != nil {
@@ -73,18 +75,15 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 		return nil, ErrInvalid
 	}
 	level := -1
-	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0"} {
+	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"} {
 		if version == known {
 			level = i
 		}
 	}
-	if targeted && version == "1.6.0" {
-		level = 6
-	}
 	if level < 0 {
 		return nil, ErrUnsupported
 	}
-	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6} {
+	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6, "environments": 7} {
 		if _, found := object[field]; found && level < minimum {
 			return nil, ErrInvalid
 		}
@@ -353,8 +352,26 @@ func sourceMode(mode string) bool { return mode == "git" || mode == "directory" 
 // Targeted metrics must keep the source and population identity declared by
 // their focus plan. This does not authenticate a caller-supplied report.
 func validTargetedStates(p profile.Report) bool {
+	if p.Environments != nil && environments.ValidateReport(p.Environments) != nil {
+		return false
+	}
 	if p.Explanation != nil && explain.ValidateReport(p.Explanation) != nil {
 		return false
+	}
+	if p.Focus != nil && !validFocusIdentity(p) {
+		return false
+	}
+	if p.Availability != nil {
+		r := p.Availability
+		if r.Provider != "dircue" || r.ProviderVersion != "1.0.0" || !sourceMode(r.Source.Mode) ||
+			(r.Source.Mode == "git") != (r.Source.Tree != "") ||
+			(r.Source.Mode == "git" && (r.Source.Consistency != "selected_git_tree" || r.Source.CheckoutMetadata != "not_inspected_for_git_tree")) ||
+			(r.Source.Mode == "directory" && (r.Source.Consistency != "live_directory" || r.Source.CheckoutMetadata != "confined_local_metadata")) {
+			return false
+		}
+		if p.Declarations != nil && (p.Declarations.Source != r.Source.Mode || p.Declarations.Tree != r.Source.Tree) {
+			return false
+		}
 	}
 	if p.FocusedMetrics == nil {
 		return true
@@ -383,4 +400,58 @@ func validTargetedStates(p profile.Report) bool {
 		seen[r.Project] = true
 	}
 	return len(seen) == len(selected)
+}
+
+func validFocusIdentity(p profile.Report) bool {
+	r := p.Focus
+	if r.Provider != "dircue" || r.ProviderVersion != "1.0.0" || !sourceMode(r.Source) ||
+		(r.Source == "git") != (r.Tree != "") || r.Scope.Algorithm != "sha256" || r.Scope.ID != expectedFocusScopeID(r) {
+		return false
+	}
+	projects := map[string]bool{}
+	if r.Scope.Role == "project" {
+		if r.PrimaryProject == nil || r.Scope.PrimaryProject == "" || r.PrimaryProject.ID != r.Scope.PrimaryProject {
+			return false
+		}
+		projects[r.PrimaryProject.ID] = true
+	} else if r.Scope.Role != "affected-by" {
+		return false
+	}
+	for _, related := range r.Related {
+		id := related.Project.ID
+		if id == "" || projects[id] {
+			return false
+		}
+		projects[id] = true
+		for _, f := range related.Files {
+			if f.ProjectID != id {
+				return false
+			}
+		}
+	}
+	if r.Scope.Role == "project" {
+		if len(r.Related) != len(r.Scope.RelatedProjects) {
+			return false
+		}
+		for _, id := range r.Scope.RelatedProjects {
+			if !projects[id] || id == r.Scope.PrimaryProject {
+				return false
+			}
+		}
+		for _, f := range r.Primary {
+			if f.ProjectID != r.Scope.PrimaryProject {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func expectedFocusScopeID(r *focus.Report) string {
+	data, _ := json.Marshal(struct {
+		Version, Source, Tree, Rule, Role, Primary, AffectedBy string
+		Related                                                []string
+	}{r.ProviderVersion, r.Source, r.Tree, r.Scope.Rule, r.Scope.Role, r.Scope.PrimaryProject, r.Scope.AffectedBy, r.Scope.RelatedProjects})
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:])
 }

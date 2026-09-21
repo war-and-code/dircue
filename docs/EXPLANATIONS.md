@@ -15,7 +15,7 @@ Fresh inspection still traverses the selected-source metadata to preserve tree l
 
 ## Saved evidence
 
-`--report` reads an explicit aggregate report without opening its root or evidence paths. It cannot be combined with a source directory or scan flags. The input is bounded and validated against bundled schemas, with the same strict JSON decoding used by saved-report comparison. New schema 1.6.0 is supported for explanations even though comparison does not yet support it.
+`--report` reads an explicit aggregate report without opening its root or evidence paths. It cannot be combined with a source directory or scan flags. The input is bounded and validated against bundled schemas, with the same strict JSON decoding used by saved-report comparison. Schema 1.6.0 is supported for explanations. From 0.8.0, comparison also accepts these reports while keeping semantic explanation-trace comparison explicitly unsupported.
 
 A matching saved explanation preserves its recorded decision and becomes retained evidence. Other queries use only available file lists, declarations, focus boundaries, and availability observations. A strategy is absent when it was not retained. Missing file detail or an unrecorded exclusion reason produces an unavailable decision with an omission reason. Absence from an included-file list does not establish why a file was omitted or whether it was inspected.
 

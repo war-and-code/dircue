@@ -22,9 +22,10 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.7.0"
+var Version = "0.8.0-dev"
 
 type options struct {
+	environments           bool
 	availability           bool
 	focusProject           string
 	focusRelated           []string
@@ -99,10 +100,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, environments, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -131,6 +132,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			addFocusFlags(command, opts)
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.environments, "environments", false, "Map declared project environments using manifest evidence and bounded global.json inputs")
 			command.Flags().BoolVar(&opts.availability, "availability", false, "Inspect bounded source-availability evidence without fetching missing material")
 			command.Flags().BoolVar(&opts.formats, "formats", false, "Inspect bounded content for format evidence, including data and artifact files")
 			command.Flags().BoolVar(&opts.declarations, "declarations", false, "Read declared project identities, workspace relationships, requirements, and interfaces")
@@ -151,6 +153,8 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	analyze.AddCommand(newExplainCommand(opts))
 	root.AddCommand(analyze)
 	root.AddCommand(newCompareCommand(opts))
+	root.AddCommand(newPlanCommand(opts))
+	root.AddCommand(newCapabilitiesCommand(opts))
 	return root.ExecuteContext(ctx)
 }
 
@@ -253,6 +257,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
+		Environments:     mode == "environments" || (mode == "all" && opts.environments),
 		Focus:            focusRequest,
 		Availability:     mode == "availability" || (mode == "all" && opts.availability),
 		AvailabilityOnly: mode == "availability",
@@ -270,7 +275,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Metrics:           metrics,
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
 		Declarations:      mode == "declarations" || (mode == "all" && opts.declarations),
-		DeclarationsOnly:  mode == "declarations",
+		DeclarationsOnly:  mode == "declarations" || mode == "environments",
 		Formats:           mode == "formats" || (mode == "all" && opts.formats),
 		FormatsOnly:       mode == "formats",
 		Discovery:         mode == "discovery" || opts.discovery,
@@ -305,6 +310,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if report.Focus != nil || report.Availability != nil || report.Explanation != nil {
 		report.SchemaVersion = profile.TargetedSchemaVersion
 	}
+	if report.Environments != nil {
+		report.SchemaVersion = profile.EnvironmentSchemaVersion
+	}
 	for _, warning := range report.Warnings {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
 			return err
@@ -330,6 +338,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "environments":
+		return writeEnvironments(out, report.Environments)
 	case "focus":
 		return writeFocus(out, report)
 	case "availability":
@@ -400,6 +410,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			if err := writeFindings(out, section.findings); err != nil {
 				return err
 			}
+		}
+		if err := writeEnvironments(out, report.Environments); err != nil {
+			return err
 		}
 		if err := writeProjectDeclarations(out, report.Declarations); err != nil {
 			return err

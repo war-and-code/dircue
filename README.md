@@ -6,7 +6,7 @@ Dircue identifies languages, maps declared projects and their relationships, and
 
 Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
 
-Version 0.7.0 adds [focused project profiling](docs/FOCUS.md), [source-availability evidence](docs/AVAILABILITY.md), and [targeted explanations](docs/EXPLANATIONS.md). Inspect a project with its shared context, count its lines separately, or find out why a file was included or omitted. These capabilities are explicitly selected; existing language commands keep their output contracts.
+The 0.8.0 candidate adds [declared environment requirements](docs/ENVIRONMENTS.md), [saved-report follow-up planning](docs/PLANNING.md), and [comparison of focused and source-availability reports](docs/COMPARISON.md). Use a lightweight first pass to plan further inspection, or examine project requirements without running a build. These capabilities are explicitly selected; existing language commands keep their output contracts.
 
 The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
@@ -15,6 +15,7 @@ dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze declarations --json /path/to/checkout
+dircue analyze environments --json /path/to/checkout
 dircue analyze formats --json /path/to/content
 dircue analyze focus --project services/app/app.csproj --metrics --json /path/to/checkout
 dircue analyze availability --json /path/to/checkout
@@ -22,6 +23,8 @@ dircue analyze explain --file src/main.go --json /path/to/checkout
 dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
+dircue capabilities --json
+dircue plan saved-profile.json --module declarations --json
 ```
 
 The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [latest release archives and wheels](https://github.com/war-and-code/dircue/releases/latest). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
@@ -163,7 +166,7 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md), adding `--source directory` when you want current files rather than the committed Git tree. It inventories file metadata and candidate manifests without reading source payloads. Then choose project, line, or structural analysis from that evidence. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes a consumer for the earlier projects-report schema and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
 
-Plain `analyze all` retains its existing behavior. Add `--declarations`, `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
+Plain `analyze all` retains its existing behavior. Add `--declarations`, `--environments`, `--projects`, `--metrics`, or `--structure` for the modules you need. Environment analysis automatically includes the declaration evidence it reuses. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
 The [roadmap](https://github.com/war-and-code/dircue/issues/41) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
 
@@ -185,6 +188,9 @@ Select combinations explicitly, such as `analyze all --discovery --graph` or `an
 | Projects or structure, with optional metrics | `1.2.0` |
 | Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
 | Project declarations, alone or with other modules | `1.4.0` |
+| File-format evidence | `1.5.0` |
+| Focus, availability, explanations, or focused metrics | `1.6.0` |
+| Declared environments, with reused declarations | `1.7.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 

@@ -6,6 +6,7 @@ import (
 	"dircue/pkg/availability"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/environments"
 	"dircue/pkg/explain"
 	"dircue/pkg/focus"
 	"dircue/pkg/formats"
@@ -79,7 +80,10 @@ const ContentSchemaVersion = "1.5.0"
 
 const TargetedSchemaVersion = "1.6.0"
 
+const EnvironmentSchemaVersion = "1.7.0"
+
 type Report struct {
+	Environments    *environments.Report    `json:"environments,omitempty"`
 	Explanation     *explain.Report         `json:"explanation,omitempty"`
 	Availability    *availability.Report    `json:"availability,omitempty"`
 	Focus           *focus.Report           `json:"focus,omitempty"`

@@ -35,6 +35,8 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Environments reuses declarations and reads selected global.json inputs.
+	Environments bool
 	// Focus selects a declared project population and contextual inputs.
 	Focus *focus.Request
 	// Availability observes source-acquisition boundaries only when requested.
@@ -122,7 +124,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
 	}
-	if opts.Focus != nil {
+	if opts.Focus != nil || opts.Environments {
 		opts.Declarations = true
 	}
 	if opts.FormatsOnly && (!opts.Formats || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Declarations || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
@@ -223,6 +225,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return nil, fmt.Errorf("open scan root: %w", err)
 	}
 	defer root.Close()
+	environmentCollector := newEnvironmentAccumulator(opts)
 	availabilityCollector := newAvailabilityAccumulator(opts, snapshot)
 	focusCollector, err := newFocusAccumulator(opts, snapshot)
 	if err != nil {
@@ -242,6 +245,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			return nil, err
 		}
 		if exceeded {
+			if opts.Environments {
+				return nil, errors.New("environment inventory omitted: tree size limit reached")
+			}
 			if opts.Focus != nil {
 				return nil, errors.New("focus inventory omitted: tree size limit reached")
 			}
@@ -475,7 +481,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
-		if opts.Focus != nil {
+		if opts.Focus != nil || opts.Environments {
 			declarationCollector.EnableProjectRecords()
 		}
 	}
@@ -516,6 +522,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	var targetTrace *explain.LanguageTrace
 	targetNonRegular := false
 	for value := range results {
+		if environmentCollector != nil {
+			if err := environmentCollector.add(value); err != nil {
+				fail(err)
+				continue
+			}
+		}
 		if opts.ExplainPath != "" && value.path == opts.ExplainPath {
 			targetTrace = value.languageTrace
 			targetNonRegular = value.languageTrace == nil
@@ -736,6 +748,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			return nil, err
 		}
 		report.SchemaVersion = profile.TargetedSchemaVersion
+	}
+	if environmentCollector != nil {
+		if err := environmentCollector.finish(ctx, root, declarationCollector, report); err != nil {
+			return nil, err
+		}
+		report.SchemaVersion = profile.EnvironmentSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

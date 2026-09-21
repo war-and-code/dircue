@@ -20,6 +20,7 @@ import declarations_release_smoke
 import formats_release_smoke
 import hotspots_release_smoke
 import targeted_release_smoke
+import context_release_smoke
 import structural_worker_release as worker_release
 import wheels
 import wheel_release_smoke
@@ -205,6 +206,9 @@ def native_smoke(directory, platform, version, commit):
         if targeted_release_smoke.required(version):
             receipt = targeted_release_smoke.run(folder / executable, version)
             (directory / 'targeted.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
+        if context_release_smoke.required(version):
+            receipt = context_release_smoke.run(folder / executable, version)
+            (directory / 'context.json').write_text(json.dumps(receipt, indent=2, allow_nan=False) + '\n')
 
 
 def assemble(input_dir, output, version, commit, notes):
@@ -283,6 +287,12 @@ def assemble(input_dir, output, version, commit, notes):
             targeted_release_smoke.validate_receipt(targeted, version, core_row['binary_sha256'])
             add('targeted-smoke-' + platform + '.json', raw_targeted)
             validation['targeted'] = targeted
+        if context_release_smoke.required(version):
+            raw_context = (folder / 'context.json').read_bytes()
+            context = json.loads(raw_context)
+            context_release_smoke.validate_receipt(context, version, core_row['binary_sha256'])
+            add('context-smoke-' + platform + '.json', raw_context)
+            validation['context'] = context
         if declarations_release_smoke.declarations_required(version):
             tag = wheels.PLATFORMS[(core_row['os'], core_row['arch'])][0]
             native_wheels = [row for row in actual_receipt['wheels'] if row['platform'] == tag]

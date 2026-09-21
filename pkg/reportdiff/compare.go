@@ -26,6 +26,11 @@ func Compare(base, head *Snapshot) (*Report, error) {
 			names = append(names, name)
 		}
 	}
+	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments"} {
+		if a[name].present || b[name].present {
+			names = append(names, name)
+		}
+	}
 	for _, name := range names {
 		m := compareModule(name, a[name], b[name], &remaining, &byteBudget)
 		if m.Counts.OmittedChanges > 0 {
@@ -216,6 +221,34 @@ func comparisonScope(name string) string {
 		return "Retained format evidence matched by file path; prefixes and signatures do not validate entire files or establish their purpose."
 	case "hotspots":
 		return "Measured distributions and retained top evidence by language, grammar, syntax cohort and metric; leaving a ranking does not establish function removal."
+	case "focus_primary":
+		return "Files selected for the primary project, separate from related and context populations."
+	case "focus_related":
+		return "Files selected for each explicitly requested related project; changed requested membership is a scope-policy change."
+	case "focus_context":
+		return "Shared declaration context used to plan the focused populations; it is not part of either measured file population."
+	case "focus_relations":
+		return "Static declaration relations retained by the focus plan; they do not assert runtime resolution."
+	case "focus_affected_projects":
+		return "Projects directly associated with the requested affected path under the retained focus query limits."
+	case "focused_metrics_primary":
+		return "Metrics measured only over the primary focused population."
+	case "focused_metrics_related":
+		return "Metrics measured separately for each explicitly requested related-project population."
+	case "availability_lfs":
+		return "Selected-file LFS pointer observations; attributed non-pointer content does not prove successful hydration."
+	case "availability_gitlinks", "availability_submodules":
+		return "Committed-tree acquisition-boundary observations; checkout sparsity is kept separate."
+	case "availability_sparse":
+		return "Local checkout metadata observations for directory sources; these are unavailable for committed-tree sources."
+	case "availability_references":
+		return "Missing declaration references correlated only with explicitly observed acquisition boundaries."
+	case "availability_diagnostics":
+		return "Retained availability diagnostics; omission is never evidence that a diagnostic was resolved."
+	case "explanation":
+		return "Semantic explanation trace comparison is unsupported; rendered prose and trace order are not stable identities."
+	case "environments":
+		return "Environment comparison is unsupported in this comparison schema version."
 	default:
 		return "Detailed comparison is not supported for this module."
 	}
