@@ -6,7 +6,7 @@ Dircue identifies languages, maps declared projects and their relationships, and
 
 Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
 
-The 0.8.0 candidate adds [declared environment requirements](docs/ENVIRONMENTS.md), [saved-report follow-up planning](docs/PLANNING.md), and [comparison of focused and source-availability reports](docs/COMPARISON.md). Use a lightweight first pass to plan further inspection, or examine project requirements without running a build. These capabilities are explicitly selected; existing language commands keep their output contracts.
+Dircue 0.8.0 adds [declared environment requirements](docs/ENVIRONMENTS.md), [saved-report follow-up planning](docs/PLANNING.md), and [comparison of focused and source-availability reports](docs/COMPARISON.md). Use a lightweight first pass to plan further inspection, or examine project requirements without running a build. These capabilities are explicitly selected; existing language commands keep their output contracts.
 
 The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
@@ -265,8 +265,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.6.1 --output dist/release-0.6.1
-python3 scripts/wheels.py --release-dir dist/release-0.6.1 --output dist/wheels-0.6.1
+python3 scripts/release.py --version 0.8.0 --output dist/release-0.8.0
+python3 scripts/wheels.py --release-dir dist/release-0.8.0 --output dist/wheels-0.8.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
@@ -275,7 +275,7 @@ These commands do not publish anything. Wheels package the same Go binaries as t
 
 GitHub Releases provide binaries and wheels. uv can install a compatible wheel from a local file or a GitHub Release URL; see the [distribution guide](docs/DISTRIBUTION.md) for authentication, offline use, and platform requirements.
 
-PyPI publication is deferred. Package-name commands such as `uvx dircue@0.5.0` and `uv tool install 'dircue==0.5.0'` will work only after that version is published to the configured package index.
+PyPI publication is deferred. Package-name commands such as `uvx dircue@0.8.0` and `uv tool install 'dircue==0.8.0'` will work only after that version is published to the configured package index.
 
 ## Troubleshooting
 
