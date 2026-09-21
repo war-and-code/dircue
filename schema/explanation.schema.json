@@ -1,0 +1,523 @@
+{
+  "$id": "https://dircue.invalid/schema/explanation.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "decision": {
+      "additionalProperties": false,
+      "properties": {
+        "detected_language": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        },
+        "reported_language": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "included",
+            "excluded",
+            "unavailable",
+            "reported"
+          ]
+        },
+        "strategy": {
+          "maxLength": 8192,
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "reason"
+      ],
+      "type": "object"
+    },
+    "extent": {
+      "additionalProperties": false,
+      "properties": {
+        "classified_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "content_complete": {
+          "type": "boolean"
+        },
+        "file_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "read_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "file_bytes",
+        "read_bytes",
+        "classified_bytes",
+        "content_complete"
+      ],
+      "type": "object"
+    },
+    "facts": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "condition": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "detail": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          },
+          "project": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          },
+          "target": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "state"
+        ],
+        "type": "object"
+      },
+      "maxItems": 256,
+      "type": "array"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "classification_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "facts": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "overrides": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "steps": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "string_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "classification_bytes",
+        "steps",
+        "overrides",
+        "facts",
+        "string_bytes"
+      ],
+      "type": "object"
+    },
+    "observation_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "omissions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "reason",
+          "count"
+        ],
+        "type": "object"
+      },
+      "maxItems": 16,
+      "type": "array"
+    },
+    "overrides": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "attribute": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          },
+          "line": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "provenance": {
+            "enum": [
+              "retained",
+              "unavailable"
+            ]
+          },
+          "source": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "attribute",
+          "value",
+          "provenance"
+        ],
+        "type": "object",
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "provenance": {
+                  "const": "retained"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "source",
+                "line"
+              ],
+              "properties": {
+                "line": {
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "provenance": {
+                  "const": "unavailable"
+                }
+              }
+            },
+            "then": {
+              "not": {
+                "anyOf": [
+                  {
+                    "required": [
+                      "source"
+                    ]
+                  },
+                  {
+                    "required": [
+                      "line"
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "maxItems": 16,
+      "type": "array"
+    },
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "const": "1.0.0"
+    },
+    "query": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "language-path",
+            "project"
+          ]
+        },
+        "path": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "path"
+      ],
+      "type": "object"
+    },
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        },
+        "evidence": {
+          "enum": [
+            "fresh",
+            "retained"
+          ]
+        },
+        "inventory": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        },
+        "module": {
+          "maxLength": 8192,
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "module",
+        "engine",
+        "evidence",
+        "inventory",
+        "content"
+      ],
+      "type": "object"
+    },
+    "source": {
+      "additionalProperties": false,
+      "properties": {
+        "consistency": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "git",
+            "directory",
+            "unknown"
+          ]
+        },
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+        }
+      },
+      "required": [
+        "mode",
+        "consistency"
+      ],
+      "type": "object"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "steps": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "outcome": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          },
+          "provider": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          },
+          "rule": {
+            "maxLength": 8192,
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "rule",
+          "provider",
+          "outcome"
+        ],
+        "type": "object"
+      },
+      "maxItems": 32,
+      "type": "array"
+    }
+  },
+  "required": [
+    "schema_version",
+    "provider",
+    "provider_version",
+    "observation_id",
+    "status",
+    "source",
+    "query",
+    "scope",
+    "extent",
+    "limits",
+    "overrides",
+    "facts",
+    "steps",
+    "decision",
+    "omissions"
+  ],
+  "type": "object",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "mode": {
+                "const": "git"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "source": {
+            "required": [
+              "tree"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "properties": {
+              "mode": {
+                "const": "unknown"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "scope": {
+            "properties": {
+              "evidence": {
+                "const": "retained"
+              }
+            }
+          },
+          "source": {
+            "required": [
+              "report_sha256"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "query": {
+            "properties": {
+              "kind": {
+                "const": "language-path"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "included",
+                  "excluded",
+                  "unavailable"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "query": {
+            "properties": {
+              "kind": {
+                "const": "project"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "decision": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "reported",
+                  "unavailable"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+?   	dircue	[no test files]
+ok  	dircue/internal/cli	4.769s
+ok  	dircue/internal/jsonschema	(cached)
+ok  	dircue/internal/jsontext	(cached)
+ok  	dircue/pkg/availability	1.315s
+ok  	dircue/pkg/codemetrics	(cached)
+ok  	dircue/pkg/declarations	23.483s
+ok  	dircue/pkg/detectors	(cached)
+ok  	dircue/pkg/discovery	(cached)
+ok  	dircue/pkg/explain	1.037s
+ok  	dircue/pkg/focus	(cached)
+ok  	dircue/pkg/formats	(cached)
+ok  	dircue/pkg/packageevidence	(cached)
+?   	dircue/pkg/profile	[no test files]
+ok  	dircue/pkg/projects	(cached)
+ok  	dircue/pkg/registries	(cached)
+ok  	dircue/pkg/reportdiff	13.609s
+ok  	dircue/pkg/rules	(cached)
+ok  	dircue/pkg/scanner	29.954s
+ok  	dircue/pkg/structure	(cached)
+ok  	dircue/schema	4.959s
+?   	dircue/tests/conformance/classifier	[no test files]
+?   	dircue/tests/conformance/enry_baseline	[no test files]
+ok  	dircue/tests/declarations_adversarial	2.669s
+?   	dircue/tests/packageevidence/bench	[no test files]
+ok  	dircue/tests/provenance	(cached)
+?   	dircue/tests/registries/probe	[no test files]

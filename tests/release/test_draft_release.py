@@ -221,6 +221,7 @@ class AssemblyContracts(unittest.TestCase):
         archives = fixture_module('declaration_archive_fixtures', 'test_wheels.py')
         functions = fixture_module('declaration_function_fixtures', 'test_function_smoke.py')
         declarations = fixture_module('declaration_receipt_fixtures', 'test_declarations_release_smoke.py')
+        targeted = fixture_module('targeted_receipt_fixtures', 'test_v070_smoke.py')
         incoming = base / 'input'
         incoming.mkdir()
         worker_hash = 'b' * 64
@@ -272,6 +273,10 @@ class AssemblyContracts(unittest.TestCase):
                 hotspot_proof.update(candidate_sha256=selected['binary_sha256'], worker_sha256=worker_hash)
                 (folder / 'formats.json').write_text(json.dumps(format_proof))
                 (folder / 'hotspots.json').write_text(json.dumps(hotspot_proof))
+            if draft.targeted_release_smoke.required(version):
+                targeted_proof = targeted.targeted_receipt(version)
+                targeted_proof['candidate_sha256'] = selected['binary_sha256']
+                (folder / 'targeted.json').write_text(json.dumps(targeted_proof))
         return incoming, worker_hash
 
     def assemble_fixture(self, incoming, output, version, worker_hash):
@@ -305,6 +310,30 @@ class AssemblyContracts(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, 'executable identity'):
                     self.assemble_fixture(incoming, base / ('changed-060-' + name), '0.6.0', worker_hash)
                 path.write_bytes(original)
+
+    def test_v070_targeted_proofs_are_nested_assets_and_mandatory(self):
+        with tempfile.TemporaryDirectory() as temp:
+            base = Path(temp)
+            incoming, worker_hash = self.declaration_assembly_fixture(base, '0.7.0-rc.1')
+            result = self.assemble_fixture(incoming, base / 'complete-070', '0.7.0-rc.1', worker_hash)
+            self.assertEqual(49, len(list((base / 'complete-070').iterdir())))
+            wanted = {'targeted-smoke-' + platform + '.json' for platform in draft.PLATFORMS}
+            self.assertEqual(wanted, {name for name in result['assets'] if name.startswith('targeted-smoke-')})
+            for platform in result['platforms']:
+                self.assertTrue(platform['targeted']['passed'])
+
+            folder = incoming / ('candidate-' + draft.PLATFORMS[0])
+            path = folder / 'targeted.json'
+            original = path.read_bytes()
+            path.unlink()
+            with self.assertRaises(FileNotFoundError):
+                self.assemble_fixture(incoming, base / 'missing-070-targeted', '0.7.0-rc.1', worker_hash)
+            path.write_bytes(original)
+            changed = json.loads(original)
+            changed['candidate_sha256'] = 'f' * 64
+            path.write_text(json.dumps(changed))
+            with self.assertRaisesRegex(ValueError, 'executable identity'):
+                self.assemble_fixture(incoming, base / 'changed-070-targeted', '0.7.0-rc.1', worker_hash)
 
     def test_declaration_receipts_add_five_assets_only_from_v050(self):
         for version, expected_count in [('0.4.0', 39), ('0.5.0-rc.1', 44), ('0.5.0', 44)]:
@@ -340,7 +369,7 @@ class AssemblyContracts(unittest.TestCase):
 
     def test_native_smoke_uses_extracted_core_and_version_gate(self):
         # This checks orchestration only; the helper has separate real-core tests.
-        for version in ('0.4.0', '0.5.0-rc.1', '0.6.0-rc.1'):
+        for version in ('0.4.0', '0.5.0-rc.1', '0.6.0-rc.1', '0.7.0-rc.1'):
             with self.subTest(version=version), tempfile.TemporaryDirectory() as temp:
                 base = Path(temp)
                 incoming, worker_hash = self.declaration_assembly_fixture(base, version)
@@ -356,7 +385,7 @@ class AssemblyContracts(unittest.TestCase):
                     self.assertEqual(expected, draft.digest(binary.read_bytes()))
                     seen.append(binary)
                     return {'test-only-orchestration': True}
-                for name in ('formats', 'hotspots'):
+                for name in ('formats', 'hotspots', 'targeted'):
                     (folder / (name + '.json')).unlink(missing_ok=True)
                 def check_hotspots(binary, worker, selected_version):
                     self.assertEqual(b'worker-header-fixture', worker.read_bytes())
@@ -367,14 +396,17 @@ class AssemblyContracts(unittest.TestCase):
                      mock.patch.object(draft.function_release_smoke, 'run', return_value={'function-orchestration-only': True}), \
                      mock.patch.object(draft.declarations_release_smoke, 'run', side_effect=check_core), \
                      mock.patch.object(draft.formats_release_smoke, 'run', side_effect=check_core), \
-                     mock.patch.object(draft.hotspots_release_smoke, 'run', side_effect=check_hotspots):
+                     mock.patch.object(draft.hotspots_release_smoke, 'run', side_effect=check_hotspots), \
+                     mock.patch.object(draft.targeted_release_smoke, 'run', side_effect=check_core):
                     draft.native_smoke(folder, platform, version, '0' * 40)
                 required = draft.declarations_release_smoke.declarations_required(version)
                 content_required = draft.formats_release_smoke.required(version)
+                targeted_required = draft.targeted_release_smoke.required(version)
                 self.assertEqual(required, declarations_path.exists())
-                self.assertEqual(int(required) + 2 * int(content_required), len(seen))
+                self.assertEqual(int(required) + 2 * int(content_required) + int(targeted_required), len(seen))
                 for name in ('formats', 'hotspots'):
                     self.assertEqual(content_required, (folder / (name + '.json')).exists())
+                self.assertEqual(targeted_required, (folder / 'targeted.json').exists())
                 if required:
                     self.assertEqual({'test-only-orchestration': True}, json.loads(declarations_path.read_bytes()))
 

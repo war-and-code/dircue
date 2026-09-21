@@ -49,7 +49,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       # Test-fixture version only; this selects no release version and creates no tags/releases.
-      DIRCUE_CI_VERSION: '0.6.0-rc.1'
+      DIRCUE_CI_VERSION: '0.7.0-rc.1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -92,7 +92,7 @@ jobs:
         run: |
           go build -trimpath -ldflags "-X dircue/internal/cli.Version=${{ env.DIRCUE_CI_VERSION }}" -o bin/dircue${{ matrix.suffix }} .
           python tests/structural_breadth/run.py --candidate bin/dircue${{ matrix.suffix }} --worker prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }} --output dist/structural-worker/breadth-${{ matrix.platform }}.json
-      - name: Check function evidence with the packaged worker
+      - name: Check packaged core capability receipts
         env:
           WORKER_PLATFORM: ${{ matrix.platform }}
           EXE_SUFFIX: ${{ matrix.suffix }}
@@ -125,7 +125,7 @@ jobs:
               '--worker', str(worker), '--version', version,
               '--output', str(folder / f'functions-{platform}.json'),
           ], check=True)
-          for helper in ('formats', 'hotspots'):
+          for helper in ('formats', 'hotspots', 'targeted'):
               command = [sys.executable, f'scripts/{helper}_release_smoke.py',
                          '--candidate', 'bin/dircue' + suffix, '--version', version,
                          '--output', str(folder / f'{helper}-{platform}.json')]

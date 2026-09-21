@@ -1,0 +1,673 @@
+{
+  "$id": "https://dircue.invalid/schema/focus.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "affected_projects": {
+      "additionalProperties": false,
+      "properties": {
+        "omitted": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "path": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "projects": {
+          "items": {
+            "additionalProperties": false,
+            "properties": {
+              "applicability": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "basis": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "evidence": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "project_id": {
+                "maxLength": 8192,
+                "type": "string"
+              }
+            },
+            "required": [
+              "project_id",
+              "basis",
+              "applicability",
+              "evidence"
+            ],
+            "type": "object"
+          },
+          "maxItems": 200000,
+          "type": "array"
+        },
+        "status": {
+          "maxLength": 8192,
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "path",
+        "projects",
+        "omitted"
+      ],
+      "type": "object"
+    },
+    "boundaries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "candidates": {
+            "items": {
+              "maxLength": 8192,
+              "type": "string"
+            },
+            "maxItems": 200000,
+            "type": "array"
+          },
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "project_id": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "context": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "applicability": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "basis": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "condition": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "parsed": {
+            "type": "boolean"
+          },
+          "path": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "project_id": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "project_id",
+          "path",
+          "kind",
+          "basis",
+          "applicability",
+          "evidence",
+          "state",
+          "parsed"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "ambiguous_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "context_inputs": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "inventory_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "inventory_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_output_records": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_projects": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_records": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "omitted_relations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "parsed_project_records": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "primary_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "primary_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "project_records": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "related_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "related_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "relations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unresolved_files": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "work": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "ownership_barriers": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "inventory_files",
+        "inventory_bytes",
+        "project_records",
+        "parsed_project_records",
+        "primary_files",
+        "primary_bytes",
+        "related_files",
+        "related_bytes",
+        "context_inputs",
+        "relations",
+        "ambiguous_files",
+        "unresolved_files",
+        "omitted_files",
+        "omitted_projects",
+        "omitted_records",
+        "omitted_relations",
+        "omitted_output_records",
+        "work",
+        "ownership_barriers"
+      ],
+      "type": "object"
+    },
+    "limits": {
+      "additionalProperties": false,
+      "properties": {
+        "inventory_paths": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "output_bytes": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "project_records": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "relations": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "work": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "inventory_paths",
+        "project_records",
+        "relations",
+        "work",
+        "output_bytes"
+      ],
+      "type": "object"
+    },
+    "omissions": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "reason": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "reason",
+          "count"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "primary": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "basis": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "bytes": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "ownership": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "path": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "project_id": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "bytes",
+          "project_id",
+          "ownership",
+          "basis"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "primary_project": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "kind": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "parsed": {
+          "type": "boolean"
+        },
+        "root": {
+          "maxLength": 8192,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "root",
+        "kind",
+        "parsed"
+      ],
+      "type": "object"
+    },
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "const": "1.0.0"
+    },
+    "related": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "basis": {
+                  "maxLength": 8192,
+                  "type": "string"
+                },
+                "bytes": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "ownership": {
+                  "maxLength": 8192,
+                  "type": "string"
+                },
+                "path": {
+                  "maxLength": 8192,
+                  "type": "string"
+                },
+                "project_id": {
+                  "maxLength": 8192,
+                  "type": "string"
+                }
+              },
+              "required": [
+                "path",
+                "bytes",
+                "project_id",
+                "ownership",
+                "basis"
+              ],
+              "type": "object"
+            },
+            "maxItems": 200000,
+            "type": "array"
+          },
+          "project": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "kind": {
+                "maxLength": 8192,
+                "type": "string"
+              },
+              "parsed": {
+                "type": "boolean"
+              },
+              "root": {
+                "maxLength": 8192,
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "root",
+              "kind",
+              "parsed"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "project",
+          "files"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "relations": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "class": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "condition": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "kind": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "source_project": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "state": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "target": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "target_status": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 8192,
+            "type": "string"
+          }
+        },
+        "required": [
+          "source_project",
+          "kind",
+          "class",
+          "value",
+          "state",
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "maxItems": 200000,
+      "type": "array"
+    },
+    "scope": {
+      "additionalProperties": false,
+      "properties": {
+        "affected_by": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "algorithm": {
+          "const": "sha256"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "primary_project": {
+          "maxLength": 8192,
+          "type": "string"
+        },
+        "related_projects": {
+          "items": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "maxItems": 200000,
+          "type": "array"
+        },
+        "role": {
+          "enum": [
+            "project",
+            "affected-by"
+          ]
+        },
+        "rule": {
+          "enum": [
+            "nearest-project-manifest-directory-v1",
+            "direct-context-impact-v1"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "algorithm",
+        "rule",
+        "role",
+        "related_projects"
+      ],
+      "type": "object"
+    },
+    "source": {
+      "enum": [
+        "git",
+        "directory"
+      ]
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}([0-9a-f]{24})?$"
+    }
+  },
+  "required": [
+    "provider",
+    "provider_version",
+    "status",
+    "source",
+    "scope",
+    "limits",
+    "coverage",
+    "primary",
+    "related",
+    "context",
+    "relations",
+    "boundaries",
+    "omissions"
+  ],
+  "type": "object",
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "git"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "tree"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "properties": {
+              "role": {
+                "const": "project"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "primary_project"
+        ],
+        "properties": {
+          "scope": {
+            "required": [
+              "primary_project"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "scope": {
+            "properties": {
+              "role": {
+                "const": "affected-by"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "affected_projects"
+        ],
+        "not": {
+          "required": [
+            "primary_project"
+          ]
+        },
+        "properties": {
+          "scope": {
+            "required": [
+              "affected_by"
+            ]
+          },
+          "primary": {
+            "maxItems": 0
+          },
+          "related": {
+            "maxItems": 0
+          }
+        }
+      }
+    }
+  ]
+}

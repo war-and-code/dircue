@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"dircue/pkg/detectors"
+	"dircue/pkg/focus"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
 	"dircue/pkg/scanner"
@@ -21,9 +22,13 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.6.1"
+var Version = "0.7.0-dev"
 
 type options struct {
+	availability           bool
+	focusProject           string
+	focusRelated           []string
+	focusAffectedBy        string
 	json                   bool
 	breakdown              bool
 	workers                int
@@ -94,10 +99,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -105,7 +110,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			RunE:  func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, mode) },
 		}
 		setExtendedCommandHelp(command, mode)
-		if mode == "metrics" || mode == "all" || mode == "structure" {
+		if mode == "metrics" || mode == "all" || mode == "structure" || mode == "focus" {
 			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include per-file metrics or structural observations")
 		}
 		if mode == "structure" || mode == "all" {
@@ -115,14 +120,18 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			command.Flags().Int64Var(&opts.structuralMaxFileBytes, "structural-max-file-bytes", structure.MaxSourceBytes, "Maximum complete source bytes for structural analysis (at most 8388608)")
 			command.Flags().DurationVar(&opts.structuralTimeout, "structural-timeout", 10*time.Second, "Time limit for each structural worker invocation")
 		}
-		if mode == "metrics" || mode == "all" {
+		if mode == "metrics" || mode == "all" || mode == "focus" {
 			command.Flags().StringVar(&opts.metricsScope, "metrics-scope", "source", "Metrics selection: source (language statistics) or text (all detected text languages)")
 			command.Flags().Int64Var(&opts.metricsMaxFileBytes, "metrics-max-file-bytes", 16777216, "Skip metrics for larger files; maximum 268435456 bytes")
 		}
 		if mode == "rules" || mode == "registries" || mode == "all" {
 			command.Flags().BoolVar(&opts.discovery, "discovery", false, "Summarize regular-file metadata and candidate manifests/artifacts")
 		}
+		if mode == "focus" {
+			addFocusFlags(command, opts)
+		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.availability, "availability", false, "Inspect bounded source-availability evidence without fetching missing material")
 			command.Flags().BoolVar(&opts.formats, "formats", false, "Inspect bounded content for format evidence, including data and artifact files")
 			command.Flags().BoolVar(&opts.declarations, "declarations", false, "Read declared project identities, workspace relationships, requirements, and interfaces")
 			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet.Config and .npmrc declarations; disclose qualified names and sanitized origins")
@@ -139,6 +148,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		}
 		analyze.AddCommand(command)
 	}
+	analyze.AddCommand(newExplainCommand(opts))
 	root.AddCommand(analyze)
 	root.AddCommand(newCompareCommand(opts))
 	return root.ExecuteContext(ctx)
@@ -167,7 +177,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return err
 	}
 	var metrics *scanner.MetricsOptions
-	if mode == "metrics" || (mode == "all" && opts.metrics) {
+	if mode == "metrics" || ((mode == "all" || mode == "focus") && opts.metrics) {
 		if opts.metricsScope != "source" && opts.metricsScope != "text" {
 			return fmt.Errorf("--metrics-scope must be source or text")
 		}
@@ -175,7 +185,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			return fmt.Errorf("--metrics-max-file-bytes must be between 1 and 268435456")
 		}
 		metrics = &scanner.MetricsOptions{Scope: opts.metricsScope, MaxFileBytes: opts.metricsMaxFileBytes, IncludeFiles: opts.metricsFiles}
-	} else if mode == "all" {
+	} else if mode == "all" || mode == "focus" {
 		for _, flag := range []string{"files", "metrics-scope", "metrics-max-file-bytes"} {
 			if cmd.Flags().Changed(flag) && !(flag == "files" && opts.structure) {
 				return fmt.Errorf("--%s requires --metrics", flag)
@@ -231,13 +241,23 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if !cmd.Flags().Changed("rev") || opts.source == "directory" {
 		opts.revision = ""
 	}
+	var focusRequest *focus.Request
+	if mode == "focus" {
+		if err := validateFocusFlags(cmd, opts); err != nil {
+			return err
+		}
+		focusRequest = &focus.Request{Project: opts.focusProject, Related: opts.focusRelated, AffectedBy: opts.focusAffectedBy}
+	}
 	var hooks []profile.Detector
 	if mode == "all" || mode == "frameworks" || mode == "ecosystems" {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
-		Source:   opts.source,
-		Revision: opts.revision,
+		Focus:            focusRequest,
+		Availability:     mode == "availability" || (mode == "all" && opts.availability),
+		AvailabilityOnly: mode == "availability",
+		Source:           opts.source,
+		Revision:         opts.revision,
 		// Linguist accepts nonpositive limits and emits empty statistics.
 		// A limit of one has the same result for every nonempty tree,
 		// while preserving zero as the embedding API's default sentinel.
@@ -282,6 +302,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if report.Formats != nil || (report.Structure != nil && report.Structure.Hotspots != nil) {
 		report.SchemaVersion = profile.ContentSchemaVersion
 	}
+	if report.Focus != nil || report.Availability != nil || report.Explanation != nil {
+		report.SchemaVersion = profile.TargetedSchemaVersion
+	}
 	for _, warning := range report.Warnings {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
 			return err
@@ -307,6 +330,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "focus":
+		return writeFocus(out, report)
+	case "availability":
+		return writeAvailability(out, report.Availability)
 	case "projects":
 		return writeProjects(out, report.Projects)
 	case "declarations":
@@ -334,6 +361,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	case "metrics":
 		return writeMetrics(out, report.Metrics, opts.metricsFiles)
 	default:
+		if err := writeAvailability(out, report.Availability); err != nil {
+			return err
+		}
 		if err := writeFormats(out, report.Formats); err != nil {
 			return err
 		}
