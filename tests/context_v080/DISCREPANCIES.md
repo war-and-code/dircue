@@ -2,7 +2,7 @@
 
 There are no accepted conformance divergences encoded by this harness. A raw mismatch in `broad.py` or `targeted.py` fails its run and must be investigated rather than skipped.
 
-No empirical receipt ships with these source files. Performance and compatibility rows remain unmeasured until the pinned baseline and a source-bound candidate run on the recorded host.
+Retained [candidate receipts](results/) record the native macOS ARM64 run against the pinned 0.7.0 release. See [validation](../../docs/releases/0.8.0-validation.md) for measurements and limitations; they are not an exhaustive compatibility or cross-platform proof.
 
 Environment observations are declared constraints and modeled SDK-selection context. They do not probe installed tools, execute package managers or builds, resolve every build-system condition, or prove that compilation succeeds.
 

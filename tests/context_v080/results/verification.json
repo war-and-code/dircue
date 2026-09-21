@@ -1,0 +1,28 @@
+{
+  "baseline_sha256": "7bbc81abfc2d9abec4a997c21933492d39959f444560a6d6d631121f499933ad",
+  "candidate_sha256": "8de7bdcd5881a98dbfdcadd567480989faa64739128f7609a304e588000c66f1",
+  "case_counts": {
+    "broad": 278,
+    "targeted": 18
+  },
+  "passed": true,
+  "performance_lanes": [
+    "baseline_corpus_languages",
+    "baseline_xml_languages",
+    "candidate_corpus_languages",
+    "candidate_small_declarations",
+    "candidate_small_environments",
+    "candidate_xml_languages",
+    "small_full",
+    "small_staged",
+    "xml_full",
+    "xml_staged"
+  ],
+  "receipts": {
+    "broad": "e495b3dcfe37ce2b66374e7f4c37c95f1a612de429658f94a11c1fe79c16c629",
+    "build": "6f856adaf454ceaefd97da1a1cdd80d044a637128544d07b72ddccbd8ba996af",
+    "performance": "1c8f6a11fc41fb04b1a1d5122132c7bf90abecf9c1b57a5675e0158c01bf9f32",
+    "targeted": "ddec077975802071e6866c2762bb2cf676cd8115d1e1273dd6fb4467714aa556"
+  },
+  "schema": "dircue-context-v080-verification-1"
+}

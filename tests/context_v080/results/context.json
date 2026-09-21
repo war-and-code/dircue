@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0.0",
+  "version": "0.8.0-rc.1",
+  "passed": true,
+  "candidate_sha256": "8de7bdcd5881a98dbfdcadd567480989faa64739128f7609a304e588000c66f1",
+  "source_sha256": {
+    "scripts/context_release_smoke.py": "e3dc217da5fe2c336862b54421a4564c93c828f4eb090a8e46471f462c29c782",
+    "scripts/wheels.py": "f9005f1590b34ca78cdda8f5c07f13c679c573eb255c9e5ca9a4aeb4c9439534"
+  },
+  "fixture_sha256": {
+    ".gitattributes": "4694438bb0e6eb6d04e226a040ee106f0ed62ddc5484654a70673b96564c47a6",
+    "app/App.csproj": "68d376e707c5b0af97cd20a82e82428b3cd3e418537fdb77517d93c989a0fe47",
+    "app/Program.cs": "2de7e33cae0aa7765037167d1916b0c74ea0ea7de52d01b8499de3f4767c7cac",
+    "assets/model.bin": "3de0425778feeaf950600666c0b06af5533a8a9d103dd0e21df8cf9697a7d961",
+    "global.json": "85854dd81dd11d5ee70b45b2e24d72b3aa6d897aed457bd65a0ce8530827a82c",
+    "py/main.py": "d4466db650a5ccc2b05b6d9713e569b917bce0d7e54ce9d0137e9b9eaa03b327",
+    "py/pyproject.toml": "25d4613435c13c94fc5323c4f70ab8acb16fa9ac4334ce19cb1fd15e6bff3fb5"
+  },
+  "checks": [
+    "availability_comparison_schema_1_6",
+    "capability_contract",
+    "core_version",
+    "default_omission",
+    "environment_declared_facts",
+    "environment_worker_determinism",
+    "focus_comparison_schema_1_6",
+    "malformed_report_rejected",
+    "plan_exact_report_identity",
+    "plan_inert_argv",
+    "plan_source_binding",
+    "planning_request_cap_enforced",
+    "saved_plan_without_source"
+  ],
+  "observed_facts": {
+    "environment_provider_version": "1.0.0",
+    "dotnet_project": "app/App.csproj",
+    "dotnet_target": "net8.0",
+    "python_project": "py/pyproject.toml",
+    "python_constraint": ">=3.12",
+    "sdk_version": "8.0.300",
+    "capability_schema_version": "1.0.0",
+    "profile_schema_version": "1.7.0",
+    "comparison_profile_schema_version": "1.6.0",
+    "planned_commands_executable": false,
+    "source_removed_before_plan": true,
+    "external_tools_required": false
+  },
+  "worker_required": false,
+  "external_tools_required": false,
+  "source_removed_before_plan": true,
+  "stdout_sha256": {
+    "capabilities": "c845088d5ab0135f5bdc19d3c09db9a911cf936d214870eff4c92dfb7a08662b",
+    "environment": "971a27d9137a73496478de7a965d5a9b1056ebbc2e2ea2c1a8b9d8ffd6984642",
+    "saved_profile": "5004fb1e3cd577222861856f230813dc97649715c3af904daa3fc850f0c88756",
+    "plan": "c564f534fc77225d005719dfbc3858dbc63711b39fa52529e634d1989fb40fe5",
+    "focus_comparison": "7d4abada0c036afc526e7bb1058b53ed0f6d85548057fc2207df56b8a7e87b7b",
+    "availability_comparison": "a3b49af0955a8dfaaec07caf2dba022f6963901e8427cf459216581ca7224a23"
+  }
+}
