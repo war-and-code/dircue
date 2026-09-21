@@ -411,7 +411,7 @@ func legacyCondition(value string) string {
 	return ""
 }
 
-var legacyHostPath = regexp.MustCompile(`(?:[/\\]|[A-Za-z]:[/\\])`)
+var legacyHostPath = regexp.MustCompile(`(?:[A-Za-z]:[/\\]|\\|(^|[\s"'(=@])/)`)
 
 func unsafeLegacyText(value string) bool {
 	return strings.Contains(value, "://") || strings.IndexFunc(value, unicode.IsControl) >= 0 || legacyHostPath.MatchString(value)
