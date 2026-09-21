@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the 0.7.0 candidate's enabled integrations, rather than every feature
+describe the enabled integrations in 0.7.0, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
