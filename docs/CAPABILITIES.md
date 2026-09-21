@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the enabled integrations in 0.7.0, rather than every feature
+describe the enabled integrations in the 0.8.0 candidate, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
@@ -20,10 +20,14 @@ Version 0.6.0 adds [format evidence](FORMATS.md) and [population-aware function 
 
 Version 0.7.0 adds [focused .NET/Python project profiling](FOCUS.md), [source-availability evidence](AVAILABILITY.md), and [targeted explanations](EXPLANATIONS.md). These additions preserve the existing language catalog and structural grammar coverage.
 
+Version 0.8.0 adds [declared environment requirements](ENVIRONMENTS.md), a limited [planner capability registry and offline follow-up plans](PLANNING.md), and comparison of focused/source-availability evidence. It does not expand the language or grammar catalogs.
+
 ## Analysis layers
 
 | Layer | Coverage | Result and limits |
 | --- | --- | --- |
+| Environment requirements | Supported declaration facts and bounded .NET `global.json` contexts | Declared constraints and qualified SDK-selection inputs; no installed-environment or build-success claim. |
+| Follow-up planning | Explicit caller requests and one saved aggregate report | Inert commands, prerequisites, retained evidence and cost quantities; no execution or source access. |
 | Focused profiling | Parsed .NET and Python/uv selections | Original-root context and qualified containment; optional separate primary/related scc metrics. |
 | Source availability | Explicit bounded prefixes, selected Gitlinks, supported checkout metadata | Acquisition-boundary evidence; no fetching, hydration, or filter execution. |
 | Explanations | Targeted language decisions and retained project/focus/availability facts | Fresh or saved evidence, with source identity, limits, and unavailable detail. |

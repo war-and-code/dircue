@@ -105,6 +105,26 @@ func TestContractRejections(t *testing.T) {
 	}
 }
 
+func TestBaseResponseRejectsDuplicateAndUnknownTopLevelFields(t *testing.T) {
+	response := validResponse("A.java", "Java", 10)
+	response["surprise"] = true
+	raw, _ := json.Marshal(response)
+	if _, err := decode(raw, File{Path: "A.java", Language: "Java", SourceBytes: 10}); err == nil {
+		t.Fatal("unknown field accepted")
+	}
+	raw = []byte(`{"path":"A.java","path":"A.java","language":"Java"}`)
+	if _, err := decode(raw, File{Path: "A.java", Language: "Java"}); err == nil {
+		t.Fatal("duplicate key accepted")
+	}
+}
+
+func TestRequestedCapabilitySet(t *testing.T) {
+	hotspotsOnly := []byte(`{"protocol":"dircue-structural-worker","version":1,"parse_count":0,"features":["hotspots"]}`)
+	if !validCapabilities(hotspotsOnly, false, true) || validCapabilities(hotspotsOnly, true, false) {
+		t.Fatal("feature requirements not enforced")
+	}
+}
+
 func helper(t *testing.T, mode string, timeout time.Duration) *Client {
 	t.Helper()
 	t.Setenv("DIRCUE_STRUCTURE_TEST_HELPER", mode)

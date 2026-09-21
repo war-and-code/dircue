@@ -287,6 +287,19 @@ class WorkflowExpressionTests(unittest.TestCase):
                 context = pull_request_context(workflow, "ready_for_review", False)
                 self.assertEqual(expected[workflow], selected_jobs(path, context))
 
+    def test_main_push_runs_linux_validation_without_five_platform_worker_matrix(self) -> None:
+        ci = non_pr_context("CI", "push", "refs/heads/main")
+        worker = non_pr_context("Structural worker", "push", "refs/heads/main")
+        self.assertEqual(
+            {"preflight", "test", "linguist-conformance", "metrics-conformance"},
+            selected_jobs(WORKFLOWS["CI"], ci),
+        )
+        self.assertEqual({"package"}, selected_jobs(WORKFLOWS["Structural worker"], worker))
+        workflow = WORKFLOWS["Structural worker"].read_text()
+        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertEqual(2, workflow.count('"platform":"linux-amd64"'))
+        self.assertEqual(1, workflow.count('"platform":"linux-arm64"'))
+
     def test_cancel_in_progress_remains_enabled_in_all_workflows(self) -> None:
         for workflow, path in WORKFLOWS.items():
             with self.subTest(workflow=workflow):

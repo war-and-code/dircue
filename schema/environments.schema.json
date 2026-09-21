@@ -1,0 +1,395 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "provider",
+    "provider_version",
+    "status",
+    "source",
+    "semantics_reference",
+    "limits",
+    "coverage",
+    "requirements",
+    "selections",
+    "conflicts",
+    "boundaries",
+    "diagnostics"
+  ],
+  "properties": {
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "const": "1.0.0"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "source": {
+      "enum": [
+        "git",
+        "directory"
+      ]
+    },
+    "tree": {
+      "$ref": "#/$defs/text"
+    },
+    "semantics_reference": {
+      "$ref": "#/$defs/requiredText"
+    },
+    "limits": {
+      "$ref": "#/$defs/limits"
+    },
+    "coverage": {
+      "$ref": "#/$defs/coverage"
+    },
+    "requirements": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {
+        "$ref": "#/$defs/requirement"
+      }
+    },
+    "selections": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/selection"
+      }
+    },
+    "conflicts": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {
+        "$ref": "#/$defs/conflict"
+      }
+    },
+    "boundaries": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {
+        "$ref": "#/$defs/boundary"
+      }
+    },
+    "diagnostics": {
+      "type": "array",
+      "maxItems": 65536,
+      "items": {
+        "$ref": "#/$defs/diagnostic"
+      }
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "git"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "tree"
+        ],
+        "properties": {
+          "tree": {
+            "minLength": 1
+          }
+        }
+      },
+      "else": {
+        "not": {
+          "required": [
+            "tree"
+          ]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "text": {
+      "type": "string",
+      "maxLength": 8192
+    },
+    "requiredText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192
+    },
+    "nonnegativeInteger": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "limits": {
+      "type": "object",
+      "required": [
+        "inventory_paths",
+        "global_json_bytes",
+        "input_bytes",
+        "requirements",
+        "contexts",
+        "output_bytes"
+      ],
+      "properties": {
+        "inventory_paths": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200000
+        },
+        "global_json_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "requirements": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "contexts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        }
+      },
+      "additionalProperties": false
+    },
+    "coverage": {
+      "type": "object",
+      "required": [
+        "inventory_paths",
+        "project_records",
+        "parsed_project_records",
+        "contexts",
+        "global_json_candidates",
+        "global_json_read",
+        "input_bytes",
+        "requirements",
+        "omitted_files",
+        "omitted_requirements"
+      ],
+      "properties": {
+        "inventory_paths": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "project_records": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "parsed_project_records": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "contexts": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "global_json_candidates": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "global_json_read": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "input_bytes": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "requirements": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "omitted_files": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "omitted_requirements": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        }
+      },
+      "additionalProperties": false
+    },
+    "requirement": {
+      "type": "object",
+      "required": [
+        "project_id",
+        "context_id",
+        "dimension",
+        "kind",
+        "value",
+        "state",
+        "evidence",
+        "applicability"
+      ],
+      "properties": {
+        "project_id": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "context_id": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "dimension": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "kind": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "value": {
+          "$ref": "#/$defs/text"
+        },
+        "state": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "evidence": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "condition": {
+          "$ref": "#/$defs/text"
+        },
+        "applicability": {
+          "$ref": "#/$defs/requiredText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "selection": {
+      "type": "object",
+      "required": [
+        "context_id",
+        "project_id",
+        "start_directory",
+        "start_basis",
+        "state",
+        "applicability"
+      ],
+      "properties": {
+        "context_id": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "project_id": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "start_directory": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "start_basis": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "global_json": {
+          "$ref": "#/$defs/text"
+        },
+        "sdk_version": {
+          "$ref": "#/$defs/text"
+        },
+        "roll_forward": {
+          "$ref": "#/$defs/text"
+        },
+        "allow_prerelease": {
+          "type": "boolean"
+        },
+        "state": {
+          "enum": [
+            "declared",
+            "unresolved",
+            "unconstrained"
+          ]
+        },
+        "applicability": {
+          "$ref": "#/$defs/requiredText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "conflict": {
+      "type": "object",
+      "required": [
+        "context_id",
+        "dimension",
+        "values",
+        "evidence",
+        "explanation"
+      ],
+      "properties": {
+        "context_id": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "dimension": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "values": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/requiredText"
+          }
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/requiredText"
+          }
+        },
+        "explanation": {
+          "$ref": "#/$defs/requiredText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "boundary": {
+      "type": "object",
+      "required": [
+        "reason"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/text"
+        },
+        "project_id": {
+          "$ref": "#/$defs/text"
+        },
+        "context_id": {
+          "$ref": "#/$defs/text"
+        },
+        "reason": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "detail": {
+          "$ref": "#/$defs/text"
+        }
+      },
+      "additionalProperties": false
+    },
+    "diagnostic": {
+      "type": "object",
+      "required": [
+        "path",
+        "code",
+        "message"
+      ],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "code": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "message": {
+          "$ref": "#/$defs/requiredText"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

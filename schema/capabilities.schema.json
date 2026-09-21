@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dircue planner capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "provider",
+    "provider_version",
+    "scope",
+    "modules"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "dircue-planner-capabilities"
+    },
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "scope": {
+      "const": "planner-supported-modules"
+    },
+    "modules": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/module"
+      }
+    }
+  },
+  "$defs": {
+    "strings": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "module": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "command",
+        "prerequisites",
+        "required_inputs",
+        "expected_evidence",
+        "aggregate_schema_since",
+        "provider_version",
+        "cost",
+        "supported_languages"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,63}$"
+        },
+        "question": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "command": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "argv_prefix"
+          ],
+          "properties": {
+            "argv_prefix": {
+              "$ref": "#/$defs/strings"
+            }
+          }
+        },
+        "prerequisites": {
+          "$ref": "#/$defs/strings"
+        },
+        "required_inputs": {
+          "$ref": "#/$defs/strings"
+        },
+        "expected_evidence": {
+          "$ref": "#/$defs/strings"
+        },
+        "aggregate_schema_since": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "provider_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "supported_languages": {
+          "$ref": "#/$defs/strings"
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "inspection",
+            "external_process"
+          ],
+          "properties": {
+            "inspection": {
+              "enum": [
+                "metadata",
+                "bounded-content",
+                "full-content",
+                "metadata-and-bounded-content"
+              ]
+            },
+            "external_process": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    }
+  }
+}

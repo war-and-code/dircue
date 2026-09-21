@@ -12,8 +12,15 @@ executable: obtain it from a source you trust, and pass its actual filesystem
 path. Filenames and source text are delivered through standard input, not shell
 commands.
 
+The worker is trusted code selected by the caller. It inherits dircue's working
+directory and process environment, which custom workers may need for locale,
+temporary-directory, dynamic-loader, or license configuration. This interface
+is not a sandbox and does not protect environment credentials from the worker.
+Executable symlinks are followed normally.
+
 The [`--functions`](FUNCTIONS.md) option adds bounded function-space metrics.
-It requires a worker with that capability, introduced in 0.4.0.
+It requires a worker with that capability, introduced in 0.4.0, and makes one
+bounded capability probe before scanning.
 The independent [`--hotspots`](HOTSPOTS.md) option adds distributions and top-ten
 evidence over measured function populations. It requires a 0.6.0-capable worker
 and makes one bounded capability probe before scanning.
@@ -77,6 +84,11 @@ Process failures, deadlines, malformed responses, unexpected parser versions,
 and excessive worker output are errors. They must not silently become a
 successful complete analysis. A parser partial result is distinct from a worker
 failure.
+
+Cancellation terminates the worker process group on Unix. On Windows dircue
+requests recursive termination with the system `taskkill` utility and falls
+back to terminating the direct worker if that utility is unavailable; descendant
+cleanup is therefore best effort on Windows.
 
 The current C# grammar has known limitations on parts of the Roslyn corpus,
 including modern syntax. The prototype's
@@ -194,3 +206,5 @@ claiming another BCA, runtime, or grammar version. Upgrade them together, rerun
 real-worker tests and syntax fixtures, and compare corpus reports. A grammar
 with the same language name is not automatically compatible with BCA's metric
 implementation.
+
+The selected executable may be a symlink to a trusted installation. The worker inherits the caller process environment and working directory; it is not sandboxed. Its language-support matrix is included even for an empty source so consumers can distinguish unsupported languages from absent input. None of these declarations prove that an arbitrary third-party worker reports truthfully.

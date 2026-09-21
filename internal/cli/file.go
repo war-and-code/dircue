@@ -72,7 +72,7 @@ func runFile(cmd *cobra.Command, filename string, opts *options) error {
 	if opts.json {
 		return json.NewEncoder(out).Encode(map[string]fileOutput{filename: result})
 	}
-	if _, err := fmt.Fprintf(out, "%s: %d lines (%d sloc)\n  type:      %s\n  mime type: %s\n  language:  %s\n", filename, result.Lines, result.SLOC, result.Type, result.MIME, blob.Language); err != nil {
+	if _, err := fmt.Fprintf(out, "%s: %d lines (%d sloc)\n  type:      %s\n  mime type: %s\n  language:  %s\n", terminalValue(filename), result.Lines, result.SLOC, result.Type, result.MIME, blob.Language); err != nil {
 		return err
 	}
 	if opts.strategies && blob.Language != "" && blob.Strategy != "" {

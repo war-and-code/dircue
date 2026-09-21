@@ -26,12 +26,36 @@ func Compare(base, head *Snapshot) (*Report, error) {
 			names = append(names, name)
 		}
 	}
+	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments"} {
+		if a[name].present || b[name].present {
+			names = append(names, name)
+		}
+	}
 	for _, name := range names {
 		m := compareModule(name, a[name], b[name], &remaining, &byteBudget)
 		if m.Counts.OmittedChanges > 0 {
 			r.Status = "partial"
 		}
 		r.Modules = append(r.Modules, m)
+	}
+	// Redistribute retention only when limits bind. Ordinary comparisons retain
+	// their original byte representation; large early modules cannot starve later ones.
+	if r.Status == "partial" {
+		demand := make([]int, len(r.Modules))
+		for i, m := range r.Modules {
+			demand[i] = len(m.Changes) + m.Counts.OmittedChanges
+		}
+		quotas := fairQuotas(demand, MaxChanges)
+		byteDemand := make([]int, len(demand))
+		for i, n := range demand {
+			if n > 0 {
+				byteDemand[i] = MaxOutputBytes
+			}
+		}
+		bytes := fairQuotas(byteDemand, MaxOutputBytes-(1<<20))
+		for i, name := range names {
+			r.Modules[i] = compareModule(name, a[name], b[name], &quotas[i], &bytes[i])
+		}
 	}
 	// Shrink values first; retain field names, identities and observation counts.
 	data, err := json.Marshal(r)
@@ -52,16 +76,19 @@ func Compare(base, head *Snapshot) (*Report, error) {
 	}
 	for len(data) > MaxOutputBytes {
 		removed := false
-		for i := len(r.Modules) - 1; i >= 0; i-- {
-			m := &r.Modules[i]
-			if len(m.Changes) > 0 {
-				drop := max(1, len(m.Changes)/2)
-				m.Changes = m.Changes[:len(m.Changes)-drop]
-				m.Counts.OmittedChanges += drop
-				m.Reasons = appendReason(m.Reasons, "comparison_output_limit")
-				removed = true
-				break
+		largest := -1
+		for i := range r.Modules {
+			if len(r.Modules[i].Changes) > 0 && (largest < 0 || len(r.Modules[i].Changes) > len(r.Modules[largest].Changes)) {
+				largest = i
 			}
+		}
+		if largest >= 0 {
+			m := &r.Modules[largest]
+			drop := max(1, len(m.Changes)/2)
+			m.Changes = m.Changes[:len(m.Changes)-drop]
+			m.Counts.OmittedChanges += drop
+			m.Reasons = appendReason(m.Reasons, "comparison_output_limit")
+			removed = true
 		}
 		if !removed {
 			return nil, ErrLimit
@@ -77,6 +104,12 @@ func identity(role string, s *Snapshot) Identity {
 }
 
 func compareModule(name string, a, b moduleData, remaining, byteBudget *int) Module {
+	if !a.present {
+		a.status = "unavailable"
+	}
+	if !b.present {
+		b.status = "unavailable"
+	}
 	m := Module{Name: name, Scope: comparisonScope(name), Status: "unchanged", Compatibility: "compatible", Reasons: []string{}, BaseStatus: a.status, HeadStatus: b.status, Metadata: []FieldChange{}, Changes: []Change{}}
 	for _, reason := range append(a.reasons, b.reasons...) {
 		m.Reasons = appendReason(m.Reasons, reason)
@@ -216,6 +249,34 @@ func comparisonScope(name string) string {
 		return "Retained format evidence matched by file path; prefixes and signatures do not validate entire files or establish their purpose."
 	case "hotspots":
 		return "Measured distributions and retained top evidence by language, grammar, syntax cohort and metric; leaving a ranking does not establish function removal."
+	case "focus_primary":
+		return "Files selected for the primary project, separate from related and context populations."
+	case "focus_related":
+		return "Files selected for each explicitly requested related project; changed requested membership is a scope-policy change."
+	case "focus_context":
+		return "Shared declaration context used to plan the focused populations; it is not part of either measured file population."
+	case "focus_relations":
+		return "Static declaration relations retained by the focus plan; they do not assert runtime resolution."
+	case "focus_affected_projects":
+		return "Projects directly associated with the requested affected path under the retained focus query limits."
+	case "focused_metrics_primary":
+		return "Metrics measured only over the primary focused population."
+	case "focused_metrics_related":
+		return "Metrics measured separately for each explicitly requested related-project population."
+	case "availability_lfs":
+		return "Selected-file LFS pointer observations; attributed non-pointer content does not prove successful hydration."
+	case "availability_gitlinks", "availability_submodules":
+		return "Committed-tree acquisition-boundary observations; checkout sparsity is kept separate."
+	case "availability_sparse":
+		return "Local checkout metadata observations for directory sources; these are unavailable for committed-tree sources."
+	case "availability_references":
+		return "Missing declaration references correlated only with explicitly observed acquisition boundaries."
+	case "availability_diagnostics":
+		return "Retained availability diagnostics; omission is never evidence that a diagnostic was resolved."
+	case "explanation":
+		return "Semantic explanation trace comparison is unsupported; rendered prose and trace order are not stable identities."
+	case "environments":
+		return "Environment comparison is unsupported in this comparison schema version."
 	default:
 		return "Detailed comparison is not supported for this module."
 	}
@@ -320,4 +381,27 @@ func omitValue(v *Value) {
 		v.Data = nil
 		v.Omitted = true
 	}
+}
+
+// fairQuotas allocates small demands completely before sharing the remainder.
+func fairQuotas(demand []int, budget int) []int {
+	out := make([]int, len(demand))
+	for budget > 0 {
+		active := 0
+		for i, n := range demand {
+			if out[i] < n {
+				active++
+			}
+		}
+		if active == 0 {
+			break
+		}
+		share := max(1, budget/active)
+		for i, n := range demand {
+			take := min(n-out[i], share, budget)
+			out[i] += take
+			budget -= take
+		}
+	}
+	return out
 }

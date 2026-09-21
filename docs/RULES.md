@@ -1,5 +1,7 @@
 # Caller-supplied observation rules
 
+Content matching evaluates at most 256 alphabetically first eligible files per scan. Use narrow path selectors for large directories, and inspect `content_omitted_files` and `omissions.content_budget` before interpreting a missing match.
+
 Added in 0.4.0.
 
 Rules add factual observations about selected files. Supply a JSON ruleset explicitly:

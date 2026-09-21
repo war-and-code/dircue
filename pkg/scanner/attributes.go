@@ -110,8 +110,9 @@ func parseAttributesBoundedFrom(filename, source string, content []byte, ruleLim
 		rule := attributeRule{macro: macro, scope: scope, basename: basename, pattern: re}
 		for _, token := range fields[1:] {
 			name, value := token, "true"
+			unset := false
 			if strings.HasPrefix(name, "-") {
-				name, value = name[1:], "false"
+				name, value, unset = name[1:], "false", true
 			} else if strings.HasPrefix(name, "!") {
 				name, value = name[1:], ""
 			}
@@ -124,6 +125,11 @@ func parseAttributesBoundedFrom(filename, source string, content []byte, ruleLim
 
 			switch name {
 			case "linguist-language":
+				// Linguist treats an explicitly unset value-taking attribute as
+				// removal of the override, restoring ordinary detection.
+				if unset {
+					value = ""
+				}
 				if value != "" {
 					language, ok := enry.GetLanguageByAlias(value)
 					if !ok {

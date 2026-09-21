@@ -25,6 +25,38 @@ def command(argv, cwd=None, env=None):
     return {"exit_code": p.returncode, "stdout": p.stdout, "stderr": p.stderr}
 
 
+def terminal_path_oracle(reference, case, mode):
+    """Escape only the independently enumerated hostile fixture names."""
+    paths = {
+        'attrs-quoted': [('tab\tname.py', r'tab\tname.py')],
+        'unusual-paths': [('control-\x1b[31m.py', r'control-\x1b[31m.py'),
+                          ('line\nbreak.js', r'line\nbreak.js')],
+    }
+    if mode != 'text-breakdown' or case not in paths or reference['exit_code'] != 0:
+        return None
+    expected = dict(reference)
+    for raw, escaped in paths[case]:
+        marker = '  ' + raw + '\n'
+        if expected['stdout'].count(marker) != 1:
+            return None
+        expected['stdout'] = expected['stdout'].replace(marker, '  ' + escaped + '\n')
+    if case == 'attrs-quoted':
+        if reference['stderr']:
+            return None
+        # This fixture already exercises dircue's documented quoted-pattern
+        # notices. Permit these exact diagnostics, not arbitrary stderr.
+        expected['stderr'] = ''.join(
+            f'warning: .gitattributes: line {line}: quoted pattern ignored to match Linguist 9.7.0 (unsupported_gitattributes)\n'
+            for line in (1, 2))
+    return expected
+
+
+def terminal_oracle_matches(expected, actual):
+    """Require the path substitution to be the only output difference."""
+    matched, detail = compare(expected, actual, False)
+    return matched and expected['stderr'] == actual['stderr'], detail
+
+
 def git(directory, *args):
     env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
                GIT_AUTHOR_DATE="2026-01-01T00:00:00Z", GIT_COMMITTER_DATE="2026-01-01T00:00:00Z")
@@ -133,6 +165,7 @@ public static class Greeting
     add("attrs-language", {".gitattributes": '*.odd linguist-language=python\n*.strange linguist-language=c++\n', "x.odd": py, "x.strange": 'int main() { return 0; }\n'}, "attributes")
     add("attrs-selection", {".gitattributes": 'generated.go linguist-generated\ncustom/** linguist-vendored\nvendor/** linguist-vendored=false\n*.md linguist-detectable\nmain.py linguist-detectable=false\n', "generated.go": go, "custom/a.py": py, "vendor/a.py": py, "main.py": py, "README.md": '# Detectable\n', "main.go": go}, "attributes")
     add("attrs-documentation", {".gitattributes": 'docs/** linguist-documentation=false\ncustom/** linguist-documentation\n', "docs/main.py": py, "custom/main.py": py, "main.go": go}, "attributes")
+    add("attrs-language-reset", {".gitattributes": '*.py linguist-language=Ruby\nmain.py -linguist-language\n', "main.py": py, "other.py": py}, "attributes")
     add("attrs-unknown-language", {".gitattributes": '*.py linguist-language=NotARealLanguage\n', "main.py": py}, "attributes")
     add("attrs-nested", {".gitattributes": '*.py linguist-generated\n', "main.go": go, "sub/.gitattributes": '*.py -linguist-generated\n', "sub/main.py": py, "excluded.py": py, "other/main.py": py}, "attributes")
     add("attrs-macro", {".gitattributes": '[attr]generated linguist-generated\n*.py generated\n', "main.go": go, "main.py": py}, "attributes")
@@ -363,6 +396,12 @@ def main():
                 if actual['exit_code'] == 1 and not actual['stdout'] and 'not a regular Git file' in actual['stderr']:
                     status = 'XFAIL'
                     comparison = 'DISC-006: explicit single-file symlink is refused with no output; normal file counterpart is covered'
+            escaped_oracle = terminal_path_oracle(ref, invocation['case'], invocation['mode'])
+            if escaped_oracle is not None and not passed:
+                escaped_pass, _ = terminal_oracle_matches(escaped_oracle, actual)
+                if escaped_pass:
+                    status = 'XFAIL'
+                    comparison = 'DISC-008: terminal control characters in fixture paths are escaped; all other reference bytes and exit status must match'
             result = dict(invocation, status=status, comparison=comparison, reference=ref, actual=actual)
             results.append(result)
             print(result['status'], result['id'], flush=True)

@@ -46,6 +46,14 @@ func TestParseGitmodulesRejectsAmbiguousAndIncompleteInput(t *testing.T) {
 	}
 }
 
+func TestParseGitmodulesRejectsBinaryContent(t *testing.T) {
+	content := []byte{0, 1, 2, 3}
+	parsed := ParseGitmodules(".gitmodules", content, int64(len(content)), DefaultGitmodulesBytes)
+	if parsed.Complete || len(parsed.Declarations) != 0 || len(parsed.Diagnostics) != 1 || parsed.Diagnostics[0].Code != "binary-gitmodules" {
+		t.Fatalf("parsed: %+v", parsed)
+	}
+}
+
 func TestParseGitmodulesBoundsIntermediateEvidenceAndDiagnostics(t *testing.T) {
 	var declarations strings.Builder
 	for i := DefaultEvidenceLimit + 499; i >= 0; i-- {

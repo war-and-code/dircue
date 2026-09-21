@@ -1,0 +1,362 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dircue saved-report follow-up plan",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "status",
+    "identity",
+    "limits",
+    "evidence",
+    "decisions",
+    "steps"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "dircue-follow-up-plan"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "report_sha256",
+        "profile_schema_version",
+        "declared_root",
+        "capability_schema_version",
+        "capability_provider",
+        "capability_version",
+        "source"
+      ],
+      "properties": {
+        "report_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "profile_schema_version": {
+          "type": "string"
+        },
+        "declared_root": {
+          "type": "string"
+        },
+        "capability_schema_version": {
+          "type": "string"
+        },
+        "capability_provider": {
+          "type": "string"
+        },
+        "capability_version": {
+          "type": "string"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mode",
+            "status"
+          ],
+          "properties": {
+            "mode": {
+              "type": "string"
+            },
+            "tree": {
+              "type": "string"
+            },
+            "status": {
+              "enum": [
+                "consistent",
+                "conflict",
+                "unavailable"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requests",
+        "projects",
+        "evidence_per_step",
+        "evidence",
+        "key_bytes",
+        "output_bytes"
+      ],
+      "properties": {
+        "requests": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "projects": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence_per_step": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "evidence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "key_bytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "kind"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/decision"
+      }
+    },
+    "steps": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/step"
+      }
+    }
+  },
+  "$defs": {
+    "strings": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "string",
+        "maxLength": 2048
+      }
+    },
+    "decision": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "question",
+        "module",
+        "applicability",
+        "reasons",
+        "supporting_observation_ids",
+        "unresolved_inputs"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "question": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "applicability": {
+          "enum": [
+            "proposed",
+            "unknown",
+            "already_present",
+            "retained_partial",
+            "blocked"
+          ]
+        },
+        "reasons": {
+          "$ref": "#/$defs/strings"
+        },
+        "supporting_observation_ids": {
+          "$ref": "#/$defs/strings"
+        },
+        "unresolved_inputs": {
+          "$ref": "#/$defs/strings"
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "projects",
+        "candidate_paths",
+        "candidate_files",
+        "candidate_bytes",
+        "evidence_status"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string"
+        },
+        "projects": {
+          "$ref": "#/$defs/strings"
+        },
+        "candidate_paths": {
+          "$ref": "#/$defs/strings"
+        },
+        "candidate_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "candidate_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "evidence_status": {
+          "enum": [
+            "available",
+            "partial",
+            "unavailable"
+          ]
+        }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "decision_id",
+        "question",
+        "module",
+        "scope",
+        "prerequisites",
+        "unresolved_inputs",
+        "expected_evidence",
+        "supporting_observation_ids",
+        "cost",
+        "command"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "decision_id": {
+          "type": "string"
+        },
+        "question": {
+          "type": "string"
+        },
+        "module": {
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/scope"
+        },
+        "prerequisites": {
+          "$ref": "#/$defs/strings"
+        },
+        "unresolved_inputs": {
+          "$ref": "#/$defs/strings"
+        },
+        "expected_evidence": {
+          "$ref": "#/$defs/strings"
+        },
+        "supporting_observation_ids": {
+          "$ref": "#/$defs/strings"
+        },
+        "cost": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "class",
+            "inspection",
+            "candidate_files",
+            "candidate_bytes",
+            "external_process",
+            "qualification"
+          ],
+          "properties": {
+            "class": {
+              "type": "string"
+            },
+            "inspection": {
+              "type": "string"
+            },
+            "candidate_files": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "candidate_bytes": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "external_process": {
+              "type": "boolean"
+            },
+            "qualification": {
+              "type": "string"
+            }
+          }
+        },
+        "command": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "argv",
+            "executable",
+            "source_placeholder",
+            "revalidation_required"
+          ],
+          "properties": {
+            "argv": {
+              "allOf": [
+                {"$ref": "#/$defs/strings"},
+                {"contains": {"const": "--"}}
+              ]
+            },
+            "executable": {
+              "const": false
+            },
+            "source_placeholder": {
+              "const": "{source}"
+            },
+            "revalidation_required": {
+              "$ref": "#/$defs/strings"
+            }
+          }
+        }
+      }
+    }
+  }
+}
