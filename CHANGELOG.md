@@ -10,6 +10,8 @@
   remain inert argument templates requiring caller revalidation.
 - Correct the directory-language schema to accept the existing `"NaN"` string
   percentage for attributed zero-byte files, without changing language output.
+- Accept the existing `focus_scope_partial` metrics marker when validating saved
+  profiles, so partial focused reports can be read back for explanation.
 
 ## 0.8.0 (2026-09-21)
 
