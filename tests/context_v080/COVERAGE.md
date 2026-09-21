@@ -1,6 +1,6 @@
 # Coverage matrix
 
-This matrix describes required evidence. Rows remain **not run** until a source-bound receipt is produced. Passing the 13 release-smoke MUSTs means those 13 contracts passed; it is not a claim of complete SDK, build-system, or environment-model conformance.
+This matrix defines required evidence before execution. Actual results are in the [generated result matrix](results/COVERAGE-results.md) and [validation notes](../../docs/releases/0.8.0-validation.md). The “before receipts” column below is the initial state, not the current result. Passing the 13 release-smoke MUSTs means those 13 contracts passed; it is not a claim of complete SDK, build-system, or environment-model conformance.
 
 | Claim | Evidence and oracle | Required status before receipts |
 |---|---|---|
