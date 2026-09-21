@@ -95,7 +95,7 @@ func ParseNPM(name string, content []byte) *Document {
 		}
 	}
 	npmInterfaces(d, object)
-	for _, field := range []string{"pnpm", "resolutions", "installConfig", "devEngines", "overrides"} {
+	for _, field := range []string{"pnpm", "resolutions", "installConfig", "devEngines", "overrides", "bundleDependencies", "bundledDependencies"} {
 		if _, ok := object[field]; ok {
 			AddDiagnostic(d, "unsupported-npm-field", "The "+field+" declaration is not evaluated by this npm adapter.")
 		}
@@ -190,11 +190,18 @@ func npmDependency(d *Document, name, value, section string) {
 			ref.State = "unresolved"
 			AddDiagnostic(d, "external-npm-dependency", "A local dependency is outside the selected inventory or refers to an unsupported archive.")
 		}
+	} else if value == "workspace:*" || value == "workspace:^" || value == "workspace:~" {
+		ref.Kind = "npm-workspace-dependency"
+		ref.State = "unresolved"
+		ref.TargetStatus = "unresolved"
+	} else if strings.HasPrefix(value, "workspace:") {
+		ref.State = "unresolved"
+		AddDiagnostic(d, "unsupported-npm-workspace-dependency", "A workspace dependency uses an unsupported path, alias, or version constraint; its raw value was omitted.")
 	} else if npmRange(value) {
 		ref.Value += "@" + value
 	} else {
 		ref.State = "unresolved"
-		AddDiagnostic(d, "unsupported-npm-dependency", "A dependency uses URL, alias, workspace, link, or other unsupported resolution syntax; its raw value was omitted.")
+		AddDiagnostic(d, "unsupported-npm-dependency", "A dependency uses URL, alias, link, portal, catalog, or other unsupported resolution syntax; its raw value was omitted.")
 	}
 	AddReference(d, ref)
 }
@@ -406,6 +413,58 @@ func ResolveNPM(docs []*Document, files map[string]bool) {
 		}
 		if data.workspace && data.usable {
 			npmResolveWorkspace(d, data, packages, paths, files, budget)
+		}
+	}
+	npmResolveWorkspaceDependencies(ordered, packages)
+}
+
+// Resolve workspace: dependencies only from observed workspace membership and
+// an unambiguous declared package name. Nearby names are never inferred local.
+func npmResolveWorkspaceDependencies(docs []*Document, packages map[string]*Document) {
+	type workspace struct{ members map[string]bool }
+	var workspaces []workspace
+	for _, root := range docs {
+		if root == nil || root.Project == nil {
+			continue
+		}
+		members := map[string]bool{}
+		for _, ref := range root.Project.References {
+			if ref.Kind == "npm-workspace-member" && ref.State == "resolved" {
+				members[ref.Target] = true
+			}
+		}
+		if len(members) > 0 {
+			workspaces = append(workspaces, workspace{members: members})
+		}
+	}
+	for _, d := range docs {
+		if d == nil || d.Project == nil {
+			continue
+		}
+		for i := range d.Project.References {
+			ref := &d.Project.References[i]
+			if ref.Kind != "npm-workspace-dependency" {
+				continue
+			}
+			candidates := map[string]bool{}
+			for _, ws := range workspaces {
+				if !ws.members[d.Project.ID] {
+					continue
+				}
+				for target := range ws.members {
+					member := packages[target]
+					if member != nil && member.Project.Name == ref.Value {
+						candidates[target] = true
+					}
+				}
+			}
+			if len(candidates) == 1 {
+				for target := range candidates {
+					ref.Target, ref.TargetStatus, ref.State = target, "present", "resolved"
+				}
+			} else {
+				AddDiagnostic(d, "unresolved-npm-workspace-dependency", "A workspace dependency did not have exactly one matching declared member name in an observed containing workspace.")
+			}
 		}
 	}
 }

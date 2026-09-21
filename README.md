@@ -6,7 +6,7 @@ Dircue identifies languages, maps declared projects and their relationships, and
 
 Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
 
-Version 0.7.0 adds [focused project profiling](docs/FOCUS.md), [source-availability evidence](docs/AVAILABILITY.md), and [targeted explanations](docs/EXPLANATIONS.md). Inspect a project with its shared context, count its lines separately, or find out why a file was included or omitted. These capabilities are explicitly selected; existing language commands keep their output contracts.
+Dircue 0.8.0 adds [declared environment requirements](docs/ENVIRONMENTS.md), [saved-report follow-up planning](docs/PLANNING.md), and [comparison of focused and source-availability reports](docs/COMPARISON.md). Use a lightweight first pass to plan further inspection, or examine project requirements without running a build. These capabilities are explicitly selected; existing language commands keep their output contracts.
 
 The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
@@ -15,6 +15,7 @@ dircue analyze discovery --json /path/to/checkout
 dircue analyze all --json /path/to/checkout
 dircue analyze projects --json /path/to/checkout
 dircue analyze declarations --json /path/to/checkout
+dircue analyze environments --json /path/to/checkout
 dircue analyze formats --json /path/to/content
 dircue analyze focus --project services/app/app.csproj --metrics --json /path/to/checkout
 dircue analyze availability --json /path/to/checkout
@@ -22,13 +23,17 @@ dircue analyze explain --file src/main.go --json /path/to/checkout
 dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
 dircue --breakdown --json /path/to/checkout
+dircue capabilities --json
+dircue plan saved-profile.json --module declarations --json
 ```
 
 The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [latest release archives and wheels](https://github.com/war-and-code/dircue/releases/latest). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
 
 ## Quick start
 
-Build with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
+Published archives use exactly Go 1.26.6. Release toolchain changes require coordinated provenance updates; see [release automation](docs/RELEASE_AUTOMATION.md#toolchain-identity).
+
+Build locally with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
 
 ```sh
 CGO_ENABLED=0 go build -trimpath -o bin/dircue .
@@ -117,6 +122,8 @@ Flags can appear before or after the path. With no path, the current directory i
 | `-j`, `--json` | Emit JSON. |
 | `-b`, `--breakdown` | Include file paths in language results. |
 | `-s`, `--strategies` | Show each file's detection strategy in text output. |
+| `--tree ID` | Select an exact 40-hex Git tree object; mutually exclusive with `--rev`. |
+| `--on-error fail\|continue` | Fail on per-file read errors by default; opt into explicit partial results for recoverable reads. |
 | `-r`, `--rev REV` | Select a Git revision for directory statistics; default `HEAD`. |
 | `-t`, `--tree-size N` | Return empty statistics with a warning when the tree reaches this entry count; default 100,000. |
 | `--source auto\|git\|directory` | Select the content source; default `auto`. |
@@ -163,7 +170,7 @@ Metrics default to files included in language statistics, so XML logs are exclud
 
 For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md), adding `--source directory` when you want current files rather than the committed Git tree. It inventories file metadata and candidate manifests without reading source payloads. Then choose project, line, or structural analysis from that evidence. The [staged-analysis guide](docs/STAGED_ANALYSIS.md) includes a consumer for the earlier projects-report schema and explains why empty language totals or XML-heavy content alone are insufficient reasons to skip follow-ups.
 
-Plain `analyze all` retains its existing behavior. Add `--declarations`, `--projects`, `--metrics`, or `--structure` for the modules you need. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
+Plain `analyze all` retains its existing behavior. Add `--declarations`, `--environments`, `--projects`, `--metrics`, or `--structure` for the modules you need. Environment analysis automatically includes the declaration evidence it reuses. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
 The [roadmap](https://github.com/war-and-code/dircue/issues/41) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
 
@@ -185,6 +192,9 @@ Select combinations explicitly, such as `analyze all --discovery --graph` or `an
 | Projects or structure, with optional metrics | `1.2.0` |
 | Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
 | Project declarations, alone or with other modules | `1.4.0` |
+| File-format evidence | `1.5.0` |
+| Focus, availability, explanations, or focused metrics | `1.6.0` |
+| Declared environments, with reused declarations | `1.7.0` |
 
 Legacy language JSON is unchanged. Check each requested module's status and omissions before treating its results as complete. A partial report may still have exit status 0; worker failures and deadlines return an error.
 
@@ -235,7 +245,7 @@ The [conformance scope](tests/conformance/COVERAGE.md) and [documented differenc
 
 Dircue reads source and Git objects without invoking project hooks, package managers, Git executables, or build scripts. Directory reads use `os.Root`; normal traversal excludes symlinks and special files. Unix reads additionally reject final-component symlinks and use nonblocking opens to prevent FIFO substitutions from hanging workers. Use a stable checkout: neither filesystem mode nor local Git metadata is an atomic snapshot of an actively modified directory.
 
-Read failures, invalid arguments, and hard policy violations such as the attribute-rule limit fail with a nonzero exit status. Some bounds instead produce skipped or partial reports with exit status zero; check the requested module’s status and coverage as well as the process result. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: legacy text output preserves untrusted filenames verbatim, including unusual characters. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
+Read failures and invalid arguments fail with a nonzero exit status by default. `--on-error continue` permits partial results for recoverable per-file reads; cancellation, invalid worker responses, and source-level failures remain fatal. Attribute files beyond the rule budget are omitted with warnings. Some bounds instead produce skipped or partial reports with exit status zero; check the requested module’s status and coverage as well as the process result. Warnings are emitted to stderr and included in full JSON reports. Use JSON for pipeline ingestion: text output escapes control characters in filenames; JSON retains their exact values. Check warnings before deciding whether a profile is sufficient for subsequent analysis.
 
 Structural analysis executes only the worker path explicitly supplied by the user. It runs one worker at a time, with an 8 MiB maximum source input and a per-file deadline. The worker is separate from the portable Go binary. For shared runners, the [resource-budget guide](docs/RESOURCE_BUDGETS.md) describes external container limits and measured behavior under CPU and memory constraints.
 
@@ -244,10 +254,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 ## Docker and release artifacts
 
 ```sh
-docker build --build-arg VERSION=0.5.0 -t dircue:0.5.0 .
+docker build --build-arg VERSION=0.8.0 -t dircue:0.8.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.5.0 --breakdown --json /repo
+  dircue:0.8.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -255,8 +265,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.6.1 --output dist/release-0.6.1
-python3 scripts/wheels.py --release-dir dist/release-0.6.1 --output dist/wheels-0.6.1
+python3 scripts/release.py --version 0.8.0 --output dist/release-0.8.0
+python3 scripts/wheels.py --release-dir dist/release-0.8.0 --output dist/wheels-0.8.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
@@ -265,7 +275,7 @@ These commands do not publish anything. Wheels package the same Go binaries as t
 
 GitHub Releases provide binaries and wheels. uv can install a compatible wheel from a local file or a GitHub Release URL; see the [distribution guide](docs/DISTRIBUTION.md) for authentication, offline use, and platform requirements.
 
-PyPI publication is deferred. Package-name commands such as `uvx dircue@0.5.0` and `uv tool install 'dircue==0.5.0'` will work only after that version is published to the configured package index.
+PyPI publication is deferred. Package-name commands such as `uvx dircue@0.8.0` and `uv tool install 'dircue==0.8.0'` will work only after that version is published to the configured package index.
 
 ## Troubleshooting
 

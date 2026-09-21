@@ -3,6 +3,7 @@ package projects
 import (
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"io"
 	"path"
 	"regexp"
@@ -89,7 +90,17 @@ func (n *jvmNode) list(name string) []*jvmNode {
 	return out
 }
 func jvmXML(content []byte) (*jvmNode, bool) {
-	decoder := xml.NewDecoder(bytes.NewReader(content))
+	decoded, err := decodeBOMXML(content)
+	if err != nil {
+		return nil, false
+	}
+	decoder := xml.NewDecoder(bytes.NewReader(decoded))
+	decoder.CharsetReader = func(label string, input io.Reader) (io.Reader, error) {
+		if strings.EqualFold(label, "utf-8") || strings.EqualFold(label, "utf-16") {
+			return input, nil
+		}
+		return nil, errors.New("unsupported XML encoding")
+	}
 	var root *jvmNode
 	stack := []*jvmNode{}
 	nodes := 0

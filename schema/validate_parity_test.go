@@ -19,7 +19,7 @@ func parityOracle(t *testing.T) *upstream.Schema {
 	t.Helper()
 	c := upstream.NewCompiler()
 	c.LoadURL = func(string) (io.ReadCloser, error) { return nil, fmt.Errorf("resource is not bundled") }
-	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json", "focus.schema.json", "availability.schema.json", "explanation.schema.json"} {
+	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json", "focus.schema.json", "availability.schema.json", "explanation.schema.json", "environments.schema.json"} {
 		data, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)
@@ -41,7 +41,7 @@ func TestPrivateValidatorProfileParity(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.test/parity\ngo 1.26.0\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, flags := range [][]string{nil, {"--declarations"}, {"--discovery"}, {"--formats"}} {
+	for _, flags := range [][]string{nil, {"--declarations"}, {"--discovery"}, {"--formats"}, {"--environments"}} {
 		args := append([]string{"analyze", "all", "--json"}, flags...)
 		var out, stderr bytes.Buffer
 		if err := cli.Execute(context.Background(), append(args, root), &out, &stderr); err != nil {

@@ -16,7 +16,7 @@ import (
 func IsDotnet(name string) bool {
 	base := strings.ToLower(path.Base(strings.ReplaceAll(name, `\`, "/")))
 	switch path.Ext(base) {
-	case ".csproj", ".fsproj", ".vbproj", ".sln", ".slnx":
+	case ".csproj", ".fsproj", ".vbproj", ".vcxproj", ".sqlproj", ".wixproj", ".shproj", ".proj", ".sln", ".slnx", ".slnf":
 		return true
 	}
 	switch base {
@@ -106,13 +106,16 @@ func ParseDotnet(name string, content []byte) Document {
 	if ext == ".sln" {
 		return parseDotnetSolution(name, content)
 	}
+	if ext == ".slnf" {
+		return parseDotnetSolutionFilter(name, content)
+	}
 	root, err := readDotnetXML(content)
 	if err != nil {
 		return fail("invalid-xml", err.Error())
 	}
-	expected := "project"
+	expected := "Project"
 	if ext == ".slnx" {
-		expected = "solution"
+		expected = "Solution"
 	}
 	if base == "nuget.config" {
 		expected = "configuration"
@@ -120,7 +123,7 @@ func ParseDotnet(name string, content []byte) Document {
 	if base == "packages.config" {
 		expected = "packages"
 	}
-	if root == nil || strings.ToLower(root.name) != expected {
+	if root == nil || root.name != expected {
 		return fail("unexpected-root", "Manifest does not have the expected "+expected+" root element.")
 	}
 	var reqs []Requirement
@@ -138,14 +141,15 @@ func ParseDotnet(name string, content []byte) Document {
 			refs = append(refs, ref)
 		}
 	}
-	var visit func(*dotnetNode, string)
-	visit = func(n *dotnetNode, inherited string) {
+	var visit func(*dotnetNode, string, string)
+	visit = func(n *dotnetNode, inherited, parent string) {
 		condition := budget.condition(inherited, n.attrs["Condition"])
 		if budget.exceeded {
 			return
 		}
 		value := strings.TrimSpace(n.text.String())
-		switch n.name {
+		semanticName := dotnetSemanticName(parent, n.name)
+		switch semanticName {
 		case "Project":
 			if ext == ".slnx" {
 				if v := n.attrs["Path"]; v != "" {
@@ -166,6 +170,9 @@ func ParseDotnet(name string, content []byte) Document {
 			}
 			addReq("dotnet-sdk", sdk, condition)
 		case "TargetFramework", "TargetFrameworks":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
 			for v := range strings.SplitSeq(value, ";") {
 				if budget.exceeded {
 					break
@@ -173,10 +180,19 @@ func ParseDotnet(name string, content []byte) Document {
 				addReq("target-framework", v, condition)
 			}
 		case "TargetFrameworkVersion":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
 			addReq("target-framework-version", value, condition)
 		case "LangVersion":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
 			addReq("language-version", value, condition)
 		case "RuntimeIdentifier", "RuntimeIdentifiers":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
 			for v := range strings.SplitSeq(value, ";") {
 				if budget.exceeded {
 					break
@@ -184,6 +200,9 @@ func ParseDotnet(name string, content []byte) Document {
 				addReq("runtime-identifier", v, condition)
 			}
 		case "ProjectReference":
+			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
 			for v := range strings.SplitSeq(n.attrs["Include"], ";") {
 				if budget.exceeded {
 					break
@@ -208,6 +227,9 @@ func ParseDotnet(name string, content []byte) Document {
 				addReq("dotnet-sdk", v, condition)
 			}
 		case "PackageReference", "PackageVersion":
+			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
 			id := n.attrs["Include"]
 			if id == "" {
 				id = n.attrs["Update"]
@@ -225,7 +247,7 @@ func ParseDotnet(name string, content []byte) Document {
 			}
 			versions := 0
 			for _, child := range n.children {
-				if child.name == "Version" || child.name == "VersionOverride" {
+				if strings.EqualFold(child.name, "Version") || strings.EqualFold(child.name, "VersionOverride") {
 					childVersion := strings.TrimSpace(child.text.String())
 					if childVersion != "" {
 						addReq("package-reference", id+"@"+childVersion, budget.condition(condition, child.attrs["Condition"]))
@@ -247,6 +269,9 @@ func ParseDotnet(name string, content []byte) Document {
 				addReq("target-framework", n.attrs["targetFramework"], condition)
 			}
 		case "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage":
+			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
 			addReq("code-generation", n.name, condition)
 		case "Generator":
 			addReq("code-generation", value, condition)
@@ -276,7 +301,7 @@ func ParseDotnet(name string, content []byte) Document {
 				}
 				childCondition = budget.condition(condition, branch)
 			}
-			visit(child, childCondition)
+			visit(child, childCondition, n.name)
 			if n.name == "Choose" && child.name == "When" {
 				if expression := strings.TrimSpace(child.attrs["Condition"]); expression != "" {
 					if !budget.charge(len(expression) + 2) {
@@ -287,11 +312,11 @@ func ParseDotnet(name string, content []byte) Document {
 			}
 		}
 	}
-	visit(root, "")
+	visit(root, "", "")
 	if budget.exceeded {
 		doc.Diagnostics = append(doc.Diagnostics, Diagnostic{Path: name, Code: "declaration-limit", Message: "Declaration extraction exceeded its condition, observation, or expanded-text limit; remaining declarations were omitted."})
 	}
-	if ext == ".csproj" || ext == ".fsproj" || ext == ".vbproj" || ext == ".slnx" {
+	if isMSBuildProjectExtension(ext) || ext == ".slnx" {
 		kind := "dotnet"
 		if ext == ".slnx" {
 			kind = "solution"
@@ -304,8 +329,39 @@ func ParseDotnet(name string, content []byte) Document {
 	return doc
 }
 
+// MSBuild's XML vocabulary is case-sensitive, while property, item and item
+// metadata names are case-insensitive. Canonicalize only declarations whose
+// exact structural parent establishes one of those name domains.
+func dotnetSemanticName(parent, name string) string {
+	var supported []string
+	switch parent {
+	case "PropertyGroup":
+		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers"}
+	case "ItemGroup":
+		supported = []string{"ProjectReference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
+	default:
+		return name
+	}
+	for _, canonical := range supported {
+		if strings.EqualFold(name, canonical) {
+			return canonical
+		}
+	}
+	return name
+}
+
 func readDotnetXML(content []byte) (*dotnetNode, error) {
-	decoder := xml.NewDecoder(bytes.NewReader(bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})))
+	decoded, err := decodeBOMXML(content)
+	if err != nil {
+		return nil, fmt.Errorf("Cannot parse XML: unsupported or invalid text encoding")
+	}
+	decoder := xml.NewDecoder(bytes.NewReader(decoded))
+	decoder.CharsetReader = func(label string, input io.Reader) (io.Reader, error) {
+		if strings.EqualFold(label, "utf-8") || strings.EqualFold(label, "utf-16") {
+			return input, nil
+		}
+		return nil, fmt.Errorf("unsupported XML encoding")
+	}
 	var stack []*dotnetNode
 	var root *dotnetNode
 	nodes := 0
@@ -403,7 +459,13 @@ func parseDotnetSolution(name string, content []byte) Document {
 	project := Project{ID: name, Root: path.Dir(name), Kind: "solution", Evidence: []string{name}}
 	doc := Document{}
 	budget := dotnetBudget{remaining: dotnetMaxExpandedBytes}
-	content = bytes.TrimSpace(bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf}))
+	var err error
+	content, err = decodeBOMText(content)
+	if err != nil {
+		doc.Diagnostics = []Diagnostic{{Path: name, Code: "unsupported-solution-encoding", Message: "Solution text encoding is invalid or unsupported."}}
+		return doc
+	}
+	content = bytes.TrimSpace(content)
 	if !bytes.HasPrefix(content, []byte("Microsoft Visual Studio Solution File, Format Version ")) {
 		doc.Diagnostics = []Diagnostic{{Path: name, Code: "invalid-solution", Message: "Solution header is missing or unsupported."}}
 		return doc
@@ -426,7 +488,7 @@ func parseDotnetSolution(name string, content []byte) Document {
 		}
 		member := strings.ReplaceAll(matches[2], `""`, `"`)
 		switch strings.ToLower(path.Ext(member)) {
-		case ".csproj", ".fsproj", ".vbproj":
+		case ".csproj", ".fsproj", ".vbproj", ".vcxproj", ".sqlproj", ".wixproj", ".shproj", ".proj":
 			ref := dotnetReference(name, "solution-member", member, "")
 			if !budget.observation(len(ref.Value) + len(ref.Target) + len(ref.Evidence) + 128) {
 				break
@@ -439,6 +501,86 @@ func parseDotnetSolution(name string, content []byte) Document {
 	}
 	doc.Projects = []Project{project}
 	return doc
+}
+
+func isMSBuildProjectExtension(ext string) bool {
+	switch strings.ToLower(ext) {
+	case ".csproj", ".fsproj", ".vbproj", ".vcxproj", ".sqlproj", ".wixproj", ".shproj", ".proj":
+		return true
+	}
+	return false
+}
+
+func parseDotnetSolutionFilter(name string, content []byte) Document {
+	project := Project{ID: name, Root: path.Dir(name), Kind: "solution", Evidence: []string{name}}
+	var value struct {
+		Solution struct {
+			Path     string   `json:"path"`
+			Projects []string `json:"projects"`
+		} `json:"solution"`
+	}
+	content = bytes.TrimSpace(bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf}))
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	decoder.DisallowUnknownFields()
+	if len(content) > dotnetMaxBytes || !uniqueJSONKeys(content) || decoder.Decode(&value) != nil || value.Solution.Path == "" {
+		return Document{Diagnostics: []Diagnostic{{Path: name, Code: "invalid-solution-filter", Message: "Solution filter must be a bounded JSON object with a solution path."}}}
+	}
+	base := dotnetReference(name, "solution-filter-base", value.Solution.Path, "")
+	project.References = append(project.References, base)
+	if len(value.Solution.Projects) > dotnetMaxObservations {
+		return Document{Projects: []Project{project}, Diagnostics: []Diagnostic{{Path: name, Code: "declaration-limit", Message: "Solution filter project entries exceed the observation limit."}}}
+	}
+	solutionManifest := path.Join(path.Dir(name), strings.ReplaceAll(value.Solution.Path, `\`, "/"))
+	for _, member := range value.Solution.Projects {
+		project.References = append(project.References, dotnetReference(solutionManifest, "solution-member", member, ""))
+	}
+	return Document{Projects: []Project{project}}
+}
+
+func uniqueJSONKeys(content []byte) bool {
+	decoder := json.NewDecoder(bytes.NewReader(content))
+	var value func() bool
+	value = func() bool {
+		token, err := decoder.Token()
+		if err != nil {
+			return false
+		}
+		delim, ok := token.(json.Delim)
+		if !ok {
+			return true
+		}
+		switch delim {
+		case '{':
+			seen := map[string]bool{}
+			for decoder.More() {
+				key, err := decoder.Token()
+				name, ok := key.(string)
+				if err != nil || !ok || seen[name] {
+					return false
+				}
+				seen[name] = true
+				if !value() {
+					return false
+				}
+			}
+			end, err := decoder.Token()
+			return err == nil && end == json.Delim('}')
+		case '[':
+			for decoder.More() {
+				if !value() {
+					return false
+				}
+			}
+			end, err := decoder.Token()
+			return err == nil && end == json.Delim(']')
+		}
+		return false
+	}
+	if !value() {
+		return false
+	}
+	_, err := decoder.Token()
+	return err == io.EOF
 }
 
 func parseDotnetGlobal(name string, content []byte) Document {

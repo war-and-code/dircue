@@ -1,6 +1,6 @@
 # Profiling module boundaries
 
-This document describes the 0.7.0 scanner and the constraints for
+This document describes the 0.8.0 scanner and the constraints for
 extending it. There is no runtime plugin loader or declarative
 module registry.
 
@@ -29,6 +29,7 @@ ordinary directory profiling.
 | Rules | Selected regular files and an explicit caller-supplied ruleset | Metadata matching and optional bounded complete-file literal checks; independent coverage |
 | Projects | Selected inventory and recognized manifests, independently of XML language inclusion | Bounded manifest parsing, declarations, configuration candidates, composition, attribution |
 | Declarations | Selected supported manifests, including those excluded from language statistics; installed node_modules omitted | Bounded lexical inventory and complete manifest reads; static cross-project interpretation. Standalone mode skips language classification. |
+| Environments | Supported declarations and bounded selected global.json inputs | Qualified runtime/SDK requirements and modeled project-root lookup; no installed-tool probes or builds |
 | Focus | Selected declarations and original-root inventory | Qualified .NET/Python ownership and shared context; optional separate primary/related scc metrics |
 | Availability | Explicit regular-file prefixes, Gitlinks, and supported local checkout metadata | Acquisition boundaries without fetching; separate inventory and metadata coverage |
 | Explanations | One fresh target or explicit saved report | Actual language decision traces or bounded retained facts; no second classifier |

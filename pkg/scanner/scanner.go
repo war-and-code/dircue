@@ -19,6 +19,7 @@ import (
 	"dircue/pkg/availability"
 	"dircue/pkg/declarations"
 	"dircue/pkg/discovery"
+	"dircue/pkg/environments"
 	"dircue/pkg/explain"
 	"dircue/pkg/focus"
 	"dircue/pkg/formats"
@@ -35,6 +36,8 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Environments reuses declarations and reads selected global.json inputs.
+	Environments bool
 	// Focus selects a declared project population and contextual inputs.
 	Focus *focus.Request
 	// Availability observes source-acquisition boundaries only when requested.
@@ -59,8 +62,12 @@ type Options struct {
 	// RegistriesOnly skips language classifiers and other content profilers.
 	RegistriesOnly bool
 	// Source selects committed Git content when auto discovers a repository.
-	Source            string
-	Revision          string
+	Source   string
+	Revision string
+	// Tree selects an exact Git tree object by its full SHA-1 object ID.
+	Tree string
+	// ErrorPolicy controls recoverable per-file read failures. Empty means fail.
+	ErrorPolicy       ErrorPolicy
 	MaxTreeSize       int
 	Workers           int
 	MaxFileBytes      int64
@@ -76,6 +83,30 @@ type Options struct {
 	StructureFiles   bool
 	structureGate    chan struct{}
 	languageTrace    *explain.LanguageTrace
+}
+
+type ErrorPolicy string
+
+const (
+	ErrorPolicyFail     ErrorPolicy = "fail"
+	ErrorPolicyContinue ErrorPolicy = "continue"
+)
+
+type recoverableFileError struct{ err error }
+
+func (e recoverableFileError) Error() string { return e.err.Error() }
+func (e recoverableFileError) Unwrap() error { return e.err }
+
+func recoverable(err error) error {
+	if err == nil || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+		return err
+	}
+	return recoverableFileError{err: err}
+}
+
+func isRecoverableFileError(err error) bool {
+	var target recoverableFileError
+	return errors.As(err, &target) || errors.Is(err, registries.ErrRead)
 }
 
 type job struct {
@@ -109,6 +140,7 @@ type result struct {
 	inventorySize       int64
 	inventoried         bool
 	role                string
+	omission            string
 	structural          *structure.File
 }
 
@@ -122,7 +154,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
 	}
-	if opts.Focus != nil {
+	if opts.Focus != nil || opts.Environments {
 		opts.Declarations = true
 	}
 	if opts.FormatsOnly && (!opts.Formats || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Declarations || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
@@ -186,8 +218,20 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if opts.Source != "auto" && opts.Source != "git" && opts.Source != "directory" {
 		return nil, fmt.Errorf("unknown source %q", opts.Source)
 	}
-	if opts.Source == "directory" && opts.Revision != "" {
-		return nil, errors.New("revision requires Git source")
+	if opts.ErrorPolicy == "" {
+		opts.ErrorPolicy = ErrorPolicyFail
+	}
+	if opts.ErrorPolicy != ErrorPolicyFail && opts.ErrorPolicy != ErrorPolicyContinue {
+		return nil, fmt.Errorf("unknown error policy %q", opts.ErrorPolicy)
+	}
+	if opts.Revision != "" && opts.Tree != "" {
+		return nil, errors.New("revision and tree are mutually exclusive")
+	}
+	if strings.Contains(opts.Revision, ":") {
+		return nil, errors.New("revision must select a commit, not a rev:path expression")
+	}
+	if opts.Source == "directory" && (opts.Revision != "" || opts.Tree != "") {
+		return nil, errors.New("revision and tree require Git source")
 	}
 	if opts.MaxFileBytes == int64(^uint64(0)>>1) {
 		return nil, errors.New("max file bytes must be less than MaxInt64")
@@ -223,6 +267,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return nil, fmt.Errorf("open scan root: %w", err)
 	}
 	defer root.Close()
+	environmentCollector := newEnvironmentAccumulator(opts)
 	availabilityCollector := newAvailabilityAccumulator(opts, snapshot)
 	focusCollector, err := newFocusAccumulator(opts, snapshot)
 	if err != nil {
@@ -246,6 +291,10 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				return nil, errors.New("focus inventory omitted: tree size limit reached")
 			}
 			report := newReport(abs)
+			if opts.Environments {
+				report.Environments = environments.Skip("directory", "", "tree_size_limit")
+				report.SchemaVersion = profile.EnvironmentSchemaVersion
+			}
 			if registryCollector != nil {
 				if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
 					return nil, err
@@ -394,7 +443,11 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 						} else {
 							rules, warnings, exceeded := parseAttributesBounded(attrsPath, content, maxAttributeRules-attributeRuleCount)
 							if exceeded {
-								return fmt.Errorf("attribute rules exceed %d rule limit", maxAttributeRules)
+								if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)}}}) {
+									return ctx.Err()
+								}
+								rules = nil
+								warnings = nil
 							}
 							attributeRuleCount += len(rules)
 							local = rules
@@ -449,6 +502,16 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				}
 				value, err := analyzeSelectedFile(ctx, root, item, opts)
 				if err != nil {
+					if opts.ErrorPolicy == ErrorPolicyContinue && ctx.Err() == nil && isRecoverableFileError(err) {
+						value.path = item.path
+						value.skipped = true
+						value.omission = "file_read_error"
+						value.warnings = append(value.warnings, profile.Warning{Path: item.path, Code: "file_read_error", Message: err.Error()})
+						if !send(value) {
+							return
+						}
+						continue
+					}
 					fail(err)
 					return
 				}
@@ -475,7 +538,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
-		if opts.Focus != nil {
+		if opts.Focus != nil || opts.Environments {
 			declarationCollector.EnableProjectRecords()
 		}
 	}
@@ -516,6 +579,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	var targetTrace *explain.LanguageTrace
 	targetNonRegular := false
 	for value := range results {
+		if environmentCollector != nil {
+			if err := environmentCollector.add(value); err != nil {
+				fail(err)
+				continue
+			}
+		}
 		if opts.ExplainPath != "" && value.path == opts.ExplainPath {
 			targetTrace = value.languageTrace
 			targetNonRegular = value.languageTrace == nil
@@ -536,7 +605,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if value.formatFile != nil {
 				formatCollector.Add(*value.formatFile)
 			} else if value.path != "" {
-				formatCollector.Omit("non_regular_file")
+				formatCollector.Omit(omissionReason(value, "non_regular_file"))
 			}
 		}
 		if declarationCollector != nil {
@@ -562,7 +631,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if value.discoveryFile != nil {
 				discoveryCollector.Add(*value.discoveryFile)
 			} else if value.path != "" {
-				discoveryCollector.Omit("non_regular_file")
+				reason := omissionReason(value, "non_regular_file")
+				if value.omission != "" {
+					discoveryCollector.Partial(reason)
+				} else {
+					discoveryCollector.Omit(reason)
+				}
 			}
 		}
 		if projectCollector != nil {
@@ -737,6 +811,12 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		}
 		report.SchemaVersion = profile.TargetedSchemaVersion
 	}
+	if environmentCollector != nil {
+		if err := environmentCollector.finish(ctx, root, declarationCollector, report); err != nil {
+			return nil, err
+		}
+		report.SchemaVersion = profile.EnvironmentSchemaVersion
+	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {
 			language.Percentage = 100 * float64(language.Bytes) / float64(report.Summary.LanguageBytes)
@@ -791,6 +871,13 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		return strings.Compare(a.Message, b.Message)
 	})
 	return report, nil
+}
+
+func omissionReason(value result, fallback string) string {
+	if value.omission != "" {
+		return value.omission
+	}
+	return fallback
 }
 
 func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {
@@ -876,7 +963,7 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 			addLanguageTraceStep(trace, "content-read", "selected source", "unavailable", "read failed")
 			setLanguageTraceDecision(trace, "unavailable", "read_error", "", "", "")
 		}
-		return result{}, err
+		return value, recoverable(err)
 	}
 	if trace != nil {
 		trace.Extent.FileBytes = actualSize
@@ -987,7 +1074,11 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 		if item.attrs.detectable != nil {
 			detectableProvider = languageTraceOverrideProvider(trace, "linguist-detectable")
 		}
-		addLanguageTraceStep(trace, "detectable", detectableProvider, strconv.FormatBool(detectable), fmt.Sprintf("type_detectable=%t", typeDetectable))
+		evidence := fmt.Sprintf("type_detectable=%t", typeDetectable)
+		if vendored || generated || documentation || lfsPointer {
+			evidence += fmt.Sprintf(" vendored=%t generated=%t documentation=%t lfs_pointer=%t", vendored, generated, documentation, lfsPointer)
+		}
+		addLanguageTraceStep(trace, "detectable", detectableProvider, strconv.FormatBool(detectable), evidence)
 	}
 	value.size = actualSize
 	if opts.Projects {
@@ -1060,26 +1151,26 @@ func readBounded(root *os.Root, filename string, limit int64) ([]byte, bool, err
 func readBoundedSize(root *os.Root, filename string, limit int64) ([]byte, bool, int64, error) {
 	info, err := root.Lstat(filename)
 	if err != nil {
-		return nil, false, 0, fmt.Errorf("inspect %s: %w", filename, err)
+		return nil, false, 0, recoverable(fmt.Errorf("inspect %s: %w", filename, err))
 	}
 	if !info.Mode().IsRegular() {
-		return nil, false, 0, fmt.Errorf("read %s: file changed to a non-regular file", filename)
+		return nil, false, 0, recoverable(fmt.Errorf("read %s: not a regular file", filename))
 	}
 	file, err := openRegular(root, filename)
 	if err != nil {
-		return nil, false, 0, fmt.Errorf("open %s: %w", filename, err)
+		return nil, false, 0, recoverable(fmt.Errorf("open %s: %w", filename, err))
 	}
 	defer file.Close()
 	info, err = file.Stat()
 	if err != nil {
-		return nil, false, 0, fmt.Errorf("stat %s: %w", filename, err)
+		return nil, false, 0, recoverable(fmt.Errorf("stat %s: %w", filename, err))
 	}
 	if !info.Mode().IsRegular() {
-		return nil, false, 0, fmt.Errorf("read %s: file changed to a non-regular file", filename)
+		return nil, false, 0, recoverable(fmt.Errorf("read %s: file changed to a non-regular file", filename))
 	}
 	content, err := readAllBounded(file, limit+1, info.Size())
 	if err != nil {
-		return nil, false, 0, fmt.Errorf("read %s: %w", filename, err)
+		return nil, false, 0, recoverable(fmt.Errorf("read %s: %w", filename, err))
 	}
 	return content, int64(len(content)) > limit, info.Size(), nil
 }

@@ -13,7 +13,7 @@ to assess. GitHub then runs the complete platform and conformance checks.
 | PR marked ready for review | Full Go, conformance, native-worker, and prototype suites |
 | New commit on a ready PR | Full suites on the new commit |
 | PR converted back to draft | Cancel older full-validation runs for that PR; lightweight checks only |
-| Push to `main` | Lightweight checks and the Linux Go suite |
+| Push to `main` | Lightweight checks, Linux Go and native-worker suites, and both conformance suites |
 | Explicit workflow dispatch | Full checks for that workflow on the selected ref |
 
 There are no feature-branch push runs duplicating PR checks. Each workflow has a
@@ -27,7 +27,15 @@ keeps that cycle inexpensive. Workflows use `pull_request`, not privileged
 The job conditions are evaluated before a matrix is expanded. They use event
 and draft state; they do not reference `matrix.os` at job level. The core test
 matrix selects Linux alone for `main` pushes and all three operating systems for
-ready PRs and manual runs. Structural validation keeps all five native platforms.
+ready PRs and manual runs. Structural validation uses Linux amd64 alone on main
+and all five native platforms for ready pull requests and manual runs.
+
+The Linux core job installs `govulncheck` v1.8.0 and rejects reachable known Go
+vulnerabilities. The Linux amd64 structural-worker job installs `cargo-audit`
+v0.22.2 and rejects RustSec vulnerabilities and warnings in the locked worker
+dependency graph. These checks query current advisory databases, so a new real
+finding fails CI and requires dependency remediation or an explicit reviewed
+policy change.
 
 Skipped draft checks are not a release certification. Before merging, inspect
 the full results for the current PR commit. Manual workflow runs are useful for

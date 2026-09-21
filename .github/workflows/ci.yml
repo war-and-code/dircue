@@ -47,6 +47,8 @@ jobs:
         run: python -m unittest discover -s tests/performance/bounded_reader -p 'test_*.py' -v
       - name: Test focused-analysis receipt contracts
         run: python -m unittest discover -s tests/focus_v070 -p 'test_*.py' -v
+      - name: Test context evidence receipt contracts
+        run: python -m unittest discover -s tests/context_v080 -p 'test_*.py' -v
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
 
@@ -73,6 +75,11 @@ jobs:
         with:
           python-version: '3.12'
       - run: go vet ./...
+      - name: Audit Go dependencies for known reachable vulnerabilities
+        if: runner.os == 'Linux'
+        run: |
+          GOBIN="$RUNNER_TEMP/govulncheck" go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+          "$RUNNER_TEMP/govulncheck/govulncheck" ./...
       - run: go test -race ./...
       - run: go test ./...
         working-directory: third_party/go-enry
@@ -86,7 +93,7 @@ jobs:
 
   linguist-conformance:
     needs: preflight
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -110,7 +117,7 @@ jobs:
 
   metrics-conformance:
     needs: preflight
-    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch' || (github.event_name == 'pull_request' && !github.event.pull_request.draft)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:

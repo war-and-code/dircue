@@ -15,10 +15,10 @@ Existing `analyze projects` keeps its earlier output, including filename-based d
 
 | Ecosystem | Inputs | Observations |
 | --- | --- | --- |
-| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, script names and binary entrypoints |
+| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, unambiguous membership-only `workspace:*`/`workspace:^`/`workspace:~` links, script names and binary entrypoints |
 | Go | `go.mod`, `go.work` | Module identity, minimum language version, suggested toolchain, require/exclude/replace directives, workspace membership and selected local replacement targets |
 | Python and uv | `pyproject.toml` | Project and dynamic metadata, Python requirement, build backend, dependency groups and extras, named entrypoints, uv workspace membership and source declarations |
-| Cargo | `Cargo.toml` | Package and workspace identity, members/default selection, supported inherited fields, scoped dependencies, declared targets and build-script observations |
+| Cargo | `Cargo.toml` | Package and workspace identity, members/default selection, supported inherited fields, scoped dependencies, declared feature names, targets and build-script observations |
 | .NET, Maven and Gradle | Existing supported project/configuration manifests | Reused static requirements and references, with the same restrictions on build evaluation as the [project reader](PROJECTS.md) |
 
 The Go grammar uses `golang.org/x/mod v0.40.0`. TOML parsing uses `go-toml v2.4.3`, with additional input and depth limits. Python/uv observations target a documented subset of uv 0.12.17. npm workspace behavior is checked against npm 11.16.0 for the supported pattern subset. A synthetic Cargo workspace is checked against Cargo 1.85.0 for membership, default-member selection, and inherited version, edition and minimum Rust version; this does not establish complete Cargo behavior. These readers do not emulate every package-manager version or configuration option.
@@ -35,7 +35,7 @@ Go's minimum language version and suggested toolchain are separate observations.
 
 uv member source declarations override inherited workspace sources. Environment markers and dependency scopes are retained without evaluating an environment. A nearby `uv.lock` is associated by presence only; the report does not claim that it is fresh or complete.
 
-Cargo workspace declarations are resolved separately from filesystem nesting. Supported local path dependencies can contribute membership; exclusions and explicit workspace pointers affect that interpretation. Invalid or unsupported workspace selection prevents confident inheritance. Optional dependencies, feature requirements, development/build scopes and target conditions remain qualified. Explicit target declarations are observed; dircue does not reproduce Cargo's entire automatic target-discovery or feature-resolution process.
+Cargo workspace declarations are resolved separately from filesystem nesting. Supported local path dependencies can contribute membership; exclusions and explicit workspace pointers affect that interpretation. An invalid member entry does not erase independently valid sibling membership, but incomplete selection prevents confident inheritance. An invalid or capped exclusion still prevents unsafe positive membership conclusions. Optional dependencies, declared feature names, feature requirements, development/build scopes and target conditions remain qualified. Feature implication and activation are not evaluated. Explicit target declarations are observed; dircue does not reproduce Cargo's entire automatic target-discovery or feature-resolution process.
 
 ## Declared interfaces
 
@@ -45,7 +45,7 @@ The .NET/JVM expansion reuses static declarations. Raw build conditions are repr
 
 ## Selected source and coverage
 
-At a Git repository root, automatic selection normally reads committed `HEAD`. `--source directory` selects live filesystem contents instead. The declaration reader uses those same selected-source callbacks and never follows a reference to open an additional file. Directory mode is not an atomic snapshot.
+At a Git repository root, automatic selection normally reads committed `HEAD`. `--rev` selects a commit and `--tree` selects an exact Git tree. `--source directory` selects live filesystem contents instead. The declaration reader uses those same selected-source callbacks and never follows a reference to open an additional file. Directory mode is not an atomic snapshot. Read failures fail by default; `--on-error continue` exposes recoverable per-file omissions in a partial report.
 
 Installed `node_modules` manifests are excluded from this module. Other supported manifests can be observed independently of their inclusion in language statistics. Symlinks and other nonregular entries are not followed. Missing targets are assessed within the selected inventory, not the host filesystem.
 

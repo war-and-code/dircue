@@ -46,4 +46,4 @@ Presentation trimming never changes the internal selection used for metrics. Inc
 
 `focus.scope.id` binds the provider version, selection rule, requested projects or query, and selected-source identity. It is not a hash of directory contents. A live directory can change while retaining the same scope ID.
 
-New focused reports use aggregate schema 1.6.0. The current `compare` command deliberately rejects that schema until it supports these population distinctions. Existing unfocused report schemas and comparison commands remain available.
+New focused reports use aggregate schema 1.6.0. From 0.8.0, `compare` accepts that schema and preserves these population distinctions, with scope, policy and coverage qualifications. See [saved-report comparison](COMPARISON.md). Existing unfocused report schemas remain available.

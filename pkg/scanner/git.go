@@ -33,6 +33,7 @@ type gitSnapshot struct {
 	tree         *object.Tree
 	repo         *git.Repository
 	maxTreeSize  int
+	errorPolicy  ErrorPolicy
 	infoRules    []attributeRule
 	infoWarnings []profile.Warning
 }
@@ -193,7 +194,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 		return nil, err
 	}
 	repo, err := git.PlainOpenWithOptions(directory, &git.PlainOpenOptions{DetectDotGit: discover, EnableDotGitCommonDir: true})
-	if errors.Is(err, git.ErrRepositoryNotExists) && opts.Source == "auto" && opts.Revision == "" {
+	if errors.Is(err, git.ErrRepositoryNotExists) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
 		return nil, nil
 	}
 	if err != nil {
@@ -213,26 +214,37 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 			return nil, fmt.Errorf("open bounded Git storage: %w", err)
 		}
 	}
-	revision := opts.Revision
-	if revision == "" {
-		revision = "HEAD"
-	}
-	hash, err := repo.ResolveRevision(plumbing.Revision(revision))
-	if err != nil {
-		// An initialized but uncommitted directory has useful source even though
-		// there is no Git tree. Explicit Git/revision requests still fail.
-		if opts.Source == "auto" && opts.Revision == "" && errors.Is(err, plumbing.ErrReferenceNotFound) {
-			return nil, nil
+	var tree *object.Tree
+	if opts.Tree != "" {
+		if !fullSHA1(opts.Tree) {
+			return nil, errors.New("tree must be a full 40-character hexadecimal Git object ID")
 		}
-		return nil, fmt.Errorf("resolve Git revision %q: %w", revision, err)
-	}
-	commit, err := repo.CommitObject(*hash)
-	if err != nil {
-		return nil, fmt.Errorf("resolve Git commit: %w", err)
-	}
-	tree, err := commit.Tree()
-	if err != nil {
-		return nil, fmt.Errorf("read Git tree: %w", err)
+		tree, err = repo.TreeObject(plumbing.NewHash(opts.Tree))
+		if err != nil {
+			return nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
+		}
+	} else {
+		revision := opts.Revision
+		if revision == "" {
+			revision = "HEAD"
+		}
+		hash, resolveErr := repo.ResolveRevision(plumbing.Revision(revision))
+		if resolveErr != nil {
+			// Only a repository with no branch refs is treated as legitimately
+			// unborn. Existing refs whose objects cannot be read fail closed.
+			if opts.Source == "auto" && opts.Revision == "" && errors.Is(resolveErr, plumbing.ErrReferenceNotFound) && isUnbornRepository(repo) {
+				return nil, nil
+			}
+			return nil, fmt.Errorf("resolve Git revision %q: %w", revision, resolveErr)
+		}
+		commit, commitErr := repo.CommitObject(*hash)
+		if commitErr != nil {
+			return nil, fmt.Errorf("resolve Git commit: %w", commitErr)
+		}
+		tree, err = commit.Tree()
+		if err != nil {
+			return nil, fmt.Errorf("read Git tree: %w", err)
+		}
 	}
 	root := directory
 	if discover {
@@ -244,7 +256,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	if err != nil {
 		return nil, err
 	}
-	snapshot := &gitSnapshot{root: root, tree: tree, repo: repo, maxTreeSize: opts.MaxTreeSize}
+	snapshot := &gitSnapshot{root: root, tree: tree, repo: repo, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
 		files, err := attributeRoot(storage.Filesystem().Root())
 		if err != nil {
@@ -271,7 +283,8 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 				var exceeded bool
 				snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBoundedFrom(".gitattributes", ".git/info/attributes", data, maxAttributeRules)
 				if exceeded {
-					return nil, fmt.Errorf("attribute rules exceed %d rule limit", maxAttributeRules)
+					snapshot.infoRules = nil
+					snapshot.infoWarnings = append(snapshot.infoWarnings, profile.Warning{Path: ".git/info/attributes", Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)})
 				}
 				for i := range snapshot.infoWarnings {
 					snapshot.infoWarnings[i].Path = ".git/info/attributes"
@@ -284,15 +297,45 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	return snapshot, nil
 }
 
+func fullSHA1(value string) bool {
+	if len(value) != 40 {
+		return false
+	}
+	for _, r := range value {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func isUnbornRepository(repo *git.Repository) bool {
+	head, err := repo.Reference(plumbing.HEAD, false)
+	if err != nil || head.Type() != plumbing.SymbolicReference || !head.Target().IsBranch() {
+		return false
+	}
+	refs, err := repo.References()
+	if err != nil {
+		return false
+	}
+	defer refs.Close()
+	return refs.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Name().IsBranch() {
+			return errors.New("branch reference exists")
+		}
+		return nil
+	}) == nil
+}
+
 func blobRead(blob *object.Blob, filename string, limit int64) ([]byte, int64, error) {
 	reader, err := blob.Reader()
 	if err != nil {
-		return nil, 0, fmt.Errorf("read Git blob %s: %w", filename, err)
+		return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
 	}
 	defer reader.Close()
 	data, err := readAllBounded(reader, limit, blob.Size)
 	if err != nil {
-		return nil, 0, fmt.Errorf("read Git blob %s: %w", filename, err)
+		return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
 	}
 	return data, blob.Size, nil
 }
@@ -336,6 +379,12 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 		}
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
 		if err != nil {
+			if s.errorPolicy == ErrorPolicyContinue {
+				if !send(result{path: filename, skipped: true, omission: "missing_git_object", warnings: []profile.Warning{{Path: filename, Code: "missing_git_object", Message: fmt.Sprintf("Git object could not be read; file skipped: %v", err)}}}) {
+					return ctx.Err()
+				}
+				continue
+			}
 			return fmt.Errorf("read Git object size %s: %w", filename, err)
 		}
 		read := func(limit int64) ([]byte, int64, error) {
@@ -343,7 +392,7 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			defer s.objectMu.Unlock()
 			blob, err := s.repo.BlobObject(entry.Hash)
 			if err != nil {
-				return nil, 0, fmt.Errorf("read Git blob %s: %w", filename, err)
+				return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
 			}
 			return blobRead(blob, filename, limit)
 		}
@@ -359,7 +408,8 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			}
 			parsed, notices, exceeded := parseGitAttributesBounded(filename, data, maxAttributeRules-len(s.infoRules)-len(rules))
 			if exceeded {
-				return fmt.Errorf("attribute rules exceed %d rule limit", maxAttributeRules)
+				warnings = append(warnings, profile.Warning{Path: filename, Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)})
+				continue
 			}
 			rules = append(rules, parsed...)
 			warnings = append(warnings, notices...)

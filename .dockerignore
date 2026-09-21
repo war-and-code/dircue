@@ -8,3 +8,6 @@ tests/conformance/results
 tests/performance/results
 tests/stress/results
 tests/release/results
+
+# Measurements are evidence, not compilation inputs.
+tests/**/results

@@ -56,6 +56,9 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 			AddDiagnostic(root, "cargo-workspace-selection-unresolved", "Unsupported or capped workspace selection prevents membership and inheritance resolution.")
 			continue
 		}
+		if data.incomplete {
+			AddDiagnostic(root, "cargo-workspace-selection-unresolved", "Some workspace member declarations are unsupported; valid sibling members were retained but inheritance remains unresolved.")
+		}
 		members := map[string]bool{}
 		add := func(member *Document, kind, value string) bool {
 			if member == nil {
@@ -182,7 +185,12 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 		owners := claims[d.Project.ID]
 		var owner *Document
 		if len(owners) == 1 {
-			owner = owners[0]
+			candidate := owners[0]
+			if candidate.Data.(*cargoData).incomplete {
+				AddDiagnostic(d, "cargo-inheritance-unresolved", "Workspace membership is observed, but incomplete member selection prevents confident inheritance.")
+			} else {
+				owner = candidate
+			}
 		} else if len(owners) > 1 {
 			AddDiagnostic(d, "cargo-ambiguous-workspace", "Multiple workspace roots claim this package; inherited declarations remain unresolved.")
 		}
@@ -197,7 +205,7 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 			// package a member. Preserve this incompatibility rather than inheriting.
 			for dir := path.Dir(d.Project.Root); d.Project.Root != "."; dir = path.Dir(dir) {
 				root := index[path.Join(dir, "Cargo.toml")]
-				if root != nil && root.Data.(*cargoData).workspace && root.Data.(*cargoData).usable {
+				if root != nil && root.Data.(*cargoData).workspace && root.Data.(*cargoData).usable && !root.Data.(*cargoData).incomplete {
 					if !cargoExcluded(root, d, root.Data.(*cargoData).excludes, work) {
 						AddDiagnostic(d, "cargo-unlisted-nested-package", "A package beneath a workspace is not among its supported selected members.")
 					}

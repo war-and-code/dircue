@@ -22,9 +22,10 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.7.0"
+var Version = "0.8.0"
 
 type options struct {
+	environments           bool
 	availability           bool
 	focusProject           string
 	focusRelated           []string
@@ -35,6 +36,8 @@ type options struct {
 	maxFileBytes           int64
 	source                 string
 	revision               string
+	tree                   string
+	onError                string
 	maxTreeSize            int
 	strategies             bool
 	fileStrategies         map[string]string
@@ -94,15 +97,18 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	flags.Int64Var(&opts.maxFileBytes, "max-file-bytes", 0, "Skip files larger than this many bytes (0 disables the optional size limit)")
 	flags.StringVar(&opts.source, "source", "auto", "Content source: auto (Git when present), git, or directory")
 	flags.StringVarP(&opts.revision, "rev", "r", "HEAD", "Git revision to analyze")
+	flags.StringVar(&opts.tree, "tree", "", "Exact Git tree object ID to analyze (mutually exclusive with --rev)")
+	flags.StringVar(&opts.onError, "on-error", "fail", "Per-file read errors: fail or continue with explicit omissions")
+	root.MarkFlagsMutuallyExclusive("rev", "tree")
 	flags.IntVarP(&opts.maxTreeSize, "tree-size", "t", 100000, "Maximum number of files scanned")
 	analyze := &cobra.Command{
 		Use:   "analyze",
 		Short: "Run a selected profiler",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
+			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, environments, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
 		},
 	}
-	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -131,6 +137,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			addFocusFlags(command, opts)
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.environments, "environments", false, "Map declared project environments using manifest evidence and bounded global.json inputs")
 			command.Flags().BoolVar(&opts.availability, "availability", false, "Inspect bounded source-availability evidence without fetching missing material")
 			command.Flags().BoolVar(&opts.formats, "formats", false, "Inspect bounded content for format evidence, including data and artifact files")
 			command.Flags().BoolVar(&opts.declarations, "declarations", false, "Read declared project identities, workspace relationships, requirements, and interfaces")
@@ -151,6 +158,8 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	analyze.AddCommand(newExplainCommand(opts))
 	root.AddCommand(analyze)
 	root.AddCommand(newCompareCommand(opts))
+	root.AddCommand(newPlanCommand(opts))
+	root.AddCommand(newCapabilitiesCommand(opts))
 	return root.ExecuteContext(ctx)
 }
 
@@ -219,7 +228,16 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if opts.source != "auto" && opts.source != "git" && opts.source != "directory" {
 		return fmt.Errorf("--source must be auto, git, or directory")
 	}
+	if cmd.Flags().Changed("tree") && opts.tree == "" {
+		return fmt.Errorf("--tree requires a full Git tree object ID")
+	}
+	if opts.onError != "fail" && opts.onError != "continue" {
+		return fmt.Errorf("--on-error must be fail or continue")
+	}
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		if opts.tree != "" {
+			return fmt.Errorf("--tree requires a directory path")
+		}
 		if mode != "languages" {
 			return fmt.Errorf("%s analysis requires a directory", mode)
 		}
@@ -253,11 +271,14 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
+		Environments:     mode == "environments" || (mode == "all" && opts.environments),
 		Focus:            focusRequest,
 		Availability:     mode == "availability" || (mode == "all" && opts.availability),
 		AvailabilityOnly: mode == "availability",
 		Source:           opts.source,
 		Revision:         opts.revision,
+		Tree:             opts.tree,
+		ErrorPolicy:      scanner.ErrorPolicy(opts.onError),
 		// Linguist accepts nonpositive limits and emits empty statistics.
 		// A limit of one has the same result for every nonempty tree,
 		// while preserving zero as the embedding API's default sentinel.
@@ -270,7 +291,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Metrics:           metrics,
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
 		Declarations:      mode == "declarations" || (mode == "all" && opts.declarations),
-		DeclarationsOnly:  mode == "declarations",
+		DeclarationsOnly:  mode == "declarations" || mode == "environments",
 		Formats:           mode == "formats" || (mode == "all" && opts.formats),
 		FormatsOnly:       mode == "formats",
 		Discovery:         mode == "discovery" || opts.discovery,
@@ -305,8 +326,11 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if report.Focus != nil || report.Availability != nil || report.Explanation != nil {
 		report.SchemaVersion = profile.TargetedSchemaVersion
 	}
+	if report.Environments != nil {
+		report.SchemaVersion = profile.EnvironmentSchemaVersion
+	}
 	for _, warning := range report.Warnings {
-		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", warning.Path, warning.Message, warning.Code); err != nil {
+		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", terminalValue(warning.Path), terminalValue(warning.Message), warning.Code); err != nil {
 			return err
 		}
 	}
@@ -330,6 +354,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "environments":
+		return writeEnvironments(out, report.Environments)
 	case "focus":
 		return writeFocus(out, report)
 	case "availability":
@@ -400,6 +426,14 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			if err := writeFindings(out, section.findings); err != nil {
 				return err
 			}
+		}
+		if report.Environments != nil {
+			if _, err := fmt.Fprintln(out, "\nEnvironments:"); err != nil {
+				return err
+			}
+		}
+		if err := writeEnvironments(out, report.Environments); err != nil {
+			return err
 		}
 		if err := writeProjectDeclarations(out, report.Declarations); err != nil {
 			return err
@@ -514,7 +548,7 @@ func writeLanguages(out io.Writer, languages []profile.Language, opts *options) 
 				if opts.strategies && opts.fileStrategies[path] != "" {
 					label += " [" + opts.fileStrategies[path] + "]"
 				}
-				if _, err := fmt.Fprintf(out, "  %s\n", label); err != nil {
+				if _, err := fmt.Fprintf(out, "  %s\n", terminalValue(label)); err != nil {
 					return err
 				}
 			}
@@ -528,7 +562,7 @@ func writeLanguages(out io.Writer, languages []profile.Language, opts *options) 
 
 func writeFindings(out io.Writer, findings []profile.Finding) error {
 	for _, finding := range findings {
-		if _, err := fmt.Fprintf(out, "%s\t%s\n", finding.Name, finding.Root); err != nil {
+		if _, err := fmt.Fprintf(out, "%s\t%s\n", terminalValue(finding.Name), terminalValue(finding.Root)); err != nil {
 			return err
 		}
 	}
