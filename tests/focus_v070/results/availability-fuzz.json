@@ -1,0 +1,15 @@
+{
+  "command": "go test ./pkg/availability -run '^$' -fuzz '^FuzzAvailabilityParsers$' -fuzztime=30s -parallel=4",
+  "elapsed_seconds": 31.064,
+  "executions": 1482695,
+  "interesting_inputs": 337,
+  "log": ".cache/v070-sprint/availability-fuzz-final.log",
+  "log_sha256": "cbefa39613cdc72ae6740b27470dcb15c52f889315ac8dffd4e87b670feadfd8",
+  "result": "PASS",
+  "source_sha256": {
+    "pkg/availability/gitmodules.go": "09b4a70e346444bf65901710a6f1ef3a6c60904351e86413145b8910279e50fc",
+    "pkg/availability/parsers_fuzz_test.go": "3ea30226e1a3cb7ec4b7da1823451108e7493bf8fecf4004f4fa955975871ce4",
+    "pkg/availability/pointer.go": "d237ac1e67da638972d724e0788e45d2a9b050b5237e24125ccfd6c7c262a984",
+    "pkg/availability/sparse.go": "4a989182da1f94f76e5d3944d1727e9572515dbad90631f4371c60cb76b4168b"
+  }
+}

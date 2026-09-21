@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0.0",
+  "provider": "dircue",
+  "provider_version": "1.0.0",
+  "observation_id": "27f5c3fad2854e56d69998ac71d49edbe33c9bf522d2a36a9e7a26c2485d2cb7",
+  "status": "complete",
+  "source": {
+    "mode": "git",
+    "tree": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "consistency": "selected_git_tree"
+  },
+  "query": {
+    "kind": "language-path",
+    "path": "src/main.go"
+  },
+  "scope": {
+    "module": "languages",
+    "engine": "go-enry/Linguist 9.7.0",
+    "evidence": "fresh",
+    "inventory": "selected-source-metadata-walk",
+    "content": "target-file-bounded-prefix"
+  },
+  "extent": {
+    "file_bytes": 12,
+    "read_bytes": 12,
+    "classified_bytes": 12,
+    "content_complete": true
+  },
+  "limits": {
+    "classification_bytes": 131072,
+    "steps": 32,
+    "overrides": 16,
+    "facts": 256,
+    "string_bytes": 8192
+  },
+  "overrides": [
+    {
+      "attribute": "linguist-language",
+      "value": "Go",
+      "source": ".gitattributes",
+      "line": 2,
+      "provenance": "retained"
+    }
+  ],
+  "facts": [],
+  "steps": [
+    {
+      "rule": "language-detection",
+      "provider": "go-enry",
+      "outcome": "Go",
+      "evidence": "Extension"
+    }
+  ],
+  "decision": {
+    "status": "included",
+    "reason": "language_included",
+    "detected_language": "Go",
+    "reported_language": "Go",
+    "strategy": "Extension"
+  },
+  "omissions": []
+}

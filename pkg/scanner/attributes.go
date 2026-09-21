@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 
+	"dircue/pkg/explain"
 	"dircue/pkg/profile"
 	enry "github.com/go-enry/go-enry/v2"
 )
@@ -27,7 +29,11 @@ type overrides struct {
 	vendored, generated, detectable, documentation *bool
 }
 
-type assignment struct{ name, value string }
+type assignment struct {
+	name, value string
+	source      string
+	line        int
+}
 type attributeRule struct {
 	macro    string
 	scope    string
@@ -44,10 +50,17 @@ func parseAttributes(filename string, content []byte) ([]attributeRule, []profil
 }
 
 func parseAttributesBounded(filename string, content []byte, ruleLimit int) ([]attributeRule, []profile.Warning, bool) {
+	return parseAttributesBoundedFrom(filename, filename, content, ruleLimit)
+}
+
+// parseAttributesBoundedFrom separates matching scope from evidence origin.
+// Git info attributes match at the repository root like .gitattributes while
+// retaining .git/info/attributes as their actual provenance.
+func parseAttributesBoundedFrom(filename, source string, content []byte, ruleLimit int) ([]attributeRule, []profile.Warning, bool) {
 	var rules []attributeRule
 	var warnings []profile.Warning
 	warn := func(line int, message string) {
-		warnings = append(warnings, profile.Warning{Path: filename, Code: "unsupported_gitattributes", Message: fmt.Sprintf("line %d: %s", line, message)})
+		warnings = append(warnings, profile.Warning{Path: source, Code: "unsupported_gitattributes", Message: fmt.Sprintf("line %d: %s", line, message)})
 	}
 	scope := path.Dir(filename)
 	if scope == "." {
@@ -127,7 +140,7 @@ func parseAttributesBounded(filename string, content []byte, ruleLimit int) ([]a
 					warn(line, "unsupported attribute "+name)
 				}
 			}
-			rule.values = append(rule.values, assignment{name, value})
+			rule.values = append(rule.values, assignment{name: name, value: value, source: source, line: line})
 		}
 		if len(rule.values) > 0 {
 			if len(rules) >= ruleLimit {
@@ -205,18 +218,37 @@ func resolveAttributesContext(ctx context.Context, filename string, rules []attr
 	return resolveAttributeRuleSetsContext(ctx, filename, [][]attributeRule{rules})
 }
 
+// resolveAttributesTraceContext retains only the final relevant assignments
+// for one explicitly selected path. Ordinary resolution uses a nil recorder.
+func resolveAttributesTraceContext(ctx context.Context, filename string, rules []attributeRule) (overrides, []explain.Override, error) {
+	return resolveAttributeRuleSetsTraceContext(ctx, filename, [][]attributeRule{rules})
+}
+
 // resolveAttributeRuleSetsContext evaluates ancestor rule sets without first
 // flattening them. Directory scans keep only each directory's local rules, so
 // deeply nested checkouts cannot make retained rule storage grow quadratically.
 func resolveAttributeRuleSetsContext(ctx context.Context, filename string, ruleSets [][]attributeRule) (overrides, error) {
+	result, _, err := resolveAttributeRuleSets(ctx, filename, ruleSets, false)
+	return result, err
+}
+
+func resolveAttributeRuleSetsTraceContext(ctx context.Context, filename string, ruleSets [][]attributeRule) (overrides, []explain.Override, error) {
+	return resolveAttributeRuleSets(ctx, filename, ruleSets, true)
+}
+
+func resolveAttributeRuleSets(ctx context.Context, filename string, ruleSets [][]attributeRule, retainTrace bool) (overrides, []explain.Override, error) {
 	var result overrides
-	macros := map[string][]assignment{"binary": {{"diff", "false"}, {"merge", "false"}, {"text", "false"}}}
+	macros := map[string][]assignment{"binary": {{name: "diff", value: "false"}, {name: "merge", value: "false"}, {name: "text", value: "false"}}}
+	var traced map[string]explain.Override
+	if retainTrace {
+		traced = make(map[string]explain.Override, 6)
+	}
 	checked := 0
 	for _, rules := range ruleSets {
 		for _, rule := range rules {
 			if checked%64 == 0 {
 				if err := ctx.Err(); err != nil {
-					return overrides{}, err
+					return overrides{}, nil, err
 				}
 			}
 			checked++
@@ -230,7 +262,7 @@ func resolveAttributeRuleSetsContext(ctx context.Context, filename string, ruleS
 		for _, rule := range rules {
 			if checked%64 == 0 {
 				if err := ctx.Err(); err != nil {
-					return overrides{}, err
+					return overrides{}, nil, err
 				}
 			}
 			checked++
@@ -283,7 +315,7 @@ func resolveAttributeRuleSetsContext(ctx context.Context, filename string, ruleS
 			}
 			expand(rule.values, make(map[string]bool), 0)
 			if expandErr != nil {
-				return overrides{}, expandErr
+				return overrides{}, nil, expandErr
 			}
 			for _, value := range values {
 				var boolean *bool
@@ -309,10 +341,48 @@ func resolveAttributeRuleSetsContext(ctx context.Context, filename string, ruleS
 				case "linguist-documentation":
 					result.documentation = boolean
 				}
+				if traced != nil && traceableAttribute(value.name) {
+					traced[value.name] = tracedOverride(value)
+				}
 			}
 		}
 	}
-	return result, ctx.Err()
+	if err := ctx.Err(); err != nil {
+		return overrides{}, nil, err
+	}
+	values := make([]explain.Override, 0, len(traced))
+	for _, value := range traced {
+		values = append(values, value)
+	}
+	slices.SortFunc(values, func(a, b explain.Override) int { return strings.Compare(a.Attribute, b.Attribute) })
+	return result, values, nil
+}
+
+func traceableAttribute(name string) bool {
+	switch name {
+	case "filter", "linguist-language", "linguist-vendored", "linguist-generated", "linguist-detectable", "linguist-documentation":
+		return true
+	}
+	return false
+}
+
+func tracedOverride(value assignment) explain.Override {
+	display := value.value
+	switch display {
+	case "":
+		display = "unset"
+	case "__empty_attribute__":
+		display = "true"
+	case "__unknown_language__":
+		display = "unknown"
+	}
+	result := explain.Override{Attribute: value.name, Value: display, Provenance: "unavailable"}
+	if value.source != "" && value.line > 0 {
+		result.Source = value.source
+		result.Line = value.line
+		result.Provenance = "retained"
+	}
+	return result
 }
 
 func overrideBool(value *bool, fallback bool) bool {
@@ -356,14 +426,18 @@ func parseGitAttributes(filename string, content []byte) ([]attributeRule, []pro
 }
 
 func parseGitAttributesBounded(filename string, content []byte, ruleLimit int) ([]attributeRule, []profile.Warning, bool) {
+	return parseGitAttributesBoundedFrom(filename, filename, content, ruleLimit)
+}
+
+func parseGitAttributesBoundedFrom(filename, source string, content []byte, ruleLimit int) ([]attributeRule, []profile.Warning, bool) {
 	lines := strings.Split(string(content), "\n")
 	var warnings []profile.Warning
 	for i, line := range lines {
 		if strings.HasPrefix(strings.TrimSpace(line), `"`) {
 			lines[i] = ""
-			warnings = append(warnings, profile.Warning{Path: filename, Code: "unsupported_gitattributes", Message: fmt.Sprintf("line %d: quoted pattern ignored to match Linguist 9.7.0", i+1)})
+			warnings = append(warnings, profile.Warning{Path: source, Code: "unsupported_gitattributes", Message: fmt.Sprintf("line %d: quoted pattern ignored to match Linguist 9.7.0", i+1)})
 		}
 	}
-	rules, more, exceeded := parseAttributesBounded(filename, []byte(strings.Join(lines, "\n")), ruleLimit)
+	rules, more, exceeded := parseAttributesBoundedFrom(filename, source, []byte(strings.Join(lines, "\n")), ruleLimit)
 	return rules, append(warnings, more...), exceeded
 }

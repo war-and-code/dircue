@@ -4,6 +4,11 @@ import "github.com/spf13/cobra"
 
 func setExtendedCommandHelp(cmd *cobra.Command, mode string) {
 	switch mode {
+	case "availability":
+		cmd.Short = "Inspect source-acquisition boundaries without fetching content"
+		cmd.Long = "Inspect bounded file prefixes for Git LFS pointers and retain selected Gitlinks and submodule declarations. Directory mode can inspect supported confined sparse-checkout metadata; committed-tree mode keeps that checkout evidence separate. Does not fetch, hydrate, or execute filters. Inspect inventory, metadata coverage, and omissions before interpreting missing content."
+		cmd.Example = "  dircue analyze availability --json /checkout\n  dircue analyze availability --source directory --json /checkout\n  dircue analyze all --availability --declarations --json /checkout"
+
 	case "formats":
 		cmd.Short = "Inspect bounded content for format evidence"
 		cmd.Long = "Inspect selected regular files, including data and vendor paths, for supported format evidence. Distinguish filename hints, header signatures, parsed prefixes, and complete syntax checks. Does not expand archives, execute content, or infer that XML contains logs. Inspect read scope, coverage, and omissions before interpreting results."

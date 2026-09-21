@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "version": "0.7.0",
+  "passed": true,
+  "candidate_sha256": "758664d3ed32a66db77b2f96ba1f1b2f62863b1ffd209beb2843de3960577555",
+  "source_sha256": {
+    "scripts/targeted_release_smoke.py": "6b8fba2ee9f04e1c153a8ead02acb84d74afdadc8dd9c2853ae3ccd5415e658d",
+    "scripts/wheels.py": "f9005f1590b34ca78cdda8f5c07f13c679c573eb255c9e5ca9a4aeb4c9439534"
+  },
+  "fixture_sha256": {
+    ".gitattributes": "5a2105a5949274d475ec7b086fbf412c01f656755f76c6646f22def9db703e8c",
+    "app/Program.cs": "2de7e33cae0aa7765037167d1916b0c74ea0ea7de52d01b8499de3f4767c7cac",
+    "app/app.csproj": "8e6bb6bbabc52537c60f2c2707876d805ead2c8582ccdb99b2ca2b6d5d9714be",
+    "assets/malformed.bin": "26ddab9ce163051696ba0463b8a8fd97a6fa0281f986605c9d74b816f13b87c1",
+    "assets/model.bin": "af9016a707b30696e1840e876e6f178ab72043eb99d6d7e817421a24c2eaaaa8",
+    "lib/Library.cs": "001e6d193d8a5c66be3e6f079c7a83af79948b78e00c7471830b50efb49b0743",
+    "lib/lib.csproj": "17284cb74605517cbec8a8153505da71a685b28694b67b5ef80608cd79b1c0ea"
+  },
+  "checks": [
+    "availability_bounded_reads",
+    "availability_lfs_metadata",
+    "availability_worker_determinism",
+    "core_version",
+    "default_omission",
+    "focus_primary_related_separation",
+    "focus_worker_determinism",
+    "focused_metrics_scope_binding",
+    "fresh_explanation",
+    "saved_explanation_without_source",
+    "saved_report_byte_identity"
+  ],
+  "observed_facts": {
+    "primary_project": "app/app.csproj",
+    "related_project": "lib/lib.csproj",
+    "primary_population_files": 2,
+    "related_population_files": 2,
+    "primary_metric_files": 1,
+    "related_metric_files": 1,
+    "valid_lfs_pointers": 1,
+    "pointer_like_files": 1,
+    "explained_language": "Python",
+    "network_or_external_tools": false
+  },
+  "worker_required": false,
+  "external_tools_required": false,
+  "source_removed_before_saved_explain": true,
+  "stdout_sha256": {
+    "default_all": "7a9a95ca83c54deb368e2341545c3a01d8d67fa6507425cf936a47e079f5ffbe",
+    "focus": "079249b201d4a3e4157b09a873c12a347edc6e3b0895168d1799f7087c19e982",
+    "availability": "d8fcefd63af91b29e5895c82d093a0f20c04626eadcbc872180df50204e6e465",
+    "fresh_explain": "43c27e94ed00a54e15b3044ecdc638c488f14b02c5590fb5973977a2ece4d174",
+    "saved_explain": "756223b62ba57bd33589fd63b0e8a0abd8d31ddb7d5f55705284818b453b17c8"
+  }
+}
