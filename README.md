@@ -51,6 +51,33 @@ dircue --breakdown --json /path/to/checkout
 
 Use `go run .` during development and the built binary for repeated or automated runs.
 
+## Help without leaving the CLI
+
+The installed binary includes command help, a workflow guide, a machine-readable
+CLI catalog, and JSON schemas. These commands work offline and do not inspect a
+source directory or execute their examples:
+
+```sh
+dircue --help
+dircue analyze --help
+dircue analyze metrics --help
+dircue capabilities --guide
+dircue capabilities --guide --json
+dircue capabilities --cli --json
+dircue capabilities --schema profile > profile.schema.json
+```
+
+The catalog describes commands, applicable flags, source selection, output
+contracts, and exit codes. `capabilities --json` keeps its original, narrower
+purpose: describing modules supported by saved-report planning. Schema export
+provides a standalone Draft 2020-12 document for an external validator; it does
+not validate an input report. The catalog distinguishes whole-output schemas
+from profile components and identifies the legacy single-file output, which
+does not yet have a bundled schema.
+
+Misspelled options can produce a suggested correction on stderr. Suggestions
+never execute automatically; the original invocation still fails.
+
 ## Replace `github-linguist --json`
 
 Install dircue on `PATH` and replace `github-linguist --json` with `dircue --json`. Keep the same working directory. No path or subcommand is required; at a Git repository root, both commands analyze committed `HEAD`.

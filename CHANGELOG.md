@@ -1,6 +1,17 @@
 # Changelog
 
-## 0.8.0 (unreleased)
+## 1.0.0 (unreleased)
+
+- Add an offline CLI guide, a command and option catalog, and standalone JSON
+  Schema export through explicit `capabilities` views. Keep the original planner
+  descriptor and existing analysis output contracts.
+- Improve command help, bounded spelling hints, saved-report diagnostics, and
+  plain-text plans. Suggested corrections never execute automatically; plans
+  remain inert argument templates requiring caller revalidation.
+- Correct the directory-language schema to accept the existing `"NaN"` string
+  percentage for attributed zero-byte files, without changing language output.
+
+## 0.8.0 (2026-09-21)
 
 - Add opt-in environment requirement observations from supported project declarations, with bounded .NET `global.json` selection for modeled project-directory invocation contexts. Keep SDK selection, target frameworks, advisory toolchains and unresolved declarations distinct; do not probe installed tools or run builds.
 - Add offline follow-up planning from a saved profile and explicit caller questions or modules. Bind decisions to report bytes and source evidence, expose a machine-readable capability registry, and emit inert argument templates with prerequisites and coverage qualifications.
