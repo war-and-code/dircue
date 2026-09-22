@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,24 +26,38 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 	}
 	files := map[string]string{}
 	names := []string{}
-	for i := 0; i < maxGitPackDescriptors+3; i++ {
+	for i := 0; i < maxGitPackDescriptorsPerLane+3; i++ {
 		name := fmt.Sprintf("src/file%02d.py", i)
 		names = append(names, name)
 		files[name] = fmt.Sprintf("# fixture %d\n", i) + strings.Repeat("print('bounded cached pack')\n", 6000)
 	}
-	root, _, _ := gitFixture(t, files)
+	root, _, head := gitFixture(t, files)
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gitDir := filepath.Join(root, ".git")
+	if info, err := os.Stat(gitDir); err != nil || !info.IsDir() {
+		t.Fatalf("fixture Git directory unavailable: %v", err)
+	}
 	run := func(args ...string) string {
 		t.Helper()
-		cmd := exec.Command(binary, append([]string{"-C", root}, args...)...)
+		cmd := exec.Command(binary, append([]string{"--git-dir=" + gitDir, "--work-tree=" + root}, args...)...)
 		b, err := cmd.CombinedOutput()
 		if err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, b)
 		}
 		return strings.TrimSpace(string(b))
 	}
+	if top := run("rev-parse", "--show-toplevel"); top != resolved {
+		t.Fatalf("fixture preflight top=%q want=%q", top, resolved)
+	}
+	if got := run("rev-parse", "HEAD"); got != head.String() {
+		t.Fatalf("fixture preflight HEAD=%q want=%q", got, head)
+	}
 	for _, name := range names {
 		hash := run("rev-parse", "HEAD:"+name)
-		cmd := exec.Command(binary, "-C", root, "pack-objects", "--window=0", filepath.Join(root, ".git", "objects", "pack", "pack"))
+		cmd := exec.Command(binary, "--git-dir="+gitDir, "--work-tree="+root, "pack-objects", "--window=0", filepath.Join(root, ".git", "objects", "pack", "pack"))
 		cmd.Stdin = strings.NewReader(hash + "\n")
 		if out, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("pack one object: %v: %s", err, out)
@@ -50,7 +65,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 	}
 	run("prune-packed")
 	packs, err := filepath.Glob(filepath.Join(root, ".git", "objects", "pack", "*.pack"))
-	if err != nil || len(packs) <= maxGitPackDescriptors {
+	if err != nil || len(packs) <= maxGitPackDescriptorsPerLane {
 		t.Fatalf("want more than cache capacity packs: %d, %v", len(packs), err)
 	}
 	return root, names, files, run
@@ -298,17 +313,19 @@ type cacheCloseRecorder struct {
 
 func (c *cacheCloseRecorder) Close() error { c.calls++; return c.err }
 func TestGitSnapshotCloseTransfersOwnershipOnce(t *testing.T) {
-	sentinel := errors.New("close failed")
-	owned := &cacheCloseRecorder{err: sentinel}
-	snapshot := &gitSnapshot{storage: owned}
-	if err := snapshot.close(); !errors.Is(err, sentinel) {
+	firstError := errors.New("first close failed")
+	secondError := errors.New("second close failed")
+	first := &cacheCloseRecorder{err: firstError}
+	second := &cacheCloseRecorder{err: secondError}
+	snapshot := &gitSnapshot{storages: []io.Closer{first, second}}
+	if err := snapshot.close(); !errors.Is(err, firstError) || !errors.Is(err, secondError) {
 		t.Fatalf("close error=%v", err)
 	}
 	if err := snapshot.close(); err != nil {
 		t.Fatal(err)
 	}
-	if owned.calls != 1 {
-		t.Fatalf("closed %d times", owned.calls)
+	if first.calls != 1 || second.calls != 1 {
+		t.Fatalf("close calls=(%d,%d)", first.calls, second.calls)
 	}
 	var absent *gitSnapshot
 	if err := absent.close(); err != nil {
