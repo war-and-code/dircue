@@ -73,7 +73,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 
 func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	root, names, files, run := packedCacheFixture(t)
-	snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", MaxTreeSize: 100000}, false)
+	snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", MaxTreeSize: 100000}, false, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +149,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	}
 	// Alternate object decoding is supported, but this pinned go-git version's
 	// EncodedObjectSize does not search alternates. Preserve that limitation.
-	alternateSnapshot, err := openGitSnapshot(context.Background(), alternate, Options{Source: "git"}, false)
+	alternateSnapshot, err := openGitSnapshot(context.Background(), alternate, Options{Source: "git"}, false, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +237,7 @@ func TestGitSnapshotClosesLanesWhenAttributeRootFails(t *testing.T) {
 	sentinel := errors.New("attribute root fault")
 	before := countOpenDescriptors(t)
 	for i := 0; i < 12; i++ {
-		snapshot, err := openGitSnapshotWithAttributeRoot(context.Background(), root, Options{Source: "git"}, false, func(string) (*os.Root, error) {
+		snapshot, err := openGitSnapshotWithAttributeRoot(context.Background(), root, Options{Source: "git"}, false, 1, func(string) (*os.Root, error) {
 			return nil, sentinel
 		})
 		if snapshot != nil || !errors.Is(err, sentinel) {
@@ -295,7 +295,7 @@ func TestGitPackCacheClosesAcrossSuccessErrorsAndCancellation(t *testing.T) {
 			return err
 		}, true},
 		{"snapshot-wrong-object-type", func() error {
-			snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", Tree: firstHash.String()}, false)
+			snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", Tree: firstHash.String()}, false, 1)
 			if snapshot != nil {
 				defer snapshot.close()
 			}

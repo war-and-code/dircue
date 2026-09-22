@@ -87,7 +87,7 @@ func Inspect(ctx context.Context, filename string, opts Options) (out *Inspectio
 	if opts.Source == "directory" && (opts.Revision != "" || opts.Tree != "") {
 		return nil, fmt.Errorf("revision and tree require Git source")
 	}
-	snapshot, err := openGitSnapshot(ctx, filepath.Dir(full), opts, true)
+	snapshot, err := openGitSnapshot(ctx, filepath.Dir(full), opts, true, 1)
 	if err != nil {
 		return nil, err
 	}
