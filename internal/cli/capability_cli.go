@@ -100,7 +100,15 @@ func describeCLI(root *cobra.Command) cliContract {
 					entry.RejectedFlags = append(entry.RejectedFlags, "--"+flag.Name)
 					return
 				}
-				flags[flag.Name] = cliFlagContract{flag.Name, flag.Shorthand, flag.Value.Type(), flag.DefValue, flag.Usage, inherited, flagAllowedValues(cmd, flag.Name)}
+				description := flag.Usage
+				if inherited && cmd.CommandPath() == "dircue help" {
+					if flag.Name == "json" {
+						description = "Ignored by help; help always emits plain text. Use dircue capabilities --guide --json or dircue capabilities --cli --json for structured guidance. Retained only for parser compatibility."
+					} else {
+						description = "Ignored by help; retained only for parser compatibility. Analysis-command meaning: " + flag.Usage
+					}
+				}
+				flags[flag.Name] = cliFlagContract{flag.Name, flag.Shorthand, flag.Value.Type(), flag.DefValue, description, inherited, flagAllowedValues(cmd, flag.Name)}
 			}
 		}
 		cmd.InheritedFlags().VisitAll(collect(true))
@@ -243,6 +251,8 @@ func commandRestrictions(cmd *cobra.Command) []string {
 		r = append(r, "Exactly two saved aggregate reports; no source scan options.")
 	case "capabilities":
 		r = append(r, "No positional arguments. --cli, --guide, and --schema are mutually exclusive by flag presence. Schema output is JSON whether or not --json is supplied.")
+	case "help":
+		r = append(r, "Help always emits plain text. Inherited analysis options and --json are accepted only for parser compatibility and ignored; use dircue capabilities --guide --json or dircue capabilities --cli --json for structured guidance.")
 	case "structure":
 		r = append(r, "Requires an explicit --structural-worker. --functions and --hotspots opt into bounded additional output.")
 	case "focus":

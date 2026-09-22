@@ -82,6 +82,54 @@ func TestCLIContractDerivesActualCommandsFlagsAndDefaultValues(t *testing.T) {
 	}
 }
 
+func TestCLIContractDisclosesIgnoredHelpFlagsAndPlainTextOutput(t *testing.T) {
+	helpText, stderr, err := invoke("help", "--json", "plan")
+	if err != nil || stderr != "" || json.Valid([]byte(helpText)) || !strings.Contains(helpText, "Usage:") {
+		t.Fatalf("help --json behavior: stdout=%q stderr=%q err=%v", helpText, stderr, err)
+	}
+
+	out, stderr, err := invoke("capabilities", "--cli", "--json")
+	if err != nil || stderr != "" {
+		t.Fatalf("CLI catalog: %s %v", stderr, err)
+	}
+	var contract cliContract
+	if err := json.Unmarshal([]byte(out), &contract); err != nil {
+		t.Fatal(err)
+	}
+	var help *cliCommandContract
+	for i := range contract.Commands {
+		if strings.Join(contract.Commands[i].Path, " ") == "dircue help" {
+			help = &contract.Commands[i]
+			break
+		}
+	}
+	if help == nil {
+		t.Fatal("CLI catalog omits the help command")
+	}
+	if !strings.Contains(strings.Join(help.Restrictions, " "), "Help always emits plain text") ||
+		!strings.Contains(strings.Join(help.Restrictions, " "), "capabilities --cli --json") {
+		t.Fatalf("help output restriction is incomplete: %+v", help.Restrictions)
+	}
+	sawJSON := false
+	for _, flag := range help.Flags {
+		if !flag.Inherited {
+			continue
+		}
+		if !strings.Contains(flag.Description, "Ignored by help") {
+			t.Errorf("inherited help flag --%s is not marked ignored: %q", flag.Name, flag.Description)
+		}
+		if flag.Name == "json" {
+			sawJSON = true
+			if flag.Type != "bool" || !strings.Contains(flag.Description, "help always emits plain text") || !strings.Contains(flag.Description, "capabilities --guide --json") {
+				t.Errorf("help --json contract is inaccurate: %+v", flag)
+			}
+		}
+	}
+	if !sawJSON {
+		t.Fatal("help command lost its compatibility --json flag")
+	}
+}
+
 func TestExplicitCapabilityViewsRejectConflictsAndPropagateWriters(t *testing.T) {
 	for _, args := range [][]string{
 		{"capabilities", "--cli", "--guide"}, {"capabilities", "--guide", "--schema", "profile"},
