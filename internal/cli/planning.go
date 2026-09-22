@@ -105,7 +105,7 @@ func newPlanCommand(opts *options) *cobra.Command {
 		}
 		file, err := openInputFile(args[0], "saved report")
 		if err != nil {
-			return fmt.Errorf("cannot open saved report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout")
+			return &diagnosticError{message: "cannot open saved report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout", cause: err}
 		}
 		defer file.Close()
 		info, err := file.Stat()
