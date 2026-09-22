@@ -166,6 +166,7 @@ func comparisonTextID(module, id string) string {
 	case "focused_metrics_related":
 		if strings.HasPrefix(id, "project:") {
 			rest := strings.TrimPrefix(id, "project:")
+			var display string
 			for offset := 0; offset < len(rest); {
 				index := strings.Index(rest[offset:], ":language:")
 				if index < 0 {
@@ -175,9 +176,17 @@ func comparisonTextID(module, id string) string {
 				project := rest[:index]
 				components, ok := decodeComparisonKey(rest[index+len(":language:"):], 2)
 				if ok {
-					return "project " + strconv.Quote(project) + " language " + formatComparisonComponents(components)
+					if display != "" {
+						// The raw project prefix can itself contain :language:.
+						// Multiple valid splits cannot be attributed safely.
+						return strconv.Quote(id)
+					}
+					display = "project " + strconv.Quote(project) + " language " + formatComparisonComponents(components)
 				}
 				offset = index + 1
+			}
+			if display != "" {
+				return display
 			}
 		}
 	case "discovery":
