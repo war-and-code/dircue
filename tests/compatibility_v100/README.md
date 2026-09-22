@@ -67,6 +67,11 @@ analysis yielded paired time ratios 0.995, 1.008 and 0.994. Median peak RSS was
 show no material timing regression from integration in this window. They do
 not establish zero overhead or a general memory improvement.
 
-The integration timing receipt identifies commit `2bcd134`. Later schema-only
-review corrections constrain invalid language-statistics values; they do not
-change scanner execution. The final compatibility build is recorded separately.
+The integration timing receipt identifies commit `2bcd134`. Later review corrections constrain invalid language-statistics values and
+annotate framework-help catalog descriptions and reject malformed explanation
+options; they do not change ordinary language scanner execution. The final compatibility build is recorded separately.
+
+`results/explain-options.json` records three additional process checks: an exact
+valid explanation, a fixed invalid-policy diagnostic, and rejection of an
+explicitly empty tree instead of the previous default-source scan. They are
+separate from the inherited 319-case corpus.

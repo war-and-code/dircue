@@ -14,7 +14,7 @@
       ],
       "exit": 0,
       "output": "../full-race-final.log",
-      "output_sha256": "6ebe01b0ae31d597a0a0bb35dd4dc462b8aa22dfa4a5d144c5da1f76396f4b06"
+      "output_sha256": "7f18da39ca8a3d722aba6372b6797e6f8219e6c701b16bbeb87b200fb43903aa"
     },
     {
       "command": [
@@ -27,7 +27,7 @@
       "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ],
-  "integration_timing_scope": "Measured commit2bcd134; subsequent runtime changes are schema-only validation constraints, not scanner execution changes.",
+  "integration_timing_scope": "Measured commit2bcd134; subsequent changes constrain invalid language-schema values, annotate framework-help catalog descriptions and reject malformed explanation flags. They do not change ordinary language scanner execution.",
   "limitations": [
     "Local runtime validation is macOS arm64; ready-PR matrix and release artifact checks remain required.",
     "Comparison executables use version0.8.0 solely to isolate metadata; review executable retains1.0.0-dev.",
@@ -39,13 +39,14 @@
     "saved_report_correctness_fixes": 2,
     "total": 319
   },
-  "recorded_at": "2026-09-22T00:33:54.396235+00:00",
+  "recorded_at": "2026-09-22T01:00:13.462459+00:00",
   "review_binary": {
     "cgo_enabled": 0,
-    "path": ".cache/v100/frozen/dircue-review",
-    "sha256": "109cbe8ebc3b48b619e032f96c98ce8454b7b815cd2c78140399ae20fed04322",
+    "path": ".cache/v100/handoff/dircue-review",
+    "sha256": "7c995ab0b2e25aac891e902f33c8143de49f5cccdca50855be51269499fa28ed",
     "version": "1.0.0-dev"
   },
-  "runtime_source_commit": "932fb3e2f79a1001dac3e62b20ffcdfe5261b648",
-  "schema": "dircue-v100-local-validation-1"
+  "runtime_source_commit": "54f82a52e48d0d5231d5a54ea4e5f1302afc342f",
+  "schema": "dircue-v100-local-validation-1",
+  "supplementary_explanation_checks": "explain-options.json"
 }

@@ -8,10 +8,22 @@
 - Improve command help, bounded spelling hints, saved-report diagnostics, and
   plain-text plans. Suggested corrections never execute automatically; plans
   remain inert argument templates requiring caller revalidation.
+- Escape terminal controls in final CLI errors while preserving underlying
+  error causes and ordinary diagnostic text. Retain causes behind privacy-safe
+  saved-report errors, and publish finite option choices in the CLI catalog.
+  Explain which inherited flags framework help ignores. Reject invalid
+  explanation error policies and explicitly empty tree selectors before scanning.
 - Correct the directory-language schema to accept the existing `"NaN"` string
   percentage for attributed zero-byte files, without changing language output.
+  Reject undefined percentages for nonempty entries and numeric values outside
+  the emitted 0–100 range.
 - Accept the existing `focus_scope_partial` metrics marker when validating saved
   profiles, so partial focused reports can be read back for explanation.
+- Reuse at most eight packfile descriptors per Git snapshot and close them on
+  success, failure and cancellation. [Paired measurements](tests/performance/v100_preparation/OPTIMIZATION.md)
+  show 20–43% lower elapsed time on five selected Git workloads; the XML directory
+  control is unchanged. Preserve classification, output and source-selection
+  behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
 
 ## 0.8.0 (2026-09-21)
 

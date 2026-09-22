@@ -1,6 +1,6 @@
 {
   "builder_sha256": "20592f44af486a8a1d4cf61c31cb6342e185c559b3225fbae33786a7606a488c",
-  "candidate_sha256": "e567a97ff9a552078a52c405280a3372f312540274c8b31060e60ca895eb6944",
+  "candidate_sha256": "cae3abf77a0f9960d629e5ede95e8f1072359d1883cb4ccaaf4e50cc591474c4",
   "command": [
     "go",
     "build",
@@ -10,7 +10,7 @@
     "-ldflags",
     "-X dircue/internal/cli.Version=0.8.0",
     "-o",
-    "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/frozen/dircue",
+    "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/handoff/dircue",
     "."
   ],
   "comparison_version_override": "0.8.0",
@@ -22,7 +22,7 @@
   "files": {
     "go.mod": "8e98b7e8a8783475ae3f7133e093fa76be14e6e0b46a4415d4bf63941ca47964",
     "go.sum": "996b1932286516c022679ed686cd8367dba10e06b6554f27ad32d6c636b26f42",
-    "internal/cli/capability_cli.go": "684fb0b64e80c43b2c89e00fb03eb2b724a23934ec0f545cdb2ae7af31435809",
+    "internal/cli/capability_cli.go": "6c4cd39cd605effad6dc6af24af0d22097dff155f189c78009a59c99994fa89c",
     "internal/cli/capability_guide.go": "7486fa489f8bc0f4824dd219a10e3783dba304d0a55c90fe6a72324a0ac65293",
     "internal/cli/cli.go": "2291abe7c13a76b1462a260ccfc4a606c8398d7941cd1759a26edf154200171b",
     "internal/cli/compare.go": "b02604070c347154d68b3853c8d569280c405c60d1478ce99bb9e3d00656466a",
@@ -30,7 +30,7 @@
     "internal/cli/diagnostics.go": "d1240476daec6f55700138d5695f3f73051b79c907668e56ad4eb6e5673d8ebc",
     "internal/cli/discovery.go": "584c9a1a385f5aa7bf51ff8944781adc57a6c9276ab4ebca7d91b985039cf37e",
     "internal/cli/environments.go": "15b22c479123a740f5bb3fff69cedd6ea4e5723aad6342649ba5cbe2e94bd92c",
-    "internal/cli/explain.go": "1a3bb2471f19608bac4ed3964c57b05d83cb0ff6f61dfd25ad635e94589e1961",
+    "internal/cli/explain.go": "564a47f0a279a101229a45c900658bc49ee24f56fb76e4b46e42d9cad024bf0e",
     "internal/cli/extended_help.go": "ed56b82e3f44cde1f656628928165adf4fa42b282a1d5adb5d6eec785cfd626a",
     "internal/cli/file.go": "1dc301f2e12e7f96f8c5c66a7aac2dad7aba48e67f14b03fe096cc3a972173ee",
     "internal/cli/formats.go": "ec800135a963bab9e480911c31fdfa373464f8e586745cecea7c5b1ae62ab7bf",
@@ -394,18 +394,18 @@
     "third_party/go-git/worktree_fs.go": "11d7a155bf28b8e86fc2e5833eb363ede45c13a941006199e813e4d03594cb46",
     "third_party/go-git/worktree_status.go": "824a0988e91bd13bd3347cd096baebaac9d280cf638158c1e157cf9edabacbf3"
   },
-  "finished_at_utc": "2026-09-22T00:32:49.269761+00:00",
-  "go_build_info": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/frozen/dircue: go1.26.6\n\tpath\tdircue\n\tmod\tdircue\t(devel)\t\n\tdep\tdario.cat/mergo\tv1.0.2\th1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=\n\tdep\tgithub.com/ProtonMail/go-crypto\tv1.4.1\th1:9RfcZHqEQUvP8RzecWEUafnZVtEvrBVL9BiF67IQOfM=\n\tdep\tgithub.com/agnivade/levenshtein\tv1.2.2-0.20250519083737-420867539855\th1:eecTPiTbYU25fX1PZ2euFs9ol/TwQsJbRZwOF6pddw8=\n\tdep\tgithub.com/boyter/gocodewalker\tv1.5.2-0.20260905064325-27ad42ef7a81\th1:06aUfVQmm+m3+KcuVGPTCg2AvS6fekiKq6WEBHNx3Mk=\n\tdep\tgithub.com/boyter/scc/v4\tv4.1.0\th1:aNMEqwUk0cTH4stwWSbck8HOMKkRm7hjClw3VYvtYLw=\n\tdep\tgithub.com/clipperhouse/uax29/v2\tv2.7.0\th1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJv2v7Vk=\n\tdep\tgithub.com/cloudflare/circl\tv1.6.3\th1:9GPOhQGF9MCYUeXyMYlqTR6a5gTrgR/fBLXvUgtVcg8=\n\tdep\tgithub.com/cyphar/filepath-securejoin\tv0.6.1\th1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVyciv8syjIpVE=\n\tdep\tgithub.com/danwakefield/fnmatch\tv0.0.0-20160403171240-cbb64ac3d964\th1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=\n\tdep\tgithub.com/emirpasic/gods\tv1.18.1\th1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=\n\tdep\tgithub.com/go-enry/go-enry/v2\tv2.9.6\n\t=>\t./third_party/go-enry\t(devel)\t\n\t\n\tdep\tgithub.com/go-git/gcfg\tv1.5.1-0.20230307220236-3a3c6141e376\th1:+zs/tPmkDkHx3U66DAb0lQFJrpS6731Oaa12ikc+DiI=\n\tdep\tgithub.com/go-git/go-billy/v5\tv5.9.0\th1:jItGXszUDRtR/AlferWPTMN4j38BQ88XnXKbilmmBPA=\n\tdep\tgithub.com/go-git/go-git/v5\tv5.19.2\n\t=>\t./third_party/go-git\t(devel)\t\n\t\n\tdep\tgithub.com/golang/groupcache\tv0.0.0-20241129210726-2c02b8208cf8\th1:f+oWsMOmNPc8JmEHVZIycC7hBoQxHH9pNKQORJNozsQ=\n\tdep\tgithub.com/jbenet/go-context\tv0.0.0-20150711004518-d14ea06fba99\th1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=\n\tdep\tgithub.com/json-iterator/go\tv1.1.12\th1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=\n\tdep\tgithub.com/kevinburke/ssh_config\tv1.6.0\th1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=\n\tdep\tgithub.com/klauspost/cpuid/v2\tv2.3.0\th1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=\n\tdep\tgithub.com/mattn/go-isatty\tv0.0.22\th1:j8l17JJ9i6VGPUFUYoTUKPSgKe/83EYU2zBC7YNKMw4=\n\tdep\tgithub.com/mattn/go-runewidth\tv0.0.24\th1:cpokDiIn0MGnhdHwuWnJBITySJ20QyNGnY2kR/ay2DU=\n\tdep\tgithub.com/modern-go/concurrent\tv0.0.0-20180306012644-bacd9c7ef1dd\th1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=\n\tdep\tgithub.com/modern-go/reflect2\tv1.0.2\th1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.4.3\th1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=\n\tdep\tgithub.com/pjbgf/sha1cd\tv0.6.0\th1:3WJ8Wz8gvDz29quX1OcEmkAlUg9diU4GxJHqs0/XiwU=\n\tdep\tgithub.com/sergi/go-diff\tv1.4.0\th1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=\n\tdep\tgithub.com/skeema/knownhosts\tv1.3.2\th1:EDL9mgf4NzwMXCTfaxSD/o/a5fxDw/xL9nkU28JjdBg=\n\tdep\tgithub.com/spf13/cobra\tv1.10.2\th1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=\n\tdep\tgithub.com/spf13/pflag\tv1.0.10\th1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=\n\tdep\tgithub.com/xanzy/ssh-agent\tv0.3.3\th1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=\n\tdep\tgo.yaml.in/yaml/v2\tv2.4.4\th1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=\n\tdep\tgolang.org/x/crypto\tv0.56.0\th1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=\n\tdep\tgolang.org/x/mod\tv0.40.0\th1:hUv+3cXcdRHz08UmSiOob7sadHig73uo5bkXxQ/tvUs=\n\tdep\tgolang.org/x/net\tv0.57.0\th1:K5+3DljvIuDG9/Jv9rvyMywYNFCQ9RSUY6OOTTkT+tE=\n\tdep\tgolang.org/x/sync\tv0.22.0\th1:SZjpbeLmrCk4xhRSZFNZW5gFUeCeFgjekvI/+gfScek=\n\tdep\tgolang.org/x/sys\tv0.47.0\th1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=\n\tdep\tgolang.org/x/text\tv0.41.0\th1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=\n\tdep\tgopkg.in/warnings.v0\tv0.1.2\th1:wFXVbFY8DY5/xOe1ECiWdKCzZlxgshcYVNkBHstARME=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0",
+  "finished_at_utc": "2026-09-22T00:58:32.972526+00:00",
+  "go_build_info": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/handoff/dircue: go1.26.6\n\tpath\tdircue\n\tmod\tdircue\t(devel)\t\n\tdep\tdario.cat/mergo\tv1.0.2\th1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=\n\tdep\tgithub.com/ProtonMail/go-crypto\tv1.4.1\th1:9RfcZHqEQUvP8RzecWEUafnZVtEvrBVL9BiF67IQOfM=\n\tdep\tgithub.com/agnivade/levenshtein\tv1.2.2-0.20250519083737-420867539855\th1:eecTPiTbYU25fX1PZ2euFs9ol/TwQsJbRZwOF6pddw8=\n\tdep\tgithub.com/boyter/gocodewalker\tv1.5.2-0.20260905064325-27ad42ef7a81\th1:06aUfVQmm+m3+KcuVGPTCg2AvS6fekiKq6WEBHNx3Mk=\n\tdep\tgithub.com/boyter/scc/v4\tv4.1.0\th1:aNMEqwUk0cTH4stwWSbck8HOMKkRm7hjClw3VYvtYLw=\n\tdep\tgithub.com/clipperhouse/uax29/v2\tv2.7.0\th1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJv2v7Vk=\n\tdep\tgithub.com/cloudflare/circl\tv1.6.3\th1:9GPOhQGF9MCYUeXyMYlqTR6a5gTrgR/fBLXvUgtVcg8=\n\tdep\tgithub.com/cyphar/filepath-securejoin\tv0.6.1\th1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVyciv8syjIpVE=\n\tdep\tgithub.com/danwakefield/fnmatch\tv0.0.0-20160403171240-cbb64ac3d964\th1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=\n\tdep\tgithub.com/emirpasic/gods\tv1.18.1\th1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=\n\tdep\tgithub.com/go-enry/go-enry/v2\tv2.9.6\n\t=>\t./third_party/go-enry\t(devel)\t\n\t\n\tdep\tgithub.com/go-git/gcfg\tv1.5.1-0.20230307220236-3a3c6141e376\th1:+zs/tPmkDkHx3U66DAb0lQFJrpS6731Oaa12ikc+DiI=\n\tdep\tgithub.com/go-git/go-billy/v5\tv5.9.0\th1:jItGXszUDRtR/AlferWPTMN4j38BQ88XnXKbilmmBPA=\n\tdep\tgithub.com/go-git/go-git/v5\tv5.19.2\n\t=>\t./third_party/go-git\t(devel)\t\n\t\n\tdep\tgithub.com/golang/groupcache\tv0.0.0-20241129210726-2c02b8208cf8\th1:f+oWsMOmNPc8JmEHVZIycC7hBoQxHH9pNKQORJNozsQ=\n\tdep\tgithub.com/jbenet/go-context\tv0.0.0-20150711004518-d14ea06fba99\th1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=\n\tdep\tgithub.com/json-iterator/go\tv1.1.12\th1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=\n\tdep\tgithub.com/kevinburke/ssh_config\tv1.6.0\th1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=\n\tdep\tgithub.com/klauspost/cpuid/v2\tv2.3.0\th1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=\n\tdep\tgithub.com/mattn/go-isatty\tv0.0.22\th1:j8l17JJ9i6VGPUFUYoTUKPSgKe/83EYU2zBC7YNKMw4=\n\tdep\tgithub.com/mattn/go-runewidth\tv0.0.24\th1:cpokDiIn0MGnhdHwuWnJBITySJ20QyNGnY2kR/ay2DU=\n\tdep\tgithub.com/modern-go/concurrent\tv0.0.0-20180306012644-bacd9c7ef1dd\th1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=\n\tdep\tgithub.com/modern-go/reflect2\tv1.0.2\th1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.4.3\th1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=\n\tdep\tgithub.com/pjbgf/sha1cd\tv0.6.0\th1:3WJ8Wz8gvDz29quX1OcEmkAlUg9diU4GxJHqs0/XiwU=\n\tdep\tgithub.com/sergi/go-diff\tv1.4.0\th1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=\n\tdep\tgithub.com/skeema/knownhosts\tv1.3.2\th1:EDL9mgf4NzwMXCTfaxSD/o/a5fxDw/xL9nkU28JjdBg=\n\tdep\tgithub.com/spf13/cobra\tv1.10.2\th1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=\n\tdep\tgithub.com/spf13/pflag\tv1.0.10\th1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=\n\tdep\tgithub.com/xanzy/ssh-agent\tv0.3.3\th1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=\n\tdep\tgo.yaml.in/yaml/v2\tv2.4.4\th1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=\n\tdep\tgolang.org/x/crypto\tv0.56.0\th1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=\n\tdep\tgolang.org/x/mod\tv0.40.0\th1:hUv+3cXcdRHz08UmSiOob7sadHig73uo5bkXxQ/tvUs=\n\tdep\tgolang.org/x/net\tv0.57.0\th1:K5+3DljvIuDG9/Jv9rvyMywYNFCQ9RSUY6OOTTkT+tE=\n\tdep\tgolang.org/x/sync\tv0.22.0\th1:SZjpbeLmrCk4xhRSZFNZW5gFUeCeFgjekvI/+gfScek=\n\tdep\tgolang.org/x/sys\tv0.47.0\th1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=\n\tdep\tgolang.org/x/text\tv0.41.0\th1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=\n\tdep\tgopkg.in/warnings.v0\tv0.1.2\th1:wFXVbFY8DY5/xOe1ECiWdKCzZlxgshcYVNkBHstARME=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=0\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0",
   "go_version": "go version go1.26.6 darwin/arm64",
   "inherited_builder_sha256": "34214e2e6119bdaf554deb1c8c7d560eca127f89929565da5d0ddcb276e82922",
   "purpose": "v100 preparation comparison; not a release binary",
   "schema": "dircue-context-v080-build-1",
   "source_at_build": {
-    "commit": "932fb3e2f79a1001dac3e62b20ffcdfe5261b648",
-    "diff_sha256": "1a5f7d96e33c036084d126c9495104e454459d23028c6f6a30c958f69a7ceda7",
+    "commit": "54f82a52e48d0d5231d5a54ea4e5f1302afc342f",
+    "diff_sha256": "8d7e220cb3ed05b662a699bb67611dcd7ae1dea88f48b858e9859af132a5cf5e",
     "dirty": true,
-    "head_tree": "c6e539cb1bc3af9dbe901b0d9398a44fa821e3da",
-    "status_sha256": "e03d236603f671fc217110c1592389512419b5df113138604ee07d95f7e0e811"
+    "head_tree": "4a7f4d89e0cb5719c64383bb251a1abfca23d903",
+    "status_sha256": "89d6f6a86d716c59debf618fe872021880e514b5db8b9ad67feb8d5cffa65c8a"
   },
-  "started_at_utc": "2026-09-22T00:32:48.135575+00:00"
+  "started_at_utc": "2026-09-22T00:58:31.039198+00:00"
 }
