@@ -256,6 +256,17 @@ func TestLanguagesSchemaAcceptsExistingNaNStringOnly(t *testing.T) {
 		if err := s.Validate(value); err != nil {
 			t.Fatalf("existing NaN string output rejected: %v", err)
 		}
+		positive := exportJSONValue(t, value).(map[string]any)
+		positive["Python"].(map[string]any)["size"] = json.Number("1")
+		positive["Python"].(map[string]any)["percentage"] = "100.00"
+		if err := s.Validate(positive); err != nil {
+			t.Fatalf("positive-size numeric percentage rejected: %v", err)
+		}
+		impossible := exportJSONValue(t, positive).(map[string]any)
+		impossible["Python"].(map[string]any)["percentage"] = "NaN"
+		if s.Validate(impossible) == nil {
+			t.Fatal("NaN percentage accepted for a nonzero language size")
+		}
 		for _, percentage := range []any{"nan", "NAN", "Inf", "Infinity", "-NaN", "NaN%", "1.0", "1", "", 0.0, nil} {
 			bad := exportJSONValue(t, value).(map[string]any)
 			bad["Python"].(map[string]any)["percentage"] = percentage
