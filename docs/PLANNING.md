@@ -26,9 +26,11 @@ command or flag.
 For the complete CLI catalog, use `dircue capabilities --cli --json`. The
 separate `--guide` view explains workflows in text or JSON, and
 `dircue capabilities --schema planning` exports the plan's JSON Schema for
-offline validation. These explicit views leave the default planner descriptor
-unchanged. Use `dircue plan --help` for currently supported questions, modules,
-and examples without consulting this document.
+offline validation. The default planner descriptor advertises these siblings
+through an additive `views` array (`name`, `description`, `argv`); existing
+descriptor keys and their contents are unchanged. Use `dircue plan --help` for
+currently supported questions, modules, and examples without consulting this
+document.
 
 ## Reading a plan
 

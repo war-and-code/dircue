@@ -30,7 +30,7 @@ def main():
     receipt, receipt_hash = common.load_build_receipt(args.build_receipt, candidate)
     rows = []
 
-    def check(label, command, cwd, success=True, partial_focus_fix=None):
+    def check(label, command, cwd, success=True, partial_focus_fix=None, additive_json_field=None):
         old, new = common.capture(baseline, command, cwd), common.capture(candidate, command, cwd)
         if (old[0] == 0) != success:
             raise AssertionError((label, "invalid baseline scenario", old))
@@ -42,9 +42,25 @@ def main():
                 explained = json.loads(new[1])
                 fixed = explained.get("explanation", {}).get("query") == {
                     "kind": "project", "path": partial_focus_fix}
+        additive_fixed = False
+        if additive_json_field is not None:
+            # Additive JSON field fix: the candidate must succeed with the
+            # same status and stderr, and its stdout JSON must equal the
+            # baseline JSON once the newly added top-level key is removed.
+            if old[0] == 0 and new[0] == 0 and old[2] == new[2]:
+                try:
+                    old_doc = json.loads(old[1])
+                    new_doc = json.loads(new[1])
+                except json.JSONDecodeError:
+                    old_doc, new_doc = None, None
+                if isinstance(old_doc, dict) and isinstance(new_doc, dict):
+                    added = new_doc.pop(additive_json_field, None)
+                    additive_fixed = added is not None and old_doc == new_doc
         rows.append({"id": label, "args": command, "equal": old == new,
                      "expected_partial_focus_fix": partial_focus_fix is not None,
                      "partial_focus_fix_verified": fixed,
+                     "expected_additive_json_field": additive_json_field,
+                     "additive_json_field_verified": additive_fixed,
                      "baseline": common.recorded(old), "candidate": common.recorded(new)})
         return old
 
@@ -92,7 +108,10 @@ def main():
             if mode == "discovery":
                 saved.write_bytes(old[1])
         full.write_bytes(check("combined-environments", ["analyze", "all", "--declarations", "--environments", "--availability", "--discovery", *tail], root)[1])
-        check("original-capabilities", ["capabilities", "--json"], root)
+        # 1.0.0 adds an additive `views` field to the planner descriptor so
+        # agents can discover --cli/--guide/--schema from the default output.
+        # Every other key stays byte-identical to 0.8.0.
+        check("original-capabilities", ["capabilities", "--json"], root, additive_json_field="views")
         for module in ("discovery", "declarations", "environments", "focus", "availability", "formats", "metrics", "structure"):
             for source, label in ((saved, "initial"), (full, "retained")):
                 command = ["plan", str(source), "--module", module, "--json"]
@@ -108,13 +127,22 @@ def main():
               "build_receipt": receipt, "build_receipt_sha256": receipt_hash,
               "harness_sha256": common.sha256(Path(__file__)), "fixture_sha256": common.sha256(FIXTURE),
               "cases": rows, "total": len(rows), "exact_matches": sum(r["equal"] for r in rows),
-              "intentional_fixes": sum(r["partial_focus_fix_verified"] for r in rows)}
-    result["passed"] = (result["total"] == 41 and result["exact_matches"] == 39
+              "intentional_fixes": sum(r["partial_focus_fix_verified"] for r in rows),
+              "additive_json_fixes": sum(r["additive_json_field_verified"] for r in rows)}
+
+    def _row_ok(row):
+        if row["expected_partial_focus_fix"]:
+            return row["partial_focus_fix_verified"]
+        if row["expected_additive_json_field"] is not None:
+            return row["additive_json_field_verified"]
+        return row["equal"]
+
+    result["passed"] = (result["total"] == 41 and result["exact_matches"] == 38
                         and result["intentional_fixes"] == 2
-                        and all(r["partial_focus_fix_verified"] if r["expected_partial_focus_fix"]
-                                else r["equal"] for r in rows))
+                        and result["additive_json_fixes"] == 1
+                        and all(_row_ok(row) for row in rows))
     common.write_json(args.output, result)
-    print(json.dumps({k: result[k] for k in ("passed", "total", "exact_matches")}))
+    print(json.dumps({k: result[k] for k in ("passed", "total", "exact_matches", "intentional_fixes", "additive_json_fixes")}))
     raise SystemExit(0 if result["passed"] else 1)
 
 

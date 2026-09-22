@@ -16,13 +16,57 @@ import (
 )
 
 func TestCapabilityDefaultDescriptorBytesRemainUnchanged(t *testing.T) {
-	expected, err := json.Marshal(capabilities.Dircue(Version))
+	// The CLI wraps the descriptor with a sibling `views` array so an agent
+	// can discover --cli/--guide/--schema from the default output. Every other
+	// key remains byte-identical to json.Marshal(capabilities.Dircue).
+	out, stderr, err := invoke("capabilities", "--json")
+	if err != nil || stderr != "" {
+		t.Fatalf("stdout=%q stderr=%q err=%v", out, stderr, err)
+	}
+	var wrapped map[string]json.RawMessage
+	if err := json.Unmarshal([]byte(out), &wrapped); err != nil {
+		t.Fatal(err)
+	}
+	views, ok := wrapped["views"]
+	if !ok {
+		t.Fatal("capabilities --json is missing the additive views field")
+	}
+	delete(wrapped, "views")
+	remaining, err := json.Marshal(wrapped)
 	if err != nil {
 		t.Fatal(err)
 	}
-	out, stderr, err := invoke("capabilities", "--json")
-	if err != nil || stderr != "" || out != string(expected)+"\n" {
-		t.Fatalf("default descriptor changed: %s %s %v", out, stderr, err)
+	var expectedMap map[string]json.RawMessage
+	original, err := json.Marshal(capabilities.Dircue(Version))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal(original, &expectedMap); err != nil {
+		t.Fatal(err)
+	}
+	want, err := json.Marshal(expectedMap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(remaining) != string(want) {
+		t.Fatalf("descriptor bytes drifted after removing views:\n got=%s\nwant=%s", remaining, want)
+	}
+	var parsedViews []struct {
+		Name        string   `json:"name"`
+		Description string   `json:"description"`
+		Argv        []string `json:"argv"`
+	}
+	if err := json.Unmarshal(views, &parsedViews); err != nil {
+		t.Fatal(err)
+	}
+	wantNames := []string{"planner", "cli", "guide", "schema"}
+	if len(parsedViews) != len(wantNames) {
+		t.Fatalf("view count = %d, want %d", len(parsedViews), len(wantNames))
+	}
+	for i, view := range parsedViews {
+		if view.Name != wantNames[i] || len(view.Argv) < 2 || view.Argv[0] != "dircue" || view.Argv[1] != "capabilities" || view.Description == "" {
+			t.Fatalf("view[%d] = %+v", i, view)
+		}
 	}
 }
 
