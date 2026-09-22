@@ -49,7 +49,7 @@ func newExplainCommand(opts *options) *cobra.Command {
 			}
 			input, err := openInputFile(saved, "saved report")
 			if err != nil {
-				return fmt.Errorf("cannot open saved report")
+				return &diagnosticError{message: "cannot open saved report", cause: err}
 			}
 			defer input.Close()
 			info, err := input.Stat()

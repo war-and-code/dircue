@@ -62,7 +62,7 @@ func newCompareCommand(opts *options) *cobra.Command {
 func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
 	file, err := openInputFile(name, role+" report")
 	if err != nil {
-		return nil, fmt.Errorf("cannot open %s report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout", role)
+		return nil, &diagnosticError{message: fmt.Sprintf("cannot open %s report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout", role), cause: err}
 	}
 	defer file.Close()
 	opened, err := file.Stat()

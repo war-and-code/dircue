@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"dircue/pkg/capabilities"
 	"dircue/schema"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
@@ -99,7 +100,7 @@ func describeCLI(root *cobra.Command) cliContract {
 					entry.RejectedFlags = append(entry.RejectedFlags, "--"+flag.Name)
 					return
 				}
-				flags[flag.Name] = cliFlagContract{flag.Name, flag.Shorthand, flag.Value.Type(), flag.DefValue, flag.Usage, inherited, flagAllowedValues(flag.Name)}
+				flags[flag.Name] = cliFlagContract{flag.Name, flag.Shorthand, flag.Value.Type(), flag.DefValue, flag.Usage, inherited, flagAllowedValues(cmd, flag.Name)}
 			}
 		}
 		cmd.InheritedFlags().VisitAll(collect(true))
@@ -167,14 +168,41 @@ func describeCLI(root *cobra.Command) cliContract {
 	return d
 }
 
-func flagAllowedValues(name string) []string {
-	switch name {
-	case "source":
-		return []string{"auto", "git", "directory"}
-	case "on-error":
-		return []string{"fail", "continue"}
-	case "metrics-scope":
+func flagAllowedValues(cmd *cobra.Command, name string) []string {
+	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
+	if scanCommand {
+		switch name {
+		case "source":
+			return []string{"auto", "git", "directory"}
+		case "on-error":
+			return []string{"fail", "continue"}
+		}
+	}
+	if slices.Contains([]string{"dircue analyze all", "dircue analyze focus", "dircue analyze metrics"}, cmd.CommandPath()) && name == "metrics-scope" {
 		return []string{"source", "text"}
+	}
+	if cmd.CommandPath() == "dircue capabilities" && name == "schema" {
+		return schema.Names()
+	}
+	if cmd.CommandPath() == "dircue plan" {
+		registry := capabilities.Dircue(Version)
+		values := []string{}
+		for _, module := range registry.Modules {
+			switch name {
+			case "module":
+				values = append(values, module.ID)
+			case "question":
+				values = append(values, module.Question)
+			case "input":
+				for _, input := range module.RequiredInputs {
+					if input != "source" && input != "project" {
+						values = append(values, input)
+					}
+				}
+			}
+		}
+		slices.Sort(values)
+		return slices.Compact(values)
 	}
 	return []string{}
 }
@@ -210,7 +238,7 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
 	case "plan":
-		r = append(r, "Exactly one saved aggregate report and at least one --module or --question. Module/question vocabulary and prerequisites come from default capabilities. One --project, only for focus. --input names must be required by a selected module.")
+		r = append(r, "Exactly one saved aggregate report and at least one --module or --question. Module/question vocabulary and prerequisites come from default capabilities. One --project, only for focus. Cataloged --input values are the union of caller-supplied prerequisites; each is accepted only when required by a selected module.")
 	case "compare":
 		r = append(r, "Exactly two saved aggregate reports; no source scan options.")
 	case "capabilities":
