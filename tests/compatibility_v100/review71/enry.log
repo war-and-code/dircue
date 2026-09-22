@@ -1,0 +1,5 @@
+ok  	github.com/go-enry/go-enry/v2	(cached)
+ok  	github.com/go-enry/go-enry/v2/data	(cached)
+?   	github.com/go-enry/go-enry/v2/data/rule	[no test files]
+ok  	github.com/go-enry/go-enry/v2/internal/tokenizer	(cached)
+?   	github.com/go-enry/go-enry/v2/regex	[no test files]

@@ -40,7 +40,7 @@ Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagno
 
 ## Install
 
-The 1.0.0 release ships platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). Each channel packages the same binary bytes.
+The 1.0.0 release ships platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes.
 
 ```sh
 # Release archive + checksum verification (Linux amd64 shown; substitute your platform)
