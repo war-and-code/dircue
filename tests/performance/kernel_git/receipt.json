@@ -2,6 +2,7 @@
   "adaptive_two_lane_scaling": {
     "binary_sha256": "fe3b5eb3b98acc0b4b37eb0822c3d1d10535e1fd4ec86cd57bb57e4e9b81b6fc",
     "build_base": "439864bbdcc584d7fd9c76d91587c11c7d38d8a0",
+    "qualification": "Historical two-lane candidate scaling used to select the final lane count; not the final integrated source matrix.",
     "runs": [
       {
         "max_rss_bytes": 674283520,
@@ -415,6 +416,7 @@
         "workers": 8
       }
     ],
+    "speedup_1_to_16": 4.688385269121813,
     "summary": {
       "1": {
         "max_rss_bytes": 117833728,
@@ -475,6 +477,7 @@
     "metrics_content_equal": true,
     "metrics_content_sha256_directory": "84aa675513a7b0b5b1de906cf842291f959677f8e14eaab25947d6fd5b2ee55a",
     "metrics_content_sha256_git": "84aa675513a7b0b5b1de906cf842291f959677f8e14eaab25947d6fd5b2ee55a",
+    "qualification": "Focused final-source ratio series on the case-sensitive APFS volume; its 16-worker metrics median is 10.07 seconds.",
     "runs": [
       {
         "kind": "metrics",
@@ -584,6 +587,191 @@
     "wall_seconds": 10.61,
     "workers": 16
   },
+  "final_source_scaling": {
+    "binary_sha256": "5e3323e3f78f417ef6fc447a0d8aa826e82fe36aad6a55fc83674bd0cf8241f0",
+    "fixture_commit": "fe2ec83746e501645709761605c2464a44fd2929",
+    "qualification": "Separate final-source order-balanced scaling series on the retained host bare repository; its 16-worker median is 10.92 seconds. Do not mix this median with the focused ratio series.",
+    "runs": [
+      {
+        "max_rss_bytes": 690225152,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 1,
+        "system_seconds": 4.8,
+        "user_seconds": 43.47,
+        "wall_seconds": 44.54,
+        "workers": 1
+      },
+      {
+        "max_rss_bytes": 774668288,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 2,
+        "system_seconds": 3.84,
+        "user_seconds": 44.57,
+        "wall_seconds": 13.59,
+        "workers": 4
+      },
+      {
+        "max_rss_bytes": 871350272,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 3,
+        "system_seconds": 4.32,
+        "user_seconds": 46.71,
+        "wall_seconds": 11.0,
+        "workers": 8
+      },
+      {
+        "max_rss_bytes": 874233856,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 4,
+        "system_seconds": 4.39,
+        "user_seconds": 46.99,
+        "wall_seconds": 10.92,
+        "workers": 16
+      },
+      {
+        "max_rss_bytes": 761004032,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 5,
+        "system_seconds": 4.46,
+        "user_seconds": 47.01,
+        "wall_seconds": 11.08,
+        "workers": 16
+      },
+      {
+        "max_rss_bytes": 861306880,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 6,
+        "system_seconds": 4.26,
+        "user_seconds": 45.99,
+        "wall_seconds": 10.59,
+        "workers": 8
+      },
+      {
+        "max_rss_bytes": 783204352,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 7,
+        "system_seconds": 3.9,
+        "user_seconds": 44.6,
+        "wall_seconds": 13.55,
+        "workers": 4
+      },
+      {
+        "max_rss_bytes": 698777600,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 8,
+        "system_seconds": 4.62,
+        "user_seconds": 43.61,
+        "wall_seconds": 44.22,
+        "workers": 1
+      },
+      {
+        "max_rss_bytes": 763854848,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 9,
+        "system_seconds": 3.92,
+        "user_seconds": 44.68,
+        "wall_seconds": 13.6,
+        "workers": 4
+      },
+      {
+        "max_rss_bytes": 797327360,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 10,
+        "system_seconds": 4.35,
+        "user_seconds": 46.42,
+        "wall_seconds": 10.45,
+        "workers": 16
+      },
+      {
+        "max_rss_bytes": 695091200,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 11,
+        "system_seconds": 4.54,
+        "user_seconds": 43.24,
+        "wall_seconds": 43.79,
+        "workers": 1
+      },
+      {
+        "max_rss_bytes": 793329664,
+        "output_sha256": "4305219fadd005729a977bd4ed814ffc19e86872b620b995d28d294ca2e37042",
+        "run": 12,
+        "system_seconds": 4.35,
+        "user_seconds": 46.04,
+        "wall_seconds": 10.44,
+        "workers": 8
+      }
+    ],
+    "source_commit": "0d9153fa26ca9b5c87227cc2c1391b3fc9d1167f",
+    "speedup_1_to_16": 4.049450549450549,
+    "summary": {
+      "1": {
+        "rss_bytes_median": 695091200,
+        "rss_bytes_range": [
+          690225152,
+          698777600
+        ],
+        "wall_seconds_median": 44.22,
+        "wall_seconds_samples": [
+          44.54,
+          44.22,
+          43.79
+        ]
+      },
+      "16": {
+        "rss_bytes_median": 797327360,
+        "rss_bytes_range": [
+          761004032,
+          874233856
+        ],
+        "wall_seconds_median": 10.92,
+        "wall_seconds_samples": [
+          10.92,
+          11.08,
+          10.45
+        ]
+      },
+      "4": {
+        "rss_bytes_median": 774668288,
+        "rss_bytes_range": [
+          763854848,
+          783204352
+        ],
+        "wall_seconds_median": 13.59,
+        "wall_seconds_samples": [
+          13.59,
+          13.55,
+          13.6
+        ]
+      },
+      "8": {
+        "rss_bytes_median": 861306880,
+        "rss_bytes_range": [
+          793329664,
+          871350272
+        ],
+        "wall_seconds_median": 10.59,
+        "wall_seconds_samples": [
+          11.0,
+          10.59,
+          10.44
+        ]
+      }
+    },
+    "workers_order": [
+      1,
+      4,
+      8,
+      16,
+      16,
+      8,
+      4,
+      1,
+      4,
+      16,
+      1,
+      8
+    ]
+  },
   "host": {
     "docker_client": "23.0.3",
     "docker_server": "24.0.5 linux/arm64",
@@ -608,6 +796,7 @@
   "lane_count_ab": {
     "adaptive_source_tip": "286d555b6400f3c0b4e4e6f3268cf79309e14447",
     "build_base": "439864bbdcc584d7fd9c76d91587c11c7d38d8a0",
+    "qualification": "Bounded two/three/four-lane selection experiment; final-source scaling is recorded separately.",
     "runs": [
       {
         "lanes": 2,
