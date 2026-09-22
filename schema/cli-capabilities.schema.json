@@ -42,9 +42,11 @@
         ],
         "properties": {
           "code": {
+            "description": "Ordinary handled exit code (0/1) or a POSIX signal-termination status such as 141 for SIGPIPE, which is documented rather than trapped.",
             "enum": [
               0,
-              1
+              1,
+              141
             ]
           },
           "meaning": {

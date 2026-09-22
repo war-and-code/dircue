@@ -1,0 +1,16 @@
+{
+  "at_utc": "2026-09-21T23:17:25.344374+00:00",
+  "requested_by_user": true,
+  "installed": [
+    "flock 0.4.0",
+    "coreutils 9.12"
+  ],
+  "command": [
+    "bash",
+    "<workspace>/.codex/skills/agent-ergonomics-and-intuitiveness-maximization-for-cli-tools/scripts/preflight.sh",
+    "<workspace>"
+  ],
+  "exit_code": 0,
+  "stdout": "",
+  "stderr": "OK    target is a directory\nOK    git installed\nOK    jq installed\nOK    flock installed\nOK    node installed\nOK    awk installed\nOK    find installed\nOK    sed installed\nOK    timeout installed\nOK    target is a git repo\nOK    /agent-mail skill (optional)\nOK    /br (Beads tracker) (optional)\nOK    /bv skill (optional)\nOK    /cass skill (optional)\nOK    /multi-model-triangulation skill (optional)\nWARN  /ubs skill (optional) \u2014 without it, Phase 7 fresh-eyes skips static-bug pre-pass; minor\nOK    shellcheck (optional)\nWARN  could not auto-detect target binary name; user must specify at intake\n\npreflight: OK (2 optional helper warning(s); see SKILL-FALLBACKS.md)\n"
+}

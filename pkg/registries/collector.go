@@ -13,7 +13,26 @@ type Collector struct {
 	report   Report
 	pending  map[string][]Candidate
 	finished bool
+	// errorPolicy controls per-file read handling at Finish time. "continue"
+	// records a per-configuration "file_read_error" omission and keeps the
+	// remaining candidates; anything else fails hard, preserving the
+	// default trust boundary and never returning a partial report on I/O.
+	errorPolicy string
+	readErrors  []string
 }
+
+// SetErrorPolicy configures how Finish reacts to per-file read failures.
+// Pass "continue" to record a per-configuration "file_read_error"
+// omission and keep the remaining candidates; the default preserves the
+// historical fail-fast contract that never surfaces a caller's original
+// I/O error message. Call before Finish.
+func (c *Collector) SetErrorPolicy(policy string) { c.errorPolicy = policy }
+
+// ReadErrors returns the paths of registry configurations Finish skipped
+// because their bounded read failed under the continue policy. The
+// scanner uses this to emit same-shaped "file_read_error" warnings at
+// the top level.
+func (c *Collector) ReadErrors() []string { return c.readErrors }
 
 func New(source Source, opts Options) (*Collector, error) {
 	if opts.MaxFileBytes < 0 || source.Mode != "git" && source.Mode != "directory" {
@@ -156,6 +175,15 @@ func (c *Collector) Finish(ctx context.Context) (*Report, error) {
 				return nil, context.DeadlineExceeded
 			}
 			if err != nil {
+				if c.errorPolicy == "continue" {
+					// Retain per-configuration attribution without exposing the
+					// caller's underlying I/O error text through this report.
+					cfg.fail("file_read_error", "not_read")
+					c.report.Status = "partial"
+					c.report.Configurations = append(c.report.Configurations, cfg)
+					c.readErrors = append(c.readErrors, file.Path)
+					continue
+				}
 				return nil, ErrRead
 			}
 			if int64(len(content)) > c.report.Scope.MaxFileBytes+1 {

@@ -96,7 +96,8 @@ def main():
     if common.sha256(baseline) != BASELINE_SHA256 or common.sha256(candidate) != report["candidate_sha256"]:
         raise AssertionError("executables changed during execution")
     common.write_json(args.output, report)
-    print(json.dumps({k: report[k] for k in ("passed", "total", "exact_matches", "unused_diagnostic_exceptions")}))
+    print(json.dumps({k: report[k] for k in ("passed", "total", "exact_matches",
+                                              "unused_diagnostic_exceptions")}))
     raise SystemExit(0 if report["passed"] else 1)
 
 

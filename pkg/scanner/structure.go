@@ -4,6 +4,7 @@ import (
 	"context"
 	"dircue/pkg/profile"
 	"dircue/pkg/structure"
+	"errors"
 	"fmt"
 	"math"
 	"os"
@@ -74,10 +75,46 @@ func countStructure(ctx context.Context, root *os.Root, item job, opts Options, 
 	}
 	observed, err := opts.Structure.Analyze(ctx, item.path, language, data)
 	if err != nil {
+		// Per-file worker conditions (deadline, crash) become skipped omissions
+		// only under an explicit --on-error continue. Protocol violations
+		// (identity, provenance, single-parse, malformed responses) never carry
+		// these sentinels, so they remain fatal in every mode. The default
+		// error policy still aborts on any worker failure, matching 0.8.0.
+		if opts.ErrorPolicy == ErrorPolicyContinue && ctx.Err() == nil {
+			if reason := recoverableStructureReason(err); reason != "" {
+				f.Reason = reason
+				// The worker's error can contain arbitrary stderr. Continue-mode
+				// warnings are persisted in successful JSON reports, so retain only
+				// a fixed explanation; the default fatal path still returns the
+				// original error text for compatibility.
+				message := "structural worker process exited unsuccessfully"
+				if reason == "structural_timeout" {
+					message = "structural worker exceeded the per-file timeout"
+				}
+				value.warnings = append(value.warnings, profile.Warning{Path: item.path, Code: reason, Message: message})
+				return nil
+			}
+		}
 		return fmt.Errorf("structure %s: %w", item.path, err)
 	}
 	value.structural = &observed
 	return nil
+}
+
+// recoverableStructureReason classifies a structure-worker error for the
+// per-file continue policy. Timeouts and process failures map to distinct
+// omission reasons so the structure report attributes each cause; protocol
+// violations (which never wrap these sentinels) map to no reason and stay
+// fatal.
+func recoverableStructureReason(err error) string {
+	switch {
+	case errors.Is(err, structure.ErrWorkerTimeout):
+		return "structural_timeout"
+	case errors.Is(err, structure.ErrWorkerFailure):
+		return "structural_worker_failure"
+	default:
+		return ""
+	}
 }
 func addStructure(r *profile.StructureReport, value result) error {
 	for _, w := range value.warnings {

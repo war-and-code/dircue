@@ -45,7 +45,7 @@ The .NET/JVM expansion reuses static declarations. Raw build conditions are repr
 
 ## Selected source and coverage
 
-At a Git repository root, automatic selection normally reads committed `HEAD`. `--rev` selects a commit and `--tree` selects an exact Git tree. `--source directory` selects live filesystem contents instead. The declaration reader uses those same selected-source callbacks and never follows a reference to open an additional file. Directory mode is not an atomic snapshot. Read failures fail by default; `--on-error continue` exposes recoverable per-file omissions in a partial report.
+At a Git repository root, automatic selection normally reads committed `HEAD`. `--rev` selects a commit and `--tree` selects an exact Git tree. `--source directory` selects live filesystem contents instead. The declaration reader uses those same selected-source callbacks and never follows a reference to open an additional file. Directory mode is not an atomic snapshot. Read failures fail by default; `--on-error continue` records each unreadable manifest as a per-path `file-read-error` diagnostic in the partial report and keeps the remaining manifests.
 
 Installed `node_modules` manifests are excluded from this module. Other supported manifests can be observed independently of their inclusion in language statistics. Symlinks and other nonregular entries are not followed. Missing targets are assessed within the selected inventory, not the host filesystem.
 

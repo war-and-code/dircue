@@ -25,7 +25,24 @@ type Collector struct {
 	maxSourceBytes int64
 	finished       bool
 	finishErr      error
+	// errorPolicy controls per-file read handling at Finish time. "continue"
+	// records an omission per unreadable candidate; anything else fails hard,
+	// preserving the default trust boundary.
+	errorPolicy string
+	readErrors  []string
 }
+
+// SetErrorPolicy configures how Finish reacts to per-file read failures.
+// Pass "continue" to record a "file_read_error" omission and keep the
+// remaining candidates; the default preserves the historical fail-fast
+// contract. Call before Finish.
+func (c *Collector) SetErrorPolicy(policy string) { c.errorPolicy = policy }
+
+// ReadErrors returns the paths of selected candidates that Finish skipped
+// because their bounded read failed under the continue policy. The caller
+// uses this to emit top-level "file_read_error" warnings alongside the
+// module's own omission accounting. Order matches Finish's read order.
+func (c *Collector) ReadErrors() []string { return c.readErrors }
 
 func New(mode, tree string, maxSourceBytes int64) *Collector {
 	consistency := "live_directory_reads"
@@ -107,6 +124,23 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
+			}
+			// A reader can observe cancellation before the shared context's
+			// Err method does (or can use its own derived deadline). Cancellation
+			// is a control-flow boundary, never a recoverable file omission.
+			if errors.Is(err, context.Canceled) {
+				return nil, context.Canceled
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, context.DeadlineExceeded
+			}
+			if c.errorPolicy == "continue" {
+				// The candidate remains counted in SelectedFiles and its path is
+				// recorded so the scanner emits a same-shaped file_read_error
+				// warning alongside this module-owned omission.
+				c.skipFile("file_read_error")
+				c.readErrors = append(c.readErrors, file.Path)
+				continue
 			}
 			return nil, errors.New("could not read a selected format candidate")
 		}

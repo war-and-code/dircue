@@ -2,6 +2,24 @@
 
 ## 1.0.0 (unreleased)
 
+- First public release. Introduce the [1.0 compatibility promise](docs/COMPATIBILITY.md)
+  covering the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
+  families and their `schema_version` semantics, exit statuses, and the boundary
+  guarantees. Publish a [security policy](SECURITY.md), a
+  [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
+  template. Rewrite the README front matter to lead with a quick example
+  and a real install story (release archives with checksums, clone-and-build,
+  Python wheel from a GitHub Release URL; `go install` is unsupported because
+  go.mod carries replace directives for the maintained forks). Document the known 1.0 boundaries
+  (`--source auto` fallback disclosure, absent-focus-query, registry adapter
+  coverage, environment adapter breadth, structural worker isolation) in
+  [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and
+  cross-link from the relevant module docs.
+- Move the CLI ergonomics evidence tree from `agent_ergonomics_audit/` (a
+  repository-root directory) to `tests/ergonomics_v100/`. Redact captured
+  absolute home paths in the audit transcripts. No shipped module reads from
+  the audit tree; the regression harness continues to work against a
+  caller-supplied dircue binary.
 - Add an offline CLI guide, a command and option catalog, and standalone JSON
   Schema export through explicit `capabilities` views. Keep the original planner
   descriptor and existing analysis output contracts.
@@ -24,6 +42,44 @@
   show 20–43% lower elapsed time on five selected Git workloads; the XML directory
   control is unchanged. Preserve classification, output and source-selection
   behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
+- Preserve the directory tree-size preflight and per-file regular-file check.
+  Add regressions for unreadable attributes, detector calls on oversized trees,
+  and symlinks to regular files; reject proposed optimizations that weakened
+  these behaviors.
+- Honor `--on-error continue` uniformly. Previously a single unreadable manifest
+  aborted the whole `analyze all` run even under `continue`, because formats,
+  declarations, registries and the environments `global.json` selection
+  returned plain read errors. Under `continue` the unreadable file is now a
+  per-module omission (`file_read_error`) plus the same-shaped top-level
+  warning, the module reports `partial`, and the remaining modules keep their
+  evidence. Under `continue` only, a per-file structural worker timeout or
+  non-zero exit becomes a `structural_timeout` or `structural_worker_failure`
+  omission instead of ending the scan. Cancellation, worker startup failures,
+  and protocol violations remain fatal. Recoverable worker warnings omit raw
+  worker stderr. Cache failed global.json selections once per analysis and
+  deduplicate file-read warnings without quadratic scans.
+- Preserve Linguist-compatible `--tree-size` edge behavior: nonpositive values
+  behave as 1 for directory scans, while single-file inspection ignores the
+  directory-only limit.
+- Suggest nearby values for finite option choices (`--source`, `--on-error`,
+  `--metrics-scope`, `--module`), two-edit typos of longer command names, and
+  an unknown first token that is not a path. Give `analyze explain --report` the
+  same unreadable-report hint as `plan` and `compare`. Name the object kind
+  when `--tree` resolves to a commit or blob. Advertise the `--guide`, `--cli`
+  and `--schema` capability views through explicit help, record signal
+  termination (SIGPIPE on a closed stdout) truthfully in
+  the CLI catalog exit codes, and add a catalog drift test so a new flag cannot
+  ship without its documented semantics.
+- Report a `global.json` accepted through the JSONC path (comments, trailing
+  commas) with a `global-json-lenient-syntax` diagnostic. Allow complete environment
+  coverage only when all upstream gaps are independently resolved strict-JSON
+  rejections; retain partial status for omitted or malformed project requirements.
+  Consider only `global.json` files that are
+  nearest ancestors of a modeled .NET invocation context, so a Jekyll or Hugo
+  `_data/global.json` no longer receives a .NET diagnostic.
+- Add fuzz targets with seed corpora for the gitattributes parser, the
+  `global.json` and `requires-python` readers, saved-report planning input and
+  the capability descriptor, asserting bounded output and determinism.
 
 ## 0.8.0 (2026-09-21)
 

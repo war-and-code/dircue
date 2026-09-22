@@ -4,11 +4,14 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 	"unicode"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func assertSafeCLIError(t *testing.T, err error) {
@@ -129,6 +132,67 @@ func TestExplainAllowsOmittedTreeWithDefaultErrorPolicy(t *testing.T) {
 	out, stderr, err := invoke("analyze", "explain", "--source", "directory", "--file", "main.go", "--json", root)
 	if err != nil || stderr != "" || !strings.Contains(out, `"explanation"`) {
 		t.Fatalf("valid explain default: stdout=%q stderr=%q err=%v", out, stderr, err)
+	}
+}
+
+// TestTreeFlagReportsObjectKindWhenNotATree verifies that a caller who
+// copy-pastes a commit or blob SHA into --tree receives a specific "object is
+// a commit/blob, not a tree" diagnostic instead of the misleading
+// "object not found" wording. Stderr stays empty and the exit path is the
+// ordinary handled-error path.
+func TestTreeFlagReportsObjectKindWhenNotATree(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := git.PlainInit(root, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	wt, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := wt.Add("main.go"); err != nil {
+		t.Fatal(err)
+	}
+	commitHash, err := wt.Commit("fixture", &git.CommitOptions{Author: &object.Signature{Name: "Fixture", Email: "fixture@example.invalid", When: time.Unix(1700000000, 0)}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit, err := repo.CommitObject(commitHash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(tree.Entries) == 0 {
+		t.Fatal("empty tree")
+	}
+	blobHash := tree.Entries[0].Hash.String()
+	for _, tc := range []struct {
+		name string
+		hash string
+		want string
+	}{
+		{"commit_hash", commitHash.String(), "object is a commit, not a tree"},
+		{"blob_hash", blobHash, "object is a blob, not a tree"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			out, stderr, err := invoke("--json", "--tree", tc.hash, root)
+			if err == nil {
+				t.Fatalf("accepted non-tree --tree %s: stdout=%q", tc.hash, out)
+			}
+			if out != "" || stderr != "" {
+				t.Fatalf("wrote before caller handled the error: stdout=%q stderr=%q", out, stderr)
+			}
+			if !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("diagnostic %q missing want %q", err.Error(), tc.want)
+			}
+			assertSafeCLIError(t, err)
+		})
 	}
 }
 

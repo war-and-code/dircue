@@ -65,9 +65,12 @@ without telemetry.
 ## Preserve contracts and measure tradeoffs
 
 Protect supported CLI invocations, JSON layouts, exit semantics, and the
-documented Linguist compatibility contract. Keep diagnostics separate from
-machine-readable stdout. Test changes against independent references and
-representative inputs, including awkward and large cases.
+documented Linguist compatibility contract. The
+[1.0 compatibility promise](COMPATIBILITY.md) names the specific surfaces
+frozen for the 1.x line and how additive changes and deprecations are
+versioned. Keep diagnostics separate from machine-readable stdout. Test
+changes against independent references and representative inputs, including
+awkward and large cases.
 
 Measure performance rather than inferring it from implementation choices.
 Record the workload, source versions, environment, and both benefits and
