@@ -1,0 +1,55 @@
+File: cli-profile
+Type: cpu
+Time: 2026-09-21 19:15:06 EDT
+Duration: 4.73s, Total samples = 7.12s (150.45%)
+Active filters:
+   tagfocus=phase=cli
+Showing nodes accounting for 4.93s, 69.24% of 7.12s total
+Dropped 139 nodes (cum <= 0.04s)
+Showing top 45 nodes out of 122
+      flat  flat%   sum%        cum   cum%
+     3.48s 48.88% 48.88%      3.48s 48.88%  syscall.rawsyscalln
+     0.55s  7.72% 56.60%      0.55s  7.72%  runtime.madvise
+     0.14s  1.97% 58.57%      0.14s  1.97%  runtime.pthread_cond_signal
+     0.12s  1.69% 60.25%      0.38s  5.34%  encoding/xml.(*Decoder).text
+     0.09s  1.26% 61.52%      0.15s  2.11%  encoding/xml.(*Decoder).getc
+     0.08s  1.12% 62.64%      0.12s  1.69%  bytes.(*Buffer).WriteByte
+     0.07s  0.98% 63.62%      0.07s  0.98%  runtime.usleep
+     0.06s  0.84% 64.47%      0.06s  0.84%  bytes.(*Reader).ReadByte
+     0.04s  0.56% 65.03%      0.16s  2.25%  runtime.mallocgcSmallScanNoHeader
+     0.04s  0.56% 65.59%      0.04s  0.56%  runtime.pthread_kill
+     0.04s  0.56% 66.15%      0.04s  0.56%  unicode/utf8.DecodeRune (inline)
+     0.03s  0.42% 66.57%      0.04s  0.56%  bytes.(*Buffer).tryGrowByReslice (inline)
+     0.03s  0.42% 66.99%      0.77s 10.81%  encoding/xml.(*Decoder).rawToken
+     0.03s  0.42% 67.42%      0.03s  0.42%  encoding/xml.isInCharacterRange (inline)
+     0.03s  0.42% 67.84%      0.03s  0.42%  runtime.kevent
+     0.03s  0.42% 68.26%      0.03s  0.42%  runtime.tryDeferToSpanScan
+     0.02s  0.28% 68.54%      0.10s  1.40%  runtime.convT
+     0.01s  0.14% 68.68%      0.81s 11.38%  encoding/xml.(*Decoder).Token
+     0.01s  0.14% 68.82%      0.13s  1.83%  encoding/xml.(*Decoder).nsname
+     0.01s  0.14% 68.96%      0.05s   0.7%  runtime.growslice
+     0.01s  0.14% 69.10%      0.28s  3.93%  runtime.mallocgc
+     0.01s  0.14% 69.24%      0.03s  0.42%  runtime.scanObject
+         0     0% 69.24%      3.35s 47.05%  dircue/internal/cli.Execute
+         0     0% 69.24%      3.35s 47.05%  dircue/internal/cli.Execute.func3
+         0     0% 69.24%      3.35s 47.05%  dircue/internal/cli.run
+         0     0% 69.24%      0.08s  1.12%  dircue/pkg/availability.(*Collector).Finish
+         0     0% 69.24%      3.21s 45.08%  dircue/pkg/formats.(*Collector).Finish
+         0     0% 69.24%      0.85s 11.94%  dircue/pkg/formats.inspect
+         0     0% 69.24%      0.83s 11.66%  dircue/pkg/formats.inspectXML
+         0     0% 69.24%      0.08s  1.12%  dircue/pkg/scanner.(*availabilityAccumulator).add.selectedSourceAvailabilityRead.func1
+         0     0% 69.24%      0.11s  1.54%  dircue/pkg/scanner.(*availabilityAccumulator).finish
+         0     0% 69.24%      0.03s  0.42%  dircue/pkg/scanner.(*availabilityAccumulator).inspectCheckoutMetadata
+         0     0% 69.24%      3.34s 46.91%  dircue/pkg/scanner.Scan
+         0     0% 69.24%      0.03s  0.42%  dircue/pkg/scanner.Scan.func2
+         0     0% 69.24%      1.12s 15.73%  dircue/pkg/scanner.Scan.func4
+         0     0% 69.24%      1.09s 15.31%  dircue/pkg/scanner.analyzeFile
+         0     0% 69.24%         1s 14.04%  dircue/pkg/scanner.analyzeFile.cachedFileReader.func2
+         0     0% 69.24%      2.36s 33.15%  dircue/pkg/scanner.analyzeFile.formatCandidate.func1
+         0     0% 69.24%      1.09s 15.31%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 69.24%      1.09s 15.31%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 69.24%      0.28s  3.93%  dircue/pkg/scanner.openRegular (inline)
+         0     0% 69.24%      0.66s  9.27%  dircue/pkg/scanner.readAllBounded
+         0     0% 69.24%      3.44s 48.31%  dircue/pkg/scanner.readBoundedSize
+         0     0% 69.24%      0.13s  1.83%  encoding/xml.(*Decoder).attrval
+         0     0% 69.24%      0.04s  0.56%  encoding/xml.(*Decoder).mustgetc

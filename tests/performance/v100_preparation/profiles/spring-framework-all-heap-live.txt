@@ -1,0 +1,51 @@
+File: scanner.test
+Type: inuse_space
+Time: 2026-09-21 19:09:09 EDT
+Showing nodes accounting for 14043.84kB, 100% of 14043.84kB total
+Showing top 45 nodes out of 95
+      flat  flat%   sum%        cum   cum%
+ 3124.84kB 22.25% 22.25%  3124.84kB 22.25%  github.com/go-enry/go-enry/v2.decodeCentroidModel
+ 2602.49kB 18.53% 40.78%  2602.49kB 18.53%  regexp.(*Regexp).get
+ 2050.30kB 14.60% 55.38%  2050.30kB 14.60%  runtime.mallocgc
+ 1536.16kB 10.94% 66.32%  1536.16kB 10.94%  regexp/syntax.(*parser).newRegexp (inline)
+ 1131.70kB  8.06% 74.38%  1131.70kB  8.06%  bytes.growSlice
+ 1024.11kB  7.29% 81.67%  1024.11kB  7.29%  internal/sync.runtime_SemacquireMutex
+  520.04kB  3.70% 85.37%   520.04kB  3.70%  github.com/go-git/go-git/v5/utils/sync.init.func2
+  514.63kB  3.66% 89.04%   514.63kB  3.66%  vendor/golang.org/x/net/http2/hpack.init
+  514.38kB  3.66% 92.70%   514.38kB  3.66%  compress/flate.NewReader
+  512.69kB  3.65% 96.35%   512.69kB  3.65%  regexp/syntax.(*compiler).inst (inline)
+  512.50kB  3.65%   100%   512.50kB  3.65%  regexp.(*machine).alloc (inline)
+         0     0%   100%  1131.70kB  8.06%  bytes.(*Buffer).ReadFrom
+         0     0%   100%  1131.70kB  8.06%  bytes.(*Buffer).grow
+         0     0%   100%   514.38kB  3.66%  compress/zlib.(*reader).Reset
+         0     0%   100%   514.38kB  3.66%  compress/zlib.NewReader (inline)
+         0     0%   100%   514.38kB  3.66%  compress/zlib.NewReaderDict
+         0     0%   100%  3190.23kB 22.72%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0%   100%  3124.84kB 22.25%  dircue/pkg/scanner.DetectLanguage
+         0     0%   100%  9430.06kB 67.15%  dircue/pkg/scanner.Scan.func4
+         0     0%   100%  9430.06kB 67.15%  dircue/pkg/scanner.analyzeFile
+         0     0%   100%  9430.06kB 67.15%  dircue/pkg/scanner.analyzeFileBase
+         0     0%   100%  9430.06kB 67.15%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0%   100%   553.04kB  3.94%  dircue/pkg/scanner.blobRead
+         0     0%   100%  3124.84kB 22.25%  github.com/go-enry/go-enry/v2.(*centroidClassifier).classify
+         0     0%   100%  3124.84kB 22.25%  github.com/go-enry/go-enry/v2.GetLanguagesByClassifier
+         0     0%   100%  3114.99kB 22.18%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0%   100%  3124.84kB 22.25%  github.com/go-enry/go-enry/v2.getLanguagesBySpecificClassifier (inline)
+         0     0%   100%  3124.84kB 22.25%  github.com/go-enry/go-enry/v2.loadCentroids
+         0     0%   100%  1024.74kB  7.30%  github.com/go-enry/go-enry/v2/data.init
+         0     0%   100%   512.05kB  3.65%  github.com/go-enry/go-enry/v2/internal/tokenizer.compileLexer
+         0     0%   100%   512.05kB  3.65%  github.com/go-enry/go-enry/v2/internal/tokenizer.compileLexerExpression
+         0     0%   100%   512.05kB  3.65%  github.com/go-enry/go-enry/v2/internal/tokenizer.init
+         0     0%   100%   512.69kB  3.65%  github.com/go-enry/go-enry/v2/regex.MustCompile
+         0     0%   100%   512.05kB  3.65%  github.com/go-enry/go-enry/v2/regex.MustCompileMultiline
+         0     0%   100%   512.05kB  3.65%  github.com/go-enry/go-enry/v2/regex.init
+         0     0%   100%  1613.08kB 11.49%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0%   100%   553.04kB  3.94%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*FSObject).Reader
+         0     0%   100%  1613.08kB 11.49%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).GetByOffset
+         0     0%   100%   553.04kB  3.94%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).fillOFSDeltaObjectContent
+         0     0%   100%  1131.70kB  8.06%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).fillOFSDeltaObjectContentWithBuffer
+         0     0%   100%   520.04kB  3.70%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).fillRegularObjectContent
+         0     0%   100%  1073.08kB  7.64%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+         0     0%   100%  1613.08kB 11.49%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+         0     0%   100%   553.04kB  3.94%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getObjectContent
+         0     0%   100%  1613.08kB 11.49%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).objectAtOffset

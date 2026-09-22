@@ -1,0 +1,10 @@
+ mode: Total 45.82s of 88.72s (51.65%)
+       45.82s (51.65%): all
+
+ phase: Total 68.88s of 88.72s (77.64%)
+        45.82s (51.65%): scan
+        23.06s (25.99%): warmup
+
+ source: Total 68.88s of 88.72s (77.64%)
+         68.88s (77.64%): git
+

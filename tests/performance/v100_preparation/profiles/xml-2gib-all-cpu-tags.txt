@@ -1,0 +1,10 @@
+ mode: Total 450ms of 980ms (45.92%)
+       450ms (45.92%): all
+
+ phase: Total 540ms of 980ms (55.10%)
+        450ms (45.92%): scan
+         90ms ( 9.18%): warmup
+
+ source: Total 540ms of 980ms (55.10%)
+         540ms (55.10%): directory
+

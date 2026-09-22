@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:08:27 EDT
+Duration: 21.46s, Total samples = 38.57s (179.71%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 22.79s, 59.09% of 38.57s total
+Dropped 175 nodes (cum <= 0.19s)
+Showing top 45 nodes out of 143
+      flat  flat%   sum%        cum   cum%
+    14.40s 37.33% 37.33%     14.40s 37.33%  syscall.rawsyscalln
+     5.54s 14.36% 51.70%      5.54s 14.36%  runtime.pthread_cond_signal
+     0.93s  2.41% 54.11%      0.93s  2.41%  runtime.madvise
+     0.50s  1.30% 55.41%      0.92s  2.39%  regexp.(*Regexp).tryBacktrack
+     0.43s  1.11% 56.52%      0.48s  1.24%  regexp.(*machine).add
+     0.24s  0.62% 57.14%      0.52s  1.35%  regexp.(*machine).step
+     0.22s  0.57% 57.71%      0.22s  0.57%  regexp.(*bitState).shouldVisit (inline)
+     0.16s  0.41% 58.13%      0.16s  0.41%  regexp.(*inputString).step
+     0.10s  0.26% 58.39%      0.13s  0.34%  regexp/syntax.(*Inst).MatchRunePos
+     0.09s  0.23% 58.62%      1.11s  2.88%  regexp.(*Regexp).backtrack
+     0.06s  0.16% 58.78%      0.57s  1.48%  compress/flate.(*decompressor).huffSym
+     0.04s   0.1% 58.88%      0.90s  2.33%  regexp.(*machine).match
+     0.03s 0.078% 58.96%      0.92s  2.39%  compress/flate.(*decompressor).huffmanBlock
+     0.02s 0.052% 59.01%      1.07s  2.77%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*scannerReader).ReadByte
+     0.01s 0.026% 59.04%      1.08s  2.80%  bufio.(*Reader).ReadByte
+     0.01s 0.026% 59.06%      7.02s 18.20%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackOpen
+     0.01s 0.026% 59.09%      0.13s  0.34%  runtime.lock2
+         0     0% 59.09%      1.07s  2.77%  bufio.(*Reader).fill
+         0     0% 59.09%      0.94s  2.44%  compress/flate.(*decompressor).Read
+         0     0% 59.09%      0.28s  0.73%  compress/flate.(*decompressor).moreBits
+         0     0% 59.09%      0.53s  1.37%  compress/flate.(*decompressor).nextBlock
+         0     0% 59.09%      0.96s  2.49%  compress/zlib.(*reader).Read
+         0     0% 59.09%      0.78s  2.02%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 59.09%      5.13s 13.30%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 59.09%      9.96s 25.82%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 59.09%      0.39s  1.01%  dircue/pkg/scanner.(*gitTreeIterator).Next
+         0     0% 59.09%      0.35s  0.91%  dircue/pkg/scanner.DetectLanguage
+         0     0% 59.09%      5.13s 13.30%  dircue/pkg/scanner.Scan.func3
+         0     0% 59.09%     12.03s 31.19%  dircue/pkg/scanner.Scan.func4
+         0     0% 59.09%     11.96s 31.01%  dircue/pkg/scanner.analyzeFile
+         0     0% 59.09%     11.96s 31.01%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 59.09%     11.96s 31.01%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 59.09%      1.30s  3.37%  dircue/pkg/scanner.blobRead
+         0     0% 59.09%      0.14s  0.36%  dircue/pkg/scanner.resolveAttributeRuleSets
+         0     0% 59.09%      0.14s  0.36%  dircue/pkg/scanner.resolveAttributeRuleSetsContext (inline)
+         0     0% 59.09%      0.14s  0.36%  dircue/pkg/scanner.resolveAttributesContext
+         0     0% 59.09%      0.29s  0.75%  github.com/go-enry/go-enry/v2.GetLanguagesByContent
+         0     0% 59.09%      0.57s  1.48%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
+         0     0% 59.09%      0.46s  1.19%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 59.09%      0.62s  1.61%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 59.09%      0.57s  1.48%  github.com/go-enry/go-enry/v2.matchRegexSlice (inline)
+         0     0% 59.09%      0.29s  0.75%  github.com/go-enry/go-enry/v2/data.Heuristics.Match
+         0     0% 59.09%      0.41s  1.06%  github.com/go-enry/go-enry/v2/data.nameMatches.func1
+         0     0% 59.09%      0.29s  0.75%  github.com/go-enry/go-enry/v2/data/rule.or.Match
+         0     0% 59.09%      8.08s 20.95%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open

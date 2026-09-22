@@ -1,0 +1,11 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:08:27 EDT
+Duration: 21.46s, Total samples = 38570ms (179.71%)
+Active filters:
+   show=ObjectStorage.*packfile|NewReaderSize|ObjectPack
+   tagfocus=phase=scan
+Showing nodes accounting for 7880ms, 20.43% of 38570ms total
+      flat  flat%   sum%        cum   cum%
+     850ms  2.20%  2.20%     7880ms 20.43%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+    7030ms 18.23% 20.43%     7030ms 18.23%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack

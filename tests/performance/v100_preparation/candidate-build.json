@@ -1,0 +1,71 @@
+{
+  "at": "2026-09-21T23:30:16.698776+00:00",
+  "base_commit": "121027f44f014ac8d0a003a451a04b080a5ffe88",
+  "source_archive_sha256": "6b0e2037bdc6547b06241d2d5eda7d32c43a197aadc6b3679ef4e6429ba8d4ca",
+  "baseline_rebuild_sha256": "d122cd17dbbf769866e9157310ca65e76a257e5d1b6e4b1c1ad06fa5ba04ef6a",
+  "baseline_rebuild_identical": true,
+  "candidate_sha256": "e6599656474f4dc916e139f7287844eb64a64cd93c9a088bf40b0f3cfbbd2af1",
+  "binary_path": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization/dircue",
+  "source_path": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization-source",
+  "exact_input_delta": {
+    "pkg/scanner/git.go": {
+      "before_sha256": "b214e8d0401ea93e18beb3d8ada5fb40063bf253380bae1517ca728522040693",
+      "after_sha256": "450186a4913dc0f46a80631d2d4eff337abf1498e8e65a1b1963da0a30d34954"
+    },
+    "pkg/scanner/scanner.go": {
+      "before_sha256": "5eb8b13fdbaa8a8c9bf4dbcff478a0a010c3eca0103e06a3f4c35679547c36ad",
+      "after_sha256": "a4f1cf16fdec2201c26a0e9efce60849c2e952a7b1d05d4fb279664149f13030"
+    },
+    "pkg/scanner/inspect.go": {
+      "before_sha256": "3673f35f73c04d5ce71e3ae299b6928e8c1351c69fdcf6b42ebaf5d19d9e44cd",
+      "after_sha256": "595b70ed82e5e214563636c7a6234e5c558c7910ed0ba3436435de9bfaa98b26"
+    },
+    "pkg/scanner/git_cache_test.go": {
+      "before_sha256": null,
+      "after_sha256": "9e63841cc56c9fbcfe98a66abb5d9d07793dcd3d67e9ba6385cf5d6612e5e55f"
+    },
+    "third_party/go-git/storage/filesystem/object.go": {
+      "before_sha256": "ee1a1a083dd92c5df72a3c228e964c6a84ab3e7ef1f8108979f7f96db69d78bf",
+      "after_sha256": "3d0b0c3426c37278430d2b6ae3c9792c754d2bc214f496e95949c079629aead6"
+    },
+    "third_party/go-git/storage/filesystem/packfile_cache_close_regression_test.go": {
+      "before_sha256": null,
+      "after_sha256": "a441deca7a49ab88920ff544b21e55a218f861a5c54ad3adc0889089b414ea71"
+    },
+    "third_party/go-git/PROVENANCE.json": {
+      "before_sha256": "7bb7c8aff9ddba02503821b198d63185d478ee731238391f71dca511d0a64a39",
+      "after_sha256": "d03914061d4d42189fb0d97f65709649e8d1d9275f908549e43f17421ddddf15"
+    },
+    "third_party/patches/go-git-reader-delta.patch": {
+      "before_sha256": "cf5d2123e792321f414321dc901de90e8cefe4cbdbc17747ee39348142660ebb",
+      "after_sha256": "0c89dde7c27a0bf762c1307315aa6502143fe80c4318a7a783009f2b7a8ed0d7"
+    },
+    "third_party/README.md": {
+      "before_sha256": "36804f99ae08cd569c1f728960e7009e9c62ee685fcea294f8eb4cea86a6750a",
+      "after_sha256": "e7cf9fa4d740bb784009bb059118518ce77350e08ac1aab1422902dffa2d1e7b"
+    }
+  },
+  "build_command": [
+    "go",
+    "build",
+    "-mod=readonly",
+    "-buildvcs=false",
+    "-trimpath",
+    "-ldflags",
+    "-X dircue/internal/cli.Version=0.8.0",
+    "-o",
+    "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization/dircue",
+    "."
+  ],
+  "build_info": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization/dircue: go1.26.6\n\tpath\tdircue\n\tmod\tdircue\t(devel)\t\n\tdep\tdario.cat/mergo\tv1.0.2\th1:85+piFYR1tMbRrLcDwR18y4UKJ3aH1Tbzi24VRW1TK8=\n\tdep\tgithub.com/ProtonMail/go-crypto\tv1.4.1\th1:9RfcZHqEQUvP8RzecWEUafnZVtEvrBVL9BiF67IQOfM=\n\tdep\tgithub.com/agnivade/levenshtein\tv1.2.2-0.20250519083737-420867539855\th1:eecTPiTbYU25fX1PZ2euFs9ol/TwQsJbRZwOF6pddw8=\n\tdep\tgithub.com/boyter/gocodewalker\tv1.5.2-0.20260905064325-27ad42ef7a81\th1:06aUfVQmm+m3+KcuVGPTCg2AvS6fekiKq6WEBHNx3Mk=\n\tdep\tgithub.com/boyter/scc/v4\tv4.1.0\th1:aNMEqwUk0cTH4stwWSbck8HOMKkRm7hjClw3VYvtYLw=\n\tdep\tgithub.com/clipperhouse/uax29/v2\tv2.7.0\th1:+gs4oBZ2gPfVrKPthwbMzWZDaAFPGYK72F0NJv2v7Vk=\n\tdep\tgithub.com/cloudflare/circl\tv1.6.3\th1:9GPOhQGF9MCYUeXyMYlqTR6a5gTrgR/fBLXvUgtVcg8=\n\tdep\tgithub.com/cyphar/filepath-securejoin\tv0.6.1\th1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVyciv8syjIpVE=\n\tdep\tgithub.com/danwakefield/fnmatch\tv0.0.0-20160403171240-cbb64ac3d964\th1:y5HC9v93H5EPKqaS1UYVg1uYah5Xf51mBfIoWehClUQ=\n\tdep\tgithub.com/emirpasic/gods\tv1.18.1\th1:FXtiHYKDGKCW2KzwZKx0iC0PQmdlorYgdFG9jPXJ1Bc=\n\tdep\tgithub.com/go-enry/go-enry/v2\tv2.9.6\n\t=>\t./third_party/go-enry\t(devel)\t\n\t\n\tdep\tgithub.com/go-git/gcfg\tv1.5.1-0.20230307220236-3a3c6141e376\th1:+zs/tPmkDkHx3U66DAb0lQFJrpS6731Oaa12ikc+DiI=\n\tdep\tgithub.com/go-git/go-billy/v5\tv5.9.0\th1:jItGXszUDRtR/AlferWPTMN4j38BQ88XnXKbilmmBPA=\n\tdep\tgithub.com/go-git/go-git/v5\tv5.19.2\n\t=>\t./third_party/go-git\t(devel)\t\n\t\n\tdep\tgithub.com/golang/groupcache\tv0.0.0-20241129210726-2c02b8208cf8\th1:f+oWsMOmNPc8JmEHVZIycC7hBoQxHH9pNKQORJNozsQ=\n\tdep\tgithub.com/jbenet/go-context\tv0.0.0-20150711004518-d14ea06fba99\th1:BQSFePA1RWJOlocH6Fxy8MmwDt+yVQYULKfN0RoTN8A=\n\tdep\tgithub.com/json-iterator/go\tv1.1.12\th1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=\n\tdep\tgithub.com/kevinburke/ssh_config\tv1.6.0\th1:J1FBfmuVosPHf5GRdltRLhPJtJpTlMdKTBjRgTaQBFY=\n\tdep\tgithub.com/klauspost/cpuid/v2\tv2.3.0\th1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=\n\tdep\tgithub.com/mattn/go-isatty\tv0.0.22\th1:j8l17JJ9i6VGPUFUYoTUKPSgKe/83EYU2zBC7YNKMw4=\n\tdep\tgithub.com/mattn/go-runewidth\tv0.0.24\th1:cpokDiIn0MGnhdHwuWnJBITySJ20QyNGnY2kR/ay2DU=\n\tdep\tgithub.com/modern-go/concurrent\tv0.0.0-20180306012644-bacd9c7ef1dd\th1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=\n\tdep\tgithub.com/modern-go/reflect2\tv1.0.2\th1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=\n\tdep\tgithub.com/pelletier/go-toml/v2\tv2.4.3\th1:GTRvJQutkOSftxIFD5xw9aepkYNuPWmVJpffdDPYVpY=\n\tdep\tgithub.com/pjbgf/sha1cd\tv0.6.0\th1:3WJ8Wz8gvDz29quX1OcEmkAlUg9diU4GxJHqs0/XiwU=\n\tdep\tgithub.com/sergi/go-diff\tv1.4.0\th1:n/SP9D5ad1fORl+llWyN+D6qoUETXNZARKjyY2/KVCw=\n\tdep\tgithub.com/skeema/knownhosts\tv1.3.2\th1:EDL9mgf4NzwMXCTfaxSD/o/a5fxDw/xL9nkU28JjdBg=\n\tdep\tgithub.com/spf13/cobra\tv1.10.2\th1:DMTTonx5m65Ic0GOoRY2c16WCbHxOOw6xxezuLaBpcU=\n\tdep\tgithub.com/spf13/pflag\tv1.0.10\th1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=\n\tdep\tgithub.com/xanzy/ssh-agent\tv0.3.3\th1:+/15pJfg/RsTxqYcX6fHqOXZwwMP+2VyYWJeWM2qQFM=\n\tdep\tgo.yaml.in/yaml/v2\tv2.4.4\th1:tuyd0P+2Ont/d6e2rl3be67goVK4R6deVxCUX5vyPaQ=\n\tdep\tgolang.org/x/crypto\tv0.56.0\th1:GUh5Ii4J5jtcseSMiRqr1jXCNHoxjeV9Fmekc2oLy6Y=\n\tdep\tgolang.org/x/mod\tv0.40.0\th1:hUv+3cXcdRHz08UmSiOob7sadHig73uo5bkXxQ/tvUs=\n\tdep\tgolang.org/x/net\tv0.57.0\th1:K5+3DljvIuDG9/Jv9rvyMywYNFCQ9RSUY6OOTTkT+tE=\n\tdep\tgolang.org/x/sync\tv0.22.0\th1:SZjpbeLmrCk4xhRSZFNZW5gFUeCeFgjekvI/+gfScek=\n\tdep\tgolang.org/x/sys\tv0.47.0\th1:o7XGOvZQCADBQQ4Y7VNq2dRWQR7JmOUW8Kxx4ZsNgWs=\n\tdep\tgolang.org/x/text\tv0.41.0\th1:vz/seA0lnX87Othu2f/0L24RcgrXD9/YFTSuGjj3rH8=\n\tdep\tgopkg.in/warnings.v0\tv0.1.2\th1:wFXVbFY8DY5/xOe1ECiWdKCzZlxgshcYVNkBHstARME=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\t-trimpath=true\n\tbuild\tCGO_ENABLED=1\n\tbuild\tGOARCH=arm64\n\tbuild\tGOOS=darwin\n\tbuild\tGOARM64=v8.0\n",
+  "go_version": "go version go1.26.6 darwin/arm64\n",
+  "runtime_controls": {
+    "GOMAXPROCS": null,
+    "GOGC": null,
+    "GOMEMLIMIT": null,
+    "GODEBUG": null,
+    "GOFLAGS": null,
+    "CGO_ENABLED": null
+  },
+  "scope": "Only bounded packfile cache + required lifetime cleanup and its maintained-fork regression fix. Excludes concurrent CLI/schema changes. Identical v0.8.0 version override and baseline build flags."
+}

@@ -1,0 +1,55 @@
+File: cli-profile
+Type: cpu
+Time: 2026-09-21 19:14:42 EDT
+Duration: 9.96s, Total samples = 14.43s (144.85%)
+Active filters:
+   tagfocus=phase=cli
+Showing nodes accounting for 10.45s, 72.42% of 14.43s total
+Dropped 116 nodes (cum <= 0.07s)
+Showing top 45 nodes out of 184
+      flat  flat%   sum%        cum   cum%
+     7.48s 51.84% 51.84%      7.48s 51.84%  syscall.rawsyscalln
+     1.82s 12.61% 64.45%      1.82s 12.61%  runtime.pthread_cond_signal
+     0.52s  3.60% 68.05%      0.52s  3.60%  runtime.madvise
+     0.17s  1.18% 69.23%      0.35s  2.43%  regexp.(*Regexp).tryBacktrack
+     0.13s   0.9% 70.13%      0.22s  1.52%  regexp.(*machine).step
+     0.12s  0.83% 70.96%      0.18s  1.25%  regexp.(*machine).add
+     0.07s  0.49% 71.45%      0.07s  0.49%  regexp.(*bitState).shouldVisit (inline)
+     0.06s  0.42% 71.86%      0.07s  0.49%  regexp/syntax.(*Inst).MatchRunePos
+     0.03s  0.21% 72.07%      0.44s  3.05%  regexp.(*machine).match
+     0.01s 0.069% 72.14%      0.41s  2.84%  compress/flate.(*decompressor).huffSym
+     0.01s 0.069% 72.21%      0.59s  4.09%  compress/flate.(*decompressor).huffmanBlock
+     0.01s 0.069% 72.28%      0.08s  0.55%  dircue/pkg/scanner.resolveAttributeRuleSets
+     0.01s 0.069% 72.35%      0.46s  3.19%  regexp.(*Regexp).MatchString (partial-inline)
+     0.01s 0.069% 72.42%      0.39s  2.70%  regexp.(*Regexp).backtrack
+         0     0% 72.42%      0.68s  4.71%  bufio.(*Reader).ReadByte
+         0     0% 72.42%      0.69s  4.78%  bufio.(*Reader).fill
+         0     0% 72.42%      0.32s  2.22%  bytes.(*Buffer).ReadFrom
+         0     0% 72.42%      0.59s  4.09%  compress/flate.(*decompressor).Read
+         0     0% 72.42%      0.17s  1.18%  compress/flate.(*decompressor).moreBits
+         0     0% 72.42%      0.24s  1.66%  compress/flate.(*decompressor).nextBlock
+         0     0% 72.42%      0.60s  4.16%  compress/zlib.(*reader).Read
+         0     0% 72.42%      1.75s 12.13%  dircue/internal/cli.Execute
+         0     0% 72.42%      1.75s 12.13%  dircue/internal/cli.Execute.func3
+         0     0% 72.42%      1.75s 12.13%  dircue/internal/cli.run
+         0     0% 72.42%      0.07s  0.49%  dircue/internal/cli.writeJSON
+         0     0% 72.42%      1.17s  8.11%  dircue/pkg/availability.(*Collector).Finish
+         0     0% 72.42%      0.07s  0.49%  dircue/pkg/declarations.(*Collector).Finish
+         0     0% 72.42%      0.40s  2.77%  dircue/pkg/formats.(*Collector).Finish
+         0     0% 72.42%      1.16s  8.04%  dircue/pkg/scanner.(*availabilityAccumulator).add.selectedSourceAvailabilityRead.func1
+         0     0% 72.42%      1.17s  8.11%  dircue/pkg/scanner.(*availabilityAccumulator).finish
+         0     0% 72.42%      0.23s  1.59%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 72.42%         2s 13.86%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 72.42%      5.67s 39.29%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 72.42%      0.19s  1.32%  dircue/pkg/scanner.(*gitTreeIterator).Next
+         0     0% 72.42%      0.39s  2.70%  dircue/pkg/scanner.DetectLanguage
+         0     0% 72.42%      1.68s 11.64%  dircue/pkg/scanner.Scan
+         0     0% 72.42%         2s 13.86%  dircue/pkg/scanner.Scan.func3
+         0     0% 72.42%      4.92s 34.10%  dircue/pkg/scanner.Scan.func4
+         0     0% 72.42%      4.89s 33.89%  dircue/pkg/scanner.analyzeFile
+         0     0% 72.42%      4.10s 28.41%  dircue/pkg/scanner.analyzeFile.cachedFileReader.func2
+         0     0% 72.42%      0.39s  2.70%  dircue/pkg/scanner.analyzeFile.formatCandidate.func1
+         0     0% 72.42%      4.89s 33.89%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 72.42%      4.89s 33.89%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 72.42%      0.70s  4.85%  dircue/pkg/scanner.blobRead
+         0     0% 72.42%      0.06s  0.42%  dircue/pkg/scanner.readAllBounded

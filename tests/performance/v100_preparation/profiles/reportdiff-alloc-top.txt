@@ -1,0 +1,37 @@
+File: reportdiff.test
+Type: alloc_space
+Time: 2026-09-21 19:15:57 EDT
+Showing nodes accounting for 3940.96MB, 97.98% of 4022.08MB total
+Dropped 134 nodes (cum <= 20.11MB)
+Showing top 30 nodes out of 81
+      flat  flat%   sum%        cum   cum%
+ 1192.28MB 29.64% 29.64%  1192.28MB 29.64%  encoding/json.(*Decoder).refill
+  651.13MB 16.19% 45.83%   750.15MB 18.65%  dircue/internal/jsonschema.(*Schema).validate
+  277.08MB  6.89% 52.72%   277.08MB  6.89%  encoding/json.NewDecoder (inline)
+  244.51MB  6.08% 58.80%   299.51MB  7.45%  encoding/json.(*scanner).error (inline)
+  185.06MB  4.60% 63.40%   629.57MB 15.65%  dircue/pkg/reportdiff.readValue
+  143.81MB  3.58% 66.98%   281.73MB  7.00%  encoding/json.Marshal
+  125.03MB  3.11% 70.09%   177.53MB  4.41%  encoding/json.(*decodeState).objectInterface
+  105.50MB  2.62% 72.71%   109.50MB  2.72%  encoding/json.(*decodeState).literalStore
+  101.01MB  2.51% 75.22%   101.01MB  2.51%  encoding/hex.EncodeToString (inline)
+   99.77MB  2.48% 77.70%    99.77MB  2.48%  io.ReadAll
+   91.50MB  2.28% 79.98%   740.65MB 18.41%  dircue/internal/jsonschema.(*Schema).validate.func2 (inline)
+      91MB  2.26% 82.24%   444.51MB 11.05%  encoding/json.(*Decoder).Token
+   82.02MB  2.04% 84.28%   201.53MB  5.01%  dircue/pkg/reportdiff.canonical
+   67.99MB  1.69% 85.97%    67.99MB  1.69%  reflect.growslice
+   65.01MB  1.62% 87.58%   117.01MB  2.91%  encoding/json.mapEncoder.encode
+      63MB  1.57% 89.15%       63MB  1.57%  reflect.unsafe_New
+      62MB  1.54% 90.69%  2017.40MB 50.16%  dircue/pkg/reportdiff.value
+   39.51MB  0.98% 91.67%   323.08MB  8.03%  dircue/pkg/reportdiff.object
+   37.50MB  0.93% 92.61%    37.50MB  0.93%  bytes.NewReader (inline)
+      29MB  0.72% 93.33%       55MB  1.37%  encoding/json.quoteChar
+   27.50MB  0.68% 94.01%    30.50MB  0.76%  encoding/json.unquote (inline)
+      26MB  0.65% 94.66%       26MB  0.65%  unicode/utf8.AppendRune (inline)
+   24.01MB   0.6% 95.26%    24.01MB   0.6%  reflect.mapassign_faststr0
+      22MB  0.55% 95.80%       46MB  1.14%  encoding/json.(*decodeState).literalInterface
+   21.72MB  0.54% 96.34%   344.80MB  8.57%  dircue/pkg/reportdiff.(*moduleData).add
+   20.50MB  0.51% 96.85%    20.50MB  0.51%  encoding/json.(*scanner).pushParseState
+   19.50MB  0.48% 97.34%   364.31MB  9.06%  dircue/pkg/reportdiff.moduleInputs
+      16MB   0.4% 97.73%   293.02MB  7.29%  encoding/json.(*decodeState).array
+    5.50MB  0.14% 97.87%   252.01MB  6.27%  encoding/json.(*decodeState).object
+    4.50MB  0.11% 97.98%   189.03MB  4.70%  encoding/json.(*decodeState).arrayInterface

@@ -1,0 +1,87 @@
+[
+  {
+    "id": "candidate-spring-framework-all-cpu",
+    "start": "2026-09-21T23:52:47.309091+00:00",
+    "end": "2026-09-21T23:53:00.224060+00:00",
+    "command": [
+      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization/scanner.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkProfileScanner$",
+      "-test.benchtime=10x",
+      "-test.count=1",
+      "-test.benchmem",
+      "-test.cpuprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-cpu/cpu.pprof"
+    ],
+    "environment": {
+      "EXPECTED_SHA256": "845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e",
+      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "SOURCE": "git",
+      "FIXTURE_ID": "spring-framework",
+      "RUN_ID": "candidate-spring-framework-all-cpu",
+      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-cpu",
+      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
+      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/candidate-scanner-build.json",
+      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "WORKERS": "8",
+      "INIT": "warm",
+      "MODE": "all",
+      "MAX_TREE_SIZE": "1000000",
+      "INCLUDE_FILES": "0",
+      "MUTEX_FRACTION": "0",
+      "BLOCK_RATE_NS": "0",
+      "OS_CACHE": "warm uncontrolled macOS filesystem; dedicated agent benchmark window",
+      "REVISION": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82"
+    },
+    "profile_sha256": "e6d74587a49d6c23cf0d743437c1c9b1dfa6c9327e6f8580ac85a445cf574fd0",
+    "profile_path": ".cache/v100/perf/candidate-spring-framework-all-cpu/cpu.pprof",
+    "scope": "CPU phase=scan excludes warmup/validation. Heap, mutex, block and trace are cumulative process evidence including warmup, calibration and harness/validation; interpret concrete scanner caller stacks only.",
+    "tables": [
+      "tests/performance/v100_preparation/profiles/candidate-spring-framework-all-cpu-flat.txt",
+      "tests/performance/v100_preparation/profiles/candidate-spring-framework-all-cpu-cum.txt"
+    ],
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t 944498433 ns/op\t  55.32 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t228600440 B/op\t  998727 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-cpu/candidate-spring-framework-all-cpu-git-3417550215.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-cpu/candidate-spring-framework-all-cpu-git-2806427542.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
+  },
+  {
+    "id": "candidate-spring-framework-all-heap",
+    "start": "2026-09-21T23:53:00.224819+00:00",
+    "end": "2026-09-21T23:53:12.775244+00:00",
+    "command": [
+      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/optimization/scanner.test",
+      "-test.run=^$",
+      "-test.bench=^BenchmarkProfileScanner$",
+      "-test.benchtime=10x",
+      "-test.count=1",
+      "-test.benchmem",
+      "-test.memprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-heap/heap.pprof"
+    ],
+    "environment": {
+      "EXPECTED_SHA256": "845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e",
+      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "SOURCE": "git",
+      "FIXTURE_ID": "spring-framework",
+      "RUN_ID": "candidate-spring-framework-all-heap",
+      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-heap",
+      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
+      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/candidate-scanner-build.json",
+      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "WORKERS": "8",
+      "INIT": "warm",
+      "MODE": "all",
+      "MAX_TREE_SIZE": "1000000",
+      "INCLUDE_FILES": "0",
+      "MUTEX_FRACTION": "0",
+      "BLOCK_RATE_NS": "0",
+      "OS_CACHE": "warm uncontrolled macOS filesystem; dedicated agent benchmark window",
+      "REVISION": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82"
+    },
+    "profile_sha256": "63a68d811ed6a76906f51c18964fbc441d16eca5305e5dbe61cc72b0dac35e28",
+    "profile_path": ".cache/v100/perf/candidate-spring-framework-all-heap/heap.pprof",
+    "scope": "CPU phase=scan excludes warmup/validation. Heap, mutex, block and trace are cumulative process evidence including warmup, calibration and harness/validation; interpret concrete scanner caller stacks only.",
+    "tables": [
+      "tests/performance/v100_preparation/profiles/candidate-spring-framework-all-heap-alloc.txt",
+      "tests/performance/v100_preparation/profiles/candidate-spring-framework-all-heap-alloc-cum.txt",
+      "tests/performance/v100_preparation/profiles/candidate-spring-framework-all-heap-live.txt"
+    ],
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t 933251050 ns/op\t  55.99 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t231691667 B/op\t  999282 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-heap/candidate-spring-framework-all-heap-git-4032333058.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/candidate-spring-framework-all-heap/candidate-spring-framework-all-heap-git-1289244677.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
+  }
+]
