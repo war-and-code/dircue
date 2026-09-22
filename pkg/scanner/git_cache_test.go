@@ -217,6 +217,39 @@ func TestGitReadMetricsOptInPreservesReport(t *testing.T) {
 	}
 }
 
+func countOpenDescriptors(t *testing.T) int {
+	t.Helper()
+	for _, dir := range []string{"/proc/self/fd", "/dev/fd"} {
+		if stream, err := os.Open(dir); err == nil {
+			entries, readErr := stream.Readdirnames(-1)
+			_ = stream.Close()
+			if readErr == nil {
+				return len(entries)
+			}
+		}
+	}
+	t.Skip("descriptor enumeration unavailable on this platform")
+	return 0
+}
+
+func TestGitSnapshotClosesLanesWhenAttributeRootFails(t *testing.T) {
+	root, _, _, _ := packedCacheFixture(t)
+	sentinel := errors.New("attribute root fault")
+	before := countOpenDescriptors(t)
+	for i := 0; i < 12; i++ {
+		snapshot, err := openGitSnapshotWithAttributeRoot(context.Background(), root, Options{Source: "git"}, false, func(string) (*os.Root, error) {
+			return nil, sentinel
+		})
+		if snapshot != nil || !errors.Is(err, sentinel) {
+			t.Fatalf("run %d snapshot=%v error=%v", i, snapshot, err)
+		}
+	}
+	after := countOpenDescriptors(t)
+	if after > before+3 {
+		t.Fatalf("failed snapshot retained descriptors: before=%d after=%d", before, after)
+	}
+}
+
 type cancelCacheDetector struct{ cancel context.CancelFunc }
 
 func (cancelCacheDetector) Name() string { return "cancel-cache-test" }
@@ -230,20 +263,6 @@ func TestGitPackCacheClosesAcrossSuccessErrorsAndCancellation(t *testing.T) {
 	// Warm runtime and classifier state before counting the process's descriptors.
 	if _, err := Scan(context.Background(), root, Options{Source: "git", Workers: 8}); err != nil {
 		t.Fatal(err)
-	}
-	count := func(t *testing.T) int {
-		t.Helper()
-		for _, dir := range []string{"/proc/self/fd", "/dev/fd"} {
-			if stream, err := os.Open(dir); err == nil {
-				entries, readErr := stream.Readdirnames(-1)
-				_ = stream.Close()
-				if readErr == nil {
-					return len(entries)
-				}
-			}
-		}
-		t.Skip("descriptor enumeration unavailable on this platform")
-		return 0
 	}
 	firstHash := plumbing.NewHash(run("rev-parse", "HEAD:"+names[0]))
 	cases := []struct {
@@ -291,14 +310,14 @@ func TestGitPackCacheClosesAcrossSuccessErrorsAndCancellation(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			before := count(t)
+			before := countOpenDescriptors(t)
 			for i := 0; i < 12; i++ {
 				err := tc.run()
 				if (err != nil) != tc.wantError {
 					t.Fatalf("run %d error=%v", i, err)
 				}
 			}
-			after := count(t)
+			after := countOpenDescriptors(t)
 			if after > before+3 {
 				t.Fatalf("retained descriptors: before=%d after=%d", before, after)
 			}

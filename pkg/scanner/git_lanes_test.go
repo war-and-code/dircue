@@ -43,6 +43,12 @@ func TestGitObjectLanesAcquireAndCancellation(t *testing.T) {
 	if len(lanes.available) != 2 {
 		t.Fatalf("released lanes=%d", len(lanes.available))
 	}
+	if _, _, err := lanes.acquire(ctx); !errors.Is(err, context.Canceled) {
+		t.Fatalf("available lane won over pre-canceled context: %v", err)
+	}
+	if len(lanes.available) != 2 {
+		t.Fatalf("pre-canceled acquisition consumed a lane: %d", len(lanes.available))
+	}
 }
 
 type descriptorTrackingFS struct {
@@ -147,7 +153,7 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 		}
 	}()
 
-	primary := lanes.primary()
+	primary := lanes.primaryRepo
 	head, err := primary.Head()
 	if err != nil {
 		t.Fatal(err)
