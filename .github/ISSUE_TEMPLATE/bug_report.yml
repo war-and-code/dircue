@@ -1,0 +1,81 @@
+name: Bug report
+description: A dircue command produced unexpected or incorrect output.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please share enough
+        detail that a maintainer can reproduce it locally. If your
+        report involves a possible security issue, use the
+        [security policy](../SECURITY.md) instead.
+  - type: input
+    id: version
+    attributes:
+      label: dircue version
+      description: Output of `dircue --version`.
+      placeholder: "dircue 1.0.0"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating system and architecture
+      placeholder: "macOS 14 arm64 / Ubuntu 22.04 x86_64 / Windows 11 x86_64"
+    validations:
+      required: true
+  - type: textarea
+    id: command
+    attributes:
+      label: Exact command line
+      description: The full command you ran, with any relevant flags.
+      render: shell
+      placeholder: |
+        dircue analyze all --json /path/to/checkout
+    validations:
+      required: true
+  - type: dropdown
+    id: source
+    attributes:
+      label: Content source
+      description: Which `--source` mode did the run use? (auto is the default.)
+      options:
+        - auto
+        - git
+        - directory
+        - not applicable
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: |
+        A minimal directory tree, archive, or public repository that
+        reproduces the issue. Describe how it was built if it is
+        synthetic. Redact anything you cannot share.
+    validations:
+      required: true
+  - type: textarea
+    id: observed
+    attributes:
+      label: What you observed
+      description: The output you actually saw. Trim to the relevant lines and paste as text (not a screenshot).
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+      description: What you thought dircue would do, and why.
+    validations:
+      required: true
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Anything else that might help — related issues, comparison with a previous dircue release, Linguist behavior, etc.
+    validations:
+      required: false

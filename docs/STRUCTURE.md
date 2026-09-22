@@ -208,3 +208,5 @@ with the same language name is not automatically compatible with BCA's metric
 implementation.
 
 The selected executable may be a symlink to a trusted installation. The worker inherits the caller process environment and working directory; it is not sandboxed. Its language-support matrix is included even for an empty source so consumers can distinguish unsupported languages from absent input. None of these declarations prove that an arbitrary third-party worker reports truthfully.
+
+Formal sandboxing of the structural worker is a known 1.0 boundary; see [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#69](https://github.com/war-and-code/dircue/issues/69).

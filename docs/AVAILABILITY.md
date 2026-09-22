@@ -38,3 +38,7 @@ Each pointer inspection reads at most 1,024 bytes. The default aggregate pointer
 Inspect `coverage.selected_inventory_complete`, checkout-metadata coverage, counts, diagnostics, and omission reasons together. A report can preserve useful boundary observations while remaining partial. Reported paths remain relative to the original source root.
 
 Availability uses aggregate schema 1.6.0. Existing language-statistics exclusions and legacy LFS handling remain unchanged.
+
+## Known boundary at 1.0
+
+Bare and unborn repositories, SHA-256 object format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery inside a repository root are not fully modeled; see [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#66](https://github.com/war-and-code/dircue/issues/66).

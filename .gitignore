@@ -5,8 +5,5 @@
 .DS_Store
 /.cache/
 /dist/
-/RELEASE_v0.1_DRAFT.md
-/RELEASE_v0.2_DRAFT.md
+/RELEASE_v*_DRAFT.md
 __pycache__/
-/RELEASE_v0.3_DRAFT.md
-/RELEASE_v0.4_DRAFT.md
