@@ -440,7 +440,11 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 	}
 
 	if s.options.LargeObjectThreshold > 0 && size > s.options.LargeObjectThreshold {
-		obj = dotgit.NewEncodedObject(s.dir, h, t, size)
+		if s.options.ReadMetrics == nil {
+			obj = dotgit.NewEncodedObject(s.dir, h, t, size)
+		} else {
+			obj = dotgit.NewEncodedObjectWithReadObserver(s.dir, h, t, size, s.options.ReadMetrics.RecordLooseBytes)
+		}
 		return obj, nil
 	}
 
