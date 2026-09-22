@@ -48,8 +48,10 @@ sha256sum -c SHA256SUMS --ignore-missing
 tar -xzf dircue_1.0.0_linux_amd64.tar.gz
 install -m 755 dircue "$HOME/.local/bin/dircue"
 
-# Go toolchain
-go install github.com/war-and-code/dircue@v1.0.0
+# Go toolchain: build from a clone. `go install dircue@version` is not supported,
+# because go.mod carries replace directives for the maintained Enry and go-git forks.
+git clone --branch v1.0.0 --depth 1 https://github.com/war-and-code/dircue.git
+cd dircue && CGO_ENABLED=0 go build -trimpath -o "$HOME/.local/bin/dircue" .
 
 # Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
 uvx --from \
