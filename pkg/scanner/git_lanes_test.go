@@ -54,19 +54,17 @@ func TestGitObjectLanesAcquireAndCancellation(t *testing.T) {
 func TestGitObjectLanePolicy(t *testing.T) {
 	for _, test := range []struct {
 		name        string
-		opts        Options
-		inspect     bool
+		workers     int
 		wantLanes   int
 		wantReaders int
 	}{
-		{name: "scan default direct call", opts: Options{}, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
-		{name: "scan one worker", opts: Options{Workers: 1}, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
-		{name: "scan two workers", opts: Options{Workers: 2}, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
-		{name: "scan many workers", opts: Options{Workers: 16}, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
-		{name: "inspect ignores workers", opts: Options{Workers: 16}, inspect: true, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+		{name: "default direct call", wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+		{name: "one worker", workers: 1, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+		{name: "two workers", workers: 2, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
+		{name: "many workers", workers: 16, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			gotLanes := gitObjectLaneCount(test.opts, test.inspect)
+			gotLanes := gitObjectLaneCount(test.workers)
 			if gotLanes != test.wantLanes {
 				t.Fatalf("lanes=%d want=%d", gotLanes, test.wantLanes)
 			}
@@ -83,12 +81,13 @@ func TestGitSnapshotOpensOnlyNeededObjectLanes(t *testing.T) {
 		name     string
 		opts     Options
 		discover bool
+		lanes    int
 	}{
-		{name: "one-worker scan", opts: Options{Source: "git", Workers: 1}},
-		{name: "single-file inspect", opts: Options{Source: "git", Workers: 16}, discover: true},
+		{name: "one-worker scan", opts: Options{Source: "git", Workers: 1}, lanes: 1},
+		{name: "single-file inspect", opts: Options{Source: "git", Workers: 16}, discover: true, lanes: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			snapshot, err := openGitSnapshot(context.Background(), root, test.opts, test.discover)
+			snapshot, err := openGitSnapshot(context.Background(), root, test.opts, test.discover, test.lanes)
 			if err != nil {
 				t.Fatal(err)
 			}

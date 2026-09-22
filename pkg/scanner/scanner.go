@@ -258,7 +258,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if !info.IsDir() {
 		return nil, errors.New("scan root must be a directory")
 	}
-	snapshot, err := openGitSnapshot(ctx, abs, opts, false)
+	snapshot, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
 	if err != nil {
 		return nil, err
 	}

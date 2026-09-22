@@ -49,11 +49,8 @@ const (
 	maxGitPackDescriptorsPerConcurrentLane = 3
 )
 
-func gitObjectLaneCount(opts Options, inspect bool) int {
-	if inspect {
-		return 1
-	}
-	return min(max(opts.Workers, 1), maxGitObjectLanes)
+func gitObjectLaneCount(workers int) int {
+	return min(max(workers, 1), maxGitObjectLanes)
 }
 
 func gitPackDescriptorLimit(laneCount int) int {
@@ -287,11 +284,11 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (*gitSnapshot, error) {
-	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, attributeRoot)
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (*gitSnapshot, error) {
+	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, laneCount, attributeRoot)
 }
 
-func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
+func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
 	if opts.Source == "directory" {
 		return nil, nil
 	}
@@ -330,7 +327,6 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		if wtErr == nil {
 			worktreeFS = wt.Filesystem
 		}
-		laneCount := gitObjectLaneCount(opts, discover)
 		retainedLanes, retainedStorages, err = newGitObjectLanes(storage.Filesystem(), worktreeFS, objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: gitPackDescriptorLimit(laneCount), ReadMetrics: opts.GitReadMetrics}, laneCount)
 		if err != nil {
 			return nil, fmt.Errorf("open bounded Git storage: %w", err)
