@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.9.0 (unreleased)
+## 0.9.0 (2026-09-22)
 
 - Match pinned Linguist 9.7.0 candidate narrowing for filename and extension
   strategies, defer its 23 generic extensions to later strategies, and limit
@@ -54,11 +54,23 @@
   the emitted 0–100 range.
 - Accept the existing `focus_scope_partial` metrics marker when validating saved
   profiles, so partial focused reports can be read back for explanation.
-- Reuse at most eight packfile descriptors per Git snapshot and close them on
-  success, failure and cancellation. [Paired measurements](tests/performance/v100_preparation/OPTIMIZATION.md)
-  show 20–43% lower elapsed time on five selected Git workloads; the XML directory
-  control is unchanged. Preserve classification, output and source-selection
-  behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
+- Bound retained Git pack readers and close them on success, failure and
+  cancellation. An [earlier cache-only experiment](tests/performance/v100_preparation/OPTIMIZATION.md)
+  showed 20–43% lower elapsed time on five selected Git workloads; its XML
+  directory control was unchanged. Preserve classification, output and
+  source-selection behavior. Fix a maintained go-git descriptor leak on cache
+  insertion failure.
+- Avoid replaying seekable Git delta bases in the maintained go-git fork, and
+  decode blobs through up to three independent object lanes when workers can
+  use them. A one-worker scan retains the prior eight-reader cache; concurrent
+  lanes retain at most two pack readers each. The retained-reader limit does not
+  cap transient readers during nested delta resolution. On a pinned Linux
+  kernel tree, [final-source measurements](tests/performance/kernel_git/README.md)
+  put Git-source code metrics at 10.07 seconds versus 6.99 seconds from the
+  same tree as a directory, and language profiling at 8.13 versus 6.87 seconds
+  (16 workers, three runs per Git command, case-sensitive APFS). Output hashes
+  remained stable across each Git run. Opt-in read counters and regression tests
+  make future Git-read changes measurable without changing report JSON.
 - Preserve the directory tree-size preflight and per-file regular-file check.
   Add regressions for unreadable attributes, detector calls on oversized trees,
   and symlinks to regular files; reject proposed optimizations that weakened
