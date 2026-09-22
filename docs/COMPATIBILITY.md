@@ -1,4 +1,10 @@
-# 1.0 compatibility promise
+# Proposed 1.0 compatibility policy
+
+This policy is a draft for 1.0, not a declaration that 0.9 has frozen every
+analysis surface. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
+reserves 1.0 for the directory map and supersedes the earlier feature freeze.
+The legacy Linguist interface remains a compatibility target. The treatment
+of existing `analyze` reports in 1.x is still an owner decision.
 
 Version 1.0 is the point at which dircue's public surfaces become
 contract. This document names those surfaces, what they promise, how
