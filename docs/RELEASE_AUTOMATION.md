@@ -4,6 +4,61 @@ The **Prepare draft release** workflow builds and validates release assets, then
 
 The workflow reuses `scripts/release.py`, `scripts/structural_worker_release.py` and `scripts/wheels.py`. These already encode the project's committed-source builds, platform requirements, dependency sources and license payloads. Introducing GoReleaser would duplicate those contracts without removing the native worker validation.
 
+Wheels are standard GitHub Release attachments, independent of PyPI publication.
+Assembly requires all seven platform wheels and rejects missing or mismatched
+files. Linux's glibc and musl wheels carry the same static core executable;
+the hosted installation tests execute on glibc, not musl.
+
+## Local packaging
+
+From a clean committed checkout, prepare all five core archives and seven wheels
+with one command:
+
+```sh
+make release VERSION=1.0.0
+```
+
+Pass a version explicitly: `X.Y.Z` or `X.Y.Z-(alpha|beta|rc).N`. The default
+development version is rejected before compilation because it is not a wheel
+release version.
+
+Archives, core provenance and archive checksums go into `dist/`. Wheels, their
+provenance and a separate checksum file go into `dist/wheels/`. To keep different
+candidates separately, choose fresh output directories:
+
+```sh
+make release VERSION=1.0.0 \
+  RELEASE_DIR=dist/release-1.0.0 WHEEL_DIR=dist/wheels-1.0.0
+```
+
+Existing outputs are refused. Packaging builds committed source with the pinned
+Go compiler, then wraps those exact executable bytes in wheels. It does not
+create a tag, upload assets or publish a release. `make release-archives` retains
+the archive-only path; the underlying Python commands remain available in the
+[distribution guide](DISTRIBUTION.md#prepare-archives-and-wheels-locally).
+
+Cross-compilation prepares every core target but does not test them on their
+native operating systems. Test the installed wheel on the current host with,
+for example, this Apple Silicon command:
+
+```sh
+python3 scripts/wheel_release_smoke.py \
+  --release-dir dist --wheel-dir dist/wheels \
+  --platform darwin-arm64 --version 1.0.0 --output dist/wheel-launcher.json
+```
+
+Use the matching platform name on other hosts: `darwin-amd64`, `linux-amd64`,
+`linux-arm64` or `windows-amd64`. The helper installs offline into an isolated
+Python environment and checks the packaged console command. A compatible local
+Python installation with `venv` and `ensurepip` is required.
+
+The optional structural worker is packaged separately using
+`scripts/structural_worker_release.py`; see the
+[worker packaging instructions](DISTRIBUTION.md#optional-structural-worker).
+For a complete release with native validation on all five platforms, use the
+hosted workflow below. Its final assembly and download checks cover archives,
+wheels, worker packages and their validation receipts together.
+
 ## Before dispatch
 
 A maintainer must:
