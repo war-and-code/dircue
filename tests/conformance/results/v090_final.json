@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "scope": "Source-bound 0.9.0 correctness and 0.8.0 compatibility gates on the enumerated corpora; not a claim of universal input equivalence.",
+  "recorded_on": "2026-09-22",
+  "source": {
+    "commit": "0d9153fa26ca9b5c87227cc2c1391b3fc9d1167f",
+    "tree": "a61fcb1160e8dd86b6e9c07c2732899e7ee55db3",
+    "clean": true,
+    "diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "reference": {
+    "linguist_version": "9.7.0",
+    "image": "dircue-linguist:9.7.0",
+    "image_id": "sha256:f67c429e2b22c0c9691c9e16cceeeee9f2033486b451f5dc0f4278a1783f742c",
+    "upstream_git_revision": "e0c78d62c42abae6122235d8e68a7aa43eef89da",
+    "upstream_archive_sha256": "e7b85d06f5e61a810303b8d2e03fc199760525c079fef4dd6f8b7c86342234d9",
+    "network_during_reference_execution": false
+  },
+  "kernel_corpus": {
+    "revision": "fe2ec83746e501645709761605c2464a44fd2929",
+    "tree": "e1e29ac112aa72e141114477802e40ee085e9350",
+    "tracked_paths": 96039
+  },
+  "commands": {
+    "kernel_candidate": {
+      "argv": [
+        "<CANDIDATE>",
+        "--json",
+        "--source",
+        "git",
+        "--rev",
+        "fe2ec83746e501645709761605c2464a44fd2929",
+        "--workers",
+        "16",
+        "<LINUX_GIT>"
+      ],
+      "stdout": "<OUTPUT_DIR>/kernel-languages.json"
+    },
+    "kernel_reference": {
+      "argv": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--cpus",
+        "4",
+        "--memory",
+        "4g",
+        "--mount",
+        "type=bind,source=<LINUX_GIT>,target=/source/linux.git,readonly",
+        "sha256:f67c429e2b22c0c9691c9e16cceeeee9f2033486b451f5dc0f4278a1783f742c",
+        "sh",
+        "-c",
+        "cp -a /source/linux.git /tmp/linux.git && github-linguist --json /tmp/linux.git"
+      ],
+      "stdout": "<OUTPUT_DIR>/linguist-independent.json"
+    },
+    "differential": [
+      "python3",
+      "tests/conformance/run.py",
+      "--image",
+      "dircue-linguist:9.7.0",
+      "--output",
+      "<OUTPUT_DIR>/differential.json"
+    ],
+    "samples": [
+      "python3",
+      "tests/conformance/samples.py",
+      "--image",
+      "dircue-linguist:9.7.0",
+      "--require-match",
+      "--output",
+      "<OUTPUT_DIR>/samples.json"
+    ],
+    "compatibility_build": [
+      "python3",
+      "tests/compatibility_v100/build.py",
+      "--candidate",
+      "<OUTPUT_DIR>/compat-dircue",
+      "--build-receipt",
+      "<OUTPUT_DIR>/compat-build.json"
+    ],
+    "compatibility_inherited": [
+      "python3",
+      "tests/compatibility_v100/run.py",
+      "--baseline",
+      "<DIRCUE_0_8_0>",
+      "--candidate",
+      "<OUTPUT_DIR>/compat-dircue",
+      "--build-receipt",
+      "<OUTPUT_DIR>/compat-build.json",
+      "--worker",
+      "<DIRCUE_0_8_0_STRUCTURAL_WORKER>",
+      "--worker-sha256",
+      "73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740",
+      "--expected-diagnostics",
+      "tests/compatibility_v100/expected-diagnostics.json",
+      "--output",
+      "<OUTPUT_DIR>/compatibility.json.gz"
+    ],
+    "compatibility_context": [
+      "python3",
+      "tests/compatibility_v100/context.py",
+      "--baseline",
+      "<DIRCUE_0_8_0>",
+      "--candidate",
+      "<OUTPUT_DIR>/compat-dircue",
+      "--build-receipt",
+      "<OUTPUT_DIR>/compat-build.json",
+      "--output",
+      "<OUTPUT_DIR>/context.json.gz"
+    ]
+  },
+  "results": {
+    "kernel_parity": {
+      "candidate_binary_sha256": "5e3323e3f78f417ef6fc447a0d8aa826e82fe36aad6a55fc83674bd0cf8241f0",
+      "candidate_output_sha256": "7eb5d08d74665a4b4fe78a9fa50bb944ccac18bcbfc835e4e4188cded547da9",
+      "reference_output_sha256": "8e256c18516ef721db5709af37d36d7b1654448aa1d16dc7f8be5978f99a1d93",
+      "candidate_canonical_sha256": "55867351117b3645abea71ea747df84d6c1066821448217416cbd44323a73a6c",
+      "reference_canonical_sha256": "55867351117b3645abea71ea747df84d6c1066821448217416cbd44323a73a6c",
+      "parsed_equal": true,
+      "reported_languages": 25
+    },
+    "differential": {
+      "candidate_binary_sha256": "7f283599c149608eb724fe45e9c3fe0594e3ab630b1d7b17baf66dca61a07880",
+      "runner_sha256": "b2a1dee7adc698a6d748167e0abb76a4c29752504b787ebabe15d4a2d482f882",
+      "report_sha256": "997eb3c0c10093df282443bf5403b7a4e0c688803e962a4036311e2ee792e3a0",
+      "total": 600,
+      "passed": 582,
+      "expected_failures": 18,
+      "failed": 0
+    },
+    "upstream_samples": {
+      "probe_sha256": "1af16c429e133eaaac835580c073bdb886cbc8a442bd7717371a5e7bf4934c0b",
+      "runner_sha256": "1678e3680d18e2bf3f7bc40b9cdb0061e77c7054c7ab7760862edffccacbb5ae",
+      "report_sha256": "efbd932d591f09c94228b46b317a5faa7ebeb5ce3dc8766ec7c9b6428d2b2a89",
+      "samples": 3388,
+      "sample_language_directories": 765,
+      "reference_errors": 0,
+      "official_enry_matches": 3241,
+      "maintained_enry_matches": 3388,
+      "ordered_token_sequences_match": 3388,
+      "programming_markup_samples": 2629,
+      "programming_markup_matches": 2629
+    },
+    "compatibility_0_8_0": {
+      "baseline_sha256": "429583365b66f767443a7fff9efaa48873a924643dd48bb48c94d3afee5f65bc",
+      "structural_worker_sha256": "73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740",
+      "candidate_sha256": "a87f3c912b0bde1637ec1fbf27a8679dd273499aa17463ffcb20bb6a5e62e26f",
+      "build_receipt_sha256": "2be9d879dfa4d68e51b9ee4ef3d4c14a47de6a5c931fc7595552971c4925ba3e",
+      "inherited_report_sha256": "7aa50ae0ae8b258bd57fb9ad5763ceae691fdcf3f58660ddb8eae17a70432946",
+      "context_report_sha256": "cd24bd766f3c755272a6af36080671239daf44853c840c21b4208718bf505221",
+      "total": 319,
+      "exact_matches": 304,
+      "reviewed_diagnostic_changes": 12,
+      "intentional_fixes": 3,
+      "passed": true,
+      "inherited": {
+        "total": 278,
+        "exact_matches": 266,
+        "reviewed_diagnostic_changes": 12,
+        "unused_diagnostic_exceptions": 0,
+        "passed": true
+      },
+      "context": {
+        "total": 41,
+        "exact_matches": 38,
+        "intentional_fixes": 3,
+        "passed": true
+      }
+    }
+  }
+}
