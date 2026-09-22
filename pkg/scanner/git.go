@@ -41,11 +41,27 @@ type gitSnapshot struct {
 const maxGitTreeDepth = 1024
 
 const (
-	gitObjectLaneCount = 2
+	maxGitObjectLanes = 2
+	// Preserve the pre-lane retained-reader capacity when one storage is enough.
+	maxGitPackDescriptorsSingleLane = 8
 	// This bounds retained pack readers. Lazy objects and nested delta bases
 	// open transient readers whose peak depends on the pack's delta graph.
-	maxGitPackDescriptorsPerLane = 3
+	maxGitPackDescriptorsPerConcurrentLane = 3
 )
+
+func gitObjectLaneCount(opts Options, inspect bool) int {
+	if inspect {
+		return 1
+	}
+	return min(max(opts.Workers, 1), maxGitObjectLanes)
+}
+
+func gitPackDescriptorLimit(laneCount int) int {
+	if laneCount == 1 {
+		return maxGitPackDescriptorsSingleLane
+	}
+	return maxGitPackDescriptorsPerConcurrentLane
+}
 
 type gitObjectLane struct {
 	repo *git.Repository
@@ -314,7 +330,8 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		if wtErr == nil {
 			worktreeFS = wt.Filesystem
 		}
-		retainedLanes, retainedStorages, err = newGitObjectLanes(storage.Filesystem(), worktreeFS, objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: maxGitPackDescriptorsPerLane, ReadMetrics: opts.GitReadMetrics}, gitObjectLaneCount)
+		laneCount := gitObjectLaneCount(opts, discover)
+		retainedLanes, retainedStorages, err = newGitObjectLanes(storage.Filesystem(), worktreeFS, objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: gitPackDescriptorLimit(laneCount), ReadMetrics: opts.GitReadMetrics}, laneCount)
 		if err != nil {
 			return nil, fmt.Errorf("open bounded Git storage: %w", err)
 		}
