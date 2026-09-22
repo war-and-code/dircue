@@ -30,6 +30,10 @@ func FuzzParseGitAttributesBounded(f *testing.F) {
 	f.Add([]byte("**/*.go text\n"))
 	f.Add([]byte("[abc def\n"))
 	f.Add([]byte("*.log filter=lfs\n"))
+	// Git 2.42.1 accepts an empty attribute list as a silent no-op. Keep the
+	// Kubernetes-style case in the replay corpus; specification reference:
+	// https://git-scm.com/docs/gitattributes/2.42.0#_description.
+	f.Add([]byte("**/generated.proto\n"))
 
 	f.Fuzz(func(t *testing.T, content []byte) {
 		const limit = 500 // exercise the exceeded return; smaller than production

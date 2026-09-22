@@ -3,6 +3,7 @@ package filesystem
 
 import (
 	"github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
 
 	"github.com/go-git/go-billy/v5"
@@ -41,6 +42,8 @@ type Options struct {
 	// If none is provided, it falls back to using the underlying instance used for
 	// DotGit.
 	AlternatesFS billy.Filesystem
+	// ReadMetrics enables opt-in read-path work counters.
+	ReadMetrics *packfile.ReadMetrics
 }
 
 // NewStorage returns a new Storage backed by a given `fs.Filesystem` and cache.

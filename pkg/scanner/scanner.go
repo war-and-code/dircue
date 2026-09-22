@@ -81,8 +81,11 @@ type Options struct {
 	DeclarationsOnly bool
 	Structure        *structure.Client
 	StructureFiles   bool
-	structureGate    chan struct{}
-	languageTrace    *explain.LanguageTrace
+	// GitReadMetrics enables internal, opt-in Git work counters. Counters do
+	// not enter deterministic reports and may vary with scheduling/cache state.
+	GitReadMetrics *GitReadMetrics
+	structureGate  chan struct{}
+	languageTrace  *explain.LanguageTrace
 }
 
 type ErrorPolicy string

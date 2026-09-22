@@ -16,6 +16,7 @@ type cargoData struct {
 	defaultsSet                 bool
 	workspacePath               string
 	workspacePathSet            bool
+	edition                     string
 	inherited                   map[string]bool
 	workspaceValues             map[string]string
 	dependencies                []cargoDependency
@@ -50,6 +51,10 @@ func ParseCargo(name string, content []byte) *Document {
 	pkg, hasPackage := cargoTable(object["package"])
 	workspace, hasWorkspace := cargoTable(object["workspace"])
 	data.packagePresent, data.workspace = hasPackage, hasWorkspace
+	if hasPackage {
+		// Cargo's backwards-compatible default when package.edition is absent.
+		data.edition = "2015"
+	}
 	if !hasPackage && !hasWorkspace {
 		AddDiagnostic(d, "cargo-missing-project", "Cargo manifest has neither a package nor a workspace table.")
 	}
@@ -93,9 +98,13 @@ func ParseCargo(name string, content []byte) *Document {
 					break
 				}
 				dep := cargoParseDependency(d, alias, deps[alias], "workspace.dependencies", "")
-				if dep.optional || dep.inherited {
+				if dep.optional {
 					dep.valid = false
-					cargoInvalid(d, "workspace.dependencies")
+					cargoInvalid(d, "workspace.dependencies."+alias+".optional")
+				}
+				if dep.inherited {
+					dep.valid = false
+					cargoInvalid(d, "workspace.dependencies."+alias+".workspace")
 				}
 				data.workspaceDependencies[alias] = dep
 			}
@@ -136,15 +145,27 @@ func ParseCargo(name string, content []byte) *Document {
 				if table, ok := cargoTable(value); ok {
 					if inherited, ok := table["workspace"].(bool); ok && inherited && len(table) == 1 {
 						data.inherited[key] = true
+						if key == "edition" {
+							data.edition = ""
+						}
 					} else {
+						if key == "edition" {
+							data.edition = ""
+						}
 						cargoInvalid(d, "package."+key)
 					}
 				} else if text, ok := cargoPackageValue(key, value); ok {
+					if key == "edition" {
+						data.edition = text
+					}
 					if key == "version" {
 						d.Project.Version = text
 					}
 					AddRequirement(d, Requirement{Kind: "cargo-" + key, Value: text, State: "declared", Evidence: d.Project.ID})
 				} else {
+					if key == "edition" {
+						data.edition = ""
+					}
 					cargoInvalid(d, "package."+key)
 				}
 			}
@@ -335,41 +356,49 @@ func cargoDependencyTable(d *Document, data *cargoData, table map[string]any, sc
 }
 func cargoParseDependency(d *Document, alias string, value any, scope, selector string) cargoDependency {
 	dep := cargoDependency{alias: alias, name: alias, scope: scope, selector: selector, valid: true, source: "registry", manifest: d.Project.ID}
-	if !cargoIdentifier(alias) {
+	invalidKey := ""
+	invalidate := func(key string) {
 		dep.valid = false
-		cargoInvalid(d, scope)
+		if invalidKey == "" {
+			invalidKey = key
+		}
+	}
+	if !cargoIdentifier(alias) {
+		invalidate("")
+		cargoInvalid(d, scope+"."+alias)
 		return dep
 	}
 	if text, ok := value.(string); ok {
 		if cargoDependencyVersion(text) {
 			dep.version = text
 		} else {
-			dep.valid = false
-			cargoInvalid(d, scope)
+			invalidate("")
+			cargoInvalid(d, scope+"."+alias)
 		}
 		return dep
 	}
 	table, ok := cargoTable(value)
 	if !ok {
-		dep.valid = false
-		cargoInvalid(d, scope)
+		invalidate("")
+		cargoInvalid(d, scope+"."+alias)
 		return dep
 	}
-	for key, value := range table {
+	for _, key := range cargoKeys(table) {
+		value := table[key]
 		switch key {
 		case "package":
 			text, ok := value.(string)
 			if ok && cargoIdentifier(text) {
 				dep.name = text
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "version":
 			text, ok := value.(string)
 			if ok && cargoDependencyVersion(text) {
 				dep.version = text
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "path":
 			text, ok := value.(string)
@@ -377,69 +406,77 @@ func cargoParseDependency(d *Document, alias string, value any, scope, selector 
 				dep.localPath = text
 				dep.source = "path"
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "git":
 			dep.source = "git" // Deliberately omit repository URLs and credentials.
 			if text, ok := value.(string); !ok || !cargoText(text) {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "registry":
 			if text, ok := value.(string); !ok || !cargoIdentifier(text) {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "rev", "tag", "branch":
 			if text, ok := value.(string); !ok || !cargoText(text) {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "optional":
 			flag, ok := value.(bool)
 			if ok {
 				dep.optional = flag
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "workspace":
 			flag, ok := value.(bool)
 			if ok && flag {
 				dep.inherited = true
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "default-features":
 			flag, ok := value.(bool)
 			if ok {
 				dep.defaultFeatures = &flag
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		case "features":
 			values, ok := cargoStrings(value)
 			if ok {
 				dep.features = values
 			} else {
-				dep.valid = false
+				invalidate(key)
 			}
 		}
 	}
 	if _, git := table["git"]; git {
 		dep.source = "git"
 		if dep.localPath != "" {
-			dep.valid = false
+			invalidate("path")
 		}
 	}
 	if dep.inherited {
-		for key := range table {
-			if key != "workspace" && key != "optional" && key != "features" {
-				dep.valid = false
+		for _, key := range cargoKeys(table) {
+			// Cargo 1.85 also accepts default-features on an inherited
+			// dependency. Whether false conflicts with the workspace value is
+			// edition-dependent and can only be decided during workspace
+			// resolution.
+			if key != "workspace" && key != "optional" && key != "features" && key != "default-features" {
+				invalidate(key)
 			}
 		}
 	}
 	if !dep.inherited && dep.version == "" && dep.localPath == "" && dep.source != "git" {
-		dep.valid = false
+		invalidate("")
 	}
 	if !dep.valid {
-		cargoInvalid(d, scope)
+		field := scope + "." + alias
+		if invalidKey != "" {
+			field += "." + invalidKey
+		}
+		cargoInvalid(d, field)
 	}
 	return dep
 }

@@ -19,6 +19,38 @@ Flat-directory cases compare `dircue` on files with `.git` removed against Lingu
 
 The commands above use the runner's default paths under `results/` and can overwrite existing reports. Use `--output` with a fresh path when preserving recorded evidence. To update the reference, change the pinned image and gem versions/checksum, generate a separate report, and resolve every new mismatch before changing the claimed compatibility scope. See [PROVENANCE.md](PROVENANCE.md), [COVERAGE.md](COVERAGE.md), and [DISCREPANCIES.md](DISCREPANCIES.md).
 
+## Pinned public parity corpus
+
+The public differential adds a small Perl-heavy repository and a five-file
+Linux kernel slice without vendoring their source. The manifest pins revisions,
+content hashes, and license metadata. By default the runner downloads a 203 KiB
+Gitolite archive and the five individual kernel blobs. Existing verified inputs
+can be reused offline:
+
+```sh
+# CI and the complete local conformance target run this automatically.
+make public-conformance
+
+# Reuse already available, hash-verified source inputs.
+python3 tests/conformance/public.py \
+  --gitolite-archive /path/to/gitolite.tar.gz \
+  --kernel-git /path/to/linux.git \
+  --output /tmp/public-conformance.json
+```
+
+The runner materializes deterministic temporary Git repositories and compares
+both `--breakdown --json` and `--strategies` with the pinned Linguist gem. It
+never executes corpus content. Nonregular archive entries are omitted because
+both repository walkers exclude symlinks.
+
+## Classifier inference window
+
+`make classifier-window` runs a small direct ranking differential for the
+classifier's separate 50 KiB input limit. Its generated prefix favors Perl and
+the suffix favors Java. The control requires uncapped Ruby scoring to reverse
+the result, then requires both normal Ruby and the maintained Enry classifier
+to retain the prefix ranking. This is part of `make conformance`.
+
 ## Upstream classifier samples
 
 ```sh
