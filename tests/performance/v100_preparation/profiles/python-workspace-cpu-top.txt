@@ -1,0 +1,38 @@
+File: python-workspace.test
+Type: cpu
+Time: 2026-09-21 19:16:00 EDT
+Duration: 2.51s, Total samples = 3.60s (143.29%)
+Showing nodes accounting for 3.06s, 85.00% of 3.60s total
+Dropped 103 nodes (cum <= 0.02s)
+Showing top 30 nodes out of 153
+      flat  flat%   sum%        cum   cum%
+     0.56s 15.56% 15.56%      0.56s 15.56%  runtime.pthread_cond_wait
+     0.55s 15.28% 30.83%      0.55s 15.28%  runtime.kevent
+     0.44s 12.22% 43.06%      0.44s 12.22%  runtime.pthread_kill
+     0.39s 10.83% 53.89%      0.39s 10.83%  runtime.usleep
+     0.17s  4.72% 58.61%      0.17s  4.72%  runtime.pthread_cond_signal
+     0.14s  3.89% 62.50%      0.14s  3.89%  runtime.madvise
+     0.13s  3.61% 66.11%      0.13s  3.61%  runtime.tryDeferToSpanScan
+     0.09s  2.50% 68.61%      0.16s  4.44%  runtime.mallocgcSmallScanNoHeader
+     0.07s  1.94% 70.56%      0.25s  6.94%  runtime.scanObject
+     0.07s  1.94% 72.50%      0.09s  2.50%  runtime.typePointers.next
+     0.04s  1.11% 73.61%      0.04s  1.11%  internal/runtime/maps.(*Map).getWithoutKeySmallFastStr
+     0.04s  1.11% 74.72%      0.08s  2.22%  runtime.scanObjectsSmall
+     0.04s  1.11% 75.83%      0.04s  1.11%  unicode/utf8.ValidString
+     0.03s  0.83% 76.67%      0.06s  1.67%  dircue/pkg/declarations.ValidateTOML.func2
+     0.03s  0.83% 77.50%      0.03s  0.83%  regexp.(*Regexp).tryBacktrack
+     0.03s  0.83% 78.33%      0.03s  0.83%  runtime.(*lfstack).pop
+     0.03s  0.83% 79.17%      0.03s  0.83%  runtime.nanotime1
+     0.02s  0.56% 79.72%      0.02s  0.56%  github.com/pelletier/go-toml/v2/unstable.hasByteEqual (inline)
+     0.02s  0.56% 80.28%      0.02s  0.56%  internal/chacha8rand.(*State).Next (inline)
+     0.02s  0.56% 80.83%      0.02s  0.56%  internal/runtime/atomic.(*UnsafePointer).Load (inline)
+     0.02s  0.56% 81.39%      0.02s  0.56%  internal/runtime/maps.(*Iter).Next
+     0.02s  0.56% 81.94%      0.02s  0.56%  internal/stringslite.Index
+     0.02s  0.56% 82.50%      0.02s  0.56%  runtime.memclrNoHeapPointers
+     0.02s  0.56% 83.06%      0.02s  0.56%  runtime.typePointers.nextFast (inline)
+     0.02s  0.56% 83.61%      0.04s  1.11%  runtime.wbBufFlush1
+     0.01s  0.28% 83.89%      0.05s  1.39%  dircue/pkg/declarations.MatchPattern
+     0.01s  0.28% 84.17%      0.56s 15.56%  dircue/pkg/declarations.ParsePython
+     0.01s  0.28% 84.44%      0.24s  6.67%  dircue/pkg/declarations.ResolvePython
+     0.01s  0.28% 84.72%      0.02s  0.56%  dircue/pkg/declarations.ValidateTOML.func1
+     0.01s  0.28% 85.00%      0.16s  4.44%  github.com/pelletier/go-toml/v2.(*decoder).fusedDocument

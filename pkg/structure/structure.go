@@ -21,6 +21,36 @@ import (
 const MaxSourceBytes int64 = 8 << 20
 const DefaultTimeout = 10 * time.Second
 
+// ErrWorkerTimeout is a sentinel a caller can detect via errors.Is when the
+// worker exceeded the per-file deadline but the parent context is still
+// alive. It is a per-file condition, not a protocol violation, so callers
+// under an explicit per-file continue policy may omit that file rather than
+// abort the whole scan. The wrapping error's Error() text is unchanged from
+// 0.8.0, so under the default fail policy the observable stderr line still
+// matches byte-for-byte; only errors.Is behavior is new.
+var ErrWorkerTimeout = errors.New("structure worker per-file timeout")
+
+// ErrWorkerFailure is the analogous sentinel for a non-zero worker exit
+// (crash, signal, non-protocol failure) with the parent context still alive.
+// The wrapping error preserves the 0.8.0 stderr text exactly; only errors.Is
+// behavior is new so a per-file continue policy can classify the condition.
+var ErrWorkerFailure = errors.New("structure worker process failure")
+
+// perFileWorkerError attaches an errors.Is-visible sentinel to a wrapped
+// error without changing its Error() text. Preserving the exact stderr line
+// keeps the default --on-error fail path byte-identical to 0.8.0 while
+// letting an --on-error continue caller pattern-match on the sentinel.
+type perFileWorkerError struct {
+	err      error
+	sentinel error
+}
+
+func (e *perFileWorkerError) Error() string { return e.err.Error() }
+func (e *perFileWorkerError) Unwrap() error { return e.err }
+func (e *perFileWorkerError) Is(target error) bool {
+	return target == e.sentinel
+}
+
 type Options struct {
 	Worker       string
 	Functions    bool
@@ -159,7 +189,17 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		return result, errors.New("structure worker output limit exceeded")
 	}
 	if child.Err() != nil {
-		return result, fmt.Errorf("structure worker: %w", child.Err())
+		// A parent-triggered cancellation propagates as context.Canceled and
+		// stays fatal for the whole scan; a purely per-file deadline attaches
+		// the ErrWorkerTimeout sentinel to the same wrapped error so callers
+		// under an explicit per-file continue policy can degrade this one
+		// file to a skipped omission. The wrapper's Error() text is unchanged
+		// so the default fail path stays byte-identical to 0.8.0.
+		wrapped := fmt.Errorf("structure worker: %w", child.Err())
+		if errors.Is(child.Err(), context.DeadlineExceeded) && ctx.Err() == nil {
+			return result, &perFileWorkerError{err: wrapped, sentinel: ErrWorkerTimeout}
+		}
+		return result, wrapped
 	}
 	if err != nil {
 		if c.options.Hotspots && unsupportedHotspotRequest(stdout.buf.Bytes()) {
@@ -168,7 +208,16 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		if c.options.Functions && unsupportedFunctionRequest(stdout.buf.Bytes()) {
 			return result, fmt.Errorf("structure worker does not support function-space metrics; use an updated worker: %w", err)
 		}
-		return result, fmt.Errorf("structure worker: %w; stderr: %s", err, strings.TrimSpace(stderr.buf.String()))
+		// A worker that started and exited non-zero (including by signal) is a
+		// per-file process failure. Launch/configuration failures are not: a
+		// missing or newly non-executable worker would affect every file and
+		// must remain fatal under every caller policy.
+		wrapped := fmt.Errorf("structure worker: %w; stderr: %s", err, strings.TrimSpace(stderr.buf.String()))
+		var exitErr *exec.ExitError
+		if ctx.Err() == nil && errors.As(err, &exitErr) {
+			return result, &perFileWorkerError{err: wrapped, sentinel: ErrWorkerFailure}
+		}
+		return result, wrapped
 	}
 	return decodeEnrichedResponse(stdout.buf.Bytes(), result, content, c.options.Functions, c.options.Hotspots)
 }

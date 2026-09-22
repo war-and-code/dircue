@@ -81,8 +81,11 @@ type Options struct {
 	DeclarationsOnly bool
 	Structure        *structure.Client
 	StructureFiles   bool
-	structureGate    chan struct{}
-	languageTrace    *explain.LanguageTrace
+	// GitReadMetrics enables internal, opt-in Git work counters. Counters do
+	// not enter deterministic reports and may vary with scheduling/cache state.
+	GitReadMetrics *GitReadMetrics
+	structureGate  chan struct{}
+	languageTrace  *explain.LanguageTrace
 }
 
 type ErrorPolicy string
@@ -150,7 +153,7 @@ type result struct {
 // fatal; detector failures become warnings and preserve partial findings.
 // An explicit MaxFileBytes limit skips larger file contents; metadata discovery
 // still inventories their names and full sizes.
-func Scan(ctx context.Context, directory string, opts Options) (*profile.Report, error) {
+func Scan(ctx context.Context, directory string, opts Options) (out *profile.Report, returnErr error) {
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
 	}
@@ -255,10 +258,16 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if !info.IsDir() {
 		return nil, errors.New("scan root must be a directory")
 	}
-	snapshot, err := openGitSnapshot(ctx, abs, opts, false)
+	snapshot, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if closeErr := snapshot.close(); returnErr == nil && closeErr != nil {
+			out = nil
+			returnErr = fmt.Errorf("close Git storage: %w", closeErr)
+		}
+	}()
 	if snapshot != nil {
 		abs = snapshot.root
 	}
@@ -530,6 +539,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		formatCollector = formats.New(source, tree, opts.MaxFileBytes)
+		formatCollector.SetErrorPolicy(string(opts.ErrorPolicy))
 	}
 	var declarationCollector *declarations.Collector
 	if opts.Declarations {
@@ -538,6 +548,7 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
+		declarationCollector.SetErrorPolicy(string(opts.ErrorPolicy))
 		if opts.Focus != nil || opts.Environments {
 			declarationCollector.EnableProjectRecords()
 		}
@@ -708,6 +719,15 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	// Aggregation modules can report the same unreadable path as the language
+	// pass and as each other. Index existing warnings once so mass failures do
+	// not turn per-module warning deduplication into quadratic work.
+	fileReadErrorWarnings := make(map[string]struct{})
+	for _, warning := range report.Warnings {
+		if warning.Code == "file_read_error" {
+			fileReadErrorWarnings[warning.Path] = struct{}{}
+		}
+	}
 	if ruleCollector != nil {
 		for _, warning := range report.Warnings {
 			if warning.Code == "tree_size_limit" {
@@ -732,6 +752,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 		report.Registries, err = registryCollector.finish(ctx)
 		if err != nil {
 			return nil, err
+		}
+		for _, path := range registryCollector.collector.ReadErrors() {
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected registry configuration could not be read")
 		}
 		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
@@ -777,6 +800,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 				report.Declarations = declarationCollector.Skip("tree_size_limit")
 			}
 		}
+		for _, path := range declarationCollector.ReadErrors() {
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected declaration manifest could not be read")
+		}
 		report.SchemaVersion = profile.DeclarationsSchemaVersion
 	}
 	if formatCollector != nil {
@@ -788,6 +814,9 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 			if warning.Code == "tree_size_limit" {
 				report.Formats = formatCollector.Skip("tree_size_limit")
 			}
+		}
+		for _, path := range formatCollector.ReadErrors() {
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected format candidate could not be read")
 		}
 		report.SchemaVersion = profile.ContentSchemaVersion
 	}
@@ -814,6 +843,13 @@ func Scan(ctx context.Context, directory string, opts Options) (*profile.Report,
 	if environmentCollector != nil {
 		if err := environmentCollector.finish(ctx, root, declarationCollector, report); err != nil {
 			return nil, err
+		}
+		if report.Environments != nil {
+			for _, d := range report.Environments.Diagnostics {
+				if d.Code == "file-read-error" {
+					addFileReadErrorWarning(report, fileReadErrorWarnings, d.Path, "selected global.json could not be read")
+				}
+			}
 		}
 		report.SchemaVersion = profile.EnvironmentSchemaVersion
 	}
@@ -878,6 +914,19 @@ func omissionReason(value result, fallback string) string {
 		return value.omission
 	}
 	return fallback
+}
+
+// addFileReadErrorWarning appends a per-path file_read_error warning without
+// duplicating one the language pass already emitted for the same file: the
+// aggregation modules commonly reach the same unreadable file after the
+// scanner-level per-file recovery has already surfaced it, and the caller
+// gains nothing from parallel warnings that name the same path.
+func addFileReadErrorWarning(report *profile.Report, seen map[string]struct{}, path, message string) {
+	if _, exists := seen[path]; exists {
+		return
+	}
+	seen[path] = struct{}{}
+	report.Warnings = append(report.Warnings, profile.Warning{Path: path, Code: "file_read_error", Message: message})
 }
 
 func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options) (result, error) {

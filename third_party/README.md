@@ -27,8 +27,10 @@ The compatibility patch makes general changes backed by the pinned Ruby source:
 - A `UseVimball` marker in the first five lines suppresses modeline inference for Vimball archives, as Ruby does.
 - The Adblock header grammar's named subroutine is expanded into an equivalent RE2 expression. Its possessive repetition is unnecessary for recognition because version digits/dots cannot consume the following separator. The exact source expression is matched before applying this translation.
 - The shell `exec` wrapper heuristic permits only the whitespace/quote separators in Ruby `lib/linguist/shebang.rb`; an intervening argument such as `-nef` no longer changes Shell to another interpreter language.
+- Filename and extension detection intersect their matches with candidates from earlier strategies while preserving candidate order. Generic extensions are generated from Linguist's pinned `generic.yml` and pass candidates through unchanged, requiring a later strategy to confirm the language. This prevents a `.pl` suffix from broadening a Perl shebang back to Prolog and Raku and avoids assigning generic suffixes from the filename alone.
+- Content heuristics inspect only the first 50 KiB of raw bytes, matching Linguist 9.7. Patterns later in a LazyBlob's 128 KiB read prefix do not affect disambiguation.
 
-- Linguist 9.7's log term-frequency/inverse-class-frequency centroid model replaces the old Bayesian classifier. The canonical exported model is converted deterministically to an embedded, versioned binary and loaded once on first classifier use; no Ruby runtime is involved. Conversion preserves vocabulary mappings and float64 values. Every regeneration compares the binary decoder's output against an independent Go decode of the canonical JSON before publishing the maintained fork.
+- Linguist 9.7's log term-frequency/inverse-class-frequency centroid model replaces the old Bayesian classifier. Inference considers only the first 50 KiB of raw bytes, while model training used complete samples, matching the pinned classifier. The canonical exported model is converted deterministically to an embedded, versioned binary and loaded once on first classifier use; no Ruby runtime is involved. Conversion preserves vocabulary mappings and float64 values. Every regeneration compares the binary decoder's output against an independent Go decode of the canonical JSON before publishing the maintained fork.
 - The generic tokenizer is a pure-Go implementation of the pinned Flex rules: longest match, declaration-order ties, comment/string states, 16-byte tokens, and the native scanner's byte cap. The broad conformance harness verifies ordered token sequences against Ruby, in addition to labels.
 - Generated-file line scanning follows Ruby `Generated#lines`: split on LF, preserve carriage returns and all final empty elements. This differs from Ruby's single-file metadata line handling and matters when source-map references precede trailing blank lines.
 
@@ -54,6 +56,8 @@ but leaves the underlying file open. This can accumulate file descriptors and
 prevent repository cleanup on Windows. Linked-worktree `commondir` discovery
 and failed lazy-object reader construction now also close their files. The
 regressions cover valid ownership transfer and cleanup after malformed input.
+A bounded packfile cache also closes a newly opened packfile when eviction of
+the previous entry fails; the original eviction error remains authoritative.
 
 [`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
 runtime changes and regression tests. The snapshot retains upstream production

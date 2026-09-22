@@ -65,9 +65,12 @@ without telemetry.
 ## Preserve contracts and measure tradeoffs
 
 Protect supported CLI invocations, JSON layouts, exit semantics, and the
-documented Linguist compatibility contract. Keep diagnostics separate from
-machine-readable stdout. Test changes against independent references and
-representative inputs, including awkward and large cases.
+documented Linguist compatibility contract. The
+[proposed 1.0 compatibility policy](COMPATIBILITY.md) describes intended stability
+for the 1.x line and how additive changes and deprecations would be
+versioned. Its final scope remains under review. Keep diagnostics separate from machine-readable stdout. Test
+changes against independent references and representative inputs, including
+awkward and large cases.
 
 Measure performance rather than inferring it from implementation choices.
 Record the workload, source versions, environment, and both benefits and
@@ -79,6 +82,10 @@ property under its assumptions, not the correctness of an entire executable.
 
 Provide clear help, examples, versioned schemas, and machine-readable
 capability information that serves both people and automated callers.
+An installed binary should explain its workflows, output contracts, limits,
+and recovery paths offline. Repository documentation can provide more detail,
+but ordinary use should not depend on visiting it. Keep the built-in reference
+aligned with actual commands and test its examples and contracts.
 Disclose optional dependencies and effective settings. Reuse upstream work
 where it fits, preserve its licenses and attribution, and keep updates
 reproducible. Support from an upstream library becomes a dircue capability

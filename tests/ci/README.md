@@ -1,5 +1,11 @@
 # CI concurrency contract tests
 
+Workflows run on repository events or manual dispatch. Do not add scheduled
+Actions without the maintainer's explicit authorization; making the repository
+public does not lift this restriction. Draft pull requests retain the lightweight
+preflight path to limit Actions usage. `test_workflow_policy.py` checks the
+allowed triggers and verifies that external Actions use full commit hashes.
+
 `test_workflow_concurrency.py` reads the concurrency expressions and job gates
 directly from the three pull-request workflows. It evaluates representative
 event snapshots and models GitHub's one-running/one-pending admission rule for

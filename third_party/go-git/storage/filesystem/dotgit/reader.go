@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 
+	billy "github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/format/objfile"
 	"github.com/go-git/go-git/v5/utils/ioutil"
@@ -15,10 +16,11 @@ import (
 var _ (plumbing.EncodedObject) = &EncodedObject{}
 
 type EncodedObject struct {
-	dir *DotGit
-	h   plumbing.Hash
-	t   plumbing.ObjectType
-	sz  int64
+	dir          *DotGit
+	h            plumbing.Hash
+	t            plumbing.ObjectType
+	sz           int64
+	readObserver func(int)
 }
 
 func (e *EncodedObject) Hash() plumbing.Hash {
@@ -33,6 +35,9 @@ func (e *EncodedObject) Reader() (io.ReadCloser, error) {
 		}
 
 		return nil, err
+	}
+	if e.readObserver != nil {
+		f = &observedReadFile{File: f, observe: e.readObserver}
 	}
 	r, err := objfile.NewReader(f)
 	if err != nil {
@@ -76,10 +81,34 @@ func (e *EncodedObject) Writer() (io.WriteCloser, error) {
 }
 
 func NewEncodedObject(dir *DotGit, h plumbing.Hash, t plumbing.ObjectType, size int64) *EncodedObject {
+	return NewEncodedObjectWithReadObserver(dir, h, t, size, nil)
+}
+
+// NewEncodedObjectWithReadObserver creates a lazy loose object whose physical
+// file reads are reported to observe. A nil observer preserves the default path.
+func NewEncodedObjectWithReadObserver(dir *DotGit, h plumbing.Hash, t plumbing.ObjectType, size int64, observe func(int)) *EncodedObject {
 	return &EncodedObject{
-		dir: dir,
-		h:   h,
-		t:   t,
-		sz:  size,
+		dir:          dir,
+		h:            h,
+		t:            t,
+		sz:           size,
+		readObserver: observe,
 	}
+}
+
+type observedReadFile struct {
+	billy.File
+	observe func(int)
+}
+
+func (f *observedReadFile) Read(p []byte) (int, error) {
+	n, err := f.File.Read(p)
+	f.observe(n)
+	return n, err
+}
+
+func (f *observedReadFile) ReadAt(p []byte, offset int64) (int, error) {
+	n, err := f.File.ReadAt(p, offset)
+	f.observe(n)
+	return n, err
 }

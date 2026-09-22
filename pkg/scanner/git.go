@@ -11,11 +11,11 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
-	"sync"
 	"unicode/utf8"
 
 	"dircue/pkg/availability"
 	"dircue/pkg/profile"
+	"github.com/go-git/go-billy/v5"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
@@ -27,8 +27,8 @@ import (
 type gitSnapshot struct {
 	availability bool
 	explainPath  string
-	// go-git packed-object/index caches mutate during reads and are not concurrency safe.
-	objectMu     sync.Mutex
+	lanes        *gitObjectLanes
+	storages     []io.Closer
 	root         string
 	tree         *object.Tree
 	repo         *git.Repository
@@ -39,6 +39,104 @@ type gitSnapshot struct {
 }
 
 const maxGitTreeDepth = 1024
+
+const (
+	maxGitObjectLanes = 3
+	// Preserve the pre-lane retained-reader capacity when one storage is enough.
+	maxGitPackDescriptorsSingleLane = 8
+	// This bounds retained pack readers. Lazy objects and nested delta bases
+	// open transient readers whose peak depends on the pack's delta graph.
+	maxGitPackDescriptorsPerConcurrentLane = 2
+)
+
+func gitObjectLaneCount(workers int) int {
+	return min(max(workers, 1), maxGitObjectLanes)
+}
+
+func gitPackDescriptorLimit(laneCount int) int {
+	if laneCount == 1 {
+		return maxGitPackDescriptorsSingleLane
+	}
+	return maxGitPackDescriptorsPerConcurrentLane
+}
+
+type gitObjectLane struct {
+	repo *git.Repository
+}
+
+// gitObjectLanes serializes each mutable go-git filesystem storage while
+// allowing independent storages to decode objects concurrently. Every lane
+// shares one thread-safe, size-bounded object cache.
+type gitObjectLanes struct {
+	// primaryRepo is also one of the available lanes. Direct use is confined
+	// to snapshot setup, the serial tree prepass, and single-file inspection;
+	// those phases never overlap leased worker reads.
+	primaryRepo *git.Repository
+	available   chan *gitObjectLane
+}
+
+func newGitObjectLanes(repositoryFS, worktreeFS billy.Filesystem, objectCache cache.Object, options filesystem.Options, count int) (*gitObjectLanes, []*filesystem.Storage, error) {
+	if count < 1 {
+		return nil, nil, errors.New("Git object lane count must be positive")
+	}
+	lanes := &gitObjectLanes{available: make(chan *gitObjectLane, count)}
+	storages := make([]*filesystem.Storage, 0, count)
+	for range count {
+		storage := filesystem.NewStorageWithOptions(repositoryFS, objectCache, options)
+		repo, err := git.Open(storage, worktreeFS)
+		if err != nil {
+			closeErr := storage.Close()
+			for _, opened := range storages {
+				closeErr = errors.Join(closeErr, opened.Close())
+			}
+			return nil, nil, errors.Join(err, closeErr)
+		}
+		storages = append(storages, storage)
+		if lanes.primaryRepo == nil {
+			lanes.primaryRepo = repo
+		}
+		lanes.available <- &gitObjectLane{repo: repo}
+	}
+	return lanes, storages, nil
+}
+
+func (l *gitObjectLanes) acquire(ctx context.Context) (*gitObjectLane, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
+	select {
+	case lane := <-l.available:
+		return lane, func() { l.available <- lane }, nil
+	case <-ctx.Done():
+		return nil, nil, ctx.Err()
+	}
+}
+
+func (l *gitObjectLanes) read(ctx context.Context, hash plumbing.Hash, filename string, limit int64) ([]byte, int64, error) {
+	lane, release, err := l.acquire(ctx)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer release()
+	blob, err := lane.repo.BlobObject(hash)
+	if err != nil {
+		return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
+	}
+	return blobRead(blob, filename, limit)
+}
+
+func (s *gitSnapshot) close() error {
+	if s == nil || len(s.storages) == 0 {
+		return nil
+	}
+	storages := s.storages
+	s.storages = nil
+	var err error
+	for _, storage := range storages {
+		err = errors.Join(err, storage.Close())
+	}
+	return err
+}
 
 type gitTreeFrame struct {
 	tree *object.Tree
@@ -186,7 +284,11 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (*gitSnapshot, error) {
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (*gitSnapshot, error) {
+	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, laneCount, attributeRoot)
+}
+
+func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
 	if opts.Source == "directory" {
 		return nil, nil
 	}
@@ -200,19 +302,36 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	if err != nil {
 		return nil, fmt.Errorf("open Git repository: %w", err)
 	}
+	var retainedStorages []*filesystem.Storage
+	var retainedLanes *gitObjectLanes
+	defer func() {
+		if snapshot == nil && len(retainedStorages) > 0 {
+			var closeErr error
+			for _, storage := range retainedStorages {
+				closeErr = errors.Join(closeErr, storage.Close())
+			}
+			if err == nil && closeErr != nil {
+				err = fmt.Errorf("close Git storage: %w", closeErr)
+			}
+		}
+	}()
 	// PlainOpen's default storage eagerly materializes every complete object.
 	// Reopen using a bounded threshold so large non-delta objects are streamed.
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		bounded := filesystem.NewStorageWithOptions(storage.Filesystem(), cache.NewObjectLRUDefault(), filesystem.Options{LargeObjectThreshold: ClassificationBytes})
+		objectCache := cache.Object(cache.NewObjectLRUDefault())
+		if opts.GitReadMetrics != nil {
+			objectCache = &metricsObjectCache{Object: objectCache, metrics: opts.GitReadMetrics}
+		}
+		var worktreeFS billy.Filesystem
 		wt, wtErr := repo.Worktree()
 		if wtErr == nil {
-			repo, err = git.Open(bounded, wt.Filesystem)
-		} else {
-			repo, err = git.Open(bounded, nil)
+			worktreeFS = wt.Filesystem
 		}
+		retainedLanes, retainedStorages, err = newGitObjectLanes(storage.Filesystem(), worktreeFS, objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: gitPackDescriptorLimit(laneCount), ReadMetrics: opts.GitReadMetrics}, laneCount)
 		if err != nil {
 			return nil, fmt.Errorf("open bounded Git storage: %w", err)
 		}
+		repo = retainedLanes.primaryRepo
 	}
 	var tree *object.Tree
 	if opts.Tree != "" {
@@ -221,6 +340,15 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 		}
 		tree, err = repo.TreeObject(plumbing.NewHash(opts.Tree))
 		if err != nil {
+			// When the object exists but is a commit, blob, or tag, tell the
+			// caller what kind it actually is so a copy-pasted commit or blob
+			// hash does not look like a missing object. The kind probe reuses
+			// the same storage the tree lookup consulted.
+			if errors.Is(err, plumbing.ErrObjectNotFound) {
+				if obj, probeErr := repo.Object(plumbing.AnyObject, plumbing.NewHash(opts.Tree)); probeErr == nil && obj != nil {
+					return nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, obj.Type())
+				}
+			}
 			return nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
 		}
 	} else {
@@ -256,9 +384,13 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	if err != nil {
 		return nil, err
 	}
-	snapshot := &gitSnapshot{root: root, tree: tree, repo: repo, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
+	ownedStorages := make([]io.Closer, len(retainedStorages))
+	for i := range retainedStorages {
+		ownedStorages[i] = retainedStorages[i]
+	}
+	snapshot = &gitSnapshot{root: root, tree: tree, repo: repo, lanes: retainedLanes, storages: ownedStorages, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		files, err := attributeRoot(storage.Filesystem().Root())
+		files, err := openAttributeRoot(storage.Filesystem().Root())
 		if err != nil {
 			return nil, err
 		}
@@ -377,6 +509,11 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			entries = append(entries, item)
 			continue
 		}
+		// EncodedObjectSize mutates the primary lane's pack scanner and index
+		// state. walk() finishes every size lookup and .gitattributes read in
+		// this first loop before the second loop dispatches any jobs. Workers
+		// therefore cannot lease that lane until this prepass is complete.
+		// Preserve that ordering if traversal and dispatch are ever interleaved.
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
 		if err != nil {
 			if s.errorPolicy == ErrorPolicyContinue {
@@ -388,13 +525,7 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			return fmt.Errorf("read Git object size %s: %w", filename, err)
 		}
 		read := func(limit int64) ([]byte, int64, error) {
-			s.objectMu.Lock()
-			defer s.objectMu.Unlock()
-			blob, err := s.repo.BlobObject(entry.Hash)
-			if err != nil {
-				return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
-			}
-			return blobRead(blob, filename, limit)
+			return s.lanes.read(ctx, entry.Hash, filename, limit)
 		}
 		entries = append(entries, job{path: filename, size: size, read: read})
 		if path.Base(filename) == ".gitattributes" {

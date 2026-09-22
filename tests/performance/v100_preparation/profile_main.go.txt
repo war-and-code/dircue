@@ -1,0 +1,35 @@
+// Measurement-only CLI wrapper: default optimization; never part of production build.
+package main
+
+import (
+ "context"
+ "encoding/json"
+ "fmt"
+ "io"
+ "os"
+ "path/filepath"
+ "runtime"
+ "runtime/pprof"
+ "strconv"
+ "dircue/internal/cli"
+)
+func main() {
+ dir,kind:=os.Getenv("V100_PROFILE_DIR"),os.Getenv("V100_PROFILE_KIND")
+ n,err:=strconv.Atoi(os.Getenv("V100_PROFILE_ITERATIONS")); if err!=nil || n<1 || dir=="" {panic("set profile dir, kind, iterations")}
+ call:=func(){if err:=cli.Execute(context.Background(),os.Args[1:],io.Discard,os.Stderr);err!=nil{panic(err)}}
+ // Warm process state; benchmark CLI latency is measured independently.
+ call()
+ runtime.GC()
+ var before,after runtime.MemStats
+ runtime.ReadMemStats(&before)
+ f,err:=os.Create(filepath.Join(dir,kind+".pprof"));if err!=nil {panic(err)}
+ if kind=="cpu" {if err=pprof.StartCPUProfile(f);err!=nil {panic(err)}}
+ for i:=0;i<n;i++ {pprof.Do(context.Background(),pprof.Labels("phase","cli"),func(context.Context){call()})}
+ if kind=="cpu" {pprof.StopCPUProfile()}
+ runtime.ReadMemStats(&after)
+ if kind=="alloc" {runtime.GC();if err=pprof.Lookup("allocs").WriteTo(f,0);err!=nil{panic(err)}}
+ if err=f.Close();err!=nil {panic(err)}
+ data:=map[string]any{"iterations":n,"allocated_bytes_per_iteration":(after.TotalAlloc-before.TotalAlloc)/uint64(n),"allocations_per_iteration":(after.Mallocs-before.Mallocs)/uint64(n),"mem_profile_rate":runtime.MemProfileRate,"note":"profile includes warmup allocations; CLI CPU starts after warmup; stdout discarded; startup excluded"}
+ b,_:=json.MarshalIndent(data,"","  "); if err=os.WriteFile(filepath.Join(dir,"stats.json"),b,0600);err!=nil{panic(err)}
+ fmt.Println(string(b))
+}

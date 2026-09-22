@@ -1,0 +1,54 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:12:08 EDT
+Duration: 402.18ms, Total samples = 980ms (243.67%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 390ms, 39.80% of 980ms total
+Showing top 45 nodes out of 98
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      390ms 39.80%  dircue/pkg/scanner.Scan.func4
+         0     0%     0%      380ms 38.78%  dircue/pkg/scanner.analyzeFile
+         0     0%     0%      380ms 38.78%  dircue/pkg/scanner.analyzeFileBase
+         0     0%     0%      380ms 38.78%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0%     0%      340ms 34.69%  dircue/pkg/scanner.readBoundedSize
+     340ms 34.69% 34.69%      340ms 34.69%  syscall.rawsyscalln
+         0     0% 34.69%      340ms 34.69%  syscall.syscalln
+         0     0% 34.69%      190ms 19.39%  dircue/pkg/scanner.readAllBounded
+         0     0% 34.69%      190ms 19.39%  syscall.syscall
+         0     0% 34.69%      180ms 18.37%  internal/poll.(*FD).Read
+         0     0% 34.69%      180ms 18.37%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 34.69%      180ms 18.37%  io.(*LimitedReader).Read
+         0     0% 34.69%      180ms 18.37%  os.(*File).Read
+         0     0% 34.69%      180ms 18.37%  os.(*File).read (inline)
+         0     0% 34.69%      180ms 18.37%  syscall.Read (inline)
+         0     0% 34.69%      180ms 18.37%  syscall.read
+         0     0% 34.69%      150ms 15.31%  syscall.syscall6
+         0     0% 34.69%      110ms 11.22%  internal/syscall/unix.Fstatat (inline)
+         0     0% 34.69%      110ms 11.22%  os.(*Root).Lstat
+         0     0% 34.69%      110ms 11.22%  os.doInRoot[go.shape.interface { IsDir bool; ModTime time.Time; Mode io/fs.FileMode; Name string; Size int64; Sys interface {} }]
+         0     0% 34.69%      110ms 11.22%  os.lstatatWithName
+         0     0% 34.69%      110ms 11.22%  os.rootStat
+         0     0% 34.69%      110ms 11.22%  os.rootStat.func1
+         0     0% 34.69%      110ms 11.22%  syscall.fstatat
+         0     0% 34.69%       60ms  6.12%  runtime.systemstack
+         0     0% 34.69%       50ms  5.10%  runtime.(*mheap).alloc.func1
+         0     0% 34.69%       40ms  4.08%  dircue/pkg/scanner.openRegular (inline)
+         0     0% 34.69%       40ms  4.08%  internal/syscall/unix.Openat (inline)
+         0     0% 34.69%       40ms  4.08%  os.(*Root).OpenFile
+         0     0% 34.69%       40ms  4.08%  os.doInRoot[go.shape.int]
+         0     0% 34.69%       40ms  4.08%  os.ignoringEINTR (inline)
+         0     0% 34.69%       40ms  4.08%  os.rootOpenFileNolog
+         0     0% 34.69%       40ms  4.08%  os.rootOpenFileNolog.func1
+         0     0% 34.69%       40ms  4.08%  os.rootOpenFileNolog.func1.1 (inline)
+         0     0% 34.69%       40ms  4.08%  runtime.(*mheap).allocSpan
+      40ms  4.08% 38.78%       40ms  4.08%  runtime.madvise
+         0     0% 38.78%       40ms  4.08%  runtime.sysUsed (inline)
+         0     0% 38.78%       40ms  4.08%  runtime.sysUsedOS (inline)
+         0     0% 38.78%       40ms  4.08%  syscall.openat
+         0     0% 38.78%       30ms  3.06%  regexp.(*Regexp).backtrack
+         0     0% 38.78%       30ms  3.06%  regexp.(*Regexp).doExecute
+      10ms  1.02% 39.80%       30ms  3.06%  regexp.(*Regexp).tryBacktrack
+         0     0% 39.80%       20ms  2.04%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
+         0     0% 39.80%       20ms  2.04%  github.com/go-enry/go-enry/v2.matchRegexSlice (inline)
+         0     0% 39.80%       20ms  2.04%  regexp.(*Regexp).MatchString (inline)

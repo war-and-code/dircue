@@ -1,4 +1,4 @@
-// Modified for dircue: close loose object files after reading their size.
+// Modified for dircue: close loose size readers and uncached packfiles on errors.
 
 package filesystem
 
@@ -82,6 +82,7 @@ func (s *ObjectStorage) loadIdxFile(h plumbing.Hash) (err error) {
 	if err != nil {
 		return err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricIndex)
 
 	defer ioutil.CheckClose(f, &err)
 
@@ -205,6 +206,7 @@ func (s *ObjectStorage) encodedObjectSizeFromUnpacked(h plumbing.Hash) (
 
 		return 0, err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
 
 	defer ioutil.CheckClose(f, &err)
 
@@ -230,12 +232,18 @@ func (s *ObjectStorage) packfile(idx idxfile.Index, pack plumbing.Hash) (*packfi
 
 	var p *packfile.Packfile
 	if s.objectCache != nil {
-		p = packfile.NewPackfileWithCache(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold)
+		p = packfile.NewPackfileWithCacheAndMetrics(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold, s.options.ReadMetrics)
 	} else {
 		p = packfile.NewPackfile(idx, s.dir.Fs(), f, s.options.LargeObjectThreshold)
 	}
 
-	return p, s.storePackfileInCache(pack, p)
+	if err := s.storePackfileInCache(pack, p); err != nil {
+		// A failed eviction leaves the new packfile outside the cache.
+		// Preserve the eviction error while releasing its unowned descriptor.
+		_ = p.Close()
+		return nil, err
+	}
+	return p, nil
 }
 
 func (s *ObjectStorage) packfileFromCache(hash plumbing.Hash) *packfile.Packfile {
@@ -412,6 +420,7 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 
 		return nil, err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
 	defer ioutil.CheckClose(f, &err)
 
 	if cacheObj, found := s.objectCache.Get(h); found {
@@ -431,7 +440,11 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 	}
 
 	if s.options.LargeObjectThreshold > 0 && size > s.options.LargeObjectThreshold {
-		obj = dotgit.NewEncodedObject(s.dir, h, t, size)
+		if s.options.ReadMetrics == nil {
+			obj = dotgit.NewEncodedObject(s.dir, h, t, size)
+		} else {
+			obj = dotgit.NewEncodedObjectWithReadObserver(s.dir, h, t, size, s.options.ReadMetrics.RecordLooseBytes)
+		}
 		return obj, nil
 	}
 

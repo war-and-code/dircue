@@ -12,6 +12,26 @@
 
 Use the commands in [README.md](README.md) to regenerate reports, selecting fresh output paths to preserve existing evidence. Review the differences; reference outputs must never be edited to hide a mismatch. For performance measurements, use the separate performance harness, which runs both executables in the same environment.
 
+## Public parity corpus
+
+`public_corpus.json` pins the public repository URLs, exact revisions, archive
+or blob SHA-256 values, and license-file hashes used by `public.py`. The public
+source remains external: the runner downloads verified bytes or reads the exact
+objects from a caller-supplied bare Git repository, then removes the temporary
+materialization when the comparison ends. Gitolite's repository license is
+GPL-2.0-only. The Linux manifest records the repository-level COPYING file and
+each selected file's exact SPDX expression; those expressions are not assumed
+to be identical. Each fixture contains its upstream repository license file.
+The report records the immutable reference-image ID, manifest and runner
+hashes, materialized fixture hashes, synthetic fixture commits, binary hash,
+and raw oracle/candidate output.
+
+`classifier_window.py` generates its adversarial bytes from short synthetic
+strings and refuses to run if their recorded hashes change. Its report records
+the immutable reference-image ID, probe and generator hashes, all Ruby and Go
+rankings, and each control decision. The uncapped Ruby control makes the test
+sensitive to accidentally removing the existing 50 KiB classifier slice.
+
 ## Broad sample corpus
 
 `samples.py` uses the official Linguist `v9.7.0` tag at Git object `e0c78d62c42abae6122235d8e68a7aa43eef89da`. Archive URL: `https://codeload.github.com/github-linguist/linguist/tar.gz/refs/tags/v9.7.0`; SHA-256 `e7b85d06f5e61a810303b8d2e03fc199760525c079fef4dd6f8b7c86342234d9`. Only regular files below `samples/` are extracted, with path traversal rejected. The archive hash is required even for user-supplied cached downloads. Each sample result records its relative path and byte size; the archive hash identifies the exact input corpus. Source sample licenses remain upstream; the corpus is not vendored into Dircue.

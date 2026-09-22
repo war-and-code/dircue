@@ -1,0 +1,9 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:52:47 EDT
+Duration: 12.43s, Total samples = 29.31s (235.81%)
+Active filters:
+   show=ObjectStorage.*packfile|NewReaderSize|ObjectPack
+   tagfocus=phase=scan
+Showing nodes accounting for 0, 0% of 29.31s total
+      flat  flat%   sum%        cum   cum%

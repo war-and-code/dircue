@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -163,6 +164,21 @@ func TestProcessBoundaries(t *testing.T) {
 				t.Fatalf("wrong timeout: %v", err)
 			}
 		})
+	}
+}
+
+func TestWorkerLaunchFailureIsNotPerFileFailure(t *testing.T) {
+	c := helper(t, "success", time.Second)
+	// New validates the worker path, but it can disappear between validation
+	// and a later per-file invocation. That is a scan-wide configuration
+	// failure, not a worker process crash eligible for --on-error continue.
+	c.options.Worker = filepath.Join(t.TempDir(), "worker-that-disappeared")
+	_, err := c.Analyze(context.Background(), "a.java", "Java", []byte("class A {}"))
+	if err == nil {
+		t.Fatal("worker launch failure was hidden")
+	}
+	if errors.Is(err, ErrWorkerFailure) {
+		t.Fatalf("worker launch failure mislabeled as per-file crash: %v", err)
 	}
 }
 

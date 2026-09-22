@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:08:27 EDT
+Duration: 21.46s, Total samples = 38.57s (179.71%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 19.95s, 51.72% of 38.57s total
+Dropped 175 nodes (cum <= 0.19s)
+Showing top 45 nodes out of 143
+      flat  flat%   sum%        cum   cum%
+    14.40s 37.33% 37.33%     14.40s 37.33%  syscall.rawsyscalln
+         0     0% 37.33%     14.40s 37.33%  syscall.syscalln
+         0     0% 37.33%     13.11s 33.99%  syscall.syscall
+         0     0% 37.33%     12.03s 31.19%  dircue/pkg/scanner.Scan.func4
+         0     0% 37.33%     11.96s 31.01%  dircue/pkg/scanner.analyzeFile
+         0     0% 37.33%     11.96s 31.01%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 37.33%     11.96s 31.01%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 37.33%      9.96s 25.82%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 37.33%      9.81s 25.43%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObject
+         0     0% 37.33%      9.81s 25.43%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).getFromPackfile
+         0     0% 37.33%      8.64s 22.40%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0% 37.33%      8.64s 22.40%  github.com/go-git/go-git/v5/plumbing/object.GetBlob
+         0     0% 37.33%      8.08s 20.95%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open
+         0     0% 37.33%      8.08s 20.95%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*RepositoryFilesystem).Open
+         0     0% 37.33%      8.01s 20.77%  os.ignoringEINTR (inline)
+         0     0% 37.33%      7.88s 20.43%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+         0     0% 37.33%      7.03s 18.23%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack
+     0.01s 0.026% 37.36%      7.02s 18.20%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackOpen
+         0     0% 37.36%      6.56s 17.01%  runtime.systemstack
+         0     0% 37.36%      5.62s 14.57%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).followedPath
+         0     0% 37.36%      5.59s 14.49%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+         0     0% 37.36%      5.56s 14.42%  github.com/go-git/go-billy/v5/helper/polyfill.(*Polyfill).Lstat
+         0     0% 37.36%      5.56s 14.42%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).Lstat
+         0     0% 37.36%      5.56s 14.42%  os.Lstat
+         0     0% 37.36%      5.56s 14.42%  os.lstatNolog
+         0     0% 37.36%      5.56s 14.42%  os.lstatNolog.func1 (inline)
+         0     0% 37.36%      5.56s 14.42%  runtime.ready
+         0     0% 37.36%      5.56s 14.42%  runtime.wakep
+         0     0% 37.36%      5.56s 14.42%  syscall.Lstat
+         0     0% 37.36%      5.54s 14.36%  runtime.notewakeup
+     5.54s 14.36% 51.72%      5.54s 14.36%  runtime.pthread_cond_signal
+         0     0% 51.72%      5.54s 14.36%  runtime.semawakeup
+         0     0% 51.72%      5.54s 14.36%  runtime.startm
+         0     0% 51.72%      5.32s 13.79%  runtime.send.goready.func1
+         0     0% 51.72%      5.13s 13.30%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 51.72%      5.13s 13.30%  dircue/pkg/scanner.Scan.func3
+         0     0% 51.72%      4.10s 10.63%  internal/poll.(*FD).Close
+         0     0% 51.72%      4.10s 10.63%  internal/poll.(*FD).decref
+         0     0% 51.72%      4.10s 10.63%  internal/poll.(*FD).destroy
+         0     0% 51.72%      4.10s 10.63%  internal/poll.(*SysFile).destroy (inline)
+         0     0% 51.72%      4.10s 10.63%  os.(*File).Close
+         0     0% 51.72%      4.10s 10.63%  os.(*file).close
+         0     0% 51.72%      4.10s 10.63%  syscall.Close
+         0     0% 51.72%      3.79s  9.83%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObjectSize
+         0     0% 51.72%      3.56s  9.23%  github.com/go-git/go-git/v5/utils/ioutil.CheckClose

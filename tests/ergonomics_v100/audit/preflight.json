@@ -1,0 +1,15 @@
+{
+  "passed": true,
+  "original_missing_helpers": [
+    "flock",
+    "timeout"
+  ],
+  "adaptations": {
+    "locking": "Python fcntl.flock; audit shared-file mutations serialized",
+    "timeout": "Python subprocess timeout, no shell evaluation"
+  },
+  "tool": "dircue",
+  "binary": "released v0.8.0 darwin-arm64",
+  "help_exit": 0,
+  "system_packages_installed": false
+}

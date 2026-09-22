@@ -1,0 +1,12 @@
+File: scanner.test
+Type: delay
+Time: 2026-09-21 19:12:29 EDT
+Showing nodes accounting for 94.55s, 100% of 94.58s total
+Dropped 127 nodes (cum <= 0.47s)
+      flat  flat%   sum%        cum   cum%
+    94.55s   100%   100%     94.55s   100%  sync.(*Mutex).Unlock
+         0     0%   100%     94.55s   100%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0%   100%     94.55s   100%  dircue/pkg/scanner.Scan.func4
+         0     0%   100%     94.55s   100%  dircue/pkg/scanner.analyzeFile
+         0     0%   100%     94.55s   100%  dircue/pkg/scanner.analyzeFileBase
+         0     0%   100%     94.55s   100%  dircue/pkg/scanner.analyzeSelectedFile

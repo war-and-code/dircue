@@ -1,0 +1,39 @@
+{
+  "scope": "Direct centroid ranking for candidates Java and Perl on a mutation-sensitive 50 KiB fixture.",
+  "provenance": {
+    "reference_image": "dircue-linguist:9.7.0",
+    "reference_image_id": "sha256:f67c429e2b22c0c9691c9e16cceeeee9f2033486b451f5dc0f4278a1783f742c",
+    "git_head": "f911ec86190dc4cd9f8efea504e818b707c97562",
+    "generator_sha256": "07fa3ecee54213561914996a498dd28118abf0617cbace54f907a79f79c5b65c",
+    "probe_source_sha256": "fb491328fd547e0a054484db95423fe60ead419c7c910ef00f14e21ce56398dc",
+    "classifier_source_sha256": "b70bc0ab87ccd68c226002eb071e277718e581145f309d39b1c80f5e364af094",
+    "probe_sha256": "de3b034800dfbc334f36816bba288bfce8e153d91ea12b59c6f9b5874370b6a6",
+    "fixture_sha256": {
+      "prefix": "0867e253703fba40dbadf677cd50926d6ac24c51a378cad099f16029a9fe8178",
+      "suffix_first_50k": "edc2807e6874422807102595da5140ef4c068cf63c6c0d65336fc4c747f0c417",
+      "full": "baf7e08c6a0af355e285d64a0126317b445842b7dab5af2ca1f6f1ad4c6517d9"
+    },
+    "fixture_bytes": {"prefix": 51200, "suffix_first_50k": 51200, "full": 158400}
+  },
+  "reference": {
+    "prefix": ["Perl", "Java"],
+    "suffix_first_50k": ["Java", "Perl"],
+    "full": ["Perl", "Java"],
+    "uncapped_full": ["Java", "Perl"]
+  },
+  "candidate": {
+    "prefix": ["Perl", "Java"],
+    "suffix_first_50k": ["Java", "Perl"],
+    "full": ["Perl", "Java"]
+  },
+  "controls": {
+    "reference_prefix_prefers_perl": true,
+    "reference_suffix_prefers_java": true,
+    "reference_full_uses_prefix": true,
+    "reference_uncapped_is_sensitive": true,
+    "candidate_prefix_matches": true,
+    "candidate_suffix_matches": true,
+    "candidate_full_uses_prefix": true
+  },
+  "passed": true
+}

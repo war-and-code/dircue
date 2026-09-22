@@ -2,7 +2,7 @@
 
 Dircue has separate language classifiers, line counters, structural parsers, and
 project readers. Support in one does not imply support in all four. These tables
-describe the enabled integrations in the 0.8.0 candidate, rather than every feature
+describe the enabled integrations in the 1.0 line, rather than every feature
 provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
@@ -115,3 +115,39 @@ Python, JavaScript, TypeScript, C, Rust, Go, PHP, and Ruby. These checks establi
 behavior on those inputs, not exhaustive dialect or metric correctness. See the
 [breadth harness](../tests/structural_breadth/README.md) and
 [Java/C# corpus harness](../tests/structure/README.md).
+
+<a id="known-boundaries-at-10"></a>
+
+## Current boundaries
+
+These limitations describe the current implementation, not a feature freeze
+for 1.0. Each has an open issue; [#81](https://github.com/war-and-code/dircue/issues/81)
+sets the revised release scope. The [proposed compatibility policy](COMPATIBILITY.md)
+is still subject to that work.
+
+- **Git repository shapes:** bare and unborn repositories, SHA-256 object
+  format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery
+  inside a repository root are not fully modeled. `--source git` fails with
+  an explicit error for the unsupported forms; `--source auto` may fall
+  back to directory mode silently on the legacy Linguist surface. See
+  [source availability](AVAILABILITY.md) for related evidence and
+  [#66](https://github.com/war-and-code/dircue/issues/66).
+- **Absent focus query:** `analyze focus --affected-by <path>` for a path
+  with no matching declaration returns `status: complete` with the echoed
+  query rather than a dedicated "no match" sentinel. See
+  [focus guide](FOCUS.md) and
+  [#67](https://github.com/war-and-code/dircue/issues/67).
+- **Registry adapter coverage:** `analyze registries` reads NuGet.Config
+  and .npmrc only; other package sources (Maven `settings.xml`,
+  `pip.conf`, Cargo `config.toml`, Yarn configuration, etc.) are outside
+  scope. See [registries guide](REGISTRIES.md#uncovered-configuration)
+  and [#68](https://github.com/war-and-code/dircue/issues/68).
+- **Environment adapter breadth:** `analyze environments` covers the
+  dimensions in [ENVIRONMENTS.md](ENVIRONMENTS.md); other ecosystems'
+  environment declarations are not modeled yet. See
+  [#65](https://github.com/war-and-code/dircue/issues/65).
+- **Structural worker isolation:** the worker inherits the caller's
+  process environment and working directory and is not sandboxed. The
+  caller is responsible for the worker binary's origin. See
+  [structural guide](STRUCTURE.md#dependencies-and-redistribution) and
+  [#69](https://github.com/war-and-code/dircue/issues/69).

@@ -1,0 +1,55 @@
+File: cli-profile
+Type: cpu
+Time: 2026-09-21 19:15:06 EDT
+Duration: 4.73s, Total samples = 7.12s (150.45%)
+Active filters:
+   tagfocus=phase=cli
+Showing nodes accounting for 3.52s, 49.44% of 7.12s total
+Dropped 139 nodes (cum <= 0.04s)
+Showing top 45 nodes out of 122
+      flat  flat%   sum%        cum   cum%
+     3.48s 48.88% 48.88%      3.48s 48.88%  syscall.rawsyscalln
+         0     0% 48.88%      3.48s 48.88%  syscall.syscalln
+         0     0% 48.88%      3.44s 48.31%  dircue/pkg/scanner.readBoundedSize
+         0     0% 48.88%      3.35s 47.05%  dircue/internal/cli.Execute
+         0     0% 48.88%      3.35s 47.05%  dircue/internal/cli.Execute.func3
+         0     0% 48.88%      3.35s 47.05%  dircue/internal/cli.run
+         0     0% 48.88%      3.35s 47.05%  github.com/spf13/cobra.(*Command).Execute (inline)
+         0     0% 48.88%      3.35s 47.05%  github.com/spf13/cobra.(*Command).ExecuteC
+         0     0% 48.88%      3.35s 47.05%  github.com/spf13/cobra.(*Command).ExecuteContext (inline)
+         0     0% 48.88%      3.35s 47.05%  github.com/spf13/cobra.(*Command).execute
+         0     0% 48.88%      3.35s 47.05%  main.main
+         0     0% 48.88%      3.35s 47.05%  main.main.func1 (inline)
+         0     0% 48.88%      3.35s 47.05%  main.main.func2
+         0     0% 48.88%      3.35s 47.05%  runtime.main
+         0     0% 48.88%      3.35s 47.05%  runtime/pprof.Do
+         0     0% 48.88%      3.34s 46.91%  dircue/pkg/scanner.Scan
+         0     0% 48.88%      3.21s 45.08%  dircue/pkg/formats.(*Collector).Finish
+         0     0% 48.88%      2.77s 38.90%  syscall.syscall6
+         0     0% 48.88%      2.52s 35.39%  internal/syscall/unix.Fstatat (inline)
+         0     0% 48.88%      2.52s 35.39%  syscall.fstatat
+         0     0% 48.88%      2.51s 35.25%  os.(*Root).Lstat
+         0     0% 48.88%      2.51s 35.25%  os.doInRoot[go.shape.interface { IsDir bool; ModTime time.Time; Mode io/fs.FileMode; Name string; Size int64; Sys interface {} }]
+         0     0% 48.88%      2.51s 35.25%  os.lstatatWithName
+         0     0% 48.88%      2.51s 35.25%  os.rootStat
+         0     0% 48.88%      2.51s 35.25%  os.rootStat.func1
+         0     0% 48.88%      2.36s 33.15%  dircue/pkg/scanner.analyzeFile.formatCandidate.func1
+         0     0% 48.88%      1.12s 15.73%  dircue/pkg/scanner.Scan.func4
+         0     0% 48.88%      1.09s 15.31%  dircue/pkg/scanner.analyzeFile
+         0     0% 48.88%      1.09s 15.31%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 48.88%      1.09s 15.31%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 48.88%         1s 14.04%  dircue/pkg/scanner.analyzeFile.cachedFileReader.func2
+         0     0% 48.88%      0.92s 12.92%  runtime.systemstack
+         0     0% 48.88%      0.85s 11.94%  dircue/pkg/formats.inspect
+         0     0% 48.88%      0.83s 11.66%  dircue/pkg/formats.inspectXML
+     0.01s  0.14% 49.02%      0.81s 11.38%  encoding/xml.(*Decoder).Token
+     0.03s  0.42% 49.44%      0.77s 10.81%  encoding/xml.(*Decoder).rawToken
+         0     0% 49.44%      0.70s  9.83%  syscall.syscall
+         0     0% 49.44%      0.66s  9.27%  dircue/pkg/scanner.readAllBounded
+         0     0% 49.44%      0.65s  9.13%  internal/poll.(*FD).Read
+         0     0% 49.44%      0.65s  9.13%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 49.44%      0.65s  9.13%  io.(*LimitedReader).Read
+         0     0% 49.44%      0.65s  9.13%  os.(*File).Read
+         0     0% 49.44%      0.65s  9.13%  os.(*File).read (inline)
+         0     0% 49.44%      0.65s  9.13%  syscall.Read (inline)
+         0     0% 49.44%      0.65s  9.13%  syscall.read

@@ -61,7 +61,7 @@ type Inspection struct {
 
 // Inspect reads a committed blob when a Git repository is discovered, otherwise
 // a regular local file. It never follows a target symlink or executes Git hooks.
-func Inspect(ctx context.Context, filename string, opts Options) (*Inspection, error) {
+func Inspect(ctx context.Context, filename string, opts Options) (out *Inspection, returnErr error) {
 	if opts.MaxFileBytes < 0 || opts.MaxFileBytes == int64(^uint64(0)>>1) {
 		return nil, fmt.Errorf("max file bytes must be between zero and MaxInt64-1")
 	}
@@ -87,10 +87,16 @@ func Inspect(ctx context.Context, filename string, opts Options) (*Inspection, e
 	if opts.Source == "directory" && (opts.Revision != "" || opts.Tree != "") {
 		return nil, fmt.Errorf("revision and tree require Git source")
 	}
-	snapshot, err := openGitSnapshot(ctx, filepath.Dir(full), opts, true)
+	snapshot, err := openGitSnapshot(ctx, filepath.Dir(full), opts, true, 1)
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		if closeErr := snapshot.close(); returnErr == nil && closeErr != nil {
+			out = nil
+			returnErr = fmt.Errorf("close Git storage: %w", closeErr)
+		}
+	}()
 	var attrs overrides
 	var content []byte
 	var size int64

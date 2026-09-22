@@ -1,7 +1,9 @@
-VERSION ?= 0.8.0
+VERSION ?= 0.9.0
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
+RELEASE_DIR ?= dist
+WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 
-.PHONY: build test check bench reference conformance samples release
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -23,9 +25,22 @@ reference:
 
 conformance: reference
 	python3 tests/conformance/run.py --image $(REFERENCE_IMAGE)
+	python3 tests/conformance/public.py --image $(REFERENCE_IMAGE)
+	python3 tests/conformance/classifier_window.py --image $(REFERENCE_IMAGE)
+
+public-conformance: reference
+	python3 tests/conformance/public.py --image $(REFERENCE_IMAGE)
+
+classifier-window: reference
+	python3 tests/conformance/classifier_window.py --image $(REFERENCE_IMAGE)
 
 samples: reference
 	python3 tests/conformance/samples.py --image $(REFERENCE_IMAGE) --require-match
 
 release:
-	python3 scripts/release.py --version $(VERSION)
+	@python3 -c 'import sys; sys.path.insert(0, "scripts"); from wheels import python_version; python_version(sys.argv[1])' "$(VERSION)"
+	$(MAKE) release-archives
+	python3 scripts/wheels.py --release-dir "$(RELEASE_DIR)" --output "$(WHEEL_DIR)"
+
+release-archives:
+	python3 scripts/release.py --version "$(VERSION)" --output "$(RELEASE_DIR)"

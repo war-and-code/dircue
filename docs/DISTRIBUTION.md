@@ -2,33 +2,36 @@
 
 GitHub Release archives and platform-specific Python wheels contain the same Go
 executable bytes for a given operating system, architecture, and version.
-Existing releases include both formats. GitHub assets require authenticated
-access while the repository is private; PyPI publication remains deferred.
+Existing releases include both formats. The 0.9.0 release does not include a
+PyPI publication step; use the wheel from the GitHub Release URL directly, or
+install one of the standalone archives.
 
-The examples below target 0.8.0. Tagged download URLs become available when
+The examples below target 0.9.0. Tagged download URLs become available when
 the release is published; local packaging works from the prepared source. For
 an earlier release, substitute its version consistently in commands and filenames.
-PyPI publication remains deferred.
 
-## Pipeline use after PyPI publication
+## Pipeline use if a future release adds PyPI publication
 
-For a pinned invocation without a persistent tool installation:
+The 0.9.0 release does not publish to PyPI. If a later release adds it, the
+following commands become available:
 
 ```sh
-uvx dircue@0.8.0 --breakdown --json /path/to/checkout
-uvx dircue@0.8.0 analyze all --json /path/to/checkout
+uvx dircue@<version> --breakdown --json /path/to/checkout
+uvx dircue@<version> analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==0.8.0'
+uv tool install 'dircue==<version>'
 dircue --breakdown --json /path/to/checkout
 ```
 
-These commands require the matching version to be published on PyPI. Until then,
-use a downloaded or locally prepared wheel with `--from`, as shown below. The package name and
-executable name are both `dircue`.
+With uv's default index settings, these commands require the matching version
+on PyPI. A configured private index or a local wheel collection supplied with
+`--no-index --find-links` can also resolve the package by name. Until PyPI
+publication is announced, use GitHub wheels as shown below. The package name and executable
+name are both `dircue`.
 
 `uvx` installs into an isolated cached environment. It avoids changing the
 checkout's Python dependencies, but its first invocation still needs the wheel
@@ -49,8 +52,8 @@ and [cache behavior](https://docs.astral.sh/uv/concepts/tools/#tool-environments
 From a clean committed checkout, choose fresh output directories:
 
 ```sh
-python3 scripts/release.py --version 0.8.0 --output dist/release-0.8.0
-python3 scripts/wheels.py --release-dir dist/release-0.8.0 --output dist/wheels-0.8.0
+python3 scripts/release.py --version 0.9.0 --output dist/release-0.9.0
+python3 scripts/wheels.py --release-dir dist/release-0.9.0 --output dist/wheels-0.9.0
 ```
 
 The wheel builder consumes existing release archives; it does not compile Go,
@@ -83,7 +86,7 @@ Test a local wheel on an Apple Silicon Mac without accessing a package index:
 
 ```sh
 uvx --offline --no-index \
-  --from ./dist/wheels-0.8.0/dircue-0.8.0-py3-none-macosx_12_0_arm64.whl \
+  --from ./dist/wheels-0.9.0/dircue-0.9.0-py3-none-macosx_12_0_arm64.whl \
   dircue --version
 ```
 
@@ -100,7 +103,7 @@ uv can install it directly. For a Linux amd64 runner, the release URL would be:
 
 ```sh
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v0.8.0/dircue-0.8.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -111,18 +114,18 @@ A Git clone alone is not an installable Python package here: this repository has
 no Python source-package build backend. Standalone binary archives also require
 ordinary extraction rather than installation through uv.
 
-## Private GitHub downloads
+## Private or draft GitHub downloads
 
-A private asset URL cannot be used as an anonymous public download. With an
-authenticated GitHub CLI, download the compatible wheel first, then give uv the
-local file:
+A private asset URL (for example, a draft release that has not yet flipped to
+public) cannot be used as an anonymous public download. With an authenticated
+GitHub CLI, download the compatible wheel first, then give uv the local file:
 
 ```sh
-gh release download v0.8.0 --repo war-and-code/dircue \
-  --pattern 'dircue-0.8.0-py3-none-manylinux_2_17_x86_64.whl' \
+gh release download v0.9.0 --repo war-and-code/dircue \
+  --pattern 'dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl' \
   --dir ./dircue-download
 uvx --offline --no-index \
-  --from ./dircue-download/dircue-0.8.0-py3-none-manylinux_2_17_x86_64.whl \
+  --from ./dircue-download/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue analyze projects --json /path/to/checkout
 ```
 
@@ -144,8 +147,8 @@ dircue analyze structure --json --files \
 Build its platform archive separately:
 
 ```sh
-python3 scripts/structural_worker_release.py --version 0.8.0 \
-  --platform darwin-arm64 --output dist/structural-worker-0.8.0 --smoke-test
+python3 scripts/structural_worker_release.py --version 0.9.0 \
+  --platform darwin-arm64 --output dist/structural-worker-0.9.0 --smoke-test
 ```
 
 See the [worker guide](STRUCTURE.md#building-the-add-on) for the pinned Rust
@@ -176,9 +179,10 @@ real downloads and pinned invocations after publication; local installation
 checks do not establish that publication succeeded. Never replace an already
 published version with different executable bytes.
 
-Hosted release automation is tracked in [#13](https://github.com/war-and-code/dircue/issues/13);
-PyPI distribution and publication checks are tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
-Manual release preparation remains supported for v0.3.
+The [release automation guide](RELEASE_AUTOMATION.md) covers local packaging and
+the Actions workflow that prepares and verifies GitHub draft releases, including
+all seven wheels. PyPI publication remains separate and is tracked in
+[#14](https://github.com/war-and-code/dircue/issues/14).
 
 ## Historical 0.1 validation
 

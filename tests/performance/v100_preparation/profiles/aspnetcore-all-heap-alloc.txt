@@ -1,0 +1,52 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:12:08 EDT
+Showing nodes accounting for 7958.72MB, 94.51% of 8420.82MB total
+Dropped 240 nodes (cum <= 42.10MB)
+Showing top 45 nodes out of 113
+      flat  flat%   sum%        cum   cum%
+ 2022.17MB 24.01% 24.01%  2022.17MB 24.01%  bufio.NewReaderSize (inline)
+ 1655.39MB 19.66% 43.67%  1655.39MB 19.66%  github.com/go-git/go-git/v5/plumbing.(*MemoryObject).Write
+ 1169.60MB 13.89% 57.56%  1173.10MB 13.93%  dircue/pkg/scanner.readAllBounded
+  518.55MB  6.16% 63.72%   518.55MB  6.16%  internal/bytealg.MakeNoZero
+  385.07MB  4.57% 68.29%   557.59MB  6.62%  os.lstatNolog
+  354.09MB  4.20% 72.50%   354.59MB  4.21%  regexp.(*Regexp).get
+  332.69MB  3.95% 76.45%   332.69MB  3.95%  bytes.growSlice
+  276.53MB  3.28% 79.73%   276.53MB  3.28%  syscall.ByteSliceFromString
+  138.86MB  1.65% 81.38%  2831.21MB 33.62%  dircue/pkg/scanner.(*gitSnapshot).walk
+  132.01MB  1.57% 82.95%   156.77MB  1.86%  dircue/pkg/scanner.resolveAttributeRuleSets
+   87.51MB  1.04% 83.99%    87.51MB  1.04%  github.com/pjbgf/sha1cd.New
+      85MB  1.01% 85.00%   948.12MB 11.26%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+   75.51MB   0.9% 85.89%  2309.67MB 27.43%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewPackfileWithCache
+   73.02MB  0.87% 86.76%  5433.59MB 64.53%  dircue/pkg/scanner.analyzeFile
+      61MB  0.72% 87.49%       61MB  0.72%  bufio.NewWriterSize (inline)
+      61MB  0.72% 88.21%       61MB  0.72%  encoding/hex.EncodeToString (inline)
+   59.54MB  0.71% 88.92%    84.05MB     1%  github.com/go-git/go-git/v5/plumbing/object.(*Tree).Decode
+   57.15MB  0.68% 89.60%  1776.71MB 21.10%  io.copyBuffer
+      55MB  0.65% 90.25%       55MB  0.65%  os.newFile
+   47.02MB  0.56% 90.81%    47.02MB  0.56%  github.com/go-enry/go-enry/v2.getHeaderAndFooter
+   46.50MB  0.55% 91.36%   147.51MB  1.75%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackPath
+   40.50MB  0.48% 91.84%  1901.66MB 22.58%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+   32.50MB  0.39% 92.23%  2234.17MB 26.53%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewScanner
+   32.50MB  0.39% 92.61%    90.01MB  1.07%  github.com/go-git/go-billy/v5/helper/chroot.newFile
+      28MB  0.33% 92.95%  5461.60MB 64.86%  dircue/pkg/scanner.analyzeSelectedFile
+      25MB   0.3% 93.24%  2103.16MB 24.98%  github.com/go-git/go-git/v5/plumbing/format/packfile.newScannerReader
+   23.47MB  0.28% 93.52%    69.48MB  0.83%  github.com/go-git/go-git/v5/plumbing/cache.(*ObjectLRU).Put
+      21MB  0.25% 93.77%   115.01MB  1.37%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).underlyingPath
+   17.50MB  0.21% 93.98%   358.14MB  4.25%  dircue/pkg/scanner.(*gitTreeIterator).Next
+      12MB  0.14% 94.12%    45.50MB  0.54%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPath
+   11.50MB  0.14% 94.26%   170.52MB  2.02%  os.openFileNolog
+       7MB 0.083% 94.34%    91.05MB  1.08%  github.com/go-git/go-git/v5/plumbing/object.DecodeTree
+       7MB 0.083% 94.42%   177.52MB  2.11%  github.com/go-git/go-billy/v5/osfs.openFile
+       4MB 0.048% 94.47%  1271.79MB 15.10%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+    3.50MB 0.042% 94.51%  5360.57MB 63.66%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 94.51%  2022.17MB 24.01%  bufio.NewReader (inline)
+         0     0% 94.51%   330.59MB  3.93%  bytes.(*Buffer).ReadFrom
+         0     0% 94.51%   201.32MB  2.39%  bytes.(*Buffer).WriteTo
+         0     0% 94.51%   332.69MB  3.95%  bytes.(*Buffer).grow
+         0     0% 94.51%   358.66MB  4.26%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 94.51%  4834.87MB 57.42%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 94.51%   101.05MB  1.20%  dircue/pkg/scanner.DetectLanguage
+         0     0% 94.51%  2831.21MB 33.62%  dircue/pkg/scanner.Scan.func3
+         0     0% 94.51%  5461.60MB 64.86%  dircue/pkg/scanner.Scan.func4
+         0     0% 94.51%  2617.13MB 31.08%  dircue/pkg/scanner.blobRead

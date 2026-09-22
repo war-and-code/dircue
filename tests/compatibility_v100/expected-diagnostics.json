@@ -1,0 +1,62 @@
+{
+  "legacy-099": {
+    "baseline_stderr": "Error: unknown flag: --unknown\n",
+    "candidate_stderr": "Error: unknown flag: --unknown; see: dircue --help\n",
+    "reason": "Give a bounded parser diagnostic and relevant help path without reflecting supplied values."
+  },
+  "legacy-100": {
+    "baseline_stderr": "Error: flag needs an argument: --source\n",
+    "candidate_stderr": "Error: --source requires a string value; see: dircue --help\n",
+    "reason": "Give a bounded parser diagnostic and relevant help path without reflecting supplied values."
+  },
+  "legacy-101": {
+    "baseline_stderr": "Error: invalid argument \"no\" for \"--workers\" flag: strconv.ParseInt: parsing \"no\": invalid syntax\n",
+    "candidate_stderr": "Error: invalid value for --workers; expected int; see: dircue --help\n",
+    "reason": "Give a bounded parser diagnostic and relevant help path without reflecting supplied values."
+  },
+  "structure-validation-01": {
+    "baseline_stderr": "Error: structure requires an explicit worker path\n",
+    "candidate_stderr": "Error: structure requires --structural-worker /path/to/dircue-structural-worker; select a trusted matching worker explicitly\n",
+    "reason": "Name the required worker flag without executing any worker."
+  },
+  "structure-validation-02": {
+    "baseline_stderr": "Error: structure requires an explicit worker path\n",
+    "candidate_stderr": "Error: structure requires --structural-worker /path/to/dircue-structural-worker; select a trusted matching worker explicitly\n",
+    "reason": "Name the required worker flag without executing any worker."
+  },
+  "v050-declarations-007": {
+    "baseline_stderr": "Error: unknown flag: --projects\n",
+    "candidate_stderr": "Error: unknown flag: --projects; see: dircue analyze declarations --help\n",
+    "reason": "Give a bounded parser diagnostic and relevant help path without reflecting supplied values."
+  },
+  "v050-declarations-029": {
+    "baseline_stderr": "Error: cannot open head report\n",
+    "candidate_stderr": "Error: cannot open head report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  },
+  "v050-declarations-030": {
+    "baseline_stderr": "Error: cannot open head report\n",
+    "candidate_stderr": "Error: cannot open head report; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  },
+  "v050-declarations-031": {
+    "baseline_stderr": "Error: accepts 2 arg(s), received 0\n",
+    "candidate_stderr": "Error: compare requires two saved aggregate reports; use: dircue compare base.json head.json --json\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  },
+  "v050-declarations-032": {
+    "baseline_stderr": "Error: accepts 2 arg(s), received 1\n",
+    "candidate_stderr": "Error: compare requires two saved aggregate reports; use: dircue compare base.json head.json --json\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  },
+  "v050-declarations-033": {
+    "baseline_stderr": "Error: accepts 2 arg(s), received 3\n",
+    "candidate_stderr": "Error: compare requires two saved aggregate reports; use: dircue compare base.json head.json --json\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  },
+  "v050-declarations-037": {
+    "baseline_stderr": "Error: unknown flag: --commit\n",
+    "candidate_stderr": "Error: unknown flag: --commit; see: dircue analyze declarations --help\n",
+    "reason": "Explain the required saved report inputs and a valid producing/consuming invocation."
+  }
+}

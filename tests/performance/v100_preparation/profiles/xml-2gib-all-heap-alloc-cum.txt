@@ -1,0 +1,28 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:12:09 EDT
+Showing nodes accounting for 1958.51MB, 99.19% of 1974.53MB total
+Dropped 107 nodes (cum <= 9.87MB)
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%  1963.01MB 99.42%  dircue/pkg/scanner.Scan.func4
+    0.50MB 0.025% 0.025%  1963.01MB 99.42%  dircue/pkg/scanner.analyzeSelectedFile
+    0.50MB 0.025% 0.051%  1962.51MB 99.39%  dircue/pkg/scanner.analyzeFile
+         0     0% 0.051%  1962.01MB 99.37%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 0.051%  1660.06MB 84.07%  dircue/pkg/scanner.readBoundedSize
+ 1658.06MB 83.97% 84.02%  1658.06MB 83.97%  dircue/pkg/scanner.readAllBounded
+         0     0% 84.02%   242.76MB 12.29%  regexp.(*Regexp).doExecute
+         0     0% 84.02%   232.99MB 11.80%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 84.02%   232.99MB 11.80%  regexp.(*Regexp).doMatch (inline)
+         0     0% 84.02%   230.41MB 11.67%  github.com/go-enry/go-enry/v2.IsVendor
+  210.39MB 10.66% 94.68%   210.39MB 10.66%  regexp.(*Regexp).get
+         0     0% 94.68%    57.70MB  2.92%  bytes.Split (inline)
+   57.70MB  2.92% 97.60%    57.70MB  2.92%  bytes.genSplit
+         0     0% 97.60%    57.70MB  2.92%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 97.60%    57.70MB  2.92%  github.com/go-enry/go-enry/v2/data.isGeneratedNetDocfile
+         0     0% 97.60%    20.02MB  1.01%  regexp.(*machine).match
+         0     0% 97.60%    19.02MB  0.96%  regexp.(*machine).add
+   19.02MB  0.96% 98.56%    19.02MB  0.96%  regexp.(*machine).alloc (inline)
+         0     0% 98.56%    12.35MB  0.63%  regexp.(*Regexp).backtrack
+   12.35MB  0.63% 99.19%    12.35MB  0.63%  regexp.(*bitState).reset
+         0     0% 99.19%    11.27MB  0.57%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.19%    11.27MB  0.57%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline

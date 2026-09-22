@@ -10,17 +10,26 @@ import (
 
 func TestNonpositiveTreeLimits(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "source.go"), []byte("package example\n"), 0600); err != nil {
+	file := filepath.Join(root, "source.go")
+	if err := os.WriteFile(file, []byte("package example\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	// Preserve Linguist's established edge behavior: directory limits below one
+	// behave as one and therefore return empty statistics with a warning, while
+	// single-file inspection ignores the directory-only tree limit.
+	wantDirectoryOut, wantDirectoryStderr, wantDirectoryErr := invoke("--json", "--tree-size=1", root)
+	wantFileOut, wantFileStderr, wantFileErr := invoke("--json", file)
+	if wantDirectoryErr != nil || wantFileErr != nil {
+		t.Fatalf("reference invocation failed: directory=%v file=%v", wantDirectoryErr, wantFileErr)
+	}
 	for _, limit := range []string{"0", "-1"} {
-		output, _, err := invoke("--json", "--tree-size="+limit, root)
-		if err != nil || strings.TrimSpace(output) != "{}" {
-			t.Fatalf("limit %s: %q %v", limit, output, err)
+		output, stderr, err := invoke("--json", "--tree-size="+limit, root)
+		if err != nil || output != wantDirectoryOut || stderr != wantDirectoryStderr {
+			t.Fatalf("directory limit %s: stdout=%q stderr=%q err=%v; want stdout=%q stderr=%q", limit, output, stderr, err, wantDirectoryOut, wantDirectoryStderr)
 		}
-		output, _, err = invoke("--json", "--tree-size="+limit, filepath.Join(root, "source.go"))
-		if err != nil || !strings.Contains(output, `"language":"Go"`) {
-			t.Fatalf("single-file limit %s: %q %v", limit, output, err)
+		output, stderr, err = invoke("--json", "--tree-size="+limit, file)
+		if err != nil || output != wantFileOut || stderr != wantFileStderr {
+			t.Fatalf("file limit %s: stdout=%q stderr=%q err=%v; want stdout=%q stderr=%q", limit, output, stderr, err, wantFileOut, wantFileStderr)
 		}
 	}
 }

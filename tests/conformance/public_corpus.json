@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "corpora": [
+    {
+      "id": "gitolite",
+      "description": "Small Perl-heavy public repository with ambiguous .pl, .pm, and .t files",
+      "source_kind": "github_archive",
+      "repository_url": "https://github.com/sitaramc/gitolite",
+      "revision": "782b05fece05e10f21ce2ed0ba308a8e23f151c2",
+      "archive_url": "https://codeload.github.com/sitaramc/gitolite/tar.gz/782b05fece05e10f21ce2ed0ba308a8e23f151c2",
+      "archive_sha256": "12ce320b0eaaca0082f20583d39dd5b5419ffeabd37e21d1aaf8ad5deb8f3052",
+      "archive_prefix": "gitolite-782b05fece05e10f21ce2ed0ba308a8e23f151c2/",
+      "repository_license": {
+        "spdx": "GPL-2.0-only",
+        "path": "COPYING",
+        "sha256": "ead06c5e9b243275923928f60659a759507ab7ce56abebdefbcf6fcd22dba96c"
+      }
+    },
+    {
+      "id": "linux-kernel-slice",
+      "description": "Pinned files that exercise Perl candidate narrowing and the 50 KiB heuristic window",
+      "source_kind": "git_blobs",
+      "repository_url": "https://github.com/torvalds/linux",
+      "revision": "fe2ec83746e501645709761605c2464a44fd2929",
+      "raw_url_template": "https://raw.githubusercontent.com/torvalds/linux/{revision}/{path}",
+      "repository_license": {
+        "spdx": "GPL-2.0-only",
+        "path": "COPYING",
+        "sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0"
+      },
+      "files": [
+        {
+          "path": "COPYING",
+          "spdx": "GPL-2.0-only",
+          "repository_license": true,
+          "git_oid": "a635a38ef9405fdfcfe97f3a435393c1e9cae971",
+          "bytes": 496,
+          "sha256": "fb5a425bd3b3cd6071a3a9aff9909a859e7c1158d54d32e07658398cd67eb6a0"
+        },
+        {
+          "path": "scripts/checkpatch.pl",
+          "spdx": "GPL-2.0",
+          "git_oid": "8a7787d228a63de773b74436e479dfab2a83d12c",
+          "bytes": 245615,
+          "sha256": "2553cc1a601e70522e03fbce633d4e79fa5936f7f56a66de1899b7ddd247820a"
+        },
+        {
+          "path": "include/linux/kvm_host.h",
+          "spdx": "GPL-2.0-only",
+          "git_oid": "03bfc92864b6e6c7bd8dfb54c26e374bb7367efc",
+          "bytes": 81576,
+          "sha256": "77dbb31e646d640fb36371e70daa6efac9178a2499db130921b9d029751f55b8"
+        },
+        {
+          "path": "lib/crypto/arm/poly1305-armv4.pl",
+          "spdx": "GPL-1.0+ OR BSD-3-Clause",
+          "git_oid": "34c11b7b44bd764cad6076d4dff0768f0771b842",
+          "bytes": 29390,
+          "sha256": "e7a360adad9bf772f785d60cc39de9d733d61bccc94c0b2d69f396318882da8d"
+        },
+        {
+          "path": "arch/powerpc/crypto/aesp10-ppc.pl",
+          "spdx": "GPL-2.0",
+          "git_oid": "2c06ce2a2c7c02b159ac0108f8b380c3781f3403",
+          "bytes": 15452,
+          "sha256": "2d5f2cca5b960d66c41de9ffb21cb52a0408065037c9872cbf69f2e4a1affbff"
+        }
+      ]
+    }
+  ]
+}

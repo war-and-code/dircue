@@ -200,15 +200,20 @@ func TestMissingModuleIsUnavailableNotRemoved(t *testing.T) {
 
 func TestLanguagePercentagesRetainTheirDenominatorAndLimits(t *testing.T) {
 	base, head := emptyProfile(), emptyProfile()
-	base.Summary.LanguageBytes = 100
-	head.Summary.LanguageBytes = 200
+	base.Summary = profile.Summary{ScannedFiles: 1, AnalyzedFiles: 1, LanguageBytes: 100}
+	head.Summary = profile.Summary{ScannedFiles: 2, AnalyzedFiles: 2, LanguageBytes: 200}
 	base.Languages = []profile.Language{{Name: "Go", Bytes: 100, FileCount: 1, Percentage: 100}}
 	head.Languages = []profile.Language{{Name: "Go", Bytes: 100, FileCount: 1, Percentage: 50}, {Name: "Python", Bytes: 100, FileCount: 1, Percentage: 50}}
 	m := moduleNamed(t, comparison(t, base, head), "languages")
-	if m.Compatibility != "observed_only" || m.Counts.Changed != 1 || m.Counts.Unavailable != 1 {
+	if m.Compatibility != "observed_only" || m.Counts.Changed != 1 || m.Counts.Added != 1 || m.Counts.Unavailable != 0 {
 		t.Fatalf("languages: %+v", m)
 	}
+	foundAdded := false
 	for _, change := range m.Changes {
+		if change.ID == "Python" {
+			foundAdded = change.Status == "added" && change.Reason == ""
+			continue
+		}
 		if change.ID != "Go" {
 			continue
 		}
@@ -216,6 +221,39 @@ func TestLanguagePercentagesRetainTheirDenominatorAndLimits(t *testing.T) {
 			t.Fatalf("denominator: %+v", change)
 		}
 	}
+	if !foundAdded {
+		t.Fatalf("new language was not reported as added: %+v", m.Changes)
+	}
+
+	t.Run("warnings preserve uncertain absence", func(t *testing.T) {
+		partial := head
+		partial.Languages = partial.Languages[:1]
+		partial.Warnings = []profile.Warning{{Path: "lost.py", Code: "file_read_error", Message: "fixture"}}
+		got := moduleNamed(t, comparison(t, head, partial), "languages")
+		if got.Counts.Removed != 0 || got.Counts.Unavailable != 1 {
+			t.Fatalf("partial language population proved removal: %+v", got)
+		}
+		got = moduleNamed(t, comparison(t, partial, head), "languages")
+		if got.Counts.Added != 0 || got.Counts.Unavailable != 1 {
+			t.Fatalf("partial language population proved addition: %+v", got)
+		}
+	})
+
+	t.Run("zero legacy population remains ambiguous", func(t *testing.T) {
+		got := moduleNamed(t, comparison(t, emptyProfile(), base), "languages")
+		if got.Counts.Added != 0 || got.Counts.Unavailable != 1 {
+			t.Fatalf("unexecuted empty population proved addition: %+v", got)
+		}
+	})
+
+	t.Run("inspected language-free population proves absence", func(t *testing.T) {
+		languageFree := emptyProfile()
+		languageFree.Summary = profile.Summary{ScannedFiles: 1, AnalyzedFiles: 1}
+		got := moduleNamed(t, comparison(t, languageFree, base), "languages")
+		if got.Counts.Added != 1 || got.Counts.Unavailable != 0 {
+			t.Fatalf("complete empty language population lost addition: %+v", got)
+		}
+	})
 }
 
 func TestDeclaredWorkspaceRelationshipsAndInterfacesAreCompared(t *testing.T) {

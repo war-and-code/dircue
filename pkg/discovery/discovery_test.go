@@ -96,3 +96,28 @@ func TestCandidateFormatHintsDoNotInspectOrValidate(t *testing.T) {
 		}
 	}
 }
+
+func TestGenericSuffixesRemainMetadataHints(t *testing.T) {
+	for _, name := range []string{"settings.app", "settings.APP", "suite.resource", "view.tag"} {
+		t.Run(name, func(t *testing.T) {
+			category, basis, candidate := classify(name)
+			if category != "source_candidate" || basis != "enry_extension" || candidate != nil {
+				t.Fatalf("filename hint changed: %q %q %+v", category, basis, candidate)
+			}
+		})
+	}
+	for _, tc := range []struct {
+		name string
+		want []string
+	}{
+		{"types.d.ts", []string{"TypeScript", "XML"}},
+		{"script.blade.php", []string{"Blade"}},
+		{"script.unknown.py", []string{"Python"}},
+		{"extensionless", nil},
+		{"unknown.nonsense", nil},
+	} {
+		if got := extensionCandidates(tc.name); !reflect.DeepEqual(got, tc.want) {
+			t.Errorf("%s: got %v, want %v", tc.name, got, tc.want)
+		}
+	}
+}

@@ -1,0 +1,45 @@
+goos: darwin
+goarch: arm64
+pkg: dircue/pkg/reportdiff
+cpu: Apple M1 Max
+BenchmarkSavedReportLoad500Projects-10    	       9	  11697065 ns/op	  15.46 MB/s	 6585851 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11827065 ns/op	  15.29 MB/s	 6585904 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12000477 ns/op	  15.07 MB/s	 6585874 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11562588 ns/op	  15.64 MB/s	 6585883 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11682898 ns/op	  15.48 MB/s	 6585891 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12055208 ns/op	  15.00 MB/s	 6585965 B/op	  196081 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11904537 ns/op	  15.19 MB/s	 6585970 B/op	  196081 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12012120 ns/op	  15.05 MB/s	 6585845 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12051653 ns/op	  15.00 MB/s	 6585906 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12058667 ns/op	  15.00 MB/s	 6585911 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11805412 ns/op	  15.32 MB/s	 6585818 B/op	  196078 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11766898 ns/op	  15.37 MB/s	 6585890 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11813241 ns/op	  15.31 MB/s	 6585920 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11883681 ns/op	  15.22 MB/s	 6585871 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12018264 ns/op	  15.05 MB/s	 6585904 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12132125 ns/op	  14.90 MB/s	 6585922 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  12000028 ns/op	  15.07 MB/s	 6585869 B/op	  196079 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11854537 ns/op	  15.25 MB/s	 6585909 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11987954 ns/op	  15.08 MB/s	 6585911 B/op	  196080 allocs/op
+BenchmarkSavedReportLoad500Projects-10    	       9	  11913500 ns/op	  15.18 MB/s	 6585907 B/op	  196080 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22045183 ns/op	25335896 B/op	  266708 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21970367 ns/op	25336731 B/op	  266709 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22117192 ns/op	25335876 B/op	  266711 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22086517 ns/op	25336052 B/op	  266708 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21458250 ns/op	25334259 B/op	  266693 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21841367 ns/op	25337230 B/op	  266717 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22572567 ns/op	25337777 B/op	  266722 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22416908 ns/op	25337492 B/op	  266710 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22340475 ns/op	25336974 B/op	  266718 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21426742 ns/op	25310379 B/op	  266708 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21742900 ns/op	25335387 B/op	  266702 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21672700 ns/op	25337172 B/op	  266711 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21818583 ns/op	25336289 B/op	  266708 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21812275 ns/op	25334334 B/op	  266699 allocs/op
+BenchmarkCompare500Projects-10            	       5	  23493492 ns/op	25311003 B/op	  266708 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22090033 ns/op	25335889 B/op	  266704 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21433317 ns/op	25336536 B/op	  266712 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22120875 ns/op	25339396 B/op	  266724 allocs/op
+BenchmarkCompare500Projects-10            	       5	  21854883 ns/op	25336635 B/op	  266712 allocs/op
+BenchmarkCompare500Projects-10            	       5	  22974983 ns/op	25336232 B/op	  266713 allocs/op
+PASS

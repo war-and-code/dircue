@@ -226,7 +226,7 @@ func classify(filename string) (string, string, *Candidate) {
 	names := enry.GetLanguagesByFilename(base, nil, nil)
 	basis := "enry_filename"
 	if len(names) == 0 {
-		names = enry.GetLanguagesByExtension(base, nil, nil)
+		names = extensionCandidates(base)
 		basis = "enry_extension"
 	}
 	category := ""
@@ -250,6 +250,21 @@ func classify(filename string) (string, string, *Candidate) {
 	}
 	return category, basis, nil
 }
+
+// Discovery reports filename hints without content inspection. Generic suffixes
+// remain candidates here even though language detection must confirm them.
+func extensionCandidates(filename string) []string {
+	filename = strings.ToLower(filename)
+	for dot := strings.IndexByte(filename, '.'); dot >= 0; dot = strings.IndexByte(filename, '.') {
+		filename = filename[dot:]
+		if languages, ok := data.LanguagesByExtension[filename]; ok {
+			return languages
+		}
+		filename = filename[1:]
+	}
+	return nil
+}
+
 func numericVersion(value string) bool {
 	if value == "" {
 		return false

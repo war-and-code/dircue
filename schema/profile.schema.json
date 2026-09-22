@@ -11,6 +11,10 @@
     {"if": {"anyOf": [{"required": ["focus"]}, {"required": ["focused_metrics"]}, {"required": ["availability"]}, {"required": ["explanation"]}]}, "then": {"properties": {"schema_version": {"enum": ["1.6.0", "1.7.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.6.0"}}}, "then": {"anyOf": [{"required": ["focus"]}, {"required": ["availability"]}, {"required": ["explanation"]}]}},
     {"if": {"required": ["focused_metrics"]}, "then": {"required": ["focus"], "properties": {"focus": {"properties": {"scope": {"properties": {"role": {"const": "project"}}}}}}}},
+    {"if": {"required": ["focused_metrics"], "properties": {"focused_metrics": {"anyOf": [
+      {"required": ["primary"], "properties": {"primary": {"properties": {"skipped": {"contains": {"$ref": "#/$defs/focus_scope_partial_marker"}}}}}},
+      {"properties": {"related": {"contains": {"properties": {"metrics": {"properties": {"skipped": {"contains": {"$ref": "#/$defs/focus_scope_partial_marker"}}}}}}}}}
+    ]}}}, "then": {"properties": {"focus": {"properties": {"status": {"const": "partial"}}}}}},
     {"if": {"required": ["focus"]}, "then": {"not": {"anyOf": [{"required": ["metrics"]}, {"required": ["structure"]}]}}},
     {"if": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}, "then": {"properties": {"schema_version": {"enum": ["1.5.0", "1.6.0", "1.7.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.5.0"}}}, "then": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}},
@@ -154,7 +158,10 @@
         ]
       }
     },
-    "metrics": {"$ref": "#/$defs/metrics"},
+    "metrics": {"allOf": [
+      {"$ref": "#/$defs/metrics"},
+      {"properties": {"skipped": {"not": {"contains": {"$ref": "#/$defs/focus_scope_partial_marker"}}}}}
+    ]},
     "warnings": {
       "type": "array",
       "items": {
@@ -2404,6 +2411,11 @@
         "complexity": {"type": "integer", "minimum": 0}
       }
     },
+    "focus_scope_partial_marker": {
+      "type": "object",
+      "required": ["reason"],
+      "properties": {"reason": {"const": "focus_scope_partial"}}
+    },
     "metric_skip": {
       "type": "object",
       "additionalProperties": false,
@@ -2419,6 +2431,7 @@
             "file_too_large",
             "input_changed",
             "lfs_pointer",
+            "focus_scope_partial",
             "tree_size_limit"
           ]
         },
@@ -2428,7 +2441,7 @@
         {
           "if": {
             "properties": {
-              "reason": {"const": "tree_size_limit"}
+              "reason": {"enum": ["focus_scope_partial", "tree_size_limit"]}
             }
           },
           "then": {
@@ -2551,6 +2564,16 @@
           },
           "else": {
             "required": ["tree"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "skipped": {"contains": {"$ref": "#/$defs/focus_scope_partial_marker"}}
+            }
+          },
+          "then": {
+            "properties": {"status": {"const": "partial"}}
           }
         }
       ]

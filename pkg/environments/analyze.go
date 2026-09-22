@@ -33,8 +33,24 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	limits = defaults(limits)
 	r := &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "complete", Source: in.Source, Tree: in.Tree, SemanticsReference: semanticsReference, Limits: limits, Requirements: []Requirement{}, Selections: []Selection{}, Conflicts: []Conflict{}, Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 	r.Coverage.OmittedFiles = in.OmittedFiles
-	if !in.InventoryComplete || in.OmittedFiles > 0 || in.Declarations.Status != "complete" {
+	if !in.InventoryComplete || in.OmittedFiles > 0 {
 		r.Status = "partial"
+	}
+	// A declarations gap normally means environment requirements may be wholly
+	// absent, so Requirement.State cannot disclose it. The sole independently
+	// checkable exception is strict-JSON rejection of global.json: this module
+	// reparses selected global.json files with their documented JSONC leniency.
+	// Keep track of those paths and require an actual successful environment
+	// parse below before allowing a complete result.
+	declarationRechecks, independentlyCheckable := independentlyCheckableDeclarationGaps(in)
+	if in.Declarations.Status != "complete" {
+		detail := "The upstream declarations pass reported incomplete requirement coverage; environment requirements may be omitted."
+		if independentlyCheckable {
+			detail = "The upstream declarations pass rejected global.json syntax; selected files are reparsed independently and must succeed before environment coverage is complete."
+		} else {
+			r.Status = "partial"
+		}
+		r.Boundaries = append(r.Boundaries, Boundary{Reason: "declarations-partial", Detail: detail})
 	}
 	files := map[string]File{}
 	inventoryComplete := in.InventoryComplete
@@ -189,6 +205,34 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			// ReadSelected may use a derived context whose cancellation is not
+			// reflected in the parent yet. Cancellation remains fatal under every
+			// error policy.
+			if errors.Is(err, context.Canceled) {
+				return nil, context.Canceled
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, context.DeadlineExceeded
+			}
+			if in.ErrorPolicy == "continue" {
+				// Preserve remaining selections. The per-path diagnostic
+				// keeps the omission attributable and matches the other
+				// aggregation modules' file-read-error vocabulary.
+				sel.State = "unresolved"
+				r.Status = "partial"
+				diagnostic := Diagnostic{Path: candidate, Code: "file-read-error", Message: "Selected global.json could not be read."}
+				// Cache the failed selection just like a parsed selection. A live
+				// source must be read at most once per analysis; otherwise two
+				// contexts selecting the same file could observe contradictory
+				// states after a transient failure or source replacement.
+				parseCache[candidate] = parsedSelection{selection: sel, status: "partial", diagnostics: []Diagnostic{diagnostic}}
+				diagnosticsEmitted[candidate] = true
+				r.Diagnostics = append(r.Diagnostics, diagnostic)
+				r.Coverage.OmittedFiles++
+				r.Selections = append(r.Selections, sel)
+				r.Coverage.Contexts++
+				continue
+			}
 			return nil, errors.New("could not read selected global.json")
 		}
 		if size != int64(len(content)) || size != f.Size || size > limits.GlobalJSONBytes || size > limits.InputBytes-r.Coverage.InputBytes {
@@ -204,6 +248,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		tmp := &Report{Status: "complete", Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 		parseGlobal(tmp, &sel, content)
 		parseCache[candidate] = parsedSelection{selection: sel, status: tmp.Status, boundaries: slices.Clone(tmp.Boundaries), diagnostics: slices.Clone(tmp.Diagnostics)}
+		if tmp.Status == "complete" {
+			if _, needsRecheck := declarationRechecks[candidate]; needsRecheck && !hasDeclarationOnlyGlobalJSONFields(content) {
+				delete(declarationRechecks, candidate)
+			}
+		}
 		diagnosticsEmitted[candidate] = true
 		if tmp.Status == "partial" {
 			r.Status = "partial"
@@ -216,6 +265,12 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	slices.SortFunc(r.Requirements, func(a, b Requirement) int {
 		return strings.Compare(a.ProjectID+"\x00"+a.Dimension+"\x00"+a.Kind+"\x00"+a.Value+"\x00"+a.Evidence, b.ProjectID+"\x00"+b.Dimension+"\x00"+b.Kind+"\x00"+b.Value+"\x00"+b.Evidence)
 	})
+	// A strict declarations parse can be excused only by successful independent
+	// parsing of every affected selected global.json. An unselected or genuinely
+	// malformed file leaves the upstream coverage gap unresolved.
+	if len(declarationRechecks) > 0 {
+		r.Status = "partial"
+	}
 	_ = projectRoots
 	if err := ValidateReport(r); err != nil {
 		return nil, err
@@ -228,6 +283,58 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		return nil, errors.New("environment report exceeds output byte limit")
 	}
 	return r, nil
+}
+
+// independentlyCheckableDeclarationGaps identifies the one declarations-side
+// partial state this analyzer can fully replace with its own evidence: strict
+// JSON rejection of global.json. Any omission, lost diagnostic, other parser
+// failure, skipped state, or unexplained partial status can hide requirements
+// that this package does not independently extract.
+func independentlyCheckableDeclarationGaps(in Input) (map[string]struct{}, bool) {
+	if in.Declarations.Status != "partial" || in.Declarations.Coverage.OmittedFiles != 0 || in.Declarations.Coverage.OmittedDiagnostics != 0 || len(in.Declarations.Diagnostics) == 0 {
+		return nil, false
+	}
+	paths := make(map[string]struct{}, len(in.Declarations.Diagnostics))
+	for _, diagnostic := range in.Declarations.Diagnostics {
+		if diagnostic.Code != "invalid-json" || path.Base(diagnostic.Path) != "global.json" {
+			return nil, false
+		}
+		paths[diagnostic.Path] = struct{}{}
+	}
+	for _, record := range in.ProjectRecords {
+		if record.Parsed && record.Complete {
+			continue
+		}
+		if _, ok := paths[record.Project.ID]; !ok {
+			return nil, false
+		}
+	}
+	return paths, true
+}
+
+// hasDeclarationOnlyGlobalJSONFields reports whether a successfully parsed
+// global.json still contains environment requirements that parseGlobal does
+// not extract. The declarations adapter turns msbuild-sdks entries into
+// dotnet-sdk requirements, so SDK-selection success cannot replace that lost
+// evidence. Parse failures are treated conservatively; callers use this only
+// after parseGlobal has accepted the same bounded content.
+func hasDeclarationOnlyGlobalJSONFields(content []byte) bool {
+	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
+	cleaned, _, err := stripJSONComments(content)
+	if err != nil {
+		return true
+	}
+	cleaned, _ = stripTrailingCommas(cleaned)
+	var root map[string]json.RawMessage
+	if json.Unmarshal(cleaned, &root) != nil || root == nil {
+		return true
+	}
+	for key := range root {
+		if strings.EqualFold(key, "msbuild-sdks") {
+			return true
+		}
+	}
+	return false
 }
 
 func defaults(l Limits) Limits {
@@ -306,6 +413,7 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Status = "partial"
 		return
 	}
+	hadBOM := bytes.HasPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	if !jsontext.ValidUnicode(content) {
 		s.State = "unresolved"
@@ -313,14 +421,15 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "unsupported-json-text", "global.json contains invalid UTF-8 or unpaired Unicode escapes."})
 		return
 	}
-	cleaned, commentErr := stripJSONComments(content)
+	cleaned, strippedComments, commentErr := stripJSONComments(content)
 	if commentErr != nil {
 		s.State = "unresolved"
 		r.Status = "partial"
 		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "invalid-global-json", "global.json contains an unterminated block comment."})
 		return
 	}
-	cleaned = stripTrailingCommas(cleaned)
+	var strippedTrailingComma bool
+	cleaned, strippedTrailingComma = stripTrailingCommas(cleaned)
 	if err := uniqueJSONKeys(cleaned); err != nil {
 		s.State = "unresolved"
 		r.Status = "partial"
@@ -430,14 +539,23 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 			s.State = "unconstrained"
 		}
 	}
+	// Disclose accepted JSONC leniency (BOM, comments, or trailing commas) so
+	// a consumer can see why the file was accepted; the parse itself succeeded
+	// and the status remains complete on the environments side.
+	if s.State != "unresolved" && (hadBOM || strippedComments || strippedTrailingComma) {
+		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "global-json-lenient-syntax", "global.json was accepted through the documented JSONC leniency for BOM, comments, or trailing commas."})
+	}
 }
 
 // stripTrailingCommas replaces commas immediately before an object or array
 // close with whitespace. This matches global.json's documented JSON options
-// while retaining byte offsets and leaving string contents untouched.
-func stripTrailingCommas(in []byte) []byte {
+// while retaining byte offsets and leaving string contents untouched. The
+// second return value indicates whether the input contained at least one
+// trailing comma that was rewritten.
+func stripTrailingCommas(in []byte) ([]byte, bool) {
 	out := slices.Clone(in)
 	inString, escaped := false, false
+	stripped := false
 	for i := 0; i < len(out); i++ {
 		if inString {
 			if escaped {
@@ -466,9 +584,10 @@ func stripTrailingCommas(in []byte) []byte {
 		}
 		if k >= 0 && !strings.ContainsRune("{[:,", rune(out[k])) && j < len(out) && (out[j] == '}' || out[j] == ']') {
 			out[i] = ' '
+			stripped = true
 		}
 	}
-	return out
+	return out, stripped
 }
 
 func uniqueJSONKeys(content []byte) error {
@@ -534,10 +653,11 @@ func jsonValue(d *json.Decoder, depth int, tokens *int) error {
 	return nil
 }
 
-func stripJSONComments(in []byte) ([]byte, error) {
+func stripJSONComments(in []byte) ([]byte, bool, error) {
 	out := slices.Clone(in)
 	inString := false
 	escaped := false
+	stripped := false
 	for i := 0; i < len(out); i++ {
 		if inString {
 			if escaped {
@@ -554,6 +674,7 @@ func stripJSONComments(in []byte) ([]byte, error) {
 			continue
 		}
 		if out[i] == '/' && i+1 < len(out) && out[i+1] == '/' {
+			stripped = true
 			out[i] = ' '
 			out[i+1] = ' '
 			i += 2
@@ -565,6 +686,7 @@ func stripJSONComments(in []byte) ([]byte, error) {
 			continue
 		}
 		if out[i] == '/' && i+1 < len(out) && out[i+1] == '*' {
+			stripped = true
 			out[i] = ' '
 			out[i+1] = ' '
 			i += 2
@@ -579,12 +701,12 @@ func stripJSONComments(in []byte) ([]byte, error) {
 				out[i+1] = ' '
 				i++
 			} else {
-				return nil, errors.New("unterminated block comment")
+				return nil, false, errors.New("unterminated block comment")
 			}
 			continue
 		}
 	}
-	return out, nil
+	return out, stripped, nil
 }
 
 func addNormalized(r *Report, limits Limits, rec declarations.ProjectRecord, req declarations.Requirement) {

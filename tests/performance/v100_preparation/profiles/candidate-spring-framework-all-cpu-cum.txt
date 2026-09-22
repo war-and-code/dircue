@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:52:47 EDT
+Duration: 12.43s, Total samples = 29.31s (235.81%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 12.47s, 42.55% of 29.31s total
+Dropped 156 nodes (cum <= 0.15s)
+Showing top 45 nodes out of 146
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      7.82s 26.68%  dircue/pkg/scanner.Scan.func5
+         0     0%     0%      7.75s 26.44%  dircue/pkg/scanner.analyzeFile
+         0     0%     0%      7.75s 26.44%  dircue/pkg/scanner.analyzeSelectedFile
+     0.01s 0.034% 0.034%      7.74s 26.41%  dircue/pkg/scanner.analyzeFileBase
+     6.92s 23.61% 23.64%      6.92s 23.61%  syscall.rawsyscalln
+         0     0% 23.64%      6.92s 23.61%  syscall.syscalln
+         0     0% 23.64%      6.54s 22.31%  runtime.systemstack
+         0     0% 23.64%      5.68s 19.38%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 23.64%      5.57s 19.00%  runtime.ready
+         0     0% 23.64%      5.57s 19.00%  runtime.wakep
+         0     0% 23.64%      5.53s 18.87%  runtime.notewakeup
+     5.53s 18.87% 42.51%      5.53s 18.87%  runtime.pthread_cond_signal
+         0     0% 42.51%      5.53s 18.87%  runtime.semawakeup
+         0     0% 42.51%      5.53s 18.87%  runtime.startm
+         0     0% 42.51%      4.70s 16.04%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).objectAtOffset
+         0     0% 42.51%      4.70s 16.04%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObject
+         0     0% 42.51%      4.70s 16.04%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).getFromPackfile
+         0     0% 42.51%      4.68s 15.97%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).decodeObjectAt
+         0     0% 42.51%      4.66s 15.90%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).GetByOffset
+         0     0% 42.51%      4.47s 15.25%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0% 42.51%      4.47s 15.25%  github.com/go-git/go-git/v5/plumbing/object.GetBlob
+         0     0% 42.51%      4.29s 14.64%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).objectHeaderAtOffset (inline)
+         0     0% 42.51%      4.29s 14.64%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Scanner).SeekObjectHeader
+         0     0% 42.51%      4.24s 14.47%  runtime.send.goready.func1
+         0     0% 42.51%      4.12s 14.06%  internal/poll.(*FD).Seek
+         0     0% 42.51%      4.12s 14.06%  os.(*File).Seek
+         0     0% 42.51%      4.12s 14.06%  os.(*File).seek
+         0     0% 42.51%      4.12s 14.06%  syscall.Seek
+         0     0% 42.51%      4.12s 14.06%  syscall.syscallX
+         0     0% 42.51%      4.11s 14.02%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*scannerReader).Seek
+         0     0% 42.51%      2.72s  9.28%  syscall.syscall
+     0.01s 0.034% 42.55%      2.11s  7.20%  regexp.(*Regexp).doExecute
+         0     0% 42.55%      2.03s  6.93%  regexp.(*Regexp).doMatch (inline)
+         0     0% 42.55%      1.75s  5.97%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 42.55%      1.75s  5.97%  dircue/pkg/scanner.Scan.func4
+         0     0% 42.55%      1.74s  5.94%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 42.55%      1.37s  4.67%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open
+         0     0% 42.55%      1.37s  4.67%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObjectSize
+         0     0% 42.55%      1.37s  4.67%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*RepositoryFilesystem).Open
+         0     0% 42.55%      1.37s  4.67%  os.ignoringEINTR (inline)
+         0     0% 42.55%      1.30s  4.44%  runtime.readyWithTime.goready.func1
+         0     0% 42.55%      1.24s  4.23%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).encodedObjectSizeFromUnpacked
+         0     0% 42.55%      1.24s  4.23%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).Object
+         0     0% 42.55%      1.19s  4.06%  dircue/pkg/scanner.blobRead
+         0     0% 42.55%      1.19s  4.06%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*FSObject).Reader
