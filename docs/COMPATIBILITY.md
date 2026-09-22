@@ -1,25 +1,28 @@
 # Proposed 1.0 compatibility policy
 
-This policy is a draft for 1.0, not a declaration that 0.9 has frozen every
-analysis surface. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
+This policy is a discussion draft for 1.0, not a declaration that 0.9 has
+frozen every analysis surface. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
 reserves 1.0 for the directory map and supersedes the earlier feature freeze.
-The legacy Linguist interface remains a compatibility target. The treatment
-of existing `analyze` reports in 1.x is still an owner decision.
+The legacy Linguist interface remains a compatibility target. Whether existing
+`analyze` reports become a frozen legacy profile in 1.x or remain provisional
+is still an owner decision.
 
-Version 1.0 is the point at which dircue's public surfaces become
-contract. This document names those surfaces, what they promise, how
-additive changes are versioned, and what deprecation looks like. It
-complements [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md), which
-explains why we treat these surfaces as contract at all.
+Version 1.0 will establish a public contract centered on the directory map.
+This document records a candidate policy for the existing surfaces so that
+their treatment can be decided explicitly. Except for the legacy Linguist
+compatibility target, the commitments below apply only if this proposal is
+adopted. It complements [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md), which
+explains why documented compatibility surfaces matter.
 
-Anything not listed here is not covered. If a downstream consumer
-depends on unspecified behavior, the correct next step is an
+Under this proposal, anything not listed here is not covered. If a downstream
+consumer depends on unspecified behavior, the correct next step is an
 [issue](https://github.com/war-and-code/dircue/issues) proposing that
 we cover it explicitly.
 
-## What is frozen in 1.x
+## Proposed 1.x compatibility surfaces
 
-The surfaces below retain their documented meanings across 1.x releases.
+If this policy is adopted, the surfaces below would retain their documented
+meanings across 1.x releases.
 Compatibility tests compare exact outputs for fixed fixtures where applicable.
 That does not freeze classification data, detected findings, tool versions,
 or all report bytes: upstream language patterns and supported analysis can
@@ -45,10 +48,10 @@ Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
   `analyze environments`, `analyze focus`, `analyze availability`,
   `analyze explain`, `analyze graph`, `analyze packages`,
   `analyze rules`, `analyze registries`, `analyze formats`,
-  `analyze structure`, and `analyze all` (with its module toggles) are
-  frozen. Enum values (`--source auto|git|directory`,
+  `analyze structure`, and `analyze all` (with its module toggles) would be
+  frozen under this proposal. Enum values (`--source auto|git|directory`,
   `--on-error fail|continue`, `--metrics-scope source|text`) are
-  frozen; adding a new value counts as an additive change.
+  also proposed as frozen; adding a new value would count as an additive change.
 - **`compare` and `plan`.** The saved-report readers accept the JSON
   their producers emit for the documented supported profile versions and
   input families, with the documented `--module` names and positional argument
@@ -98,7 +101,7 @@ When stdout is closed by a downstream reader (`dircue --json .
 success should read all of stdout before closing. This matches Go's
 default runtime behavior and is not classified as an error.
 
-## What is not frozen
+## Proposed exclusions from the 1.x contract
 
 - **stderr text.** The exact wording of warnings, spelling
   suggestions, and diagnostic messages is not part of the contract.
@@ -136,10 +139,11 @@ default runtime behavior and is not classified as an error.
 
 ## Additive changes and `schema_version`
 
-New optional modules and commands can be added without changing existing
-invocations. New fields, warning codes, or enum values still require a review
-of producer schemas and saved-report readers: a strict existing reader may
-reject them. Report versioning and consumer guidance must describe that impact.
+Under this proposal, new optional modules and commands can be added without
+changing existing invocations. New fields, warning codes, or enum values still
+require a review of producer schemas and saved-report readers: a strict existing
+reader may reject them. Report versioning and consumer guidance must describe
+that impact.
 A newer binary reads the report versions it documents; an older binary is not
 promised to accept reports emitted by a newer version.
 
@@ -148,7 +152,7 @@ requires a major bump and is not planned within 1.x. When the design
 requires such a change, we would ship it in a 2.0 with a migration
 note.
 
-## Deprecation policy
+## Proposed deprecation policy
 
 - A deprecation is announced in a CHANGELOG entry that names the
   surface, the replacement, and the earliest release the surface
@@ -161,7 +165,7 @@ note.
   carry a deprecation message.
 - Removal happens no earlier than the next major release.
 
-## What a 2.0 would mean
+## What a 2.0 would mean under this proposal
 
 A major bump is reserved for changes we cannot make additively:
 renaming or removing a documented CLI flag, tightening an existing
@@ -195,7 +199,9 @@ See the [distribution guide](DISTRIBUTION.md) for the packaging
 matrix and the [release automation guide](RELEASE_AUTOMATION.md) for
 which of these platforms the release workflow builds and validates.
 
-## Known boundaries at 1.0
+<a id="known-boundaries-at-10"></a>
+
+## Current boundaries considered by this proposal
 
 These are current limitations and follow-up work. They do not establish
 support for untested inputs or override the coverage reported by each module.

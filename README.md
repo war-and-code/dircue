@@ -74,9 +74,13 @@ CGO_ENABLED=0 go build -trimpath -o bin/dircue .
 ./bin/dircue --breakdown --json /path/to/checkout
 ```
 
-## Compatibility promise
+## Compatibility direction
 
-Version 1.0 establishes the documented CLI, report shapes, and exit-status contract for the 1.x line. Language data and analysis findings can evolve; compatibility concerns how callers invoke dircue and interpret its reports. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full list of what's covered and what deliberately isn't.
+Version 0.9 keeps the documented legacy Linguist CLI and JSON as a
+compatibility target. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
+reserves 1.0 for the directory map, which will become the primary 1.x contract.
+The [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) is a discussion
+draft; it does not yet freeze every existing `analyze` report shape for 1.x.
 
 ## License
 
