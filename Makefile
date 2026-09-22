@@ -29,7 +29,9 @@ conformance: reference
 samples: reference
 	python3 tests/conformance/samples.py --image $(REFERENCE_IMAGE) --require-match
 
-release: release-archives
+release:
+	@python3 -c 'import sys; sys.path.insert(0, "scripts"); from wheels import python_version; python_version(sys.argv[1])' "$(VERSION)"
+	$(MAKE) release-archives
 	python3 scripts/wheels.py --release-dir "$(RELEASE_DIR)" --output "$(WHEEL_DIR)"
 
 release-archives:

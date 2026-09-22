@@ -18,6 +18,10 @@ with one command:
 make release VERSION=1.0.0
 ```
 
+Pass a version explicitly: `X.Y.Z` or `X.Y.Z-(alpha|beta|rc).N`. The default
+development version is rejected before compilation because it is not a wheel
+release version.
+
 Archives, core provenance and archive checksums go into `dist/`. Wheels, their
 provenance and a separate checksum file go into `dist/wheels/`. To keep different
 candidates separately, choose fresh output directories:
