@@ -80,6 +80,12 @@ func newExplainCommand(opts *options) *cobra.Command {
 			if source != "auto" && source != "git" && source != "directory" {
 				return fmt.Errorf("--source must be auto, git, or directory")
 			}
+			if cmd.Flags().Changed("tree") && opts.tree == "" {
+				return fmt.Errorf("--tree requires a full Git tree object ID")
+			}
+			if opts.onError != "fail" && opts.onError != "continue" {
+				return fmt.Errorf("--on-error must be fail or continue")
+			}
 			if cmd.Flags().Changed("rev") {
 				if source == "directory" {
 					return fmt.Errorf("--rev requires a Git content source")
