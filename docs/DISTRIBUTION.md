@@ -27,9 +27,10 @@ uv tool install 'dircue==<version>'
 dircue --breakdown --json /path/to/checkout
 ```
 
-These commands require the matching version to be published on PyPI. Until
-that is announced in a release CHANGELOG entry, use a downloaded or locally
-prepared wheel with `--from`, as shown below. The package name and executable
+With uv's default index settings, these commands require the matching version
+on PyPI. A configured private index or a local wheel collection supplied with
+`--no-index --find-links` can also resolve the package by name. Until PyPI
+publication is announced, use GitHub wheels as shown below. The package name and executable
 name are both `dircue`.
 
 `uvx` installs into an isolated cached environment. It avoids changing the
@@ -178,9 +179,10 @@ real downloads and pinned invocations after publication; local installation
 checks do not establish that publication succeeded. Never replace an already
 published version with different executable bytes.
 
-Hosted release automation is tracked in [#13](https://github.com/war-and-code/dircue/issues/13);
-PyPI distribution and publication checks are tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
-Manual release preparation remains supported for v0.3.
+The [release automation guide](RELEASE_AUTOMATION.md) covers local packaging and
+the Actions workflow that prepares and verifies GitHub draft releases, including
+all seven wheels. PyPI publication remains separate and is tracked in
+[#14](https://github.com/war-and-code/dircue/issues/14).
 
 ## Historical 0.1 validation
 

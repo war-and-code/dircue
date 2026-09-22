@@ -180,6 +180,15 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 				if ctx.Err() != nil {
 					return nil, ctx.Err()
 				}
+				// The callback may return a derived cancellation before ctx.Err is
+				// visible here. Never turn cancellation into a success-shaped
+				// partial declaration report.
+				if errors.Is(err, context.Canceled) {
+					return nil, context.Canceled
+				}
+				if errors.Is(err, context.DeadlineExceeded) {
+					return nil, context.DeadlineExceeded
+				}
 				if c.errorPolicy == "continue" {
 					// Preserve remaining manifests. The per-path diagnostic
 					// keeps the omission attributable and stays disjoint

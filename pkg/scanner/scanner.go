@@ -15,7 +15,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 
 	"dircue/pkg/availability"
 	"dircue/pkg/declarations"
@@ -68,11 +67,7 @@ type Options struct {
 	// Tree selects an exact Git tree object by its full SHA-1 object ID.
 	Tree string
 	// ErrorPolicy controls recoverable per-file read failures. Empty means fail.
-	ErrorPolicy ErrorPolicy
-	// MaxTreeSize caps the number of files considered. Zero selects
-	// DefaultMaxTreeSize for callers that never set the field; the CLI rejects
-	// --tree-size below one and never relies on this zero-is-default fallback.
-	// Negative values are rejected.
+	ErrorPolicy       ErrorPolicy
 	MaxTreeSize       int
 	Workers           int
 	MaxFileBytes      int64
@@ -292,19 +287,90 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if err != nil {
 		return nil, err
 	}
-	// Directory tree size is enforced inline in the walk below rather than
-	// through a serial preflight traversal. The walker streams jobs directly
-	// so worker classification overlaps with directory I/O (no buffering, no
-	// RSS bump proportional to MaxTreeSize). Two subtle contracts hold:
-	//   * If nonDirCount crosses opts.MaxTreeSize the walker stops immediately
-	//     and the main goroutine produces the byte-identical tree-size-limit
-	//     skeleton response from fresh accumulators (see directoryTreeSizeLimitReport).
-	//   * A per-file worker error under the default fail policy is captured
-	//     into firstWorkerError but does NOT cancel the context, so the walker
-	//     keeps counting entries; only after the walk completes do we decide
-	//     between "tree exceeded → 0.8.0 skeleton wins" and "tree under limit
-	//     → surface the error". This preserves the 0.8.0 pre-walk ordering
-	//     where the size cap was known before any read was attempted.
+	if snapshot == nil {
+		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize)
+		if err != nil {
+			return nil, err
+		}
+		if exceeded {
+			if opts.Focus != nil {
+				return nil, errors.New("focus inventory omitted: tree size limit reached")
+			}
+			report := newReport(abs)
+			if opts.Environments {
+				report.Environments = environments.Skip("directory", "", "tree_size_limit")
+				report.SchemaVersion = profile.EnvironmentSchemaVersion
+			}
+			if registryCollector != nil {
+				if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
+					return nil, err
+				}
+				report.Registries, err = registryCollector.finish(ctx)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if ruleCollector != nil {
+				if err := ruleCollector.collector.Omit(rules.TreeSizeLimit, 1); err != nil {
+					return nil, err
+				}
+				report.Rules, err = ruleCollector.finish(ctx, root)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if opts.Formats {
+				report.Formats = formats.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
+				report.SchemaVersion = profile.ContentSchemaVersion
+			}
+			if opts.Discovery {
+				report.Discovery = discovery.New("directory", "", opts.MaxTreeSize).Skip("tree_size_limit")
+			}
+			if opts.Projects {
+				report.Projects = projects.New("directory", "").Skip("tree_size_limit")
+				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
+			if opts.Structure != nil {
+				report.Structure = newStructureReport(opts, snapshot)
+				report.Structure.Status = "skipped"
+				report.Structure.Omissions["tree_size_limit"] = 1
+				finishStructure(report.Structure)
+				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
+			if opts.Metrics != nil {
+				report.SchemaVersion = profile.MetricsSchemaVersion
+				report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
+				report.Metrics.Status = "skipped"
+				report.Metrics.Skipped = append(report.Metrics.Skipped, profile.MetricSkip{Reason: "tree_size_limit"})
+			}
+			if opts.Projects || opts.Structure != nil {
+				report.SchemaVersion = profile.ExpandedSchemaVersion
+			}
+			if opts.Registries || opts.Rules != nil || opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
+				report.SchemaVersion = profile.EnhancedSchemaVersion
+			}
+			report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
+			if opts.Declarations {
+				report.Declarations = declarations.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
+				report.SchemaVersion = profile.DeclarationsSchemaVersion
+			}
+			if opts.Formats || (opts.Structure != nil && opts.Structure.HotspotsEnabled()) {
+				report.SchemaVersion = profile.ContentSchemaVersion
+			}
+			if availabilityCollector != nil {
+				if err := availabilityCollector.finish(ctx, root, report); err != nil {
+					return nil, err
+				}
+				report.SchemaVersion = profile.TargetedSchemaVersion
+			}
+			if opts.ExplainPath != "" {
+				if err := finishLanguageExplanation(opts, snapshot, report, nil, false); err != nil {
+					return nil, err
+				}
+			}
+			return report, nil
+		}
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	jobs := make(chan job, opts.Workers*2)
@@ -325,18 +391,6 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			return false
 		}
 	}
-	var treeSizeExceeded atomic.Bool
-	var stopDispatch atomic.Bool
-	var workerErrMu sync.Mutex
-	var firstWorkerError error
-	recordWorkerError := func(err error) {
-		workerErrMu.Lock()
-		if firstWorkerError == nil {
-			firstWorkerError = err
-		}
-		workerErrMu.Unlock()
-		stopDispatch.Store(true)
-	}
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -352,8 +406,6 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		// flattened ancestor copy per depth would grow quadratically on deep trees.
 		var stack [][]attributeRule
 		attributeRuleCount := 0
-		nonDirCount := 0
-		stopWalk := errors.New("tree size reached")
 		err := fs.WalkDir(root.FS(), ".", func(filename string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
 				return walkErr
@@ -371,69 +423,47 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				}
 				stack = stack[:depth]
 				var local []attributeRule
-				// After a worker error we are only walking to count entries
-				// for the tree-size limit check; the skeleton response is
-				// built from fresh accumulators regardless of what attribute
-				// state we would have accumulated, so skip the parse.
-				if !stopDispatch.Load() {
-					attrsPath := path.Join(filename, ".gitattributes")
-					info, attrErr := root.Lstat(attrsPath)
-					if attrErr != nil && !errors.Is(attrErr, fs.ErrNotExist) {
-						return fmt.Errorf("inspect %s: %w", attrsPath, attrErr)
-					}
-					if attrErr == nil {
-						if !info.Mode().IsRegular() {
-							if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: "attribute file is not a regular file; rules ignored"}}}) {
-								return ctx.Err()
-							}
-						} else if info.Size() > maxAttributesBytes {
+				attrsPath := path.Join(filename, ".gitattributes")
+				info, attrErr := root.Lstat(attrsPath)
+				if attrErr != nil && !errors.Is(attrErr, fs.ErrNotExist) {
+					return fmt.Errorf("inspect %s: %w", attrsPath, attrErr)
+				}
+				if attrErr == nil {
+					if !info.Mode().IsRegular() {
+						if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: "attribute file is not a regular file; rules ignored"}}}) {
+							return ctx.Err()
+						}
+					} else if info.Size() > maxAttributesBytes {
+						if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: "attribute file exceeds 1 MiB; rules ignored"}}}) {
+							return ctx.Err()
+						}
+					} else {
+						content, tooLarge, err := readBounded(root, attrsPath, maxAttributesBytes)
+						if err != nil {
+							return err
+						}
+						if tooLarge {
 							if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: "attribute file exceeds 1 MiB; rules ignored"}}}) {
 								return ctx.Err()
 							}
 						} else {
-							content, tooLarge, err := readBounded(root, attrsPath, maxAttributesBytes)
-							if err != nil {
-								return err
+							rules, warnings, exceeded := parseAttributesBounded(attrsPath, content, maxAttributeRules-attributeRuleCount)
+							if exceeded {
+								if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)}}}) {
+									return ctx.Err()
+								}
+								rules = nil
+								warnings = nil
 							}
-							if tooLarge {
-								if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: "attribute file exceeds 1 MiB; rules ignored"}}}) {
-									return ctx.Err()
-								}
-							} else {
-								rules, warnings, exceeded := parseAttributesBounded(attrsPath, content, maxAttributeRules-attributeRuleCount)
-								if exceeded {
-									if !send(result{warnings: []profile.Warning{{Path: attrsPath, Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)}}}) {
-										return ctx.Err()
-									}
-									rules = nil
-									warnings = nil
-								}
-								attributeRuleCount += len(rules)
-								local = rules
-								if len(warnings) > 0 && !send(result{warnings: warnings}) {
-									return ctx.Err()
-								}
+							attributeRuleCount += len(rules)
+							local = rules
+							if len(warnings) > 0 && !send(result{warnings: warnings}) {
+								return ctx.Err()
 							}
 						}
 					}
 				}
 				stack = append(stack, local)
-				return nil
-			}
-			// Every non-dir entry — regular, symlink, FIFO, missing — counts
-			// against MaxTreeSize the same way the pre-1.0 preflight counted them.
-			// >= mirrors directoryTreeLimit's original threshold (count == limit
-			// already produces the tree_size_limit skeleton in 0.8.0).
-			nonDirCount++
-			if nonDirCount >= opts.MaxTreeSize {
-				treeSizeExceeded.Store(true)
-				return stopWalk
-			}
-			// A worker already failed. Keep counting so a later tree-size
-			// crossing still overrides the recorded error (0.8.0 pre-walk
-			// ordering: the limit is checked before any file is opened), but
-			// dispatch nothing new and emit no per-file walk warnings.
-			if stopDispatch.Load() {
 				return nil
 			}
 			info, err := entry.Info()
@@ -464,11 +494,6 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				return ctx.Err()
 			}
 		})
-		if treeSizeExceeded.Load() {
-			// Walker stopped immediately; main will discard collector state
-			// and produce the tree-size-limit skeleton.
-			return
-		}
 		if err != nil {
 			fail(fmt.Errorf("walk directory: %w", err))
 		}
@@ -480,15 +505,6 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			for item := range jobs {
 				if ctx.Err() != nil {
 					return
-				}
-				// Once a worker recorded a fatal per-file error, drain the
-				// remaining jobs without doing more work. The walker keeps
-				// counting entries so a later tree-size crossing can still
-				// override the error, so we must keep pulling from the
-				// channel: exiting here would block the walker's `jobs <- j`
-				// send once the buffer fills.
-				if stopDispatch.Load() {
-					continue
 				}
 				value, err := analyzeSelectedFile(ctx, root, item, opts)
 				if err != nil {
@@ -502,12 +518,8 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 						}
 						continue
 					}
-					// Defer this error: 0.8.0 would have produced the
-					// tree-size-limit skeleton (never opening any file) if
-					// the tree is over the limit, so we cannot surface the
-					// read failure until the walker finishes counting.
-					recordWorkerError(err)
-					continue
+					fail(err)
+					return
 				}
 				if !send(value) {
 					return
@@ -704,31 +716,14 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	if treeSizeExceeded.Load() {
-		// The walker crossed MaxTreeSize. Discard the possibly-partially-fed
-		// scan-time accumulators and reconstruct fresh ones so the skeleton
-		// response matches what 0.8.0's pre-walk (which never opened a file)
-		// would have emitted. A per-file worker error captured earlier is
-		// intentionally swallowed here: 0.8.0's pre-walk would have hit the
-		// limit before the read was ever attempted.
-		freshAvail := newAvailabilityAccumulator(opts, snapshot)
-		freshReg, err := newRegistryAccumulator(opts, snapshot)
-		if err != nil {
-			return nil, err
+	// Aggregation modules can report the same unreadable path as the language
+	// pass and as each other. Index existing warnings once so mass failures do
+	// not turn per-module warning deduplication into quadratic work.
+	fileReadErrorWarnings := make(map[string]struct{})
+	for _, warning := range report.Warnings {
+		if warning.Code == "file_read_error" {
+			fileReadErrorWarnings[warning.Path] = struct{}{}
 		}
-		freshRules, err := newRulesAccumulator(opts, snapshot)
-		if err != nil {
-			return nil, err
-		}
-		return directoryTreeSizeLimitReport(ctx, abs, opts, snapshot, root, freshAvail, freshReg, freshRules)
-	}
-	// A deferred worker error survives the walk without a limit crossing;
-	// surface it now that we know 0.8.0 would have surfaced the same error.
-	workerErrMu.Lock()
-	deferredErr := firstWorkerError
-	workerErrMu.Unlock()
-	if deferredErr != nil {
-		return nil, deferredErr
 	}
 	if ruleCollector != nil {
 		for _, warning := range report.Warnings {
@@ -756,7 +751,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			return nil, err
 		}
 		for _, path := range registryCollector.collector.ReadErrors() {
-			addFileReadErrorWarning(report, path, "selected registry configuration could not be read")
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected registry configuration could not be read")
 		}
 		report.SchemaVersion = profile.EnhancedSchemaVersion
 	}
@@ -803,7 +798,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			}
 		}
 		for _, path := range declarationCollector.ReadErrors() {
-			addFileReadErrorWarning(report, path, "selected declaration manifest could not be read")
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected declaration manifest could not be read")
 		}
 		report.SchemaVersion = profile.DeclarationsSchemaVersion
 	}
@@ -818,7 +813,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			}
 		}
 		for _, path := range formatCollector.ReadErrors() {
-			addFileReadErrorWarning(report, path, "selected format candidate could not be read")
+			addFileReadErrorWarning(report, fileReadErrorWarnings, path, "selected format candidate could not be read")
 		}
 		report.SchemaVersion = profile.ContentSchemaVersion
 	}
@@ -849,7 +844,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		if report.Environments != nil {
 			for _, d := range report.Environments.Diagnostics {
 				if d.Code == "file-read-error" {
-					addFileReadErrorWarning(report, d.Path, "selected global.json could not be read")
+					addFileReadErrorWarning(report, fileReadErrorWarnings, d.Path, "selected global.json could not be read")
 				}
 			}
 		}
@@ -923,12 +918,11 @@ func omissionReason(value result, fallback string) string {
 // aggregation modules commonly reach the same unreadable file after the
 // scanner-level per-file recovery has already surfaced it, and the caller
 // gains nothing from parallel warnings that name the same path.
-func addFileReadErrorWarning(report *profile.Report, path, message string) {
-	for _, w := range report.Warnings {
-		if w.Code == "file_read_error" && w.Path == path {
-			return
-		}
+func addFileReadErrorWarning(report *profile.Report, seen map[string]struct{}, path, message string) {
+	if _, exists := seen[path]; exists {
+		return
 	}
+	seen[path] = struct{}{}
 	report.Warnings = append(report.Warnings, profile.Warning{Path: path, Code: "file_read_error", Message: message})
 }
 
@@ -1004,7 +998,7 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 		content, actualSize, err = item.read(limit)
 		tooLarge = opts.MaxFileBytes > 0 && actualSize > opts.MaxFileBytes
 	} else {
-		content, tooLarge, actualSize, err = readBoundedSizeAssumeRegular(root, item.path, limit)
+		content, tooLarge, actualSize, err = readBoundedSize(root, item.path, limit)
 		tooLarge = opts.MaxFileBytes > 0 && (actualSize > opts.MaxFileBytes || (limit == opts.MaxFileBytes && tooLarge))
 		if int64(len(content)) > limit {
 			content = content[:limit]
@@ -1227,35 +1221,6 @@ func readBoundedSize(root *os.Root, filename string, limit int64) ([]byte, bool,
 	return content, int64(len(content)) > limit, info.Size(), nil
 }
 
-// readBoundedSizeAssumeRegular is the per-file worker read path. It omits the
-// pre-open Lstat that readBoundedSize performs because the caller obtained a
-// regular DirEntry from the directory walk moments earlier. Safety against a
-// swap between walk and open still holds: openRegular uses O_NOFOLLOW|O_NONBLOCK
-// (see open_unix.go) so a symlink or FIFO final component is refused at open
-// time, and the post-open fstat rejects any other non-regular type. The error
-// text matches readBoundedSize's post-open branch ("file changed to a
-// non-regular file") so warnings observers see the same string when a swap is
-// caught.
-func readBoundedSizeAssumeRegular(root *os.Root, filename string, limit int64) ([]byte, bool, int64, error) {
-	file, err := openRegular(root, filename)
-	if err != nil {
-		return nil, false, 0, recoverable(fmt.Errorf("open %s: %w", filename, err))
-	}
-	defer file.Close()
-	info, err := file.Stat()
-	if err != nil {
-		return nil, false, 0, recoverable(fmt.Errorf("stat %s: %w", filename, err))
-	}
-	if !info.Mode().IsRegular() {
-		return nil, false, 0, recoverable(fmt.Errorf("read %s: file changed to a non-regular file", filename))
-	}
-	content, err := readAllBounded(file, limit+1, info.Size())
-	if err != nil {
-		return nil, false, 0, recoverable(fmt.Errorf("read %s: %w", filename, err))
-	}
-	return content, int64(len(content)) > limit, info.Size(), nil
-}
-
 func validateFinding(finding profile.Finding) error {
 	if finding.Kind != "ecosystem" && finding.Kind != "framework" && finding.Kind != "layout" {
 		return fmt.Errorf("unsupported finding kind %q", finding.Kind)
@@ -1297,87 +1262,32 @@ func newReport(root string) *profile.Report {
 	return &profile.Report{SchemaVersion: profile.SchemaVersion, Root: root, Languages: []profile.Language{}, Ecosystems: []profile.Finding{}, Frameworks: []profile.Finding{}, Layouts: []profile.Finding{}, Warnings: []profile.Warning{}}
 }
 
-// directoryTreeSizeLimitReport reproduces the 0.8.0 pre-walk skeleton response
-// used when a filesystem tree reaches MaxTreeSize. The main scan now counts
-// entries inline during the single directory walk; this helper is called after
-// the walker signals treeSizeExceeded, before any per-file collectors have
-// received results. No file content is opened here.
-func directoryTreeSizeLimitReport(ctx context.Context, abs string, opts Options, snapshot *gitSnapshot, root *os.Root, availabilityCollector *availabilityAccumulator, registryCollector *registryAccumulator, ruleCollector *rulesAccumulator) (*profile.Report, error) {
-	if opts.Focus != nil {
-		return nil, errors.New("focus inventory omitted: tree size limit reached")
-	}
-	var err error
-	report := newReport(abs)
-	if opts.Environments {
-		report.Environments = environments.Skip("directory", "", "tree_size_limit")
-		report.SchemaVersion = profile.EnvironmentSchemaVersion
-	}
-	if registryCollector != nil {
-		if err := registryCollector.collector.Omit("tree_size_limit", 1); err != nil {
-			return nil, err
+// Preflight avoids reporting partial statistics when a filesystem tree reaches
+// the same file-count limit as a Git tree. No file content is opened here.
+func directoryTreeLimit(ctx context.Context, root *os.Root, limit int) (bool, error) {
+	count := 0
+	stop := errors.New("tree size reached")
+	err := fs.WalkDir(root.FS(), ".", func(name string, entry fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
 		}
-		report.Registries, err = registryCollector.finish(ctx)
-		if err != nil {
-			return nil, err
+		if err := ctx.Err(); err != nil {
+			return err
 		}
-	}
-	if ruleCollector != nil {
-		if err := ruleCollector.collector.Omit(rules.TreeSizeLimit, 1); err != nil {
-			return nil, err
+		if entry.IsDir() {
+			if entry.Name() == ".git" {
+				return fs.SkipDir
+			}
+			return nil
 		}
-		report.Rules, err = ruleCollector.finish(ctx, root)
-		if err != nil {
-			return nil, err
+		count++
+		if count >= limit {
+			return stop
 		}
+		return nil
+	})
+	if errors.Is(err, stop) {
+		return true, nil
 	}
-	if opts.Formats {
-		report.Formats = formats.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
-		report.SchemaVersion = profile.ContentSchemaVersion
-	}
-	if opts.Discovery {
-		report.Discovery = discovery.New("directory", "", opts.MaxTreeSize).Skip("tree_size_limit")
-	}
-	if opts.Projects {
-		report.Projects = projects.New("directory", "").Skip("tree_size_limit")
-		report.SchemaVersion = profile.ExpandedSchemaVersion
-	}
-	if opts.Structure != nil {
-		report.Structure = newStructureReport(opts, snapshot)
-		report.Structure.Status = "skipped"
-		report.Structure.Omissions["tree_size_limit"] = 1
-		finishStructure(report.Structure)
-		report.SchemaVersion = profile.ExpandedSchemaVersion
-	}
-	if opts.Metrics != nil {
-		report.SchemaVersion = profile.MetricsSchemaVersion
-		report.Metrics = newMetricsReport(*opts.Metrics, snapshot)
-		report.Metrics.Status = "skipped"
-		report.Metrics.Skipped = append(report.Metrics.Skipped, profile.MetricSkip{Reason: "tree_size_limit"})
-	}
-	if opts.Projects || opts.Structure != nil {
-		report.SchemaVersion = profile.ExpandedSchemaVersion
-	}
-	if opts.Registries || opts.Rules != nil || opts.Discovery || opts.Structure != nil && opts.Structure.FunctionMetricsEnabled() {
-		report.SchemaVersion = profile.EnhancedSchemaVersion
-	}
-	report.Warnings = append(report.Warnings, profile.Warning{Path: ".", Code: "tree_size_limit", Message: fmt.Sprintf("directory has at least %d entries; analysis omitted", opts.MaxTreeSize)})
-	if opts.Declarations {
-		report.Declarations = declarations.New("directory", "", opts.MaxFileBytes).Skip("tree_size_limit")
-		report.SchemaVersion = profile.DeclarationsSchemaVersion
-	}
-	if opts.Formats || (opts.Structure != nil && opts.Structure.HotspotsEnabled()) {
-		report.SchemaVersion = profile.ContentSchemaVersion
-	}
-	if availabilityCollector != nil {
-		if err := availabilityCollector.finish(ctx, root, report); err != nil {
-			return nil, err
-		}
-		report.SchemaVersion = profile.TargetedSchemaVersion
-	}
-	if opts.ExplainPath != "" {
-		if err := finishLanguageExplanation(opts, snapshot, report, nil, false); err != nil {
-			return nil, err
-		}
-	}
-	return report, nil
+	return false, err
 }

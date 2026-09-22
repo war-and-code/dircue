@@ -45,41 +45,20 @@ vulnerabilities.
 
 ## Pull requests
 
-Pull requests are welcome after prior discussion in an issue. Opening
-a matching issue first lets us confirm scope and design before you
-invest time; unsolicited large changes may be closed with a request to
-discuss first.
+Outside pull requests and larger contributions are not accepted at present.
+Please use GitHub Issues for bug reports, questions, and feature suggestions.
+Maintainers implement and review changes within the project.
 
-When you do open a pull request, follow the
-[pull request template](.github/PULL_REQUEST_TEMPLATE.md). Concretely,
-the project's review practice looks for:
+## Maintainer checks
 
-- **Tests.** Every behavior change gets a Go or Python test that would
-  have failed before the change.
-- **Contract discipline.** Successful CLI outputs and exit statuses
-  for existing invocations must not change; the
-  [1.0 compatibility promise](docs/COMPATIBILITY.md) spells out what
-  else is frozen. Adjustments to those contracts belong in a
-  discussion first.
-- **Evidence receipts.** Performance or coverage claims need
-  reproducible measurements: what was compared, how, how many
-  samples, and what environment. `tests/performance/` and
-  `tests/compatibility_v100/` show the format we use.
-- **Design-principle alignment.** Incomplete knowledge must remain
-  visible. Silent fallbacks, unlabelled partial results, or executing
-  inspected content are not acceptable trade-offs.
-- **Minimal, reviewable diffs.** Match surrounding code style; keep
-  drive-by refactors out of unrelated changes.
-- **Contained scope.** Do not add analysis that requires the network,
-  a build step, or executing project code.
+Changes should preserve documented CLI and report contracts, include focused
+regression tests where behavior changes, and support performance claims with
+reproducible measurements. Run `go test -race ./...` and `go vet ./...`.
+For release tooling, also run:
 
-Run `go test -race ./...` and `go vet ./...` locally before requesting
-review. When your change touches release tooling or documentation,
-also run `python3 -m pytest tests/release -q`.
+```sh
+python3 -m unittest discover -s tests/release -p 'test_*.py'
+```
 
-## Legal
-
-By contributing you agree that your contribution may be released under
-the project's [MIT license](LICENSE). Third-party code and data must
-retain their existing licenses and attribution; the
-[third-party notices](THIRD_PARTY_NOTICES.md) list the current set.
+Third-party code and data must retain their licenses and attribution; see
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

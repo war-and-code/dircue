@@ -206,3 +206,17 @@ func TestCollectorReadErrorContinuePolicy(t *testing.T) {
 		t.Fatal("default policy no longer fails hard on manifest read error")
 	}
 }
+
+func TestCollectorContinueDoesNotSwallowReaderCancellation(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		c := New("directory", "", 0)
+		c.SetErrorPolicy("continue")
+		candidate := &Candidate{Path: "go.mod", Size: 1, Read: func(context.Context, int64) ([]byte, int64, error) {
+			return nil, 0, fmt.Errorf("selected reader stopped: %w", want)
+		}}
+		c.Add("go.mod", candidate)
+		if _, err := c.Finish(context.Background()); !errors.Is(err, want) {
+			t.Fatalf("continue swallowed %v: %v", want, err)
+		}
+	}
+}

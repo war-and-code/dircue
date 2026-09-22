@@ -270,15 +270,6 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	case "analyze":
 		r = append(r, "Group entry point: choose a profiler subcommand. Inherited scan flags are advisory here and validated by the selected subcommand.")
 	}
-	// Leaf analyze subcommands that only carry the shared scan restriction get
-	// an explicit marker for their profiler scope so a new subcommand that
-	// forgets to catalog its semantics is caught by TestCatalogCoversAllCommandsAndFlags.
-	if cmd.Parent() != nil && cmd.Parent().Name() == "analyze" {
-		switch cmd.Name() {
-		case "languages", "discovery", "formats", "registries", "metrics", "projects", "declarations", "environments", "graph", "availability", "frameworks", "ecosystems":
-			r = append(r, "Profiler subcommand: additional restrictions are advertised by module-specific flags below.")
-		}
-	}
 	return r
 }
 

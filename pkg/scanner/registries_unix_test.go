@@ -76,3 +76,42 @@ func TestRegistriesDeferredDirectoryReadRemainsConfined(t *testing.T) {
 		})
 	}
 }
+
+func TestRegistriesContinueOmitsDeferredSymlinkWithoutFollowingIt(t *testing.T) {
+	dir := fixtures(t, map[string]string{".npmrc": registryNPM})
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	opts := registryOptions()
+	opts.ErrorPolicy = ErrorPolicyContinue
+	a, err := newRegistryAccumulator(opts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate := registryCandidate(root, job{path: ".npmrc", size: int64(len(registryNPM))})
+	if err := a.add(result{path: ".npmrc", registryFile: candidate}); err != nil {
+		t.Fatal(err)
+	}
+	outside := fixtures(t, map[string]string{"secret.npmrc": "registry=https://SECRET.invalid\n"})
+	if err := os.Remove(filepath.Join(dir, ".npmrc")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(outside, "secret.npmrc"), filepath.Join(dir, ".npmrc")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	r, err := a.finish(context.Background())
+	if err != nil {
+		t.Fatalf("continue policy aborted on confined refusal: %v", err)
+	}
+	if r.Status != "partial" || len(r.Configurations) != 1 || r.Configurations[0].Omissions["file_read_error"] != 1 {
+		t.Fatalf("missing safe per-file omission: %+v", r)
+	}
+	if r.Coverage.ReadFiles != 0 || len(r.Configurations[0].Declarations) != 0 {
+		t.Fatalf("symlink target contributed evidence: %+v", r)
+	}
+	if got := a.collector.ReadErrors(); len(got) != 1 || got[0] != ".npmrc" {
+		t.Fatalf("read-error paths: %v", got)
+	}
+}

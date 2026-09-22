@@ -125,6 +125,15 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			// A reader can observe cancellation before the shared context's
+			// Err method does (or can use its own derived deadline). Cancellation
+			// is a control-flow boundary, never a recoverable file omission.
+			if errors.Is(err, context.Canceled) {
+				return nil, context.Canceled
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, context.DeadlineExceeded
+			}
 			if c.errorPolicy == "continue" {
 				// The candidate remains counted in SelectedFiles and its path is
 				// recorded so the scanner emits a same-shaped file_read_error

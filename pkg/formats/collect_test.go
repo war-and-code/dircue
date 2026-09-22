@@ -161,6 +161,19 @@ func TestCollectorReadErrorContinuePolicy(t *testing.T) {
 	}
 }
 
+func TestCollectorContinueDoesNotSwallowReaderCancellation(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		c := New("directory", "", 0)
+		c.SetErrorPolicy("continue")
+		c.Add(Candidate{Path: "a.json", Size: 2, Read: func(context.Context, int64) ([]byte, int64, error) {
+			return nil, 0, fmt.Errorf("selected reader stopped: %w", want)
+		}})
+		if _, err := c.Finish(context.Background()); !errors.Is(err, want) {
+			t.Fatalf("continue swallowed %v: %v", want, err)
+		}
+	}
+}
+
 func TestCollectorOutputBudget(t *testing.T) {
 	c := New("directory", "", 0)
 	for i := 0; i < MaxFiles; i++ {

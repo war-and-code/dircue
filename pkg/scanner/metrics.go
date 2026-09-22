@@ -87,7 +87,7 @@ func countFileMetrics(ctx context.Context, root *os.Root, item job, opts Options
 		if item.read != nil {
 			content, actual, err = item.read(limit + 1)
 		} else {
-			content, _, actual, err = readBoundedSizeAssumeRegular(root, item.path, limit)
+			content, _, actual, err = readBoundedSize(root, item.path, limit)
 		}
 		if err != nil {
 			return err

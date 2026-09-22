@@ -1,6 +1,6 @@
 <!--
-Please open an issue first if you have not already. See CONTRIBUTING.md
-for the review expectations this project uses.
+Outside pull requests are not accepted at present; please use GitHub Issues.
+This template is for maintainer changes. See CONTRIBUTING.md.
 -->
 
 ## Summary
@@ -16,8 +16,8 @@ Note any tension you noticed and how you resolved it.
 
 ## Contract impact
 
-- [ ] No successful CLI output or exit status changes for existing invocations.
-- [ ] If schemas change, `schema_version` is bumped per docs/COMPATIBILITY.md, and the compatibility harness records the diff.
+- [ ] Existing CLI and report contracts are preserved, or necessary corrections are documented.
+- [ ] Schema changes and their compatibility impact are documented and tested.
 - [ ] Diagnostic text changes are limited to stderr and remain non-normative.
 
 ## Tests
@@ -29,7 +29,7 @@ List the exact commands you ran (go, python, or otherwise).
 
 - [ ] `go test -race ./...`
 - [ ] `go vet ./...`
-- [ ] `python3 -m pytest tests/release -q` (if release tooling or docs changed)
+- [ ] `python3 -m unittest discover -s tests/release -p 'test_*.py'` (if release tooling or docs changed)
 - [ ] Additional targeted tests: <!-- e.g. tests/compatibility_v100/run.py, tests/scanner/ -->
 
 ## Evidence
