@@ -116,7 +116,7 @@
   "results": {
     "kernel_parity": {
       "candidate_binary_sha256": "5e3323e3f78f417ef6fc447a0d8aa826e82fe36aad6a55fc83674bd0cf8241f0",
-      "candidate_output_sha256": "7eb5d08d74665a4b4fe78a9fa50bb944ccac18bcbfc835e4e4188cded547da9",
+      "candidate_output_sha256": "7eb5d08d74665a4b4fe82300682c9c7ada1a5092ebe1f7e796e5a2879999472a",
       "reference_output_sha256": "8e256c18516ef721db5709af37d36d7b1654448aa1d16dc7f8be5978f99a1d93",
       "candidate_canonical_sha256": "55867351117b3645abea71ea747df84d6c1066821448217416cbd44323a73a6c",
       "reference_canonical_sha256": "55867351117b3645abea71ea747df84d6c1066821448217416cbd44323a73a6c",
