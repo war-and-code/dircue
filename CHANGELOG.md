@@ -10,6 +10,13 @@
   than a separate maintained list. Verify the classifier's existing 50 KiB
   window with a regression test. Metadata-only discovery retains its filename
   hints; those hints do not claim content-confirmed language detection.
+- Treat pattern-only `.gitattributes` lines as silent no-ops, accept Cargo's
+  edition-aware inherited `default-features` forms with precise diagnostics,
+  and report added or removed languages when a warning-free comparison input
+  proves the language population ran. Present compound comparison IDs as
+  readable quoted components in text while retaining their JSON identities.
+- Enforce event-only GitHub Actions triggers and full commit-hash pins for
+  external Actions with a lightweight CI contract test.
 - Prepare the next release with a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md)
   describing the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
   families and their `schema_version` semantics, exit statuses, and the boundary
