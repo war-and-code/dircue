@@ -67,7 +67,7 @@ def check(identifier, binary):
         elif identifier == 'R-006':
             out = json.loads(run('capabilities','--cli','--json'))
             assert out['kind'] == 'dircue-cli-capabilities' and len(out['commands']) == 24
-            assert {x['code'] for x in out['exit_codes']} == {0,1}
+            assert {x['code'] for x in out['exit_codes']} == {0,1,141}
             plan = next(x for x in out['commands'] if x['path'] == ['dircue','plan'])
             assert '--source' in plan['rejected_inherited_flags']
             assert 'source' not in [x['name'] for x in plan['flags']]
