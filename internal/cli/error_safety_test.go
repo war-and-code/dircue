@@ -91,3 +91,60 @@ func TestSafeCLIErrorDoesNotReintroducePrivateFlagValues(t *testing.T) {
 		assertSafeCLIError(t, err)
 	}
 }
+
+func TestExplainSemanticFlagErrorsMatchPeerWithoutReflectingValues(t *testing.T) {
+	root := t.TempDir()
+	private := "private-value-" + strings.Repeat("x", 5000)
+	for _, tc := range []struct {
+		flag  string
+		value string
+		want  string
+	}{
+		{"--on-error", private, "--on-error must be fail or continue"},
+		{"--source", private, "--source must be auto, git, or directory"},
+		{"--tree", "", "--tree requires a full Git tree object ID"},
+	} {
+		peerOut, peerStderr, peerErr := invoke("analyze", "discovery", tc.flag, tc.value, root)
+		explainOut, explainStderr, explainErr := invoke("analyze", "explain", tc.flag, tc.value, "--file", "main.go", root)
+		if peerErr == nil || explainErr == nil {
+			t.Fatalf("%s accepted an invalid value: peer=%v explain=%v", tc.flag, peerErr, explainErr)
+		}
+		if peerOut != "" || peerStderr != "" || explainOut != "" || explainStderr != "" {
+			t.Fatalf("%s wrote output before the caller handled the error", tc.flag)
+		}
+		if peerErr.Error() != tc.want || explainErr.Error() != tc.want {
+			t.Fatalf("%s diagnostic mismatch: peer=%q explain=%q", tc.flag, peerErr, explainErr)
+		}
+		if strings.Contains(peerErr.Error(), "private-value") || strings.Contains(explainErr.Error(), "private-value") {
+			t.Fatalf("%s reflected the assigned value", tc.flag)
+		}
+	}
+}
+
+func TestExplainAllowsOmittedTreeWithDefaultErrorPolicy(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(root+string(os.PathSeparator)+"main.go", []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, stderr, err := invoke("analyze", "explain", "--source", "directory", "--file", "main.go", "--json", root)
+	if err != nil || stderr != "" || !strings.Contains(out, `"explanation"`) {
+		t.Fatalf("valid explain default: stdout=%q stderr=%q err=%v", out, stderr, err)
+	}
+}
+
+func TestSavedExplainStillRejectsScanFlagsBeforeOpeningReport(t *testing.T) {
+	private := "private-value-" + strings.Repeat("x", 5000)
+	for _, tc := range []struct {
+		flag  string
+		value string
+	}{
+		{"--on-error", private},
+		{"--tree", ""},
+	} {
+		out, stderr, err := invoke("analyze", "explain", "--report", "missing.json", "--file", "main.go", tc.flag, tc.value)
+		want := tc.flag + " does not apply to saved-report explanations"
+		if err == nil || err.Error() != want || out != "" || stderr != "" {
+			t.Fatalf("%s saved-report ordering: stdout=%q stderr=%q err=%v", tc.flag, out, stderr, err)
+		}
+	}
+}
