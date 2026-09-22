@@ -1,16 +1,24 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 0.9.0 (unreleased)
 
-- First public release. Introduce the [1.0 compatibility promise](docs/COMPATIBILITY.md)
-  covering the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
+- Match pinned Linguist 9.7.0 candidate narrowing for filename and extension
+  strategies, defer its 23 generic extensions to later strategies, and limit
+  content heuristics to the first 50 KiB. These corrections intentionally change
+  affected language labels and totals, including Perl scripts and headers in
+  the Linux kernel. Generate generic-extension rules from upstream data rather
+  than a separate maintained list. Verify the classifier's existing 50 KiB
+  window with a regression test. Metadata-only discovery retains its filename
+  hints; those hints do not claim content-confirmed language detection.
+- Prepare the next release with a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md)
+  describing the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
   families and their `schema_version` semantics, exit statuses, and the boundary
   guarantees. Publish a [security policy](SECURITY.md), a
   [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
   template. Rewrite the README front matter to lead with a quick example
   and a real install story (release archives with checksums, clone-and-build,
   Python wheel from a GitHub Release URL; `go install` is unsupported because
-  go.mod carries replace directives for the maintained forks). Document the known 1.0 boundaries
+  go.mod carries replace directives for the maintained forks). Document the current boundaries
   (`--source auto` fallback disclosure, absent-focus-query, registry adapter
   coverage, environment adapter breadth, structural worker isolation) in
   [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and

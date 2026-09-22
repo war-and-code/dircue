@@ -267,6 +267,48 @@ class SourcePinTests(unittest.TestCase):
                 UPDATE.extract_linguist(archive, root/'source')
 
 
+class GenericExtensionsTests(unittest.TestCase):
+    EXTENSIONS = [
+        '.1', '.2', '.3', '.4', '.5', '.6', '.7', '.8', '.9',
+        '.action', '.alg', '.app', '.cmp', '.msg', '.network', '.resource',
+        '.sd', '.sol', '.srv', '.stl', '.tag', '.target', '.url',
+    ]
+
+    def source(self, root, lines):
+        directory = root/'lib/linguist'
+        directory.mkdir(parents=True)
+        (directory/'generic.yml').write_text(
+            '# pinned fixture\n---\nextensions:\n' + ''.join(lines))
+
+    def test_parses_and_generates_all_pinned_extensions(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            self.source(root, [f'- {json.dumps(value)}\n'
+                               for value in self.EXTENSIONS])
+            parsed = UPDATE.parse_generic_extensions(root)
+            self.assertEqual(parsed, self.EXTENSIONS)
+            self.assertEqual(len(parsed), 23)
+            generated = UPDATE.generic_extensions_go(parsed)
+            for extension in self.EXTENSIONS:
+                self.assertIn(f'strings.HasSuffix(filename, {json.dumps(extension)})',
+                              generated)
+
+    def test_rejects_duplicate_malformed_and_unsupported_syntax(self):
+        invalid = [
+            ['- ".app"\n', '- ".app"\n'],
+            ['- "app"\n'],
+            ['- not-json\n'],
+            ['nested:\n'],
+        ]
+        for lines in invalid:
+            with self.subTest(lines=lines):
+                with tempfile.TemporaryDirectory() as temporary:
+                    root = Path(temporary)
+                    self.source(root, lines)
+                    with self.assertRaises(RuntimeError):
+                        UPDATE.parse_generic_extensions(root)
+
+
 class CentroidWireTests(unittest.TestCase):
     def canonical_model(self):
         return json.dumps({
