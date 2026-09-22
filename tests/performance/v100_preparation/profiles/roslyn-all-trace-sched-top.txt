@@ -1,0 +1,31 @@
+Type: delay
+Showing nodes accounting for 6930988.23us, 98.94% of 7005142.14us total
+Dropped 369 nodes (cum <= 35025.71us)
+      flat  flat%   sum%        cum   cum%
+ 2456638us 35.07% 35.07%  2456638us 35.07%  runtime.selectgo
+1831984.76us 26.15% 61.22% 2246489.76us 32.07%  sync.(*Mutex).Unlock
+1660815.53us 23.71% 84.93% 1661246.96us 23.71%  runtime.chanrecv2
+512619.27us  7.32% 92.25% 512619.27us  7.32%  runtime.chansend1
+  414505us  5.92% 98.16%   414505us  5.92%  runtime.goyield
+54335.54us  0.78% 98.94% 54426.94us  0.78%  runtime.chanrecv1
+   64.06us 0.00091% 98.94% 1368035.59us 19.53%  dircue/pkg/scanner.Scan.func2
+   13.82us 0.0002% 98.94% 414518.83us  5.92%  runtime.semrelease1
+    6.78us 9.7e-05% 98.94% 521905.91us  7.45%  io.(*LimitedReader).Read
+    4.35us 6.2e-05% 98.94% 2776112.08us 39.63%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+    1.09us 1.6e-05% 98.94% 1130419.31us 16.14%  io.(*pipe).write
+         0     0% 98.94% 5821541.06us 83.10%  dircue/pkg/scanner.Scan.func4
+         0     0% 98.94% 2795760.02us 39.91%  dircue/pkg/scanner.analyzeFile
+         0     0% 98.94% 2795760.02us 39.91%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 98.94% 2796070.74us 39.91%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 98.94% 516282.67us  7.37%  dircue/pkg/scanner.blobRead
+         0     0% 98.94% 513486.26us  7.33%  dircue/pkg/scanner.readAllBounded
+         0     0% 98.94% 521899.13us  7.45%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*boundedReadCloser).Read
+         0     0% 98.94% 1131459.25us 16.15%  github.com/go-git/go-git/v5/plumbing/format/packfile.ReaderFromDelta.func1
+         0     0% 98.94%   414505us  5.92%  internal/sync.(*Mutex).Unlock
+         0     0% 98.94%   414505us  5.92%  internal/sync.(*Mutex).unlockSlow
+         0     0% 98.94%   414505us  5.92%  internal/sync.runtime_Semrelease
+         0     0% 98.94% 520905.72us  7.44%  io.(*PipeReader).Read
+         0     0% 98.94% 1130419.31us 16.14%  io.(*PipeWriter).Write
+         0     0% 98.94% 520905.72us  7.44%  io.(*pipe).read
+         0     0% 98.94% 1130419.31us 16.14%  io.Copy
+         0     0% 98.94% 1136091.57us 16.22%  io.copyBuffer

@@ -1,0 +1,10 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:09:09 EDT
+Active filters:
+   show=ObjectStorage.*packfile|NewReaderSize|ObjectPack
+Showing nodes accounting for 2517.10MB, 44.84% of 5613.85MB total
+      flat  flat%   sum%        cum   cum%
+  196.51MB  3.50%  3.50%  2486.48MB 44.29%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+ 1437.48MB 25.61% 29.11%  1437.48MB 25.61%  bufio.NewReaderSize
+  883.11MB 15.73% 44.84%   883.11MB 15.73%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack

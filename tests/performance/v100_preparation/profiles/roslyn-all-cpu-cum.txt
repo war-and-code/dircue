@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:09:10 EDT
+Duration: 58.42s, Total samples = 88.72s (151.87%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 40.17s, 45.28% of 88.72s total
+Dropped 204 nodes (cum <= 0.44s)
+Showing top 45 nodes out of 161
+      flat  flat%   sum%        cum   cum%
+     0.01s 0.011% 0.011%     21.53s 24.27%  runtime.systemstack
+         0     0% 0.011%     20.60s 23.22%  runtime.wakep
+         0     0% 0.011%     20.59s 23.21%  runtime.ready
+         0     0% 0.011%     20.33s 22.91%  runtime.notewakeup
+         0     0% 0.011%     20.33s 22.91%  runtime.semawakeup
+         0     0% 0.011%     20.33s 22.91%  runtime.startm
+    20.32s 22.90% 22.91%     20.32s 22.90%  runtime.pthread_cond_signal
+         0     0% 22.91%     20.28s 22.86%  runtime.send.goready.func1
+    19.83s 22.35% 45.27%     19.83s 22.35%  syscall.rawsyscalln
+         0     0% 45.27%     19.83s 22.35%  syscall.syscalln
+         0     0% 45.27%     18.06s 20.36%  dircue/pkg/scanner.Scan.func4
+         0     0% 45.27%     18.02s 20.31%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 45.27%     18.01s 20.30%  dircue/pkg/scanner.analyzeFile
+         0     0% 45.27%        18s 20.29%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 45.27%     17.32s 19.52%  syscall.syscall
+         0     0% 45.27%     15.34s 17.29%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 45.27%     11.70s 13.19%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObject
+         0     0% 45.27%     11.70s 13.19%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).getFromPackfile
+         0     0% 45.27%     10.76s 12.13%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0% 45.27%     10.76s 12.13%  github.com/go-git/go-git/v5/plumbing/object.GetBlob
+         0     0% 45.27%      9.87s 11.12%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open
+         0     0% 45.27%      9.87s 11.12%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*RepositoryFilesystem).Open
+         0     0% 45.27%      9.81s 11.06%  os.ignoringEINTR (inline)
+         0     0% 45.27%      9.64s 10.87%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+         0     0% 45.27%      8.94s 10.08%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack
+         0     0% 45.27%      8.94s 10.08%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackOpen
+         0     0% 45.27%      6.74s  7.60%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).followedPath
+         0     0% 45.27%      6.69s  7.54%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+         0     0% 45.27%      6.68s  7.53%  github.com/go-git/go-billy/v5/helper/polyfill.(*Polyfill).Lstat
+         0     0% 45.27%      6.68s  7.53%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).Lstat
+         0     0% 45.27%      6.68s  7.53%  os.Lstat
+         0     0% 45.27%      6.68s  7.53%  os.lstatNolog
+         0     0% 45.27%      6.68s  7.53%  os.lstatNolog.func1 (inline)
+         0     0% 45.27%      6.68s  7.53%  syscall.Lstat
+         0     0% 45.27%      5.49s  6.19%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 45.27%      5.49s  6.19%  dircue/pkg/scanner.Scan.func3
+         0     0% 45.27%      4.87s  5.49%  internal/poll.(*FD).Close
+         0     0% 45.27%      4.87s  5.49%  internal/poll.(*FD).decref
+         0     0% 45.27%      4.87s  5.49%  internal/poll.(*FD).destroy
+         0     0% 45.27%      4.87s  5.49%  internal/poll.(*SysFile).destroy (inline)
+         0     0% 45.27%      4.87s  5.49%  os.(*File).Close
+         0     0% 45.27%      4.87s  5.49%  os.(*file).close
+         0     0% 45.27%      4.87s  5.49%  syscall.Close
+         0     0% 45.27%      4.56s  5.14%  dircue/pkg/scanner.blobRead
+     0.01s 0.011% 45.28%      4.49s  5.06%  bufio.(*Reader).fill

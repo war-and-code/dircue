@@ -1,0 +1,8 @@
+{
+  "at": "2026-09-21T23:05:54.900049+00:00",
+  "filesystem": {
+    "df": "Filesystem   512-blocks       Used Available Capacity  Mounted on\n/dev/disk3s1 1942700360 1777978992  90469856    96%    /System/Volumes/Data",
+    "data_mount": "/dev/disk3s1 on /System/Volumes/Data (apfs, local, journaled, nobrowse, protect, root data)"
+  },
+  "note": "Supplements host-receipt filesystem field: macOS df -T does not report filesystem type; mount identifies APFS and mount flags. No storage settings changed."
+}

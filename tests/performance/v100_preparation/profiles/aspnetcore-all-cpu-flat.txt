@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:11:06 EDT
+Duration: 31s, Total samples = 51.92s (167.49%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 31.39s, 60.46% of 51.92s total
+Dropped 209 nodes (cum <= 0.26s)
+Showing top 45 nodes out of 153
+      flat  flat%   sum%        cum   cum%
+    19.80s 38.14% 38.14%     19.80s 38.14%  syscall.rawsyscalln
+     7.66s 14.75% 52.89%      7.66s 14.75%  runtime.pthread_cond_signal
+     1.32s  2.54% 55.43%      1.32s  2.54%  runtime.madvise
+     0.95s  1.83% 57.26%      1.09s  2.10%  regexp.(*machine).add
+     0.51s  0.98% 58.24%      0.93s  1.79%  regexp.(*Regexp).tryBacktrack
+     0.39s  0.75% 58.99%      0.75s  1.44%  regexp.(*machine).step
+     0.20s  0.39% 59.38%      0.20s  0.39%  regexp.(*bitState).shouldVisit (inline)
+     0.19s  0.37% 59.75%      0.24s  0.46%  regexp/syntax.(*Inst).MatchRunePos
+     0.08s  0.15% 59.90%      1.11s  2.14%  regexp.(*Regexp).backtrack
+     0.07s  0.13% 60.03%      1.26s  2.43%  compress/flate.(*decompressor).huffSym
+     0.06s  0.12% 60.15%      1.78s  3.43%  regexp.(*machine).match
+     0.05s 0.096% 60.25%      1.59s  3.06%  compress/flate.(*decompressor).huffmanBlock
+     0.03s 0.058% 60.30%      1.77s  3.41%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*scannerReader).ReadByte
+     0.02s 0.039% 60.34%      2.98s  5.74%  regexp.(*Regexp).doExecute
+     0.01s 0.019% 60.36%      1.92s  3.70%  bufio.(*Reader).ReadByte
+     0.01s 0.019% 60.38%     16.24s 31.28%  dircue/pkg/scanner.analyzeFile
+     0.01s 0.019% 60.40%      8.01s 15.43%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).followedPath
+     0.01s 0.019% 60.42%      0.25s  0.48%  io.(*LimitedReader).Read
+     0.01s 0.019% 60.44%      1.83s  3.52%  regexp.(*Regexp).doMatch (inline)
+     0.01s 0.019% 60.46%     19.82s 38.17%  syscall.syscalln
+         0     0% 60.46%      1.93s  3.72%  bufio.(*Reader).fill
+         0     0% 60.46%      0.65s  1.25%  bytes.(*Buffer).ReadFrom
+         0     0% 60.46%      1.64s  3.16%  compress/flate.(*decompressor).Read
+         0     0% 60.46%      0.24s  0.46%  compress/flate.(*decompressor).moreBits
+         0     0% 60.46%      0.64s  1.23%  compress/flate.(*decompressor).nextBlock
+         0     0% 60.46%      1.72s  3.31%  compress/zlib.(*reader).Read
+         0     0% 60.46%      0.88s  1.69%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 60.46%      7.25s 13.96%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 60.46%     13.29s 25.60%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 60.46%      0.58s  1.12%  dircue/pkg/scanner.(*gitTreeIterator).Next
+         0     0% 60.46%      1.49s  2.87%  dircue/pkg/scanner.DetectLanguage
+         0     0% 60.46%      7.25s 13.96%  dircue/pkg/scanner.Scan.func3
+         0     0% 60.46%     16.36s 31.51%  dircue/pkg/scanner.Scan.func4
+         0     0% 60.46%     16.22s 31.24%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 60.46%     16.24s 31.28%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 60.46%      2.06s  3.97%  dircue/pkg/scanner.blobRead
+         0     0% 60.46%      0.22s  0.42%  dircue/pkg/scanner.readAllBounded
+         0     0% 60.46%      1.16s  2.23%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 60.46%      1.15s  2.21%  github.com/go-enry/go-enry/v2.GetLanguagesByVimModeline
+         0     0% 60.46%      0.23s  0.44%  github.com/go-enry/go-enry/v2.GetLanguagesByXML
+         0     0% 60.46%      0.53s  1.02%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
+         0     0% 60.46%      0.37s  0.71%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 60.46%      0.55s  1.06%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 60.46%      0.53s  1.02%  github.com/go-enry/go-enry/v2.matchRegexSlice (inline)
+         0     0% 60.46%      0.33s  0.64%  github.com/go-enry/go-enry/v2/data.nameMatches.func1

@@ -1,0 +1,52 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:53:12 EDT
+Showing nodes accounting for 2775.49MB, 95.96% of 2892.44MB total
+Dropped 135 nodes (cum <= 14.46MB)
+Showing top 45 nodes out of 129
+      flat  flat%   sum%        cum   cum%
+  977.58MB 33.80% 33.80%   977.58MB 33.80%  github.com/go-git/go-git/v5/plumbing.(*MemoryObject).Write
+  776.52MB 26.85% 60.64%   781.02MB 27.00%  dircue/pkg/scanner.readAllBounded
+  172.48MB  5.96% 66.61%   172.48MB  5.96%  regexp.(*Regexp).get
+  114.01MB  3.94% 70.55%   114.01MB  3.94%  internal/bytealg.MakeNoZero
+   83.85MB  2.90% 73.45%   521.65MB 18.04%  dircue/pkg/scanner.(*gitSnapshot).walk
+   67.01MB  2.32% 75.76%    92.01MB  3.18%  os.lstatNolog
+   52.02MB  1.80% 77.56%  2319.66MB 80.20%  dircue/pkg/scanner.analyzeFile
+   51.99MB  1.80% 79.36%    51.99MB  1.80%  bytes.growSlice
+      48MB  1.66% 81.02%       48MB  1.66%  github.com/go-enry/go-enry/v2/data.getLines
+      47MB  1.63% 82.65%       47MB  1.63%  syscall.ByteSliceFromString
+   40.03MB  1.38% 84.03%    55.03MB  1.90%  github.com/go-git/go-git/v5/plumbing/object.(*Tree).Decode
+   36.51MB  1.26% 85.29%    36.51MB  1.26%  github.com/go-enry/go-enry/v2.getHeaderAndFooter
+   34.13MB  1.18% 86.47%    34.13MB  1.18%  bufio.NewReaderSize (inline)
+      28MB  0.97% 87.44%    60.65MB  2.10%  dircue/pkg/scanner.resolveAttributeRuleSets
+   27.50MB  0.95% 88.39%    27.50MB  0.95%  dircue/pkg/scanner.resolveAttributeRuleSets.func1
+   26.51MB  0.92% 89.31%    26.51MB  0.92%  compress/flate.(*huffmanDecoder).init
+      20MB  0.69% 90.00%       20MB  0.69%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Scanner).nextObjectHeader
+   18.52MB  0.64% 90.64%    18.52MB  0.64%  regexp.(*machine).alloc (inline)
+      18MB  0.62% 91.26%       18MB  0.62%  encoding/hex.EncodeToString (inline)
+      17MB  0.59% 91.85%  2336.66MB 80.79%  dircue/pkg/scanner.analyzeSelectedFile
+      17MB  0.59% 92.44%   173.02MB  5.98%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+   16.58MB  0.57% 93.01%   959.59MB 33.18%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+   14.50MB   0.5% 93.51%    14.50MB   0.5%  github.com/pjbgf/sha1cd.New
+   14.50MB   0.5% 94.01%    14.50MB   0.5%  bytes.NewReader (inline)
+   13.74MB  0.47% 94.49%    41.74MB  1.44%  github.com/go-git/go-git/v5/plumbing/cache.(*ObjectLRU).Put
+      12MB  0.41% 94.90%    48.01MB  1.66%  dircue/pkg/scanner.(*gitTreeIterator).Next
+    6.50MB  0.22% 95.13%    61.53MB  2.13%  github.com/go-git/go-git/v5/plumbing/object.DecodeTree
+       6MB  0.21% 95.33%       35MB  1.21%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPath
+       6MB  0.21% 95.54%       26MB   0.9%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).underlyingPath
+       5MB  0.17% 95.71%    27.50MB  0.95%  os.openFileNolog
+       3MB   0.1% 95.82%   690.77MB 23.88%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+       2MB 0.069% 95.89%    16.50MB  0.57%  github.com/go-git/go-git/v5/plumbing.NewHasher
+       1MB 0.035% 95.92%    35.62MB  1.23%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewPackfileWithCache
+    0.50MB 0.017% 95.94%    34.62MB  1.20%  github.com/go-git/go-git/v5/plumbing/format/packfile.newScannerReader
+    0.50MB 0.017% 95.96%   585.15MB 20.23%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*FSObject).Reader
+         0     0% 95.96%    34.13MB  1.18%  bufio.NewReader (inline)
+         0     0% 95.96%    55.31MB  1.91%  bytes.(*Buffer).ReadFrom
+         0     0% 95.96%   143.71MB  4.97%  bytes.(*Buffer).WriteTo
+         0     0% 95.96%    51.99MB  1.80%  bytes.(*Buffer).grow
+         0     0% 95.96%    26.51MB  0.92%  compress/flate.(*decompressor).Read
+         0     0% 95.96%    26.51MB  0.92%  compress/flate.(*decompressor).nextBlock
+         0     0% 95.96%    26.51MB  0.92%  compress/flate.(*decompressor).readHuffman
+         0     0% 95.96%    26.51MB  0.92%  compress/zlib.(*reader).Read
+         0     0% 95.96%    64.60MB  2.23%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 95.96%  1958.79MB 67.72%  dircue/pkg/scanner.(*gitSnapshot).walk.func1

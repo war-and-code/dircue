@@ -1,0 +1,110 @@
+{
+  "spring-framework/languages": {
+    "early10_p95": 1.6826783753931522,
+    "late10_p95": 1.7985461251810193,
+    "relative_change": 0.06885911858277427,
+    "over10percent": false
+  },
+  "spring-framework/discovery": {
+    "early10_p95": 1.3849768321961164,
+    "late10_p95": 1.32499716617167,
+    "relative_change": -0.04330734249853008,
+    "over10percent": false
+  },
+  "spring-framework/all": {
+    "early10_p95": 1.6762128742411733,
+    "late10_p95": 1.6785552082583308,
+    "relative_change": 0.001397396508016957,
+    "over10percent": false
+  },
+  "spring-framework/projects": {
+    "early10_p95": 1.6811675000935793,
+    "late10_p95": 1.6594215407967567,
+    "relative_change": -0.012935034311341465,
+    "over10percent": false
+  },
+  "roslyn/languages": {
+    "early10_p95": 6.748077291995287,
+    "late10_p95": 6.749007750302553,
+    "relative_change": 0.00013788495107625032,
+    "over10percent": false
+  },
+  "roslyn/discovery": {
+    "early10_p95": 4.002284916117787,
+    "late10_p95": 4.094764417037368,
+    "relative_change": 0.023106676025775208,
+    "over10percent": false
+  },
+  "roslyn/all": {
+    "early10_p95": 10.004175665788352,
+    "late10_p95": 9.785218374803662,
+    "relative_change": -0.02188658998996451,
+    "over10percent": false
+  },
+  "roslyn/projects": {
+    "early10_p95": 6.917322374880314,
+    "late10_p95": 6.678452250547707,
+    "relative_change": -0.034532165972203877,
+    "over10percent": false
+  },
+  "aspnetcore/languages": {
+    "early10_p95": 2.2537644170224667,
+    "late10_p95": 2.3483921661973,
+    "relative_change": 0.04198653082820858,
+    "over10percent": false
+  },
+  "aspnetcore/discovery": {
+    "early10_p95": 1.5455238753929734,
+    "late10_p95": 1.6074134167283773,
+    "relative_change": 0.040044377392531416,
+    "over10percent": false
+  },
+  "aspnetcore/all": {
+    "early10_p95": 2.466934791766107,
+    "late10_p95": 2.3853704165667295,
+    "relative_change": -0.0330630446623944,
+    "over10percent": false
+  },
+  "aspnetcore/projects": {
+    "early10_p95": 2.2667799992486835,
+    "late10_p95": 2.669072249904275,
+    "relative_change": 0.17747300169797242,
+    "over10percent": true
+  },
+  "aspnetcore/optional": {
+    "early10_p95": 3.2065017502754927,
+    "late10_p95": 3.2035289173945785,
+    "relative_change": -0.000927126542394352,
+    "over10percent": false
+  },
+  "xml-2gib/languages": {
+    "early10_p95": 0.029990416020154953,
+    "late10_p95": 0.030357416719198227,
+    "relative_change": 0.012237266025140636,
+    "over10percent": false
+  },
+  "xml-2gib/discovery": {
+    "early10_p95": 0.024917165748775005,
+    "late10_p95": 0.024869583547115326,
+    "relative_change": -0.0019096153286221051,
+    "over10percent": false
+  },
+  "xml-2gib/all": {
+    "early10_p95": 0.04216420743614435,
+    "late10_p95": 0.041361124254763126,
+    "relative_change": -0.0190465617691844,
+    "over10percent": false
+  },
+  "xml-2gib/projects": {
+    "early10_p95": 0.03150912467390299,
+    "late10_p95": 0.03163120802491903,
+    "relative_change": 0.0038745395906589764,
+    "over10percent": false
+  },
+  "xml-2gib/optional": {
+    "early10_p95": 0.17835304141044617,
+    "late10_p95": 0.18219041638076305,
+    "relative_change": 0.021515612741842105,
+    "over10percent": false
+  }
+}

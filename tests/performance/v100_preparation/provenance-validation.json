@@ -1,0 +1,35 @@
+{
+  "at": "2026-09-21T22:58:56.126138+00:00",
+  "checks": {
+    "dircue": true,
+    "scanner.test": true,
+    "head": true,
+    "production_inputs": true,
+    "tracked_worktree_clean": true,
+    "runtime_controls_match_prepare": true,
+    "all_passed": true
+  },
+  "environment": {
+    "GOMAXPROCS": null,
+    "GOGC": null,
+    "GOMEMLIMIT": null,
+    "GODEBUG": null,
+    "CGO_ENABLED": null,
+    "GOFLAGS": null
+  },
+  "initial_measurement_note": "Initial CLI harness had prepare-time host controls, exact output/empty-stderr/exit checks and pre/post executable digest equality, but did not compare digest to prepare receipt inside collect. This validator explicitly binds current binary to original receipt and verifies source/test files against released HEAD. No relevant controls were changed during collection; provenance remains retrospective. Raw original samples are retained. Timeout cleanup was hardened while the initial process was running; no timeout occurred.",
+  "hardened_harness_sha256": {
+    "micro.py": "fec4c4e1a4190c250eb832c7d8e2cb4fe11cf507796ca995f405834d158ebc08",
+    "benchmark.py": "968b15a90004f60c049ecc31f5c307b0a463e7860fece3d05b91d5e23d3a4501",
+    "profile.py": "7f189f042ed10ea8b2f5edcc148611b4be1c61ac549bbaa6cfcd5b44a4651246",
+    "validate.py": "f3439db690d28412d34ab5f89c1426538caeecc3c43f83b3cbd5e2a0dc98ceb8",
+    "supplement.py": "ba735c14b1142581fea899bc5fe1daee1958d859101814de57093e836e72ab31"
+  },
+  "frozen_source_archive": {
+    "path": ".cache/v100/baseline/source.tar",
+    "sha256": "6b0e2037bdc6547b06241d2d5eda7d32c43a197aadc6b3679ef4e6429ba8d4ca",
+    "commit": "121027f44f014ac8d0a003a451a04b080a5ffe88",
+    "purpose": "All later supplemental baseline builds use this archive, regardless of worktree edits."
+  },
+  "measurement_overlap_note": "Retrospective source hashing and git archive creation overlapped the running CLI baseline around this validation timestamp. This is extra host activity; samples remain untrimmed and are diagnostic, not an isolated acceptance gate."
+}

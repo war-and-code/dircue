@@ -1,0 +1,38 @@
+{
+  "at": "2026-09-21T22:50:31.191098+00:00",
+  "platform": "macOS-26.5.2-arm64-arm-64bit",
+  "kernel": "25.5.0",
+  "cpu": "Apple M1 Max",
+  "logical_cpus": 10,
+  "physical_cpus": "10",
+  "memory_bytes": "34359738368",
+  "swap": "vm.swapusage: total = 11264.00M  used = 9925.06M  free = 1338.94M  (encrypted)",
+  "filesystem": "",
+  "power": "Battery Power:\n Sleep On Power Button 1\n powermode            0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         2\n womp                 0\n networkoversleep     0\n sleep                1\n lessbright           1\n tcpkeepalive         1\n disksleep            10\nAC Power:\n Sleep On Power Button 1\n powermode            0\n standby              1\n ttyskeepawake        1\n hibernatemode        3\n powernap             1\n hibernatefile        /var/vm/sleepimage\n displaysleep         20\n womp                 1\n networkoversleep     0\n sleep                1\n tcpkeepalive         1\n disksleep            10",
+  "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+  "environment": {
+    "GOMAXPROCS": null,
+    "GOGC": null,
+    "GOMEMLIMIT": null,
+    "GODEBUG": null,
+    "CGO_ENABLED": null,
+    "GOFLAGS": null
+  },
+  "isolation": "Shared macOS desktop; coordinated agent quiet window; no CPU pinning, kernel tuning, cache eviction, or process isolation. OS background activity remains uncontrolled.",
+  "smt_governor_turbo": "not applicable or not exposed by this macOS Apple Silicon host; unchanged",
+  "tools": {
+    "go": "/opt/homebrew/bin/go",
+    "python3": "/Users/gingeleski/.pyenv/versions/3.12.7/bin/python3",
+    "hyperfine": {
+      "unavailable": ""
+    },
+    "sample": "/usr/bin/sample",
+    "xctrace": "/usr/bin/xctrace",
+    "perf": {
+      "unavailable": ""
+    },
+    "samply": {
+      "unavailable": ""
+    }
+  }
+}

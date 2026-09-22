@@ -1,0 +1,39 @@
+Type: delay
+Showing nodes accounting for 263.04s, 100% of 263.05s total
+Dropped 41 nodes (cum <= 1.32s)
+      flat  flat%   sum%        cum   cum%
+   112.07s 42.60% 42.60%    112.07s 42.60%  sync.(*Mutex).Lock
+    61.98s 23.56% 66.17%     61.98s 23.56%  runtime.chanrecv1
+    45.71s 17.38% 83.54%     45.71s 17.38%  runtime.chanrecv2
+    22.51s  8.56% 92.10%     22.51s  8.56%  runtime.selectgo
+    20.77s  7.90%   100%     20.77s  7.90%  sync.(*WaitGroup).Wait
+         0     0%   100%     15.41s  5.86%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0%   100%    119.15s 45.30%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0%   100%     19.36s  7.36%  dircue/pkg/scanner.BenchmarkProfileScanner
+         0     0%   100%      9.68s  3.68%  dircue/pkg/scanner.BenchmarkProfileScanner.func4
+         0     0%   100%      9.67s  3.68%  dircue/pkg/scanner.BenchmarkProfileScanner.func5
+         0     0%   100%     19.36s  7.36%  dircue/pkg/scanner.Scan
+         0     0%   100%     15.41s  5.86%  dircue/pkg/scanner.Scan.func3
+         0     0%   100%    145.52s 55.32%  dircue/pkg/scanner.Scan.func4
+         0     0%   100%     20.77s  7.90%  dircue/pkg/scanner.Scan.func5
+         0     0%   100%    119.15s 45.30%  dircue/pkg/scanner.analyzeFile
+         0     0%   100%    119.15s 45.30%  dircue/pkg/scanner.analyzeFileBase
+         0     0%   100%    119.15s 45.30%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0%   100%      7.03s  2.67%  dircue/pkg/scanner.blobRead
+         0     0%   100%      7.03s  2.67%  dircue/pkg/scanner.readAllBounded
+         0     0%   100%      7.08s  2.69%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*boundedReadCloser).Read
+         0     0%   100%      7.08s  2.69%  io.(*LimitedReader).Read
+         0     0%   100%      7.08s  2.69%  io.(*PipeReader).Read
+         0     0%   100%      7.08s  2.69%  io.(*pipe).read
+         0     0%   100%     20.78s  7.90%  main.main
+         0     0%   100%        20s  7.60%  runtime.(*traceAdvancerState).start.func1
+         0     0%   100%     40.75s 15.49%  runtime.(*wakeableSleep).sleep
+         0     0%   100%     20.75s  7.89%  runtime.traceStartReadCPU.func1
+         0     0%   100%     19.36s  7.36%  runtime/pprof.Do
+         0     0%   100%     20.78s  7.90%  testing.(*B).Run
+         0     0%   100%     20.78s  7.90%  testing.(*B).run1
+         0     0%   100%     19.36s  7.36%  testing.(*B).run1.func1
+         0     0%   100%     40.14s 15.26%  testing.(*B).runN
+         0     0%   100%     20.78s  7.90%  testing.(*M).Run
+         0     0%   100%     20.78s  7.90%  testing.runBenchmarks
+         0     0%   100%     20.78s  7.90%  testing.runBenchmarks.func1

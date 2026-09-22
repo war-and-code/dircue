@@ -1,0 +1,51 @@
+File: scanner.test
+Type: inuse_space
+Time: 2026-09-21 19:11:06 EDT
+Showing nodes accounting for 26921.01kB, 100% of 26921.01kB total
+Showing top 45 nodes out of 118
+      flat  flat%   sum%        cum   cum%
+ 7614.29kB 28.28% 28.28%  7614.29kB 28.28%  bytes.growSlice
+ 4887.11kB 18.15% 46.44%  4887.11kB 18.15%  regexp.(*Regexp).get
+ 4641.16kB 17.24% 63.68%  4641.16kB 17.24%  github.com/go-enry/go-enry/v2.decodeCentroidModel
+ 2577.97kB  9.58% 73.25%  2577.97kB  9.58%  regexp/syntax.(*compiler).inst (inline)
+ 2563.30kB  9.52% 82.77%  2563.30kB  9.52%  runtime.mallocgc
+ 1024.16kB  3.80% 86.58%  3602.13kB 13.38%  regexp.compile
+  536.37kB  1.99% 88.57%   536.37kB  1.99%  github.com/go-enry/go-enry/v2/data.map.init.2
+  514.63kB  1.91% 90.48%  1026.66kB  3.81%  encoding/json.typeFields
+  513.31kB  1.91% 92.39%   513.31kB  1.91%  compress/flate.NewReader
+  512.50kB  1.90% 94.29%   512.50kB  1.90%  regexp.(*machine).alloc (inline)
+  512.16kB  1.90% 96.20%   512.16kB  1.90%  github.com/boyter/scc/v4/processor.map.init.1
+  512.03kB  1.90% 98.10%   512.03kB  1.90%  reflect.(*rtype).ptrTo
+  512.02kB  1.90%   100%  4135.51kB 15.36%  github.com/go-enry/go-enry/v2/data.init
+         0     0%   100%  2955.66kB 10.98%  bytes.(*Buffer).ReadFrom
+         0     0%   100%  4658.63kB 17.30%  bytes.(*Buffer).Write
+         0     0%   100%  7614.29kB 28.28%  bytes.(*Buffer).grow
+         0     0%   100%   513.31kB  1.91%  compress/zlib.(*reader).Reset
+         0     0%   100%   513.31kB  1.91%  compress/zlib.NewReader (inline)
+         0     0%   100%   513.31kB  1.91%  compress/zlib.NewReaderDict
+         0     0%   100%  8127.60kB 30.19%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0%   100%  1026.66kB  3.81%  dircue/pkg/scanner.BenchmarkProfileScanner
+         0     0%   100%  4641.16kB 17.24%  dircue/pkg/scanner.DetectLanguage
+         0     0%   100% 18168.37kB 67.49%  dircue/pkg/scanner.Scan.func4
+         0     0%   100% 18168.37kB 67.49%  dircue/pkg/scanner.analyzeFile
+         0     0%   100% 18168.37kB 67.49%  dircue/pkg/scanner.analyzeFileBase
+         0     0%   100% 18168.37kB 67.49%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0%   100%  5347.19kB 19.86%  dircue/pkg/scanner.blobRead
+         0     0%   100%  1026.66kB  3.81%  dircue/pkg/scanner.profilingReportDigest
+         0     0%   100%  1026.66kB  3.81%  encoding/json.(*encodeState).marshal
+         0     0%   100%  1026.66kB  3.81%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%  1026.66kB  3.81%  encoding/json.Marshal
+         0     0%   100%  1026.66kB  3.81%  encoding/json.cachedTypeFields
+         0     0%   100%  1026.66kB  3.81%  encoding/json.newPtrEncoder
+         0     0%   100%  1026.66kB  3.81%  encoding/json.newStructEncoder (inline)
+         0     0%   100%  1026.66kB  3.81%  encoding/json.newTypeEncoder
+         0     0%   100%  1026.66kB  3.81%  encoding/json.typeEncoder
+         0     0%   100%  1026.66kB  3.81%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0%   100%  1026.66kB  3.81%  encoding/json.typeEncoder.func1
+         0     0%   100%  1026.66kB  3.81%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0%   100%  1026.66kB  3.81%  encoding/json.valueEncoder
+         0     0%   100%   512.16kB  1.90%  github.com/boyter/scc/v4/processor.init
+         0     0%   100%  4641.16kB 17.24%  github.com/go-enry/go-enry/v2.(*centroidClassifier).classify
+         0     0%   100%  4641.16kB 17.24%  github.com/go-enry/go-enry/v2.GetLanguagesByClassifier
+         0     0%   100%  5399.61kB 20.06%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0%   100%  4641.16kB 17.24%  github.com/go-enry/go-enry/v2.getLanguagesBySpecificClassifier (inline)

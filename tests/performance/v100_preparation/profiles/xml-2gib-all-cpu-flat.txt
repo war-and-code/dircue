@@ -1,0 +1,54 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:12:08 EDT
+Duration: 402.18ms, Total samples = 980ms (243.67%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 450ms, 45.92% of 980ms total
+Showing top 45 nodes out of 98
+      flat  flat%   sum%        cum   cum%
+     340ms 34.69% 34.69%      340ms 34.69%  syscall.rawsyscalln
+      40ms  4.08% 38.78%       40ms  4.08%  runtime.madvise
+      20ms  2.04% 40.82%       20ms  2.04%  runtime.usleep
+      10ms  1.02% 41.84%       30ms  3.06%  regexp.(*Regexp).tryBacktrack
+      10ms  1.02% 42.86%       10ms  1.02%  regexp/syntax.(*Inst).MatchRunePos
+      10ms  1.02% 43.88%       10ms  1.02%  runtime.pthread_cond_timedwait_relative_np
+      10ms  1.02% 44.90%       10ms  1.02%  runtime.unlock2Wake
+      10ms  1.02% 45.92%       10ms  1.02%  unicode/utf8.DecodeRuneInString (inline)
+         0     0% 45.92%       10ms  1.02%  dircue/pkg/scanner.DetectLanguage
+         0     0% 45.92%       10ms  1.02%  dircue/pkg/scanner.Scan.func2
+         0     0% 45.92%       10ms  1.02%  dircue/pkg/scanner.Scan.func3
+         0     0% 45.92%      390ms 39.80%  dircue/pkg/scanner.Scan.func4
+         0     0% 45.92%      380ms 38.78%  dircue/pkg/scanner.analyzeFile
+         0     0% 45.92%      380ms 38.78%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 45.92%      380ms 38.78%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 45.92%       40ms  4.08%  dircue/pkg/scanner.openRegular (inline)
+         0     0% 45.92%      190ms 19.39%  dircue/pkg/scanner.readAllBounded
+         0     0% 45.92%      340ms 34.69%  dircue/pkg/scanner.readBoundedSize
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2.GetLanguagesByVimModeline
+         0     0% 45.92%       20ms  2.04%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 45.92%       20ms  2.04%  github.com/go-enry/go-enry/v2.matchRegexSlice (inline)
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2/data.getFirstLine (inline)
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2/data.getLines
+         0     0% 45.92%       10ms  1.02%  github.com/go-enry/go-enry/v2/data.isSourceMap
+         0     0% 45.92%      180ms 18.37%  internal/poll.(*FD).Read
+         0     0% 45.92%      180ms 18.37%  internal/poll.ignoringEINTRIO (inline)
+         0     0% 45.92%      110ms 11.22%  internal/syscall/unix.Fstatat (inline)
+         0     0% 45.92%       40ms  4.08%  internal/syscall/unix.Openat (inline)
+         0     0% 45.92%      180ms 18.37%  io.(*LimitedReader).Read
+         0     0% 45.92%       10ms  1.02%  io/fs.ReadDir
+         0     0% 45.92%       10ms  1.02%  io/fs.WalkDir
+         0     0% 45.92%       10ms  1.02%  io/fs.walkDir
+         0     0% 45.92%      180ms 18.37%  os.(*File).Read
+         0     0% 45.92%       10ms  1.02%  os.(*File).ReadDir
+         0     0% 45.92%      180ms 18.37%  os.(*File).read (inline)
+         0     0% 45.92%       10ms  1.02%  os.(*File).readdir
+         0     0% 45.92%      110ms 11.22%  os.(*Root).Lstat
+         0     0% 45.92%       40ms  4.08%  os.(*Root).OpenFile
+         0     0% 45.92%       10ms  1.02%  os.(*rootFS).ReadDir
+         0     0% 45.92%       40ms  4.08%  os.doInRoot[go.shape.int]
+         0     0% 45.92%      110ms 11.22%  os.doInRoot[go.shape.interface { IsDir bool; ModTime time.Time; Mode io/fs.FileMode; Name string; Size int64; Sys interface {} }]
+         0     0% 45.92%       40ms  4.08%  os.ignoringEINTR (inline)
+         0     0% 45.92%      110ms 11.22%  os.lstatatWithName

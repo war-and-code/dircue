@@ -1,0 +1,52 @@
+File: cli-profile
+Type: alloc_space
+Time: 2026-09-21 19:15:15 EDT
+Showing nodes accounting for 6548.18MB, 99.08% of 6609.13MB total
+Dropped 149 nodes (cum <= 33.05MB)
+Showing top 45 nodes out of 47
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%  5035.13MB 76.18%  dircue/pkg/scanner.Scan.func4
+       1MB 0.015% 0.015%  5035.13MB 76.18%  dircue/pkg/scanner.analyzeSelectedFile
+       2MB  0.03% 0.045%  5034.13MB 76.17%  dircue/pkg/scanner.analyzeFile
+         0     0% 0.045%  5030.63MB 76.12%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 0.045%  4285.35MB 64.84%  dircue/pkg/scanner.readBoundedSize
+ 4279.85MB 64.76% 64.80%  4279.85MB 64.76%  dircue/pkg/scanner.readAllBounded
+         0     0% 64.80%  4002.96MB 60.57%  dircue/pkg/scanner.analyzeFile.cachedFileReader.func2
+         0     0% 64.80%  1568.96MB 23.74%  runtime.main
+    0.50MB 0.0076% 64.81%  1560.39MB 23.61%  dircue/internal/cli.Execute
+         0     0% 64.81%  1560.39MB 23.61%  main.main
+         0     0% 64.81%  1560.39MB 23.61%  main.main.func1 (inline)
+         0     0% 64.81%  1558.39MB 23.58%  dircue/internal/cli.Execute.func3
+         0     0% 64.81%  1558.39MB 23.58%  dircue/internal/cli.run
+         0     0% 64.81%  1558.39MB 23.58%  github.com/spf13/cobra.(*Command).Execute (inline)
+         0     0% 64.81%  1558.39MB 23.58%  github.com/spf13/cobra.(*Command).ExecuteC
+         0     0% 64.81%  1558.39MB 23.58%  github.com/spf13/cobra.(*Command).ExecuteContext (inline)
+         0     0% 64.81%  1558.39MB 23.58%  github.com/spf13/cobra.(*Command).execute
+    0.50MB 0.0076% 64.82%  1542.56MB 23.34%  dircue/pkg/scanner.Scan
+       1MB 0.015% 64.83%  1525.04MB 23.07%  dircue/pkg/formats.(*Collector).Finish
+         0     0% 64.83%  1517.39MB 22.96%  main.main.func2
+         0     0% 64.83%  1517.39MB 22.96%  runtime/pprof.Do
+  243.61MB  3.69% 68.52%  1245.15MB 18.84%  dircue/pkg/formats.inspect
+         0     0% 68.52%   998.04MB 15.10%  dircue/pkg/formats.inspectXML
+  295.02MB  4.46% 72.98%   997.04MB 15.09%  encoding/xml.(*Decoder).Token
+         0     0% 72.98%   869.20MB 13.15%  regexp.(*Regexp).doExecute
+         0     0% 72.98%   835.81MB 12.65%  regexp.(*Regexp).MatchString (partial-inline)
+         0     0% 72.98%   835.81MB 12.65%  regexp.(*Regexp).doMatch (inline)
+         0     0% 72.98%   826.54MB 12.51%  github.com/go-enry/go-enry/v2.IsVendor
+  750.97MB 11.36% 84.34%   752.47MB 11.39%  regexp.(*Regexp).get
+  637.53MB  9.65% 93.99%   702.03MB 10.62%  encoding/xml.(*Decoder).rawToken
+         0     0% 93.99%   276.39MB  4.18%  dircue/pkg/scanner.analyzeFile.formatCandidate.func1
+         0     0% 93.99%   156.98MB  2.38%  bytes.Split (inline)
+  156.98MB  2.38% 96.37%   156.98MB  2.38%  bytes.genSplit
+         0     0% 96.37%   156.98MB  2.38%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 96.37%   156.98MB  2.38%  github.com/go-enry/go-enry/v2/data.isGeneratedNetDocfile
+         0     0% 96.37%    74.07MB  1.12%  regexp.(*machine).match
+         0     0% 96.37%    72.07MB  1.09%  regexp.(*machine).add
+   72.07MB  1.09% 97.46%    72.07MB  1.09%  regexp.(*machine).alloc (inline)
+   64.50MB  0.98% 98.43%    64.50MB  0.98%  encoding/xml.(*Decoder).name
+         0     0% 98.43%    64.50MB  0.98%  encoding/xml.(*Decoder).nsname
+         0     0% 98.43%    42.66MB  0.65%  regexp.(*Regexp).backtrack
+   42.66MB  0.65% 99.08%    42.66MB  0.65%  regexp.(*bitState).reset
+         0     0% 99.08%    34.89MB  0.53%  dircue/pkg/scanner.DetectLanguage
+         0     0% 99.08%    34.89MB  0.53%  github.com/go-enry/go-enry/v2.GetLanguagesByModeline
+         0     0% 99.08%    33.39MB  0.51%  github.com/go-enry/go-enry/v2.GetLanguagesByEmacsModeline
