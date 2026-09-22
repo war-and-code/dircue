@@ -9,6 +9,27 @@
       "size",
       "percentage"
     ],
+    "allOf": [
+      {
+        "if": {
+          "properties": {
+            "percentage": {
+              "const": "NaN"
+            }
+          },
+          "required": [
+            "percentage"
+          ]
+        },
+        "then": {
+          "properties": {
+            "size": {
+              "const": 0
+            }
+          }
+        }
+      }
+    ],
     "properties": {
       "size": {
         "type": "integer",
