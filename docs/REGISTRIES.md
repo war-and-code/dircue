@@ -104,3 +104,5 @@ output schemas and the Linguist-compatible language interface.
 ## Uncovered configuration
 
 The current parser covers NuGet.Config and .npmrc only. An empty result does not rule out Maven settings.xml, pip.conf, Cargo config.toml, Yarn configuration, or other package sources. `enumeration_complete` describes the selected inventory under this supported scope; it does not establish registry coverage for every ecosystem.
+
+Tracked as a known 1.0 boundary; see [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#68](https://github.com/war-and-code/dircue/issues/68).

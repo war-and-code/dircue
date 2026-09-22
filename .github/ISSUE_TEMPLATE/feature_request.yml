@@ -1,0 +1,50 @@
+name: Feature or design proposal
+description: Suggest a change to what dircue observes, reports, or promises.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing a proposal, please read
+        [docs/DESIGN_PRINCIPLES.md](../../docs/DESIGN_PRINCIPLES.md)
+        and [docs/COMPATIBILITY.md](../../docs/COMPATIBILITY.md).
+        Most proposals sharpen quickly once the design principles and
+        the 1.0 compatibility promise are in view.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the concrete situation you hit, what dircue does today, and why it is not enough.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: |
+        What would dircue need to observe, decide, or report? If the change touches an output contract (CLI flag, JSON field, exit status), describe it explicitly.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve the same problem, and why the proposal is better.
+    validations:
+      required: false
+  - type: textarea
+    id: principles
+    attributes:
+      label: Design-principle fit
+      description: |
+        How does the proposal align with the design principles? Note any tensions — for example, adding a network dependency or executing inspected content — so we can discuss trade-offs early.
+    validations:
+      required: false
+  - type: textarea
+    id: examples
+    attributes:
+      label: Example inputs and outputs
+      description: A tiny example of the command, expected output, or saved report the proposal implies. This is the quickest way to a shared understanding.
+    validations:
+      required: false

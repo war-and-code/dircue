@@ -2,6 +2,23 @@
 
 ## 1.0.0 (unreleased)
 
+- First public release. Introduce the [1.0 compatibility promise](docs/COMPATIBILITY.md)
+  covering the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
+  families and their `schema_version` semantics, exit statuses, and the boundary
+  guarantees. Publish a [security policy](SECURITY.md), a
+  [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
+  template. Rewrite the README front matter to lead with a 30-second example
+  and a real install story (release archives with checksums, `go install`,
+  Python wheel from a GitHub Release URL). Document the known 1.0 boundaries
+  (`--source auto` fallback disclosure, absent-focus-query, registry adapter
+  coverage, environment adapter breadth, structural worker isolation) in
+  [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and
+  cross-link from the relevant module docs.
+- Move the CLI ergonomics evidence tree from `agent_ergonomics_audit/` (a
+  repository-root directory) to `tests/ergonomics_v100/`. Redact captured
+  absolute home paths in the audit transcripts. No shipped module reads from
+  the audit tree; the regression harness continues to work against a
+  caller-supplied dircue binary.
 - Add an offline CLI guide, a command and option catalog, and standalone JSON
   Schema export through explicit `capabilities` views. Keep the original planner
   descriptor and existing analysis output contracts.
