@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -101,6 +102,10 @@ func TestComparisonTextShowsCompositeIdentityWithoutChangingJSONID(t *testing.T)
 	}
 	if got := comparisonTextID("focused_metrics_related", "project:svc:language:2:Go0:"); got != `project "svc" language ("Go", "")` {
 		t.Fatalf("related metrics identity was not rendered: %s", got)
+	}
+	ambiguous := "project:x:language:1:a17:P:language:2:Go0:"
+	if got := comparisonTextID("focused_metrics_related", ambiguous); got != strconv.Quote(ambiguous) {
+		t.Fatalf("ambiguous project identity was misattributed: %s", got)
 	}
 	if got := comparisonTextID("frameworks", "4:Java9:core:api2:./9:detector"); got != `"4:Java9:core:api2:./9:detector"` {
 		t.Fatalf("malformed key was decoded: %s", got)
