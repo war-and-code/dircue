@@ -49,7 +49,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 		}
 		return strings.TrimSpace(string(b))
 	}
-	if top := run("rev-parse", "--show-toplevel"); top != resolved {
+	if top := run("rev-parse", "--show-toplevel"); filepath.Clean(filepath.FromSlash(top)) != filepath.Clean(resolved) {
 		t.Fatalf("fixture preflight top=%q want=%q", top, resolved)
 	}
 	if got := run("rev-parse", "HEAD"); got != head.String() {
@@ -185,7 +185,7 @@ func TestGitReadMetricsOptInPreservesReport(t *testing.T) {
 	}
 	cmd := exec.Command(binary, "-C", root, "rev-parse", "--show-toplevel")
 	top, err := cmd.Output()
-	if err != nil || strings.TrimSpace(string(top)) != resolved {
+	if err != nil || filepath.Clean(filepath.FromSlash(strings.TrimSpace(string(top)))) != filepath.Clean(resolved) {
 		t.Fatalf("fixture preflight top=%q error=%v", strings.TrimSpace(string(top)), err)
 	}
 	cmd = exec.Command(binary, "--git-dir="+filepath.Join(root, ".git"), "--work-tree="+root, "repack", "-a", "-d")
