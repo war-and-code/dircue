@@ -536,6 +536,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		formatCollector = formats.New(source, tree, opts.MaxFileBytes)
+		formatCollector.SetErrorPolicy(string(opts.ErrorPolicy))
 	}
 	var declarationCollector *declarations.Collector
 	if opts.Declarations {
@@ -544,6 +545,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			source, tree = "git", snapshot.tree.Hash.String()
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
+		declarationCollector.SetErrorPolicy(string(opts.ErrorPolicy))
 		if opts.Focus != nil || opts.Environments {
 			declarationCollector.EnableProjectRecords()
 		}

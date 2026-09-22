@@ -124,6 +124,43 @@ func TestCollectorReaderFailures(t *testing.T) {
 		}
 	}
 }
+func TestCollectorReadErrorContinuePolicy(t *testing.T) {
+	// Under the continue policy a per-file read failure records an omission
+	// and its path is retained for the scanner's file_read_error warning,
+	// while the remaining candidates still contribute observations.
+	c := New("directory", "", 0)
+	c.SetErrorPolicy("continue")
+	failing := Candidate{Path: "bad.json", Size: 2, Read: func(context.Context, int64) ([]byte, int64, error) {
+		return nil, 0, errors.New("secret host error")
+	}}
+	c.Add(failing)
+	c.Add(candidate("good.json", []byte("{}")))
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatalf("continue policy returned error: %v", err)
+	}
+	if r.Status != "partial" || r.Omissions["file_read_error"] != 1 || r.Coverage.OmittedFiles != 1 {
+		t.Fatalf("omission not recorded: %+v", r)
+	}
+	if got := c.ReadErrors(); len(got) != 1 || got[0] != "bad.json" {
+		t.Fatalf("ReadErrors: %v", got)
+	}
+	if r.Coverage.InspectedFiles != 1 || len(r.Observations) == 0 {
+		t.Fatalf("remaining candidate not analyzed: %+v", r.Coverage)
+	}
+	encoded, _ := json.Marshal(r)
+	if bytes.Contains(encoded, []byte("secret")) || bytes.Contains(encoded, []byte("host error")) {
+		t.Fatalf("caller I/O error leaked into report: %s", encoded)
+	}
+	// The default policy still fails hard so no consumer misclassifies the
+	// same input under an unchanged invocation.
+	strict := New("directory", "", 0)
+	strict.Add(failing)
+	if _, err := strict.Finish(context.Background()); err == nil {
+		t.Fatal("default policy no longer fails hard on read error")
+	}
+}
+
 func TestCollectorOutputBudget(t *testing.T) {
 	c := New("directory", "", 0)
 	for i := 0; i < MaxFiles; i++ {

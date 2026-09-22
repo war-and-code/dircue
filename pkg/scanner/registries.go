@@ -24,6 +24,7 @@ func newRegistryAccumulator(opts Options, snapshot *gitSnapshot) (*registryAccum
 	if err != nil {
 		return nil, err
 	}
+	collector.SetErrorPolicy(string(opts.ErrorPolicy))
 	return &registryAccumulator{collector: collector}, nil
 }
 

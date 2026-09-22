@@ -33,8 +33,18 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	limits = defaults(limits)
 	r := &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "complete", Source: in.Source, Tree: in.Tree, SemanticsReference: semanticsReference, Limits: limits, Requirements: []Requirement{}, Selections: []Selection{}, Conflicts: []Conflict{}, Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 	r.Coverage.OmittedFiles = in.OmittedFiles
-	if !in.InventoryComplete || in.OmittedFiles > 0 || in.Declarations.Status != "complete" {
+	if !in.InventoryComplete || in.OmittedFiles > 0 {
 		r.Status = "partial"
+	}
+	// Declarations partial is not, on its own, a coverage gap for environments:
+	// the environments module has its own bounded lenient parse for global.json
+	// (comments, trailing commas, BOM) that can succeed where the stricter
+	// declarations pass rejects the same file, and per-project incompleteness is
+	// already surfaced through Requirement.State on normalized requirements. We
+	// disclose the upstream partial state as an informational boundary so the
+	// consumer sees it, but we do not overwrite the environments-native status.
+	if in.Declarations.Status != "complete" {
+		r.Boundaries = append(r.Boundaries, Boundary{Reason: "declarations-partial", Detail: "The upstream declarations pass reported partial coverage; environment coverage is assessed independently."})
 	}
 	files := map[string]File{}
 	inventoryComplete := in.InventoryComplete
@@ -189,6 +199,17 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			if in.ErrorPolicy == "continue" {
+				// Preserve remaining selections. The per-path diagnostic
+				// keeps the omission attributable and matches the other
+				// aggregation modules' file-read-error vocabulary.
+				sel.State = "unresolved"
+				r.Status = "partial"
+				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: candidate, Code: "file-read-error", Message: "Selected global.json could not be read."})
+				r.Selections = append(r.Selections, sel)
+				r.Coverage.Contexts++
+				continue
+			}
 			return nil, errors.New("could not read selected global.json")
 		}
 		if size != int64(len(content)) || size != f.Size || size > limits.GlobalJSONBytes || size > limits.InputBytes-r.Coverage.InputBytes {
@@ -306,6 +327,7 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Status = "partial"
 		return
 	}
+	hadBOM := bytes.HasPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	if !jsontext.ValidUnicode(content) {
 		s.State = "unresolved"
@@ -313,14 +335,15 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "unsupported-json-text", "global.json contains invalid UTF-8 or unpaired Unicode escapes."})
 		return
 	}
-	cleaned, commentErr := stripJSONComments(content)
+	cleaned, strippedComments, commentErr := stripJSONComments(content)
 	if commentErr != nil {
 		s.State = "unresolved"
 		r.Status = "partial"
 		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "invalid-global-json", "global.json contains an unterminated block comment."})
 		return
 	}
-	cleaned = stripTrailingCommas(cleaned)
+	var strippedTrailingComma bool
+	cleaned, strippedTrailingComma = stripTrailingCommas(cleaned)
 	if err := uniqueJSONKeys(cleaned); err != nil {
 		s.State = "unresolved"
 		r.Status = "partial"
@@ -430,14 +453,23 @@ func parseGlobal(r *Report, s *Selection, content []byte) {
 			s.State = "unconstrained"
 		}
 	}
+	// Disclose accepted JSONC leniency (BOM, comments, or trailing commas) so
+	// a consumer can see why the file was accepted; the parse itself succeeded
+	// and the status remains complete on the environments side.
+	if s.State != "unresolved" && (hadBOM || strippedComments || strippedTrailingComma) {
+		r.Diagnostics = append(r.Diagnostics, Diagnostic{s.GlobalJSON, "global-json-lenient-syntax", "global.json was accepted through the documented JSONC leniency for BOM, comments, or trailing commas."})
+	}
 }
 
 // stripTrailingCommas replaces commas immediately before an object or array
 // close with whitespace. This matches global.json's documented JSON options
-// while retaining byte offsets and leaving string contents untouched.
-func stripTrailingCommas(in []byte) []byte {
+// while retaining byte offsets and leaving string contents untouched. The
+// second return value indicates whether the input contained at least one
+// trailing comma that was rewritten.
+func stripTrailingCommas(in []byte) ([]byte, bool) {
 	out := slices.Clone(in)
 	inString, escaped := false, false
+	stripped := false
 	for i := 0; i < len(out); i++ {
 		if inString {
 			if escaped {
@@ -466,9 +498,10 @@ func stripTrailingCommas(in []byte) []byte {
 		}
 		if k >= 0 && !strings.ContainsRune("{[:,", rune(out[k])) && j < len(out) && (out[j] == '}' || out[j] == ']') {
 			out[i] = ' '
+			stripped = true
 		}
 	}
-	return out
+	return out, stripped
 }
 
 func uniqueJSONKeys(content []byte) error {
@@ -534,10 +567,11 @@ func jsonValue(d *json.Decoder, depth int, tokens *int) error {
 	return nil
 }
 
-func stripJSONComments(in []byte) ([]byte, error) {
+func stripJSONComments(in []byte) ([]byte, bool, error) {
 	out := slices.Clone(in)
 	inString := false
 	escaped := false
+	stripped := false
 	for i := 0; i < len(out); i++ {
 		if inString {
 			if escaped {
@@ -554,6 +588,7 @@ func stripJSONComments(in []byte) ([]byte, error) {
 			continue
 		}
 		if out[i] == '/' && i+1 < len(out) && out[i+1] == '/' {
+			stripped = true
 			out[i] = ' '
 			out[i+1] = ' '
 			i += 2
@@ -565,6 +600,7 @@ func stripJSONComments(in []byte) ([]byte, error) {
 			continue
 		}
 		if out[i] == '/' && i+1 < len(out) && out[i+1] == '*' {
+			stripped = true
 			out[i] = ' '
 			out[i+1] = ' '
 			i += 2
@@ -579,12 +615,12 @@ func stripJSONComments(in []byte) ([]byte, error) {
 				out[i+1] = ' '
 				i++
 			} else {
-				return nil, errors.New("unterminated block comment")
+				return nil, false, errors.New("unterminated block comment")
 			}
 			continue
 		}
 	}
-	return out, nil
+	return out, stripped, nil
 }
 
 func addNormalized(r *Report, limits Limits, rec declarations.ProjectRecord, req declarations.Requirement) {

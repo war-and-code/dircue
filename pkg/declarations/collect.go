@@ -46,7 +46,24 @@ type Collector struct {
 	finishErr     error
 	retainRecords bool
 	records       []ProjectRecord
+	// errorPolicy controls per-file read handling at Finish time. "continue"
+	// records a per-path "file-read-error" diagnostic and marks the manifest
+	// omitted; anything else fails hard, preserving the default trust
+	// boundary.
+	errorPolicy string
+	readErrors  []string
 }
+
+// SetErrorPolicy configures how Finish reacts to per-manifest read failures.
+// Pass "continue" to record a per-path "file-read-error" diagnostic and
+// keep the remaining candidates; the default preserves the historical
+// fail-fast contract. Call before Finish.
+func (c *Collector) SetErrorPolicy(policy string) { c.errorPolicy = policy }
+
+// ReadErrors returns the paths of selected manifests Finish skipped because
+// their bounded read failed under the continue policy. The scanner uses
+// this to emit same-shaped "file_read_error" warnings at the top level.
+func (c *Collector) ReadErrors() []string { return c.readErrors }
 
 func New(source, tree string, maxFileBytes int64) *Collector {
 	limit := MaxManifestBytes
@@ -162,6 +179,20 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 			if err != nil {
 				if ctx.Err() != nil {
 					return nil, ctx.Err()
+				}
+				if c.errorPolicy == "continue" {
+					// Preserve remaining manifests. The per-path diagnostic
+					// keeps the omission attributable and stays disjoint
+					// from the module's other incompleteness reasons.
+					c.Omit()
+					c.report.Status = "partial"
+					if len(c.report.Diagnostics) < MaxDiagnostics {
+						c.report.Diagnostics = append(c.report.Diagnostics, Diagnostic{Path: candidate.Path, Code: "file-read-error", Message: "A selected manifest could not be read."})
+					} else {
+						c.report.Coverage.OmittedDiagnostics++
+					}
+					c.readErrors = append(c.readErrors, candidate.Path)
+					continue
 				}
 				return nil, errors.New("could not read a selected declaration manifest")
 			}

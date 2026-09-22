@@ -3,6 +3,7 @@ package declarations
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -157,5 +158,51 @@ func TestCollectorDoesNotMergeInvalidUTF8ProjectIdentities(t *testing.T) {
 	r, err := c.Finish(context.Background())
 	if err != nil || r.Status != "partial" || len(r.Projects) != 0 || r.Coverage.ManifestCandidates != 2 || r.Coverage.OmittedFiles != 2 {
 		t.Fatalf("invalid identities were silently replaced: %+v %v", r, err)
+	}
+}
+
+func TestCollectorReadErrorContinuePolicy(t *testing.T) {
+	// Under the continue policy a per-file manifest read failure records a
+	// per-path diagnostic and marks the omission attributable while the
+	// remaining manifests still parse and appear in the report.
+	c := New("directory", "", 0)
+	c.SetErrorPolicy("continue")
+	bad := &Candidate{Path: "a/go.mod", Size: 4, Read: func(context.Context, int64) ([]byte, int64, error) {
+		return nil, 0, errors.New("secret host error")
+	}}
+	c.Add("a/go.mod", bad)
+	c.Add("b/go.mod", candidateFor("b/go.mod", "module example.invalid/b\ngo 1.26\n"))
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatalf("continue policy returned error: %v", err)
+	}
+	if r.Status != "partial" || r.Coverage.OmittedFiles == 0 {
+		t.Fatalf("read failure was not recorded as an omission: %+v", r.Coverage)
+	}
+	if r.Coverage.ParsedManifests == 0 {
+		t.Fatal("remaining manifest was not parsed")
+	}
+	found := false
+	for _, d := range r.Diagnostics {
+		if d.Code == "file-read-error" && d.Path == "a/go.mod" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no file-read-error diagnostic attributed to path: %+v", r.Diagnostics)
+	}
+	if got := c.ReadErrors(); len(got) != 1 || got[0] != "a/go.mod" {
+		t.Fatalf("ReadErrors: %v", got)
+	}
+	encoded, _ := json.Marshal(r)
+	if strings.Contains(string(encoded), "secret") || strings.Contains(string(encoded), "host error") {
+		t.Fatalf("caller I/O error leaked into report: %s", encoded)
+	}
+	// Default policy still fails hard so existing invocations do not silently
+	// degrade to a partial report.
+	strict := New("directory", "", 0)
+	strict.Add("a/go.mod", bad)
+	if _, err := strict.Finish(context.Background()); err == nil {
+		t.Fatal("default policy no longer fails hard on manifest read error")
 	}
 }

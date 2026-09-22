@@ -83,7 +83,13 @@ provenance, and one of these statuses:
 Process failures, deadlines, malformed responses, unexpected parser versions,
 and excessive worker output are errors. They must not silently become a
 successful complete analysis. A parser partial result is distinct from a worker
-failure.
+failure. Under `--on-error continue` a per-file worker timeout or process crash
+degrades that specific file to a skipped omission (`structural_timeout` or
+`structural_worker_failure`) and lets the rest of the scan proceed; protocol
+violations (identity, provenance, single-parse contract, malformed responses,
+unsupported capability advertisement) remain fatal in every mode because they
+mean the worker cannot be trusted for any file. The default `--on-error fail`
+still aborts on any worker error.
 
 Cancellation terminates the worker process group on Unix. On Windows dircue
 requests recursive termination with the system `taskkill` utility and falls
