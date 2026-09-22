@@ -17,10 +17,12 @@
   readable quoted components in text while retaining their JSON identities.
 - Enforce event-only GitHub Actions triggers and full commit-hash pins for
   external Actions with a lightweight CI contract test.
-- Prepare the next release with a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md)
-  describing the legacy Linguist CLI, the `analyze` subcommand surface, JSON schema
-  families and their `schema_version` semantics, exit statuses, and the boundary
-  guarantees. Publish a [security policy](SECURITY.md), a
+- Publish a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) for
+  discussion. The legacy Linguist CLI remains a compatibility target; whether
+  existing `analyze` reports become a frozen legacy profile in 1.x remains an
+  owner decision under [#81](https://github.com/war-and-code/dircue/issues/81).
+  The proposal covers JSON schema families and their `schema_version` semantics,
+  exit statuses, and boundary guarantees. Publish a [security policy](SECURITY.md), a
   [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
   template. Rewrite the README front matter to lead with a quick example
   and a real install story (release archives with checksums, clone-and-build,
