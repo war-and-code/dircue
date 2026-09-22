@@ -26,7 +26,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 	}
 	files := map[string]string{}
 	names := []string{}
-	for i := 0; i < maxGitPackDescriptorsPerLane+3; i++ {
+	for i := 0; i < maxGitPackDescriptorsPerConcurrentLane+3; i++ {
 		name := fmt.Sprintf("src/file%02d.py", i)
 		names = append(names, name)
 		files[name] = fmt.Sprintf("# fixture %d\n", i) + strings.Repeat("print('bounded cached pack')\n", 6000)
@@ -65,7 +65,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 	}
 	run("prune-packed")
 	packs, err := filepath.Glob(filepath.Join(root, ".git", "objects", "pack", "*.pack"))
-	if err != nil || len(packs) <= maxGitPackDescriptorsPerLane {
+	if err != nil || len(packs) <= maxGitPackDescriptorsPerConcurrentLane {
 		t.Fatalf("want more than cache capacity packs: %d, %v", len(packs), err)
 	}
 	return root, names, files, run

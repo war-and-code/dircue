@@ -51,6 +51,55 @@ func TestGitObjectLanesAcquireAndCancellation(t *testing.T) {
 	}
 }
 
+func TestGitObjectLanePolicy(t *testing.T) {
+	for _, test := range []struct {
+		name        string
+		opts        Options
+		inspect     bool
+		wantLanes   int
+		wantReaders int
+	}{
+		{name: "scan default direct call", opts: Options{}, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+		{name: "scan one worker", opts: Options{Workers: 1}, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+		{name: "scan two workers", opts: Options{Workers: 2}, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
+		{name: "scan many workers", opts: Options{Workers: 16}, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
+		{name: "inspect ignores workers", opts: Options{Workers: 16}, inspect: true, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			gotLanes := gitObjectLaneCount(test.opts, test.inspect)
+			if gotLanes != test.wantLanes {
+				t.Fatalf("lanes=%d want=%d", gotLanes, test.wantLanes)
+			}
+			if gotReaders := gitPackDescriptorLimit(gotLanes); gotReaders != test.wantReaders {
+				t.Fatalf("retained readers=%d want=%d", gotReaders, test.wantReaders)
+			}
+		})
+	}
+}
+
+func TestGitSnapshotOpensOnlyNeededObjectLanes(t *testing.T) {
+	root, _, _ := gitFixture(t, map[string]string{"main.go": goSource})
+	for _, test := range []struct {
+		name     string
+		opts     Options
+		discover bool
+	}{
+		{name: "one-worker scan", opts: Options{Source: "git", Workers: 1}},
+		{name: "single-file inspect", opts: Options{Source: "git", Workers: 16}, discover: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			snapshot, err := openGitSnapshot(context.Background(), root, test.opts, test.discover)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer snapshot.close()
+			if len(snapshot.storages) != 1 || cap(snapshot.lanes.available) != 1 {
+				t.Fatalf("storages=%d lane capacity=%d", len(snapshot.storages), cap(snapshot.lanes.available))
+			}
+		})
+	}
+}
+
 type descriptorTrackingFS struct {
 	billy.Filesystem
 	active  atomic.Int64
@@ -99,7 +148,7 @@ func (f *descriptorTrackingFile) waitForPeer() {
 		return
 	}
 	f.blockOnce.Do(func() {
-		if f.owner.entered.Add(1) == gitObjectLaneCount {
+		if f.owner.entered.Add(1) == maxGitObjectLanes {
 			f.owner.once.Do(func() { close(f.owner.release) })
 		}
 		<-f.owner.release
@@ -140,8 +189,8 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 	shared := cache.NewObjectLRUDefault()
 	lanes, storages, err := newGitObjectLanes(tracked, worktree.Filesystem, shared, filesystem.Options{
 		LargeObjectThreshold: ClassificationBytes,
-		MaxOpenDescriptors:   maxGitPackDescriptorsPerLane,
-	}, gitObjectLaneCount)
+		MaxOpenDescriptors:   maxGitPackDescriptorsPerConcurrentLane,
+	}, maxGitObjectLanes)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -201,7 +250,7 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if tracked.entered.Load() < gitObjectLaneCount {
+	if tracked.entered.Load() < maxGitObjectLanes {
 		t.Fatalf("object reads did not overlap across lanes: %d", tracked.entered.Load())
 	}
 	for _, storage := range storages {
@@ -215,7 +264,7 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 	}
 	// The fixture observes every index, retained pack, and lazy FSObject open.
 	// This is a measured bound for the fixture, not a universal pack-chain cap.
-	if peak := tracked.peak.Load(); peak > gitObjectLaneCount*maxGitPackDescriptorsPerLane+gitObjectLaneCount+1 {
+	if peak := tracked.peak.Load(); peak > maxGitObjectLanes*maxGitPackDescriptorsPerConcurrentLane+maxGitObjectLanes+1 {
 		t.Fatalf("descriptor peak=%d exceeds fixture bound", peak)
 	} else {
 		t.Logf("measured repository descriptor peak: %d", peak)
