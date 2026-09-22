@@ -164,7 +164,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.AddCommand(newCompareCommand(opts))
 	root.AddCommand(newPlanCommand(opts))
 	root.AddCommand(newCapabilitiesCommand(opts))
-	return root.ExecuteContext(ctx)
+	return safeCLIError(root.ExecuteContext(ctx))
 }
 
 func pathArgs(_ *cobra.Command, args []string) error {

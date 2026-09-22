@@ -22,6 +22,21 @@ type diagnosticError struct {
 func (e *diagnosticError) Error() string { return e.message }
 func (e *diagnosticError) Unwrap() error { return e.cause }
 
+// safeCLIError escapes terminal controls in the final user-facing error while
+// preserving the original error for errors.Is/errors.As callers. Ordinary
+// messages are returned as the original error, byte-for-byte and by identity.
+func safeCLIError(err error) error {
+	if err == nil {
+		return nil
+	}
+	message := err.Error()
+	safe := terminalValue(message)
+	if safe == message {
+		return err
+	}
+	return &diagnosticError{message: safe, cause: err}
+}
+
 func diagnosticValue(value string) string {
 	if len(value) > 256 {
 		value = value[:256]
