@@ -243,6 +243,15 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 		}
 		tree, err = repo.TreeObject(plumbing.NewHash(opts.Tree))
 		if err != nil {
+			// When the object exists but is a commit, blob, or tag, tell the
+			// caller what kind it actually is so a copy-pasted commit or blob
+			// hash does not look like a missing object. The kind probe reuses
+			// the same storage the tree lookup consulted.
+			if errors.Is(err, plumbing.ErrObjectNotFound) {
+				if obj, probeErr := repo.Object(plumbing.AnyObject, plumbing.NewHash(opts.Tree)); probeErr == nil && obj != nil {
+					return nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, obj.Type())
+				}
+			}
 			return nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
 		}
 	} else {
@@ -399,6 +408,15 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			entries = append(entries, item)
 			continue
 		}
+		// EncodedObjectSize touches go-git's shared packfile scanner and delta
+		// caches (see the comment on objectMu at the struct declaration).
+		// Running here without the mutex is only safe because walk() finishes
+		// every size lookup and .gitattributes read in this first for-loop
+		// before the second for-loop below pushes any job onto the channel;
+		// workers block on the empty jobs channel until then, so no worker's
+		// mutex-guarded BlobObject call can race this call. Preserve that
+		// ordering if this loop is ever refactored to interleave with dispatch,
+		// or take s.objectMu around this call and the .gitattributes read below.
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
 		if err != nil {
 			if s.errorPolicy == ErrorPolicyContinue {

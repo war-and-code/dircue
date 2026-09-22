@@ -109,10 +109,15 @@ def main():
               "harness_sha256": common.sha256(Path(__file__)), "fixture_sha256": common.sha256(FIXTURE),
               "cases": rows, "total": len(rows), "exact_matches": sum(r["equal"] for r in rows),
               "intentional_fixes": sum(r["partial_focus_fix_verified"] for r in rows)}
+
+    def _row_ok(row):
+        if row["expected_partial_focus_fix"]:
+            return row["partial_focus_fix_verified"]
+        return row["equal"]
+
     result["passed"] = (result["total"] == 41 and result["exact_matches"] == 39
                         and result["intentional_fixes"] == 2
-                        and all(r["partial_focus_fix_verified"] if r["expected_partial_focus_fix"]
-                                else r["equal"] for r in rows))
+                        and all(_row_ok(row) for row in rows))
     common.write_json(args.output, result)
     print(json.dumps({k: result[k] for k in ("passed", "total", "exact_matches")}))
     raise SystemExit(0 if result["passed"] else 1)

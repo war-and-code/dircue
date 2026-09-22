@@ -83,7 +83,7 @@ The final file read may receive less than 64 KiB when it reaches the cumulative 
 | `observations` | Relative paths, sizes, read extents, fixed evidence labels and diagnostics. |
 | `omissions` | Counted selection/output exclusions, including non-regular entries and bounds reached. |
 
-`complete` means the bounded inspection completed without selection or output omissions. It does not mean every file was fully read or valid. `partial` indicates omissions or an observed changing/incomplete source. `skipped` means the selected inventory was not inspected, for example after the scanner's tree-size limit. A source read failure fails the command; it is not silently converted into a successful report.
+`complete` means the bounded inspection completed without selection or output omissions. It does not mean every file was fully read or valid. `partial` indicates omissions or an observed changing/incomplete source. `skipped` means the selected inventory was not inspected, for example after the scanner's tree-size limit. A source read failure fails the command by default; it is not silently converted into a successful report. Under `--on-error continue` an unreadable candidate is recorded as a `file_read_error` omission in the module's partial report and the remaining candidates still contribute observations.
 
 A changed file size is reported as `source_changed_or_incomplete_read`, and any complete-validation evidence is downgraded to prefix evidence. Changes that preserve size during a live directory read cannot always be detected. Git tree selection provides stronger source consistency.
 

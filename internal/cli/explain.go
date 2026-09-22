@@ -78,13 +78,13 @@ func newExplainCommand(opts *options) *cobra.Command {
 			}
 			source, rev := opts.source, ""
 			if source != "auto" && source != "git" && source != "directory" {
-				return fmt.Errorf("--source must be auto, git, or directory")
+				return enumValueError("--source", "auto, git, or directory", source, []string{"auto", "git", "directory"})
 			}
 			if cmd.Flags().Changed("tree") && opts.tree == "" {
 				return fmt.Errorf("--tree requires a full Git tree object ID")
 			}
 			if opts.onError != "fail" && opts.onError != "continue" {
-				return fmt.Errorf("--on-error must be fail or continue")
+				return enumValueError("--on-error", "fail or continue", opts.onError, []string{"fail", "continue"})
 			}
 			if cmd.Flags().Changed("rev") {
 				if source == "directory" {

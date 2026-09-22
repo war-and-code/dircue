@@ -83,7 +83,13 @@ provenance, and one of these statuses:
 Process failures, deadlines, malformed responses, unexpected parser versions,
 and excessive worker output are errors. They must not silently become a
 successful complete analysis. A parser partial result is distinct from a worker
-failure.
+failure. Under `--on-error continue` a per-file worker timeout or process crash
+degrades that specific file to a skipped omission (`structural_timeout` or
+`structural_worker_failure`) and lets the rest of the scan proceed; protocol
+violations (identity, provenance, single-parse contract, malformed responses,
+unsupported capability advertisement) remain fatal in every mode because they
+mean the worker cannot be trusted for any file. The default `--on-error fail`
+still aborts on any worker error.
 
 Cancellation terminates the worker process group on Unix. On Windows dircue
 requests recursive termination with the system `taskkill` utility and falls
@@ -108,7 +114,10 @@ parse every shell dialect. TSX has its own grammar alongside TypeScript.
 BCA supplies the metric groups for each enabled parser. Their definitions and
 applicability vary by language; an upstream zero or null is not evidence that
 an equivalent language feature was measured. Dircue preserves these per-file
-metrics instead of presenting one cross-language quality score.
+metrics instead of presenting one cross-language quality score. As one visible
+example of that variance, BCA's cognitive-complexity walker adds `+1` for a
+bare `else` in Rust and Python but not in Go, JavaScript, Java, or C, so the
+same syntactic pattern earns different upstream scores across languages.
 
 [Hotspot distributions](HOTSPOTS.md) inspect eligible function spaces before
 evidence retention. The existing [function entries](FUNCTIONS.md) remain a
@@ -131,7 +140,10 @@ The adapter admits one worker process at a time. Each worker handles one file
 and exits, releasing its tree before another file is admitted. The default and
 maximum source size are both 8 MiB; callers may select a smaller limit. The
 default deadline is 10 seconds per worker invocation. Waiting for admission
-respects caller cancellation.
+respects caller cancellation. The worker recognizes only `--capabilities` as
+a discriminating argument, so a `--help` or `--version` invocation falls
+through to the ordinary stdin request path and blocks waiting for a JSON
+envelope rather than printing usage text.
 
 The source limit is **not a process memory limit**. Parse trees, JSON buffers,
 metrics, and native allocator overhead can exceed source size substantially.
@@ -208,3 +220,5 @@ with the same language name is not automatically compatible with BCA's metric
 implementation.
 
 The selected executable may be a symlink to a trusted installation. The worker inherits the caller process environment and working directory; it is not sandboxed. Its language-support matrix is included even for an empty source so consumers can distinguish unsupported languages from absent input. None of these declarations prove that an arbitrary third-party worker reports truthfully.
+
+Formal sandboxing of the structural worker is a known 1.0 boundary; see [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#69](https://github.com/war-and-code/dircue/issues/69).

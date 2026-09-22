@@ -3,6 +3,7 @@ package environments
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -361,5 +362,247 @@ func TestBudgetCancellationAndDeterminism(t *testing.T) {
 	cancel()
 	if _, err := Analyze(ctx, in, Limits{}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("cancel err=%v", err)
+	}
+}
+
+// TestJSONCLeniencyIsDisclosedAndDoesNotDegradeStatus covers r100/03 C1:
+// a global.json accepted through the JSONC path (leading `//` comment, block
+// comment, trailing comma, or BOM plus comment) must parse to the declared
+// SDK, keep environments.status "complete", and emit a documented
+// informational diagnostic explaining the leniency instead of leaving the
+// consumer to guess why coverage was reported as partial.
+func TestJSONCLeniencyIsDisclosedAndDoesNotDegradeStatus(t *testing.T) {
+	tests := []struct{ name, body string }{
+		{"line comment", "// pinned\n{\"sdk\":{\"version\":\"7.0.100\"}}"},
+		{"block comment", "{/* pinned */\"sdk\":{\"version\":\"7.0.100\"}}"},
+		{"trailing comma", `{"sdk":{"version":"7.0.100",}}`},
+		{"bom and line comment", "\xef\xbb\xbf// pinned\n{\"sdk\":{\"version\":\"7.0.100\"}}"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := envInput(map[string]string{"global.json": tt.body}, []Invocation{{"p", "."}})
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Status != "complete" {
+				t.Fatalf("status=%q body=%q report=%+v", r.Status, tt.body, r)
+			}
+			if len(r.Selections) != 1 || r.Selections[0].SDKVersion != "7.0.100" || r.Selections[0].State != "declared" {
+				t.Fatalf("selection: %+v", r.Selections)
+			}
+			var found bool
+			for _, d := range r.Diagnostics {
+				if d.Code == "global-json-lenient-syntax" && d.Path == "global.json" {
+					found = true
+				}
+			}
+			if !found {
+				t.Fatalf("missing lenient-syntax disclosure: %+v", r.Diagnostics)
+			}
+		})
+	}
+}
+
+// TestDeclarationsPartialSurfacesAsBoundaryNotStatus covers r100/03 C1: when
+// the upstream declarations pass is partial (for reasons that the environments
+// module's independent parser can accept, e.g., JSONC), the environments
+// module must report its own coverage rather than mirror the upstream label.
+// The partial state is surfaced as an informational boundary so the consumer
+// can still see it.
+func TestDeclarationsPartialSurfacesAsBoundaryNotStatus(t *testing.T) {
+	in := envInput(map[string]string{"global.json": "// accepted JSONC\n{\"sdk\":{\"version\":\"7.0.100\"}}"}, []Invocation{{"p", "."}})
+	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "global.json", Root: ".", Kind: "dotnet-configuration"}, Parsed: false, Complete: true}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "complete" {
+		t.Fatalf("status: %+v", r)
+	}
+	var found bool
+	for _, b := range r.Boundaries {
+		if b.Reason == "declarations-partial" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no declarations-partial boundary: %+v", r.Boundaries)
+	}
+}
+
+func TestDeclarationsPartialRequirementGapsRemainPartial(t *testing.T) {
+	tests := []struct {
+		name    string
+		report  declarations.Report
+		records []declarations.ProjectRecord
+	}{
+		{
+			name: "omitted manifest",
+			report: declarations.Report{Status: "partial", Coverage: declarations.Coverage{OmittedFiles: 1}, Diagnostics: []declarations.Diagnostic{
+				{Path: ".", Code: "manifest-read-limit", Message: "manifest omitted"},
+			}},
+		},
+		{
+			name: "malformed pyproject",
+			report: declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{
+				{Path: "pyproject.toml", Code: "invalid-python-manifest", Message: "manifest could not be parsed"},
+			}},
+			records: []declarations.ProjectRecord{{Project: declarations.Project{ID: "pyproject.toml", Root: ".", Kind: "python"}, Parsed: false, Complete: true}},
+		},
+		{
+			name:   "unexplained partial",
+			report: declarations.Report{Status: "partial"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := envInput(nil, nil)
+			in.Declarations = tt.report
+			in.ProjectRecords = tt.records
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Status != "partial" || len(r.Requirements) != 0 {
+				t.Fatalf("lost upstream requirements claimed complete coverage: %+v", r)
+			}
+			if len(r.Boundaries) == 0 || r.Boundaries[0].Reason != "declarations-partial" {
+				t.Fatalf("missing upstream coverage boundary: %+v", r.Boundaries)
+			}
+		})
+	}
+}
+
+func TestUnselectedInvalidGlobalJSONDoesNotJustifyCompleteCoverage(t *testing.T) {
+	in := envInput(map[string]string{"global.json": `{"sdk":`}, nil)
+	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.GlobalJSONRead != 0 || len(r.Selections) != 0 {
+		t.Fatalf("unvalidated global.json excused upstream gap: %+v", r)
+	}
+}
+
+func TestJSONCGlobalWithMSBuildSDKsDoesNotExcuseLostRequirements(t *testing.T) {
+	body := "// accepted JSONC\n{\"sdk\":{\"version\":\"8.0.100\"},\"msbuild-sdks\":{\"Example.SDK\":\"1.2.3\"}}"
+	in := envInput(map[string]string{"global.json": body}, []Invocation{{"p", "."}})
+	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "global.json", Root: ".", Kind: "dotnet-configuration"}, Parsed: false, Complete: true}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || len(r.Selections) != 1 || r.Selections[0].SDKVersion != "8.0.100" {
+		t.Fatalf("lost msbuild-sdks requirement claimed complete coverage: %+v", r)
+	}
+	if len(r.Requirements) != 0 {
+		t.Fatalf("unexpected synthesized requirements: %+v", r.Requirements)
+	}
+}
+
+// TestNonDotnetGlobalJSONDoesNotCreateContext covers r100/10 F6: a
+// global.json outside a modeled .NET project (Jekyll `_data/global.json`,
+// Hugo, or any other JSON data file that shares the name) must not attract
+// an environments-side selection or diagnostic. Environments only considers
+// global.json files that projects successfully parsed as a .NET SDK config,
+// or that sit under an ancestor of a parsed dotnet/solution project.
+func TestNonDotnetGlobalJSONDoesNotCreateContext(t *testing.T) {
+	in := envInput(map[string]string{"_data/global.json": `[{"key":"val"},]`}, nil)
+	// Simulate what pkg/projects does with a filename-classified global.json
+	// whose contents are not a .NET SDK document: retained as a
+	// dotnet-configuration record with Parsed=false.
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "_data/global.json", Root: "_data", Kind: "dotnet-configuration"}, Parsed: false, Complete: false}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Selections) != 0 {
+		t.Fatalf("non-.NET global.json created a modeled context: %+v", r.Selections)
+	}
+	for _, d := range r.Diagnostics {
+		if strings.Contains(d.Path, "global.json") {
+			t.Fatalf("non-.NET global.json attracted a diagnostic: %+v", d)
+		}
+	}
+}
+
+// TestGlobalJSONReadErrorContinuePolicy covers r100/10 F1: an unreadable
+// selected global.json under --on-error continue must degrade to a
+// per-path diagnostic and unresolved selection state without aborting
+// the aggregate. The default fail policy still returns a fixed error
+// without leaking the caller's underlying I/O message.
+func TestGlobalJSONReadErrorContinuePolicy(t *testing.T) {
+	in := envInput(map[string]string{"global.json": `{"sdk":{"version":"8.0.100"}}`}, []Invocation{{"p", "."}})
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		return nil, 0, errors.New("secret-source-error")
+	}
+	if _, err := Analyze(context.Background(), in, Limits{}); err == nil {
+		t.Fatal("default policy no longer fails on read error")
+	} else if strings.Contains(err.Error(), "secret") {
+		t.Fatal("caller I/O error leaked")
+	}
+	in.ErrorPolicy = "continue"
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatalf("continue policy returned error: %v", err)
+	}
+	if r.Status != "partial" || len(r.Selections) != 1 || r.Selections[0].State != "unresolved" {
+		t.Fatalf("selection not unresolved: %+v", r)
+	}
+	var found bool
+	for _, d := range r.Diagnostics {
+		if d.Code == "file-read-error" && d.Path == "global.json" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("no file-read-error diagnostic: %+v", r.Diagnostics)
+	}
+}
+
+func TestGlobalJSONContinueDoesNotSwallowReaderCancellation(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		in := envInput(map[string]string{"global.json": `{"sdk":{"version":"8.0.100"}}`}, []Invocation{{"p", "."}})
+		in.ErrorPolicy = "continue"
+		in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+			return nil, 0, fmt.Errorf("selected reader stopped: %w", want)
+		}
+		if _, err := Analyze(context.Background(), in, Limits{}); !errors.Is(err, want) {
+			t.Fatalf("continue swallowed %v: %v", want, err)
+		}
+	}
+}
+
+func TestGlobalJSONReadErrorIsCachedAcrossContexts(t *testing.T) {
+	contents := `{"sdk":{"version":"8.0.100"}}`
+	in := envInput(map[string]string{"global.json": contents}, []Invocation{{"a", "src/a"}, {"b", "src/b"}})
+	in.ErrorPolicy = "continue"
+	reads := 0
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		reads++
+		if reads == 1 {
+			return nil, 0, errors.New("transient selected-source failure")
+		}
+		return []byte(contents), int64(len(contents)), nil
+	}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads != 1 {
+		t.Fatalf("selected global.json read %d times", reads)
+	}
+	if len(r.Selections) != 2 || r.Selections[0].State != "unresolved" || r.Selections[1].State != "unresolved" {
+		t.Fatalf("contexts observed inconsistent source states: %+v", r.Selections)
+	}
+	if len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "file-read-error" {
+		t.Fatalf("read failure diagnostics not deduplicated: %+v", r.Diagnostics)
+	}
+	if r.Coverage.OmittedFiles != 1 || r.Coverage.GlobalJSONCandidates != 2 || r.Coverage.GlobalJSONRead != 0 {
+		t.Fatalf("read omission coverage: %+v", r.Coverage)
 	}
 }

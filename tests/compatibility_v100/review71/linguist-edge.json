@@ -1,0 +1,1180 @@
+{
+  "provenance": {
+    "reference_image": "dircue-linguist:9.7.0",
+    "reference_version": "9.7.0",
+    "image_inspect": "{\"Id\":\"sha256:f67c429e2b22c0c9691c9e16cceeeee9f2033486b451f5dc0f4278a1783f742c\",\"RepoTags\":[\"auragaze-linguist:9.7.0\",\"dircue-linguist:9.7.0\"],\"RepoDigests\":[],\"Parent\":\"\",\"Comment\":\"buildkit.dockerfile.v0\",\"Created\":\"2026-09-07T15:20:07.68903301Z\",\"Container\":\"\",\"ContainerConfig\":{\"Hostname\":\"\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":null,\"Cmd\":null,\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"DockerVersion\":\"\",\"Author\":\"\",\"Config\":{\"Hostname\":\"\",\"Domainname\":\"\",\"User\":\"\",\"AttachStdin\":false,\"AttachStdout\":false,\"AttachStderr\":false,\"Tty\":false,\"OpenStdin\":false,\"StdinOnce\":false,\"Env\":[\"PATH=/usr/local/bundle/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin\",\"LANG=C.UTF-8\",\"RUBY_VERSION=3.3.9\",\"RUBY_DOWNLOAD_URL=https://cache.ruby-lang.org/pub/ruby/3.3/ruby-3.3.9.tar.xz\",\"RUBY_DOWNLOAD_SHA256=2b24a2180a2f7f63c099851a1d01e6928cf56d515d136a91bd2075423a7a76bb\",\"GEM_HOME=/usr/local/bundle\",\"BUNDLE_SILENCE_ROOT_WARNING=1\",\"BUNDLE_APP_CONFIG=/usr/local/bundle\"],\"Cmd\":[\"irb\"],\"Image\":\"\",\"Volumes\":null,\"WorkingDir\":\"/workspace\",\"Entrypoint\":null,\"OnBuild\":null,\"Labels\":null},\"Architecture\":\"arm64\",\"Variant\":\"v8\",\"Os\":\"linux\",\"Size\":1121560900,\"VirtualSize\":1121560900,\"GraphDriver\":{\"Data\":{\"LowerDir\":\"/var/lib/docker/overlay2/837iod3243i42jgoj4435chyp/diff:/var/lib/docker/overlay2/2tix88xmy0deh5pzkpwct82gl/diff:/var/lib/docker/overlay2/suh3k4w53ujb72453uptcgc3y/diff:/var/lib/docker/overlay2/g9andg1xbh75tp226mzxy1jrb/diff:/var/lib/docker/overlay2/705a162dd4d347b7abc98bbb96699fffbd3000c1024cbcebabedbd026c3f8c18/diff:/var/lib/docker/overlay2/ffb803513d9ad56ce94dba95a7ea052cb5310435cf907e22288c57166ec17639/diff:/var/lib/docker/overlay2/2210541090c451f6cef7198bb350199d76533940c03065b4e34d7af5334b5c84/diff:/var/lib/docker/overlay2/22290af2fde44503dc6516051ee4410bddc6ea50d7b7cb909a05c2a7b71c6ee9/diff:/var/lib/docker/overlay2/7ec77b2f1b24adcc8982e807bf7b1f47807cf366c89a5e632da3c581014bc87f/diff:/var/lib/docker/overlay2/4167b635ed7b403e696f7f43e64c12a941489ecc69b29a680e45ca05c013b3d5/diff:/var/lib/docker/overlay2/aed40d4d7d6bb27a25aa0a0779b2bb8ed9fc0108fba19bb300890b8e23efcaa5/diff\",\"MergedDir\":\"/var/lib/docker/overlay2/f31i3qrrdx4oiqwteuv63vlko/merged\",\"UpperDir\":\"/var/lib/docker/overlay2/f31i3qrrdx4oiqwteuv63vlko/diff\",\"WorkDir\":\"/var/lib/docker/overlay2/f31i3qrrdx4oiqwteuv63vlko/work\"},\"Name\":\"overlay2\"},\"RootFS\":{\"Type\":\"layers\",\"Layers\":[\"sha256:7867c47cc78383afc9a41388aed9ffc25d29090ffddcd5fc6fa1ea4b5c4791b0\",\"sha256:5278781a0fce08408f01df2945f559c23657c2379c080df2049f593f82a2c112\",\"sha256:043aa9bd5ad59c29ed55e601ca80c7a1ec159a49f5c00e8ca2cb5489464ae017\",\"sha256:2286b2d6b6cedb81e592e5f57d9b693da33e92fa05ae9002a7ff3caee436d5a3\",\"sha256:021f7c7269c7e8fe70cdec882133e426d56cceb997625cb25c0c403fdfa9b4f8\",\"sha256:21288aea24952a17d6c9bac9f18179ba9958fb996ff22b443f58e623aef3a21a\",\"sha256:d5c8e240ee364953c3080baa731f04f9e2eb16bee24938e00d4a5377631dc4da\",\"sha256:ce9f86ee7a6370e2ff1c90e5d9b36370637421ff3aadc089cee61f2ed99decd5\",\"sha256:a868d3c4cff5daff3e0a70e82b4d5ab5ae70871eb6c43486165283b00ad63c23\",\"sha256:ad597813fa500bdfc939d29ed74c1e451766ccd183e01952a41f8248c4e33361\",\"sha256:38560cb9721a94d811055dbd99d3fe4c38cf31274e722d7945b8907bdf674062\",\"sha256:3c3e60ae208e314438a1f70bb15460acca3ab211353b43d557d9238c544b813f\"]},\"Metadata\":{\"LastTagTime\":\"2026-09-08T13:11:37.123142545Z\"}}\n",
+    "reference_gems": "abbrev (default: 0.1.2)\nbase64 (default: 0.2.0)\nbenchmark (default: 0.3.0)\nbigdecimal (default: 3.1.5)\nbundler (default: 2.5.22)\ncgi (default: 0.4.2)\ncharlock_holmes (0.7.9)\ncsv (default: 3.2.8)\ndate (default: 3.3.4)\ndebug (1.9.2)\ndelegate (default: 0.3.1)\ndid_you_mean (default: 1.6.3)\ndigest (default: 3.1.1)\ndrb (default: 2.2.0)\nenglish (default: 0.8.0)\nerb (default: 4.0.3)\nerror_highlight (default: 0.6.0)\netc (default: 1.4.3)\nfcntl (default: 1.1.0)\nfiddle (default: 1.1.2)\nfileutils (default: 1.7.2)\nfind (default: 0.2.0)\nforwardable (default: 1.3.3)\ngetoptlong (default: 0.2.1)\ngithub-linguist (9.7.0)\nio-console (default: 0.7.1)\nio-nonblock (default: 0.3.0)\nio-wait (default: 0.3.1)\nipaddr (default: 1.2.6)\nirb (default: 1.13.1)\njson (default: 2.7.2)\nlogger (default: 1.6.0)\nmatrix (0.4.2)\nmini_mime (1.1.5)\nminitest (5.20.0)\nmutex_m (default: 0.2.0)\nnet-ftp (0.3.4)\nnet-http (default: 0.4.1)\nnet-imap (0.4.21)\nnet-pop (0.1.2)\nnet-protocol (default: 0.2.2)\nnet-smtp (0.5.1)\nnkf (default: 0.1.3)\nobserver (default: 0.1.2)\nopen-uri (default: 0.4.1)\nopen3 (default: 0.2.1)\nopenssl (default: 3.2.0)\noptparse (default: 0.4.0)\nostruct (default: 0.6.0)\npathname (default: 0.3.0)\npower_assert (2.0.3)\npp (default: 0.5.0)\nprettyprint (default: 0.2.0)\nprime (0.1.2)\nprism (default: 0.19.0)\npstore (default: 0.1.3)\npsych (default: 5.1.2)\nracc (1.7.3)\nrake (13.1.0)\nrbs (3.4.0)\nrdoc (default: 6.6.3.1)\nreadline (default: 0.0.4)\nreline (default: 0.5.10)\nresolv (default: 0.3.1)\nresolv-replace (default: 0.1.1)\nrexml (3.3.9)\nrinda (default: 0.2.0)\nrss (0.3.1)\nruby2_keywords (default: 0.0.5)\nrugged (1.9.6)\nsecurerandom (default: 0.3.1)\nset (default: 1.1.0)\nshellwords (default: 0.2.0)\nsingleton (default: 0.2.0)\nstringio (default: 3.1.1)\nstrscan (default: 3.0.9)\nsyntax_suggest (default: 2.0.1)\nsyslog (default: 0.1.2)\ntempfile (default: 0.2.1)\ntest-unit (3.6.1)\ntime (default: 0.3.0)\ntimeout (default: 0.4.1)\ntmpdir (default: 0.2.0)\ntsort (default: 0.2.0)\ntypeprof (0.21.9)\nun (default: 0.3.0)\nuri (default: 0.13.2)\nweakref (default: 0.1.3)\nyaml (default: 0.3.0)\nzlib (default: 3.1.1)\n",
+    "go_version": "go version go1.26.6 darwin/arm64",
+    "auragaze_git_head": "2c093c26caad6c8f42ec947bb525da1454f4f481",
+    "auragaze_worktree_state": {
+      "exit_code": 0,
+      "dirty": true,
+      "porcelain": " M README.md\n M tests/ergonomics_v100/tools/capture_inventory.py\n"
+    },
+    "auragaze_binary_sha256": "aa09050248dc700b95138df4d1311aba8fc1173eb49c378f2a158e097273aed9",
+    "generator_sha256": "7784d315ad67bdc9b635e6e9d981c8ce4455e9bd9dd2d49f7749860fde006de7",
+    "fixture_cases": [
+      {
+        "id": "single-files",
+        "category": "files",
+        "requirement": "MUST",
+        "target": ".",
+        "head": "287a8a296ed2c831f3b8a9f5338b89a13ae32a69",
+        "fixture_sha256": "c7885874c14cc30371f107b44c306a4bb327eb013893e3275d9b10e881af5893"
+      },
+      {
+        "id": "nested-tree-size",
+        "category": "git",
+        "requirement": "MUST",
+        "target": ".",
+        "head": "55368cdcf27a152788faeeb8f517903acf4fa194",
+        "fixture_sha256": "bb12b07fc10e85573835f888ff6b5f00518847a9889f997d6f7824c4d69a1229"
+      }
+    ],
+    "unix_time": 1790100164.457155
+  },
+  "summary": {
+    "total": 47,
+    "passed": 47,
+    "failed": 0,
+    "expected_failures": 0
+  },
+  "results": [
+    {
+      "id": "single-files/json-breakdown",
+      "category": "files",
+      "requirement": "MUST",
+      "case": "single-files",
+      "target": ".",
+      "mode": "json-breakdown",
+      "flags": [
+        "--breakdown",
+        "--json"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]},\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]},\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "single-files/json",
+      "category": "files",
+      "requirement": "MUST",
+      "case": "single-files",
+      "target": ".",
+      "mode": "json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Python\":{\"size\":106,\"percentage\":\"57.30\"},\"Go\":{\"size\":29,\"percentage\":\"15.68\"},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\"}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"15.68\"},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\"},\"Python\":{\"size\":106,\"percentage\":\"57.30\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "single-files/text",
+      "category": "files",
+      "requirement": "MUST",
+      "case": "single-files",
+      "target": ".",
+      "mode": "text",
+      "flags": [],
+      "json": false,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "57.30%  106        Python\n27.03%  50         JavaScript\n15.68%  29         Go\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "57.30%  106        Python\n27.03%  50         JavaScript\n15.68%  29         Go\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "single-files/text-breakdown",
+      "category": "files",
+      "requirement": "MUST",
+      "case": "single-files",
+      "target": ".",
+      "mode": "text-breakdown",
+      "flags": [
+        "--breakdown"
+      ],
+      "json": false,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "57.30%  106        Python\n27.03%  50         JavaScript\n15.68%  29         Go\n\nPython:\n  crlf.py\n  main.py\n  utf16.py\n  utf32.py\n\nGo:\n  main.go\n\nJavaScript:\n  main.js\n\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "57.30%  106        Python\n27.03%  50         JavaScript\n15.68%  29         Go\n\nPython:\n  crlf.py\n  main.py\n  utf16.py\n  utf32.py\n\nGo:\n  main.go\n\nJavaScript:\n  main.js\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "single-files/short-flags",
+      "category": "files",
+      "requirement": "MUST",
+      "case": "single-files",
+      "target": ".",
+      "mode": "short-flags",
+      "flags": [
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]},\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]},\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "nested-tree-size/json-breakdown",
+      "category": "git",
+      "requirement": "MUST",
+      "case": "nested-tree-size",
+      "target": ".",
+      "mode": "json-breakdown",
+      "flags": [
+        "--breakdown",
+        "--json"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "nested-tree-size/json",
+      "category": "git",
+      "requirement": "MUST",
+      "case": "nested-tree-size",
+      "target": ".",
+      "mode": "json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\"},\"Python\":{\"size\":39,\"percentage\":\"57.35\"}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\"},\"Python\":{\"size\":39,\"percentage\":\"57.35\"}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "nested-tree-size/text",
+      "category": "git",
+      "requirement": "MUST",
+      "case": "nested-tree-size",
+      "target": ".",
+      "mode": "text",
+      "flags": [],
+      "json": false,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "57.35%  39         Python\n42.65%  29         Go\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "57.35%  39         Python\n42.65%  29         Go\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "nested-tree-size/text-breakdown",
+      "category": "git",
+      "requirement": "MUST",
+      "case": "nested-tree-size",
+      "target": ".",
+      "mode": "text-breakdown",
+      "flags": [
+        "--breakdown"
+      ],
+      "json": false,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "57.35%  39         Python\n42.65%  29         Go\n\nGo:\n  a.go\n\nPython:\n  sub/b.py\n\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "57.35%  39         Python\n42.65%  29         Go\n\nGo:\n  a.go\n\nPython:\n  sub/b.py\n\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "nested-tree-size/short-flags",
+      "category": "git",
+      "requirement": "MUST",
+      "case": "nested-tree-size",
+      "target": ".",
+      "mode": "short-flags",
+      "flags": [
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/tree-size-zero-file",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.py",
+      "mode": "file-json",
+      "flags": [
+        "--tree-size=0",
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"main.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"main.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.go/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.go",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"main.go\":{\"lines\":3,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"Go\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"main.go\":{\"lines\":3,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/plain\",\"language\":\"Go\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.go/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.go",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.go: 3 lines (2 sloc)\n  type:      Text\n  mime type: text/plain\n  language:  Go\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.go: 3 lines (2 sloc)\n  type:      Text\n  mime type: text/plain\n  language:  Go\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.go/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.go",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.go: 3 lines (2 sloc)\n  type:      Text\n  mime type: text/plain\n  language:  Go\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.go: 3 lines (2 sloc)\n  type:      Text\n  mime type: text/plain\n  language:  Go\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.py/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.py",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"main.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"main.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.py/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.py",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.py/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.py",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.js/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.js",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"main.js\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/javascript\",\"language\":\"JavaScript\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"main.js\":{\"lines\":2,\"sloc\":2,\"type\":\"Text\",\"mime_type\":\"text/javascript\",\"language\":\"JavaScript\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.js/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.js",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.js: 2 lines (2 sloc)\n  type:      Text\n  mime type: text/javascript\n  language:  JavaScript\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.js: 2 lines (2 sloc)\n  type:      Text\n  mime type: text/javascript\n  language:  JavaScript\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/main.js/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "main.js",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "main.js: 2 lines (2 sloc)\n  type:      Text\n  mime type: text/javascript\n  language:  JavaScript\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "main.js: 2 lines (2 sloc)\n  type:      Text\n  mime type: text/javascript\n  language:  JavaScript\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/README.md/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "README.md",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"README.md\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/markdown\",\"language\":\"Markdown\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"README.md\":{\"lines\":1,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"text/markdown\",\"language\":\"Markdown\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/README.md/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "README.md",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "README.md: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/markdown\n  language:  Markdown\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "README.md: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/markdown\n  language:  Markdown\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/README.md/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "README.md",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "README.md: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/markdown\n  language:  Markdown\n  strategy:  Heuristics\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "README.md: 1 lines (1 sloc)\n  type:      Text\n  mime type: text/markdown\n  language:  Markdown\n  strategy:  Heuristics\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/empty.py/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "empty.py",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"empty.py\":{\"lines\":0,\"sloc\":0,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"empty.py\":{\"lines\":0,\"sloc\":0,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/empty.py/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "empty.py",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "empty.py: 0 lines (0 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "empty.py: 0 lines (0 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/empty.py/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "empty.py",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "empty.py: 0 lines (0 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "empty.py: 0 lines (0 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/crlf.py/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "crlf.py",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"crlf.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"crlf.py\":{\"lines\":4,\"sloc\":3,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/crlf.py/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "crlf.py",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "crlf.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "crlf.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/crlf.py/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "crlf.py",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "crlf.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "crlf.py: 4 lines (3 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf16.py/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf16.py",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"utf16.py\":{\"lines\":3,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"utf16.py\":{\"lines\":3,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf16.py/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf16.py",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "utf16.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "utf16.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf16.py/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf16.py",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "utf16.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "utf16.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf32.py/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf32.py",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"utf32.py\":{\"lines\":3,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"utf32.py\":{\"lines\":3,\"sloc\":1,\"type\":\"Text\",\"mime_type\":\"application/x-python\",\"language\":\"Python\",\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf32.py/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf32.py",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "utf32.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "utf32.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/utf32.py/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "utf32.py",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "utf32.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "utf32.py: 3 lines (1 sloc)\n  type:      Text\n  mime type: application/x-python\n  language:  Python\n  strategy:  Extension\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/binary.png/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "binary.png",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"binary.png\":{\"lines\":0,\"sloc\":0,\"type\":\"Image\",\"mime_type\":\"image/png\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"binary.png\":{\"lines\":0,\"sloc\":0,\"type\":\"Image\",\"mime_type\":\"image/png\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/binary.png/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "binary.png",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "binary.png: 0 lines (0 sloc)\n  type:      Image\n  mime type: image/png\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "binary.png: 0 lines (0 sloc)\n  type:      Image\n  mime type: image/png\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/binary.png/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "binary.png",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "binary.png: 0 lines (0 sloc)\n  type:      Image\n  mime type: image/png\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "binary.png: 0 lines (0 sloc)\n  type:      Image\n  mime type: image/png\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/late-nul.rtf/file-json",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "late-nul.rtf",
+      "mode": "file-json",
+      "flags": [
+        "--json"
+      ],
+      "json": true,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"late-nul.rtf\":{\"lines\":0,\"sloc\":0,\"type\":\"Binary\",\"mime_type\":\"application/rtf\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"late-nul.rtf\":{\"lines\":0,\"sloc\":0,\"type\":\"Binary\",\"mime_type\":\"application/rtf\",\"language\":null,\"large\":false,\"generated\":false,\"vendored\":false}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/late-nul.rtf/file-text",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "late-nul.rtf",
+      "mode": "file-text",
+      "flags": [],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "late-nul.rtf: 0 lines (0 sloc)\n  type:      Binary\n  mime type: application/rtf\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "late-nul.rtf: 0 lines (0 sloc)\n  type:      Binary\n  mime type: application/rtf\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "single-files",
+      "id": "single-files/late-nul.rtf/file-strategies",
+      "category": "single-files",
+      "requirement": "MUST",
+      "target": "late-nul.rtf",
+      "mode": "file-strategies",
+      "flags": [
+        "--strategies"
+      ],
+      "json": false,
+      "relative": true,
+      "status": "PASS",
+      "comparison": "exact stdout bytes",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "late-nul.rtf: 0 lines (0 sloc)\n  type:      Binary\n  mime type: application/rtf\n  language:  \n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "late-nul.rtf: 0 lines (0 sloc)\n  type:      Binary\n  mime type: application/rtf\n  language:  \n",
+        "stderr": ""
+      }
+    },
+    {
+      "case": "nested-tree-size",
+      "id": "nested-tree-size/tree-size--1",
+      "category": "cli-options",
+      "requirement": "MUST",
+      "target": ".",
+      "mode": "tree-size",
+      "flags": [
+        "--tree-size=-1",
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 1 entries; language analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "case": "nested-tree-size",
+      "id": "nested-tree-size/tree-size-0",
+      "category": "cli-options",
+      "requirement": "MUST",
+      "target": ".",
+      "mode": "tree-size",
+      "flags": [
+        "--tree-size=0",
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 1 entries; language analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "case": "nested-tree-size",
+      "id": "nested-tree-size/tree-size-1",
+      "category": "cli-options",
+      "requirement": "MUST",
+      "target": ".",
+      "mode": "tree-size",
+      "flags": [
+        "--tree-size=1",
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 1 entries; language analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "case": "nested-tree-size",
+      "id": "nested-tree-size/tree-size-2",
+      "category": "cli-options",
+      "requirement": "MUST",
+      "target": ".",
+      "mode": "tree-size",
+      "flags": [
+        "--tree-size=2",
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{}\n",
+        "stderr": "warning: .: Git tree has at least 2 entries; language analysis omitted (tree_size_limit)\n"
+      }
+    },
+    {
+      "case": "nested-tree-size",
+      "id": "nested-tree-size/tree-size-3",
+      "category": "cli-options",
+      "requirement": "MUST",
+      "target": ".",
+      "mode": "tree-size",
+      "flags": [
+        "--tree-size=3",
+        "-bj"
+      ],
+      "json": true,
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"42.65\",\"files\":[\"a.go\"]},\"Python\":{\"size\":39,\"percentage\":\"57.35\",\"files\":[\"sub/b.py\"]}}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "id": "single-files/flat-extension",
+      "category": "flat-extension",
+      "requirement": "MUST",
+      "status": "PASS",
+      "comparison": "JSON keys, sizes, percentage strings, and file sets",
+      "reference": {
+        "exit_code": 0,
+        "stdout": "{\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]},\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]}}\n",
+        "stderr": ""
+      },
+      "actual": {
+        "exit_code": 0,
+        "stdout": "{\"Go\":{\"size\":29,\"percentage\":\"15.68\",\"files\":[\"main.go\"]},\"JavaScript\":{\"size\":50,\"percentage\":\"27.03\",\"files\":[\"main.js\"]},\"Python\":{\"size\":106,\"percentage\":\"57.30\",\"files\":[\"crlf.py\",\"main.py\",\"utf16.py\",\"utf32.py\"]}}\n",
+        "stderr": ""
+      }
+    }
+  ]
+}

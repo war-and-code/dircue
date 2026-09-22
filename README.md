@@ -2,13 +2,89 @@
 
 Profile source code repos and other directories of computer content.
 
-Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files, without running their build scripts.
+Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. Profiling is offline and does not run project build scripts. Optional structural analysis invokes a worker explicitly selected by the caller.
 
-Our [design principles](docs/DESIGN_PRINCIPLES.md) guide defaults, user control, evidence quality, compatibility, and performance tradeoffs.
+The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [1.0 compatibility promise](docs/COMPATIBILITY.md). What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 
-Dircue 0.8.0 adds [declared environment requirements](docs/ENVIRONMENTS.md), [saved-report follow-up planning](docs/PLANNING.md), and [comparison of focused and source-availability reports](docs/COMPARISON.md). Use a lightweight first pass to plan further inspection, or examine project requirements without running a build. These capabilities are explicitly selected; existing language commands keep their output contracts.
+## Quick example
 
-The existing profilers cover metadata discovery, [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, package/configuration observations, caller-supplied rules, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+For a small checkout containing two Go source files and a module declaration:
+
+```sh
+$ dircue --json .
+{"Go":{"size":77,"percentage":"100.00"}}
+
+$ dircue --breakdown .
+100.00% 77         Go
+
+Go:
+  cmd/main.go
+  internal/lib.go
+
+$ dircue analyze all --json . > profile.json
+$ head -n 12 profile.json
+{
+  "schema_version": "1.0.0",
+  "root": "/path/to/checkout",
+  "summary": {
+    "scanned_files": 3,
+    "analyzed_files": 3,
+    "skipped_files": 0,
+    "language_bytes": 77
+  },
+  "languages": [
+    {
+```
+
+Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
+
+## Install
+
+The 1.0.0 release ships platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes.
+
+```sh
+# Release archive + checksum verification (Linux amd64 shown; substitute your platform)
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue_1.0.0_linux_amd64.tar.gz
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
+sha256sum -c SHA256SUMS --ignore-missing
+tar -xzf dircue_1.0.0_linux_amd64.tar.gz
+mkdir -p "$HOME/.local/bin"
+install -m 755 dircue "$HOME/.local/bin/dircue"
+
+# Go toolchain: build from a clone. `go install dircue@version` is not supported,
+# because go.mod carries replace directives for the maintained Enry and go-git forks.
+git clone --branch v1.0.0 --depth 1 https://github.com/war-and-code/dircue.git
+cd dircue
+make build VERSION=1.0.0
+mkdir -p "$HOME/.local/bin"
+install -m 755 bin/dircue "$HOME/.local/bin/dircue"
+
+# Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
+uvx --from \
+  https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
+  dircue --breakdown --json /path/to/checkout
+```
+
+The [distribution guide](docs/DISTRIBUTION.md) covers the full archive/wheel matrix, offline installation, and how to build a local archive from source without publishing. The optional structural worker is packaged separately; see the [worker guide](docs/STRUCTURE.md#building-the-add-on).
+
+Building from source needs **Go 1.26.6** (the version pinned in `go.mod`; release archives are produced with exactly this toolchain):
+
+```sh
+CGO_ENABLED=0 go build -trimpath -o bin/dircue .
+./bin/dircue --breakdown --json /path/to/checkout
+```
+
+## Compatibility promise
+
+Version 1.0 establishes the documented CLI, report shapes, and exit-status contract for the 1.x line. Language data and analysis findings can evolve; compatibility concerns how callers invoke dircue and interpret its reports. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full list of what's covered and what deliberately isn't.
+
+## License
+
+[MIT](LICENSE). Third-party components retain their own licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## What dircue observes
+
+Language detection uses a maintained Enry fork with compatibility tests against [GitHub Linguist](https://github.com/github-linguist/linguist). Dircue also identifies supported ecosystems, frameworks, and layouts. Optional modules add [metadata discovery](docs/DISCOVERY.md), [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, [environment requirements](docs/ENVIRONMENTS.md), [source-availability evidence](docs/AVAILABILITY.md), [focused project profiling](docs/FOCUS.md), [format evidence](docs/FORMATS.md), [package-source declarations](docs/REGISTRIES.md), caller-supplied rules, Syft package-evidence import, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout
@@ -26,30 +102,6 @@ dircue --breakdown --json /path/to/checkout
 dircue capabilities --json
 dircue plan saved-profile.json --module declarations --json
 ```
-
-The repository is currently private, and PyPI publication is deferred. Authenticated repository users can download the [latest release archives and wheels](https://github.com/war-and-code/dircue/releases/latest). A [distribution guide](docs/DISTRIBUTION.md) covers GitHub Releases, PyPI, and offline installation.
-
-## Quick start
-
-Published archives use exactly Go 1.26.6. Release toolchain changes require coordinated provenance updates; see [release automation](docs/RELEASE_AUTOMATION.md#toolchain-identity).
-
-Build locally with **Go 1.26.6 or newer**, since that includes security fixes required by the filesystem boundary. Language profiling, project mapping, declarations, format evidence, saved-report comparison, and scc metrics need only the binary for their OS and architecture. Structural analysis additionally needs its matching native worker.
-
-```sh
-CGO_ENABLED=0 go build -trimpath -o bin/dircue .
-./bin/dircue --breakdown --json /path/to/checkout
-```
-
-On Unix, install the binary into a directory on `PATH`, then call it directly:
-
-```sh
-mkdir -p "$HOME/.local/bin"
-install -m 755 bin/dircue "$HOME/.local/bin/dircue"
-export PATH="$HOME/.local/bin:$PATH"
-dircue --breakdown --json /path/to/checkout
-```
-
-Use `go run .` during development and the built binary for repeated or automated runs.
 
 ## Help without leaving the CLI
 
@@ -131,6 +183,8 @@ The [verification section](#verification) links these measurements, the separate
 
 An initialized repository without commits falls back to directory analysis in auto mode. A requested subdirectory beneath a repository is scanned as that filesystem subtree. These cases extend Ruby Linguist, which requires a usable repository at the supplied directory path.
 
+In auto mode, a **bare** repository, an **unborn** repository (no branch refs yet), or a corrupted-enough-to-be-unusable Git directory also falls back to directory analysis. The legacy language JSON does not carry a `source` field, so this fallback is silent on the Linguist-compatible surface today (see [known boundaries](docs/COMPATIBILITY.md#known-boundaries-at-10)); the extended `analyze all` report's `discovery.source` field records the effective mode. Use `--source git` to require a Git repository — the run fails explicitly if it cannot select a committed tree.
+
 ```sh
 dircue /checkout --json
 dircue --rev HEAD~1 --breakdown /checkout
@@ -153,7 +207,7 @@ Flags can appear before or after the path. With no path, the current directory i
 | `--on-error fail\|continue` | Fail on per-file read errors by default; opt into explicit partial results for recoverable reads. |
 | `-r`, `--rev REV` | Select a Git revision for directory statistics; default `HEAD`. |
 | `-t`, `--tree-size N` | Return empty statistics with a warning when the tree reaches this entry count; default 100,000. |
-| `--source auto\|git\|directory` | Select the content source; default `auto`. |
+| `--source auto\|git\|directory` | Select the content source; default `auto`. `auto` uses committed Git content when a usable repository is present and falls back to directory content otherwise, including for bare and unborn repositories (see [Content selection](#content-selection)). Use `git` to require a Git tree. |
 | `--workers N` | Use 1–1024 file workers. Zero selects the smaller of GOMAXPROCS and 16. |
 | `--max-file-bytes N` | Skip files larger than N bytes, with a warning. Zero disables this optional limit. |
 | `-v`, `--version` | Print the version. |
@@ -280,11 +334,13 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 
 ## Docker and release artifacts
 
+Build a local image from the tagged source and run it with the network denied and the source mounted read-only:
+
 ```sh
-docker build --build-arg VERSION=0.8.0 -t dircue:0.8.0 .
+docker build --build-arg VERSION=1.0.0 -t dircue:1.0.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.8.0 --breakdown --json /repo
+  dircue:1.0.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -292,17 +348,17 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.8.0 --output dist/release-0.8.0
-python3 scripts/wheels.py --release-dir dist/release-0.8.0 --output dist/wheels-0.8.0
+python3 scripts/release.py --version 1.0.0 --output dist/release-1.0.0
+python3 scripts/wheels.py --release-dir dist/release-1.0.0 --output dist/wheels-1.0.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
 
-## GitHub Releases and PyPI
+## GitHub Releases
 
-GitHub Releases provide binaries and wheels. uv can install a compatible wheel from a local file or a GitHub Release URL; see the [distribution guide](docs/DISTRIBUTION.md) for authentication, offline use, and platform requirements.
+GitHub Releases provide the standalone archives, wheels, checksums, and build provenance for each tagged version. `uv` can install a compatible wheel from a local file or a GitHub Release URL; the wheel's launcher only invokes the bundled Go binary and does not download anything at runtime. See the [distribution guide](docs/DISTRIBUTION.md) for the platform matrix, offline use, and authentication for private or draft assets.
 
-PyPI publication is deferred. Package-name commands such as `uvx dircue@0.8.0` and `uv tool install 'dircue==0.8.0'` will work only after that version is published to the configured package index.
+The 1.0.0 release does not include a PyPI publication step. If a future release adds one, its CHANGELOG entry will announce it and the distribution guide will document the `uvx dircue@<version>` and `uv tool install 'dircue==<version>'` commands.
 
 ## Troubleshooting
 
@@ -312,7 +368,7 @@ PyPI publication is deferred. Package-name commands such as `uvx dircue@0.8.0` a
 | Recent edits are missing from the report | Repository roots use committed `HEAD`. Use `--source directory` to inspect working files. |
 | A large repository returns empty language statistics | Check stderr for the tree-size warning and set `--tree-size` above the entry count. |
 | Docker cannot read mounted source | Check file permissions and use `--user` to select a suitable UID/GID. |
-| uv cannot find dircue on PyPI | Public packages are not yet available. Use a local compatible wheel as described in the [distribution guide](docs/DISTRIBUTION.md). |
+| uv cannot find dircue on PyPI | The 1.0.0 release does not publish to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
 
@@ -361,11 +417,11 @@ These checks establish behavior for the recorded inputs. Re-run the comparison w
 
 ## Contributions
 
-GitHub Issues are welcome. The project does not currently accept outside pull requests or larger contributions. Please submit bug reports and proposals through [Issues](https://github.com/war-and-code/dircue/issues).
+Bug reports and design proposals go through [GitHub Issues](https://github.com/war-and-code/dircue/issues) with the templates the repository ships. Pull requests are welcome after prior discussion in an issue. See [CONTRIBUTING.md](CONTRIBUTING.md) for the review expectations and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 For a classification mismatch, include the dircue version, command, expected result, and a small reproducible example you can share.
 
-## License
+## Full license notice
 
 [MIT](LICENSE). The maintained Enry fork retains Apache-2.0 licensing and Linguist's MIT data notices. The scc library uses the MIT license. [Third-party notices](THIRD_PARTY_NOTICES.md) cover the Go executable and embedded MIME database. The optional structural worker includes BCA under MPL-2.0 and Tree-sitter and grammar dependencies under their respective licenses; its separate archive includes dependency sources, licenses, and provenance. See [worker redistribution](docs/STRUCTURE.md#dependencies-and-redistribution).
 

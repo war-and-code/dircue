@@ -57,3 +57,28 @@ Remaining Spring allocation is now dominated by `MemoryObject.Write` (977.58 MB,
 The frozen baseline and pure cache candidate remain available in the ignored cache. Rollback is the scanner cache activation/lifetime commit; retain the independent maintained-fork close-on-insertion-error correctness fix. Integration with the new CLI and schemas is validated separately by the main preparation workflow. This evidence supports a draft PR and external review, not release approval.
 
 The accepted runtime change is commit `3b9c1c5`; prerequisite fork cleanup is `df1b8cb`. `candidate-scanner-build-clarification.json` identifies an inherited CLI build-info field in the original scanner receipt and supplies the actual scanner build metadata without rewriting the receipt hashed by the profiles. The scanner binary hash, build command and source delta were correct in the original receipt.
+
+## Directory proposals rejected during review
+
+PR #71 proposed combining the tree-size preflight with content scanning and
+removing the per-file `Lstat`. Neither proposal is included in the reviewed
+candidate. The bounded Git cache experiment above is unaffected.
+
+The streaming walk could encounter an unreadable `.gitattributes` or a collector
+failure before discovering that a directory exceeded the tree limit. It could
+also run detectors or structural workers on a tree that the existing preflight
+would omit without reading content. Preserving this boundary requires more than
+discarding the final partial report. The metadata preflight is retained, with
+regressions for unreadable attributes and zero detector calls on oversized trees.
+
+The read optimization assumed that `os.Root.OpenFile` with `O_NOFOLLOW` would
+reject a final symlink. An independent test on macOS showed that a symlink to a
+regular file inside the root was read successfully. The proposed tests used a
+symlink to a FIFO, so descriptor type checking masked this case. Windows also
+lacked an equivalent no-follow check. The prior `Lstat` is retained, with a
+platform-neutral symlink-to-regular-file regression. This restores the prior
+checks; it does not make a live directory an immutable snapshot or eliminate
+every possible change between a path check and open.
+
+The proposed directory speedup figures therefore do not describe the accepted
+implementation and are not included in release performance claims.
