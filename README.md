@@ -421,7 +421,7 @@ These checks establish behavior for the recorded inputs. Re-run the comparison w
 
 ## Contributions
 
-Bug reports and design proposals go through [GitHub Issues](https://github.com/war-and-code/dircue/issues) with the templates the repository ships. Pull requests are welcome after prior discussion in an issue. See [CONTRIBUTING.md](CONTRIBUTING.md) for the review expectations and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+Bug reports and design proposals go through [GitHub Issues](https://github.com/war-and-code/dircue/issues) with the templates the repository ships. Outside pull requests are not accepted at present. See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting guidance and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 For a classification mismatch, include the dircue version, command, expected result, and a small reproducible example you can share.
 
