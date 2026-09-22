@@ -72,6 +72,41 @@ func TestCompareCLIOfflineChangesReturnSuccess(t *testing.T) {
 	}
 }
 
+func TestComparisonTextShowsCompositeIdentityWithoutChangingJSONID(t *testing.T) {
+	const key = "4:Java8:core:api2:./8:detector"
+	report := &reportdiff.Report{
+		Status: "complete",
+		Modules: []reportdiff.Module{{
+			Name: "frameworks", Status: "changed", Compatibility: "observed_only",
+			BaseStatus: "complete", HeadStatus: "complete",
+			Changes: []reportdiff.Change{{ID: key, Status: "changed"}},
+		}},
+	}
+	var out bytes.Buffer
+	if err := writeComparison(&out, report); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), `changed ("Java", "core:api", "./", "detector")`) || strings.Contains(out.String(), key) {
+		t.Fatalf("composite key leaked into text: %s", out.String())
+	}
+	data, err := json.Marshal(report)
+	if err != nil || !bytes.Contains(data, []byte(key)) {
+		t.Fatalf("structured ID changed: %s: %v", data, err)
+	}
+	if got := comparisonTextID("languages", "4:Java"); got != `"4:Java"` {
+		t.Fatalf("plain language ID was decoded: %s", got)
+	}
+	if got := comparisonTextID("registries", "2:é3:npm"); got != `("é", "npm")` {
+		t.Fatalf("byte-length key was not rendered: %s", got)
+	}
+	if got := comparisonTextID("focused_metrics_related", "project:svc:language:2:Go0:"); got != `project "svc" language ("Go", "")` {
+		t.Fatalf("related metrics identity was not rendered: %s", got)
+	}
+	if got := comparisonTextID("frameworks", "4:Java9:core:api2:./9:detector"); got != `"4:Java9:core:api2:./9:detector"` {
+		t.Fatalf("malformed key was decoded: %s", got)
+	}
+}
+
 func TestCompareCLIRejectsIrrelevantScanFlags(t *testing.T) {
 	base, head := compareReports(t)
 	for _, flag := range []string{"--source=directory", "--source=auto", "--rev=HEAD", "--tree-size=100000", "--workers=0", "--breakdown", "--strategies", "--max-file-bytes=0"} {
