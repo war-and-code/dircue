@@ -15,7 +15,7 @@ From a clean committed checkout, prepare all five core archives and seven wheels
 with one command:
 
 ```sh
-make release VERSION=1.0.0
+make release VERSION=0.9.0
 ```
 
 Pass a version explicitly: `X.Y.Z` or `X.Y.Z-(alpha|beta|rc).N`. The default
@@ -27,8 +27,8 @@ provenance and a separate checksum file go into `dist/wheels/`. To keep differen
 candidates separately, choose fresh output directories:
 
 ```sh
-make release VERSION=1.0.0 \
-  RELEASE_DIR=dist/release-1.0.0 WHEEL_DIR=dist/wheels-1.0.0
+make release VERSION=0.9.0 \
+  RELEASE_DIR=dist/release-0.9.0 WHEEL_DIR=dist/wheels-0.9.0
 ```
 
 Existing outputs are refused. Packaging builds committed source with the pinned
@@ -44,7 +44,7 @@ for example, this Apple Silicon command:
 ```sh
 python3 scripts/wheel_release_smoke.py \
   --release-dir dist --wheel-dir dist/wheels \
-  --platform darwin-arm64 --version 1.0.0 --output dist/wheel-launcher.json
+  --platform darwin-arm64 --version 0.9.0 --output dist/wheel-launcher.json
 ```
 
 Use the matching platform name on other hosts: `darwin-amd64`, `linux-amd64`,

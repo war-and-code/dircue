@@ -66,7 +66,7 @@ without telemetry.
 
 Protect supported CLI invocations, JSON layouts, exit semantics, and the
 documented Linguist compatibility contract. The
-[1.0 compatibility promise](COMPATIBILITY.md) names the specific surfaces
+[proposed 1.0 compatibility policy](COMPATIBILITY.md) names the specific surfaces
 frozen for the 1.x line and how additive changes and deprecations are
 versioned. Keep diagnostics separate from machine-readable stdout. Test
 changes against independent references and representative inputs, including

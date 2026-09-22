@@ -4,7 +4,7 @@ Profile source code repos and other directories of computer content.
 
 Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. Profiling is offline and does not run project build scripts. Optional structural analysis invokes a worker explicitly selected by the caller.
 
-The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [1.0 compatibility promise](docs/COMPATIBILITY.md). What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
+The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md). What's new in 0.9.0 is in the [CHANGELOG](CHANGELOG.md).
 
 ## Quick example
 
@@ -40,28 +40,28 @@ Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagno
 
 ## Install
 
-The 1.0.0 release ships platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes.
+The upcoming 0.9.0 release will provide platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes. The versioned URLs below become available when the release is published.
 
 ```sh
 # Release archive + checksum verification (Linux amd64 shown; substitute your platform)
-curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue_1.0.0_linux_amd64.tar.gz
-curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue_0.9.0_linux_amd64.tar.gz
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v0.9.0/SHA256SUMS
 sha256sum -c SHA256SUMS --ignore-missing
-tar -xzf dircue_1.0.0_linux_amd64.tar.gz
+tar -xzf dircue_0.9.0_linux_amd64.tar.gz
 mkdir -p "$HOME/.local/bin"
 install -m 755 dircue "$HOME/.local/bin/dircue"
 
 # Go toolchain: build from a clone. `go install dircue@version` is not supported,
 # because go.mod carries replace directives for the maintained Enry and go-git forks.
-git clone --branch v1.0.0 --depth 1 https://github.com/war-and-code/dircue.git
+git clone --branch v0.9.0 --depth 1 https://github.com/war-and-code/dircue.git
 cd dircue
-make build VERSION=1.0.0
+make build VERSION=0.9.0
 mkdir -p "$HOME/.local/bin"
 install -m 755 bin/dircue "$HOME/.local/bin/dircue"
 
 # Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -337,10 +337,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 Build a local image from the tagged source and run it with the network denied and the source mounted read-only:
 
 ```sh
-docker build --build-arg VERSION=1.0.0 -t dircue:1.0.0 .
+docker build --build-arg VERSION=0.9.0 -t dircue:0.9.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:1.0.0 --breakdown --json /repo
+  dircue:0.9.0 --breakdown --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -348,8 +348,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 1.0.0 --output dist/release-1.0.0
-python3 scripts/wheels.py --release-dir dist/release-1.0.0 --output dist/wheels-1.0.0
+python3 scripts/release.py --version 0.9.0 --output dist/release-0.9.0
+python3 scripts/wheels.py --release-dir dist/release-0.9.0 --output dist/wheels-0.9.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
@@ -358,7 +358,7 @@ These commands do not publish anything. Wheels package the same Go binaries as t
 
 GitHub Releases provide the standalone archives, wheels, checksums, and build provenance for each tagged version. `uv` can install a compatible wheel from a local file or a GitHub Release URL; the wheel's launcher only invokes the bundled Go binary and does not download anything at runtime. See the [distribution guide](docs/DISTRIBUTION.md) for the platform matrix, offline use, and authentication for private or draft assets.
 
-The 1.0.0 release does not include a PyPI publication step. If a future release adds one, its CHANGELOG entry will announce it and the distribution guide will document the `uvx dircue@<version>` and `uv tool install 'dircue==<version>'` commands.
+The 0.9.0 release does not include a PyPI publication step. If a future release adds one, its CHANGELOG entry will announce it and the distribution guide will document the `uvx dircue@<version>` and `uv tool install 'dircue==<version>'` commands.
 
 ## Troubleshooting
 
@@ -368,7 +368,7 @@ The 1.0.0 release does not include a PyPI publication step. If a future release 
 | Recent edits are missing from the report | Repository roots use committed `HEAD`. Use `--source directory` to inspect working files. |
 | A large repository returns empty language statistics | Check stderr for the tree-size warning and set `--tree-size` above the entry count. |
 | Docker cannot read mounted source | Check file permissions and use `--user` to select a suitable UID/GID. |
-| uv cannot find dircue on PyPI | The 1.0.0 release does not publish to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
+| uv cannot find dircue on PyPI | The 0.9.0 release does not publish to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
 

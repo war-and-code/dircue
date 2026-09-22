@@ -119,7 +119,7 @@ behavior on those inputs, not exhaustive dialect or metric correctness. See the
 ## Known boundaries at 1.0
 
 These deferrals are the deliberate edges of the 1.0 surface. Each has an
-open issue for future work; the [1.0 compatibility promise](COMPATIBILITY.md)
+open issue for future work; the [proposed 1.0 compatibility policy](COMPATIBILITY.md)
 lists them in one place as well.
 
 - **Git repository shapes:** bare and unborn repositories, SHA-256 object
