@@ -40,7 +40,7 @@ Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagno
 
 ## Install
 
-The upcoming 0.9.0 release will provide platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes. The versioned URLs below become available when the release is published.
+The upcoming 0.9.0 release will provide platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes. The versioned URLs below become available when the release is published. While the repository remains private, use authenticated `gh release download` to obtain an asset, then pass the downloaded wheel to `uvx --from`; the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads) shows those commands.
 
 ```sh
 # Release archive + checksum verification (Linux amd64 shown; substitute your platform)
