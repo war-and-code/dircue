@@ -1,0 +1,18 @@
+{
+  "target_path": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree",
+  "discovered_at": "2026-09-21T22:56:10Z",
+  "languages": [
+    "go"
+  ],
+  "binaries": [
+    "dircue"
+  ],
+  "env_var_prefix": "",
+  "existing_surfaces": {
+    "robot_mode": false,
+    "capabilities": true,
+    "robot_docs": false
+  },
+  "recommended_mode": "full",
+  "binary_override_reason": "Go main.go builds dircue; discovery script inferred the worktree directory name."
+}
