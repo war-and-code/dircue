@@ -117,6 +117,9 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 				if !work.use(root) {
 					break
 				}
+				if cargoInheritedDefaultFeaturesConflict(raw, md, root) {
+					continue
+				}
 				dep, evidence, ok := cargoEffectiveDependency(raw, root)
 				if !ok || dep.localPath == "" {
 					continue
@@ -241,6 +244,10 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 		for _, raw := range data.dependencies {
 			if !work.use(d) {
 				break
+			}
+			if cargoInheritedDefaultFeaturesConflict(raw, data, owner) {
+				cargoInvalid(d, raw.scope+"."+raw.alias+".default-features")
+				continue
 			}
 			dep, evidence, ok := cargoEffectiveDependency(raw, owner)
 			if !ok {
@@ -397,8 +404,39 @@ func cargoEffectiveDependency(raw cargoDependency, owner *Document) (cargoDepend
 	inherited.scope = raw.scope
 	inherited.selector = raw.selector
 	inherited.optional = raw.optional
+	// Cargo 1.85 treats a member's false setting as effective only when the
+	// workspace dependency already disables defaults. A true setting always
+	// enables them. Edition 2024 rejects the remaining false case before this
+	// merge; earlier editions accept it but leave workspace defaults enabled.
+	if raw.defaultFeatures != nil && (*raw.defaultFeatures || inherited.defaultFeatures != nil && !*inherited.defaultFeatures) {
+		inherited.defaultFeatures = raw.defaultFeatures
+	}
 	inherited.features = append(append([]string{}, inherited.features...), raw.features...)
 	return inherited, owner.Project.ID, true
+}
+
+func cargoInheritedDefaultFeaturesConflict(raw cargoDependency, member *cargoData, owner *Document) bool {
+	if !raw.valid || !raw.inherited || raw.defaultFeatures == nil || *raw.defaultFeatures || owner == nil {
+		return false
+	}
+	if cargoEffectiveEdition(member, owner) != "2024" {
+		return false
+	}
+	inherited, ok := owner.Data.(*cargoData).workspaceDependencies[raw.alias]
+	if !ok || !inherited.valid {
+		return false
+	}
+	return inherited.defaultFeatures == nil || *inherited.defaultFeatures
+}
+
+func cargoEffectiveEdition(member *cargoData, owner *Document) string {
+	if !member.inherited["edition"] {
+		return member.edition
+	}
+	if owner == nil {
+		return ""
+	}
+	return owner.Data.(*cargoData).workspaceValues["edition"]
 }
 func cargoDependencyCondition(dep cargoDependency) string {
 	parts := []string{dep.scope}

@@ -43,6 +43,7 @@ type Packfile struct {
 	deltaBaseCache       cache.Object
 	offsetToType         map[int64]plumbing.ObjectType
 	largeObjectThreshold int64
+	readMetrics          *ReadMetrics
 }
 
 // NewPackfileWithCache creates a new Packfile with the given object cache.
@@ -55,15 +56,32 @@ func NewPackfileWithCache(
 	cache cache.Object,
 	largeObjectThreshold int64,
 ) *Packfile {
+	return NewPackfileWithCacheAndMetrics(index, fs, file, cache, largeObjectThreshold, nil)
+}
+
+// NewPackfileWithCacheAndMetrics creates a Packfile with optional read-path
+// work counters. Existing constructors keep instrumentation disabled.
+func NewPackfileWithCacheAndMetrics(
+	index idxfile.Index,
+	fs billy.Filesystem,
+	file billy.File,
+	cache cache.Object,
+	largeObjectThreshold int64,
+	metrics *ReadMetrics,
+) *Packfile {
+	if metrics != nil {
+		file = &packMetricsFile{File: file, metrics: metrics}
+	}
 	s := NewScanner(file)
 	return &Packfile{
-		index,
-		fs,
-		file,
-		s,
-		cache,
-		make(map[int64]plumbing.ObjectType),
-		largeObjectThreshold,
+		Index:                index,
+		fs:                   fs,
+		file:                 file,
+		s:                    s,
+		deltaBaseCache:       cache,
+		offsetToType:         make(map[int64]plumbing.ObjectType),
+		largeObjectThreshold: largeObjectThreshold,
+		readMetrics:          metrics,
 	}
 }
 
@@ -126,6 +144,14 @@ func (p *Packfile) nextObjectHeader() (*ObjectHeader, error) {
 	return h, err
 }
 
+func (p *Packfile) nextObject(writer io.Writer) (int64, uint32, error) {
+	if p.readMetrics == nil {
+		return p.s.NextObject(writer)
+	}
+	p.readMetrics.recordInflater()
+	return p.s.NextObject(inflatedCountingWriter{writer: writer, metrics: p.readMetrics})
+}
+
 func (p *Packfile) getDeltaObjectSize(buf *bytes.Buffer) (int64, error) {
 	delta := buf.Bytes()
 	_, delta, err := decodeLEB128(delta) // skip src size
@@ -147,7 +173,7 @@ func (p *Packfile) getObjectSize(h *ObjectHeader) (int64, error) {
 		buf := sync.GetBytesBuffer()
 		defer sync.PutBytesBuffer(buf)
 
-		if _, _, err := p.s.NextObject(buf); err != nil {
+		if _, _, err := p.nextObject(buf); err != nil {
 			return 0, err
 		}
 
@@ -235,7 +261,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
 		buf := sync.GetBytesBuffer()
 		defer sync.PutBytesBuffer(buf)
 
-		if _, _, err := p.s.NextObject(buf); err != nil {
+		if _, _, err := p.nextObject(buf); err != nil {
 			return nil, err
 		}
 
@@ -267,7 +293,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
 
 	p.offsetToType[h.Offset] = typ
 
-	return NewFSObject(
+	return NewFSObjectWithMetrics(
 		hash,
 		typ,
 		h.Offset,
@@ -277,6 +303,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
 		p.file.Name(),
 		p.deltaBaseCache,
 		p.largeObjectThreshold,
+		p.readMetrics,
 	), nil
 }
 
@@ -297,13 +324,18 @@ func (p *Packfile) getObjectContent(offset int64) (io.ReadCloser, error) {
 }
 
 func asyncReader(p *Packfile) (io.ReadCloser, error) {
-	reader := ioutil.NewReaderUsingReaderAt(p.file, p.s.r.offset)
-	zr, err := sync.GetZlibReader(reader)
+	compressedReader := ioutil.NewReaderUsingReaderAt(p.file, p.s.r.offset)
+	zr, err := sync.GetZlibReader(compressedReader)
 	if err != nil {
 		return nil, fmt.Errorf("zlib reset error: %s", err)
 	}
 
-	return ioutil.NewReadCloserWithCloser(zr.Reader, func() error {
+	inflatedReader := io.ReadCloser(zr.Reader)
+	if p.readMetrics != nil {
+		p.readMetrics.recordInflater()
+		inflatedReader = inflatedCountingReadCloser{ReadCloser: inflatedReader, metrics: p.readMetrics}
+	}
+	return ioutil.NewReadCloserWithCloser(inflatedReader, func() error {
 		sync.PutZlibReader(zr)
 		return nil
 	}), nil
@@ -373,7 +405,7 @@ func (p *Packfile) fillRegularObjectContent(obj plumbing.EncodedObject) (err err
 
 	defer ioutil.CheckClose(w, &err)
 
-	_, _, err = p.s.NextObject(w)
+	_, _, err = p.nextObject(w)
 	p.cachePut(obj)
 
 	return err
@@ -383,7 +415,7 @@ func (p *Packfile) fillREFDeltaObjectContent(obj plumbing.EncodedObject, ref plu
 	buf := sync.GetBytesBuffer()
 	defer sync.PutBytesBuffer(buf)
 
-	_, _, err := p.s.NextObject(buf)
+	_, _, err := p.nextObject(buf)
 	if err != nil {
 		return err
 	}
@@ -392,6 +424,7 @@ func (p *Packfile) fillREFDeltaObjectContent(obj plumbing.EncodedObject, ref plu
 }
 
 func (p *Packfile) readREFDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader) (io.ReadCloser, error) {
+	p.readMetrics.recordDeltaResolution()
 	var err error
 
 	base, ok := p.cacheGet(h.Reference)
@@ -402,10 +435,11 @@ func (p *Packfile) readREFDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader)
 		}
 	}
 
-	return ReaderFromDelta(base, deltaRC)
+	return ReaderFromDeltaWithMetrics(base, deltaRC, p.readMetrics)
 }
 
 func (p *Packfile) fillREFDeltaObjectContentWithBuffer(obj plumbing.EncodedObject, ref plumbing.Hash, buf *bytes.Buffer) error {
+	p.readMetrics.recordDeltaResolution()
 	var err error
 
 	base, ok := p.cacheGet(ref)
@@ -427,7 +461,7 @@ func (p *Packfile) fillOFSDeltaObjectContent(obj plumbing.EncodedObject, offset 
 	buf := sync.GetBytesBuffer()
 	defer sync.PutBytesBuffer(buf)
 
-	_, _, err := p.s.NextObject(buf)
+	_, _, err := p.nextObject(buf)
 	if err != nil {
 		return err
 	}
@@ -436,6 +470,7 @@ func (p *Packfile) fillOFSDeltaObjectContent(obj plumbing.EncodedObject, offset 
 }
 
 func (p *Packfile) readOFSDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader) (io.ReadCloser, error) {
+	p.readMetrics.recordDeltaResolution()
 	hash, err := p.FindHash(h.OffsetReference)
 	if err != nil {
 		return nil, err
@@ -446,10 +481,11 @@ func (p *Packfile) readOFSDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader)
 		return nil, err
 	}
 
-	return ReaderFromDelta(base, deltaRC)
+	return ReaderFromDeltaWithMetrics(base, deltaRC, p.readMetrics)
 }
 
 func (p *Packfile) fillOFSDeltaObjectContentWithBuffer(obj plumbing.EncodedObject, offset int64, buf *bytes.Buffer) error {
+	p.readMetrics.recordDeltaResolution()
 	hash, err := p.FindHash(offset)
 	if err != nil {
 		return err

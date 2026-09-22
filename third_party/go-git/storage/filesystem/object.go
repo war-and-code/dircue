@@ -82,6 +82,7 @@ func (s *ObjectStorage) loadIdxFile(h plumbing.Hash) (err error) {
 	if err != nil {
 		return err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricIndex)
 
 	defer ioutil.CheckClose(f, &err)
 
@@ -205,6 +206,7 @@ func (s *ObjectStorage) encodedObjectSizeFromUnpacked(h plumbing.Hash) (
 
 		return 0, err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
 
 	defer ioutil.CheckClose(f, &err)
 
@@ -230,7 +232,7 @@ func (s *ObjectStorage) packfile(idx idxfile.Index, pack plumbing.Hash) (*packfi
 
 	var p *packfile.Packfile
 	if s.objectCache != nil {
-		p = packfile.NewPackfileWithCache(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold)
+		p = packfile.NewPackfileWithCacheAndMetrics(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold, s.options.ReadMetrics)
 	} else {
 		p = packfile.NewPackfile(idx, s.dir.Fs(), f, s.options.LargeObjectThreshold)
 	}
@@ -418,6 +420,7 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
 
 		return nil, err
 	}
+	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
 	defer ioutil.CheckClose(f, &err)
 
 	if cacheObj, found := s.objectCache.Get(h); found {

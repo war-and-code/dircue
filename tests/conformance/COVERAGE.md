@@ -4,7 +4,8 @@ The harness uses the reference implementation to define the requirements below. 
 
 | Category | Required observed behavior | Fixtures |
 |---|---|---|
-| Classification | Same language labels, grouping, byte counts, percentages and source lists | basic, grouped, shebang |
+| Classification | Same language labels, strategies, grouping, byte counts, percentages and source lists; preserve candidate intersections, generic-extension pass-through, and the exact 50 KiB byte window for content heuristics | basic, grouped, shebang, kernel-regressions, generic-extensions |
+| Classifier window | Same centroid ranking when distinguishing content appears after Linguist's 50 KiB inference window; prove the fixture reverses under uncapped scoring | classifier_window.py |
 | Java | Modern records and modules, Maven and Gradle multi-project metadata, generated and vendor overrides | java-enterprise |
 | .NET | Modern and legacy projects, project references, centralized build/package props, C# records/raw strings/file-scoped namespaces, XAML and Razor, generated and vendor overrides | dotnet-enterprise |
 | Selection | Same inclusion for empty files, hidden paths, prose/data, binary, large source, vendor and generated files | empty, empty-source, hidden, data-prose, binary, large-source, lfs, vendor, generated |
@@ -20,6 +21,11 @@ The harness uses the reference implementation to define the requirements below. 
 | Flat extension | Match the same committed reference contents without Git metadata | Every non-Git fixture copied into a flat tree |
 
 The report generator creates a category × tested/passing/failing/score matrix. Any unexpected failure causes a nonzero exit. Deliberate exceptions belong in DISCREPANCIES.md and must remain visible as expected failures rather than being skipped.
+
+`public.py` separately checks repository aggregation and strategy labels on the
+hash-pinned Gitolite repository and a five-file Linux kernel slice. Public source
+is fetched or read from a caller-supplied cache, verified against
+`public_corpus.json`, and never copied into this repository.
 
 The CLI matrix does not comprehensively cover upstream sample classification, every generated/vendor regex, Git LFS, sparse/partial clones, platform-specific path rules, filesystem races and permission errors, Git attribute edge cases, unlimited repository sizes, all single-file encodings/MIME types, or every invalid or combined option invocation. Separate Go tests cover local security and scanner invariants. The performance harness tests a broader open-source corpus.
 

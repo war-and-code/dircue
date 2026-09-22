@@ -156,6 +156,52 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	}
 }
 
+func TestGitReadMetricsOptInPreservesReport(t *testing.T) {
+	binary, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git needed for packed metrics fixture")
+	}
+	root, _, _ := gitFixture(t, map[string]string{
+		"src/main.py": strings.Repeat("print('instrumented packed object')\n", 12000),
+	})
+	resolved, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd := exec.Command(binary, "-C", root, "rev-parse", "--show-toplevel")
+	top, err := cmd.Output()
+	if err != nil || strings.TrimSpace(string(top)) != resolved {
+		t.Fatalf("fixture preflight top=%q error=%v", strings.TrimSpace(string(top)), err)
+	}
+	cmd = exec.Command(binary, "--git-dir="+filepath.Join(root, ".git"), "--work-tree="+root, "repack", "-a", "-d")
+	if output, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("pack fixture: %v: %s", err, output)
+	}
+
+	plain, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, IncludeFiles: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	metrics := &GitReadMetrics{}
+	measured, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, IncludeFiles: true, GitReadMetrics: metrics})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(measured, plain) {
+		t.Fatal("enabling Git read metrics changed the report")
+	}
+	snapshot := metrics.Snapshot()
+	if snapshot.PackBytesRead == 0 || snapshot.IndexBytesRead == 0 || snapshot.InflatersStarted == 0 {
+		t.Fatalf("missing packed read counters: %+v", snapshot)
+	}
+	if snapshot.ActiveDeltaReaders != 0 {
+		t.Fatalf("scan returned with active delta readers: %+v", snapshot)
+	}
+	if !metrics.Reset() || metrics.Snapshot() != (GitReadMetricsSnapshot{}) {
+		t.Fatalf("reset did not clear completed scan: %+v", metrics.Snapshot())
+	}
+}
+
 type cancelCacheDetector struct{ cancel context.CancelFunc }
 
 func (cancelCacheDetector) Name() string { return "cancel-cache-test" }

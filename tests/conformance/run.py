@@ -88,6 +88,102 @@ def generate(base):
     py = 'def main():\n    print("hello")\n\nmain()\n'
     js = 'function main() { console.log("hello"); }\nmain();\n'
 
+    # Linguist applies content heuristics to bytes 0..51,199. Keep these
+    # generated fixtures small while covering the exact byte boundary, a late
+    # kernel-style C++ false positive, and bytes-versus-codepoints behavior.
+    heuristics_window = 50 * 1024
+    kernel_regressions = add("kernel-regressions", {
+        "perl-choice.pl": "#!/usr/bin/env perl\n=head1 NAME\nfoo :- bar\n",
+        "perl-choice.pm": "#!/usr/bin/env perl\nmy $ok = ($spdx !~ /GPL-2\\.0(?:-only)?/);\n",
+        "perl-choice.t": "#!/usr/bin/env perl\nmy $ok = ($spdx !~ /GPL-2\\.0(?:-only)?/);\n",
+        "pod-choice.pod": "#!/usr/bin/env perl\n=comment\nLooks like Pod 6 after the shebang.\n",
+        "cpp-at-last-complete-byte.h": b"\n" * (heuristics_window - 3) + b"try\n",
+        "cpp-straddles-window.h": b"\n" * (heuristics_window - 2) + b"try\n",
+        "cpp-after-window.h": b"\n" * 56_423 + b"try_get_memslot(slot);\n",
+        "utf8-codepoint-trap.h": "é".encode("utf-8") * (heuristics_window // 2) + b"\ntry_value;\n",
+    })
+    cases[-1]["single_file_targets"] = sorted(
+        path.name for path in kernel_regressions.iterdir() if path.is_file()
+    )
+    cases[-1]["reference_expectations"] = {
+        "perl-choice.pl": {"language": "Perl", "strategy": "Extension"},
+        "perl-choice.pm": {"language": "Perl", "strategy": "Extension"},
+        "perl-choice.t": {"language": "Perl", "strategy": "Extension"},
+        "pod-choice.pod": {"language": "Pod", "strategy": "Extension"},
+        "cpp-at-last-complete-byte.h": {"language": "C++", "strategy": "Heuristics"},
+        "cpp-straddles-window.h": {"language": "C", "strategy": "Heuristics"},
+        "cpp-after-window.h": {"language": "C", "strategy": "Heuristics"},
+        "utf8-codepoint-trap.h": {"language": "C", "strategy": "Heuristics"},
+    }
+
+    # Linguist's generic.yml makes these extensions defer to later strategies.
+    # Every extension gets a positive heuristic control and a negative input so
+    # the oracle checks both classification and the reported strategy.
+    generic_extensions = (
+        ".1", ".2", ".3", ".4", ".5", ".6", ".7", ".8", ".9",
+        ".action", ".alg", ".app", ".cmp", ".msg", ".network",
+        ".resource", ".sd", ".sol", ".srv", ".stl", ".tag", ".target", ".url",
+    )
+    roff = ".TH SAMPLE 1\n.SH NAME\nsample \\- generic extension fixture\n"
+    generic_matching = {
+        **{extension: roff for extension in generic_extensions[:9]},
+        ".action": "int32 goal\n---\nbool result\n",
+        ".alg": "begin\ninteger count := 1;\nend\n",
+        ".app": '{application, sample, [{description, "fixture"}]}.\n',
+        ".cmp": "D10*\n",
+        ".msg": "int32 count\n",
+        ".network": "[Match]\nName=eth0\n",
+        ".resource": "*** Keywords ***\nExample\n    No Operation\n",
+        ".sd": "schema sample {\n  document sample {}\n}\n",
+        ".sol": "pragma solidity ^0.8.0;\ncontract Sample {}\n",
+        ".srv": "int32 request\n---\nbool response\n",
+        ".stl": "solid sample\nendsolid sample\n",
+        ".tag": '<%@ tag pageEncoding="UTF-8" %>\n',
+        ".target": "[Unit]\nDescription=Fixture\n",
+        ".url": "[InternetShortcut]\nURL=https://example.invalid/\n",
+    }
+    generic_languages = {
+        **{extension: "Roff Manpage" for extension in generic_extensions[:9]},
+        ".action": "ROS Interface",
+        ".alg": "ALGOL",
+        ".app": "Erlang",
+        ".cmp": "Gerber Image",
+        ".msg": "ROS Interface",
+        ".network": "INI",
+        ".resource": "RobotFramework",
+        ".sd": "Vespa Schema Definition",
+        ".sol": "Solidity",
+        ".srv": "ROS Interface",
+        ".stl": "STL",
+        ".tag": "Java Server Pages",
+        ".target": "INI",
+        ".url": "INI",
+    }
+    if tuple(generic_matching) != generic_extensions:
+        raise RuntimeError("generic extension fixtures do not match Linguist 9.7.0 generic.yml order")
+    generic_files = {}
+    generic_expectations = {}
+    for extension in generic_extensions:
+        suffix = extension[1:]
+        positive = "matching/sample." + suffix
+        negative = "nonmatching/sample." + suffix
+        generic_files[positive] = generic_matching[extension]
+        generic_files[negative] = '{"plain": true}\n'
+        generic_expectations[positive] = {
+            "language": generic_languages[extension], "strategy": "Heuristics"
+        }
+        generic_expectations[negative] = {
+            "language": "Text" if extension in generic_extensions[:9] else None,
+            "strategy": "Heuristics" if extension in generic_extensions[:9] else None,
+        }
+    generic = add("generic-extensions", generic_files)
+    cases[-1]["single_file_targets"] = sorted(
+        path.relative_to(generic).as_posix()
+        for path in generic.rglob("*")
+        if path.is_file() and ".git" not in path.relative_to(generic).parts
+    )
+    cases[-1]["reference_expectations"] = generic_expectations
+
     java_record = '''package com.acme.domain;
 
 public record Customer(String id, String displayName) {
@@ -291,6 +387,29 @@ def compare(reference, actual, json_mode):
     return reference['stdout'] == actual['stdout'], 'exact stdout bytes'
 
 
+def validate_reference_expectation(reference, invocation, expectation):
+    """Reject a control whose real-gem result no longer proves its claim."""
+    if reference['exit_code']:
+        raise RuntimeError(f"reference rejected asserted control {invocation['id']}")
+    if invocation['mode'] == 'file-json':
+        value = json.loads(reference['stdout'])[invocation['target']]
+        actual = {'language': value.get('language')}
+    elif invocation['mode'] == 'file-strategies':
+        fields = {}
+        for line in reference['stdout'].splitlines():
+            if line.startswith('  language:') or line.startswith('  strategy:'):
+                key, value = line.strip().split(':', 1)
+                fields[key] = value.strip() or None
+        actual = {'language': fields.get('language'), 'strategy': fields.get('strategy')}
+    else:
+        return
+    expected = {key: expectation[key] for key in actual}
+    if actual != expected:
+        raise RuntimeError(
+            f"reference control {invocation['id']} returned {actual}, expected {expected}"
+        )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--image', default=IMAGE)
@@ -371,6 +490,7 @@ def main():
         if reference['exit_code']:
             raise RuntimeError(reference)
         refs = json.loads(reference['stdout'])
+        cases_by_id = {case['id']: case for case in cases}
         results = []
         for invocation in invocations:
             cwd = fixtures / invocation['case']
@@ -378,6 +498,9 @@ def main():
             argv = [target, *invocation['flags']] if invocation.get('trailing') else [*invocation['flags'], target]
             actual = command([binary, *argv], cwd=cwd)
             ref = refs[invocation['id']]
+            expectation = cases_by_id[invocation['case']].get('reference_expectations', {}).get(invocation['target'])
+            if expectation is not None:
+                validate_reference_expectation(ref, invocation, expectation)
             passed, comparison = compare(ref, actual, invocation['json'])
             status = 'PASS' if passed else 'FAIL'
             if invocation['case'] == 'subdirectory' and ref['exit_code'] != 0:

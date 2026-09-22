@@ -224,7 +224,11 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	// PlainOpen's default storage eagerly materializes every complete object.
 	// Reopen using a bounded threshold so large non-delta objects are streamed.
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		bounded := filesystem.NewStorageWithOptions(storage.Filesystem(), cache.NewObjectLRUDefault(), filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: maxGitPackDescriptors})
+		objectCache := cache.Object(cache.NewObjectLRUDefault())
+		if opts.GitReadMetrics != nil {
+			objectCache = &metricsObjectCache{Object: objectCache, metrics: opts.GitReadMetrics}
+		}
+		bounded := filesystem.NewStorageWithOptions(storage.Filesystem(), objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: maxGitPackDescriptors, ReadMetrics: opts.GitReadMetrics})
 		retainedStorage = bounded
 		wt, wtErr := repo.Worktree()
 		if wtErr == nil {
