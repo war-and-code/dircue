@@ -41,12 +41,12 @@ type gitSnapshot struct {
 const maxGitTreeDepth = 1024
 
 const (
-	maxGitObjectLanes = 2
+	maxGitObjectLanes = 3
 	// Preserve the pre-lane retained-reader capacity when one storage is enough.
 	maxGitPackDescriptorsSingleLane = 8
 	// This bounds retained pack readers. Lazy objects and nested delta bases
 	// open transient readers whose peak depends on the pack's delta graph.
-	maxGitPackDescriptorsPerConcurrentLane = 3
+	maxGitPackDescriptorsPerConcurrentLane = 2
 )
 
 func gitObjectLaneCount(workers int) int {

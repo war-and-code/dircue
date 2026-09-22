@@ -61,7 +61,8 @@ func TestGitObjectLanePolicy(t *testing.T) {
 		{name: "default direct call", wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
 		{name: "one worker", workers: 1, wantLanes: 1, wantReaders: maxGitPackDescriptorsSingleLane},
 		{name: "two workers", workers: 2, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
-		{name: "many workers", workers: 16, wantLanes: 2, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
+		{name: "three workers", workers: 3, wantLanes: 3, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
+		{name: "many workers", workers: 16, wantLanes: 3, wantReaders: maxGitPackDescriptorsPerConcurrentLane},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			gotLanes := gitObjectLaneCount(test.workers)
@@ -217,7 +218,7 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 	targets := make([]struct {
 		hash plumbing.Hash
 		name string
-	}, 2)
+	}, maxGitObjectLanes)
 	for i := range targets {
 		entry, err := tree.FindEntry(names[i])
 		if err != nil {
@@ -232,7 +233,7 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 		tracked.once.Do(func() { close(tracked.release) })
 	})
 	defer timeout.Stop()
-	errs := make(chan error, 2)
+	errs := make(chan error, maxGitObjectLanes)
 	for i := range targets {
 		go func(i int) {
 			hash := targets[i].hash
