@@ -31,6 +31,6 @@ and retain their existing constraints.
 `ValidateProfile` continues to use its existing lazy, offline validator. The
 export API does not initialize validation or change validation scope.
 
-The [proposed 1.0 compatibility policy](../docs/COMPATIBILITY.md) records what each
-bundled schema commits to across the 1.x line and how report changes affect
+The [proposed 1.0 compatibility policy](../docs/COMPATIBILITY.md) describes proposed guarantees for each
+bundled schema across the 1.x line and how report changes affect
 producers and saved-report readers.

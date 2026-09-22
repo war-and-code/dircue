@@ -116,11 +116,14 @@ behavior on those inputs, not exhaustive dialect or metric correctness. See the
 [breadth harness](../tests/structural_breadth/README.md) and
 [Java/C# corpus harness](../tests/structure/README.md).
 
-## Known boundaries at 1.0
+<a id="known-boundaries-at-10"></a>
 
-These deferrals are the deliberate edges of the 1.0 surface. Each has an
-open issue for future work; the [proposed 1.0 compatibility policy](COMPATIBILITY.md)
-lists them in one place as well.
+## Current boundaries
+
+These limitations describe the current implementation, not a feature freeze
+for 1.0. Each has an open issue; [#81](https://github.com/war-and-code/dircue/issues/81)
+sets the revised release scope. The [proposed compatibility policy](COMPATIBILITY.md)
+is still subject to that work.
 
 - **Git repository shapes:** bare and unborn repositories, SHA-256 object
   format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery
