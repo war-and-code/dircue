@@ -27,10 +27,13 @@ Metrics RSS ranged from 789,381,120 to 815,824,896 bytes. Language RSS ranged
 from 862,420,992 to 932,397,056 bytes. These are observed ranges on this host,
 not memory limits.
 
-The bounded lane-count experiment measured 1-to-16-worker scaling of 4.47x for
-the selected three-lane policy, compared with 4.69x for directory mode. The
-full raw 1/4/8/16 samples are retained in the receipt. A separate descriptor
-sample observed 13 numeric descriptors and six pack descriptors at peak. The
+The final integrated binary measured 1-to-16-worker scaling of 4.05x, compared
+with 4.69x for directory mode. Its medians were 44.22 seconds at one worker,
+13.59 at four, 10.59 at eight, and 10.92 at sixteen. The full three-repetition,
+order-balanced 1/4/8/16 samples are retained in the receipt. This scaling matrix
+used the retained host bare repository and measured a 10.92-second median at 16
+workers; the separate case-sensitive ratio series measured 10.07 seconds. A
+separate descriptor sample observed 13 numeric descriptors and six pack descriptors at peak. The
 six pack descriptors match the aggregate retained-reader bound of three lanes
 times two readers. The descriptor sampler ran separately from timing medians.
 
