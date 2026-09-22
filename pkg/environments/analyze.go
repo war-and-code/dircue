@@ -36,15 +36,21 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if !in.InventoryComplete || in.OmittedFiles > 0 {
 		r.Status = "partial"
 	}
-	// Declarations partial is not, on its own, a coverage gap for environments:
-	// the environments module has its own bounded lenient parse for global.json
-	// (comments, trailing commas, BOM) that can succeed where the stricter
-	// declarations pass rejects the same file, and per-project incompleteness is
-	// already surfaced through Requirement.State on normalized requirements. We
-	// disclose the upstream partial state as an informational boundary so the
-	// consumer sees it, but we do not overwrite the environments-native status.
+	// A declarations gap normally means environment requirements may be wholly
+	// absent, so Requirement.State cannot disclose it. The sole independently
+	// checkable exception is strict-JSON rejection of global.json: this module
+	// reparses selected global.json files with their documented JSONC leniency.
+	// Keep track of those paths and require an actual successful environment
+	// parse below before allowing a complete result.
+	declarationRechecks, independentlyCheckable := independentlyCheckableDeclarationGaps(in)
 	if in.Declarations.Status != "complete" {
-		r.Boundaries = append(r.Boundaries, Boundary{Reason: "declarations-partial", Detail: "The upstream declarations pass reported partial coverage; environment coverage is assessed independently."})
+		detail := "The upstream declarations pass reported incomplete requirement coverage; environment requirements may be omitted."
+		if independentlyCheckable {
+			detail = "The upstream declarations pass rejected global.json syntax; selected files are reparsed independently and must succeed before environment coverage is complete."
+		} else {
+			r.Status = "partial"
+		}
+		r.Boundaries = append(r.Boundaries, Boundary{Reason: "declarations-partial", Detail: detail})
 	}
 	files := map[string]File{}
 	inventoryComplete := in.InventoryComplete
@@ -242,6 +248,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		tmp := &Report{Status: "complete", Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 		parseGlobal(tmp, &sel, content)
 		parseCache[candidate] = parsedSelection{selection: sel, status: tmp.Status, boundaries: slices.Clone(tmp.Boundaries), diagnostics: slices.Clone(tmp.Diagnostics)}
+		if tmp.Status == "complete" {
+			if _, needsRecheck := declarationRechecks[candidate]; needsRecheck && !hasDeclarationOnlyGlobalJSONFields(content) {
+				delete(declarationRechecks, candidate)
+			}
+		}
 		diagnosticsEmitted[candidate] = true
 		if tmp.Status == "partial" {
 			r.Status = "partial"
@@ -254,6 +265,12 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	slices.SortFunc(r.Requirements, func(a, b Requirement) int {
 		return strings.Compare(a.ProjectID+"\x00"+a.Dimension+"\x00"+a.Kind+"\x00"+a.Value+"\x00"+a.Evidence, b.ProjectID+"\x00"+b.Dimension+"\x00"+b.Kind+"\x00"+b.Value+"\x00"+b.Evidence)
 	})
+	// A strict declarations parse can be excused only by successful independent
+	// parsing of every affected selected global.json. An unselected or genuinely
+	// malformed file leaves the upstream coverage gap unresolved.
+	if len(declarationRechecks) > 0 {
+		r.Status = "partial"
+	}
 	_ = projectRoots
 	if err := ValidateReport(r); err != nil {
 		return nil, err
@@ -266,6 +283,58 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		return nil, errors.New("environment report exceeds output byte limit")
 	}
 	return r, nil
+}
+
+// independentlyCheckableDeclarationGaps identifies the one declarations-side
+// partial state this analyzer can fully replace with its own evidence: strict
+// JSON rejection of global.json. Any omission, lost diagnostic, other parser
+// failure, skipped state, or unexplained partial status can hide requirements
+// that this package does not independently extract.
+func independentlyCheckableDeclarationGaps(in Input) (map[string]struct{}, bool) {
+	if in.Declarations.Status != "partial" || in.Declarations.Coverage.OmittedFiles != 0 || in.Declarations.Coverage.OmittedDiagnostics != 0 || len(in.Declarations.Diagnostics) == 0 {
+		return nil, false
+	}
+	paths := make(map[string]struct{}, len(in.Declarations.Diagnostics))
+	for _, diagnostic := range in.Declarations.Diagnostics {
+		if diagnostic.Code != "invalid-json" || path.Base(diagnostic.Path) != "global.json" {
+			return nil, false
+		}
+		paths[diagnostic.Path] = struct{}{}
+	}
+	for _, record := range in.ProjectRecords {
+		if record.Parsed && record.Complete {
+			continue
+		}
+		if _, ok := paths[record.Project.ID]; !ok {
+			return nil, false
+		}
+	}
+	return paths, true
+}
+
+// hasDeclarationOnlyGlobalJSONFields reports whether a successfully parsed
+// global.json still contains environment requirements that parseGlobal does
+// not extract. The declarations adapter turns msbuild-sdks entries into
+// dotnet-sdk requirements, so SDK-selection success cannot replace that lost
+// evidence. Parse failures are treated conservatively; callers use this only
+// after parseGlobal has accepted the same bounded content.
+func hasDeclarationOnlyGlobalJSONFields(content []byte) bool {
+	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
+	cleaned, _, err := stripJSONComments(content)
+	if err != nil {
+		return true
+	}
+	cleaned, _ = stripTrailingCommas(cleaned)
+	var root map[string]json.RawMessage
+	if json.Unmarshal(cleaned, &root) != nil || root == nil {
+		return true
+	}
+	for key := range root {
+		if strings.EqualFold(key, "msbuild-sdks") {
+			return true
+		}
+	}
+	return false
 }
 
 func defaults(l Limits) Limits {

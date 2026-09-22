@@ -71,8 +71,10 @@
   the CLI catalog exit codes, and add a catalog drift test so a new flag cannot
   ship without its documented semantics.
 - Report a `global.json` accepted through the JSONC path (comments, trailing
-  commas) as `complete` with a `global-json-lenient-syntax` diagnostic instead
-  of `partial` with no reason, and consider only `global.json` files that are
+  commas) with a `global-json-lenient-syntax` diagnostic. Allow complete environment
+  coverage only when all upstream gaps are independently resolved strict-JSON
+  rejections; retain partial status for omitted or malformed project requirements.
+  Consider only `global.json` files that are
   nearest ancestors of a modeled .NET invocation context, so a Jekyll or Hugo
   `_data/global.json` no longer receives a .NET diagnostic.
 - Add fuzz targets with seed corpora for the gitattributes parser, the

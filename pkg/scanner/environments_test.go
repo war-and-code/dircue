@@ -55,6 +55,38 @@ func TestEnvironmentsDirectoryNearestGlobalJSON(t *testing.T) {
 	}
 }
 
+func TestEnvironmentsRemainPartialWhenUnrelatedManifestParsingFails(t *testing.T) {
+	root := t.TempDir()
+	writeEnvironmentFixture(t, root, map[string]string{
+		"global.json":    "// accepted JSONC\n{\"sdk\":{\"version\":\"8.0.100\"}}",
+		"src/App.csproj": `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>`,
+		"pyproject.toml": "[project\nrequires-python = '>=3.12'\n",
+	})
+	r, err := Scan(context.Background(), root, Options{Source: "directory", Environments: true, DeclarationsOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Declarations == nil || r.Declarations.Status != "partial" {
+		t.Fatalf("malformed pyproject did not make declarations partial: %+v", r.Declarations)
+	}
+	if r.Environments == nil || r.Environments.Status != "partial" {
+		t.Fatalf("lost declaration requirements claimed complete environment coverage: %+v", r.Environments)
+	}
+	if len(r.Environments.Selections) != 1 || r.Environments.Selections[0].SDKVersion != "8.0.100" {
+		t.Fatalf("independent global.json selection was lost: %+v", r.Environments.Selections)
+	}
+	foundBoundary, foundLeniency := false, false
+	for _, boundary := range r.Environments.Boundaries {
+		foundBoundary = foundBoundary || boundary.Reason == "declarations-partial"
+	}
+	for _, diagnostic := range r.Environments.Diagnostics {
+		foundLeniency = foundLeniency || diagnostic.Code == "global-json-lenient-syntax"
+	}
+	if !foundBoundary || !foundLeniency {
+		t.Fatalf("coverage or independent-parse disclosure missing: boundaries=%+v diagnostics=%+v", r.Environments.Boundaries, r.Environments.Diagnostics)
+	}
+}
+
 func TestEnvironmentsGitSnapshotIgnoresDirtyGlobalJSON(t *testing.T) {
 	root, repo, first := gitFixture(t, map[string]string{"global.json": `{"sdk":{"version":"8.0.100"}}`, "App.csproj": `<Project Sdk="Microsoft.NET.Sdk"/>`})
 	if err := os.WriteFile(filepath.Join(root, "global.json"), []byte(`{"sdk":{"version":"9.0.100"}}`), 0600); err != nil {

@@ -411,8 +411,9 @@ func TestJSONCLeniencyIsDisclosedAndDoesNotDegradeStatus(t *testing.T) {
 // The partial state is surfaced as an informational boundary so the consumer
 // can still see it.
 func TestDeclarationsPartialSurfacesAsBoundaryNotStatus(t *testing.T) {
-	in := envInput(map[string]string{"global.json": `{"sdk":{"version":"7.0.100"}}`}, []Invocation{{"p", "."}})
+	in := envInput(map[string]string{"global.json": "// accepted JSONC\n{\"sdk\":{\"version\":\"7.0.100\"}}"}, []Invocation{{"p", "."}})
 	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "global.json", Root: ".", Kind: "dotnet-configuration"}, Parsed: false, Complete: true}}
 	r, err := Analyze(context.Background(), in, Limits{})
 	if err != nil {
 		t.Fatal(err)
@@ -428,6 +429,78 @@ func TestDeclarationsPartialSurfacesAsBoundaryNotStatus(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no declarations-partial boundary: %+v", r.Boundaries)
+	}
+}
+
+func TestDeclarationsPartialRequirementGapsRemainPartial(t *testing.T) {
+	tests := []struct {
+		name    string
+		report  declarations.Report
+		records []declarations.ProjectRecord
+	}{
+		{
+			name: "omitted manifest",
+			report: declarations.Report{Status: "partial", Coverage: declarations.Coverage{OmittedFiles: 1}, Diagnostics: []declarations.Diagnostic{
+				{Path: ".", Code: "manifest-read-limit", Message: "manifest omitted"},
+			}},
+		},
+		{
+			name: "malformed pyproject",
+			report: declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{
+				{Path: "pyproject.toml", Code: "invalid-python-manifest", Message: "manifest could not be parsed"},
+			}},
+			records: []declarations.ProjectRecord{{Project: declarations.Project{ID: "pyproject.toml", Root: ".", Kind: "python"}, Parsed: false, Complete: true}},
+		},
+		{
+			name:   "unexplained partial",
+			report: declarations.Report{Status: "partial"},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			in := envInput(nil, nil)
+			in.Declarations = tt.report
+			in.ProjectRecords = tt.records
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Status != "partial" || len(r.Requirements) != 0 {
+				t.Fatalf("lost upstream requirements claimed complete coverage: %+v", r)
+			}
+			if len(r.Boundaries) == 0 || r.Boundaries[0].Reason != "declarations-partial" {
+				t.Fatalf("missing upstream coverage boundary: %+v", r.Boundaries)
+			}
+		})
+	}
+}
+
+func TestUnselectedInvalidGlobalJSONDoesNotJustifyCompleteCoverage(t *testing.T) {
+	in := envInput(map[string]string{"global.json": `{"sdk":`}, nil)
+	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.GlobalJSONRead != 0 || len(r.Selections) != 0 {
+		t.Fatalf("unvalidated global.json excused upstream gap: %+v", r)
+	}
+}
+
+func TestJSONCGlobalWithMSBuildSDKsDoesNotExcuseLostRequirements(t *testing.T) {
+	body := "// accepted JSONC\n{\"sdk\":{\"version\":\"8.0.100\"},\"msbuild-sdks\":{\"Example.SDK\":\"1.2.3\"}}"
+	in := envInput(map[string]string{"global.json": body}, []Invocation{{"p", "."}})
+	in.Declarations = declarations.Report{Status: "partial", Diagnostics: []declarations.Diagnostic{{Path: "global.json", Code: "invalid-json", Message: "upstream parser rejected"}}}
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: declarations.Project{ID: "global.json", Root: ".", Kind: "dotnet-configuration"}, Parsed: false, Complete: true}}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || len(r.Selections) != 1 || r.Selections[0].SDKVersion != "8.0.100" {
+		t.Fatalf("lost msbuild-sdks requirement claimed complete coverage: %+v", r)
+	}
+	if len(r.Requirements) != 0 {
+		t.Fatalf("unexpected synthesized requirements: %+v", r.Requirements)
 	}
 }
 
