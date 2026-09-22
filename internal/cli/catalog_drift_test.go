@@ -21,9 +21,8 @@ var enumFlagsBySemantics = map[string]struct{}{
 }
 
 // TestCatalogCoversAllCommandsAndFlags asserts three invariants that stop a
-// whole class of drift bugs: every catalog command carries an explicit
-// restrictions entry (a bare group command may have a scoped marker rather
-// than a domain rule, but no command silently reports []), every leaf command
+// whole class of drift bugs: every catalog command carries its applicable
+// restrictions (shared source-selection rules count), every leaf command
 // carries an output-contract identifier so consumers do not have to guess the
 // response shape, and every enum flag advertises the exact accepted
 // vocabulary through allowed_values so a new enum flag cannot ship without

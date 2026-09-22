@@ -15,11 +15,9 @@ import (
 	"dircue/pkg/profile"
 )
 
-// TestTreeSizeLimitOverridesUnreadableFile pins the 0.8.0 semantic that when
-// the directory tree exceeds MaxTreeSize the byte-identical tree-size-limit
-// skeleton wins, even under the default fail policy with an unreadable file
-// in the tree. 0.8.0's pre-walk detected the limit before any file was ever
-// opened; the streaming walker must reproduce that outcome deterministically.
+// TestTreeSizeLimitOverridesUnreadableFile pins the contract that the
+// tree-size-limit skeleton wins before content observation begins, even under
+// the default fail policy with an unreadable file in the tree.
 func TestTreeSizeLimitOverridesUnreadableFile(t *testing.T) {
 	files := map[string]string{
 		"a.go":     goSource,
@@ -68,8 +66,7 @@ func TestTreeSizeLimitOverridesUnreadableFile(t *testing.T) {
 
 // TestReadErrorSurfacesBelowTreeSizeLimit locks in the complementary case:
 // when the tree stays below MaxTreeSize, a per-file worker error under the
-// default fail policy still surfaces to the caller. Without the deferred
-// error-capture, this would silently drop the read failure.
+// default fail policy still surfaces to the caller.
 func TestReadErrorSurfacesBelowTreeSizeLimit(t *testing.T) {
 	files := map[string]string{
 		"a.go":     goSource,
@@ -156,4 +153,60 @@ func TestOnErrorContinueBelowAndAtTreeSizeLimit(t *testing.T) {
 			t.Fatalf("expected only tree_size_limit warning; got %+v", report.Warnings)
 		}
 	})
+}
+
+// TestTreeSizeLimitOverridesAttributeReadError protects the same preflight
+// ordering for scanner-owned attribute reads.
+func TestTreeSizeLimitOverridesAttributeReadError(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		".gitattributes": "*.go linguist-language=Go\n",
+		"a.go":           goSource,
+		"b.py":           "print('hi')\n",
+	})
+	attributes := filepath.Join(root, ".gitattributes")
+	if err := os.Chmod(attributes, 0); err != nil {
+		t.Fatalf("chmod: %v", err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(attributes, 0644) })
+
+	report, err := Scan(context.Background(), root, Options{
+		Source:      "directory",
+		Workers:     4,
+		MaxTreeSize: 2,
+	})
+	if err != nil {
+		t.Fatalf("tree-size crossing must override attribute read error: %v", err)
+	}
+	if len(report.Warnings) != 1 || report.Warnings[0].Code != "tree_size_limit" {
+		t.Fatalf("expected only tree_size_limit warning; got %+v", report.Warnings)
+	}
+}
+
+func TestTreeSizePreflightDoesNotInvokeDetectors(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"a.go": goSource,
+		"b.go": goSource,
+		"c.go": goSource,
+	})
+	called := false
+	detector := detectorFunc(func(context.Context, profile.File) ([]profile.Finding, error) {
+		called = true
+		return nil, nil
+	})
+
+	report, err := Scan(context.Background(), root, Options{
+		Source:      "directory",
+		Workers:     1,
+		MaxTreeSize: 3,
+		Detectors:   []profile.Detector{detector},
+	})
+	if err != nil {
+		t.Fatalf("Scan returned error: %v", err)
+	}
+	if called {
+		t.Fatal("detector ran before the tree-size limit was established")
+	}
+	if len(report.Warnings) != 1 || report.Warnings[0].Code != "tree_size_limit" {
+		t.Fatalf("expected only tree_size_limit warning; got %+v", report.Warnings)
+	}
 }

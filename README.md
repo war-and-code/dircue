@@ -1,12 +1,14 @@
 # `dircue`
 
-Profile source code repositories and other directories of computer content, offline, without executing anything they contain.
+Profile source code repos and other directories of computer content.
 
-Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. It never runs project build scripts, never opens the network, and never reads outside the selected source.
+Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. Profiling is offline and does not run project build scripts. Optional structural analysis invokes a worker explicitly selected by the caller.
 
 The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [1.0 compatibility promise](docs/COMPATIBILITY.md). What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 
-## 30-second example
+## Quick example
+
+For a small checkout containing two Go source files and a module declaration:
 
 ```sh
 $ dircue --json .
@@ -19,7 +21,8 @@ Go:
   cmd/main.go
   internal/lib.go
 
-$ dircue analyze all --json . | head -12
+$ dircue analyze all --json . > profile.json
+$ head -n 12 profile.json
 {
   "schema_version": "1.0.0",
   "root": "/path/to/checkout",
@@ -31,7 +34,6 @@ $ dircue analyze all --json . | head -12
   },
   "languages": [
     {
-      "name": "Go",
 ```
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
@@ -46,12 +48,16 @@ curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/di
 curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
 sha256sum -c SHA256SUMS --ignore-missing
 tar -xzf dircue_1.0.0_linux_amd64.tar.gz
+mkdir -p "$HOME/.local/bin"
 install -m 755 dircue "$HOME/.local/bin/dircue"
 
 # Go toolchain: build from a clone. `go install dircue@version` is not supported,
 # because go.mod carries replace directives for the maintained Enry and go-git forks.
 git clone --branch v1.0.0 --depth 1 https://github.com/war-and-code/dircue.git
-cd dircue && CGO_ENABLED=0 go build -trimpath -o "$HOME/.local/bin/dircue" .
+cd dircue
+make build VERSION=1.0.0
+mkdir -p "$HOME/.local/bin"
+install -m 755 bin/dircue "$HOME/.local/bin/dircue"
 
 # Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
 uvx --from \
@@ -70,7 +76,7 @@ CGO_ENABLED=0 go build -trimpath -o bin/dircue .
 
 ## Compatibility promise
 
-Version 1.0 freezes the CLI, the JSON schemas, and the exit-status contract for the 1.x line. Additive changes bump each schema's `schema_version`; removals and renames are reserved for a hypothetical 2.0. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full list of what's covered and what deliberately isn't.
+Version 1.0 establishes the documented CLI, report shapes, and exit-status contract for the 1.x line. Language data and analysis findings can evolve; compatibility concerns how callers invoke dircue and interpret its reports. See [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md) for the full list of what's covered and what deliberately isn't.
 
 ## License
 
@@ -78,7 +84,7 @@ Version 1.0 freezes the CLI, the JSON schemas, and the exit-status contract for 
 
 ## What dircue observes
 
-Language, ecosystem, framework, and layout detection cover the same input population as [GitHub Linguist](https://github.com/github-linguist/linguist) through a maintained Enry fork. Optional modules add [metadata discovery](docs/DISCOVERY.md), [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, [environment requirements](docs/ENVIRONMENTS.md), [source-availability evidence](docs/AVAILABILITY.md), [focused project profiling](docs/FOCUS.md), [format evidence](docs/FORMATS.md), [package-source declarations](docs/REGISTRIES.md), caller-supplied rules, Syft package-evidence import, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
+Language detection uses a maintained Enry fork with compatibility tests against [GitHub Linguist](https://github.com/github-linguist/linguist). Dircue also identifies supported ecosystems, frameworks, and layouts. Optional modules add [metadata discovery](docs/DISCOVERY.md), [project declarations and interfaces](docs/DECLARATIONS.md), .NET project graphs, [environment requirements](docs/ENVIRONMENTS.md), [source-availability evidence](docs/AVAILABILITY.md), [focused project profiling](docs/FOCUS.md), [format evidence](docs/FORMATS.md), [package-source declarations](docs/REGISTRIES.md), caller-supplied rules, Syft package-evidence import, and [scc](https://github.com/boyter/scc) line counts. Optional structural analysis covers 20 languages through a separate native worker built on [big-code-analysis](https://github.com/dekobon/big-code-analysis) and [Tree-sitter](https://tree-sitter.github.io/tree-sitter/).
 
 ```sh
 dircue analyze discovery --json /path/to/checkout

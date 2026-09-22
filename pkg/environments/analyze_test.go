@@ -3,6 +3,7 @@ package environments
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -487,5 +488,48 @@ func TestGlobalJSONReadErrorContinuePolicy(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("no file-read-error diagnostic: %+v", r.Diagnostics)
+	}
+}
+
+func TestGlobalJSONContinueDoesNotSwallowReaderCancellation(t *testing.T) {
+	for _, want := range []error{context.Canceled, context.DeadlineExceeded} {
+		in := envInput(map[string]string{"global.json": `{"sdk":{"version":"8.0.100"}}`}, []Invocation{{"p", "."}})
+		in.ErrorPolicy = "continue"
+		in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+			return nil, 0, fmt.Errorf("selected reader stopped: %w", want)
+		}
+		if _, err := Analyze(context.Background(), in, Limits{}); !errors.Is(err, want) {
+			t.Fatalf("continue swallowed %v: %v", want, err)
+		}
+	}
+}
+
+func TestGlobalJSONReadErrorIsCachedAcrossContexts(t *testing.T) {
+	contents := `{"sdk":{"version":"8.0.100"}}`
+	in := envInput(map[string]string{"global.json": contents}, []Invocation{{"a", "src/a"}, {"b", "src/b"}})
+	in.ErrorPolicy = "continue"
+	reads := 0
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		reads++
+		if reads == 1 {
+			return nil, 0, errors.New("transient selected-source failure")
+		}
+		return []byte(contents), int64(len(contents)), nil
+	}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads != 1 {
+		t.Fatalf("selected global.json read %d times", reads)
+	}
+	if len(r.Selections) != 2 || r.Selections[0].State != "unresolved" || r.Selections[1].State != "unresolved" {
+		t.Fatalf("contexts observed inconsistent source states: %+v", r.Selections)
+	}
+	if len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "file-read-error" {
+		t.Fatalf("read failure diagnostics not deduplicated: %+v", r.Diagnostics)
+	}
+	if r.Coverage.OmittedFiles != 1 || r.Coverage.GlobalJSONCandidates != 2 || r.Coverage.GlobalJSONRead != 0 {
+		t.Fatalf("read omission coverage: %+v", r.Coverage)
 	}
 }

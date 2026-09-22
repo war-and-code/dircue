@@ -208,12 +208,13 @@ func (c *Client) Analyze(ctx context.Context, path, language string, content []b
 		if c.options.Functions && unsupportedFunctionRequest(stdout.buf.Bytes()) {
 			return result, fmt.Errorf("structure worker does not support function-space metrics; use an updated worker: %w", err)
 		}
-		// Process-level failure (crash, signal, non-protocol exit) with the
-		// parent context still alive attaches the ErrWorkerFailure sentinel
-		// so a per-file continue caller can classify it. The wrapping text
-		// is unchanged from 0.8.0 so default fail-policy stderr byte-matches.
+		// A worker that started and exited non-zero (including by signal) is a
+		// per-file process failure. Launch/configuration failures are not: a
+		// missing or newly non-executable worker would affect every file and
+		// must remain fatal under every caller policy.
 		wrapped := fmt.Errorf("structure worker: %w; stderr: %s", err, strings.TrimSpace(stderr.buf.String()))
-		if ctx.Err() == nil {
+		var exitErr *exec.ExitError
+		if ctx.Err() == nil && errors.As(err, &exitErr) {
 			return result, &perFileWorkerError{err: wrapped, sentinel: ErrWorkerFailure}
 		}
 		return result, wrapped

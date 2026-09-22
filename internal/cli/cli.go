@@ -181,9 +181,6 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if opts.maxFileBytes < 0 {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
 	}
-	if opts.maxTreeSize < 1 {
-		return fmt.Errorf("--tree-size must be at least 1; a nonempty tree always has one entry")
-	}
 	packageReport, err := loadPackageEvidence(cmd, opts, mode)
 	if err != nil {
 		return err
@@ -289,10 +286,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Revision:         opts.revision,
 		Tree:             opts.tree,
 		ErrorPolicy:      scanner.ErrorPolicy(opts.onError),
-		// The CLI validates --tree-size >= 1 above; the embedding
-		// scanner.Options.MaxTreeSize still accepts 0 as its default
-		// sentinel for API callers that never set the field.
-		MaxTreeSize:       opts.maxTreeSize,
+		// Linguist accepts nonpositive limits and emits empty statistics.
+		// A limit of one has the same result for every nonempty tree,
+		// while preserving zero as the embedding API's default sentinel.
+		MaxTreeSize:       max(1, opts.maxTreeSize),
 		Workers:           opts.workers,
 		MaxFileBytes:      opts.maxFileBytes,
 		IncludeFiles:      opts.breakdown || opts.strategies,

@@ -7,7 +7,7 @@
   families and their `schema_version` semantics, exit statuses, and the boundary
   guarantees. Publish a [security policy](SECURITY.md), a
   [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
-  template. Rewrite the README front matter to lead with a 30-second example
+  template. Rewrite the README front matter to lead with a quick example
   and a real install story (release archives with checksums, clone-and-build,
   Python wheel from a GitHub Release URL; `go install` is unsupported because
   go.mod carries replace directives for the maintained forks). Document the known 1.0 boundaries
@@ -42,21 +42,10 @@
   show 20–43% lower elapsed time on five selected Git workloads; the XML directory
   control is unchanged. Preserve classification, output and source-selection
   behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
-- Replace the directory-mode tree-size preflight with inline counting inside the
-  main walk (the walker streams jobs to workers as it discovers them), and skip
-  the redundant pre-open `Lstat` in the per-file worker read when the walker
-  already observed a regular entry. Preserves byte-identical stdout, stderr and
-  exit for every previously-successful invocation and the exact
-  `tree_size_limit` skeleton response at the boundary — including the 0.8.0
-  pre-walk ordering where a tree above the limit produces the skeleton even
-  when the tree also contains an unreadable file under the default fail
-  policy. Measured 32% lower wall time on synthetic 10k and 50k directory
-  scans with peak RSS within 3% of the pre-change baseline (numbers in
-  [tests/performance/v100_preparation/OPTIMIZATION.md](tests/performance/v100_preparation/OPTIMIZATION.md)).
-  Regression tests at `pkg/scanner/read_toctou_test.go` (TOCTOU non-regular
-  refusal) and `pkg/scanner/tree_size_stream_test.go` (tree-limit vs.
-  unreadable-file ordering, and `--on-error continue` interaction with the
-  limit) lock the new contract in.
+- Preserve the directory tree-size preflight and per-file regular-file check.
+  Add regressions for unreadable attributes, detector calls on oversized trees,
+  and symlinks to regular files; reject proposed optimizations that weakened
+  these behaviors.
 - Honor `--on-error continue` uniformly. Previously a single unreadable manifest
   aborted the whole `analyze all` run even under `continue`, because formats,
   declarations, registries and the environments `global.json` selection
@@ -65,19 +54,20 @@
   warning, the module reports `partial`, and the remaining modules keep their
   evidence. Under `continue` only, a per-file structural worker timeout or
   non-zero exit becomes a `structural_timeout` or `structural_worker_failure`
-  omission instead of ending the scan; protocol violations remain fatal in
-  every mode. The default `fail` policy and its error text are unchanged.
-- Reject `--tree-size` values below 1 with a usage error instead of silently
-  clamping them to 1 and returning empty statistics with exit 0. This is the
-  only exit-status change for a previously-accepted invocation in 1.0.0 and is
-  recorded as a reviewed behavior change in the compatibility harness.
+  omission instead of ending the scan. Cancellation, worker startup failures,
+  and protocol violations remain fatal. Recoverable worker warnings omit raw
+  worker stderr. Cache failed global.json selections once per analysis and
+  deduplicate file-read warnings without quadratic scans.
+- Preserve Linguist-compatible `--tree-size` edge behavior: nonpositive values
+  behave as 1 for directory scans, while single-file inspection ignores the
+  directory-only limit.
 - Suggest nearby values for finite option choices (`--source`, `--on-error`,
   `--metrics-scope`, `--module`), two-edit typos of longer command names, and
   an unknown first token that is not a path. Give `analyze explain --report` the
   same unreadable-report hint as `plan` and `compare`. Name the object kind
-  when `--tree` resolves to a commit or blob. Add an additive `views` array to
-  the planner descriptor pointing at the `--guide`, `--cli` and `--schema`
-  views, record signal termination (SIGPIPE on a closed stdout) truthfully in
+  when `--tree` resolves to a commit or blob. Advertise the `--guide`, `--cli`
+  and `--schema` capability views through explicit help, record signal
+  termination (SIGPIPE on a closed stdout) truthfully in
   the CLI catalog exit codes, and add a catalog drift test so a new flag cannot
   ship without its documented semantics.
 - Report a `global.json` accepted through the JSONC path (comments, trailing

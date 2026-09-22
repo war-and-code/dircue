@@ -199,13 +199,30 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
+			// ReadSelected may use a derived context whose cancellation is not
+			// reflected in the parent yet. Cancellation remains fatal under every
+			// error policy.
+			if errors.Is(err, context.Canceled) {
+				return nil, context.Canceled
+			}
+			if errors.Is(err, context.DeadlineExceeded) {
+				return nil, context.DeadlineExceeded
+			}
 			if in.ErrorPolicy == "continue" {
 				// Preserve remaining selections. The per-path diagnostic
 				// keeps the omission attributable and matches the other
 				// aggregation modules' file-read-error vocabulary.
 				sel.State = "unresolved"
 				r.Status = "partial"
-				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: candidate, Code: "file-read-error", Message: "Selected global.json could not be read."})
+				diagnostic := Diagnostic{Path: candidate, Code: "file-read-error", Message: "Selected global.json could not be read."}
+				// Cache the failed selection just like a parsed selection. A live
+				// source must be read at most once per analysis; otherwise two
+				// contexts selecting the same file could observe contradictory
+				// states after a transient failure or source replacement.
+				parseCache[candidate] = parsedSelection{selection: sel, status: "partial", diagnostics: []Diagnostic{diagnostic}}
+				diagnosticsEmitted[candidate] = true
+				r.Diagnostics = append(r.Diagnostics, diagnostic)
+				r.Coverage.OmittedFiles++
 				r.Selections = append(r.Selections, sel)
 				r.Coverage.Contexts++
 				continue

@@ -78,15 +78,15 @@ func TestAnalyzeAllContinueSurvivesUnreadableAggregationCandidates(t *testing.T)
 	if !foundReg {
 		t.Fatalf("registries did not record file_read_error per configuration: %+v", report.Registries.Configurations)
 	}
-	warnPaths := map[string]bool{}
+	warnPaths := map[string]int{}
 	for _, w := range report.Warnings {
 		if w.Code == "file_read_error" {
-			warnPaths[w.Path] = true
+			warnPaths[w.Path]++
 		}
 	}
 	for _, p := range []string{"pyproject.toml", ".npmrc", "config.json"} {
-		if !warnPaths[p] {
-			t.Fatalf("no top-level file_read_error warning for %q: %+v", p, report.Warnings)
+		if warnPaths[p] != 1 {
+			t.Fatalf("got %d top-level file_read_error warnings for %q: %+v", warnPaths[p], p, report.Warnings)
 		}
 	}
 	if report.Formats.Coverage.InspectedFiles == 0 {
@@ -231,6 +231,9 @@ func TestStructureContinueDegradesPerFileWorkerTimeoutAndCrash(t *testing.T) {
 			for _, w := range report.Warnings {
 				if w.Code == expectedReason {
 					foundWarn = true
+					if strings.Contains(w.Message, "SECRET-WORKER-STDERR") || strings.ContainsAny(w.Message, "\x1b\r\n") {
+						t.Fatalf("worker stderr escaped into successful report: %+v", w)
+					}
 				}
 			}
 			if !foundWarn {
@@ -265,7 +268,7 @@ func writeFakeStructuralWorker(t *testing.T, kind string) string {
 		// Drain stdin (client sends a JSON request) then block forever.
 		body = "#!/bin/sh\ncat >/dev/null\nwhile true; do sleep 1; done\n"
 	case "crash":
-		body = "#!/bin/sh\ncat >/dev/null\necho 'worker: fatal runtime error' >&2\nexit 134\n"
+		body = "#!/bin/sh\ncat >/dev/null\nprintf 'SECRET-WORKER-STDERR\\033[31m\\n' >&2\nexit 134\n"
 	default:
 		t.Fatalf("unknown fake worker kind %q", kind)
 	}

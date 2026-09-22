@@ -30,8 +30,6 @@ def main():
     parser.add_argument("--worker-sha256", required=True)
     parser.add_argument("--expected-diagnostics", type=Path,
                         help="Reviewed case IDs with exact old/new stderr and reasons")
-    parser.add_argument("--expected-behavior-changes", type=Path,
-                        help="Reviewed exit-code-changing rejections with exact old/new receipts")
     args = parser.parse_args()
     baseline, candidate, worker = (getattr(args, k).resolve()
                                    for k in ("baseline", "candidate", "worker"))
@@ -47,28 +45,6 @@ def main():
         for v in allowed.values()
     ):
         raise AssertionError("diagnostic exceptions need exact old/new stderr and reasons")
-    behavior_changes = {}
-    if args.expected_behavior_changes:
-        raw = json.loads(args.expected_behavior_changes.read_text())
-        if not isinstance(raw, dict) or raw.get("schema") != "dircue-v100-reviewed-behavior-changes-1":
-            raise AssertionError("behavior-change file lacks the reviewed-behavior-changes-1 schema tag")
-        cases = raw.get("cases", {})
-        if not isinstance(cases, dict) or not cases:
-            raise AssertionError("behavior-change file has no cases")
-        for cid, entry in cases.items():
-            if not isinstance(entry, dict) or set(entry) != {"review_id", "argv", "baseline", "candidate", "reason"}:
-                raise AssertionError(f"behavior-change entry {cid!r} needs review_id, argv, baseline, candidate, reason")
-            for side in ("baseline", "candidate"):
-                side_entry = entry[side]
-                if not isinstance(side_entry, dict) or set(side_entry) != {"exit", "stdout", "stderr"}:
-                    raise AssertionError(f"behavior-change entry {cid!r}[{side}] needs exit, stdout, stderr")
-                if not isinstance(side_entry["exit"], int) or not isinstance(side_entry["stdout"], str) or not isinstance(side_entry["stderr"], str):
-                    raise AssertionError(f"behavior-change entry {cid!r}[{side}] has non-scalar fields")
-            if not isinstance(entry["reason"], str) or not entry["reason"].strip():
-                raise AssertionError(f"behavior-change entry {cid!r} needs a nonempty reason")
-        behavior_changes = cases
-    if set(behavior_changes) & set(allowed):
-        raise AssertionError("a case ID cannot be both a diagnostic exception and a behavior change")
     report = {
         "schema": "dircue-v100-cli-preservation-1",
         "started_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -79,7 +55,6 @@ def main():
         "harness_sha256": common.sha256(Path(__file__)),
         "inherited_helpers": broad.source_hashes(), "cases": [],
         "allowed_diagnostic_changes": allowed,
-        "allowed_behavior_changes": behavior_changes,
     }
     with tempfile.TemporaryDirectory(prefix="dircue-v100-compat-") as temporary:
         base = Path(temporary)
@@ -102,42 +77,27 @@ def main():
                           and old[1] == new[1] == b"" and old[2] != new[2]
                           and old[2] == allowed[case_id]["baseline_stderr"].encode()
                           and new[2] == allowed[case_id]["candidate_stderr"].encode())
-            behavior_entry = behavior_changes.get(case_id)
-            behavior_ok = False
-            if behavior_entry is not None:
-                if list(options) != list(behavior_entry["argv"]):
-                    raise AssertionError(f"{case_id!r}: behavior-change argv does not match the corpus argv")
-                b, c = behavior_entry["baseline"], behavior_entry["candidate"]
-                behavior_ok = (old[0] == b["exit"] and old[1] == b["stdout"].encode() and old[2] == b["stderr"].encode()
-                               and new[0] == c["exit"] and new[1] == c["stdout"].encode() and new[2] == c["stderr"].encode())
             report["cases"].append({
                 "id": case_id, "group": group, "args": options,
                 "cwd": str(cwd.relative_to(base)), "exact": old == new,
                 "approved_diagnostic_change": diagnostic,
-                "approved_behavior_change": behavior_ok,
-                "passed": old == new or diagnostic or behavior_ok,
+                "passed": old == new or diagnostic,
                 "baseline": common.recorded(old), "candidate": common.recorded(new),
             })
         if manifest != broad.v060.previous.fixture_manifest(base):
             raise AssertionError("fixtures changed during execution")
     observed = {r["id"] for r in report["cases"] if r["approved_diagnostic_change"]}
     report["unused_diagnostic_exceptions"] = sorted(set(allowed) - observed)
-    observed_behavior = {r["id"] for r in report["cases"] if r["approved_behavior_change"]}
-    report["unused_behavior_change_exceptions"] = sorted(set(behavior_changes) - observed_behavior)
     report["total"] = len(report["cases"])
     report["exact_matches"] = sum(r["exact"] for r in report["cases"])
-    report["approved_behavior_changes"] = sum(r["approved_behavior_change"] for r in report["cases"])
     report["passed"] = (report["total"] == 278 and all(r["passed"] for r in report["cases"])
-                        and not report["unused_diagnostic_exceptions"]
-                        and not report["unused_behavior_change_exceptions"])
+                        and not report["unused_diagnostic_exceptions"])
     report["finished_at_utc"] = datetime.now(timezone.utc).isoformat()
     if common.sha256(baseline) != BASELINE_SHA256 or common.sha256(candidate) != report["candidate_sha256"]:
         raise AssertionError("executables changed during execution")
     common.write_json(args.output, report)
     print(json.dumps({k: report[k] for k in ("passed", "total", "exact_matches",
-                                              "approved_behavior_changes",
-                                              "unused_diagnostic_exceptions",
-                                              "unused_behavior_change_exceptions")}))
+                                              "unused_diagnostic_exceptions")}))
     raise SystemExit(0 if report["passed"] else 1)
 
 

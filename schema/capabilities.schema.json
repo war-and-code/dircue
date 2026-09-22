@@ -35,13 +35,6 @@
       "items": {
         "$ref": "#/$defs/module"
       }
-    },
-    "views": {
-      "type": "array",
-      "maxItems": 16,
-      "items": {
-        "$ref": "#/$defs/view"
-      }
     }
   },
   "$defs": {
@@ -52,37 +45,6 @@
         "type": "string",
         "minLength": 1,
         "maxLength": 256
-      }
-    },
-    "view": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": [
-        "name",
-        "description",
-        "argv"
-      ],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 64
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 256
-        },
-        "argv": {
-          "type": "array",
-          "minItems": 1,
-          "maxItems": 16,
-          "items": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 256
-          }
-        }
       }
     },
     "module": {

@@ -13,10 +13,14 @@ we cover it explicitly.
 
 ## What is frozen in 1.x
 
-Successful invocations of the surfaces below produce byte-identical
-output across 1.x releases unless a defect is being corrected, in
-which case the diff is recorded in `CHANGELOG.md` and in the
-`tests/compatibility_v100/` harness as an explicit exception.
+The surfaces below retain their documented meanings across 1.x releases.
+Compatibility tests compare exact outputs for fixed fixtures where applicable.
+That does not freeze classification data, detected findings, tool versions,
+or all report bytes: upstream language patterns and supported analysis can
+improve. Changes belong in `CHANGELOG.md` and focused regression tests.
+A harness exception does not authorize breaking an established CLI or report
+contract: those changes require the versioning and migration described below.
+Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
 
 - **Legacy Linguist CLI.** `dircue` with no subcommand emits the
   language-keyed directory JSON when invoked with `--json`, and the
@@ -40,8 +44,10 @@ which case the diff is recorded in `CHANGELOG.md` and in the
   `--on-error fail|continue`, `--metrics-scope source|text`) are
   frozen; adding a new value counts as an additive change.
 - **`compare` and `plan`.** The saved-report readers accept the JSON
-  their producers emit, with the documented `--module` names and
-  positional argument shapes.
+  their producers emit for the documented supported profile versions and
+  input families, with the documented `--module` names and positional argument
+  shapes. A valid aggregate report is not necessarily supported by every
+  comparison or planning module.
 - **`capabilities` outputs.** `capabilities --json` (planner
   descriptor), `capabilities --cli --json` (CLI catalog),
   `capabilities --guide[ --json]` (offline guide), and
@@ -59,24 +65,24 @@ which case the diff is recorded in `CHANGELOG.md` and in the
   reserved `$defs["_dircue_bundled_resources"]` key is part of the
   export contract; do not add a definition with that name to a source
   schema.
-- **`schema_version`.** Every schema carries its own
-  `schema_version`. A minor bump signals additive fields only; a
-  major bump would signal removals or renames and is not planned
-  within 1.x. The aggregate profile schema currently tops out at
+- **`schema_version`.** Versioned report families carry a
+  `schema_version`; legacy language JSON does not. JSON Schema documents also
+  carry their own identifiers. An incompatible report change requires an
+  explicit migration rather than silently reusing an existing version. The aggregate profile schema currently tops out at
   `1.7.0`; adding a new module in a 1.x release bumps that minor
   version. Standalone schemas keep their own numbers.
 - **Exit statuses.** `0` on success, `1` for handled errors. The
   `check exit before consuming stdout` rule from the README is part
   of the contract. Note the SIGPIPE caveat below.
 - **stdout/stderr discipline.** Machine-readable output goes to
-  stdout only; diagnostics, warnings, and progress go to stderr. A
-  successful `--json` invocation writes no bytes to stderr other than
-  warnings the report also lists.
-- **Boundary guarantees.** Dircue does not execute inspected content,
-  does not open the network, and does not read outside the selected
-  source. Documented resource bounds (tree-size, packfile descriptor
-  cap, saved-report size caps, structural worker deadline, attribute
-  rule budget) are also part of the contract.
+  stdout only; process diagnostics go to stderr. Module diagnostics may also
+  be represented in reports. Legacy language JSON has no warning field, so
+  its warnings are available only on stderr.
+- **Boundary guarantees.** Built-in profiling is offline and does not execute
+  inspected content. Directory containment, explicit caller inputs, Git object
+  storage, and the trusted optional worker have distinct boundaries; see
+  [SECURITY.md](../SECURITY.md). Documented resource controls retain their
+  meanings. They are not hard operating-system memory or CPU limits.
 
 ### SIGPIPE caveat
 
@@ -96,8 +102,9 @@ default runtime behavior and is not classified as an error.
   within 1.x.
 - **Warning presence in JSON.** Warnings in a report's `warnings[]`
   array are diagnostic evidence. Their code set is stable in the
-  additive sense above; consumers should treat unknown codes as
-  informational and not fail on them.
+  additive sense above. Consumers should preserve unknown codes and use
+  module status and coverage to determine completeness; an unfamiliar warning
+  must not be treated as evidence that analysis succeeded completely.
 - **Help text and long descriptions.** The commands and their flags
   are contract; the copy that explains them is not.
 - **JSON object-key order.** As stated in the README, key order is
@@ -105,9 +112,9 @@ default runtime behavior and is not classified as an error.
   per-module (the language and metrics arrays are stably ordered,
   file breakdowns follow Linguist's rules, and so on).
 - **Performance.** Measured elapsed time, allocation, and peak RSS
-  are not part of the contract. We record the workload and the
-  result when we claim a speedup; we do not commit to preserving it
-  across releases.
+  are workload- and host-dependent. We record the workload and the
+  result when claiming a speedup and investigate regressions before release.
+  No universal latency or memory guarantee is implied.
 - **The structural worker protocol.** The wire format between the Go
   CLI and the native structural worker is not a public integration
   surface. Third-party workers are unsupported.
@@ -123,14 +130,12 @@ default runtime behavior and is not classified as an error.
 
 ## Additive changes and `schema_version`
 
-New optional modules, new warning codes, new enum values, and new
-fields inside existing objects are additive. When they touch a
-bundled schema, the affected schema's `schema_version` gets a minor
-bump and the CHANGELOG names the surface. Consumers must ignore
-unknown fields on read; the schema does not use
-`additionalProperties: false` in every subschema, and the
-[schema readme](../schema/README.md) explains where that would fight
-future additions.
+New optional modules and commands can be added without changing existing
+invocations. New fields, warning codes, or enum values still require a review
+of producer schemas and saved-report readers: a strict existing reader may
+reject them. Report versioning and consumer guidance must describe that impact.
+A newer binary reads the report versions it documents; an older binary is not
+promised to accept reports emitted by a newer version.
 
 Removing a field, tightening an enum, or narrowing accepted input
 requires a major bump and is not planned within 1.x. When the design
@@ -162,7 +167,7 @@ migration recipe. We do not plan a 2.0 for the 1.x line.
 
 ## Supported platforms and toolchains
 
-Release archives, wheels, and the Docker image ship for:
+Core release archives and wheels are prepared for:
 
 - Linux amd64 (glibc-compatible, and musl through the packaged
   `musllinux` wheel tag).
@@ -177,21 +182,23 @@ launcher needs Python 3.10 or newer. The optional structural worker
 is packaged separately and has its own build toolchain
 (Rust 1.94.0, pinned in the [worker guide](STRUCTURE.md)).
 
+The Dockerfile supports local image builds; no container registry publication
+is currently part of the release process.
+
 See the [distribution guide](DISTRIBUTION.md) for the packaging
 matrix and the [release automation guide](RELEASE_AUTOMATION.md) for
 which of these platforms the release workflow builds and validates.
 
 ## Known boundaries at 1.0
 
-These are documented deferrals, not defects. Runtime output for the
-listed cases still respects every contract above.
+These are current limitations and follow-up work. They do not establish
+support for untested inputs or override the coverage reported by each module.
 
 - Bare, unborn, or SHA-256 Git repositories, Git alternates, and
   `GIT_DIR` overrides; subdirectory discovery inside a repository
-  root. `--source git` fails with a specific error for the
-  unsupported forms; `--source auto` may fall back to directory mode
-  without a stderr warning today (see the README under "Content
-  selection"). Tracked in
+  root. Support and diagnostics vary by repository shape; do not assume all
+  unsupported forms fail identically. `--source auto` may fall back to directory
+  mode without a stderr warning (see the README under "Content selection"). Tracked in
   [#66](https://github.com/war-and-code/dircue/issues/66).
 - `analyze focus --affected-by <path>` for a path with no matching
   declaration returns `status: complete` and echoes the query rather

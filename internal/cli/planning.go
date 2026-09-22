@@ -74,7 +74,7 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 			return err
 		}
 		if opts.json {
-			return json.NewEncoder(cmd.OutOrStdout()).Encode(capabilitiesWithViews(d))
+			return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 		}
 		return writeCapabilities(cmd.OutOrStdout(), d)
 	}}
@@ -245,37 +245,7 @@ func writeCapabilities(out io.Writer, d capabilities.Descriptor) error {
 			return err
 		}
 	}
-	if _, err := fmt.Fprintln(out, "Other views (see dircue capabilities --help): --cli, --guide, --schema NAME"); err != nil {
-		return err
-	}
 	return nil
-}
-
-// capabilitiesView describes one sibling capabilities surface. Argv is a
-// literal (non-executable) argument array a caller can inspect to discover the
-// exact invocation without probing the tool.
-type capabilitiesView struct {
-	Name        string   `json:"name"`
-	Description string   `json:"description"`
-	Argv        []string `json:"argv"`
-}
-
-// capabilitiesWithViews embeds the planner descriptor and adds a `views` array
-// pointing at the three sibling capabilities surfaces. Existing keys are
-// preserved byte-for-byte thanks to anonymous field JSON flattening; the
-// schema in schema/capabilities.schema.json is updated to allow the addition.
-type capabilitiesWithViews_t struct {
-	capabilities.Descriptor
-	Views []capabilitiesView `json:"views"`
-}
-
-func capabilitiesWithViews(d capabilities.Descriptor) capabilitiesWithViews_t {
-	return capabilitiesWithViews_t{Descriptor: d, Views: []capabilitiesView{
-		{Name: "planner", Description: "Planner-supported modules registry (default view).", Argv: []string{"dircue", "capabilities", "--json"}},
-		{Name: "cli", Description: "Explicit CLI grammar, flag catalog, and output contracts.", Argv: []string{"dircue", "capabilities", "--cli", "--json"}},
-		{Name: "guide", Description: "Offline automation guide with example argument arrays.", Argv: []string{"dircue", "capabilities", "--guide", "--json"}},
-		{Name: "schema", Description: "Bundled JSON Schema for a named contract; NAME is one of the schema resources.", Argv: []string{"dircue", "capabilities", "--schema", "NAME", "--json"}},
-	}}
 }
 
 func writePlan(out io.Writer, r *planning.Report) error {

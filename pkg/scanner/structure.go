@@ -83,7 +83,15 @@ func countStructure(ctx context.Context, root *os.Root, item job, opts Options, 
 		if opts.ErrorPolicy == ErrorPolicyContinue && ctx.Err() == nil {
 			if reason := recoverableStructureReason(err); reason != "" {
 				f.Reason = reason
-				value.warnings = append(value.warnings, profile.Warning{Path: item.path, Code: reason, Message: err.Error()})
+				// The worker's error can contain arbitrary stderr. Continue-mode
+				// warnings are persisted in successful JSON reports, so retain only
+				// a fixed explanation; the default fatal path still returns the
+				// original error text for compatibility.
+				message := "structural worker process exited unsuccessfully"
+				if reason == "structural_timeout" {
+					message = "structural worker exceeded the per-file timeout"
+				}
+				value.warnings = append(value.warnings, profile.Warning{Path: item.path, Code: reason, Message: message})
 				return nil
 			}
 		}
