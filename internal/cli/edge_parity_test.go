@@ -13,14 +13,16 @@ func TestNonpositiveTreeLimits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "source.go"), []byte("package example\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
+	// 1.0 rejects --tree-size below one instead of silently clamping to one, so
+	// consumers do not misclassify an ordinary usage error as an empty result.
+	// The single-file inspection path validates the flag before opening the file.
 	for _, limit := range []string{"0", "-1"} {
-		output, _, err := invoke("--json", "--tree-size="+limit, root)
-		if err != nil || strings.TrimSpace(output) != "{}" {
-			t.Fatalf("limit %s: %q %v", limit, output, err)
-		}
-		output, _, err = invoke("--json", "--tree-size="+limit, filepath.Join(root, "source.go"))
-		if err != nil || !strings.Contains(output, `"language":"Go"`) {
-			t.Fatalf("single-file limit %s: %q %v", limit, output, err)
+		want := "--tree-size must be at least 1; a nonempty tree always has one entry"
+		for _, path := range []string{root, filepath.Join(root, "source.go")} {
+			output, stderr, err := invoke("--json", "--tree-size="+limit, path)
+			if err == nil || err.Error() != want || strings.TrimSpace(output) != "" || stderr != "" {
+				t.Fatalf("limit %s at %s: stdout=%q stderr=%q err=%v", limit, path, output, stderr, err)
+			}
 		}
 	}
 }

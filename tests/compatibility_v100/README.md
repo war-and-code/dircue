@@ -38,6 +38,7 @@ python3 tests/compatibility_v100/run.py \
   --worker /path/to/verified-0.8.0/dircue-structural-worker \
   --worker-sha256 73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740 \
   --expected-diagnostics tests/compatibility_v100/expected-diagnostics.json \
+  --expected-behavior-changes tests/compatibility_v100/expected-behavior-changes.json \
   --output .cache/v100/check/compatibility.json.gz
 
 python3 tests/compatibility_v100/context.py \
@@ -75,3 +76,15 @@ options; they do not change ordinary language scanner execution. The final compa
 valid explanation, a fixed invalid-policy diagnostic, and rejection of an
 explicitly empty tree instead of the previous default-source scan. They are
 separate from the inherited 319-case corpus.
+
+`expected-behavior-changes.json` names the reviewed exit-code-changing rejections
+introduced by 1.0.0. Unlike `expected-diagnostics.json` (stderr-only fixes that
+retain exit 1) these entries flip a previously successful invocation to an
+error. Each `cases[<case_id>]` entry pins the exact argv from the inherited
+corpus, the byte-exact baseline receipt (exit + stdout + stderr), the byte-exact
+candidate receipt, and the reason. Passing `--expected-behavior-changes` to
+`run.py` accepts those specific cases and refuses any drift from either side;
+unused entries fail the run just like unused diagnostic exceptions. Currently
+`legacy-097` and `legacy-098` (`--tree-size 0` and `-1`) are covered by
+review `tree-size-below-one-rejected`; see r100/08 F-02 for the analysis and
+the corresponding CHANGELOG line under 1.0.0.

@@ -95,8 +95,8 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.SetArgs(args)
 	flags := root.PersistentFlags()
 	flags.BoolVarP(&opts.json, "json", "j", false, "Emit JSON")
-	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results")
-	flags.BoolVarP(&opts.strategies, "strategies", "s", false, "Show the language detection strategy for each file (text output)")
+	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results (no effect on other profilers)")
+	flags.BoolVarP(&opts.strategies, "strategies", "s", false, "Show the language detection strategy for each file, text output (no effect on other profilers)")
 	flags.IntVar(&opts.workers, "workers", 0, "Number of concurrent file workers (0 selects automatically)")
 	flags.Int64Var(&opts.maxFileBytes, "max-file-bytes", 0, "Skip files larger than this many bytes (0 disables the optional size limit)")
 	flags.StringVar(&opts.source, "source", "auto", "Content source: auto (Git when present), git, or directory")
@@ -167,9 +167,9 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	return safeCLIError(root.ExecuteContext(ctx))
 }
 
-func pathArgs(_ *cobra.Command, args []string) error {
+func pathArgs(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
-		return fmt.Errorf("expected at most one directory path, received %d", len(args))
+		return fmt.Errorf("%s%s", fmt.Sprintf("expected at most one directory path, received %d", len(args)), subcommandTypoSuffix(cmd, args[0]))
 	}
 	return nil
 }
@@ -180,6 +180,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	}
 	if opts.maxFileBytes < 0 {
 		return fmt.Errorf("--max-file-bytes must be zero or greater")
+	}
+	if opts.maxTreeSize < 1 {
+		return fmt.Errorf("--tree-size must be at least 1; a nonempty tree always has one entry")
 	}
 	packageReport, err := loadPackageEvidence(cmd, opts, mode)
 	if err != nil {
@@ -192,7 +195,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	var metrics *scanner.MetricsOptions
 	if mode == "metrics" || ((mode == "all" || mode == "focus") && opts.metrics) {
 		if opts.metricsScope != "source" && opts.metricsScope != "text" {
-			return fmt.Errorf("--metrics-scope must be source or text")
+			return enumValueError("--metrics-scope", "source or text", opts.metricsScope, []string{"source", "text"})
 		}
 		if opts.metricsMaxFileBytes <= 0 || opts.metricsMaxFileBytes > 268435456 {
 			return fmt.Errorf("--metrics-max-file-bytes must be between 1 and 268435456")
@@ -233,13 +236,13 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		path = args[0]
 	}
 	if opts.source != "auto" && opts.source != "git" && opts.source != "directory" {
-		return fmt.Errorf("--source must be auto, git, or directory")
+		return enumValueError("--source", "auto, git, or directory", opts.source, []string{"auto", "git", "directory"})
 	}
 	if cmd.Flags().Changed("tree") && opts.tree == "" {
 		return fmt.Errorf("--tree requires a full Git tree object ID")
 	}
 	if opts.onError != "fail" && opts.onError != "continue" {
-		return fmt.Errorf("--on-error must be fail or continue")
+		return enumValueError("--on-error", "fail or continue", opts.onError, []string{"fail", "continue"})
 	}
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
 		if opts.tree != "" {
@@ -286,10 +289,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Revision:         opts.revision,
 		Tree:             opts.tree,
 		ErrorPolicy:      scanner.ErrorPolicy(opts.onError),
-		// Linguist accepts nonpositive limits and emits empty statistics.
-		// A limit of one has the same result for every nonempty tree,
-		// while preserving zero as the embedding API's default sentinel.
-		MaxTreeSize:       max(1, opts.maxTreeSize),
+		// The CLI validates --tree-size >= 1 above; the embedding
+		// scanner.Options.MaxTreeSize still accepts 0 as its default
+		// sentinel for API callers that never set the field.
+		MaxTreeSize:       opts.maxTreeSize,
 		Workers:           opts.workers,
 		MaxFileBytes:      opts.maxFileBytes,
 		IncludeFiles:      opts.breakdown || opts.strategies,

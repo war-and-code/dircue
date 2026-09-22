@@ -134,6 +134,7 @@ func describeCLI(root *cobra.Command) cliContract {
 	}{
 		{0, "Successful command; reports can still have partial coverage. Differences in a comparison are not an error. The legacy tree-size limit returns empty statistics with a warning."},
 		{1, "Handled CLI, input, analysis, cancellation, or output error; diagnostics go to stderr. Check status before consuming stdout."},
+		{141, "Terminated by SIGPIPE on POSIX systems when a downstream reader closed early (128 + signal 13). The Go runtime's default disposition is intentionally preserved; treat 141 as an early consumer close rather than a dircue error."},
 	}
 	d.SourceSelection = []string{
 		"With no path, analyze the current directory. At a committed Git repository root, auto reads HEAD; dirty and untracked files are excluded.",
@@ -162,6 +163,7 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"cli-capabilities", "versioned CLI contract", "cli-capabilities", "whole output", "This explicit CLI metadata view uses its independent schema_version 1.0.0."},
 		{"guide", "versioned guide sections and example argv", "guide", "whole output", "Static guidance; examples are never executed."},
 		{"json-schema", "Draft 2020-12 compound schema", "", "self-described", "Offline bundled resources have identifiers, not URLs that need fetching."},
+		{"help-text", "unstructured help", "", "unavailable", "Plain-text usage suitable for humans; --json is accepted but ignored. Use capabilities --guide --json for structured guidance."},
 	}
 	for _, name := range schema.Names() {
 		scope, pointer := "whole output", ""
@@ -227,7 +229,9 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 		return []string{"plan"}
 	case "dircue compare":
 		return []string{"comparison"}
-	case "dircue analyze", "dircue help":
+	case "dircue help":
+		return []string{"help-text"}
+	case "dircue analyze":
 		return []string{}
 	default:
 		if cmd.Parent() != nil && cmd.Parent().Name() == "analyze" {
@@ -263,6 +267,17 @@ func commandRestrictions(cmd *cobra.Command) []string {
 		r = append(r, "Requires --rules-file; rules are caller-supplied, never discovered automatically.")
 	case "packages":
 		r = append(r, "Requires --syft-report. --syft-report-sha256 and --syft-source-tree must be supplied together.")
+	case "analyze":
+		r = append(r, "Group entry point: choose a profiler subcommand. Inherited scan flags are advisory here and validated by the selected subcommand.")
+	}
+	// Leaf analyze subcommands that only carry the shared scan restriction get
+	// an explicit marker for their profiler scope so a new subcommand that
+	// forgets to catalog its semantics is caught by TestCatalogCoversAllCommandsAndFlags.
+	if cmd.Parent() != nil && cmd.Parent().Name() == "analyze" {
+		switch cmd.Name() {
+		case "languages", "discovery", "formats", "registries", "metrics", "projects", "declarations", "environments", "graph", "availability", "frameworks", "ecosystems":
+			r = append(r, "Profiler subcommand: additional restrictions are advertised by module-specific flags below.")
+		}
 	}
 	return r
 }
