@@ -55,7 +55,11 @@ type gitObjectLane struct {
 // allowing independent storages to decode objects concurrently. Every lane
 // shares one thread-safe, size-bounded object cache.
 type gitObjectLanes struct {
-	available chan *gitObjectLane
+	// primaryRepo is also one of the available lanes. Direct use is confined
+	// to snapshot setup, the serial tree prepass, and single-file inspection;
+	// those phases never overlap leased worker reads.
+	primaryRepo *git.Repository
+	available   chan *gitObjectLane
 }
 
 func newGitObjectLanes(repositoryFS, worktreeFS billy.Filesystem, objectCache cache.Object, options filesystem.Options, count int) (*gitObjectLanes, []*filesystem.Storage, error) {
@@ -75,18 +79,18 @@ func newGitObjectLanes(repositoryFS, worktreeFS billy.Filesystem, objectCache ca
 			return nil, nil, errors.Join(err, closeErr)
 		}
 		storages = append(storages, storage)
+		if lanes.primaryRepo == nil {
+			lanes.primaryRepo = repo
+		}
 		lanes.available <- &gitObjectLane{repo: repo}
 	}
 	return lanes, storages, nil
 }
 
-func (l *gitObjectLanes) primary() *git.Repository {
-	lane := <-l.available
-	l.available <- lane
-	return lane.repo
-}
-
 func (l *gitObjectLanes) acquire(ctx context.Context) (*gitObjectLane, func(), error) {
+	if err := ctx.Err(); err != nil {
+		return nil, nil, err
+	}
 	select {
 	case lane := <-l.available:
 		return lane, func() { l.available <- lane }, nil
@@ -267,7 +271,11 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (snapshot *gitSnapshot, err error) {
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool) (*gitSnapshot, error) {
+	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, attributeRoot)
+}
+
+func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
 	if opts.Source == "directory" {
 		return nil, nil
 	}
@@ -310,7 +318,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 		if err != nil {
 			return nil, fmt.Errorf("open bounded Git storage: %w", err)
 		}
-		repo = retainedLanes.primary()
+		repo = retainedLanes.primaryRepo
 	}
 	var tree *object.Tree
 	if opts.Tree != "" {
@@ -369,7 +377,7 @@ func openGitSnapshot(ctx context.Context, directory string, opts Options, discov
 	}
 	snapshot = &gitSnapshot{root: root, tree: tree, repo: repo, lanes: retainedLanes, storages: ownedStorages, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
 	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		files, err := attributeRoot(storage.Filesystem().Root())
+		files, err := openAttributeRoot(storage.Filesystem().Root())
 		if err != nil {
 			return nil, err
 		}
@@ -488,15 +496,11 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			entries = append(entries, item)
 			continue
 		}
-		// EncodedObjectSize touches go-git's shared packfile scanner and delta
-		// caches (see the comment on objectMu at the struct declaration).
-		// Running here without the mutex is only safe because walk() finishes
-		// every size lookup and .gitattributes read in this first for-loop
-		// before the second for-loop below pushes any job onto the channel;
-		// workers block on the empty jobs channel until then, so no worker's
-		// mutex-guarded BlobObject call can race this call. Preserve that
-		// ordering if this loop is ever refactored to interleave with dispatch,
-		// or take s.objectMu around this call and the .gitattributes read below.
+		// EncodedObjectSize mutates the primary lane's pack scanner and index
+		// state. walk() finishes every size lookup and .gitattributes read in
+		// this first loop before the second loop dispatches any jobs. Workers
+		// therefore cannot lease that lane until this prepass is complete.
+		// Preserve that ordering if traversal and dispatch are ever interleaved.
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
 		if err != nil {
 			if s.errorPolicy == ErrorPolicyContinue {
