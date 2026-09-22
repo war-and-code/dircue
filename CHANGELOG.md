@@ -8,8 +8,9 @@
   guarantees. Publish a [security policy](SECURITY.md), a
   [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
   template. Rewrite the README front matter to lead with a 30-second example
-  and a real install story (release archives with checksums, `go install`,
-  Python wheel from a GitHub Release URL). Document the known 1.0 boundaries
+  and a real install story (release archives with checksums, clone-and-build,
+  Python wheel from a GitHub Release URL; `go install` is unsupported because
+  go.mod carries replace directives for the maintained forks). Document the known 1.0 boundaries
   (`--source auto` fallback disclosure, absent-focus-query, registry adapter
   coverage, environment adapter breadth, structural worker isolation) in
   [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and
@@ -56,6 +57,37 @@
   refusal) and `pkg/scanner/tree_size_stream_test.go` (tree-limit vs.
   unreadable-file ordering, and `--on-error continue` interaction with the
   limit) lock the new contract in.
+- Honor `--on-error continue` uniformly. Previously a single unreadable manifest
+  aborted the whole `analyze all` run even under `continue`, because formats,
+  declarations, registries and the environments `global.json` selection
+  returned plain read errors. Under `continue` the unreadable file is now a
+  per-module omission (`file_read_error`) plus the same-shaped top-level
+  warning, the module reports `partial`, and the remaining modules keep their
+  evidence. Under `continue` only, a per-file structural worker timeout or
+  non-zero exit becomes a `structural_timeout` or `structural_worker_failure`
+  omission instead of ending the scan; protocol violations remain fatal in
+  every mode. The default `fail` policy and its error text are unchanged.
+- Reject `--tree-size` values below 1 with a usage error instead of silently
+  clamping them to 1 and returning empty statistics with exit 0. This is the
+  only exit-status change for a previously-accepted invocation in 1.0.0 and is
+  recorded as a reviewed behavior change in the compatibility harness.
+- Suggest nearby values for finite option choices (`--source`, `--on-error`,
+  `--metrics-scope`, `--module`), two-edit typos of longer command names, and
+  an unknown first token that is not a path. Give `analyze explain --report` the
+  same unreadable-report hint as `plan` and `compare`. Name the object kind
+  when `--tree` resolves to a commit or blob. Add an additive `views` array to
+  the planner descriptor pointing at the `--guide`, `--cli` and `--schema`
+  views, record signal termination (SIGPIPE on a closed stdout) truthfully in
+  the CLI catalog exit codes, and add a catalog drift test so a new flag cannot
+  ship without its documented semantics.
+- Report a `global.json` accepted through the JSONC path (comments, trailing
+  commas) as `complete` with a `global-json-lenient-syntax` diagnostic instead
+  of `partial` with no reason, and consider only `global.json` files that are
+  nearest ancestors of a modeled .NET invocation context, so a Jekyll or Hugo
+  `_data/global.json` no longer receives a .NET diagnostic.
+- Add fuzz targets with seed corpora for the gitattributes parser, the
+  `global.json` and `requires-python` readers, saved-report planning input and
+  the capability descriptor, asserting bounded output and determinism.
 
 ## 0.8.0 (2026-09-21)
 
