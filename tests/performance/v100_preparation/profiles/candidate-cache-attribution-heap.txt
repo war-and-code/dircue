@@ -1,0 +1,8 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:53:12 EDT
+Active filters:
+   show=ObjectStorage.*packfile|NewReaderSize|ObjectPack
+Showing nodes accounting for 34.13MB, 1.18% of 2892.44MB total
+      flat  flat%   sum%        cum   cum%
+   34.13MB  1.18%  1.18%    34.13MB  1.18%  bufio.NewReaderSize

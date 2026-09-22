@@ -1,0 +1,52 @@
+{
+  "audit_regressions": {
+    "baseline_fails": 11,
+    "candidate_passes": 11,
+    "count": 11
+  },
+  "checks": [
+    {
+      "command": [
+        "go",
+        "test",
+        "-race",
+        "./..."
+      ],
+      "exit": 0,
+      "output": "../full-race-final.log",
+      "output_sha256": "7f18da39ca8a3d722aba6372b6797e6f8219e6c701b16bbeb87b200fb43903aa"
+    },
+    {
+      "command": [
+        "go",
+        "vet",
+        "./..."
+      ],
+      "exit": 0,
+      "output": "vet-final.log",
+      "output_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "integration_timing_scope": "Measured commit2bcd134; subsequent changes constrain invalid language-schema values, annotate framework-help catalog descriptions and reject malformed explanation flags. They do not change ordinary language scanner execution.",
+  "limitations": [
+    "Local runtime validation is macOS arm64; ready-PR matrix and release artifact checks remain required.",
+    "Comparison executables use version0.8.0 solely to isolate metadata; review executable retains1.0.0-dev.",
+    "Performance evidence is same-host warm-cache; integrated control ratios are within1%, not proof of zero overhead."
+  ],
+  "preservation": {
+    "exact": 305,
+    "explicit_diagnostic_improvements": 12,
+    "saved_report_correctness_fixes": 2,
+    "total": 319
+  },
+  "recorded_at": "2026-09-22T01:00:13.462459+00:00",
+  "review_binary": {
+    "cgo_enabled": 0,
+    "path": ".cache/v100/handoff/dircue-review",
+    "sha256": "7c995ab0b2e25aac891e902f33c8143de49f5cccdca50855be51269499fa28ed",
+    "version": "1.0.0-dev"
+  },
+  "runtime_source_commit": "54f82a52e48d0d5231d5a54ea4e5f1302afc342f",
+  "schema": "dircue-v100-local-validation-1",
+  "supplementary_explanation_checks": "explain-options.json"
+}

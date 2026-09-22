@@ -1,0 +1,273 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Dircue explicit CLI capabilities",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "kind",
+    "provider_version",
+    "commands",
+    "exit_codes",
+    "source_selection",
+    "environment",
+    "output_contracts",
+    "schema_resources",
+    "behavior"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "dircue-cli-capabilities"
+    },
+    "provider_version": {
+      "type": "string"
+    },
+    "commands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/command"
+      }
+    },
+    "exit_codes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "meaning"
+        ],
+        "properties": {
+          "code": {
+            "description": "Ordinary handled exit code (0/1) or a POSIX signal-termination status such as 141 for SIGPIPE, which is documented rather than trapped.",
+            "enum": [
+              0,
+              1,
+              141
+            ]
+          },
+          "meaning": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "source_selection": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "environment": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "scope",
+          "effect"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "effect": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "output_contracts": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/output"
+      }
+    },
+    "schema_resources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/resource"
+      }
+    },
+    "behavior": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "usage",
+        "summary",
+        "description",
+        "examples",
+        "flags",
+        "rejected_inherited_flags",
+        "restrictions",
+        "output_contracts"
+      ],
+      "properties": {
+        "path": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        },
+        "usage": {
+          "type": "string"
+        },
+        "summary": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "flags": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/flag"
+          }
+        },
+        "rejected_inherited_flags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restrictions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "output_contracts": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "flag": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "shorthand",
+        "type",
+        "default",
+        "description",
+        "inherited",
+        "allowed_values"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "shorthand": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        },
+        "default": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "inherited": {
+          "type": "boolean"
+        },
+        "allowed_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "shape",
+        "schema",
+        "schema_scope",
+        "qualification"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "shape": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "schema_scope": {
+          "enum": [
+            "whole output",
+            "unavailable",
+            "self-described"
+          ]
+        },
+        "qualification": {
+          "type": "string"
+        }
+      }
+    },
+    "resource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "scope",
+        "profile_pointer",
+        "export_argv"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "whole output",
+            "profile component"
+          ]
+        },
+        "profile_pointer": {
+          "type": "string"
+        },
+        "export_argv": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}

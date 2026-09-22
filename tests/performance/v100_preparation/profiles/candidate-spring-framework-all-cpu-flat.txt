@@ -1,0 +1,55 @@
+File: scanner.test
+Type: cpu
+Time: 2026-09-21 19:52:47 EDT
+Duration: 12.43s, Total samples = 29.31s (235.81%)
+Active filters:
+   tagfocus=phase=scan
+Showing nodes accounting for 15.57s, 53.12% of 29.31s total
+Dropped 156 nodes (cum <= 0.15s)
+Showing top 45 nodes out of 146
+      flat  flat%   sum%        cum   cum%
+     6.92s 23.61% 23.61%      6.92s 23.61%  syscall.rawsyscalln
+     5.53s 18.87% 42.48%      5.53s 18.87%  runtime.pthread_cond_signal
+     0.93s  3.17% 45.65%      0.93s  3.17%  runtime.madvise
+     0.57s  1.94% 47.59%      0.62s  2.12%  regexp.(*machine).add
+     0.56s  1.91% 49.51%      1.06s  3.62%  regexp.(*Regexp).tryBacktrack
+     0.26s  0.89% 50.39%      0.26s  0.89%  regexp.(*bitState).shouldVisit (inline)
+     0.14s  0.48% 50.87%      0.43s  1.47%  regexp.(*machine).step
+     0.14s  0.48% 51.35%      0.14s  0.48%  runtime.usleep
+     0.13s  0.44% 51.79%      0.15s  0.51%  regexp/syntax.(*Inst).MatchRunePos
+     0.11s  0.38% 52.17%      0.12s  0.41%  regexp.(*inputString).step
+     0.09s  0.31% 52.47%      0.09s  0.31%  runtime.memclrNoHeapPointers
+     0.08s  0.27% 52.75%      0.11s  0.38%  regexp.(*inputString).context
+     0.04s  0.14% 52.88%      1.17s  3.99%  regexp.(*Regexp).backtrack
+     0.03s   0.1% 52.99%      0.89s  3.04%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*scannerReader).ReadByte
+     0.01s 0.034% 53.02%      0.71s  2.42%  compress/flate.(*decompressor).huffmanBlock
+     0.01s 0.034% 53.05%      0.18s  0.61%  compress/flate.(*decompressor).moreBits
+     0.01s 0.034% 53.09%      7.74s 26.41%  dircue/pkg/scanner.analyzeFileBase
+     0.01s 0.034% 53.12%      2.11s  7.20%  regexp.(*Regexp).doExecute
+         0     0% 53.12%      0.91s  3.10%  bufio.(*Reader).ReadByte
+         0     0% 53.12%      0.91s  3.10%  bufio.(*Reader).fill
+         0     0% 53.12%      0.71s  2.42%  compress/flate.(*decompressor).Read
+         0     0% 53.12%      0.49s  1.67%  compress/flate.(*decompressor).huffSym
+         0     0% 53.12%      0.36s  1.23%  compress/flate.(*decompressor).nextBlock
+         0     0% 53.12%      0.73s  2.49%  compress/zlib.(*reader).Read
+         0     0% 53.12%      0.22s  0.75%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit
+         0     0% 53.12%      1.75s  5.97%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 53.12%      5.68s 19.38%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 53.12%      0.38s  1.30%  dircue/pkg/scanner.DetectLanguage
+         0     0% 53.12%      1.75s  5.97%  dircue/pkg/scanner.Scan.func4
+         0     0% 53.12%      7.82s 26.68%  dircue/pkg/scanner.Scan.func5
+         0     0% 53.12%      7.75s 26.44%  dircue/pkg/scanner.analyzeFile
+         0     0% 53.12%      7.75s 26.44%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 53.12%      1.19s  4.06%  dircue/pkg/scanner.blobRead
+         0     0% 53.12%      0.09s  0.31%  dircue/pkg/scanner.readAllBounded
+         0     0% 53.12%      0.13s  0.44%  dircue/pkg/scanner.resolveAttributeRuleSets
+         0     0% 53.12%      0.13s  0.44%  dircue/pkg/scanner.resolveAttributeRuleSetsContext (inline)
+         0     0% 53.12%      0.13s  0.44%  dircue/pkg/scanner.resolveAttributesContext
+         0     0% 53.12%      0.29s  0.99%  github.com/go-enry/go-enry/v2.GetLanguagesByContent
+         0     0% 53.12%      0.62s  2.12%  github.com/go-enry/go-enry/v2.IsDocumentation (inline)
+         0     0% 53.12%      0.46s  1.57%  github.com/go-enry/go-enry/v2.IsGenerated
+         0     0% 53.12%      0.59s  2.01%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0% 53.12%      0.62s  2.12%  github.com/go-enry/go-enry/v2.matchRegexSlice (inline)
+         0     0% 53.12%      0.29s  0.99%  github.com/go-enry/go-enry/v2/data.Heuristics.Match
+         0     0% 53.12%      0.42s  1.43%  github.com/go-enry/go-enry/v2/data.nameMatches.func1
+         0     0% 53.12%      0.29s  0.99%  github.com/go-enry/go-enry/v2/data/rule.or.Match

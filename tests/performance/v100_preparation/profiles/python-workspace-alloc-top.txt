@@ -1,0 +1,37 @@
+File: python-workspace.test
+Type: alloc_space
+Time: 2026-09-21 19:16:05 EDT
+Showing nodes accounting for 3078.90MB, 97.98% of 3142.49MB total
+Dropped 83 nodes (cum <= 15.71MB)
+Showing top 30 nodes out of 40
+      flat  flat%   sum%        cum   cum%
+ 1341.23MB 42.68% 42.68%  1341.23MB 42.68%  github.com/pelletier/go-toml/v2/unstable.(*Parser).push (inline)
+  336.22MB 10.70% 53.38%   336.22MB 10.70%  dircue/pkg/declarations.AddReference
+  311.13MB  9.90% 63.28%   311.13MB  9.90%  dircue/pkg/declarations.AddRequirement
+  240.56MB  7.65% 70.94%   240.56MB  7.65%  github.com/pelletier/go-toml/v2.(*decoder).anyChildTable (inline)
+  186.55MB  5.94% 76.87%   186.55MB  5.94%  github.com/pelletier/go-toml/v2.(*decoder).setFusedLeaf
+  128.02MB  4.07% 80.95%  2564.02MB 81.59%  dircue/pkg/declarations.ParsePython
+  101.03MB  3.21% 84.16%   195.99MB  6.24%  dircue/pkg/declarations.pythonIncludeMember
+   82.01MB  2.61% 86.77%    82.01MB  2.61%  dircue/pkg/declarations.NewDocument
+   76.63MB  2.44% 89.21%    76.63MB  2.44%  regexp.(*bitState).reset
+   55.02MB  1.75% 90.96%    55.02MB  1.75%  github.com/pelletier/go-toml/v2.(*decoder).setAnyKey
+      46MB  1.46% 92.42%  1938.38MB 61.68%  dircue/pkg/declarations.ValidateTOML
+   33.50MB  1.07% 93.49%   558.91MB 17.79%  dircue/pkg/declarations.ResolvePython
+      33MB  1.05% 94.54%    88.02MB  2.80%  github.com/pelletier/go-toml/v2.(*decoder).decodeAny
+   29.50MB  0.94% 95.48%    54.19MB  1.72%  regexp.(*Regexp).replaceAll
+      23MB  0.73% 96.21%       23MB  0.73%  strings.genSplit
+   14.50MB  0.46% 96.67%   555.17MB 17.67%  github.com/pelletier/go-toml/v2.(*decoder).unmarshalFused
+   11.50MB  0.37% 97.04%    89.63MB  2.85%  regexp.(*Regexp).backtrack
+       8MB  0.25% 97.29%   164.78MB  5.24%  dircue/pkg/declarations.pythonRequirement
+    6.50MB  0.21% 97.50%  3129.43MB 99.58%  dircue/pkg/declarations.BenchmarkPythonWorkspace
+    6.50MB  0.21% 97.71%    24.17MB  0.77%  regexp.(*Regexp).FindStringSubmatch
+    4.50MB  0.14% 97.85%    27.50MB  0.88%  dircue/pkg/declarations.MatchPattern
+       4MB  0.13% 97.98%    58.19MB  1.85%  regexp.(*Regexp).ReplaceAllString
+         0     0% 97.98%    58.19MB  1.85%  dircue/pkg/declarations.pythonCanonical
+         0     0% 97.98%   165.78MB  5.28%  dircue/pkg/declarations.pythonDependencies
+         0     0% 97.98%    19.21MB  0.61%  dircue/pkg/declarations.pythonResolveSource
+         0     0% 97.98%   246.58MB  7.85%  github.com/pelletier/go-toml/v2.(*decoder).anyTableParts
+         0     0% 97.98%   540.67MB 17.21%  github.com/pelletier/go-toml/v2.(*decoder).fusedDocument
+         0     0% 97.98%   294.09MB  9.36%  github.com/pelletier/go-toml/v2.(*decoder).fusedKeyVal
+         0     0% 97.98%   246.58MB  7.85%  github.com/pelletier/go-toml/v2.(*decoder).fusedTable
+         0     0% 97.98%   555.17MB 17.67%  github.com/pelletier/go-toml/v2.(*decoder).unmarshal

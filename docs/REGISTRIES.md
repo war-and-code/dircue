@@ -92,8 +92,13 @@ parsed files. Check
 `declaration_count_complete` before using a configuration's observed count as
 a total. A parser limit may prevent counting the unseen remainder. A tree
 limit makes enumeration incomplete; an empty successful inventory is different
-from skipped enumeration. Read failures and cancellation fail the command
-without returning a success-shaped partial report.
+from skipped enumeration. Cancellation fails the command
+without returning a success-shaped partial report. Read failures also fail
+by default; `--on-error continue` instead records the unreadable
+configuration with a per-file `file_read_error` omission and marks the
+report partial, keeping the remaining configurations. The caller's
+underlying I/O error text is never disclosed through this report in either
+mode.
 
 The optional `registries` object uses aggregate schema `1.3.0`, records its
 rule version and source consistency, and reports `complete`, `partial`, or
@@ -104,3 +109,5 @@ output schemas and the Linguist-compatible language interface.
 ## Uncovered configuration
 
 The current parser covers NuGet.Config and .npmrc only. An empty result does not rule out Maven settings.xml, pip.conf, Cargo config.toml, Yarn configuration, or other package sources. `enumeration_complete` describes the selected inventory under this supported scope; it does not establish registry coverage for every ecosystem.
+
+Tracked as a known 1.0 boundary; see [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#68](https://github.com/war-and-code/dircue/issues/68).

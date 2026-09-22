@@ -23,6 +23,7 @@ type FSObject struct {
 	path                 string
 	cache                cache.Object
 	largeObjectThreshold int64
+	readMetrics          *ReadMetrics
 }
 
 // NewFSObject creates a new filesystem object.
@@ -37,6 +38,23 @@ func NewFSObject(
 	cache cache.Object,
 	largeObjectThreshold int64,
 ) *FSObject {
+	return NewFSObjectWithMetrics(hash, finalType, offset, contentSize, index, fs, path, cache, largeObjectThreshold, nil)
+}
+
+// NewFSObjectWithMetrics creates a filesystem object with optional read-path
+// work counters. Existing callers retain the uninstrumented path.
+func NewFSObjectWithMetrics(
+	hash plumbing.Hash,
+	finalType plumbing.ObjectType,
+	offset int64,
+	contentSize int64,
+	index idxfile.Index,
+	fs billy.Filesystem,
+	path string,
+	cache cache.Object,
+	largeObjectThreshold int64,
+	metrics *ReadMetrics,
+) *FSObject {
 	return &FSObject{
 		hash:                 hash,
 		offset:               offset,
@@ -47,6 +65,7 @@ func NewFSObject(
 		path:                 path,
 		cache:                cache,
 		largeObjectThreshold: largeObjectThreshold,
+		readMetrics:          metrics,
 	}
 }
 
@@ -67,7 +86,7 @@ func (o *FSObject) Reader() (io.ReadCloser, error) {
 		return nil, err
 	}
 
-	p := NewPackfileWithCache(o.index, nil, f, o.cache, o.largeObjectThreshold)
+	p := NewPackfileWithCacheAndMetrics(o.index, nil, f, o.cache, o.largeObjectThreshold, o.readMetrics)
 	if o.largeObjectThreshold > 0 && o.size > o.largeObjectThreshold {
 		// We have a big object
 		h, err := p.objectHeaderAtOffset(o.offset)

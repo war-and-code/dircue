@@ -22,7 +22,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.8.0"
+var Version = "0.9.0"
 
 type options struct {
 	environments           bool
@@ -77,22 +77,26 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root := &cobra.Command{
 		Use:           "dircue [path]",
 		Short:         "Profile source code repos and other directories of computer content",
-		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repositories use committed HEAD content by default; --source directory scans current files.",
+		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
+		Example:       "  dircue --json /checkout\n  dircue analyze discovery --source directory --json /content\n  dircue analyze all --declarations --json /checkout\n  dircue capabilities --cli --json",
 		Version:       Version,
 		Args:          pathArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,
-		RunE:          func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, "languages") },
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return missingPathCommandHint(cmd, args, run(cmd, args, opts, "languages"))
+		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
 	root.SetVersionTemplate("dircue {{.Version}}\n")
 	root.SetOut(out)
 	root.SetErr(errOut)
+	root.SetFlagErrorFunc(flagErrorWithHint)
 	root.SetArgs(args)
 	flags := root.PersistentFlags()
 	flags.BoolVarP(&opts.json, "json", "j", false, "Emit JSON")
-	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results")
-	flags.BoolVarP(&opts.strategies, "strategies", "s", false, "Show the language detection strategy for each file (text output)")
+	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results (no effect on other profilers)")
+	flags.BoolVarP(&opts.strategies, "strategies", "s", false, "Show the language detection strategy for each file, text output (no effect on other profilers)")
 	flags.IntVar(&opts.workers, "workers", 0, "Number of concurrent file workers (0 selects automatically)")
 	flags.Int64Var(&opts.maxFileBytes, "max-file-bytes", 0, "Skip files larger than this many bytes (0 disables the optional size limit)")
 	flags.StringVar(&opts.source, "source", "auto", "Content source: auto (Git when present), git, or directory")
@@ -102,11 +106,11 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.MarkFlagsMutuallyExclusive("rev", "tree")
 	flags.IntVarP(&opts.maxTreeSize, "tree-size", "t", 100000, "Maximum number of files scanned")
 	analyze := &cobra.Command{
-		Use:   "analyze",
-		Short: "Run a selected profiler",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			return fmt.Errorf("choose an analysis: languages, discovery, formats, rules, registries, metrics, projects, declarations, environments, focus, availability, explain, graph, packages, structure, frameworks, ecosystems, or all")
-		},
+		Use:     "analyze",
+		Short:   "Run a selected profiler",
+		Long:    "Choose the profiler for the evidence you need. Discovery inventories metadata; languages retains Linguist-compatible output; all combines languages and ecosystem hints with explicitly selected optional modules. Git repository roots use committed HEAD unless --source directory is selected. No heavier profiler is enabled by choosing this group.",
+		Example: "  dircue analyze discovery --json /checkout\n  dircue analyze languages --source directory --json /content\n  dircue analyze all --declarations --metrics --json /checkout",
+		RunE:    analysisSelectionError,
 	}
 	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
@@ -160,12 +164,12 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.AddCommand(newCompareCommand(opts))
 	root.AddCommand(newPlanCommand(opts))
 	root.AddCommand(newCapabilitiesCommand(opts))
-	return root.ExecuteContext(ctx)
+	return safeCLIError(root.ExecuteContext(ctx))
 }
 
-func pathArgs(_ *cobra.Command, args []string) error {
+func pathArgs(cmd *cobra.Command, args []string) error {
 	if len(args) > 1 {
-		return fmt.Errorf("expected at most one directory path, received %d", len(args))
+		return fmt.Errorf("%s%s", fmt.Sprintf("expected at most one directory path, received %d", len(args)), subcommandTypoSuffix(cmd, args[0]))
 	}
 	return nil
 }
@@ -188,7 +192,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	var metrics *scanner.MetricsOptions
 	if mode == "metrics" || ((mode == "all" || mode == "focus") && opts.metrics) {
 		if opts.metricsScope != "source" && opts.metricsScope != "text" {
-			return fmt.Errorf("--metrics-scope must be source or text")
+			return enumValueError("--metrics-scope", "source or text", opts.metricsScope, []string{"source", "text"})
 		}
 		if opts.metricsMaxFileBytes <= 0 || opts.metricsMaxFileBytes > 268435456 {
 			return fmt.Errorf("--metrics-max-file-bytes must be between 1 and 268435456")
@@ -209,6 +213,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		if opts.structuralTimeout <= 0 {
 			return fmt.Errorf("--structural-timeout must be positive")
 		}
+		if opts.structuralWorker == "" {
+			return fmt.Errorf("structure requires --structural-worker /path/to/dircue-structural-worker; select a trusted matching worker explicitly")
+		}
 		var err error
 		structural, err = structure.New(structure.Options{Hotspots: opts.structureHotspots, Functions: opts.structureFunctions, Worker: opts.structuralWorker, MaxFileBytes: opts.structuralMaxFileBytes, Timeout: opts.structuralTimeout})
 		if err != nil {
@@ -226,13 +233,13 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		path = args[0]
 	}
 	if opts.source != "auto" && opts.source != "git" && opts.source != "directory" {
-		return fmt.Errorf("--source must be auto, git, or directory")
+		return enumValueError("--source", "auto, git, or directory", opts.source, []string{"auto", "git", "directory"})
 	}
 	if cmd.Flags().Changed("tree") && opts.tree == "" {
 		return fmt.Errorf("--tree requires a full Git tree object ID")
 	}
 	if opts.onError != "fail" && opts.onError != "continue" {
-		return fmt.Errorf("--on-error must be fail or continue")
+		return enumValueError("--on-error", "fail or continue", opts.onError, []string{"fail", "continue"})
 	}
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
 		if opts.tree != "" {

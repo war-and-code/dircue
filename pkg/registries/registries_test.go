@@ -368,6 +368,51 @@ func TestReadLimitsPrivacyCancellationAndOverflow(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+func TestReadErrorContinuePolicy(t *testing.T) {
+	// Under the continue policy a per-configuration read failure records a
+	// file_read_error omission attributed to that configuration and keeps the
+	// remaining candidates while still refusing to disclose the caller's
+	// original I/O error text.
+	c := newCollector(t)
+	c.SetErrorPolicy("continue")
+	if err := c.Add(Candidate{Path: ".npmrc", Size: 1, Read: func(context.Context, int64) ([]byte, int64, error) {
+		return nil, 0, errors.New("password-sentinel")
+	}}); err != nil {
+		t.Fatal(err)
+	}
+	if err := c.Add(fixtureCandidate("nested/.npmrc", "registry=https://example.com\n", nil)); err != nil {
+		t.Fatal(err)
+	}
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatalf("continue policy returned error: %v", err)
+	}
+	if r.Status != "partial" {
+		t.Fatalf("expected partial status: %+v", r)
+	}
+	var failed, healthy Configuration
+	for _, cfg := range r.Configurations {
+		if cfg.Path == ".npmrc" {
+			failed = cfg
+		} else {
+			healthy = cfg
+		}
+	}
+	if failed.Path == "" || failed.Omissions["file_read_error"] != 1 || failed.SyntaxStatus != "not_read" {
+		t.Fatalf("per-configuration omission missing: %+v", failed)
+	}
+	if healthy.Path == "" || len(healthy.Declarations) == 0 {
+		t.Fatalf("remaining candidate was not parsed: %+v", healthy)
+	}
+	if got := c.ReadErrors(); len(got) != 1 || got[0] != ".npmrc" {
+		t.Fatalf("ReadErrors: %v", got)
+	}
+	encoded, _ := json.Marshal(r)
+	if strings.Contains(string(encoded), "sentinel") || strings.Contains(string(encoded), "password") {
+		t.Fatalf("caller I/O error leaked into report: %s", encoded)
+	}
+}
+
 func TestChangedAndIncompleteReads(t *testing.T) {
 	for _, result := range []struct {
 		bytes []byte

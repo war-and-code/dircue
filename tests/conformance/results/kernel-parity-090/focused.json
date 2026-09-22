@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "scope": "Bounded candidate-intersection, generic-extension, heuristic-window, and pinned public-corpus differential against Linguist 9.7.0; not universal language equivalence.",
+  "recorded_on": "2026-09-22",
+  "reference": {
+    "image": "dircue-linguist:9.7.0",
+    "image_id": "sha256:f67c429e2b22c0c9691c9e16cceeeee9f2033486b451f5dc0f4278a1783f742c",
+    "version": "9.7.0",
+    "network_during_reference_execution": false
+  },
+  "baseline": {
+    "git_revision": "a2f4eeb793a67a5b783e5fe7b5f1822a5dbdc81d",
+    "binary_sha256": "c91e7e20c33d4af7d3970c6111f23473ed03ebbf106cf4588733a48cc8c3cf93"
+  },
+  "candidate": {
+    "git_revision": "f911ec86190dc4cd9f8efea504e818b707c97562",
+    "strategy_implementation_revision": "2556dc2549b0f338916c83c15b901f287516828e",
+    "binary_sha256": "512362c8ff847480972f17819fbe0599e9795ebd83fc84d4d0ec7ad9c5d7bb9d",
+    "build_note": "Clean archive builds of 2556dc2 and its documentation-only descendant f911ec8 were byte-identical."
+  },
+  "final_runtime_candidate": {
+    "binary_sha256": "81f394ef9332429a4bfe78a9fa50bb944ccac18bcbfc835e4e4188cded547da9",
+    "contents": "Strategy implementation 2556dc2 plus the finalized Git pack seek and EOF/error normalization changes."
+  },
+  "runners": {
+    "synthetic_sha256": "b2a1dee7adc698a6d748167e0abb76a4c29752504b787ebabe15d4a2d482f882",
+    "public_sha256": "cddd92d120bd05cb1276ea308dca1a465b24ff986f527a5c3492c66a0b6d2e1b",
+    "public_manifest_sha256": "908e965047f4209a56e16dac7ce1754188f6bec89ac8fcba13a175fe28733cfc"
+  },
+  "results": [
+    {
+      "id": "kernel-regressions",
+      "coverage": "Perl/Pod candidate narrowing plus the exact 50 KiB raw-byte heuristic boundary",
+      "baseline": {"total": 30, "passed": 9, "failed": 21},
+      "candidate": {"total": 30, "passed": 30, "failed": 0},
+      "baseline_report_sha256": "4db3bfeb7ce25bbbfd00957166b3867b65ab8a66b89df005269da8519da4b84f",
+      "candidate_report_sha256": "faba60fb75ed99a32bc3492d15aef61d5a4251d069d05d2f306f0dba70ec23c6"
+    },
+    {
+      "id": "generic-extensions",
+      "coverage": "All 23 Linguist generic extensions with independently asserted positive and nonmatching oracle results and strategy labels",
+      "baseline": {"total": 94, "passed": 52, "failed": 42},
+      "candidate": {"total": 94, "passed": 94, "failed": 0},
+      "baseline_report_sha256": "8d620583386e6018c5cffd681c1926aa6e05b3ec103738edb548543420aa8126",
+      "candidate_report_sha256": "3979dbceaa868b0b7fbef909dfaa46c8933928f7d0b1e50e6e605b035262eb80"
+    },
+    {
+      "id": "public-corpora",
+      "coverage": "Repository JSON aggregation and strategy labels for pinned Gitolite and Linux inputs",
+      "baseline": {"total": 4, "passed": 1, "failed": 3},
+      "candidate": {"total": 4, "passed": 4, "failed": 0},
+      "baseline_report_sha256": "30a12ec79dbc18dfc72ac612710e702a02b1140d25c56f4f4aff1c98affb01f5",
+      "candidate_report_sha256": "ce390deb22490c36624a3673633ba9057a38738eb01bd802c7f293ac2ff3669e"
+    }
+  ],
+  "public_corpora": [
+    {
+      "id": "gitolite",
+      "revision": "782b05fece05e10f21ce2ed0ba308a8e23f151c2",
+      "archive_sha256": "12ce320b0eaaca0082f20583d39dd5b5419ffeabd37e21d1aaf8ad5deb8f3052",
+      "materialized_fixture_sha256": "7df7003d6b75e44cdd7c95ea5c0a66b5a7b2cc3a411ec259eaaf823e65ea36a1",
+      "regular_files": 191,
+      "skipped_nonregular": 2
+    },
+    {
+      "id": "linux-kernel-slice",
+      "revision": "fe2ec83746e501645709761605c2464a44fd2929",
+      "materialized_fixture_sha256": "04416a2065484730e53740d795cda12b88d15e13a558754a368ca9748b685ce9",
+      "regular_files": 5,
+      "skipped_nonregular": 0
+    }
+  ],
+  "final_gates": {
+    "synthetic": {
+      "total": 600,
+      "passed": 582,
+      "expected_failures": 18,
+      "failed": 0,
+      "report_sha256": "15fba4b34e5b69e8650b838c3ba5c98cb6e748507ed2f16b458a3d5869880657"
+    },
+    "upstream_samples": {
+      "samples": 3388,
+      "sample_language_directories": 765,
+      "reference_errors": 0,
+      "official_enry_matches": 3241,
+      "maintained_enry_matches": 3388,
+      "ordered_token_sequences_match": 3388,
+      "programming_markup_samples": 2629,
+      "programming_markup_matches": 2629,
+      "archive_sha256": "e7b85d06f5e61a810303b8d2e03fc199760525c079fef4dd6f8b7c86342234d9",
+      "upstream_git_revision": "e0c78d62c42abae6122235d8e68a7aa43eef89da",
+      "report_sha256": "38db6722fd1637b08ad9c32f023065068a6091c5a99286c1fb7323d764d388cc"
+    }
+  },
+  "commands": [
+    "python3 tests/conformance/run.py --binary <clean-candidate> --case kernel-regressions --output <fresh-output>",
+    "python3 tests/conformance/run.py --binary <clean-candidate> --case generic-extensions --mode json-breakdown --mode file-json --mode file-strategies --output <fresh-output>",
+    "python3 tests/conformance/public.py --binary <clean-candidate> --gitolite-archive <verified-archive> --kernel-git <bare-linux-git> --output <fresh-output>",
+    "python3 tests/conformance/classifier_window.py --output <fresh-output>"
+  ]
+}

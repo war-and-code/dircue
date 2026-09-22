@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/go-enry/go-enry/v2/data"
@@ -277,12 +278,12 @@ func GetLanguagesByVimModeline(_ string, content []byte, _ []string) []string {
 
 // GetLanguagesByFilename returns a slice of possible languages for the given filename.
 // It complies with the signature to be a Strategy type.
-func GetLanguagesByFilename(filename string, _ []byte, _ []string) []string {
+func GetLanguagesByFilename(filename string, _ []byte, candidates []string) []string {
 	if filename == "" {
 		return nil
 	}
 
-	return data.LanguagesByFilename[filepath.Base(filename)]
+	return intersectCandidates(candidates, data.LanguagesByFilename[filepath.Base(filename)])
 }
 
 // GetLanguagesByShebang returns a slice of possible languages for the given content.
@@ -394,7 +395,10 @@ func lookForMultilineExec(data []byte) string {
 
 // GetLanguagesByExtension returns a slice of possible languages for the given filename.
 // It complies with the signature to be a Strategy type.
-func GetLanguagesByExtension(filename string, _ []byte, _ []string) []string {
+func GetLanguagesByExtension(filename string, _ []byte, candidates []string) []string {
+	if data.IsGenericExtension(filename) {
+		return candidates
+	}
 	if !strings.Contains(filename, ".") {
 		return nil
 	}
@@ -405,11 +409,24 @@ func GetLanguagesByExtension(filename string, _ []byte, _ []string) []string {
 		ext := filename[dot:]
 		languages, ok := data.LanguagesByExtension[ext]
 		if ok {
-			return languages
+			return intersectCandidates(candidates, languages)
 		}
 	}
 
 	return nil
+}
+
+func intersectCandidates(candidates, languages []string) []string {
+	if len(candidates) == 0 {
+		return languages
+	}
+	var intersection []string
+	for _, candidate := range candidates {
+		if slices.Contains(languages, candidate) && !slices.Contains(intersection, candidate) {
+			intersection = append(intersection, candidate)
+		}
+	}
+	return intersection
 }
 
 var (
@@ -480,6 +497,10 @@ func GetLanguagesByContent(filename string, content []byte, _ []string) []string
 		return nil
 	}
 
+	const heuristicsConsiderBytes = 50 * 1024
+	if len(content) > heuristicsConsiderBytes {
+		content = content[:heuristicsConsiderBytes]
+	}
 	return heuristic.Match(content)
 }
 

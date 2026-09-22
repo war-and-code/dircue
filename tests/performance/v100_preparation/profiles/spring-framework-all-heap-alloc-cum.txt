@@ -1,0 +1,52 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:09:09 EDT
+Showing nodes accounting for 3514.97MB, 62.61% of 5613.85MB total
+Dropped 197 nodes (cum <= 28.07MB)
+Showing top 45 nodes out of 118
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%  3489.34MB 62.16%  dircue/pkg/scanner.Scan.func4
+      17MB   0.3%   0.3%  3489.34MB 62.16%  dircue/pkg/scanner.analyzeSelectedFile
+   47.52MB  0.85%  1.15%  3472.33MB 61.85%  dircue/pkg/scanner.analyzeFile
+         0     0%  1.15%  3424.82MB 61.01%  dircue/pkg/scanner.analyzeFileBase
+         0     0%  1.15%  2962.41MB 52.77%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0%  1.15%  2486.48MB 44.29%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+         0     0%  1.15%  2219.23MB 39.53%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObject
+         0     0%  1.15%  2219.23MB 39.53%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).getFromPackfile
+   91.91MB  1.64%  2.79%  2086.88MB 37.17%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0%  2.79%  2086.88MB 37.17%  dircue/pkg/scanner.Scan.func3
+         0     0%  2.79%  1676.97MB 29.87%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0%  2.79%  1676.97MB 29.87%  github.com/go-git/go-git/v5/plumbing/object.GetBlob
+      47MB  0.84%  3.62%  1636.99MB 29.16%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewPackfileWithCache
+   20.50MB  0.37%  3.99%  1589.98MB 28.32%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewScanner
+   15.50MB  0.28%  4.27%  1499.97MB 26.72%  github.com/go-git/go-git/v5/plumbing/format/packfile.newScannerReader
+         0     0%  4.27%  1437.48MB 25.61%  bufio.NewReader (inline)
+ 1437.48MB 25.61% 29.87%  1437.48MB 25.61%  bufio.NewReaderSize (inline)
+         0     0% 29.87%  1317.13MB 23.46%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObjectSize
+         0     0% 29.87%  1284.43MB 22.88%  dircue/pkg/scanner.blobRead
+         0     0% 29.87%  1065.10MB 18.97%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).encodedObjectSizeFromPackfile
+         0     0% 29.87%  1025.13MB 18.26%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open
+         0     0% 29.87%  1025.13MB 18.26%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*RepositoryFilesystem).Open
+         0     0% 29.87%  1015.61MB 18.09%  io.CopyBuffer
+         0     0% 29.87%  1015.61MB 18.09%  io.copyBuffer
+      28MB   0.5% 30.37%   986.05MB 17.56%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+  980.04MB 17.46% 47.83%   980.04MB 17.46%  github.com/go-git/go-git/v5/plumbing.(*MemoryObject).Write
+         0     0% 47.83%   913.99MB 16.28%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Scanner).NextObject
+         0     0% 47.83%   913.99MB 16.28%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Scanner).copyObject
+         0     0% 47.83%   901.64MB 16.06%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).fillRegularObjectContent
+         0     0% 47.83%   883.11MB 15.73%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack
+         0     0% 47.83%   883.11MB 15.73%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackOpen
+         0     0% 47.83%   837.61MB 14.92%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).followedPath
+         0     0% 47.83%   775.40MB 13.81%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).objectAtOffset
+       7MB  0.12% 47.95%   763.90MB 13.61%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+         0     0% 47.95%   761.99MB 13.57%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).decodeObjectAt
+   68.50MB  1.22% 49.17%   758.60MB 13.51%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+  754.51MB 13.44% 62.61%   758.01MB 13.50%  dircue/pkg/scanner.readAllBounded
+         0     0% 62.61%   747.95MB 13.32%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).GetByOffset
+         0     0% 62.61%   586.20MB 10.44%  github.com/go-git/go-git/v5.(*Repository).TreeObject (inline)
+         0     0% 62.61%   586.20MB 10.44%  github.com/go-git/go-git/v5/plumbing/object.GetTree
+         0     0% 62.61%   565.18MB 10.07%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*FSObject).Reader
+         0     0% 62.61%   525.92MB  9.37%  github.com/go-git/go-git/v5/plumbing/object.(*Blob).Reader (inline)
+         0     0% 62.61%   512.06MB  9.12%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getObjectContent
+         0     0% 62.61%   429.07MB  7.64%  github.com/go-git/go-billy/v5/helper/polyfill.(*Polyfill).Lstat
+         0     0% 62.61%   429.07MB  7.64%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).Lstat

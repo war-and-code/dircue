@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/zlib"
 	"errors"
+	"io"
 	"os"
 	"path/filepath"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/format/objfile"
+	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 )
 
 func TestEncodedObjectSizeClosesLooseFile(t *testing.T) {
@@ -71,6 +73,47 @@ func TestEncodedObjectSizeClosesLooseFile(t *testing.T) {
 				t.Fatalf("loose object file closed %d times, want exactly 1", file.closes)
 			}
 		})
+	}
+}
+
+func TestLargeLooseObjectReaderRecordsReopenedBytes(t *testing.T) {
+	root := t.TempDir()
+	hash := plumbing.NewHash("0123456789012345678901234567890123456789")
+	content := "blob 12\x00hello world\n"
+	filename := filepath.Join(root, "objects", "01", hash.String()[2:])
+	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filename, compressLooseObject(t, content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	metrics := &packfile.ReadMetrics{}
+	storage := NewStorageWithOptions(osfs.New(root), cache.NewObjectLRUDefault(), Options{
+		LargeObjectThreshold: 1,
+		ReadMetrics:          metrics,
+	})
+	object, err := storage.EncodedObject(plumbing.BlobObject, hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := metrics.Snapshot().LooseBytesRead
+	reader, err := object.Reader()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := reader.Close(); err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello world\n" {
+		t.Fatalf("got %q", got)
+	}
+	after := metrics.Snapshot().LooseBytesRead
+	if after <= before {
+		t.Fatalf("lazy reader bytes did not advance: before=%d after=%d", before, after)
 	}
 }
 

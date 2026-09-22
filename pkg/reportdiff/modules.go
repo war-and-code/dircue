@@ -73,7 +73,10 @@ func moduleInputs(p profile.Report) map[string]moduleData {
 	languages := observedModule(true, "complete", "language_provider_and_selection_provenance_unavailable")
 	// Empty legacy arrays do not distinguish an executed profiler with no
 	// observations from a module-only command that did not run that profiler.
-	languages.complete = false
+	// Language rows, analyzed-file counts, or language-byte totals establish
+	// that the population ran. Warning-free reports can then prove absence even
+	// though their provider/version provenance still limits attribution.
+	languages.complete = legacyComplete && legacyLanguagePopulationInspected(p)
 	languages.metadata["warnings"] = p.Warnings
 	for _, language := range p.Languages {
 		fields := object(language)
@@ -376,6 +379,12 @@ func targetedModules(p profile.Report, result map[string]moduleData) {
 
 func legacyPopulationEmpty(p profile.Report) bool {
 	return len(p.Languages) == 0 && len(p.Ecosystems) == 0 && len(p.Frameworks) == 0 && len(p.Layouts) == 0 && p.Summary.AnalyzedFiles == 0 && p.Summary.LanguageBytes == 0
+}
+
+func legacyLanguagePopulationInspected(p profile.Report) bool {
+	// Module-only scans still enumerate paths as scanned/skipped, so those
+	// counters do not prove that language classification ran.
+	return len(p.Languages) > 0 || p.Summary.AnalyzedFiles > 0 || p.Summary.LanguageBytes > 0
 }
 
 func qualifyLegacyPopulation(result map[string]moduleData, reason string) {

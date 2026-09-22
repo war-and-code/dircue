@@ -78,13 +78,15 @@ func parseAttributesBoundedFrom(filename, source string, content []byte, ruleLim
 			warn(line, splitErr.Error())
 			continue
 		}
-		if len(fields) < 2 {
-			warn(line, "expected a pattern and attributes")
-			continue
-		}
 		pattern := fields[0]
 		if strings.HasPrefix(pattern, "!") {
 			warn(line, "negative patterns are not allowed by Git attributes")
+			continue
+		}
+		// Git accepts a pattern with an empty attribute list as a silent no-op.
+		// This occurs in Kubernetes' attributes and is distinct from a malformed
+		// or negative pattern, both of which are still diagnosed.
+		if len(fields) == 1 {
 			continue
 		}
 		macro := ""

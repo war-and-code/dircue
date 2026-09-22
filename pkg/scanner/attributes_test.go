@@ -51,6 +51,20 @@ func TestUnsupportedAttributesWarn(t *testing.T) {
 	}
 }
 
+// Git 2.42.1 treats a pattern with an empty attribute list as a harmless
+// no-op: `git check-attr -a -- generated.proto` exits zero with no output or
+// warning. See the pinned syntax reference at
+// https://git-scm.com/docs/gitattributes/2.42.0#_description.
+func TestPatternOnlyAttributeLineIsSilentNoOp(t *testing.T) {
+	rules, warnings := parseAttributes(".gitattributes", []byte("**/generated.proto\n*.go linguist-generated\n"))
+	if len(warnings) != 0 {
+		t.Fatalf("pattern-only line produced warnings: %+v", warnings)
+	}
+	if len(rules) != 1 || !overrideBool(resolveAttributes("main.go", rules).generated, false) {
+		t.Fatalf("pattern-only line changed neighboring rules: %+v", rules)
+	}
+}
+
 func TestAttributeBooleanAndLanguageResets(t *testing.T) {
 	rules, warnings := parseAttributes(".gitattributes", []byte("*.go linguist-generated=true linguist-vendored=true linguist-detectable=false linguist-language=Python\n*.go -linguist-generated linguist-vendored=false linguist-detectable=true\nreset.go !linguist-generated !linguist-vendored !linguist-detectable !linguist-language\n"))
 	if len(warnings) != 0 {

@@ -115,6 +115,13 @@ func PatchDelta(src, delta []byte) ([]byte, error) {
 }
 
 func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadCloser, error) {
+	return ReaderFromDeltaWithMetrics(base, deltaRC, nil)
+}
+
+// ReaderFromDeltaWithMetrics applies a streaming delta and records optional
+// read-path work. The returned pipe can outlive an early Close briefly; callers
+// should inspect ActiveDeltaReaders before treating a metrics snapshot as final.
+func ReaderFromDeltaWithMetrics(base plumbing.EncodedObject, deltaRC io.Reader, metrics *ReadMetrics) (io.ReadCloser, error) {
 	deltaBuf := bufio.NewReaderSize(deltaRC, 1024)
 	srcSz, err := decodeLEB128ByteReader(deltaBuf)
 	if err != nil {
@@ -137,8 +144,14 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 	remainingTargetSz := targetSz
 
 	dstRd, dstWr := io.Pipe()
+	if metrics != nil {
+		metrics.activeDeltaReaders.Add(1)
+	}
 
 	go func() {
+		if metrics != nil {
+			defer metrics.activeDeltaReaders.Add(-1)
+		}
 		baseRd, err := base.Reader()
 		if err != nil {
 			_ = dstWr.CloseWithError(ErrInvalidDelta)
@@ -150,8 +163,21 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 			}
 		}()
 
+		baseRd = countDeltaBaseReader(baseRd, metrics)
 		baseBuf := bufio.NewReader(baseRd)
 		basePos := uint(0)
+		seekDisabled := false
+		reopenBase := func() error {
+			_ = baseRd.Close()
+			baseRd, err = base.Reader()
+			if err != nil {
+				return err
+			}
+			baseRd = countDeltaBaseReader(baseRd, metrics)
+			baseBuf.Reset(baseRd)
+			basePos = 0
+			return nil
+		}
 
 		for remainingTargetSz > 0 {
 			cmd, err := deltaBuf.ReadByte()
@@ -168,11 +194,17 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 			case isCopyFromSrc(cmd):
 				offset, err := decodeOffsetByteReader(cmd, deltaBuf)
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						err = ErrInvalidDelta
+					}
 					_ = dstWr.CloseWithError(err)
 					return
 				}
 				sz, err := decodeSizeByteReader(cmd, deltaBuf)
 				if err != nil {
+					if errors.Is(err, io.EOF) {
+						err = ErrInvalidDelta
+					}
 					_ = dstWr.CloseWithError(err)
 					return
 				}
@@ -183,38 +215,74 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 					return
 				}
 
-				discard := offset - basePos
+				// MemoryObject readers are seekable. Reposition those readers
+				// directly instead of reopening and replaying the base prefix for
+				// every backward delta copy. Reset the buffered reader after a
+				// successful seek because its underlying reader may have read ahead.
+				// Any failed or inexact seek falls back to the original reopen and
+				// discard path for this base.
+				if basePos != offset && !seekDisabled {
+					if seeker, ok := baseRd.(io.Seeker); ok {
+						position, seekErr := seeker.Seek(int64(offset), io.SeekStart)
+						if seekErr == nil && position == int64(offset) {
+							baseBuf.Reset(baseRd)
+							basePos = offset
+						} else {
+							seekDisabled = true
+							if err := reopenBase(); err != nil {
+								_ = dstWr.CloseWithError(ErrInvalidDelta)
+								return
+							}
+						}
+					}
+				}
 				if basePos > offset {
-					_ = baseRd.Close()
-					baseRd, err = base.Reader()
-					if err != nil {
+					if err := reopenBase(); err != nil {
 						_ = dstWr.CloseWithError(ErrInvalidDelta)
 						return
 					}
-					baseBuf.Reset(baseRd)
-					basePos = 0
-					discard = offset
 				}
+				discard := offset - basePos
 				for discard > math.MaxInt32 {
 					n, err := baseBuf.Discard(math.MaxInt32)
 					if err != nil {
+						if errors.Is(err, io.EOF) {
+							err = ErrInvalidDelta
+						}
 						_ = dstWr.CloseWithError(err)
+						return
+					}
+					if n != math.MaxInt32 {
+						_ = dstWr.CloseWithError(ErrInvalidDelta)
 						return
 					}
 					basePos += uint(n)
 					discard -= uint(n)
 				}
 				for discard > 0 {
-					n, err := baseBuf.Discard(int(discard))
+					want := int(discard)
+					n, err := baseBuf.Discard(want)
 					if err != nil {
+						if errors.Is(err, io.EOF) {
+							err = ErrInvalidDelta
+						}
 						_ = dstWr.CloseWithError(err)
+						return
+					}
+					if n != want {
+						_ = dstWr.CloseWithError(ErrInvalidDelta)
 						return
 					}
 					basePos += uint(n)
 					discard -= uint(n)
 				}
-				if _, err := io.Copy(dstWr, io.LimitReader(baseBuf, int64(sz))); err != nil {
+				copied, err := io.Copy(dstWr, io.LimitReader(baseBuf, int64(sz)))
+				if err != nil {
 					_ = dstWr.CloseWithError(err)
+					return
+				}
+				if copied != int64(sz) {
+					_ = dstWr.CloseWithError(ErrInvalidDelta)
 					return
 				}
 				remainingTargetSz -= sz
@@ -226,8 +294,13 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 					_ = dstWr.CloseWithError(ErrInvalidDelta)
 					return
 				}
-				if _, err := io.Copy(dstWr, io.LimitReader(deltaBuf, int64(sz))); err != nil {
+				copied, err := io.Copy(dstWr, io.LimitReader(deltaBuf, int64(sz)))
+				if err != nil {
 					_ = dstWr.CloseWithError(err)
+					return
+				}
+				if copied != int64(sz) {
+					_ = dstWr.CloseWithError(ErrInvalidDelta)
 					return
 				}
 
@@ -253,6 +326,37 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
 	}()
 
 	return dstRd, nil
+}
+
+type deltaBaseCountingReader struct {
+	io.ReadCloser
+	metrics *ReadMetrics
+}
+
+func (r *deltaBaseCountingReader) Read(p []byte) (int, error) {
+	n, err := r.ReadCloser.Read(p)
+	r.metrics.recordDeltaBaseBytes(n)
+	return n, err
+}
+
+type deltaBaseCountingReadSeeker struct {
+	*deltaBaseCountingReader
+	seeker io.Seeker
+}
+
+func (r *deltaBaseCountingReadSeeker) Seek(offset int64, whence int) (int64, error) {
+	return r.seeker.Seek(offset, whence)
+}
+
+func countDeltaBaseReader(reader io.ReadCloser, metrics *ReadMetrics) io.ReadCloser {
+	if metrics == nil {
+		return reader
+	}
+	counted := &deltaBaseCountingReader{ReadCloser: reader, metrics: metrics}
+	if seeker, ok := reader.(io.Seeker); ok {
+		return &deltaBaseCountingReadSeeker{deltaBaseCountingReader: counted, seeker: seeker}
+	}
+	return counted
 }
 
 func patchDelta(dst *bytes.Buffer, src, delta []byte) error {

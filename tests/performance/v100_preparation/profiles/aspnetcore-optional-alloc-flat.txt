@@ -1,0 +1,52 @@
+File: cli-profile
+Type: alloc_space
+Time: 2026-09-21 19:15:04 EDT
+Showing nodes accounting for 3888.03MB, 91.05% of 4270.11MB total
+Dropped 293 nodes (cum <= 21.35MB)
+Showing top 45 nodes out of 168
+      flat  flat%   sum%        cum   cum%
+  992.28MB 23.24% 23.24%   992.28MB 23.24%  bufio.NewReaderSize (inline)
+  626.59MB 14.67% 37.91%   626.59MB 14.67%  github.com/go-git/go-git/v5/plumbing.(*MemoryObject).Write
+  478.12MB 11.20% 49.11%   483.12MB 11.31%  dircue/pkg/scanner.readAllBounded
+  259.53MB  6.08% 55.19%   259.53MB  6.08%  internal/bytealg.MakeNoZero
+  214.08MB  5.01% 60.20%   214.08MB  5.01%  bytes.growSlice
+  171.53MB  4.02% 64.22%   248.04MB  5.81%  os.lstatNolog
+  147.15MB  3.45% 67.66%   147.65MB  3.46%  regexp.(*Regexp).get
+  117.01MB  2.74% 70.40%   117.01MB  2.74%  syscall.ByteSliceFromString
+   89.89MB  2.11% 72.51%   156.85MB  3.67%  encoding/json.appendIndent
+   74.08MB  1.73% 74.24%   102.60MB  2.40%  dircue/pkg/formats.inspect
+   66.96MB  1.57% 75.81%    66.96MB  1.57%  encoding/json.appendNewline (inline)
+      50MB  1.17% 76.98%    57.59MB  1.35%  dircue/pkg/scanner.resolveAttributeRuleSets
+   46.57MB  1.09% 78.07%   930.71MB 21.80%  dircue/pkg/scanner.(*gitSnapshot).walk
+   40.38MB  0.95% 79.02%    68.36MB  1.60%  encoding/json.Marshal
+      39MB  0.91% 79.93%   443.56MB 10.39%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+      30MB   0.7% 80.63%       30MB   0.7%  github.com/pjbgf/sha1cd.New
+      30MB   0.7% 81.34%       30MB   0.7%  bufio.NewWriterSize (inline)
+   28.57MB  0.67% 82.01%   684.48MB 16.03%  io.copyBuffer
+   28.50MB  0.67% 82.67%  1122.28MB 26.28%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewPackfileWithCache
+   27.34MB  0.64% 83.31%    27.34MB  0.64%  compress/flate.(*dictDecoder).init (inline)
+   25.01MB  0.59% 83.90%    38.51MB   0.9%  dircue/pkg/declarations.sortJSON[go.shape.struct { TargetStatus string "json:\"target_status,omitempty\""; Kind string "json:\"kind\""; Value string "json:\"value\""; Target string "json:\"target,omitempty\""; State string "json:\"state\""; Evidence string "json:\"evidence\""; Condition string "json:\"condition,omitempty\"" }].func1
+      25MB  0.59% 84.49%       25MB  0.59%  encoding/hex.EncodeToString (inline)
+   24.50MB  0.57% 85.06%    24.50MB  0.57%  os.newFile
+   23.51MB  0.55% 85.61%  1845.53MB 43.22%  dircue/pkg/scanner.analyzeFile
+   22.11MB  0.52% 86.13%    23.11MB  0.54%  dircue/pkg/projects.(*Collector).Add
+   21.01MB  0.49% 86.62%    29.52MB  0.69%  github.com/go-git/go-git/v5/plumbing/object.(*Tree).Decode
+   20.50MB  0.48% 87.10%  1093.78MB 25.61%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewScanner
+   19.52MB  0.46% 87.56%    28.52MB  0.67%  dircue/pkg/availability.parsePointer
+   19.50MB  0.46% 88.01%    52.97MB  1.24%  dircue/pkg/projects.readDotnetXML
+      18MB  0.42% 88.43%    69.50MB  1.63%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackPath
+   16.50MB  0.39% 88.82%    47.50MB  1.11%  github.com/go-git/go-billy/v5/helper/chroot.newFile
+   13.50MB  0.32% 89.14%  1032.77MB 24.19%  github.com/go-git/go-git/v5/plumbing/format/packfile.newScannerReader
+   10.16MB  0.24% 89.38%    22.31MB  0.52%  dircue/pkg/declarations.(*Collector).Add
+    9.50MB  0.22% 89.60%   734.51MB 17.20%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+    9.50MB  0.22% 89.82%    48.51MB  1.14%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).underlyingPath
+    8.50MB   0.2% 90.02%  1854.03MB 43.42%  dircue/pkg/scanner.analyzeSelectedFile
+    7.02MB  0.16% 90.18%    34.36MB   0.8%  compress/flate.NewReader
+       6MB  0.14% 90.32%   111.22MB  2.60%  dircue/pkg/scanner.(*gitTreeIterator).Next
+       6MB  0.14% 90.46%    27.52MB  0.64%  encoding/xml.(*Decoder).Token
+    5.86MB  0.14% 90.60%   302.78MB  7.09%  dircue/pkg/formats.(*Collector).Finish
+    5.50MB  0.13% 90.73%    37.78MB  0.88%  dircue/pkg/scanner.(*availabilityAccumulator).add
+    3.85MB  0.09% 90.82%    73.33MB  1.72%  dircue/pkg/declarations.(*Collector).Finish
+    3.50MB 0.082% 90.90%   543.92MB 12.74%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+    3.28MB 0.077% 90.98%    45.49MB  1.07%  dircue/pkg/environments.Analyze
+    3.11MB 0.073% 91.05%  1228.80MB 28.78%  dircue/pkg/scanner.Scan

@@ -1,0 +1,51 @@
+File: scanner.test
+Type: inuse_space
+Time: 2026-09-21 19:12:09 EDT
+Showing nodes accounting for 12006.81kB, 100% of 12006.81kB total
+Showing top 45 nodes out of 82
+      flat  flat%   sum%        cum   cum%
+ 3797.78kB 31.63% 31.63%  3797.78kB 31.63%  regexp.(*Regexp).get
+ 3075.56kB 25.62% 57.25%  3075.56kB 25.62%  runtime.mallocgc
+    1025kB  8.54% 65.78%     1025kB  8.54%  regexp.(*machine).alloc (inline)
+  521.05kB  4.34% 70.12%  2060.19kB 17.16%  github.com/go-enry/go-enry/v2/data.init
+     515kB  4.29% 74.41%      515kB  4.29%  regexp/syntax.(*compiler).inst (inline)
+  512.17kB  4.27% 78.68%   512.17kB  4.27%  github.com/boyter/scc/v4/processor.map.init.1
+  512.08kB  4.26% 82.94%   512.08kB  4.26%  internal/sync.newIndirectNode[go.shape.interface {},go.shape.interface {}] (inline)
+  512.08kB  4.26% 87.21%  2051.15kB 17.08%  regexp.compile
+  512.05kB  4.26% 91.47%   512.05kB  4.26%  regexp/syntax.(*parser).newRegexp (inline)
+  512.02kB  4.26% 95.74%   512.02kB  4.26%  encoding/json.newStructEncoder (inline)
+  512.02kB  4.26%   100%   512.02kB  4.26%  regexp.makeOnePass.func1
+         0     0%   100%   512.02kB  4.26%  dircue/pkg/packageevidence.init
+         0     0%   100%   512.02kB  4.26%  dircue/pkg/scanner.BenchmarkProfileScanner
+         0     0%   100%  4822.78kB 40.17%  dircue/pkg/scanner.Scan.func4
+         0     0%   100%  4822.78kB 40.17%  dircue/pkg/scanner.analyzeFile
+         0     0%   100%  4822.78kB 40.17%  dircue/pkg/scanner.analyzeFileBase
+         0     0%   100%  4822.78kB 40.17%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0%   100%   512.02kB  4.26%  dircue/pkg/scanner.profilingReportDigest
+         0     0%   100%   512.08kB  4.26%  encoding/gob.Register
+         0     0%   100%   512.08kB  4.26%  encoding/gob.RegisterName
+         0     0%   100%   512.08kB  4.26%  encoding/gob.init.1
+         0     0%   100%   512.08kB  4.26%  encoding/gob.registerBasics
+         0     0%   100%   512.02kB  4.26%  encoding/json.(*encodeState).marshal
+         0     0%   100%   512.02kB  4.26%  encoding/json.(*encodeState).reflectValue
+         0     0%   100%   512.02kB  4.26%  encoding/json.Marshal
+         0     0%   100%   512.02kB  4.26%  encoding/json.cachedTypeFields
+         0     0%   100%   512.02kB  4.26%  encoding/json.newArrayEncoder
+         0     0%   100%   512.02kB  4.26%  encoding/json.newPtrEncoder
+         0     0%   100%   512.02kB  4.26%  encoding/json.newSliceEncoder
+         0     0%   100%   512.02kB  4.26%  encoding/json.newTypeEncoder
+         0     0%   100%   512.02kB  4.26%  encoding/json.typeEncoder
+         0     0%   100%   512.02kB  4.26%  encoding/json.typeEncoder.OnceValue[go.shape.func].func3 (inline)
+         0     0%   100%   512.02kB  4.26%  encoding/json.typeEncoder.func1
+         0     0%   100%   512.02kB  4.26%  encoding/json.typeEncoder.typeEncoder.OnceValue[go.shape.func].func3.func4
+         0     0%   100%   512.02kB  4.26%  encoding/json.typeFields
+         0     0%   100%   512.02kB  4.26%  encoding/json.valueEncoder
+         0     0%   100%   512.17kB  4.27%  github.com/boyter/scc/v4/processor.init
+         0     0%   100%  4822.78kB 40.17%  github.com/go-enry/go-enry/v2.IsVendor
+         0     0%   100%  1539.14kB 12.82%  github.com/go-enry/go-enry/v2/regex.MustCompileMultiline
+         0     0%   100%   512.08kB  4.26%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).LoadOrStore
+         0     0%   100%   512.08kB  4.26%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).init (inline)
+         0     0%   100%   512.08kB  4.26%  internal/sync.(*HashTrieMap[go.shape.interface {},go.shape.interface {}]).initSlow
+         0     0%   100%  4822.78kB 40.17%  regexp.(*Regexp).MatchString
+         0     0%   100%  4822.78kB 40.17%  regexp.(*Regexp).doExecute
+         0     0%   100%  4822.78kB 40.17%  regexp.(*Regexp).doMatch (inline)

@@ -1,0 +1,25 @@
+goos: darwin
+goarch: arm64
+pkg: dircue/pkg/declarations
+cpu: Apple M1 Max
+BenchmarkPythonWorkspace-10    	    9478	     13694 ns/op	   18816 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13888 ns/op	   18806 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9718	     13655 ns/op	   18804 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13932 ns/op	   18862 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9766	     13737 ns/op	   18797 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13747 ns/op	   18855 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13847 ns/op	   18791 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13898 ns/op	   18756 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13765 ns/op	   18761 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13640 ns/op	   18827 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     14070 ns/op	   18856 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13764 ns/op	   18894 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13789 ns/op	   18843 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13765 ns/op	   18772 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9820	     13847 ns/op	   18759 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     13771 ns/op	   18855 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9530	     13981 ns/op	   18851 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	   10000	     14423 ns/op	   18847 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9942	     15503 ns/op	   18771 B/op	     125 allocs/op
+BenchmarkPythonWorkspace-10    	    9362	     14390 ns/op	   18892 B/op	     125 allocs/op
+PASS

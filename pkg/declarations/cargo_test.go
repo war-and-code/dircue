@@ -135,6 +135,78 @@ func TestCargoWorkspaceFixture(t *testing.T) {
 	}
 }
 
+// Cargo 1.85.0's workspace inheritance rules allow a member to repeat
+// `default-features = false` when the workspace dependency already disables
+// defaults. Edition 2024 rejects only an ineffective false override when the
+// workspace dependency leaves defaults enabled; older editions accept it.
+// Sources:
+// https://doc.rust-lang.org/edition-guide/rust-2024/cargo-inherited-default-features.html
+// https://doc.rust-lang.org/cargo/reference/workspaces.html#the-dependencies-table
+func TestCargoInheritedDefaultFeaturesEditionSemantics(t *testing.T) {
+	tests := []struct {
+		name             string
+		edition          string
+		workspaceEdition string
+		workspaceDefault string
+		memberDefault    string
+		wantInvalidField string
+		wantCondition    string
+		forbidCondition  string
+	}{
+		{"same-false-2021", "2021", "", ", default-features=false", ", default-features=false", "", "default-features=false", ""},
+		{"same-false-2024", "2024", "", ", default-features=false", ", default-features=false", "", "default-features=false", ""},
+		{"member-enables-2024", "2024", "", ", default-features=false", ", default-features=true", "", "default-features=true", ""},
+		{"ineffective-false-2021", "2021", "", "", ", default-features=false", "", "", "default-features="},
+		{"ineffective-false-explicit-true-2021", "2021", "", ", default-features=true", ", default-features=false", "", "default-features=true", ""},
+		{"conflicting-false-2024", "2024", "", "", ", default-features=false", "dependencies.shared.default-features", "", ""},
+		{"conflicting-false-explicit-true-2024", "2024", "", ", default-features=true", ", default-features=false", "dependencies.shared.default-features", "", ""},
+		{"inherited-edition-2024-conflict", "workspace", "2024", "", ", default-features=false", "dependencies.shared.default-features", "", ""},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			edition := "edition='" + tc.edition + "'"
+			workspacePackage := ""
+			if tc.edition == "workspace" {
+				edition = "edition.workspace=true"
+				workspacePackage = "[workspace.package]\nedition='" + tc.workspaceEdition + "'\n"
+			}
+			docs, _ := cargoTestDocuments(t, map[string]string{
+				"Cargo.toml":        "[workspace]\nmembers=['member']\nresolver='3'\n" + workspacePackage + "[workspace.dependencies]\nshared={path='shared'" + tc.workspaceDefault + "}\n",
+				"member/Cargo.toml": "[package]\nname='member'\nversion='1.0.0'\n" + edition + "\n[dependencies]\nshared={workspace=true" + tc.memberDefault + "}\n",
+				"shared/Cargo.toml": "[package]\nname='shared'\nversion='1.0.0'\n",
+			})
+			member := cargoTestProject(t, docs, "member/Cargo.toml")
+			invalid := ""
+			for _, diagnostic := range member.Diagnostics {
+				if diagnostic.Code == "invalid-cargo-declaration" {
+					invalid = diagnostic.Message
+				}
+			}
+			if tc.wantInvalidField == "" {
+				if invalid != "" {
+					t.Fatalf("legal inherited default-features rejected: %s", invalid)
+				}
+				found := false
+				for _, requirement := range member.Project.Requirements {
+					if requirement.Kind == "cargo-dependency" && strings.HasPrefix(requirement.Value, "shared") {
+						found = tc.wantCondition == "" || strings.Contains(requirement.Condition, tc.wantCondition)
+						if tc.forbidCondition != "" && strings.Contains(requirement.Condition, tc.forbidCondition) {
+							t.Fatalf("ineffective member setting changed resolved dependency: %+v", requirement)
+						}
+					}
+				}
+				if !found {
+					t.Fatalf("effective dependency condition missing %q: %+v", tc.wantCondition, member.Project.Requirements)
+				}
+				return
+			}
+			if !strings.Contains(invalid, tc.wantInvalidField) {
+				t.Fatalf("conflict diagnostic does not name %q: %q", tc.wantInvalidField, invalid)
+			}
+		})
+	}
+}
+
 func TestCargoRootPackageAndIndependentNestedProjects(t *testing.T) {
 	docs, _ := cargoTestDocuments(t, map[string]string{
 		"Cargo.toml":             "[package]\nname='root'\nversion='1.0.0'\n[workspace]\nmembers=['crates/*']\nexclude=['crates/skip']\n",

@@ -1,0 +1,183 @@
+[
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/release",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 2.4519000835716724,
+    "stdout": "",
+    "stderr": "test_helper_and_fixture_coverage (test_declarations_release_smoke.DeclarationReleaseContracts.test_helper_and_fixture_coverage) ... ok\ntest_identity_and_coverage_rejection (test_declarations_release_smoke.DeclarationReleaseContracts.test_identity_and_coverage_rejection) ... ok\ntest_malformed_receipt_shapes_fail_cleanly (test_declarations_release_smoke.DeclarationReleaseContracts.test_malformed_receipt_shapes_fail_cleanly) ... ok\ntest_missing_duplicate_or_invalid_check_evidence_rejected (test_declarations_release_smoke.DeclarationReleaseContracts.test_missing_duplicate_or_invalid_check_evidence_rejected) ... ok\ntest_real_core_smoke (test_declarations_release_smoke.DeclarationReleaseContracts.test_real_core_smoke) ... skipped 'set DIRCUE_DECLARATIONS_SMOKE_BINARY for real packaged-core execution'\ntest_version_gate_preserves_earlier_releases (test_declarations_release_smoke.DeclarationReleaseContracts.test_version_gate_preserves_earlier_releases) ... ok\ntest_incomplete_platform_matrix_refused (test_draft_release.ArchiveContracts.test_incomplete_platform_matrix_refused) ... ok\ntest_tar_links_and_duplicate_paths_rejected (test_draft_release.ArchiveContracts.test_tar_links_and_duplicate_paths_rejected) ... ok\ntest_unsafe_paths_and_duplicate_checksums (test_draft_release.ArchiveContracts.test_unsafe_paths_and_duplicate_checksums) ... ok\ntest_zip_links_and_oversized_entries_rejected (test_draft_release.ArchiveContracts.test_zip_links_and_oversized_entries_rejected) ... ok\ntest_all_five_declaration_receipts_are_mandatory (test_draft_release.AssemblyContracts.test_all_five_declaration_receipts_are_mandatory) ... ok\ntest_complete_platform_inventory_and_matching_wheels (test_draft_release.AssemblyContracts.test_complete_platform_inventory_and_matching_wheels) ... ok\ntest_declaration_assembly_rejects_tampered_receipts (test_draft_release.AssemblyContracts.test_declaration_assembly_rejects_tampered_receipts) ... ok\ntest_declaration_receipts_add_five_assets_only_from_v050 (test_draft_release.AssemblyContracts.test_declaration_receipts_add_five_assets_only_from_v050) ... ok\ntest_downloaded_draft_assets_are_verified_and_mismatch_fails (test_draft_release.AssemblyContracts.test_downloaded_draft_assets_are_verified_and_mismatch_fails) ... ok\ntest_native_smoke_uses_extracted_core_and_version_gate (test_draft_release.AssemblyContracts.test_native_smoke_uses_extracted_core_and_version_gate) ... ok\ntest_native_wheel_proof_is_required_and_source_bound (test_draft_release.AssemblyContracts.test_native_wheel_proof_is_required_and_source_bound) ... ok\ntest_v060_capability_proofs_are_nested_and_mandatory (test_draft_release.AssemblyContracts.test_v060_capability_proofs_are_nested_and_mandatory) ... ok\ntest_v070_targeted_proofs_are_nested_assets_and_mandatory (test_draft_release.AssemblyContracts.test_v070_targeted_proofs_are_nested_assets_and_mandatory) ... ok\ntest_v080_context_proofs_add_five_source_bound_assets (test_draft_release.AssemblyContracts.test_v080_context_proofs_add_five_source_bound_assets) ... ok\ntest_annotated_tag_and_remote_movement (test_draft_release.RemoteContracts.test_annotated_tag_and_remote_movement) ... ok\ntest_context_rejects_pr_branch_and_wrong_sha (test_draft_release.RemoteContracts.test_context_rejects_pr_branch_and_wrong_sha) ... ok\ntest_existing_draft_and_published_release_both_refused (test_draft_release.RemoteContracts.test_existing_draft_and_published_release_both_refused) ... ok\ntest_paginated_draft_detected_and_api_failure_not_absence (test_draft_release.RemoteContracts.test_paginated_draft_detected_and_api_failure_not_absence) ... ok\ntest_changed_checkout_and_wrong_tag_rejected (test_draft_release.SourceContracts.test_changed_checkout_and_wrong_tag_rejected) ... ok\ntest_exact_notes_and_tag (test_draft_release.SourceContracts.test_exact_notes_and_tag) ... ok\ntest_no_implicit_tag_creation (test_draft_release.SourceContracts.test_no_implicit_tag_creation) ... fatal: Needed a single revision\nok\ntest_version_and_commit_rejected_before_git_lookup (test_draft_release.SourceContracts.test_version_and_commit_rejected_before_git_lookup) ... ok\ntest_dependency_source_and_identity_checks (test_draft_release.WorkerContracts.test_dependency_source_and_identity_checks) ... ok\ntest_logical_zip_payload_ignores_compressor_variation (test_draft_release.WorkerContracts.test_logical_zip_payload_ignores_compressor_variation) ... ok\ntest_complete_receipt_and_identity_rejection (test_function_smoke.FunctionReleaseContracts.test_complete_receipt_and_identity_rejection) ... ok\ntest_function_support_is_versioned_without_breaking_prior_artifacts (test_function_smoke.FunctionReleaseContracts.test_function_support_is_versioned_without_breaking_prior_artifacts) ... ok\ntest_missing_function_checks_and_incomplete_evidence_rejected (test_function_smoke.FunctionReleaseContracts.test_missing_function_checks_and_incomplete_evidence_rejected) ... ok\ntest_test_source_hashes_cover_probe_and_fixture_inputs (test_function_smoke.FunctionReleaseContracts.test_test_source_hashes_cover_probe_and_fixture_inputs) ... ok\ntest_canonical_tar_and_zip_are_independent_of_filename_and_order (test_packaging.PackagingTest.test_canonical_tar_and_zip_are_independent_of_filename_and_order) ... ok\ntest_committed_snapshot_preserves_local_replace_and_ignores_checkout_extras (test_packaging.PackagingTest.test_committed_snapshot_preserves_local_replace_and_ignores_checkout_extras) ... ok\ntest_environment_ignores_workspace_arch_flags_and_private_proxy (test_packaging.PackagingTest.test_environment_ignores_workspace_arch_flags_and_private_proxy) ... ok\ntest_local_replacement_accepts_aliased_root_and_rejects_real_escapes (test_packaging.PackagingTest.test_local_replacement_accepts_aliased_root_and_rejects_real_escapes) ... ok\ntest_output_refuses_empty_existing_directory_and_dangling_link (test_packaging.PackagingTest.test_output_refuses_empty_existing_directory_and_dangling_link) ... ok\ntest_existing_archive_or_checksum_is_never_replaced (test_structural_packaging.StructuralPackagingTests.test_existing_archive_or_checksum_is_never_replaced) ... ok\ntest_hotspot_source_enters_recursive_provenance (test_structural_packaging.StructuralPackagingTests.test_hotspot_source_enters_recursive_provenance) ... ok\ntest_staged_sources_must_match_build_snapshot (test_structural_packaging.StructuralPackagingTests.test_staged_sources_must_match_build_snapshot) ... ok\ntest_fixture_inventory_is_authored_and_source_bound (test_v060_smoke.CapabilityProofContracts.test_fixture_inventory_is_authored_and_source_bound) ... ok\ntest_formats_identity_scope_and_inventory (test_v060_smoke.CapabilityProofContracts.test_formats_identity_scope_and_inventory) ... ok\ntest_hotspots_identity_scope_and_inventory (test_v060_smoke.CapabilityProofContracts.test_hotspots_identity_scope_and_inventory) ... ok\ntest_malformed_receipts_fail_without_type_errors (test_v060_smoke.CapabilityProofContracts.test_malformed_receipts_fail_without_type_errors) ... ok\ntest_version_gate (test_v060_smoke.CapabilityProofContracts.test_version_gate) ... ok\ntest_fixture_inventory_and_sources_are_authored (test_v070_smoke.TargetedCapabilityProofContracts.test_fixture_inventory_and_sources_are_authored) ... ok\ntest_malformed_receipts_fail_closed (test_v070_smoke.TargetedCapabilityProofContracts.test_malformed_receipts_fail_closed) ... ok\ntest_receipt_identity_scope_and_exact_inventory (test_v070_smoke.TargetedCapabilityProofContracts.test_receipt_identity_scope_and_exact_inventory) ... ok\ntest_version_gate_preserves_prior_releases (test_v070_smoke.TargetedCapabilityProofContracts.test_version_gate_preserves_prior_releases) ... ok\ntest_malformed_receipts_fail_closed (test_v080_smoke.ContextCapabilityProofContracts.test_malformed_receipts_fail_closed) ... ok\ntest_negative_commands_require_empty_stdout_and_diagnostic (test_v080_smoke.ContextCapabilityProofContracts.test_negative_commands_require_empty_stdout_and_diagnostic) ... ok\ntest_receipt_identity_scope_and_exact_inventory (test_v080_smoke.ContextCapabilityProofContracts.test_receipt_identity_scope_and_exact_inventory) ... ok\ntest_requirements_are_independently_enumerated (test_v080_smoke.ContextCapabilityProofContracts.test_requirements_are_independently_enumerated) ... ok\ntest_version_gate_preserves_prior_releases (test_v080_smoke.ContextCapabilityProofContracts.test_version_gate_preserves_prior_releases) ... ok\ntest_060_requires_format_proof_from_actual_launcher (test_wheel_release_smoke.NativeWheelSmokeTests.test_060_requires_format_proof_from_actual_launcher) ... ok\ntest_actual_native_wheel (test_wheel_release_smoke.NativeWheelSmokeTests.test_actual_native_wheel) ... skipped 'set DIRCUE_NATIVE_WHEEL_CORE and DIRCUE_NATIVE_WHEEL_DIR for actual installation'\ntest_glibc_selected_and_provenance_mismatches_rejected (test_wheel_release_smoke.NativeWheelSmokeTests.test_glibc_selected_and_provenance_mismatches_rejected) ... ok\ntest_host_target_is_explicit (test_wheel_release_smoke.NativeWheelSmokeTests.test_host_target_is_explicit) ... ok\ntest_inherited_python_and_pip_controls_removed (test_wheel_release_smoke.NativeWheelSmokeTests.test_inherited_python_and_pip_controls_removed) ... ok\ntest_installer_uses_bundled_pip_and_no_package_index (test_wheel_release_smoke.NativeWheelSmokeTests.test_installer_uses_bundled_pip_and_no_package_index) ... ok\ntest_receipt_scope_and_identity_are_required (test_wheel_release_smoke.NativeWheelSmokeTests.test_receipt_scope_and_identity_are_required) ... ok\ntest_subprocess_timeout_and_environment_forwarded (test_wheel_release_smoke.NativeWheelSmokeTests.test_subprocess_timeout_and_environment_forwarded) ... ok\ntest_windows_harness_keys_use_portable_slashes (test_wheel_release_smoke.NativeWheelSmokeTests.test_windows_harness_keys_use_portable_slashes) ... ok\ntest_archive_paths_and_symlinks_are_rejected (test_wheels.WheelTests.test_archive_paths_and_symlinks_are_rejected) ... ok\ntest_launcher_import_and_windows_exit_and_error (test_wheels.WheelTests.test_launcher_import_and_windows_exit_and_error) ... ok\ntest_platform_rejections (test_wheels.WheelTests.test_platform_rejections) ... ok\ntest_reject_corrupted_archive_and_provenance (test_wheels.WheelTests.test_reject_corrupted_archive_and_provenance) ... ok\ntest_unix_launcher_preserves_arguments_and_exit_status (test_wheels.WheelTests.test_unix_launcher_preserves_arguments_and_exit_status) ... ok\ntest_versions_and_output_safety (test_wheels.WheelTests.test_versions_and_output_safety) ... ok\ntest_wheel_payload_record_metadata_and_reproducibility (test_wheels.WheelTests.test_wheel_payload_record_metadata_and_reproducibility) ... ok\ntest_windows_launcher_waits_through_console_interrupt (test_wheels.WheelTests.test_windows_launcher_waits_through_console_interrupt) ... ok\n\n----------------------------------------------------------------------\nRan 73 tests in 2.299s\n\nOK (skipped=2)\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/compatibility_next",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.3133490001782775,
+    "stdout": "",
+    "stderr": "test_ambiguous_capture_rejected (test_harness.Captures.test_ambiguous_capture_rejected) ... ok\ntest_binary_capture_roundtrip (test_harness.Captures.test_binary_capture_roundtrip) ... ok\ntest_changed_capture_digest_rejected (test_harness.Captures.test_changed_capture_digest_rejected) ... ok\ntest_jointly_empty_structure_rejected (test_harness.Captures.test_jointly_empty_structure_rejected) ... ok\ntest_native_fixture_is_separate_from_dirty_git_copy (test_harness.Captures.test_native_fixture_is_separate_from_dirty_git_copy) ... ok\ntest_newline_and_exit_differences_survive (test_harness.Captures.test_newline_and_exit_differences_survive) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.257s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/compatibility_v060",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.06606874987483025,
+    "stdout": "",
+    "stderr": "test_complete_accounting (test_receipt.ReceiptAccounting.test_complete_accounting) ... ok\ntest_honest_mismatch_is_retained (test_receipt.ReceiptAccounting.test_honest_mismatch_is_retained) ... ok\ntest_mutated_capture_or_claim_cannot_pass (test_receipt.ReceiptAccounting.test_mutated_capture_or_claim_cannot_pass) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.020s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/projects/graph",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.05751604214310646,
+    "stdout": "",
+    "stderr": "test_known_cycle (test_oracle.OracleTests.test_known_cycle) ... ok\ntest_rejects_graph_math_mutations (test_oracle.OracleTests.test_rejects_graph_math_mutations) ... ok\ntest_xml_rejects_missing_or_invented_declarations (test_oracle.OracleTests.test_xml_rejects_missing_or_invented_declarations) ... ok\n\n----------------------------------------------------------------------\nRan 3 tests in 0.001s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/resources",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.16069470904767513,
+    "stdout": "",
+    "stderr": "test_rejects_failure_even_with_valid_complete_json (test_harness.AcceptanceTests.test_rejects_failure_even_with_valid_complete_json) ... ok\ntest_supervisor_bounds_output_and_timeout (test_harness.AcceptanceTests.test_supervisor_bounds_output_and_timeout) ... ok\n\n----------------------------------------------------------------------\nRan 2 tests in 0.080s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "research/bend-aggregation",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.08854708354920149,
+    "stdout": "",
+    "stderr": "test_clean_check_requires_exact_verdict (test_runner.ProofReceiptTests.test_clean_check_requires_exact_verdict) ... ok\ntest_duplicate_keys_and_nonfinite_values_rejected (test_runner.ProofReceiptTests.test_duplicate_keys_and_nonfinite_values_rejected) ... ok\ntest_forged_or_incomplete_runtime_evidence_rejected (test_runner.ProofReceiptTests.test_forged_or_incomplete_runtime_evidence_rejected) ... ok\ntest_independent_reference_accepts_fixed_corpus (test_runner.ProofReceiptTests.test_independent_reference_accepts_fixed_corpus) ... ok\ntest_production_comparison_rejects_json_type_and_duplicate_key_changes (test_runner.ProofReceiptTests.test_production_comparison_rejects_json_type_and_duplicate_key_changes) ... ok\ntest_topk_certificate_requires_independent_sort_and_complete_corpus (test_runner.ProofReceiptTests.test_topk_certificate_requires_independent_sort_and_complete_corpus) ... ok\ntest_typed_merge_and_index_admission_are_checked (test_runner.ProofReceiptTests.test_typed_merge_and_index_admission_are_checked) ... ok\ntest_unsafe_success_is_partial (test_runner.ProofReceiptTests.test_unsafe_success_is_partial) ... ok\n\n----------------------------------------------------------------------\nRan 8 tests in 0.030s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/performance/bounded_reader",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.11077466700226068,
+    "stdout": "",
+    "stderr": "test_already_excluded_platform_source_is_checked (test_release_guard.ReleaseTreeGuardTests.test_already_excluded_platform_source_is_checked) ... ok\ntest_complete_release_passes (test_release_guard.ReleaseTreeGuardTests.test_complete_release_passes) ... ok\ntest_document_changes_allowed_but_deletion_rejected (test_release_guard.ReleaseTreeGuardTests.test_document_changes_allowed_but_deletion_rejected) ... ok\ntest_guard_runs_before_go_package_selection (test_release_guard.ReleaseTreeGuardTests.test_guard_runs_before_go_package_selection) ... ok\ntest_intended_source_restoration_and_main_instrumentation (test_release_guard.ReleaseTreeGuardTests.test_intended_source_restoration_and_main_instrumentation) ... ok\ntest_main_exception_requires_explicit_authorization (test_release_guard.ReleaseTreeGuardTests.test_main_exception_requires_explicit_authorization) ... ok\ntest_missing_embedded_blob_rejected (test_release_guard.ReleaseTreeGuardTests.test_missing_embedded_blob_rejected) ... ok\ntest_missing_init_only_file_rejected (test_release_guard.ReleaseTreeGuardTests.test_missing_init_only_file_rejected) ... ok\ntest_new_build_tag_cannot_hide_changed_source (test_release_guard.ReleaseTreeGuardTests.test_new_build_tag_cannot_hide_changed_source) ... ok\ntest_other_release_sources_cannot_be_removed_by_overlay (test_release_guard.ReleaseTreeGuardTests.test_other_release_sources_cannot_be_removed_by_overlay) ... ok\ntest_unselected_native_source_is_checked (test_release_guard.ReleaseTreeGuardTests.test_unselected_native_source_is_checked) ... ok\n\n----------------------------------------------------------------------\nRan 11 tests in 0.026s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/focus_v070",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.08441950008273125,
+    "stdout": "",
+    "stderr": "test_build_binding_rejects_digest_hidden_in_random_field (test_harness.HarnessTests.test_build_binding_rejects_digest_hidden_in_random_field) ... ok\ntest_fixture_is_repeatable_and_expectations_are_external (test_harness.HarnessTests.test_fixture_is_repeatable_and_expectations_are_external) ... ok\ntest_metric_aggregation_ignores_explicit_skips (test_harness.HarnessTests.test_metric_aggregation_ignores_explicit_skips) ... ok\ntest_metric_counter_tamper_is_recomputed (test_harness.HarnessTests.test_metric_counter_tamper_is_recomputed) ... ok\ntest_missing_case_id_is_rejected (test_harness.HarnessTests.test_missing_case_id_is_rejected) ... ok\ntest_pinned_baseline_digest_is_sha256 (test_harness.HarnessTests.test_pinned_baseline_digest_is_sha256) ... ok\ntest_raw_capture_detects_tampering (test_harness.HarnessTests.test_raw_capture_detects_tampering) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.012s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/context_v080",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.18888820800930262,
+    "stdout": "",
+    "stderr": "test_build_manifest_checks_current_compilation_input (test_receipts.ReceiptTests.test_build_manifest_checks_current_compilation_input) ... ok\ntest_compatibility_recomputes_raw_equality_and_build_binding (test_receipts.ReceiptTests.test_compatibility_recomputes_raw_equality_and_build_binding) ... ok\ntest_performance_summary_and_claim_limit_are_recomputed (test_receipts.ReceiptTests.test_performance_summary_and_claim_limit_are_recomputed) ... ok\ntest_raw_record_rejects_tampered_bytes_and_ambiguous_encoding (test_receipts.ReceiptTests.test_raw_record_rejects_tampered_bytes_and_ambiguous_encoding) ... ok\ntest_strict_build_rejects_dirty_and_unavailable_commit (test_receipts.ReceiptTests.test_strict_build_rejects_dirty_and_unavailable_commit) ... fatal: Needed a single revision\nok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.119s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "-m",
+      "unittest",
+      "discover",
+      "-s",
+      "tests/ci",
+      "-p",
+      "test_*.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.053239624947309494,
+    "stdout": "",
+    "stderr": "test_converted_to_draft_cancels_full_without_expensive_jobs (test_workflow_concurrency.ConcurrencyAdmissionTests.test_converted_to_draft_cancels_full_without_expensive_jobs) ... ok\ntest_non_draft_update_replaces_older_full_validation (test_workflow_concurrency.ConcurrencyAdmissionTests.test_non_draft_update_replaces_older_full_validation) ... ok\ntest_pending_full_run_survives_later_ordinary_draft_update (test_workflow_concurrency.ConcurrencyAdmissionTests.test_pending_full_run_survives_later_ordinary_draft_update) ... ok\ntest_promotion_starts_full_validation_in_a_separate_lane (test_workflow_concurrency.ConcurrencyAdmissionTests.test_promotion_starts_full_validation_in_a_separate_lane) ... ok\ntest_running_full_run_survives_later_ordinary_draft_update (test_workflow_concurrency.ConcurrencyAdmissionTests.test_running_full_run_survives_later_ordinary_draft_update) ... ok\ntest_successive_draft_updates_coalesce_in_the_draft_lane (test_workflow_concurrency.ConcurrencyAdmissionTests.test_successive_draft_updates_coalesce_in_the_draft_lane) ... ok\ntest_workflow_names_keep_concurrency_isolated (test_workflow_concurrency.ConcurrencyAdmissionTests.test_workflow_names_keep_concurrency_isolated) ... ok\ntest_cancel_in_progress_remains_enabled_in_all_workflows (test_workflow_concurrency.WorkflowExpressionTests.test_cancel_in_progress_remains_enabled_in_all_workflows) ... ok\ntest_draft_events_retain_inexpensive_job_selection (test_workflow_concurrency.WorkflowExpressionTests.test_draft_events_retain_inexpensive_job_selection) ... ok\ntest_event_contexts_select_the_expected_lane_in_all_workflows (test_workflow_concurrency.WorkflowExpressionTests.test_event_contexts_select_the_expected_lane_in_all_workflows) ... ok\ntest_full_pr_events_retain_expensive_job_selection (test_workflow_concurrency.WorkflowExpressionTests.test_full_pr_events_retain_expensive_job_selection) ... ok\ntest_main_push_runs_linux_validation_without_five_platform_worker_matrix (test_workflow_concurrency.WorkflowExpressionTests.test_main_push_runs_linux_validation_without_five_platform_worker_matrix) ... ok\ntest_non_pr_events_keep_ref_keys_and_use_the_full_lane (test_workflow_concurrency.WorkflowExpressionTests.test_non_pr_events_keep_ref_keys_and_use_the_full_lane) ... ok\n\n----------------------------------------------------------------------\nRan 13 tests in 0.005s\n\nOK\n"
+  },
+  {
+    "command": [
+      "python3",
+      "examples/staged_analysis/test_route.py",
+      "-v"
+    ],
+    "exit": 0,
+    "seconds": 0.09029629174619913,
+    "stdout": "",
+    "stderr": "test_real_reports_and_consumer_process (__main__.CandidateReports.test_real_reports_and_consumer_process) ... skipped 'set DIRCUE_CANDIDATE for real CLI scans'\ntest_consumer_process_rejects_bad_json_without_output (__main__.RoutingContract.test_consumer_process_rejects_bad_json_without_output) ... ok\ntest_data_only_is_observation_not_skip_authorization (__main__.RoutingContract.test_data_only_is_observation_not_skip_authorization) ... ok\ntest_rejects_wrong_contract_or_malformed_consumed_fields (__main__.RoutingContract.test_rejects_wrong_contract_or_malformed_consumed_fields) ... ok\ntest_small_project_survives_large_data_share (__main__.RoutingContract.test_small_project_survives_large_data_share) ... ok\ntest_test_role_and_partially_excluded_source (__main__.RoutingContract.test_test_role_and_partially_excluded_source) ... ok\ntest_uncertainty_prevents_negative_inference (__main__.RoutingContract.test_uncertainty_prevents_negative_inference) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.035s\n\nOK (skipped=1)\n"
+  }
+]

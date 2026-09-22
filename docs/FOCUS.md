@@ -30,6 +30,8 @@ The report keeps these populations separate:
 
 `--affected-by` lists projects with candidate or declared context evidence for the supplied input. It is a bounded reverse declaration query, not a runtime blast-radius calculation. It selects no source population and cannot be combined with `--metrics` or `--related-project`.
 
+At 1.0 an `--affected-by` query for a path with no matching declaration returns `status: complete` and echoes the query rather than emitting a dedicated "no match" sentinel. See [capabilities](CAPABILITIES.md#known-boundaries-at-10) and [#67](https://github.com/war-and-code/dircue/issues/67).
+
 ## Focused metrics
 
 `--metrics` opts into scc counting after planning. `focused_metrics.primary` and each `focused_metrics.related` entry have separate totals. A project reference alone never causes another project's source to be counted. Context-only files do not enter a source population merely because they appear in the context list.

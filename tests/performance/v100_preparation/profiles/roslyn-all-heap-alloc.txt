@@ -1,0 +1,52 @@
+File: scanner.test
+Type: alloc_space
+Time: 2026-09-21 19:11:06 EDT
+Showing nodes accounting for 11816.09MB, 96.15% of 12289.36MB total
+Dropped 234 nodes (cum <= 61.45MB)
+Showing top 45 nodes out of 118
+      flat  flat%   sum%        cum   cum%
+ 3607.80MB 29.36% 29.36%  3607.80MB 29.36%  github.com/go-git/go-git/v5/plumbing.(*MemoryObject).Write
+ 2521.49MB 20.52% 49.87%  2529.49MB 20.58%  dircue/pkg/scanner.readAllBounded
+ 2003.65MB 16.30% 66.18%  2003.65MB 16.30%  bufio.NewReaderSize (inline)
+  616.61MB  5.02% 71.20%   616.61MB  5.02%  bytes.growSlice
+  577.05MB  4.70% 75.89%   577.05MB  4.70%  internal/bytealg.MakeNoZero
+  393.58MB  3.20% 79.09%   555.09MB  4.52%  os.lstatNolog
+  281.29MB  2.29% 81.38%   282.79MB  2.30%  regexp.(*Regexp).get
+  259.68MB  2.11% 83.50%  4052.71MB 32.98%  io.copyBuffer
+  245.03MB  1.99% 85.49%   245.03MB  1.99%  syscall.ByteSliceFromString
+  137.58MB  1.12% 86.61%  2755.87MB 22.42%  dircue/pkg/scanner.(*gitSnapshot).walk
+  110.50MB   0.9% 87.51%   110.50MB   0.9%  io.LimitReader
+      91MB  0.74% 88.25%       91MB  0.74%  bytes.NewReader
+   82.53MB  0.67% 88.92%  9018.31MB 73.38%  dircue/pkg/scanner.analyzeFile
+   82.53MB  0.67% 89.59%    82.53MB  0.67%  compress/flate.(*huffmanDecoder).init
+   78.51MB  0.64% 90.23%    78.51MB  0.64%  github.com/pjbgf/sha1cd.New
+   78.01MB  0.63% 90.87%   140.19MB  1.14%  dircue/pkg/scanner.resolveAttributeRuleSets
+   77.50MB  0.63% 91.50%   992.13MB  8.07%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+   70.51MB  0.57% 92.07%  2274.10MB 18.50%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewPackfileWithCache
+   68.03MB  0.55% 92.62%    68.03MB  0.55%  github.com/go-enry/go-enry/v2.getHeaderAndFooter
+   64.50MB  0.52% 93.15%    64.50MB  0.52%  encoding/hex.EncodeToString (inline)
+      63MB  0.51% 93.66%       63MB  0.51%  bufio.NewWriterSize (inline)
+   56.71MB  0.46% 94.12%    88.30MB  0.72%  github.com/go-git/go-git/v5/plumbing/object.(*Tree).Decode
+   33.50MB  0.27% 94.40%   142.01MB  1.16%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackPath
+      33MB  0.27% 94.66%  2203.60MB 17.93%  github.com/go-git/go-git/v5/plumbing/format/packfile.NewScanner
+      32MB  0.26% 94.92%  2082.59MB 16.95%  github.com/go-git/go-git/v5/plumbing/format/packfile.newScannerReader
+      29MB  0.24% 95.16%  3973.82MB 32.34%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextMemoryObject
+      27MB  0.22% 95.38%  9045.31MB 73.60%  dircue/pkg/scanner.analyzeSelectedFile
+      23MB  0.19% 95.57%    79.51MB  0.65%  github.com/go-git/go-billy/v5/helper/chroot.newFile
+      20MB  0.16% 95.73%   106.51MB  0.87%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).underlyingPath
+      18MB  0.15% 95.88%   281.07MB  2.29%  dircue/pkg/scanner.(*gitTreeIterator).Next
+      12MB 0.098% 95.97%   139.01MB  1.13%  os.openFileNolog
+       9MB 0.073% 96.05%  2977.39MB 24.23%  github.com/go-git/go-git/v5/plumbing/format/packfile.(*Packfile).getNextObject
+    6.50MB 0.053% 96.10%   145.51MB  1.18%  github.com/go-git/go-billy/v5/osfs.openFile
+    5.50MB 0.045% 96.14%    93.80MB  0.76%  github.com/go-git/go-git/v5/plumbing/object.DecodeTree
+    0.50MB 0.0041% 96.15%   333.72MB  2.72%  regexp.(*Regexp).doExecute
+         0     0% 96.15%  2003.14MB 16.30%  bufio.NewReader (inline)
+         0     0% 96.15%   542.35MB  4.41%  bytes.(*Buffer).ReadFrom
+         0     0% 96.15%   112.83MB  0.92%  bytes.(*Buffer).Write
+         0     0% 96.15%   516.42MB  4.20%  bytes.(*Buffer).WriteTo
+         0     0% 96.15%   616.61MB  5.02%  bytes.(*Buffer).grow
+         0     0% 96.15%    82.53MB  0.67%  compress/flate.(*decompressor).Read
+         0     0% 96.15%    82.53MB  0.67%  compress/flate.(*decompressor).nextBlock
+         0     0% 96.15%    82.53MB  0.67%  compress/flate.(*decompressor).readHuffman
+         0     0% 96.15%    82.53MB  0.67%  compress/zlib.(*reader).Read
+         0     0% 96.15%   292.83MB  2.38%  dircue/pkg/scanner.(*gitSnapshot).exceedsTreeLimit

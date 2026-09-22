@@ -1,311 +1,6 @@
---- a/plumbing/format/packfile/patch_delta.go
-+++ b/plumbing/format/packfile/patch_delta.go
-@@ -1,3 +1,5 @@
-+// Modified for dircue: reset streaming delta offsets and close reopened base readers.
-+
- package packfile
- 
- import (
-@@ -142,7 +144,11 @@
- 			_ = dstWr.CloseWithError(ErrInvalidDelta)
- 			return
- 		}
--		defer baseRd.Close()
-+		defer func() {
-+			if baseRd != nil {
-+				_ = baseRd.Close()
-+			}
-+		}()
- 
- 		baseBuf := bufio.NewReader(baseRd)
- 		basePos := uint(0)
-@@ -186,6 +192,7 @@
- 						return
- 					}
- 					baseBuf.Reset(baseRd)
-+					basePos = 0
- 					discard = offset
- 				}
- 				for discard > math.MaxInt32 {
---- /dev/null
-+++ b/plumbing/format/packfile/reader_delta_regression_test.go
-@@ -0,0 +1,119 @@
-+package packfile
-+
-+import (
-+	"bytes"
-+	"errors"
-+	"io"
-+	"sync/atomic"
-+	"testing"
-+	"time"
-+
-+	"github.com/go-git/go-git/v5/plumbing"
-+)
-+
-+func TestReaderFromDeltaBackwardThenForwardCopies(t *testing.T) {
-+	for _, test := range []struct {
-+		name  string
-+		delta []byte
-+		want  string
-+		opens int
-+	}{
-+		{"backward then forward", []byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}, "kan", 2},
-+		{"repeated backward", []byte{20, 4, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1, 0x91, 2, 1}, "kanc", 3},
-+	} {
-+		t.Run(test.name, func(t *testing.T) {
-+			base := newTrackedDeltaBase(0)
-+			reader, err := ReaderFromDelta(base, bytes.NewReader(test.delta))
-+			if err != nil {
-+				t.Fatal(err)
-+			}
-+			defer reader.Close()
-+			got, err := io.ReadAll(reader)
-+			if err != nil {
-+				t.Fatal(err)
-+			}
-+			if string(got) != test.want {
-+				t.Fatalf("got %q, want %q", got, test.want)
-+			}
-+			base.requireClosed(t, test.opens)
-+		})
-+	}
-+}
-+
-+func TestReaderFromDeltaFailedReopen(t *testing.T) {
-+	base := newTrackedDeltaBase(2)
-+	reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 2, 0x91, 10, 1, 0x90, 1}))
-+	if err != nil {
-+		t.Fatal(err)
-+	}
-+	defer reader.Close()
-+	_, err = io.ReadAll(reader)
-+	if !errors.Is(err, ErrInvalidDelta) {
-+		t.Fatalf("got %v, want invalid delta", err)
-+	}
-+	base.requireClosed(t, 1)
-+}
-+
-+func TestReaderFromDeltaEarlyCloseReleasesBase(t *testing.T) {
-+	base := newTrackedDeltaBase(0)
-+	reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}))
-+	if err != nil {
-+		t.Fatal(err)
-+	}
-+	if err := reader.Close(); err != nil {
-+		t.Fatal(err)
-+	}
-+	base.requireClosed(t, 1)
-+}
-+
-+type trackedDeltaBase struct {
-+	plumbing.MemoryObject
-+	calls  atomic.Int32
-+	failAt int
-+	closed chan int
-+}
-+
-+func newTrackedDeltaBase(failAt int) *trackedDeltaBase {
-+	base := &trackedDeltaBase{failAt: failAt, closed: make(chan int, 10)}
-+	base.SetSize(20)
-+	return base
-+}
-+
-+func (base *trackedDeltaBase) Reader() (io.ReadCloser, error) {
-+	id := int(base.calls.Add(1))
-+	if id == base.failAt {
-+		return nil, errors.New("cannot reopen base")
-+	}
-+	return &trackedDeltaReader{Reader: bytes.NewReader([]byte("abcdefghijklmnopqrst")), id: id, closed: base.closed}, nil
-+}
-+
-+func (base *trackedDeltaBase) requireClosed(t *testing.T, count int) {
-+	t.Helper()
-+	closed := make(map[int]bool)
-+	timer := time.NewTimer(3 * time.Second)
-+	defer timer.Stop()
-+	for len(closed) < count {
-+		select {
-+		case id := <-base.closed:
-+			if closed[id] {
-+				t.Fatalf("reader %d closed twice", id)
-+			}
-+			closed[id] = true
-+		case <-timer.C:
-+			t.Fatalf("closed %d readers, want %d", len(closed), count)
-+		}
-+	}
-+	select {
-+	case id := <-base.closed:
-+		t.Fatalf("unexpected additional close of reader %d", id)
-+	default:
-+	}
-+}
-+
-+type trackedDeltaReader struct {
-+	*bytes.Reader
-+	id     int
-+	closed chan<- int
-+}
-+
-+func (reader *trackedDeltaReader) Close() error { reader.closed <- reader.id; return nil }
---- a/storage/filesystem/object.go
-+++ b/storage/filesystem/object.go
-@@ -1,3 +1,5 @@
-+// Modified for dircue: close loose object files after reading their size.
-+
- package filesystem
- 
- import (
-@@ -203,6 +205,8 @@
- 
- 		return 0, err
- 	}
-+
-+	defer ioutil.CheckClose(f, &err)
- 
- 	r, err := objfile.NewReader(f)
- 	if err != nil {
---- /dev/null
-+++ b/storage/filesystem/object_size_close_regression_test.go
-@@ -0,0 +1,120 @@
-+package filesystem
-+
-+import (
-+	"bytes"
-+	"compress/zlib"
-+	"errors"
-+	"os"
-+	"path/filepath"
-+	"testing"
-+
-+	"github.com/go-git/go-billy/v5"
-+	"github.com/go-git/go-billy/v5/osfs"
-+	"github.com/go-git/go-git/v5/plumbing"
-+	"github.com/go-git/go-git/v5/plumbing/cache"
-+	"github.com/go-git/go-git/v5/plumbing/format/objfile"
-+)
-+
-+func TestEncodedObjectSizeClosesLooseFile(t *testing.T) {
-+	closeError := errors.New("file close failed")
-+	for _, test := range []struct {
-+		name         string
-+		content      []byte
-+		closeError   error
-+		wantSize     int64
-+		wantError    error
-+		wantAnyError bool
-+	}{
-+		{name: "valid object", content: compressLooseObject(t, "blob 3\x00abc"), wantSize: 3},
-+		{name: "invalid zlib", content: []byte("not zlib"), wantAnyError: true},
-+		{name: "invalid header", content: compressLooseObject(t, "blob bad\x00abc"), wantError: objfile.ErrHeader},
-+		{name: "close error", content: compressLooseObject(t, "blob 3\x00abc"), closeError: closeError, wantError: closeError},
-+		{name: "header error precedes close error", content: compressLooseObject(t, "blob bad\x00abc"), closeError: closeError, wantError: objfile.ErrHeader},
-+	} {
-+		t.Run(test.name, func(t *testing.T) {
-+			root := t.TempDir()
-+			hash := plumbing.NewHash("0123456789012345678901234567890123456789")
-+			filename := filepath.Join(root, "objects", "01", hash.String()[2:])
-+			if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
-+				t.Fatal(err)
-+			}
-+			if err := os.WriteFile(filename, test.content, 0o644); err != nil {
-+				t.Fatal(err)
-+			}
-+			fs := &trackedSizeFS{Filesystem: osfs.New(root), closeError: test.closeError}
-+			// Release leaked handles after the assertion so an unfixed Windows
-+			// failure reports the leak, without also failing TempDir cleanup.
-+			t.Cleanup(func() {
-+				for _, file := range fs.files {
-+					if !file.closed {
-+						_ = file.File.Close()
-+					}
-+				}
-+			})
-+			storage := NewStorage(fs, cache.NewObjectLRUDefault())
-+			size, err := storage.EncodedObjectSize(hash)
-+			if test.wantAnyError {
-+				if err == nil {
-+					t.Fatal("expected invalid zlib error")
-+				}
-+			} else if !errors.Is(err, test.wantError) {
-+				t.Fatalf("got error %v, want %v", err, test.wantError)
-+			}
-+			if err == nil && size != test.wantSize {
-+				t.Errorf("got size %d, want %d", size, test.wantSize)
-+			}
-+			if len(fs.files) != 1 {
-+				t.Fatalf("opened %d files, want 1", len(fs.files))
-+			}
-+			file := fs.files[0]
-+			if !file.closed || file.closes != 1 {
-+				t.Fatalf("loose object file closed %d times, want exactly 1", file.closes)
-+			}
-+		})
-+	}
-+}
-+
-+func compressLooseObject(t *testing.T, content string) []byte {
-+	t.Helper()
-+	var result bytes.Buffer
-+	writer := zlib.NewWriter(&result)
-+	if _, err := writer.Write([]byte(content)); err != nil {
-+		t.Fatal(err)
-+	}
-+	if err := writer.Close(); err != nil {
-+		t.Fatal(err)
-+	}
-+	return result.Bytes()
-+}
-+
-+type trackedSizeFS struct {
-+	billy.Filesystem
-+	files      []*trackedSizeFile
-+	closeError error
-+}
-+
-+func (fs *trackedSizeFS) Open(name string) (billy.File, error) {
-+	file, err := fs.Filesystem.Open(name)
-+	if err != nil {
-+		return nil, err
-+	}
-+	tracked := &trackedSizeFile{File: file, closeError: fs.closeError}
-+	fs.files = append(fs.files, tracked)
-+	return tracked, nil
-+}
-+
-+type trackedSizeFile struct {
-+	billy.File
-+	closed     bool
-+	closes     int
-+	closeError error
-+}
-+
-+func (file *trackedSizeFile) Close() error {
-+	file.closes++
-+	file.closed = true
-+	if err := file.File.Close(); err != nil {
-+		return err
-+	}
-+	return file.closeError
-+}
---- a/repository.go
-+++ b/repository.go
-@@ -1,3 +1,5 @@
-+// Modified for dircue: close linked-worktree commondir files after reading.
-+
- package git
- 
- import (
-@@ -433,6 +435,8 @@
- 	if err != nil {
- 		return nil, err
- 	}
-+
-+	defer ioutil.CheckClose(f, &err)
- 
- 	b, err := io.ReadAll(f)
- 	if err != nil {
+diff --git a/commondir_close_regression_test.go b/commondir_close_regression_test.go
+new file mode 100644
+index 0000000..fe4ec25
 --- /dev/null
 +++ b/commondir_close_regression_test.go
 @@ -0,0 +1,102 @@
@@ -411,6 +106,1278 @@
 +	}
 +	return file.closeError
 +}
+diff --git a/plumbing/format/packfile/fsobject.go b/plumbing/format/packfile/fsobject.go
+index 93a6faf..5ea393a 100644
+--- a/plumbing/format/packfile/fsobject.go
++++ b/plumbing/format/packfile/fsobject.go
+@@ -1,3 +1,5 @@
++// Modified for dircue: close packfiles when large-object header reads fail.
++
+ package packfile
+ 
+ import (
+@@ -21,6 +23,7 @@ type FSObject struct {
+ 	path                 string
+ 	cache                cache.Object
+ 	largeObjectThreshold int64
++	readMetrics          *ReadMetrics
+ }
+ 
+ // NewFSObject creates a new filesystem object.
+@@ -34,6 +37,23 @@ func NewFSObject(
+ 	path string,
+ 	cache cache.Object,
+ 	largeObjectThreshold int64,
++) *FSObject {
++	return NewFSObjectWithMetrics(hash, finalType, offset, contentSize, index, fs, path, cache, largeObjectThreshold, nil)
++}
++
++// NewFSObjectWithMetrics creates a filesystem object with optional read-path
++// work counters. Existing callers retain the uninstrumented path.
++func NewFSObjectWithMetrics(
++	hash plumbing.Hash,
++	finalType plumbing.ObjectType,
++	offset int64,
++	contentSize int64,
++	index idxfile.Index,
++	fs billy.Filesystem,
++	path string,
++	cache cache.Object,
++	largeObjectThreshold int64,
++	metrics *ReadMetrics,
+ ) *FSObject {
+ 	return &FSObject{
+ 		hash:                 hash,
+@@ -45,6 +65,7 @@ func NewFSObject(
+ 		path:                 path,
+ 		cache:                cache,
+ 		largeObjectThreshold: largeObjectThreshold,
++		readMetrics:          metrics,
+ 	}
+ }
+ 
+@@ -65,11 +86,12 @@ func (o *FSObject) Reader() (io.ReadCloser, error) {
+ 		return nil, err
+ 	}
+ 
+-	p := NewPackfileWithCache(o.index, nil, f, o.cache, o.largeObjectThreshold)
++	p := NewPackfileWithCacheAndMetrics(o.index, nil, f, o.cache, o.largeObjectThreshold, o.readMetrics)
+ 	if o.largeObjectThreshold > 0 && o.size > o.largeObjectThreshold {
+ 		// We have a big object
+ 		h, err := p.objectHeaderAtOffset(o.offset)
+ 		if err != nil {
++			_ = f.Close()
+ 			return nil, err
+ 		}
+ 
+diff --git a/plumbing/format/packfile/fsobject_close_regression_test.go b/plumbing/format/packfile/fsobject_close_regression_test.go
+new file mode 100644
+index 0000000..92ec1e9
+--- /dev/null
++++ b/plumbing/format/packfile/fsobject_close_regression_test.go
+@@ -0,0 +1,114 @@
++package packfile
++
++import (
++	"bytes"
++	"compress/zlib"
++	"crypto/sha1"
++	"errors"
++	"io"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/go-git/go-billy/v5"
++	"github.com/go-git/go-billy/v5/osfs"
++	"github.com/go-git/go-git/v5/plumbing"
++	"github.com/go-git/go-git/v5/plumbing/cache"
++)
++
++func TestFSObjectReaderFileOwnership(t *testing.T) {
++	header := []byte{'P', 'A', 'C', 'K', 0, 0, 0, 2, 0, 0, 0, 1}
++	var packed bytes.Buffer
++	packed.Write(header)
++	packed.WriteByte(0x33)
++	compressor := zlib.NewWriter(&packed)
++	if _, err := io.WriteString(compressor, "abc"); err != nil {
++		t.Fatal(err)
++	}
++	if err := compressor.Close(); err != nil {
++		t.Fatal(err)
++	}
++	checksum := sha1.Sum(packed.Bytes())
++	packed.Write(checksum[:])
++	closeError := errors.New("injected pack close failure")
++	for _, tc := range []struct {
++		name       string
++		content    []byte
++		failure    bool
++		closeError error
++	}{
++		{name: "valid ownership transfer", content: packed.Bytes()},
++		{name: "invalid object header", content: header, failure: true, closeError: closeError},
++		{name: "invalid zlib", content: append(append([]byte{}, header...), 0x33, 'b', 'a', 'd'), failure: true, closeError: closeError},
++	} {
++		t.Run(tc.name, func(t *testing.T) {
++			root := t.TempDir()
++			if err := os.WriteFile(filepath.Join(root, "objects.pack"), tc.content, 0644); err != nil {
++				t.Fatal(err)
++			}
++			fs := &packOwnershipFS{Filesystem: osfs.New(root), closeError: tc.closeError}
++			t.Cleanup(func() {
++				for _, file := range fs.files {
++					if file.closes == 0 {
++						_ = file.File.Close()
++					}
++				}
++			})
++			object := NewFSObject(plumbing.NewHash("0123456789012345678901234567890123456789"), plumbing.BlobObject, 12, 3, nil, fs, "objects.pack", cache.NewObjectLRUDefault(), 1)
++			reader, err := object.Reader()
++			if tc.failure {
++				if err == nil || reader != nil {
++					t.Fatalf("reader %v, error %v; expected invalid pack failure", reader, err)
++				}
++				if errors.Is(err, closeError) {
++					t.Fatalf("close error replaced primary error: %v", err)
++				}
++			} else {
++				if err != nil {
++					t.Fatal(err)
++				}
++				if len(fs.files) != 1 || fs.files[0].closes != 0 {
++					t.Fatal("pack closed before reader received ownership")
++				}
++				content, readErr := io.ReadAll(reader)
++				closeErr := reader.Close()
++				if readErr != nil || closeErr != nil || string(content) != "abc" {
++					t.Fatalf("content %q read=%v close=%v", content, readErr, closeErr)
++				}
++			}
++			if len(fs.files) != 1 || fs.files[0].closes != 1 {
++				t.Fatalf("files opened=%d; close counts=%v", len(fs.files), fs.files)
++			}
++		})
++	}
++}
++
++type packOwnershipFS struct {
++	billy.Filesystem
++	files      []*packOwnershipFile
++	closeError error
++}
++
++func (fs *packOwnershipFS) Open(name string) (billy.File, error) {
++	file, err := fs.Filesystem.Open(name)
++	if err != nil {
++		return nil, err
++	}
++	tracked := &packOwnershipFile{File: file, closeError: fs.closeError}
++	fs.files = append(fs.files, tracked)
++	return tracked, nil
++}
++
++type packOwnershipFile struct {
++	billy.File
++	closes     int
++	closeError error
++}
++
++func (file *packOwnershipFile) Close() error {
++	file.closes++
++	if err := file.File.Close(); err != nil {
++		return err
++	}
++	return file.closeError
++}
+diff --git a/plumbing/format/packfile/packfile.go b/plumbing/format/packfile/packfile.go
+index f7fb958..08a6bdf 100644
+--- a/plumbing/format/packfile/packfile.go
++++ b/plumbing/format/packfile/packfile.go
+@@ -43,6 +43,7 @@ type Packfile struct {
+ 	deltaBaseCache       cache.Object
+ 	offsetToType         map[int64]plumbing.ObjectType
+ 	largeObjectThreshold int64
++	readMetrics          *ReadMetrics
+ }
+ 
+ // NewPackfileWithCache creates a new Packfile with the given object cache.
+@@ -55,15 +56,32 @@ func NewPackfileWithCache(
+ 	cache cache.Object,
+ 	largeObjectThreshold int64,
+ ) *Packfile {
++	return NewPackfileWithCacheAndMetrics(index, fs, file, cache, largeObjectThreshold, nil)
++}
++
++// NewPackfileWithCacheAndMetrics creates a Packfile with optional read-path
++// work counters. Existing constructors keep instrumentation disabled.
++func NewPackfileWithCacheAndMetrics(
++	index idxfile.Index,
++	fs billy.Filesystem,
++	file billy.File,
++	cache cache.Object,
++	largeObjectThreshold int64,
++	metrics *ReadMetrics,
++) *Packfile {
++	if metrics != nil {
++		file = &packMetricsFile{File: file, metrics: metrics}
++	}
+ 	s := NewScanner(file)
+ 	return &Packfile{
+-		index,
+-		fs,
+-		file,
+-		s,
+-		cache,
+-		make(map[int64]plumbing.ObjectType),
+-		largeObjectThreshold,
++		Index:                index,
++		fs:                   fs,
++		file:                 file,
++		s:                    s,
++		deltaBaseCache:       cache,
++		offsetToType:         make(map[int64]plumbing.ObjectType),
++		largeObjectThreshold: largeObjectThreshold,
++		readMetrics:          metrics,
+ 	}
+ }
+ 
+@@ -126,6 +144,14 @@ func (p *Packfile) nextObjectHeader() (*ObjectHeader, error) {
+ 	return h, err
+ }
+ 
++func (p *Packfile) nextObject(writer io.Writer) (int64, uint32, error) {
++	if p.readMetrics == nil {
++		return p.s.NextObject(writer)
++	}
++	p.readMetrics.recordInflater()
++	return p.s.NextObject(inflatedCountingWriter{writer: writer, metrics: p.readMetrics})
++}
++
+ func (p *Packfile) getDeltaObjectSize(buf *bytes.Buffer) (int64, error) {
+ 	delta := buf.Bytes()
+ 	_, delta, err := decodeLEB128(delta) // skip src size
+@@ -147,7 +173,7 @@ func (p *Packfile) getObjectSize(h *ObjectHeader) (int64, error) {
+ 		buf := sync.GetBytesBuffer()
+ 		defer sync.PutBytesBuffer(buf)
+ 
+-		if _, _, err := p.s.NextObject(buf); err != nil {
++		if _, _, err := p.nextObject(buf); err != nil {
+ 			return 0, err
+ 		}
+ 
+@@ -235,7 +261,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
+ 		buf := sync.GetBytesBuffer()
+ 		defer sync.PutBytesBuffer(buf)
+ 
+-		if _, _, err := p.s.NextObject(buf); err != nil {
++		if _, _, err := p.nextObject(buf); err != nil {
+ 			return nil, err
+ 		}
+ 
+@@ -267,7 +293,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
+ 
+ 	p.offsetToType[h.Offset] = typ
+ 
+-	return NewFSObject(
++	return NewFSObjectWithMetrics(
+ 		hash,
+ 		typ,
+ 		h.Offset,
+@@ -277,6 +303,7 @@ func (p *Packfile) getNextObject(h *ObjectHeader, hash plumbing.Hash) (plumbing.
+ 		p.file.Name(),
+ 		p.deltaBaseCache,
+ 		p.largeObjectThreshold,
++		p.readMetrics,
+ 	), nil
+ }
+ 
+@@ -297,13 +324,18 @@ func (p *Packfile) getObjectContent(offset int64) (io.ReadCloser, error) {
+ }
+ 
+ func asyncReader(p *Packfile) (io.ReadCloser, error) {
+-	reader := ioutil.NewReaderUsingReaderAt(p.file, p.s.r.offset)
+-	zr, err := sync.GetZlibReader(reader)
++	compressedReader := ioutil.NewReaderUsingReaderAt(p.file, p.s.r.offset)
++	zr, err := sync.GetZlibReader(compressedReader)
+ 	if err != nil {
+ 		return nil, fmt.Errorf("zlib reset error: %s", err)
+ 	}
+ 
+-	return ioutil.NewReadCloserWithCloser(zr.Reader, func() error {
++	inflatedReader := io.ReadCloser(zr.Reader)
++	if p.readMetrics != nil {
++		p.readMetrics.recordInflater()
++		inflatedReader = inflatedCountingReadCloser{ReadCloser: inflatedReader, metrics: p.readMetrics}
++	}
++	return ioutil.NewReadCloserWithCloser(inflatedReader, func() error {
+ 		sync.PutZlibReader(zr)
+ 		return nil
+ 	}), nil
+@@ -373,7 +405,7 @@ func (p *Packfile) fillRegularObjectContent(obj plumbing.EncodedObject) (err err
+ 
+ 	defer ioutil.CheckClose(w, &err)
+ 
+-	_, _, err = p.s.NextObject(w)
++	_, _, err = p.nextObject(w)
+ 	p.cachePut(obj)
+ 
+ 	return err
+@@ -383,7 +415,7 @@ func (p *Packfile) fillREFDeltaObjectContent(obj plumbing.EncodedObject, ref plu
+ 	buf := sync.GetBytesBuffer()
+ 	defer sync.PutBytesBuffer(buf)
+ 
+-	_, _, err := p.s.NextObject(buf)
++	_, _, err := p.nextObject(buf)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -392,6 +424,7 @@ func (p *Packfile) fillREFDeltaObjectContent(obj plumbing.EncodedObject, ref plu
+ }
+ 
+ func (p *Packfile) readREFDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader) (io.ReadCloser, error) {
++	p.readMetrics.recordDeltaResolution()
+ 	var err error
+ 
+ 	base, ok := p.cacheGet(h.Reference)
+@@ -402,10 +435,11 @@ func (p *Packfile) readREFDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader)
+ 		}
+ 	}
+ 
+-	return ReaderFromDelta(base, deltaRC)
++	return ReaderFromDeltaWithMetrics(base, deltaRC, p.readMetrics)
+ }
+ 
+ func (p *Packfile) fillREFDeltaObjectContentWithBuffer(obj plumbing.EncodedObject, ref plumbing.Hash, buf *bytes.Buffer) error {
++	p.readMetrics.recordDeltaResolution()
+ 	var err error
+ 
+ 	base, ok := p.cacheGet(ref)
+@@ -427,7 +461,7 @@ func (p *Packfile) fillOFSDeltaObjectContent(obj plumbing.EncodedObject, offset
+ 	buf := sync.GetBytesBuffer()
+ 	defer sync.PutBytesBuffer(buf)
+ 
+-	_, _, err := p.s.NextObject(buf)
++	_, _, err := p.nextObject(buf)
+ 	if err != nil {
+ 		return err
+ 	}
+@@ -436,6 +470,7 @@ func (p *Packfile) fillOFSDeltaObjectContent(obj plumbing.EncodedObject, offset
+ }
+ 
+ func (p *Packfile) readOFSDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader) (io.ReadCloser, error) {
++	p.readMetrics.recordDeltaResolution()
+ 	hash, err := p.FindHash(h.OffsetReference)
+ 	if err != nil {
+ 		return nil, err
+@@ -446,10 +481,11 @@ func (p *Packfile) readOFSDeltaObjectContent(h *ObjectHeader, deltaRC io.Reader)
+ 		return nil, err
+ 	}
+ 
+-	return ReaderFromDelta(base, deltaRC)
++	return ReaderFromDeltaWithMetrics(base, deltaRC, p.readMetrics)
+ }
+ 
+ func (p *Packfile) fillOFSDeltaObjectContentWithBuffer(obj plumbing.EncodedObject, offset int64, buf *bytes.Buffer) error {
++	p.readMetrics.recordDeltaResolution()
+ 	hash, err := p.FindHash(offset)
+ 	if err != nil {
+ 		return err
+diff --git a/plumbing/format/packfile/patch_delta.go b/plumbing/format/packfile/patch_delta.go
+index 4bcb491..18b6e0c 100644
+--- a/plumbing/format/packfile/patch_delta.go
++++ b/plumbing/format/packfile/patch_delta.go
+@@ -1,3 +1,5 @@
++// Modified for dircue: reset streaming delta offsets and close reopened base readers.
++
+ package packfile
+ 
+ import (
+@@ -113,6 +115,13 @@ func PatchDelta(src, delta []byte) ([]byte, error) {
+ }
+ 
+ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadCloser, error) {
++	return ReaderFromDeltaWithMetrics(base, deltaRC, nil)
++}
++
++// ReaderFromDeltaWithMetrics applies a streaming delta and records optional
++// read-path work. The returned pipe can outlive an early Close briefly; callers
++// should inspect ActiveDeltaReaders before treating a metrics snapshot as final.
++func ReaderFromDeltaWithMetrics(base plumbing.EncodedObject, deltaRC io.Reader, metrics *ReadMetrics) (io.ReadCloser, error) {
+ 	deltaBuf := bufio.NewReaderSize(deltaRC, 1024)
+ 	srcSz, err := decodeLEB128ByteReader(deltaBuf)
+ 	if err != nil {
+@@ -135,17 +144,40 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
+ 	remainingTargetSz := targetSz
+ 
+ 	dstRd, dstWr := io.Pipe()
++	if metrics != nil {
++		metrics.activeDeltaReaders.Add(1)
++	}
+ 
+ 	go func() {
++		if metrics != nil {
++			defer metrics.activeDeltaReaders.Add(-1)
++		}
+ 		baseRd, err := base.Reader()
+ 		if err != nil {
+ 			_ = dstWr.CloseWithError(ErrInvalidDelta)
+ 			return
+ 		}
+-		defer baseRd.Close()
++		defer func() {
++			if baseRd != nil {
++				_ = baseRd.Close()
++			}
++		}()
+ 
++		baseRd = countDeltaBaseReader(baseRd, metrics)
+ 		baseBuf := bufio.NewReader(baseRd)
+ 		basePos := uint(0)
++		seekDisabled := false
++		reopenBase := func() error {
++			_ = baseRd.Close()
++			baseRd, err = base.Reader()
++			if err != nil {
++				return err
++			}
++			baseRd = countDeltaBaseReader(baseRd, metrics)
++			baseBuf.Reset(baseRd)
++			basePos = 0
++			return nil
++		}
+ 
+ 		for remainingTargetSz > 0 {
+ 			cmd, err := deltaBuf.ReadByte()
+@@ -162,11 +194,17 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
+ 			case isCopyFromSrc(cmd):
+ 				offset, err := decodeOffsetByteReader(cmd, deltaBuf)
+ 				if err != nil {
++					if errors.Is(err, io.EOF) {
++						err = ErrInvalidDelta
++					}
+ 					_ = dstWr.CloseWithError(err)
+ 					return
+ 				}
+ 				sz, err := decodeSizeByteReader(cmd, deltaBuf)
+ 				if err != nil {
++					if errors.Is(err, io.EOF) {
++						err = ErrInvalidDelta
++					}
+ 					_ = dstWr.CloseWithError(err)
+ 					return
+ 				}
+@@ -177,39 +215,76 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
+ 					return
+ 				}
+ 
+-				discard := offset - basePos
++				// MemoryObject readers are seekable. Reposition those readers
++				// directly instead of reopening and replaying the base prefix for
++				// every backward delta copy. Reset the buffered reader after a
++				// successful seek because its underlying reader may have read ahead.
++				// Any failed or inexact seek falls back to the original reopen and
++				// discard path for this base.
++				if basePos != offset && !seekDisabled {
++					if seeker, ok := baseRd.(io.Seeker); ok {
++						position, seekErr := seeker.Seek(int64(offset), io.SeekStart)
++						if seekErr == nil && position == int64(offset) {
++							baseBuf.Reset(baseRd)
++							basePos = offset
++						} else {
++							seekDisabled = true
++							if err := reopenBase(); err != nil {
++								_ = dstWr.CloseWithError(ErrInvalidDelta)
++								return
++							}
++						}
++					}
++				}
+ 				if basePos > offset {
+-					_ = baseRd.Close()
+-					baseRd, err = base.Reader()
+-					if err != nil {
++					if err := reopenBase(); err != nil {
+ 						_ = dstWr.CloseWithError(ErrInvalidDelta)
+ 						return
+ 					}
+-					baseBuf.Reset(baseRd)
+-					discard = offset
+ 				}
++				discard := offset - basePos
+ 				for discard > math.MaxInt32 {
+ 					n, err := baseBuf.Discard(math.MaxInt32)
+ 					if err != nil {
++						if errors.Is(err, io.EOF) {
++							err = ErrInvalidDelta
++						}
+ 						_ = dstWr.CloseWithError(err)
+ 						return
+ 					}
++					if n != math.MaxInt32 {
++						_ = dstWr.CloseWithError(ErrInvalidDelta)
++						return
++					}
+ 					basePos += uint(n)
+ 					discard -= uint(n)
+ 				}
+ 				for discard > 0 {
+-					n, err := baseBuf.Discard(int(discard))
++					want := int(discard)
++					n, err := baseBuf.Discard(want)
+ 					if err != nil {
++						if errors.Is(err, io.EOF) {
++							err = ErrInvalidDelta
++						}
+ 						_ = dstWr.CloseWithError(err)
+ 						return
+ 					}
++					if n != want {
++						_ = dstWr.CloseWithError(ErrInvalidDelta)
++						return
++					}
+ 					basePos += uint(n)
+ 					discard -= uint(n)
+ 				}
+-				if _, err := io.Copy(dstWr, io.LimitReader(baseBuf, int64(sz))); err != nil {
++				copied, err := io.Copy(dstWr, io.LimitReader(baseBuf, int64(sz)))
++				if err != nil {
+ 					_ = dstWr.CloseWithError(err)
+ 					return
+ 				}
++				if copied != int64(sz) {
++					_ = dstWr.CloseWithError(ErrInvalidDelta)
++					return
++				}
+ 				remainingTargetSz -= sz
+ 				basePos += sz
+ 
+@@ -219,10 +294,15 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
+ 					_ = dstWr.CloseWithError(ErrInvalidDelta)
+ 					return
+ 				}
+-				if _, err := io.Copy(dstWr, io.LimitReader(deltaBuf, int64(sz))); err != nil {
++				copied, err := io.Copy(dstWr, io.LimitReader(deltaBuf, int64(sz)))
++				if err != nil {
+ 					_ = dstWr.CloseWithError(err)
+ 					return
+ 				}
++				if copied != int64(sz) {
++					_ = dstWr.CloseWithError(ErrInvalidDelta)
++					return
++				}
+ 
+ 				remainingTargetSz -= sz
+ 
+@@ -248,6 +328,37 @@ func ReaderFromDelta(base plumbing.EncodedObject, deltaRC io.Reader) (io.ReadClo
+ 	return dstRd, nil
+ }
+ 
++type deltaBaseCountingReader struct {
++	io.ReadCloser
++	metrics *ReadMetrics
++}
++
++func (r *deltaBaseCountingReader) Read(p []byte) (int, error) {
++	n, err := r.ReadCloser.Read(p)
++	r.metrics.recordDeltaBaseBytes(n)
++	return n, err
++}
++
++type deltaBaseCountingReadSeeker struct {
++	*deltaBaseCountingReader
++	seeker io.Seeker
++}
++
++func (r *deltaBaseCountingReadSeeker) Seek(offset int64, whence int) (int64, error) {
++	return r.seeker.Seek(offset, whence)
++}
++
++func countDeltaBaseReader(reader io.ReadCloser, metrics *ReadMetrics) io.ReadCloser {
++	if metrics == nil {
++		return reader
++	}
++	counted := &deltaBaseCountingReader{ReadCloser: reader, metrics: metrics}
++	if seeker, ok := reader.(io.Seeker); ok {
++		return &deltaBaseCountingReadSeeker{deltaBaseCountingReader: counted, seeker: seeker}
++	}
++	return counted
++}
++
+ func patchDelta(dst *bytes.Buffer, src, delta []byte) error {
+ 	srcSz, delta, err := decodeLEB128(delta)
+ 	if err != nil {
+diff --git a/plumbing/format/packfile/read_metrics.go b/plumbing/format/packfile/read_metrics.go
+new file mode 100644
+index 0000000..e3efc33
+--- /dev/null
++++ b/plumbing/format/packfile/read_metrics.go
+@@ -0,0 +1,197 @@
++// Modified for dircue: opt-in Git read-path work counters.
++
++package packfile
++
++import (
++	"io"
++	"sync/atomic"
++
++	billy "github.com/go-git/go-billy/v5"
++)
++
++// ReadMetrics records work performed while reading Git objects. The zero value
++// is ready for use. Counters describing physical reads and cache behavior may
++// vary with scheduling and cache state; callers must not treat them as output
++// invariants.
++type ReadMetrics struct {
++	inflatersStarted   atomic.Uint64
++	inflatedBytes      atomic.Uint64
++	deltaResolutions   atomic.Uint64
++	deltaBaseBytesRead atomic.Uint64
++	packBytesRead      atomic.Uint64
++	looseBytesRead     atomic.Uint64
++	indexBytesRead     atomic.Uint64
++	objectCacheHits    atomic.Uint64
++	objectCacheMisses  atomic.Uint64
++	objectCachePuts    atomic.Uint64
++	activeDeltaReaders atomic.Int64
++}
++
++// ReadMetricsSnapshot is one observation of ReadMetrics. A snapshot is final
++// only when ActiveDeltaReaders is zero and the owning scan has stopped issuing
++// reads.
++type ReadMetricsSnapshot struct {
++	InflatersStarted   uint64 `json:"inflaters_started"`
++	InflatedBytes      uint64 `json:"inflated_bytes"`
++	DeltaResolutions   uint64 `json:"delta_resolutions"`
++	DeltaBaseBytesRead uint64 `json:"delta_base_bytes_read"`
++	PackBytesRead      uint64 `json:"pack_bytes_read"`
++	LooseBytesRead     uint64 `json:"loose_bytes_read"`
++	IndexBytesRead     uint64 `json:"index_bytes_read"`
++	ObjectCacheHits    uint64 `json:"object_cache_hits"`
++	ObjectCacheMisses  uint64 `json:"object_cache_misses"`
++	ObjectCachePuts    uint64 `json:"object_cache_puts"`
++	ActiveDeltaReaders int64  `json:"active_delta_readers"`
++}
++
++// Snapshot returns the current counters without waiting for asynchronous delta
++// readers. ActiveDeltaReaders reports whether those counters can still change.
++func (m *ReadMetrics) Snapshot() ReadMetricsSnapshot {
++	if m == nil {
++		return ReadMetricsSnapshot{}
++	}
++	// Producers publish all counter increments before their final active-reader
++	// decrement. Read activity first: zero is a finality signal only when the
++	// owner has already stopped issuing new reads; a stale nonzero is safely
++	// conservative.
++	active := m.activeDeltaReaders.Load()
++	return ReadMetricsSnapshot{
++		InflatersStarted:   m.inflatersStarted.Load(),
++		InflatedBytes:      m.inflatedBytes.Load(),
++		DeltaResolutions:   m.deltaResolutions.Load(),
++		DeltaBaseBytesRead: m.deltaBaseBytesRead.Load(),
++		PackBytesRead:      m.packBytesRead.Load(),
++		LooseBytesRead:     m.looseBytesRead.Load(),
++		IndexBytesRead:     m.indexBytesRead.Load(),
++		ObjectCacheHits:    m.objectCacheHits.Load(),
++		ObjectCacheMisses:  m.objectCacheMisses.Load(),
++		ObjectCachePuts:    m.objectCachePuts.Load(),
++		ActiveDeltaReaders: active,
++	}
++}
++
++// Reset clears a completed run. The caller must exclusively own the metrics and
++// must have stopped issuing new reads. It returns false without changing
++// counters if an asynchronous delta reader is still active at the initial check.
++func (m *ReadMetrics) Reset() bool {
++	if m == nil {
++		return true
++	}
++	if m.activeDeltaReaders.Load() != 0 {
++		return false
++	}
++	m.inflatersStarted.Store(0)
++	m.inflatedBytes.Store(0)
++	m.deltaResolutions.Store(0)
++	m.deltaBaseBytesRead.Store(0)
++	m.packBytesRead.Store(0)
++	m.looseBytesRead.Store(0)
++	m.indexBytesRead.Store(0)
++	m.objectCacheHits.Store(0)
++	m.objectCacheMisses.Store(0)
++	m.objectCachePuts.Store(0)
++	return m.activeDeltaReaders.Load() == 0
++}
++
++func (m *ReadMetrics) recordInflater() {
++	if m != nil {
++		m.inflatersStarted.Add(1)
++	}
++}
++
++func (m *ReadMetrics) recordInflatedBytes(n int) {
++	if m != nil && n > 0 {
++		m.inflatedBytes.Add(uint64(n))
++	}
++}
++
++func (m *ReadMetrics) recordDeltaResolution() {
++	if m != nil {
++		m.deltaResolutions.Add(1)
++	}
++}
++
++func (m *ReadMetrics) recordDeltaBaseBytes(n int) {
++	if m != nil && n > 0 {
++		m.deltaBaseBytesRead.Add(uint64(n))
++	}
++}
++
++// RecordPackBytes records bytes returned from a pack file Read or ReadAt.
++func (m *ReadMetrics) RecordPackBytes(n int) {
++	if m != nil && n > 0 {
++		m.packBytesRead.Add(uint64(n))
++	}
++}
++
++// RecordLooseBytes records bytes returned from a loose-object file read.
++func (m *ReadMetrics) RecordLooseBytes(n int) {
++	if m != nil && n > 0 {
++		m.looseBytesRead.Add(uint64(n))
++	}
++}
++
++// RecordIndexBytes records bytes returned from a pack-index file read.
++func (m *ReadMetrics) RecordIndexBytes(n int) {
++	if m != nil && n > 0 {
++		m.indexBytesRead.Add(uint64(n))
++	}
++}
++
++// RecordObjectCacheGet records one observed object-cache lookup.
++func (m *ReadMetrics) RecordObjectCacheGet(hit bool) {
++	if m == nil {
++		return
++	}
++	if hit {
++		m.objectCacheHits.Add(1)
++	} else {
++		m.objectCacheMisses.Add(1)
++	}
++}
++
++// RecordObjectCachePut records one object-cache insertion attempt.
++func (m *ReadMetrics) RecordObjectCachePut() {
++	if m != nil {
++		m.objectCachePuts.Add(1)
++	}
++}
++
++type inflatedCountingReadCloser struct {
++	io.ReadCloser
++	metrics *ReadMetrics
++}
++
++func (r inflatedCountingReadCloser) Read(p []byte) (int, error) {
++	n, err := r.ReadCloser.Read(p)
++	r.metrics.recordInflatedBytes(n)
++	return n, err
++}
++
++type inflatedCountingWriter struct {
++	writer  io.Writer
++	metrics *ReadMetrics
++}
++
++type packMetricsFile struct {
++	billy.File
++	metrics *ReadMetrics
++}
++
++func (f *packMetricsFile) Read(p []byte) (int, error) {
++	n, err := f.File.Read(p)
++	f.metrics.RecordPackBytes(n)
++	return n, err
++}
++
++func (f *packMetricsFile) ReadAt(p []byte, offset int64) (int, error) {
++	n, err := f.File.ReadAt(p, offset)
++	f.metrics.RecordPackBytes(n)
++	return n, err
++}
++
++func (w inflatedCountingWriter) Write(p []byte) (int, error) {
++	n, err := w.writer.Write(p)
++	w.metrics.recordInflatedBytes(n)
++	return n, err
++}
+diff --git a/plumbing/format/packfile/reader_delta_regression_test.go b/plumbing/format/packfile/reader_delta_regression_test.go
+new file mode 100644
+index 0000000..1fb1ed7
+--- /dev/null
++++ b/plumbing/format/packfile/reader_delta_regression_test.go
+@@ -0,0 +1,441 @@
++package packfile
++
++import (
++	"bytes"
++	"errors"
++	"io"
++	"sync/atomic"
++	"testing"
++	"time"
++
++	"github.com/go-git/go-git/v5/plumbing"
++)
++
++func TestReaderFromDeltaBackwardThenForwardCopies(t *testing.T) {
++	for _, test := range []struct {
++		name  string
++		delta []byte
++		want  string
++		seeks int
++	}{
++		{"backward then forward", []byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}, "kan", 3},
++		{"repeated backward", []byte{20, 4, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1, 0x91, 2, 1}, "kanc", 4},
++	} {
++		t.Run(test.name, func(t *testing.T) {
++			base := newTrackedDeltaBase(0)
++			reader, err := ReaderFromDelta(base, bytes.NewReader(test.delta))
++			if err != nil {
++				t.Fatal(err)
++			}
++			defer reader.Close()
++			got, err := io.ReadAll(reader)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if string(got) != test.want {
++				t.Fatalf("got %q, want %q", got, test.want)
++			}
++			base.requireClosed(t, 1)
++			if got := int(base.seekCalls.Load()); got != test.seeks {
++				t.Fatalf("seek calls = %d, want %d", got, test.seeks)
++			}
++		})
++	}
++}
++
++func TestReaderFromDeltaFailedReopen(t *testing.T) {
++	base := newTrackedDeltaBase(2)
++	base.seekFailAt = 2
++	reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 2, 0x91, 10, 1, 0x90, 1}))
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer reader.Close()
++	_, err = io.ReadAll(reader)
++	if !errors.Is(err, ErrInvalidDelta) {
++		t.Fatalf("got %v, want invalid delta", err)
++	}
++	base.requireClosed(t, 1)
++}
++
++func TestReaderFromDeltaSeekFallbacks(t *testing.T) {
++	delta := []byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}
++	for _, test := range []struct {
++		name        string
++		seekFailAt  int
++		seekWrongAt int
++	}{
++		{name: "seek error", seekFailAt: 2},
++		{name: "wrong seek offset", seekWrongAt: 2},
++	} {
++		t.Run(test.name, func(t *testing.T) {
++			base := newTrackedDeltaBase(0)
++			base.seekFailAt = test.seekFailAt
++			base.seekWrongAt = test.seekWrongAt
++			reader, err := ReaderFromDelta(base, bytes.NewReader(delta))
++			if err != nil {
++				t.Fatal(err)
++			}
++			got, err := io.ReadAll(reader)
++			if err != nil {
++				t.Fatal(err)
++			}
++			if err := reader.Close(); err != nil {
++				t.Fatal(err)
++			}
++			if string(got) != "kan" {
++				t.Fatalf("got %q, want %q", got, "kan")
++			}
++			base.requireClosed(t, 2)
++			if got := base.calls.Load(); got != 2 {
++				t.Fatalf("reader calls = %d, want 2", got)
++			}
++		})
++	}
++}
++
++func TestReaderFromDeltaNonSeekableFallback(t *testing.T) {
++	base := newTrackedDeltaBase(0)
++	base.nonSeekable = true
++	reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}))
++	if err != nil {
++		t.Fatal(err)
++	}
++	got, err := io.ReadAll(reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := reader.Close(); err != nil {
++		t.Fatal(err)
++	}
++	if string(got) != "kan" {
++		t.Fatalf("got %q, want %q", got, "kan")
++	}
++	base.requireClosed(t, 2)
++}
++
++func TestReaderFromDeltaSeekResetsBufferedState(t *testing.T) {
++	base := newTrackedDeltaBase(0)
++	// The second copy begins exactly where the first ends and must reuse the
++	// buffered reader. The later backward and forward copies must seek and reset
++	// that buffer so read-ahead bytes cannot leak into the output.
++	delta := buildDelta(20, 8,
++		encodeCopyOperation(10, 2),
++		encodeCopyOperation(12, 2),
++		encodeCopyOperation(0, 2),
++		encodeCopyOperation(18, 2),
++	)
++	reader, err := ReaderFromDelta(base, bytes.NewReader(delta))
++	if err != nil {
++		t.Fatal(err)
++	}
++	got, err := io.ReadAll(reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := reader.Close(); err != nil {
++		t.Fatal(err)
++	}
++	if string(got) != "klmnabst" {
++		t.Fatalf("got %q, want %q", got, "klmnabst")
++	}
++	base.requireClosed(t, 1)
++	if got := base.seekCalls.Load(); got != 3 {
++		t.Fatalf("seek calls = %d, want 3", got)
++	}
++}
++
++func TestReaderFromDeltaRejectsShortBaseAndDelta(t *testing.T) {
++	for _, test := range []struct {
++		name        string
++		nonSeekable bool
++		seekFailAt  int
++		wantClosed  int
++	}{
++		{name: "seekable", wantClosed: 1},
++		{name: "non-seekable", nonSeekable: true, wantClosed: 1},
++		{name: "failed seek fallback", seekFailAt: 1, wantClosed: 2},
++	} {
++		t.Run("short base/"+test.name, func(t *testing.T) {
++			base := newTrackedDeltaBase(0)
++			base.data = []byte("short")
++			base.nonSeekable = test.nonSeekable
++			base.seekFailAt = test.seekFailAt
++			reader, err := ReaderFromDelta(base, bytes.NewReader(buildDelta(20, 1, encodeCopyOperation(10, 1))))
++			if err != nil {
++				t.Fatal(err)
++			}
++			_, err = io.ReadAll(reader)
++			if !errors.Is(err, ErrInvalidDelta) {
++				t.Fatalf("got %v, want invalid delta", err)
++			}
++			base.requireClosed(t, test.wantClosed)
++		})
++	}
++	t.Run("truncated delta insertion", func(t *testing.T) {
++		base := newTrackedDeltaBase(0)
++		reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 3, 3, 'x'}))
++		if err != nil {
++			t.Fatal(err)
++		}
++		_, err = io.ReadAll(reader)
++		if !errors.Is(err, ErrInvalidDelta) {
++			t.Fatalf("got %v, want invalid delta", err)
++		}
++		base.requireClosed(t, 1)
++	})
++	for _, test := range []struct {
++		name  string
++		delta []byte
++	}{
++		{name: "offset operand", delta: []byte{20, 1, 0x81}},
++		{name: "size operand", delta: []byte{20, 1, 0x90}},
++	} {
++		t.Run("truncated copy "+test.name, func(t *testing.T) {
++			base := newTrackedDeltaBase(0)
++			reader, err := ReaderFromDelta(base, bytes.NewReader(test.delta))
++			if err != nil {
++				t.Fatal(err)
++			}
++			_, err = io.ReadAll(reader)
++			if !errors.Is(err, ErrInvalidDelta) {
++				t.Fatalf("got %v, want invalid delta", err)
++			}
++			base.requireClosed(t, 1)
++		})
++	}
++}
++
++func TestReaderFromDeltaPreservesBaseReadError(t *testing.T) {
++	readError := errors.New("base read failed")
++	base := newTrackedDeltaBase(0)
++	base.readError = readError
++	reader, err := ReaderFromDelta(base, bytes.NewReader(buildDelta(20, 1, encodeCopyOperation(10, 1))))
++	if err != nil {
++		t.Fatal(err)
++	}
++	_, err = io.ReadAll(reader)
++	if !errors.Is(err, readError) {
++		t.Fatalf("got %v, want base read error", err)
++	}
++	base.requireClosed(t, 1)
++}
++
++func TestReaderFromDeltaEarlyCloseReleasesBase(t *testing.T) {
++	base := newTrackedDeltaBase(0)
++	reader, err := ReaderFromDelta(base, bytes.NewReader([]byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}))
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := reader.Close(); err != nil {
++		t.Fatal(err)
++	}
++	base.requireClosed(t, 1)
++}
++
++func TestReaderFromDeltaMetricsPreserveBehaviorAndCapabilities(t *testing.T) {
++	delta := []byte{20, 3, 0x91, 10, 1, 0x90, 1, 0x91, 13, 1}
++	for _, test := range []struct {
++		name        string
++		nonSeekable bool
++		wantSeeks   int
++	}{
++		{name: "seekable", wantSeeks: 3},
++		{name: "non-seekable", nonSeekable: true},
++	} {
++		t.Run(test.name, func(t *testing.T) {
++			plainBase := newTrackedDeltaBase(0)
++			plainBase.nonSeekable = test.nonSeekable
++			plain, err := ReaderFromDelta(plainBase, bytes.NewReader(delta))
++			if err != nil {
++				t.Fatal(err)
++			}
++			plainBytes, plainErr := io.ReadAll(plain)
++			if closeErr := plain.Close(); plainErr == nil {
++				plainErr = closeErr
++			}
++
++			metrics := &ReadMetrics{}
++			measuredBase := newTrackedDeltaBase(0)
++			measuredBase.nonSeekable = test.nonSeekable
++			measured, err := ReaderFromDeltaWithMetrics(measuredBase, bytes.NewReader(delta), metrics)
++			if err != nil {
++				t.Fatal(err)
++			}
++			measuredBytes, measuredErr := io.ReadAll(measured)
++			if closeErr := measured.Close(); measuredErr == nil {
++				measuredErr = closeErr
++			}
++			if !bytes.Equal(measuredBytes, plainBytes) || !errors.Is(measuredErr, plainErr) {
++				t.Fatalf("measured (%q, %v), plain (%q, %v)", measuredBytes, measuredErr, plainBytes, plainErr)
++			}
++			if got := int(measuredBase.seekCalls.Load()); got != test.wantSeeks {
++				t.Fatalf("measured seek calls = %d, want %d", got, test.wantSeeks)
++			}
++			snapshot := metrics.Snapshot()
++			if snapshot.DeltaBaseBytesRead == 0 || snapshot.ActiveDeltaReaders != 0 {
++				t.Fatalf("unexpected metrics: %+v", snapshot)
++			}
++		})
++	}
++
++	bad := []byte{20, 3, 3, 'x'}
++	plain, err := ReaderFromDelta(newTrackedDeltaBase(0), bytes.NewReader(bad))
++	if err != nil {
++		t.Fatal(err)
++	}
++	_, plainErr := io.ReadAll(plain)
++	measured, err := ReaderFromDeltaWithMetrics(newTrackedDeltaBase(0), bytes.NewReader(bad), &ReadMetrics{})
++	if err != nil {
++		t.Fatal(err)
++	}
++	_, measuredErr := io.ReadAll(measured)
++	if !errors.Is(plainErr, ErrInvalidDelta) || !errors.Is(measuredErr, ErrInvalidDelta) {
++		t.Fatalf("plain error %v, measured error %v", plainErr, measuredErr)
++	}
++}
++
++func TestReadMetricsResetHonorsActiveDeltaReader(t *testing.T) {
++	delta := &blockingDeltaReader{data: []byte{20, 1}, release: make(chan struct{})}
++	metrics := &ReadMetrics{}
++	reader, err := ReaderFromDeltaWithMetrics(newTrackedDeltaBase(0), delta, metrics)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if metrics.Reset() {
++		t.Fatal("reset succeeded with active delta reader")
++	}
++	if err := reader.Close(); err != nil {
++		t.Fatal(err)
++	}
++	close(delta.release)
++	deadline := time.Now().Add(3 * time.Second)
++	for metrics.Snapshot().ActiveDeltaReaders != 0 && time.Now().Before(deadline) {
++		time.Sleep(time.Millisecond)
++	}
++	if snapshot := metrics.Snapshot(); snapshot.ActiveDeltaReaders != 0 {
++		t.Fatalf("delta reader remained active: %+v", snapshot)
++	}
++	if !metrics.Reset() || metrics.Snapshot() != (ReadMetricsSnapshot{}) {
++		t.Fatalf("reset did not clear completed run: %+v", metrics.Snapshot())
++	}
++}
++
++type blockingDeltaReader struct {
++	data    []byte
++	release chan struct{}
++}
++
++func (reader *blockingDeltaReader) Read(p []byte) (int, error) {
++	if len(reader.data) > 0 {
++		n := copy(p, reader.data)
++		reader.data = reader.data[n:]
++		return n, nil
++	}
++	<-reader.release
++	return 0, io.EOF
++}
++
++type trackedDeltaBase struct {
++	plumbing.MemoryObject
++	calls       atomic.Int32
++	seekCalls   atomic.Int32
++	failAt      int
++	seekFailAt  int
++	seekWrongAt int
++	nonSeekable bool
++	readError   error
++	data        []byte
++	closed      chan int
++}
++
++func newTrackedDeltaBase(failAt int) *trackedDeltaBase {
++	base := &trackedDeltaBase{failAt: failAt, data: []byte("abcdefghijklmnopqrst"), closed: make(chan int, 10)}
++	base.SetSize(20)
++	return base
++}
++
++func (base *trackedDeltaBase) Reader() (io.ReadCloser, error) {
++	id := int(base.calls.Add(1))
++	if id == base.failAt {
++		return nil, errors.New("cannot reopen base")
++	}
++	reader := bytes.NewReader(base.data)
++	if base.readError != nil {
++		return &trackedReadErrorDeltaReader{err: base.readError, id: id, closed: base.closed}, nil
++	}
++	if base.nonSeekable {
++		return &trackedNonSeekableDeltaReader{reader: reader, id: id, closed: base.closed}, nil
++	}
++	return &trackedDeltaReader{Reader: reader, owner: base, id: id, closed: base.closed}, nil
++}
++
++type trackedReadErrorDeltaReader struct {
++	err    error
++	id     int
++	closed chan<- int
++}
++
++func (reader *trackedReadErrorDeltaReader) Read([]byte) (int, error) { return 0, reader.err }
++func (reader *trackedReadErrorDeltaReader) Close() error {
++	reader.closed <- reader.id
++	return nil
++}
++
++func (base *trackedDeltaBase) requireClosed(t *testing.T, count int) {
++	t.Helper()
++	closed := make(map[int]bool)
++	timer := time.NewTimer(3 * time.Second)
++	defer timer.Stop()
++	for len(closed) < count {
++		select {
++		case id := <-base.closed:
++			if closed[id] {
++				t.Fatalf("reader %d closed twice", id)
++			}
++			closed[id] = true
++		case <-timer.C:
++			t.Fatalf("closed %d readers, want %d", len(closed), count)
++		}
++	}
++	select {
++	case id := <-base.closed:
++		t.Fatalf("unexpected additional close of reader %d", id)
++	default:
++	}
++}
++
++type trackedDeltaReader struct {
++	*bytes.Reader
++	owner  *trackedDeltaBase
++	id     int
++	closed chan<- int
++}
++
++func (reader *trackedDeltaReader) Seek(offset int64, whence int) (int64, error) {
++	call := int(reader.owner.seekCalls.Add(1))
++	if call == reader.owner.seekFailAt {
++		return 0, errors.New("cannot seek base")
++	}
++	if call == reader.owner.seekWrongAt {
++		return reader.Reader.Seek(offset+1, whence)
++	}
++	return reader.Reader.Seek(offset, whence)
++}
++
++func (reader *trackedDeltaReader) Close() error { reader.closed <- reader.id; return nil }
++
++type trackedNonSeekableDeltaReader struct {
++	reader *bytes.Reader
++	id     int
++	closed chan<- int
++}
++
++func (reader *trackedNonSeekableDeltaReader) Read(p []byte) (int, error) {
++	return reader.reader.Read(p)
++}
++
++func (reader *trackedNonSeekableDeltaReader) Close() error {
++	reader.closed <- reader.id
++	return nil
++}
+diff --git a/repository.go b/repository.go
+index 12af162..77a4887 100644
+--- a/repository.go
++++ b/repository.go
+@@ -1,3 +1,5 @@
++// Modified for dircue: close linked-worktree commondir files after reading.
++
+ package git
+ 
+ import (
+@@ -434,6 +436,8 @@ func dotGitCommonDirectory(fs billy.Filesystem) (commonDir billy.Filesystem, err
+ 		return nil, err
+ 	}
+ 
++	defer ioutil.CheckClose(f, &err)
++
+ 	b, err := io.ReadAll(f)
+ 	if err != nil {
+ 		return nil, err
+diff --git a/storage/filesystem/dotgit/reader.go b/storage/filesystem/dotgit/reader.go
+index 975f92a..db4dd6f 100644
 --- a/storage/filesystem/dotgit/reader.go
 +++ b/storage/filesystem/dotgit/reader.go
 @@ -1,3 +1,5 @@
@@ -419,8 +1386,37 @@
  package dotgit
  
  import (
-@@ -34,20 +36,24 @@
+@@ -5,6 +7,7 @@ import (
+ 	"io"
+ 	"os"
+ 
++	billy "github.com/go-git/go-billy/v5"
+ 	"github.com/go-git/go-git/v5/plumbing"
+ 	"github.com/go-git/go-git/v5/plumbing/format/objfile"
+ 	"github.com/go-git/go-git/v5/utils/ioutil"
+@@ -13,10 +16,11 @@ import (
+ var _ (plumbing.EncodedObject) = &EncodedObject{}
+ 
+ type EncodedObject struct {
+-	dir *DotGit
+-	h   plumbing.Hash
+-	t   plumbing.ObjectType
+-	sz  int64
++	dir          *DotGit
++	h            plumbing.Hash
++	t            plumbing.ObjectType
++	sz           int64
++	readObserver func(int)
+ }
+ 
+ func (e *EncodedObject) Hash() plumbing.Hash {
+@@ -32,22 +36,29 @@ func (e *EncodedObject) Reader() (io.ReadCloser, error) {
+ 
+ 		return nil, err
  	}
++	if e.readObserver != nil {
++		f = &observedReadFile{File: f, observe: e.readObserver}
++	}
  	r, err := objfile.NewReader(f)
  	if err != nil {
 +		_ = f.Close()
@@ -444,6 +1440,48 @@
  		return nil, objfile.ErrHeader
  	}
  	return ioutil.NewReadCloserWithCloser(r, f.Close), nil
+@@ -70,10 +81,34 @@ func (e *EncodedObject) Writer() (io.WriteCloser, error) {
+ }
+ 
+ func NewEncodedObject(dir *DotGit, h plumbing.Hash, t plumbing.ObjectType, size int64) *EncodedObject {
++	return NewEncodedObjectWithReadObserver(dir, h, t, size, nil)
++}
++
++// NewEncodedObjectWithReadObserver creates a lazy loose object whose physical
++// file reads are reported to observe. A nil observer preserves the default path.
++func NewEncodedObjectWithReadObserver(dir *DotGit, h plumbing.Hash, t plumbing.ObjectType, size int64, observe func(int)) *EncodedObject {
+ 	return &EncodedObject{
+-		dir: dir,
+-		h:   h,
+-		t:   t,
+-		sz:  size,
++		dir:          dir,
++		h:            h,
++		t:            t,
++		sz:           size,
++		readObserver: observe,
+ 	}
+ }
++
++type observedReadFile struct {
++	billy.File
++	observe func(int)
++}
++
++func (f *observedReadFile) Read(p []byte) (int, error) {
++	n, err := f.File.Read(p)
++	f.observe(n)
++	return n, err
++}
++
++func (f *observedReadFile) ReadAt(p []byte, offset int64) (int, error) {
++	n, err := f.File.ReadAt(p, offset)
++	f.observe(n)
++	return n, err
++}
+diff --git a/storage/filesystem/dotgit/reader_close_regression_test.go b/storage/filesystem/dotgit/reader_close_regression_test.go
+new file mode 100644
+index 0000000..c9126e5
 --- /dev/null
 +++ b/storage/filesystem/dotgit/reader_close_regression_test.go
 @@ -0,0 +1,130 @@
@@ -577,31 +1615,87 @@
 +	}
 +	return file.closeError
 +}
---- a/plumbing/format/packfile/fsobject.go
-+++ b/plumbing/format/packfile/fsobject.go
+diff --git a/storage/filesystem/object.go b/storage/filesystem/object.go
+index db82fef..0945994 100644
+--- a/storage/filesystem/object.go
++++ b/storage/filesystem/object.go
 @@ -1,3 +1,5 @@
-+// Modified for dircue: close packfiles when large-object header reads fail.
++// Modified for dircue: close loose size readers and uncached packfiles on errors.
 +
- package packfile
+ package filesystem
  
  import (
-@@ -70,6 +72,7 @@
- 		// We have a big object
- 		h, err := p.objectHeaderAtOffset(o.offset)
- 		if err != nil {
-+			_ = f.Close()
- 			return nil, err
- 		}
+@@ -80,6 +82,7 @@ func (s *ObjectStorage) loadIdxFile(h plumbing.Hash) (err error) {
+ 	if err != nil {
+ 		return err
+ 	}
++	f = instrumentFile(f, s.options.ReadMetrics, metricIndex)
  
+ 	defer ioutil.CheckClose(f, &err)
+ 
+@@ -203,6 +206,9 @@ func (s *ObjectStorage) encodedObjectSizeFromUnpacked(h plumbing.Hash) (
+ 
+ 		return 0, err
+ 	}
++	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
++
++	defer ioutil.CheckClose(f, &err)
+ 
+ 	r, err := objfile.NewReader(f)
+ 	if err != nil {
+@@ -226,12 +232,18 @@ func (s *ObjectStorage) packfile(idx idxfile.Index, pack plumbing.Hash) (*packfi
+ 
+ 	var p *packfile.Packfile
+ 	if s.objectCache != nil {
+-		p = packfile.NewPackfileWithCache(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold)
++		p = packfile.NewPackfileWithCacheAndMetrics(idx, s.dir.Fs(), f, s.objectCache, s.options.LargeObjectThreshold, s.options.ReadMetrics)
+ 	} else {
+ 		p = packfile.NewPackfile(idx, s.dir.Fs(), f, s.options.LargeObjectThreshold)
+ 	}
+ 
+-	return p, s.storePackfileInCache(pack, p)
++	if err := s.storePackfileInCache(pack, p); err != nil {
++		// A failed eviction leaves the new packfile outside the cache.
++		// Preserve the eviction error while releasing its unowned descriptor.
++		_ = p.Close()
++		return nil, err
++	}
++	return p, nil
+ }
+ 
+ func (s *ObjectStorage) packfileFromCache(hash plumbing.Hash) *packfile.Packfile {
+@@ -408,6 +420,7 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
+ 
+ 		return nil, err
+ 	}
++	f = instrumentFile(f, s.options.ReadMetrics, metricLoose)
+ 	defer ioutil.CheckClose(f, &err)
+ 
+ 	if cacheObj, found := s.objectCache.Get(h); found {
+@@ -427,7 +440,11 @@ func (s *ObjectStorage) getFromUnpacked(h plumbing.Hash) (obj plumbing.EncodedOb
+ 	}
+ 
+ 	if s.options.LargeObjectThreshold > 0 && size > s.options.LargeObjectThreshold {
+-		obj = dotgit.NewEncodedObject(s.dir, h, t, size)
++		if s.options.ReadMetrics == nil {
++			obj = dotgit.NewEncodedObject(s.dir, h, t, size)
++		} else {
++			obj = dotgit.NewEncodedObjectWithReadObserver(s.dir, h, t, size, s.options.ReadMetrics.RecordLooseBytes)
++		}
+ 		return obj, nil
+ 	}
+ 
+diff --git a/storage/filesystem/object_size_close_regression_test.go b/storage/filesystem/object_size_close_regression_test.go
+new file mode 100644
+index 0000000..b9b3ee6
 --- /dev/null
-+++ b/plumbing/format/packfile/fsobject_close_regression_test.go
-@@ -0,0 +1,114 @@
-+package packfile
++++ b/storage/filesystem/object_size_close_regression_test.go
+@@ -0,0 +1,163 @@
++package filesystem
 +
 +import (
 +	"bytes"
 +	"compress/zlib"
-+	"crypto/sha1"
 +	"errors"
 +	"io"
 +	"os"
@@ -612,101 +1706,294 @@
 +	"github.com/go-git/go-billy/v5/osfs"
 +	"github.com/go-git/go-git/v5/plumbing"
 +	"github.com/go-git/go-git/v5/plumbing/cache"
++	"github.com/go-git/go-git/v5/plumbing/format/objfile"
++	"github.com/go-git/go-git/v5/plumbing/format/packfile"
 +)
 +
-+func TestFSObjectReaderFileOwnership(t *testing.T) {
-+	header := []byte{'P', 'A', 'C', 'K', 0, 0, 0, 2, 0, 0, 0, 1}
-+	var packed bytes.Buffer
-+	packed.Write(header)
-+	packed.WriteByte(0x33)
-+	compressor := zlib.NewWriter(&packed)
-+	if _, err := io.WriteString(compressor, "abc"); err != nil {
-+		t.Fatal(err)
-+	}
-+	if err := compressor.Close(); err != nil {
-+		t.Fatal(err)
-+	}
-+	checksum := sha1.Sum(packed.Bytes())
-+	packed.Write(checksum[:])
-+	closeError := errors.New("injected pack close failure")
-+	for _, tc := range []struct {
-+		name       string
-+		content    []byte
-+		failure    bool
-+		closeError error
++func TestEncodedObjectSizeClosesLooseFile(t *testing.T) {
++	closeError := errors.New("file close failed")
++	for _, test := range []struct {
++		name         string
++		content      []byte
++		closeError   error
++		wantSize     int64
++		wantError    error
++		wantAnyError bool
 +	}{
-+		{name: "valid ownership transfer", content: packed.Bytes()},
-+		{name: "invalid object header", content: header, failure: true, closeError: closeError},
-+		{name: "invalid zlib", content: append(append([]byte{}, header...), 0x33, 'b', 'a', 'd'), failure: true, closeError: closeError},
++		{name: "valid object", content: compressLooseObject(t, "blob 3\x00abc"), wantSize: 3},
++		{name: "invalid zlib", content: []byte("not zlib"), wantAnyError: true},
++		{name: "invalid header", content: compressLooseObject(t, "blob bad\x00abc"), wantError: objfile.ErrHeader},
++		{name: "close error", content: compressLooseObject(t, "blob 3\x00abc"), closeError: closeError, wantError: closeError},
++		{name: "header error precedes close error", content: compressLooseObject(t, "blob bad\x00abc"), closeError: closeError, wantError: objfile.ErrHeader},
 +	} {
-+		t.Run(tc.name, func(t *testing.T) {
++		t.Run(test.name, func(t *testing.T) {
 +			root := t.TempDir()
-+			if err := os.WriteFile(filepath.Join(root, "objects.pack"), tc.content, 0644); err != nil {
++			hash := plumbing.NewHash("0123456789012345678901234567890123456789")
++			filename := filepath.Join(root, "objects", "01", hash.String()[2:])
++			if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
 +				t.Fatal(err)
 +			}
-+			fs := &packOwnershipFS{Filesystem: osfs.New(root), closeError: tc.closeError}
++			if err := os.WriteFile(filename, test.content, 0o644); err != nil {
++				t.Fatal(err)
++			}
++			fs := &trackedSizeFS{Filesystem: osfs.New(root), closeError: test.closeError}
++			// Release leaked handles after the assertion so an unfixed Windows
++			// failure reports the leak, without also failing TempDir cleanup.
 +			t.Cleanup(func() {
 +				for _, file := range fs.files {
-+					if file.closes == 0 {
++					if !file.closed {
 +						_ = file.File.Close()
 +					}
 +				}
 +			})
-+			object := NewFSObject(plumbing.NewHash("0123456789012345678901234567890123456789"), plumbing.BlobObject, 12, 3, nil, fs, "objects.pack", cache.NewObjectLRUDefault(), 1)
-+			reader, err := object.Reader()
-+			if tc.failure {
-+				if err == nil || reader != nil {
-+					t.Fatalf("reader %v, error %v; expected invalid pack failure", reader, err)
++			storage := NewStorage(fs, cache.NewObjectLRUDefault())
++			size, err := storage.EncodedObjectSize(hash)
++			if test.wantAnyError {
++				if err == nil {
++					t.Fatal("expected invalid zlib error")
 +				}
-+				if errors.Is(err, closeError) {
-+					t.Fatalf("close error replaced primary error: %v", err)
-+				}
-+			} else {
-+				if err != nil {
-+					t.Fatal(err)
-+				}
-+				if len(fs.files) != 1 || fs.files[0].closes != 0 {
-+					t.Fatal("pack closed before reader received ownership")
-+				}
-+				content, readErr := io.ReadAll(reader)
-+				closeErr := reader.Close()
-+				if readErr != nil || closeErr != nil || string(content) != "abc" {
-+					t.Fatalf("content %q read=%v close=%v", content, readErr, closeErr)
-+				}
++			} else if !errors.Is(err, test.wantError) {
++				t.Fatalf("got error %v, want %v", err, test.wantError)
 +			}
-+			if len(fs.files) != 1 || fs.files[0].closes != 1 {
-+				t.Fatalf("files opened=%d; close counts=%v", len(fs.files), fs.files)
++			if err == nil && size != test.wantSize {
++				t.Errorf("got size %d, want %d", size, test.wantSize)
++			}
++			if len(fs.files) != 1 {
++				t.Fatalf("opened %d files, want 1", len(fs.files))
++			}
++			file := fs.files[0]
++			if !file.closed || file.closes != 1 {
++				t.Fatalf("loose object file closed %d times, want exactly 1", file.closes)
 +			}
 +		})
 +	}
 +}
 +
-+type packOwnershipFS struct {
++func TestLargeLooseObjectReaderRecordsReopenedBytes(t *testing.T) {
++	root := t.TempDir()
++	hash := plumbing.NewHash("0123456789012345678901234567890123456789")
++	content := "blob 12\x00hello world\n"
++	filename := filepath.Join(root, "objects", "01", hash.String()[2:])
++	if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
++		t.Fatal(err)
++	}
++	if err := os.WriteFile(filename, compressLooseObject(t, content), 0o644); err != nil {
++		t.Fatal(err)
++	}
++	metrics := &packfile.ReadMetrics{}
++	storage := NewStorageWithOptions(osfs.New(root), cache.NewObjectLRUDefault(), Options{
++		LargeObjectThreshold: 1,
++		ReadMetrics:          metrics,
++	})
++	object, err := storage.EncodedObject(plumbing.BlobObject, hash)
++	if err != nil {
++		t.Fatal(err)
++	}
++	before := metrics.Snapshot().LooseBytesRead
++	reader, err := object.Reader()
++	if err != nil {
++		t.Fatal(err)
++	}
++	got, err := io.ReadAll(reader)
++	if err != nil {
++		t.Fatal(err)
++	}
++	if err := reader.Close(); err != nil {
++		t.Fatal(err)
++	}
++	if string(got) != "hello world\n" {
++		t.Fatalf("got %q", got)
++	}
++	after := metrics.Snapshot().LooseBytesRead
++	if after <= before {
++		t.Fatalf("lazy reader bytes did not advance: before=%d after=%d", before, after)
++	}
++}
++
++func compressLooseObject(t *testing.T, content string) []byte {
++	t.Helper()
++	var result bytes.Buffer
++	writer := zlib.NewWriter(&result)
++	if _, err := writer.Write([]byte(content)); err != nil {
++		t.Fatal(err)
++	}
++	if err := writer.Close(); err != nil {
++		t.Fatal(err)
++	}
++	return result.Bytes()
++}
++
++type trackedSizeFS struct {
 +	billy.Filesystem
-+	files      []*packOwnershipFile
++	files      []*trackedSizeFile
 +	closeError error
 +}
 +
-+func (fs *packOwnershipFS) Open(name string) (billy.File, error) {
++func (fs *trackedSizeFS) Open(name string) (billy.File, error) {
 +	file, err := fs.Filesystem.Open(name)
 +	if err != nil {
 +		return nil, err
 +	}
-+	tracked := &packOwnershipFile{File: file, closeError: fs.closeError}
++	tracked := &trackedSizeFile{File: file, closeError: fs.closeError}
 +	fs.files = append(fs.files, tracked)
 +	return tracked, nil
 +}
 +
-+type packOwnershipFile struct {
++type trackedSizeFile struct {
 +	billy.File
++	closed     bool
 +	closes     int
 +	closeError error
 +}
 +
-+func (file *packOwnershipFile) Close() error {
++func (file *trackedSizeFile) Close() error {
 +	file.closes++
++	file.closed = true
 +	if err := file.File.Close(); err != nil {
 +		return err
 +	}
 +	return file.closeError
 +}
+diff --git a/storage/filesystem/packfile_cache_close_regression_test.go b/storage/filesystem/packfile_cache_close_regression_test.go
+new file mode 100644
+index 0000000..2af3706
+--- /dev/null
++++ b/storage/filesystem/packfile_cache_close_regression_test.go
+@@ -0,0 +1,62 @@
++package filesystem
++
++import (
++	"errors"
++	"os"
++	"path/filepath"
++	"testing"
++
++	"github.com/go-git/go-billy/v5/osfs"
++	"github.com/go-git/go-git/v5/plumbing"
++	"github.com/go-git/go-git/v5/plumbing/cache"
++	"github.com/go-git/go-git/v5/plumbing/format/idxfile"
++)
++
++// Cache construction does not parse object contents. Empty files isolate the
++// descriptor ownership transition from unrelated pack decoding behavior.
++func TestPackfileCacheInsertionFailureClosesNewFile(t *testing.T) {
++	root := t.TempDir()
++	first := plumbing.NewHash("1111111111111111111111111111111111111111")
++	second := plumbing.NewHash("2222222222222222222222222222222222222222")
++	for _, hash := range []plumbing.Hash{first, second} {
++		filename := filepath.Join(root, "objects", "pack", "pack-"+hash.String()+".pack")
++		if err := os.MkdirAll(filepath.Dir(filename), 0o755); err != nil {
++			t.Fatal(err)
++		}
++		if err := os.WriteFile(filename, nil, 0o644); err != nil {
++			t.Fatal(err)
++		}
++	}
++	closeError := errors.New("evicted descriptor close failed")
++	fs := &trackedSizeFS{Filesystem: osfs.New(root), closeError: closeError}
++	t.Cleanup(func() {
++		for _, file := range fs.files {
++			if !file.closed {
++				_ = file.File.Close()
++			}
++		}
++	})
++	storage := NewStorageWithOptions(fs, cache.NewObjectLRUDefault(), Options{MaxOpenDescriptors: 1})
++	defer storage.Close()
++	if _, err := storage.packfile(idxfile.NewMemoryIndex(), first); err != nil {
++		t.Fatal(err)
++	}
++	got, err := storage.packfile(idxfile.NewMemoryIndex(), second)
++	if !errors.Is(err, closeError) {
++		t.Fatalf("got error=%v; want original eviction error", err)
++	}
++	if got != nil {
++		t.Error("failed insertion returned an unowned packfile")
++	}
++	if len(fs.files) != 2 {
++		t.Fatalf("opened %d files, want 2", len(fs.files))
++	}
++	for i, file := range fs.files {
++		if file.closes != 1 || !file.closed {
++			t.Errorf("file %d closed %d times, want exactly once", i, file.closes)
++		}
++	}
++	if len(storage.packfiles) != 0 {
++		t.Fatalf("failed replacement retained cache entries: %d", len(storage.packfiles))
++	}
++}
+diff --git a/storage/filesystem/read_metrics.go b/storage/filesystem/read_metrics.go
+new file mode 100644
+index 0000000..20baf4f
+--- /dev/null
++++ b/storage/filesystem/read_metrics.go
+@@ -0,0 +1,48 @@
++// Modified for dircue: opt-in loose-object and index byte counters.
++
++package filesystem
++
++import (
++	billy "github.com/go-git/go-billy/v5"
++	"github.com/go-git/go-git/v5/plumbing/format/packfile"
++)
++
++type metricFileKind uint8
++
++const (
++	metricLoose metricFileKind = iota
++	metricIndex
++)
++
++type metricsFile struct {
++	billy.File
++	metrics *packfile.ReadMetrics
++	kind    metricFileKind
++}
++
++func (f *metricsFile) record(n int) {
++	if f.kind == metricIndex {
++		f.metrics.RecordIndexBytes(n)
++	} else {
++		f.metrics.RecordLooseBytes(n)
++	}
++}
++
++func (f *metricsFile) Read(p []byte) (int, error) {
++	n, err := f.File.Read(p)
++	f.record(n)
++	return n, err
++}
++
++func (f *metricsFile) ReadAt(p []byte, offset int64) (int, error) {
++	n, err := f.File.ReadAt(p, offset)
++	f.record(n)
++	return n, err
++}
++
++func instrumentFile(file billy.File, metrics *packfile.ReadMetrics, kind metricFileKind) billy.File {
++	if metrics == nil {
++		return file
++	}
++	return &metricsFile{File: file, metrics: metrics, kind: kind}
++}
+diff --git a/storage/filesystem/storage.go b/storage/filesystem/storage.go
+index 951ea00..00d5f47 100644
+--- a/storage/filesystem/storage.go
++++ b/storage/filesystem/storage.go
+@@ -3,6 +3,7 @@ package filesystem
+ 
+ import (
+ 	"github.com/go-git/go-git/v5/plumbing/cache"
++	"github.com/go-git/go-git/v5/plumbing/format/packfile"
+ 	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
+ 
+ 	"github.com/go-git/go-billy/v5"
+@@ -41,6 +42,8 @@ type Options struct {
+ 	// If none is provided, it falls back to using the underlying instance used for
+ 	// DotGit.
+ 	AlternatesFS billy.Filesystem
++	// ReadMetrics enables opt-in read-path work counters.
++	ReadMetrics *packfile.ReadMetrics
+ }
+ 
+ // NewStorage returns a new Storage backed by a given `fs.Filesystem` and cache.

@@ -1,0 +1,55 @@
+File: cli-profile
+Type: cpu
+Time: 2026-09-21 19:14:42 EDT
+Duration: 9.96s, Total samples = 14.43s (144.85%)
+Active filters:
+   tagfocus=phase=cli
+Showing nodes accounting for 9.30s, 64.45% of 14.43s total
+Dropped 116 nodes (cum <= 0.07s)
+Showing top 45 nodes out of 184
+      flat  flat%   sum%        cum   cum%
+         0     0%     0%      7.49s 51.91%  syscall.syscalln
+     7.48s 51.84% 51.84%      7.48s 51.84%  syscall.rawsyscalln
+         0     0% 51.84%      6.91s 47.89%  syscall.syscall
+         0     0% 51.84%      5.67s 39.29%  dircue/pkg/scanner.(*gitSnapshot).walk.func1
+         0     0% 51.84%      5.40s 37.42%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).EncodedObject
+         0     0% 51.84%      5.40s 37.42%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).getFromPackfile
+         0     0% 51.84%      4.97s 34.44%  github.com/go-git/go-git/v5.(*Repository).BlobObject (inline)
+         0     0% 51.84%      4.97s 34.44%  github.com/go-git/go-git/v5/plumbing/object.GetBlob
+         0     0% 51.84%      4.92s 34.10%  dircue/pkg/scanner.Scan.func4
+         0     0% 51.84%      4.89s 33.89%  dircue/pkg/scanner.analyzeFile
+         0     0% 51.84%      4.89s 33.89%  dircue/pkg/scanner.analyzeFileBase
+         0     0% 51.84%      4.89s 33.89%  dircue/pkg/scanner.analyzeSelectedFile
+         0     0% 51.84%      4.86s 33.68%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).Open
+         0     0% 51.84%      4.86s 33.68%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*RepositoryFilesystem).Open
+         0     0% 51.84%      4.85s 33.61%  github.com/go-git/go-git/v5/storage/filesystem.(*ObjectStorage).packfile
+         0     0% 51.84%      4.85s 33.61%  os.ignoringEINTR (inline)
+         0     0% 51.84%      4.47s 30.98%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).ObjectPack
+         0     0% 51.84%      4.47s 30.98%  github.com/go-git/go-git/v5/storage/filesystem/dotgit.(*DotGit).objectPackOpen
+         0     0% 51.84%      4.10s 28.41%  dircue/pkg/scanner.analyzeFile.cachedFileReader.func2
+         0     0% 51.84%      3.09s 21.41%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).followedPath
+         0     0% 51.84%      3.09s 21.41%  github.com/go-git/go-billy/v5/helper/chroot.(*ChrootHelper).resolveFollowedPath
+         0     0% 51.84%      3.08s 21.34%  github.com/go-git/go-billy/v5/helper/polyfill.(*Polyfill).Lstat
+         0     0% 51.84%      3.08s 21.34%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).Lstat
+         0     0% 51.84%      3.08s 21.34%  os.Lstat
+         0     0% 51.84%      3.08s 21.34%  os.lstatNolog
+         0     0% 51.84%      3.08s 21.34%  os.lstatNolog.func1 (inline)
+         0     0% 51.84%      3.08s 21.34%  syscall.Lstat
+         0     0% 51.84%      2.34s 16.22%  runtime.systemstack
+         0     0% 51.84%         2s 13.86%  dircue/pkg/scanner.(*gitSnapshot).walk
+         0     0% 51.84%         2s 13.86%  dircue/pkg/scanner.Scan.func3
+         0     0% 51.84%      1.82s 12.61%  runtime.notewakeup
+     1.82s 12.61% 64.45%      1.82s 12.61%  runtime.pthread_cond_signal
+         0     0% 64.45%      1.82s 12.61%  runtime.semawakeup
+         0     0% 64.45%      1.82s 12.61%  runtime.startm
+         0     0% 64.45%      1.82s 12.61%  runtime.wakep
+         0     0% 64.45%      1.80s 12.47%  runtime.ready
+         0     0% 64.45%      1.77s 12.27%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).Open
+         0     0% 64.45%      1.77s 12.27%  github.com/go-git/go-billy/v5/osfs.(*ChrootOS).OpenFile (inline)
+         0     0% 64.45%      1.77s 12.27%  github.com/go-git/go-billy/v5/osfs.openFile
+         0     0% 64.45%      1.77s 12.27%  os.OpenFile
+         0     0% 64.45%      1.77s 12.27%  os.openFileNolog
+         0     0% 64.45%      1.76s 12.20%  os.open (inline)
+         0     0% 64.45%      1.76s 12.20%  os.openFileNolog.func1 (inline)
+         0     0% 64.45%      1.76s 12.20%  syscall.Open
+         0     0% 64.45%      1.75s 12.13%  dircue/internal/cli.Execute

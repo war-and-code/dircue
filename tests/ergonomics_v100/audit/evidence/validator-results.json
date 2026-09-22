@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-09-22T01:04:49.635660+00:00",
+  "checks": [
+    {
+      "check": "completed-pass",
+      "exit_code": 0,
+      "stdout": "validate_pass: OK (agent_ergonomics_audit/audit)\n",
+      "stdout_sha256": "e495796c898f6480732c369c8fffd636be694b3bea53c4a2e4a7d2d0abccfcf4"
+    },
+    {
+      "check": "baseline-scorecard",
+      "exit_code": 0,
+      "stdout": "validate_scorecard: OK\n",
+      "stdout_sha256": "99b04d696b7f387a4cb27c4dac4a694fc3742c7f2ca79cd3971fb91f696a3a01"
+    },
+    {
+      "check": "post-scorecard",
+      "exit_code": 0,
+      "stdout": "validate_scorecard: OK\n",
+      "stdout_sha256": "99b04d696b7f387a4cb27c4dac4a694fc3742c7f2ca79cd3971fb91f696a3a01"
+    }
+  ],
+  "scope": "Scorecards remain bound to3ef3961; completed-pass validates final audit consistency. Runtime/source checks are separate."
+}

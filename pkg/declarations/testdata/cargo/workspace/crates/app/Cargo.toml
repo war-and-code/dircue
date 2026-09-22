@@ -7,7 +7,7 @@ build = "scripts/build.rs"
 default-run = "demo-app"
 
 [dependencies]
-common = { workspace = true, features = ["extra"] }
+common = { workspace = true, features = ["extra"], default-features = false }
 
 [target.'cfg(windows)'.dev-dependencies]
 win_common = { package = "common", path = "../common", features = ["extra"] }

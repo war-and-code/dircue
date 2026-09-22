@@ -24,6 +24,11 @@ not evidence for a later one. Returning to draft before another editing cycle
 keeps that cycle inexpensive. Workflows use `pull_request`, not privileged
 `pull_request_target` execution.
 
+All workflows remain event-driven or manually dispatched. Scheduled Actions
+require a separate maintainer decision, including after the repository becomes
+public. The [CI policy test](../tests/ci/test_workflow_policy.py) rejects schedule
+triggers and external Actions without full commit-hash pins.
+
 The job conditions are evaluated before a matrix is expanded. They use event
 and draft state; they do not reference `matrix.os` at job level. The core test
 matrix selects Linux alone for `main` pushes and all three operating systems for

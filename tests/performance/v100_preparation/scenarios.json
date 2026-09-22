@@ -1,0 +1,82 @@
+[
+  {
+    "name": "spring-framework",
+    "source": "git",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+    "input": {
+      "selection": "all recursive HEAD entries including symlinks/submodules",
+      "entries": 11348,
+      "manifest_sha256": "4b44ba4dcfebaf8374277c8539fdf4ee834b644ac8090c1ef2078c2073e9869b",
+      "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+      "tree": "d1ae1ecc317c11ab7357ef1319778abe63ad2931",
+      "bytes": 60747954,
+      "git_storage": "count: 0\nsize: 0\nin-pack: 14019\npacks: 1\nsize-pack: 15382\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0"
+    },
+    "lanes": [
+      "languages",
+      "discovery",
+      "all",
+      "projects"
+    ]
+  },
+  {
+    "name": "roslyn",
+    "source": "git",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+    "input": {
+      "selection": "all recursive HEAD entries including symlinks/submodules",
+      "entries": 35220,
+      "manifest_sha256": "91d59b38b690a6f6decc186e98bb4063b6ebe9a1cfba107d840f8ed411d34111",
+      "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+      "tree": "92c61cf64fddd9667128418b8224c8c4bbb00a81",
+      "bytes": 455563738,
+      "git_storage": "count: 0\nsize: 0\nin-pack: 37489\npacks: 1\nsize-pack: 66300\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0"
+    },
+    "lanes": [
+      "languages",
+      "discovery",
+      "all",
+      "projects"
+    ]
+  },
+  {
+    "name": "aspnetcore",
+    "source": "git",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+    "input": {
+      "selection": "all recursive HEAD entries including symlinks/submodules",
+      "entries": 16517,
+      "manifest_sha256": "b63cb6222c0aef18a7be7cbe9be74a75e24bcd76c05388403c2818d03a8cf02c",
+      "commit": "7387de91234d3ef751fa50b3d1bfede4130213ff",
+      "tree": "2f918f113774dc7edfb54e8a4fb7bb105e9fcb9d",
+      "bytes": 173287549,
+      "git_storage": "count: 0\nsize: 0\nin-pack: 18179\npacks: 1\nsize-pack: 17903\nprune-packable: 0\ngarbage: 0\nsize-garbage: 0"
+    },
+    "lanes": [
+      "languages",
+      "discovery",
+      "all",
+      "projects",
+      "optional"
+    ]
+  },
+  {
+    "name": "xml-2gib",
+    "source": "directory",
+    "path": "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
+    "input": {
+      "selection": "regular-file SHA256 and directory/symlink metadata, excluding .git directories",
+      "entries": 128,
+      "bytes": 2147483648,
+      "xml_bytes": 2147483648,
+      "manifest_sha256": "b78eb319d88560bddfcdb5d1de7227beb2806126450f859f469b0ccd67a376cd"
+    },
+    "lanes": [
+      "languages",
+      "discovery",
+      "all",
+      "projects",
+      "optional"
+    ]
+  }
+]

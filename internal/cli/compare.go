@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"dircue/pkg/reportdiff"
@@ -12,14 +13,20 @@ import (
 
 func newCompareCommand(opts *options) *cobra.Command {
 	command := &cobra.Command{
-		Use:   "compare <base.json> <head.json>",
-		Short: "Compare two saved profiles without rescanning their sources",
-		Long:  "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
-		Args:  cobra.ExactArgs(2),
+		Use:     "compare <base.json> <head.json>",
+		Short:   "Compare two saved profiles without rescanning their sources",
+		Long:    "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
+		Example: "  dircue compare base.json head.json --json\n  dircue analyze discovery --json /checkout > profile.json",
+		Args: func(_ *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("compare requires two saved aggregate reports; use: dircue compare base.json head.json --json")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			for _, flag := range []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "on-error", "tree-size"} {
+			for _, flag := range analysisFlagNames {
 				if cmd.Flags().Changed(flag) {
-					return fmt.Errorf("--%s does not apply to saved-report comparison", flag)
+					return fmt.Errorf("--%s does not apply to saved-report comparison; set scan options when creating a report with dircue analyze discovery --json /checkout", flag)
 				}
 			}
 			if err := cmd.Context().Err(); err != nil {
@@ -49,13 +56,14 @@ func newCompareCommand(opts *options) *cobra.Command {
 			return writeComparison(cmd.OutOrStdout(), report)
 		},
 	}
+	setSavedReportHelp(command)
 	return command
 }
 
 func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
 	file, err := openInputFile(name, role+" report")
 	if err != nil {
-		return nil, fmt.Errorf("cannot open %s report", role)
+		return nil, &diagnosticError{message: savedReportOpenErrorMessage(role + " report"), cause: err}
 	}
 	defer file.Close()
 	opened, err := file.Stat()
@@ -111,7 +119,7 @@ func writeComparison(out io.Writer, report *reportdiff.Report) error {
 			for _, field := range change.Fields {
 				fields = append(fields, field.Field)
 			}
-			if _, err := fmt.Fprintf(out, "  %s %q [%s]\n", change.Status, change.ID, strings.Join(fields, ", ")); err != nil {
+			if _, err := fmt.Fprintf(out, "  %s %s [%s]\n", change.Status, comparisonTextID(module.Name, change.ID), strings.Join(fields, ", ")); err != nil {
 				return err
 			}
 			shown++
@@ -123,4 +131,111 @@ func writeComparison(out io.Writer, report *reportdiff.Report) error {
 		}
 	}
 	return nil
+}
+
+// comparisonTextID renders internal length-prefixed identities as quoted
+// components. JSON retains the original IDs so saved-report consumers can
+// continue to match them exactly.
+func comparisonTextID(module, id string) string {
+	prefix, count := "", 0
+	switch module {
+	case "ecosystems", "frameworks", "layouts":
+		count = 4
+	case "registries":
+		count = 2
+	case "focus_context":
+		count = 5
+	case "focus_relations":
+		count = 6
+	case "availability_sparse", "availability_diagnostics":
+		count = 3
+	case "focus_affected_projects", "availability_references":
+		count = 4
+	case "projects":
+		prefix, count = "composition:", 2
+	case "package_evidence":
+		prefix, count = "relationship:", 5
+	case "metrics":
+		prefix, count = "language:", 2
+	case "rules":
+		prefix, count = "observation:", 3
+	case "focus_related":
+		prefix, count = "file:", 2
+	case "focused_metrics_primary":
+		prefix, count = "primary:language:", 2
+	case "focused_metrics_related":
+		if strings.HasPrefix(id, "project:") {
+			rest := strings.TrimPrefix(id, "project:")
+			var display string
+			for offset := 0; offset < len(rest); {
+				index := strings.Index(rest[offset:], ":language:")
+				if index < 0 {
+					break
+				}
+				index += offset
+				project := rest[:index]
+				components, ok := decodeComparisonKey(rest[index+len(":language:"):], 2)
+				if ok {
+					if display != "" {
+						// The raw project prefix can itself contain :language:.
+						// Multiple valid splits cannot be attributed safely.
+						return strconv.Quote(id)
+					}
+					display = "project " + strconv.Quote(project) + " language " + formatComparisonComponents(components)
+				}
+				offset = index + 1
+			}
+			if display != "" {
+				return display
+			}
+		}
+	case "discovery":
+		for _, choice := range []struct {
+			prefix string
+			count  int
+		}{{"category:", 2}, {"role:", 2}, {"candidate-count:", 2}, {"candidate:", 3}} {
+			if strings.HasPrefix(id, choice.prefix) {
+				prefix, count = choice.prefix, choice.count
+				break
+			}
+		}
+	}
+	if count == 0 || !strings.HasPrefix(id, prefix) {
+		return strconv.Quote(id)
+	}
+	components, ok := decodeComparisonKey(strings.TrimPrefix(id, prefix), count)
+	if !ok {
+		return strconv.Quote(id)
+	}
+	return prefix + formatComparisonComponents(components)
+}
+
+func formatComparisonComponents(components []string) string {
+	for i := range components {
+		components[i] = strconv.Quote(components[i])
+	}
+	return "(" + strings.Join(components, ", ") + ")"
+}
+
+func decodeComparisonKey(encoded string, count int) ([]string, bool) {
+	parts := make([]string, 0, count)
+	for range count {
+		colon := strings.IndexByte(encoded, ':')
+		if colon < 1 {
+			return nil, false
+		}
+		for i := 0; i < colon; i++ {
+			if encoded[i] < '0' || encoded[i] > '9' {
+				return nil, false
+			}
+		}
+		size, err := strconv.Atoi(encoded[:colon])
+		encoded = encoded[colon+1:]
+		if err != nil || size > len(encoded) {
+			return nil, false
+		}
+		parts = append(parts, encoded[:size])
+		encoded = encoded[size:]
+	}
+	return parts, encoded == ""
 }
