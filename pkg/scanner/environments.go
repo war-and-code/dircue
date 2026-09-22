@@ -21,13 +21,14 @@ type environmentAccumulator struct {
 	maxFileBytes      int64
 	inventoryComplete bool
 	inventoryOmission string
+	errorPolicy       string
 }
 
 func newEnvironmentAccumulator(opts Options) *environmentAccumulator {
 	if !opts.Environments {
 		return nil
 	}
-	return &environmentAccumulator{jobs: make(map[string]job), files: make(map[string]environments.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true}
+	return &environmentAccumulator{jobs: make(map[string]job), files: make(map[string]environments.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy)}
 }
 
 func (a *environmentAccumulator) add(value result) error {
@@ -37,12 +38,21 @@ func (a *environmentAccumulator) add(value result) error {
 			a.inventoryOmission = "tree_size_limit"
 		}
 	}
-	if value.omission != "" {
+	base := path.Base(value.path)
+	envRelevant := base == "global.json" || base == "Directory.Build.props"
+	// A file_read_error under continue is attributable to a specific
+	// enumerated path, so the inventory itself is not invalidated: an
+	// env-relevant candidate is still recorded (Analyze will report it as
+	// unresolved through a per-path diagnostic when its bounded read fails
+	// again), and an unrelated per-file failure never affected this module.
+	// Non-continue omissions and non-attributable omissions
+	// (missing_git_object, tree_size_limit surfaced elsewhere) preserve the
+	// pre-existing defensive posture that marks the inventory incomplete.
+	if value.omission != "" && !(a.errorPolicy == "continue" && value.omission == "file_read_error") {
 		a.inventoryComplete = false
 		a.inventoryOmission = value.omission
 	}
-	base := path.Base(value.path)
-	if base != "global.json" && base != "Directory.Build.props" {
+	if !envRelevant {
 		return nil
 	}
 	if len(a.files) >= environments.DefaultMaxInventoryPaths {
@@ -51,6 +61,10 @@ func (a *environmentAccumulator) add(value result) error {
 	if _, ok := a.files[value.path]; ok {
 		return errors.New("duplicate environment configuration path")
 	}
+	// An unreadable candidate is still recorded in the inventory so nearest()
+	// resolves to it. Its ReadSelected callback will fail again during Analyze
+	// and, under the continue policy, produce a per-path "file-read-error"
+	// diagnostic rather than aborting or invalidating the whole inventory.
 	file := environments.File{Path: value.path, NonRegular: value.selectedJob == nil}
 	if value.selectedJob != nil && base == "global.json" {
 		item := *value.selectedJob
@@ -94,6 +108,7 @@ func (a *environmentAccumulator) finish(ctx context.Context, root *os.Root, coll
 		Source: report.Declarations.Source, Tree: report.Declarations.Tree,
 		Inventory: inventory, InventoryComplete: true,
 		Declarations: *report.Declarations, ProjectRecords: collector.ProjectRecords(),
+		ErrorPolicy: a.errorPolicy,
 		ReadSelected: func(ctx context.Context, name string, limit int64) ([]byte, int64, error) {
 			selected, ok := a.jobs[name]
 			if !ok {
