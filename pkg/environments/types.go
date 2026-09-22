@@ -40,6 +40,11 @@ type Input struct {
 	ProjectRecords    []declarations.ProjectRecord
 	InvocationStarts  []Invocation
 	ReadSelected      ReadSelected
+	// ErrorPolicy controls how Analyze reacts to per-file read failures.
+	// "continue" degrades that selection to unresolved with a per-path
+	// "file-read-error" diagnostic and marks the report partial; anything
+	// else preserves the historical fail-fast contract.
+	ErrorPolicy string
 }
 
 type Limits struct {

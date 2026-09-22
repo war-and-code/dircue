@@ -114,7 +114,10 @@ parse every shell dialect. TSX has its own grammar alongside TypeScript.
 BCA supplies the metric groups for each enabled parser. Their definitions and
 applicability vary by language; an upstream zero or null is not evidence that
 an equivalent language feature was measured. Dircue preserves these per-file
-metrics instead of presenting one cross-language quality score.
+metrics instead of presenting one cross-language quality score. As one visible
+example of that variance, BCA's cognitive-complexity walker adds `+1` for a
+bare `else` in Rust and Python but not in Go, JavaScript, Java, or C, so the
+same syntactic pattern earns different upstream scores across languages.
 
 [Hotspot distributions](HOTSPOTS.md) inspect eligible function spaces before
 evidence retention. The existing [function entries](FUNCTIONS.md) remain a
@@ -137,7 +140,10 @@ The adapter admits one worker process at a time. Each worker handles one file
 and exits, releasing its tree before another file is admitted. The default and
 maximum source size are both 8 MiB; callers may select a smaller limit. The
 default deadline is 10 seconds per worker invocation. Waiting for admission
-respects caller cancellation.
+respects caller cancellation. The worker recognizes only `--capabilities` as
+a discriminating argument, so a `--help` or `--version` invocation falls
+through to the ordinary stdin request path and blocks waiting for a JSON
+envelope rather than printing usage text.
 
 The source limit is **not a process memory limit**. Parse trees, JSON buffers,
 metrics, and native allocator overhead can exceed source size substantially.
