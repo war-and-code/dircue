@@ -408,6 +408,15 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 			entries = append(entries, item)
 			continue
 		}
+		// EncodedObjectSize touches go-git's shared packfile scanner and delta
+		// caches (see the comment on objectMu at the struct declaration).
+		// Running here without the mutex is only safe because walk() finishes
+		// every size lookup and .gitattributes read in this first for-loop
+		// before the second for-loop below pushes any job onto the channel;
+		// workers block on the empty jobs channel until then, so no worker's
+		// mutex-guarded BlobObject call can race this call. Preserve that
+		// ordering if this loop is ever refactored to interleave with dispatch,
+		// or take s.objectMu around this call and the .gitattributes read below.
 		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
 		if err != nil {
 			if s.errorPolicy == ErrorPolicyContinue {

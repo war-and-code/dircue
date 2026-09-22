@@ -41,6 +41,21 @@
   show 20–43% lower elapsed time on five selected Git workloads; the XML directory
   control is unchanged. Preserve classification, output and source-selection
   behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
+- Replace the directory-mode tree-size preflight with inline counting inside the
+  main walk (the walker streams jobs to workers as it discovers them), and skip
+  the redundant pre-open `Lstat` in the per-file worker read when the walker
+  already observed a regular entry. Preserves byte-identical stdout, stderr and
+  exit for every previously-successful invocation and the exact
+  `tree_size_limit` skeleton response at the boundary — including the 0.8.0
+  pre-walk ordering where a tree above the limit produces the skeleton even
+  when the tree also contains an unreadable file under the default fail
+  policy. Measured 32% lower wall time on synthetic 10k and 50k directory
+  scans with peak RSS within 3% of the pre-change baseline (numbers in
+  [tests/performance/v100_preparation/OPTIMIZATION.md](tests/performance/v100_preparation/OPTIMIZATION.md)).
+  Regression tests at `pkg/scanner/read_toctou_test.go` (TOCTOU non-regular
+  refusal) and `pkg/scanner/tree_size_stream_test.go` (tree-limit vs.
+  unreadable-file ordering, and `--on-error continue` interaction with the
+  limit) lock the new contract in.
 
 ## 0.8.0 (2026-09-21)
 
