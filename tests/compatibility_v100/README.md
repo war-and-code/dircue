@@ -17,11 +17,13 @@ old stderr, new stderr and reason in `expected-diagnostics.json`; all retain
 exit 1 and empty stdout. An unused exception fails the check.
 
 `context.py` adds 41 focus, environment, planner, capability and saved-report
-cases. It expects 39 exact matches and two explicit correctness fixes: the
+cases. It expects 38 exact matches and three explicit correctness fixes: the
 released binary rejects its own partial .NET/Python focused metrics reports,
-while the candidate must explain the requested project successfully. The Go
-schema tests separately verify complete producer/validator/reader round trips
-and reject malformed markers. These fixes are not counted as byte equivalence.
+while the candidate must explain the requested project successfully; and a
+complete, warning-free language population no longer carries the reason used
+for incomplete coverage. The Go schema tests separately verify complete
+producer/validator/reader round trips and reject malformed markers. These fixes
+are not counted as byte equivalence.
 
 Example commands, from the repository root, with separately verified release
 binaries supplied by the caller:
@@ -51,8 +53,11 @@ Raw stdout, stderr and status are retained in the result receipts. The fixed
 baseline checksum intentionally makes this a platform-specific release
 comparison, not a portable test that silently substitutes another binary.
 
-The retained run in `results/` passes all 319 cases: 305 exact matches, 12
-reviewed diagnostic improvements and two saved-report fixes. `checksums.json`
+The retained historical run in `results/` passes all 319 cases: 305 exact
+matches, 12 reviewed diagnostic improvements and two saved-report fixes. The
+0.9.0 candidate adds the separately asserted complete-language-population fix,
+so its corresponding breakdown is 304 exact matches, 12 reviewed diagnostics,
+and three saved-report fixes. `checksums.json`
 binds the receipts. `full-race-final.log` records the passing local race suite;
 `results/local-validation.json` identifies the separate `1.0.0-dev` review
 binary and the remaining multi-platform release gates.
