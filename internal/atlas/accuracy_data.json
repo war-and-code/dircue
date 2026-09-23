@@ -1,9 +1,9 @@
 {
-  "schema_version": "dircue-accuracy-cards-0.1",
-  "generated_at_utc": "2026-09-23T19:31:51Z",
+  "schema_version": "dircue-accuracy-cards-0.2",
+  "generated_at_utc": "2026-09-23T19:54:40Z",
   "evaluated_repos": 8,
   "label_source": "tests/map_corpus/public_quality_expectations.json",
-  "scope_note": "Scores cover nodes evidenced by oracle_files paths only. Nodes outside those paths are not in the evaluated universe. Precision and recall are not computable for kinds with zero labels.",
+  "scope_note": "Scores cover nodes evidenced by oracle_files paths only. Nodes outside those paths are not in the evaluated universe. Precision and recall are not computable for kinds with zero labels. Kinds with fewer than 30 labels are marked insufficient_labels; results are directional. Broader hand-labeling is tracked in issue #75.",
   "overall": {
     "capability": {
       "tp": 8,
@@ -19,6 +19,8 @@
         0.6756,
         1.0
       ],
+      "ci_lower": 0.6756,
+      "sufficiency": "insufficient_labels",
       "label_count": 8,
       "repo_count": 3
     },
@@ -36,6 +38,8 @@
         0.6097,
         1.0
       ],
+      "ci_lower": 0.6097,
+      "sufficiency": "insufficient_labels",
       "label_count": 6,
       "repo_count": 5
     },
@@ -53,6 +57,8 @@
         0.5101,
         1.0
       ],
+      "ci_lower": 0.5101,
+      "sufficiency": "insufficient_labels",
       "label_count": 4,
       "repo_count": 1
     },
@@ -70,6 +76,8 @@
         0.8241,
         1.0
       ],
+      "ci_lower": 0.8241,
+      "sufficiency": "insufficient_labels",
       "label_count": 18,
       "repo_count": 4
     },
@@ -87,6 +95,8 @@
         0.6756,
         1.0
       ],
+      "ci_lower": 0.6756,
+      "sufficiency": "insufficient_labels",
       "label_count": 8,
       "repo_count": 2
     }
@@ -110,6 +120,8 @@
             0.3424,
             1.0
           ],
+          "ci_lower": 0.3424,
+          "sufficiency": "insufficient_labels",
           "label_count": 2,
           "note": null
         },
@@ -127,6 +139,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -144,6 +158,8 @@
             0.6097,
             1.0
           ],
+          "ci_lower": 0.6097,
+          "sufficiency": "insufficient_labels",
           "label_count": 6,
           "note": null
         },
@@ -155,6 +171,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }
@@ -179,6 +197,8 @@
             0.5655,
             1.0
           ],
+          "ci_lower": 0.5655,
+          "sufficiency": "insufficient_labels",
           "label_count": 5,
           "note": null
         },
@@ -196,6 +216,8 @@
             0.3424,
             1.0
           ],
+          "ci_lower": 0.3424,
+          "sufficiency": "insufficient_labels",
           "label_count": 2,
           "note": null
         },
@@ -207,6 +229,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -218,6 +242,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }
@@ -236,6 +262,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -253,6 +281,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -270,6 +300,8 @@
             0.5655,
             1.0
           ],
+          "ci_lower": 0.5655,
+          "sufficiency": "insufficient_labels",
           "label_count": 5,
           "note": null
         },
@@ -281,6 +313,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }
@@ -299,6 +333,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -310,6 +346,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -327,6 +365,8 @@
             0.6097,
             1.0
           ],
+          "ci_lower": 0.6097,
+          "sufficiency": "insufficient_labels",
           "label_count": 6,
           "note": null
         },
@@ -338,6 +378,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }
@@ -356,6 +398,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -373,6 +417,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -384,6 +430,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -401,6 +449,8 @@
             0.6097,
             1.0
           ],
+          "ci_lower": 0.6097,
+          "sufficiency": "insufficient_labels",
           "label_count": 6,
           "note": null
         }
@@ -425,6 +475,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -442,6 +494,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -453,6 +507,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -470,6 +526,8 @@
             0.3424,
             1.0
           ],
+          "ci_lower": 0.3424,
+          "sufficiency": "insufficient_labels",
           "label_count": 2,
           "note": null
         }
@@ -488,6 +546,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -499,6 +559,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -516,6 +578,8 @@
             0.2065,
             1.0
           ],
+          "ci_lower": 0.2065,
+          "sufficiency": "insufficient_labels",
           "label_count": 1,
           "note": null
         },
@@ -527,6 +591,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }
@@ -545,6 +611,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -556,6 +624,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -573,6 +643,8 @@
             0.5101,
             1.0
           ],
+          "ci_lower": 0.5101,
+          "sufficiency": "insufficient_labels",
           "label_count": 4,
           "note": null
         },
@@ -584,6 +656,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
@@ -595,6 +669,8 @@
           "recall": null,
           "precision_ci_95": null,
           "recall_ci_95": null,
+          "ci_lower": null,
+          "sufficiency": "insufficient_labels",
           "label_count": 0,
           "note": "no labels for this kind in this repo; precision and recall not computed"
         }

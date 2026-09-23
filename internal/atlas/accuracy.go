@@ -36,9 +36,15 @@ type KindScore struct {
 	Recall        *float64  `json:"recall"`
 	PrecisionCI95 []float64 `json:"precision_ci_95,omitempty"`
 	RecallCI95    []float64 `json:"recall_ci_95,omitempty"`
-	LabelCount    int       `json:"label_count"`
-	RepoCount     int       `json:"repo_count,omitempty"`
-	Note          *string   `json:"note,omitempty"`
+	// CILower is the Wilson 95% lower bound on precision.
+	// Use this as the conservative headline figure; it is narrow for small label sets.
+	CILower *float64 `json:"ci_lower,omitempty"`
+	// Sufficiency is "sufficient" when LabelCount >= 30, otherwise "insufficient_labels".
+	// Kinds marked insufficient_labels are directional only; confidence intervals are wide.
+	Sufficiency string  `json:"sufficiency,omitempty"`
+	LabelCount  int     `json:"label_count"`
+	RepoCount   int     `json:"repo_count,omitempty"`
+	Note        *string `json:"note,omitempty"`
 }
 
 // RepoScore holds per-repository kind scores.

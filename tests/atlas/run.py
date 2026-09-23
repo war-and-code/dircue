@@ -36,7 +36,7 @@ DEFAULT_CACHE = Path("/private/tmp/claude-501/-Users-gingeleski-Workspace-dircue
 LINGUIST_IMAGE = "dircue-linguist:9.7.0"
 LINGUIST_VERSION_PIN = "9.7.0"
 SCC_VERSION_PIN = "4.1.0"
-RESULTS_SCHEMA = "dircue-atlas-results-0.1"
+RESULTS_SCHEMA = "dircue-atlas-results-0.2"
 
 
 # ---------------------------------------------------------------------------
@@ -114,10 +114,17 @@ def run_linguist_on_repo(repo_path: Path, image: str) -> tuple[dict, float, int]
         run(["git", "-C", str(repo_path), "archive", "--format=tar",
              "-o", str(archive), "HEAD"])
 
-        # Build a one-shot container that extracts the tar and runs linguist
+        # Build a one-shot container that extracts the tar, wraps it in a git
+        # repo (Linguist requires .git to exist), and runs linguist --json.
+        # git config values are minimal placeholders; no network is used.
         script = (
             "mkdir -p /repo && cd /repo && "
             "tar -xf /repo.tar && "
+            "git init -q && "
+            "git config user.email noreply@atlas && "
+            "git config user.name atlas && "
+            "git add --all 2>/dev/null && "
+            "git commit -q --allow-empty-message -m '' 2>/dev/null && "
             "github-linguist --json . 2>/dev/null"
         )
         cmd = [
@@ -306,28 +313,53 @@ def compare_scc(
 ) -> dict:
     """Compare dircue per-file metrics with scc results.
 
-    Returns {matched, mismatched, skipped, mismatches: [...], categories: {...}}.
-    """
-    from classify import classify_scc_mismatch
+    Accounts for all files in both directions:
+      matched           - same path in both, all counts agree
+      mismatched        - same path in both, some counts differ (classified)
+      dircue_only       - dircue counted the file; scc did not output it
+                          (typically scc_excludes_by_its_walker)
+      scc_only          - scc output the file; dircue did not count it
+                          (typically dircue_selection_excludes)
 
-    # Build dircue index by path (source-only files that were counted)
-    dircue_index = {}
+    Agreement rate is computed over the union of all unique paths.
+
+    Returns {matched, mismatched, dircue_only, scc_only, union_size,
+             agreement_rate, mismatches: [...], categories: {...},
+             skip_categories: {...}}.
+    """
+    from classify import classify_scc_mismatch, classify_skip_dircue_only, classify_skip_scc_only
+
+    # Build two dircue indices: all files (any status) and counted-only
+    dircue_all: dict = {}
+    dircue_index: dict = {}
     for row in dircue_metrics.get("files", []):
+        p = row["path"]
+        dircue_all[p] = row
         if row.get("status") == "counted":
-            dircue_index[row["path"]] = row
+            dircue_index[p] = row
 
     # Build scc index by path
-    scc_index = {f["path"]: f for f in scc_files}
+    scc_index: dict = {f["path"]: f for f in scc_files}
 
-    # Only compare files that dircue counted (source scope)
     matched = 0
     mismatched = 0
-    skipped = 0
+    dircue_only = 0
+    scc_only = 0
     mismatches = []
+    skip_categories: dict = {}
 
+    def _inc_skip(direction: str, category: str) -> None:
+        key = f"{direction}/{category}"
+        skip_categories[key] = skip_categories.get(key, 0) + 1
+
+    # Iterate over dircue-counted files
     for path, dircue_row in sorted(dircue_index.items()):
         if path not in scc_index:
-            skipped += 1
+            # dircue counted this file but scc did not output it
+            language = dircue_row.get("language", "")
+            cat = classify_skip_dircue_only(path, language)
+            dircue_only += 1
+            _inc_skip("dircue_only", cat)
             continue
         scc_row = scc_index[path]
         dc = dircue_row.get("counts", {})
@@ -359,16 +391,32 @@ def compare_scc(
                 "fields": mismatch_fields,
             })
 
-    categories = {}
+    # Iterate over scc-only files (in scc but not in dircue counted set)
+    dircue_counted_paths = set(dircue_index.keys())
+    for path in sorted(scc_index.keys()):
+        if path not in dircue_counted_paths:
+            dircue_row = dircue_all.get(path)
+            cat = classify_skip_scc_only(path, dircue_row)
+            scc_only += 1
+            _inc_skip("scc_only", cat)
+
+    categories: dict = {}
     for m in mismatches:
         categories[m["category"]] = categories.get(m["category"], 0) + 1
+
+    union_size = matched + mismatched + dircue_only + scc_only
+    agreement_rate = round(matched / union_size, 4) if union_size > 0 else None
 
     return {
         "matched": matched,
         "mismatched": mismatched,
-        "skipped": skipped,
+        "dircue_only": dircue_only,
+        "scc_only": scc_only,
+        "union_size": union_size,
+        "agreement_rate": agreement_rate,
         "mismatches": mismatches,
         "categories": categories,
+        "skip_categories": skip_categories,
     }
 
 
@@ -453,20 +501,23 @@ def write_summary(results: list[dict], output_dir: Path) -> None:
         lines += ["## scc 4.1.0 per-file parity", ""]
         total_matched = sum(r["comparison"]["matched"] for r in scc)
         total_mismatch = sum(r["comparison"]["mismatched"] for r in scc)
-        total_skipped = sum(r["comparison"]["skipped"] for r in scc)
-        total = total_matched + total_mismatch
-        pct = f"{100 * total_matched / total:.1f}" if total else "N/A"
+        total_dircue_only = sum(r["comparison"].get("dircue_only", r["comparison"].get("skipped", 0)) for r in scc)
+        total_scc_only = sum(r["comparison"].get("scc_only", 0) for r in scc)
+        total_union = sum(r["comparison"].get("union_size", r["comparison"]["matched"] + r["comparison"]["mismatched"]) for r in scc)
+        pct = f"{100 * total_matched / total_union:.1f}" if total_union else "N/A"
         lines += [
             f"| Metric | Value |",
             f"|--------|-------|",
             f"| Repos | {len(scc)} |",
             f"| Files matched | {total_matched} |",
-            f"| Files mismatched | {total_mismatch} |",
-            f"| Files skipped (not in scc output) | {total_skipped} |",
-            f"| Agreement rate | {pct}% |",
+            f"| Files mismatched (categorized) | {total_mismatch} |",
+            f"| dircue-only (not in scc output) | {total_dircue_only} |",
+            f"| scc-only (not in dircue source set) | {total_scc_only} |",
+            f"| Union size | {total_union} |",
+            f"| Agreement rate (matched / union) | {pct}% |",
             "",
         ]
-        # Category breakdown
+        # Mismatch category breakdown
         all_cats: dict[str, int] = {}
         for r in scc:
             for cat, cnt in r["comparison"].get("categories", {}).items():
@@ -474,6 +525,16 @@ def write_summary(results: list[dict], output_dir: Path) -> None:
         if all_cats:
             lines += ["### Mismatch categories", ""]
             for cat, cnt in sorted(all_cats.items()):
+                lines.append(f"- `{cat}`: {cnt}")
+            lines.append("")
+        # Skip category breakdown
+        all_skip_cats: dict[str, int] = {}
+        for r in scc:
+            for cat, cnt in r["comparison"].get("skip_categories", {}).items():
+                all_skip_cats[cat] = all_skip_cats.get(cat, 0) + cnt
+        if all_skip_cats:
+            lines += ["### Skip categories (classified non-overlap)", ""]
+            for cat, cnt in sorted(all_skip_cats.items()):
                 lines.append(f"- `{cat}`: {cnt}")
             lines.append("")
 
@@ -644,7 +705,8 @@ def main():
                 status = "matched" if comparison["mismatched"] == 0 else "mismatched"
                 print(f"{status} ({comparison['matched']} files matched, "
                       f"{comparison['mismatched']} mismatched, "
-                      f"{comparison['skipped']} skipped, "
+                      f"{comparison.get('dircue_only', 0)} dircue-only, "
+                      f"{comparison.get('scc_only', 0)} scc-only, "
                       f"dircue={wall_dircue:.1f}s oracle={wall_oracle:.1f}s)", flush=True)
                 results.append({
                     "schema_version": RESULTS_SCHEMA,
@@ -671,7 +733,7 @@ def main():
                     "tool_version": scc_version,
                     "status": "error",
                     "error": str(e),
-                    "comparison": {"matched": 0, "mismatched": 0, "skipped": 0, "mismatches": [], "categories": {}},
+                    "comparison": {"matched": 0, "mismatched": 0, "dircue_only": 0, "scc_only": 0, "union_size": 0, "agreement_rate": None, "mismatches": [], "categories": {}, "skip_categories": {}},
                     "wall_s_dircue": 0.0,
                     "wall_s_oracle": 0.0,
                     "rss_dircue": 0,

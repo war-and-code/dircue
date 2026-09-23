@@ -21,17 +21,21 @@ dircue find?
 Confidence intervals use the Wilson score at 95%. A question with zero labels
 reports N/A — not a score of zero or one.
 
+A kind is marked **`insufficient_labels`** when it has fewer than 30 labels.
+These results are directional only; the confidence intervals are wide.
+Broader hand-labeling is tracked in issue #75.
+
 ## Per-question accuracy
 
 Evaluated repositories: 8
 
-| Question (kind) | Precision | Recall | P 95% CI | R 95% CI | Labels | Repos |
-|-----------------|-----------|--------|----------|----------|--------|-------|
-| capability | 1.000 | 1.000 | [0.676, 1.000] | [0.676, 1.000] | 8 | 3 |
-| component | 1.000 | 1.000 | [0.610, 1.000] | [0.610, 1.000] | 6 | 5 |
-| content | 1.000 | 1.000 | [0.510, 1.000] | [0.510, 1.000] | 4 | 1 |
-| deployable | 1.000 | 1.000 | [0.824, 1.000] | [0.824, 1.000] | 18 | 4 |
-| interface | 1.000 | 1.000 | [0.676, 1.000] | [0.676, 1.000] | 8 | 2 |
+| Question (kind) | Labels | 95% CI lower | Precision | Recall | Repos | Sufficiency |
+|-----------------|--------|--------------|-----------|--------|-------|-------------|
+| capability | 8 | 0.68 | 1.000 | 1.000 | 3 | **insufficient_labels** |
+| component | 6 | 0.61 | 1.000 | 1.000 | 5 | **insufficient_labels** |
+| content | 4 | 0.51 | 1.000 | 1.000 | 1 | **insufficient_labels** |
+| deployable | 18 | 0.82 | 1.000 | 1.000 | 4 | **insufficient_labels** |
+| interface | 8 | 0.68 | 1.000 | 1.000 | 2 | **insufficient_labels** |
 
 ## Per-repository breakdown
 
@@ -126,5 +130,5 @@ python3 tests/atlas/accuracy.py \
 
 Labels: `tests/map_corpus/public_quality_expectations.json`
 
-Generated: 2026-09-23T19:31:51Z
+Generated: 2026-09-23T19:54:40Z
 

@@ -2,7 +2,23 @@
 
 This directory contains the harness for the dircue parity and accuracy atlas:
 a differential runner that compares dircue against Linguist 9.7.0 and scc 4.1.0
-on a corpus of ~50 pinned public repositories.
+on a corpus of pinned public repositories.
+
+### Corpus size note
+
+`corpus.json` contains 38 repos rather than the ~50 mentioned in issue #107.
+The 38 repos were chosen to cover the key ecosystem axes:
+multi-language monorepo (linux kernel), multi-service app (microservices-demo, eshop),
+Terraform infra (terraform-aws-vpc, terraform-alias, terraform),
+Helm chart repo (helm-examples), Kubernetes (kubernetes),
+Go (cobra, ripgrep, prometheus, traefik, oras, jq), Python (flask, django, uv,
+functions-framework-python), JavaScript/TypeScript (express, react, typescript, pnpm, next,
+actions-toolkit), Java/Kotlin (spring-framework, spring-petclinic, kotlin-koans),
+.NET/C# (roslyn, aspnetcore, dotnet-samples, eshop), Ruby (rails, bioperl),
+PHP (laravel), Perl (bioperl), Nix (nixpkgs), serverless (serverless-examples, aws-sam-java-rest)
+and JVM build (apache-maven).
+The remaining gap to ~50 would be covered by additional repos in the full BCA parity pass
+tracked in issue #110.
 
 ## Structure
 

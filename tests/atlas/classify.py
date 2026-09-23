@@ -137,6 +137,35 @@ def classify_linguist_top_level_mismatch(
     return "dircue-bug"
 
 
+def classify_skip_dircue_only(path: str, language: str) -> str:
+    """Classify a file that dircue counted as source but scc did not output.
+
+    scc only outputs files it maps to a known language via its built-in extension
+    registry.  dircue uses Linguist-compatible detection (extension table, shebang,
+    content heuristics) and recognises file types that scc's registry does not.
+    Root cause: scc's filesystem walker silently drops the file.
+    """
+    return "scc_excludes_by_its_walker"
+
+
+def classify_skip_scc_only(path: str, dircue_row: dict | None) -> str:
+    """Classify a file that scc output but dircue did not count as source.
+
+    dircue applies Linguist-compatible vendored/generated/documentation rules that
+    exclude files scc counts indiscriminately.  If dircue included the file but
+    assigned a non-counted status, the cause is dircue's selection policy.  If the
+    file is absent from dircue's output entirely, it was not tracked by git or
+    falls outside dircue's evaluated scope.
+    """
+    if dircue_row is not None:
+        status = dircue_row.get("status", "counted")
+        if status != "counted":
+            return "dircue_selection_excludes"
+    # File present in scc but absent from dircue output: outside git selection or
+    # excluded by dircue's vendored/generated/documentation rules.
+    return "dircue_selection_excludes"
+
+
 def classify_oracle_version(actual: str, expected: str) -> str:
     """Return 'matched' or 'oracle-version-mismatch'."""
     return "matched" if actual == expected else "oracle-version-mismatch"

@@ -56,19 +56,25 @@ release-archives:
 atlas-fetch: ## Fetch all pinned corpus repos into ATLAS_CACHE
 	python3 tests/atlas/fetch.py --cache "$(ATLAS_CACHE)" --all
 
-# Run the differential atlas on the smoke subset (5 repos) -- fast, no Docker required for scc.
+# Run the differential atlas on the smoke subset (5 repos).
+# Includes Linguist comparison when the Docker image is present (make reference to build it).
 # Requires: bin/dircue, scc 4.1.0 in GOBIN or PATH, and the smoke repos in ATLAS_CACHE.
-atlas-smoke: build ## Run differential atlas on the smoke subset (5 repos)
-	@mkdir -p "$(RUNNER_TEMP_OR_TMP)"
-	@if [ -z "$(SCC_BIN)" ]; then \
-	  echo "Installing scc 4.1.0 into $$(mktemp -d /tmp/dircue-scc-XXXXX)..."; \
+atlas-smoke: build ## Run differential atlas on the smoke subset (5 repos); includes Linguist when image present
+	@if docker image inspect $(REFERENCE_IMAGE) >/dev/null 2>&1; then \
+	  _linguist_flag=""; \
+	else \
+	  echo "WARNING: $(REFERENCE_IMAGE) not found; skipping Linguist (run 'make reference' to build it)"; \
+	  _linguist_flag="--no-linguist"; \
+	fi; \
+	if [ -z "$(SCC_BIN)" ]; then \
+	  echo "Installing scc 4.1.0..."; \
 	  _scc_dir=$$(mktemp -d /tmp/dircue-scc-XXXXX); \
 	  CGO_ENABLED=0 GOBIN="$$_scc_dir" go install github.com/boyter/scc/v4@v4.1.0; \
 	  python3 tests/atlas/run.py --candidate bin/dircue --scc "$$_scc_dir/scc" \
-	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke --no-linguist; \
+	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke $$_linguist_flag; \
 	else \
 	  python3 tests/atlas/run.py --candidate bin/dircue --scc "$(SCC_BIN)" \
-	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke --no-linguist; \
+	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke $$_linguist_flag; \
 	fi
 
 # Run the full atlas (all corpus repos). Requires Docker for Linguist comparison.
