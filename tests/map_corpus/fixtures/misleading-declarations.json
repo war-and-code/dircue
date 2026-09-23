@@ -1,0 +1,22 @@
+{
+  "questions": [
+    {
+      "id": "filenames-are-not-declarations",
+      "oracle": {
+        "source": "Dockerfile reference and Kubernetes object conventions",
+        "url": "https://docs.docker.com/reference/dockerfile/",
+        "fixture_evidence": "Dockerfile has no instruction and deployment.yaml has no Kubernetes apiVersion/kind object"
+      },
+      "must_include": [
+        {"kind":"content", "property":"role", "value":"documentation"}
+      ],
+      "must_not_include": [
+        {"kind":"deployable"},
+        {"kind":"interface"},
+        {"kind":"capability"},
+        {"kind":"edge"}
+      ],
+      "allowed_unknown": ["unrecognized plain-text purpose"]
+    }
+  ]
+}

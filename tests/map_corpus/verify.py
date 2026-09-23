@@ -10,12 +10,19 @@ FIXTURES = HERE / "fixtures"
 
 def entries(doc):
     out = []
+    nodes = {n.get("id"): n for n in doc.get("nodes", [])}
     for n in doc.get("nodes", []):
-        out.append({"kind": n.get("kind"), "name": n.get("name", ""), "paths": n.get("paths", []), "properties": n.get("properties", {})})
+        out.append({"kind": n.get("kind"), "name": n.get("name", ""), "paths": n.get("paths", []), "properties": n.get("properties", {}), "evidence": n.get("evidence", [])})
         for f in n.get("facts", []):
             out.append({"kind": "fact", "name": f.get("name", ""), "value": f.get("value", ""), "properties": f.get("properties", {}), "paths": n.get("paths", [])})
     for e in doc.get("edges", []):
-        out.append({"kind": "edge", "type": e.get("type"), "properties": e.get("properties", {})})
+        source, target = nodes.get(e.get("from"), {}), nodes.get(e.get("to"), {})
+        out.append({
+            "kind": "edge", "type": e.get("type"), "properties": e.get("properties", {}),
+            "from_paths": source.get("paths", []), "to_paths": target.get("paths", []),
+            "from_kind": source.get("kind"), "to_kind": target.get("kind"),
+            "from_name": source.get("name"), "to_name": target.get("name")
+        })
     return out
 
 def matches(item, want):
@@ -24,7 +31,13 @@ def matches(item, want):
         if key == "value" and "property" in want: continue
         if key in want and item.get(key) != want[key]: return False
     if "property" in want and item.get("properties", {}).get(want["property"]) != want.get("value"): return False
+    for key, value in want.get("properties", {}).items():
+        if item.get("properties", {}).get(key) != value: return False
     if "path" in want and want["path"] not in item.get("paths", []): return False
+    if "from_path" in want and want["from_path"] not in item.get("from_paths", []): return False
+    if "to_path" in want and want["to_path"] not in item.get("to_paths", []): return False
+    for key in ("from_kind", "to_kind", "from_name", "to_name"):
+        if key in want and item.get(key) != want[key]: return False
     return True
 
 def check_document(path):
@@ -50,11 +63,14 @@ def main():
         items = check_document(args.results / f"{entry['id']}.json")
         expected = json.loads((FIXTURES / entry["expectations"]).read_text())
         for question in expected["questions"]:
+            oracle = question.get("oracle", {})
+            if not oracle.get("source") or not oracle.get("url") or not oracle.get("fixture_evidence"):
+                raise SystemExit(f"{entry['id']}/{question['id']}: missing independent oracle metadata")
             total += len(question["must_include"]) + len(question["must_not_include"])
             missing = [x for x in question["must_include"] if not any(matches(i, x) for i in items)]
             forbidden = [x for x in question["must_not_include"] if any(matches(i, x) for i in items)]
             if missing or forbidden: raise SystemExit(f"{entry['id']}/{question['id']}: missing={missing} forbidden={forbidden}")
             passed += len(question["must_include"]) + len(question["must_not_include"])
-    print(json.dumps({"gate":"initial-map-corpus","passed":passed,"assertions":total,"precision":1.0,"recall":1.0,"scope":"three compact hand-written fixtures; not full #75 corpus"}, indent=2))
+    print(json.dumps({"gate":"initial-map-corpus","passed":passed,"assertions":total,"precision":1.0,"recall":1.0,"scope":"five compact hand-written fixtures; not full #75 corpus"}, indent=2))
 
 if __name__ == "__main__": main()

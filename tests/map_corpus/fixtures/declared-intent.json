@@ -1,0 +1,36 @@
+{
+  "questions": [
+    {
+      "id": "go-import-capability",
+      "oracle": {
+        "source": "Go language specification: Import declarations",
+        "url": "https://go.dev/ref/spec#Import_declarations",
+        "fixture_evidence": "main.go imports net/http"
+      },
+      "must_include": [
+        {"kind":"component", "path":"go.mod", "properties":{"ecosystem":"go"}},
+        {"kind":"capability", "name":"net:http-client", "path":"main.go", "properties":{"basis":"imported", "state":"observed"}},
+        {"kind":"edge", "type":"uses_capability", "from_path":"go.mod", "to_path":"main.go"}
+      ],
+      "must_not_include": [
+        {"kind":"capability", "name":"cache:redis", "path":"main.go"}
+      ],
+      "allowed_unknown": ["whether imported code is reached at runtime"]
+    },
+    {
+      "id": "configuration-declarations",
+      "oracle": {
+        "source": "ASP.NET Core configuration providers and Kestrel endpoint configuration",
+        "url": "https://learn.microsoft.com/aspnet/core/fundamentals/configuration/",
+        "fixture_evidence": "appsettings.json declares ConnectionStrings, Redis and ASPNETCORE_URLS keys"
+      },
+      "must_include": [
+        {"kind":"capability", "name":"datastore:relational", "path":"appsettings.json", "properties":{"basis":"declared_config", "state":"declared"}},
+        {"kind":"capability", "name":"cache:redis", "path":"appsettings.json", "properties":{"basis":"declared_config", "state":"declared"}},
+        {"kind":"interface", "name":"ASPNETCORE_URLS", "path":"appsettings.json", "properties":{"basis":"declared_config", "state":"declared"}}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["actual endpoint address values", "runtime connectivity"]
+    }
+  ]
+}
