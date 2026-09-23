@@ -58,3 +58,19 @@ Generated JSON and Markdown reports retain each unresolved mismatch. An unresolv
 Dircue escapes control and format characters in text filenames and warnings to prevent a path from changing the terminal display or forging output lines. Linguist prints those characters literally. Ordinary paths and all language JSON values are unchanged. The two text-breakdown fixtures `attrs-quoted` and `unusual-paths` verify an independently enumerated replacement of only their hostile path strings in actual Ruby output; all other stdout bytes and the exit code must match. A dropped file, changed count, unexpected escape, or unescaped control remains a failure.
 
 The quoted-pattern fixture also requires exactly its two existing `unsupported_gitattributes` notices for lines 1 and 2; the unusual-path fixture requires the reference stderr unchanged. Additional or missing diagnostics fail the terminal-path oracle.
+
+## DISC-009: Strategy text on three Unicode paths and an equal-size tie
+
+The pinned Linguist 9.7.0 run on `aspnetcore` omits strategy labels from three
+paths containing non-ASCII characters. Dircue prints the detected strategy for
+those paths. The same run orders the two 12-byte languages Less and SCSS in the
+opposite order in the text summary. Their sizes, percentages, file lists, JSON
+breakdown, and detected languages agree. The repo and commit are pinned in
+`tests/map_corpus/public_expectations.json`.
+
+Resolution: ACCEPTED for the text display. `compare_public_languages.py`
+requires exactly those four line transformations to reconcile the output; any
+additional difference fails. The comparison also checks JSON aggregation,
+JSON breakdown, and strategy text on the other pinned repositories. A separate
+classifier-fallback fix restored Linguist's `Classifier` label for BOM-only C#
+and two ambiguous Rust files in the same public corpus.
