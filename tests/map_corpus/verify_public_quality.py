@@ -47,8 +47,8 @@ def score(expected, actual):
     true_positive = sum((expected_counts & actual_counts).values())
     false_positive = sum((actual_counts - expected_counts).values())
     false_negative = sum((expected_counts - actual_counts).values())
-    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else 1.0
-    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else 1.0
+    precision = true_positive / (true_positive + false_positive) if true_positive + false_positive else None
+    recall = true_positive / (true_positive + false_negative) if true_positive + false_negative else None
     return true_positive, false_positive, false_negative, precision, recall
 
 
@@ -187,14 +187,14 @@ def main():
         "gate": "bounded-public-map-quality",
         "repositories": len(results), "evaluated_records": tp + fn,
         "true_positive": tp, "false_positive": fp, "false_negative": fn,
-        "precision": tp / (tp + fp) if tp + fp else 1.0,
-        "recall": tp / (tp + fn) if tp + fn else 1.0,
+        "precision": tp / (tp + fp) if tp + fp else None,
+        "recall": tp / (tp + fn) if tp + fn else None,
         "record_types": {
             record: {
                 "true_positive": values[0], "false_positive": values[1],
                 "false_negative": values[2],
-                "precision": values[0] / (values[0] + values[1]) if values[0] + values[1] else 1.0,
-                "recall": values[0] / (values[0] + values[2]) if values[0] + values[2] else 1.0,
+                "precision": values[0] / (values[0] + values[1]) if values[0] + values[1] else None,
+                "recall": values[0] / (values[0] + values[2]) if values[0] + values[2] else None,
             }
             for record, values in type_totals.items()
         },
