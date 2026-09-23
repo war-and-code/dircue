@@ -1,9 +1,605 @@
 {
   "schema_version": "dircue-accuracy-cards-0.1",
-  "generated_at_utc": "2026-09-23T00:00:00Z",
-  "evaluated_repos": 0,
+  "generated_at_utc": "2026-09-23T19:31:51Z",
+  "evaluated_repos": 8,
   "label_source": "tests/map_corpus/public_quality_expectations.json",
-  "scope_note": "Not yet generated. Run: make accuracy-cards",
-  "overall": {},
-  "per_repo": []
+  "scope_note": "Scores cover nodes evidenced by oracle_files paths only. Nodes outside those paths are not in the evaluated universe. Precision and recall are not computable for kinds with zero labels.",
+  "overall": {
+    "capability": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "precision_ci_95": [
+        0.6756,
+        1.0
+      ],
+      "recall_ci_95": [
+        0.6756,
+        1.0
+      ],
+      "label_count": 8,
+      "repo_count": 3
+    },
+    "component": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "precision_ci_95": [
+        0.6097,
+        1.0
+      ],
+      "recall_ci_95": [
+        0.6097,
+        1.0
+      ],
+      "label_count": 6,
+      "repo_count": 5
+    },
+    "content": {
+      "tp": 4,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "precision_ci_95": [
+        0.5101,
+        1.0
+      ],
+      "recall_ci_95": [
+        0.5101,
+        1.0
+      ],
+      "label_count": 4,
+      "repo_count": 1
+    },
+    "deployable": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "precision_ci_95": [
+        0.8241,
+        1.0
+      ],
+      "recall_ci_95": [
+        0.8241,
+        1.0
+      ],
+      "label_count": 18,
+      "repo_count": 4
+    },
+    "interface": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0,
+      "precision_ci_95": [
+        0.6756,
+        1.0
+      ],
+      "recall_ci_95": [
+        0.6756,
+        1.0
+      ],
+      "label_count": 8,
+      "repo_count": 2
+    }
+  },
+  "per_repo": [
+    {
+      "repo_id": "microservices-demo",
+      "commit": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "scores": {
+        "capability": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "label_count": 2,
+          "note": null
+        },
+        "component": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "deployable": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "label_count": 6,
+          "note": null
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "eshop",
+      "commit": "b4a40872005d4bb29e5b1fa1ff7e244143d39215",
+      "scores": {
+        "capability": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "label_count": 5,
+          "note": null
+        },
+        "component": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "label_count": 2,
+          "note": null
+        },
+        "deployable": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "spring-petclinic",
+      "commit": "818c4136ea971c21674525f9053de0d9c7ad8cfe",
+      "scores": {
+        "capability": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "component": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "deployable": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "label_count": 5,
+          "note": null
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "terraform-alias",
+      "commit": "21b3edcecfb8f0415450aa96869c71bb53e029ea",
+      "scores": {
+        "capability": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "component": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "deployable": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "label_count": 6,
+          "note": null
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "express",
+      "commit": "cd7d4397c398a3f3ecadeaf9ef6ac1377bd414c4",
+      "scores": {
+        "capability": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "component": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "deployable": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "interface": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.6097,
+            1.0
+          ],
+          "label_count": 6,
+          "note": null
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "flask",
+      "commit": "2c1b30d0503cfb064f1cb252e6614a06915a362a",
+      "scores": {
+        "capability": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "component": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "deployable": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "interface": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.3424,
+            1.0
+          ],
+          "label_count": 2,
+          "note": null
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "helm-examples",
+      "commit": "4888ba8fb8180dd0c36d1e84c1fcafc6efd81532",
+      "scores": {
+        "capability": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "component": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "deployable": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.2065,
+            1.0
+          ],
+          "label_count": 1,
+          "note": null
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    },
+    {
+      "repo_id": "non-source",
+      "commit": "fixture",
+      "scores": {
+        "capability": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "component": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "content": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.5101,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.5101,
+            1.0
+          ],
+          "label_count": 4,
+          "note": null
+        },
+        "deployable": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        },
+        "interface": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "precision_ci_95": null,
+          "recall_ci_95": null,
+          "label_count": 0,
+          "note": "no labels for this kind in this repo; precision and recall not computed"
+        }
+      },
+      "note": null
+    }
+  ]
 }
