@@ -140,6 +140,9 @@ func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
 	if len(r.Nodes) != 2 || len(r.Edges) != 2 {
 		t.Fatalf("nodes/edges=%d/%d", len(r.Nodes), len(r.Edges))
 	}
+	if got := r.Nodes[0].Properties["route"] + r.Nodes[1].Properties["route"]; !strings.Contains(got, "/users") {
+		t.Fatalf("Noir route was not retained as an interface identity property: %+v", r.Nodes)
+	}
 	if len(r.Plans) != 4 || r.Plans[0].Argv == nil {
 		t.Fatalf("plans=%+v", r.Plans)
 	}
@@ -147,6 +150,100 @@ func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
 		if plan.Tool != "syft" && len(plan.Argv) != 0 {
 			t.Fatalf("unverified argv for %s: %v", plan.Tool, plan.Argv)
 		}
+	}
+}
+
+func TestNoirContractComparisonRequiresExactDeclaredHTTPIdentity(t *testing.T) {
+	declared := mapdoc.NewNode(mapdoc.NodeInterface, []string{"openapi.yaml"}, "declared:get-users")
+	declared.Properties = map[string]string{"kind": "http", "method": "GET", "route": "/users", "basis": "declared_contract"}
+	declared.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	declared.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "openapi.yaml", SourceKind: mapdoc.SourceConfiguration}}
+	input := providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}, Nodes: []mapdoc.Node{declared}}
+
+	matched, err := providerjoin.Join(context.Background(), input, []providerjoin.Attachment{{Kind: "noir-json", Path: attachment(t, `[{"method":"get","path":"/users","file":"app.go"}]`)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var comparison mapdoc.Fact
+	for _, node := range matched.Nodes {
+		if node.Kind == mapdoc.NodeInterface && len(node.Facts) > 0 {
+			comparison = node.Facts[0]
+		}
+	}
+	if comparison.State != "exact_match" || comparison.Value != declared.ID {
+		t.Fatalf("comparison=%+v", comparison)
+	}
+
+	unmatched, err := providerjoin.Join(context.Background(), input, []providerjoin.Attachment{{Kind: "noir-json", Path: attachment(t, `[{"method":"post","path":"/users","file":"app.go"}]`)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, edge := range unmatched.Edges {
+		if edge.Type == mapdoc.EdgeConflictsWith {
+			t.Fatalf("fabricated conflict without a shared contract identity: %+v", edge)
+		}
+	}
+	for _, node := range unmatched.Nodes {
+		if node.Kind == mapdoc.NodeInterface && (len(node.Facts) != 1 || node.Facts[0].State != "no_exact_match") {
+			t.Fatalf("qualified unmatched comparison missing: %+v", node)
+		}
+	}
+}
+
+func TestBifrostImportsOnlyBoundedStructuralQueryFacts(t *testing.T) {
+	report := `{"results":[` +
+		`{"result_type":"structural_match","path":"services/api/main.go","language":"go","kind":"call","start_line":8,"end_line":9,"text":"password = secret","enclosing_symbol":"serve"},` +
+		`{"result_type":"call_site","path":"services/api/main.go","language":"go","range":{"start_line":12,"end_line":12},"call_kind":"direct","caller":{"id":"decl:caller","fq_name":"api.serve"},"callee":{"id":"decl:callee","fq_name":"db.Open"}},` +
+		`{"result_type":"taint_finding","path":"services/api/main.go","severity":"critical","message":"vulnerability"},` +
+		`{"result_type":"file","path":"../../outside","language":"go"}` +
+		`],"truncated":false}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "bifrost-code-query-json", Path: attachment(t, report)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Nodes) != 1 || len(r.Nodes[0].Facts) != 2 {
+		t.Fatalf("nodes=%+v", r.Nodes)
+	}
+	if r.Ledger[0].ReportKind != "bifrost-code-query-json" || r.Ledger[0].State != "selected_query_reported" || len(r.Ledger[0].CoveredFiles) != 1 {
+		t.Fatalf("ledger=%+v", r.Ledger[0])
+	}
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, forbidden := range []string{"password = secret", "critical", "vulnerability", "../../outside", "taint_finding"} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("provider finding, source snippet, or escaping path leaked: %q in %s", forbidden, encoded)
+		}
+	}
+	if !strings.Contains(string(encoded), "api.serve") || !strings.Contains(string(encoded), "db.Open") {
+		t.Fatalf("neutral call relation facts missing: %s", encoded)
+	}
+}
+
+func TestBifrostRequiresOrdinaryEnvelopeAndQualifiesIncompleteResults(t *testing.T) {
+	for _, body := range []string{`{"format":"code_query_explain_v1"}`, `{"results":[]}`, `{"result":{"results":[],"truncated":false}}`} {
+		if _, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, body)}}, providerjoin.Options{}); err == nil {
+			t.Fatalf("accepted non-ordinary Bifrost envelope: %s", body)
+		}
+	}
+	report := `{"results":[{"result_type":"declaration","path":"app.py","language":"python","fq_name":"app.main","provenance_truncated":true}],"truncated":true,"diagnostics":[{"code":"budget"}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, report)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Ledger[0].State != "partial_query_reported" {
+		t.Fatalf("ledger=%+v", r.Ledger[0])
+	}
+	reasons := strings.Join(r.Nodes[0].Facts[0].Coverage.Reasons, ",")
+	for _, required := range []string{"provider_results_truncated", "provider_diagnostics_reported", "provider_provenance_truncated"} {
+		if !strings.Contains(reasons, required) {
+			t.Fatalf("missing %q in %q", required, reasons)
+		}
+	}
+	two := `{"results":[{"result_type":"file","path":"a.py"},{"result_type":"file","path":"b.py"}],"truncated":false}`
+	if _, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, two)}}, providerjoin.Options{MaxRecords: 1}); err == nil {
+		t.Fatal("accepted Bifrost report above the record bound")
 	}
 }
 

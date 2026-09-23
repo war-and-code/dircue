@@ -66,9 +66,15 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 		}
 		n := mapdoc.NewNode(mapdoc.NodeInterface, []string{clean}, "noir:"+method+":"+route)
 		n.Name = method + " " + route
-		n.Properties = map[string]string{"kind": "http", "method": method}
+		n.Properties = map[string]string{"kind": "http", "method": method, "route": route}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		n.Evidence = []mapdoc.Evidence{evidence("noir", version, clean, line)}
+		declared, hasDeclaredHTTP := exactDeclaredHTTPContract(in.Nodes, method, route)
+		if declared != "" {
+			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "declared_contract_comparison", Value: declared, State: "exact_match", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: n.Evidence})
+		} else if hasDeclaredHTTP {
+			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "declared_contract_comparison", State: "no_exact_match", Coverage: mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"comparison_uses_exact_http_method_and_route"}}, Evidence: n.Evidence})
+		}
 		for _, p := range endpoint.Params {
 			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "parameter", Name: p.Name, Value: p.Type, Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: n.Evidence})
 		}
@@ -87,4 +93,33 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 	covered = compact(covered)
 	out.Ledger = []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
 	return out, nil
+}
+
+// exactDeclaredHTTPContract deliberately compares only explicit HTTP method
+// and route properties. A shared name, file, or route alone is not enough to
+// claim that two independently produced interface observations disagree.
+func exactDeclaredHTTPContract(nodes []mapdoc.Node, method, route string) (string, bool) {
+	hasDeclaredHTTP := false
+	for _, node := range nodes {
+		if node.Kind != mapdoc.NodeInterface || !isDeclaredInterface(node) || !strings.EqualFold(node.Properties["kind"], "http") {
+			continue
+		}
+		hasDeclaredHTTP = true
+		if strings.EqualFold(strings.TrimSpace(node.Properties["method"]), method) && strings.TrimSpace(node.Properties["route"]) == route {
+			return node.ID, true
+		}
+	}
+	return "", hasDeclaredHTTP
+}
+
+func isDeclaredInterface(node mapdoc.Node) bool {
+	if strings.HasPrefix(node.Properties["basis"], "declared") {
+		return true
+	}
+	for _, item := range node.Evidence {
+		if item.Basis == mapdoc.BasisDeclaredConfig {
+			return true
+		}
+	}
+	return false
 }

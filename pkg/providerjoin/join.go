@@ -59,6 +59,12 @@ func join(ctx context.Context, in Input, attachments []Attachment, opts Options)
 				return Result{}, fmt.Errorf("attach noir-json: %w", err)
 			}
 			merge(&out, r)
+		case "bifrost", "bifrost-json", "bifrost-code-query-json":
+			r, err := ingestBifrost(data, in, opts.MaxRecords, fmt.Sprintf("attachment:%d", attachmentIndex))
+			if err != nil {
+				return Result{}, fmt.Errorf("attach bifrost-code-query-json: %w", err)
+			}
+			merge(&out, r)
 		default:
 			return Result{}, fmt.Errorf("unsupported attachment kind %q", a.Kind)
 		}
