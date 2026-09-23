@@ -1,0 +1,279 @@
+{
+  "schema": "dircue-atlas-corpus-0.1",
+  "description": "Pinned corpus for the dircue parity atlas. Each entry has a URL, a full commit SHA, and a note. The smoke subset (atlas-smoke) uses the first five entries. Map-corpus entries are included here to provide a single authoritative corpus for all atlas runs; their pins match those in tests/map_corpus/public_expectations.json and tests/map_corpus/public_quality_expectations.json exactly.",
+  "smoke_ids": [
+    "cobra",
+    "flask",
+    "ripgrep",
+    "helm-examples",
+    "linux"
+  ],
+  "repositories": [
+    {
+      "id": "cobra",
+      "url": "https://github.com/spf13/cobra.git",
+      "commit": "88b30ab89da2b62b75dcde7b1063e04a16b4e2c4",
+      "note": "Small Go CLI library; representative of a pure-Go repo with no workspace. Pinned from map_corpus.",
+      "tags": ["go", "small", "map-corpus"]
+    },
+    {
+      "id": "flask",
+      "url": "https://github.com/pallets/flask.git",
+      "commit": "2c1b30d0503c6e1e97bf1e1af1f34ef8b1a0a050",
+      "note": "Python web micro-framework; src layout with pyproject.toml. Pinned from map_corpus.",
+      "tags": ["python", "small", "map-corpus"]
+    },
+    {
+      "id": "ripgrep",
+      "url": "https://github.com/BurntSushi/ripgrep.git",
+      "commit": "4649aa9700618c26e3f1e1e0ead24e7eabc5eb05",
+      "note": "Rust CLI with Cargo workspace; exercises Rust grammar classification. Pinned from map_corpus.",
+      "tags": ["rust", "small", "map-corpus"]
+    },
+    {
+      "id": "helm-examples",
+      "url": "https://github.com/helm/examples.git",
+      "commit": "4888ba8fb8181e8a66f521aada90df4f77b82c7f",
+      "note": "Helm chart examples; IaC/YAML-only repo to exercise template classification. Pinned from map_corpus.",
+      "tags": ["helm", "yaml", "iac", "map-corpus"]
+    },
+    {
+      "id": "linux",
+      "url": "https://github.com/torvalds/linux.git",
+      "commit": "fe2ec83746e501645709761605c2464a44fd2929",
+      "note": "Linux kernel: deliberately hard case at scale. Exercises C/Assembly/Kconfig/Makefile classification and Linguist strategy chain (#72 regression). This is the reference entry for kernel wall-time budgets.",
+      "tags": ["c", "asm", "large", "scale", "kernel", "hard"]
+    },
+    {
+      "id": "express",
+      "url": "https://github.com/expressjs/express.git",
+      "commit": "cd7d4397c398ef919fc6f3dd9b6b7eb3bc8c7b4d",
+      "note": "Node.js/JS web framework; exercises JavaScript classification and npm metadata. Pinned from map_corpus.",
+      "tags": ["javascript", "nodejs", "small", "map-corpus"]
+    },
+    {
+      "id": "apache-maven",
+      "url": "https://github.com/apache/maven.git",
+      "commit": "9f5f92fa1e47b18a2b9a9bb4571264e3cc0c2e12",
+      "note": "Apache Maven: Java/XML build tool; exercises Java classification and Maven POM detection. Pinned from map_corpus.",
+      "tags": ["java", "maven", "map-corpus"]
+    },
+    {
+      "id": "uv",
+      "url": "https://github.com/astral-sh/uv.git",
+      "commit": "40efebb459c2c5adad3ee8f16ece4059b7d48c18",
+      "note": "Rust + Python workspace (uv); exercises multi-language monorepo, Cargo workspace, and uv workspace detection. Pinned from map_corpus.",
+      "tags": ["rust", "python", "workspace", "map-corpus"]
+    },
+    {
+      "id": "typescript",
+      "url": "https://github.com/microsoft/TypeScript.git",
+      "commit": "68cead182cc2b5a1b1f7b8f68c4b94d78fd98e60",
+      "note": "TypeScript compiler: large JS/TS monorepo; exercises TypeScript grammar classification at scale. Pinned from map_corpus.",
+      "tags": ["typescript", "javascript", "large", "map-corpus"]
+    },
+    {
+      "id": "roslyn",
+      "url": "https://github.com/dotnet/roslyn.git",
+      "commit": "ca7d6c1a040c77e1d8c1e2d9c71c5049a6be1f4f",
+      "note": "Roslyn .NET compiler: large C# solution; exercises C# grammar at scale and VB regression (#73). Pinned from map_corpus.",
+      "tags": ["csharp", "dotnet", "large", "vb-regression", "map-corpus"]
+    },
+    {
+      "id": "aspnetcore",
+      "url": "https://github.com/dotnet/aspnetcore.git",
+      "commit": "7387de91234d3b96b4e58c47b8acee42e6afc6f6",
+      "note": "ASP.NET Core: large multi-language .NET solution; exercises C#/TypeScript/JavaScript/HTML at scale. Pinned from map_corpus.",
+      "tags": ["csharp", "typescript", "dotnet", "large", "map-corpus"]
+    },
+    {
+      "id": "spring-framework",
+      "url": "https://github.com/spring-projects/spring-framework.git",
+      "commit": "9e8cea3ef8ae48df1a3f21fbe5dbb13b7b7b4512",
+      "note": "Spring Framework: large Java/Kotlin Gradle multi-module project. Pinned from map_corpus.",
+      "tags": ["java", "kotlin", "gradle", "large", "map-corpus"]
+    },
+    {
+      "id": "rails",
+      "url": "https://github.com/rails/rails.git",
+      "commit": "3235827585d862498ae7a6e3dbb84c55a4b9e614",
+      "note": "Ruby on Rails: large Ruby monorepo; exercises Ruby/ERB/JS classification. Pinned from map_corpus.",
+      "tags": ["ruby", "rails", "large", "map-corpus"]
+    },
+    {
+      "id": "laravel",
+      "url": "https://github.com/laravel/framework.git",
+      "commit": "bd8aeb64d3f9e72e2cf5a2d81e84da5e39e91c2e",
+      "note": "Laravel PHP framework; exercises PHP classification. Pinned from map_corpus.",
+      "tags": ["php", "medium", "map-corpus"]
+    },
+    {
+      "id": "jq",
+      "url": "https://github.com/jqlang/jq.git",
+      "commit": "4467af7068b1df49d4c3551b45f6547148869bb0",
+      "note": "jq: C-only project with custom grammar files; exercises C classification and unusual file extensions. Pinned from map_corpus.",
+      "tags": ["c", "small", "map-corpus"]
+    },
+    {
+      "id": "oras",
+      "url": "https://github.com/oras-project/oras.git",
+      "commit": "be7921423828e7af3e5e5ecfce7a9671d3a55de5",
+      "note": "ORAS OCI registry client: Go project with Makefile; exercises Go and CI workflows. Pinned from map_corpus.",
+      "tags": ["go", "small", "map-corpus"]
+    },
+    {
+      "id": "terraform-aws-vpc",
+      "url": "https://github.com/terraform-aws-modules/terraform-aws-vpc.git",
+      "commit": "b3abd6df2ecf25d18ab9b7e6c5b6e5fc18da2f79",
+      "note": "Terraform AWS VPC module: pure IaC repo; exercises HCL/Terraform classification. Pinned from map_corpus.",
+      "tags": ["terraform", "hcl", "iac", "small", "map-corpus"]
+    },
+    {
+      "id": "serverless-examples",
+      "url": "https://github.com/serverless/examples.git",
+      "commit": "516f3cc1107027a78adb3440a84ebdb3e9e8d540",
+      "note": "Serverless Framework examples: multi-language serverless samples. Pinned from map_corpus.",
+      "tags": ["serverless", "multi-language", "map-corpus"]
+    },
+    {
+      "id": "kotlin-koans",
+      "url": "https://github.com/Kotlin/kotlin-koans.git",
+      "commit": "5935a3cab52963de5b21f83a5dd02f30cbe44ab9",
+      "note": "Kotlin koans: exercises Kotlin classification. Pinned from map_corpus.",
+      "tags": ["kotlin", "small", "map-corpus"]
+    },
+    {
+      "id": "dotnet-samples",
+      "url": "https://github.com/dotnet/samples.git",
+      "commit": "acb39ceb13f9e9b69e17cde17eb9b39c61fe2af9",
+      "note": "dotnet/samples: diverse C#/F#/VB samples; exercises multiple .NET languages. Pinned from map_corpus.",
+      "tags": ["csharp", "fsharp", "vb", "dotnet", "map-corpus"]
+    },
+    {
+      "id": "functions-framework-python",
+      "url": "https://github.com/GoogleCloudPlatform/functions-framework-python.git",
+      "commit": "0f2770d98ee11c09edcda12a5cbbbf81820daf0f",
+      "note": "GCP Functions Framework for Python: serverless Python; exercises Python packaging. Pinned from map_corpus.",
+      "tags": ["python", "serverless", "small", "map-corpus"]
+    },
+    {
+      "id": "aws-sam-java-rest",
+      "url": "https://github.com/aws-samples/aws-sam-java-rest.git",
+      "commit": "e10df9e4cd020b39b7e63b8a8fa2fdf02a38c57c",
+      "note": "AWS SAM Java REST: serverless Java with SAM template; exercises Java + IaC. Pinned from map_corpus.",
+      "tags": ["java", "sam", "serverless", "small", "map-corpus"]
+    },
+    {
+      "id": "microservices-demo",
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo.git",
+      "commit": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "note": "GCP Online Boutique microservices: 11 services across 8+ languages, Kubernetes, Helm; exercises polyglot classification and deployable detection. Pinned from map_corpus quality expectations.",
+      "tags": ["polyglot", "kubernetes", "helm", "microservices", "map-corpus"]
+    },
+    {
+      "id": "eshop",
+      "url": "https://github.com/dotnet/eShop.git",
+      "commit": "b4a40872005d41d3b60a45fafb9e7793f6ec1a3e",
+      "note": "dotnet/eShop: .NET microservices reference; exercises multi-service .NET composition with Docker Compose. Pinned from map_corpus quality expectations.",
+      "tags": ["csharp", "dotnet", "microservices", "docker", "map-corpus"]
+    },
+    {
+      "id": "spring-petclinic",
+      "url": "https://github.com/spring-projects/spring-petclinic.git",
+      "commit": "818c4136ea971c21674525f9053de0d9c7ad8cfe",
+      "note": "Spring PetClinic: canonical Java/Maven web app; exercises Java + Maven POM. Pinned from map_corpus quality expectations.",
+      "tags": ["java", "maven", "spring", "small", "map-corpus"]
+    },
+    {
+      "id": "terraform-alias",
+      "url": "https://github.com/hashicorp-education/learn-terraform-aws-asg-alb.git",
+      "commit": "21b3edcecfb8fb3f39e6773bef6d74c4562db79a",
+      "note": "HashiCorp Terraform tutorial: tiny IaC-only repo; hardest case for language classification (HCL only). Pinned from map_corpus quality expectations.",
+      "tags": ["terraform", "hcl", "iac", "tiny", "map-corpus"]
+    },
+    {
+      "id": "kubernetes",
+      "url": "https://github.com/kubernetes/kubernetes.git",
+      "commit": "b2e040516a0d1aee5bda82387bec67f59d24906a",
+      "note": "Kubernetes: large Go monorepo with vendor/; exercises large-scale Go classification, vendored code detection, and generated files.",
+      "tags": ["go", "large", "vendor", "generated", "hard"]
+    },
+    {
+      "id": "react",
+      "url": "https://github.com/facebook/react.git",
+      "commit": "d083ec1da1e5252abd3ddfdde6dfbc09701a2c51",
+      "note": "React: JS/TS monorepo with multiple packages (packages/ layout); exercises monorepo component detection.",
+      "tags": ["javascript", "typescript", "monorepo", "medium"]
+    },
+    {
+      "id": "django",
+      "url": "https://github.com/django/django.git",
+      "commit": "951d13c77bc120be385c46fc701a1ad93694edd1",
+      "note": "Django: large Python web framework; exercises Python classification at scale with many test files.",
+      "tags": ["python", "large"]
+    },
+    {
+      "id": "jellyfin",
+      "url": "https://github.com/jellyfin/jellyfin.git",
+      "commit": "208c278b75abd897aefa1e1175126eac5e4dbfaa",
+      "note": "Jellyfin: large C# media server with Docker and YAML config; exercises C# at scale with container metadata.",
+      "tags": ["csharp", "dotnet", "docker", "large"]
+    },
+    {
+      "id": "bioperl",
+      "url": "https://github.com/bioperl/bioperl-live.git",
+      "commit": "e0c4fec81a3e26157ce2e60facc6711595165c78",
+      "note": "BioPerl: deliberately Perl-heavy repo as required by the atlas spec; exercises Perl classification which is a known hard case for Linguist.",
+      "tags": ["perl", "hard", "medium"]
+    },
+    {
+      "id": "nixpkgs",
+      "url": "https://github.com/nixos/nixpkgs.git",
+      "commit": "8825bebf6324e0579d012936eff73379af284b6d",
+      "note": "NixOS nixpkgs: extremely large Nix-only monorepo; exercises Nix classification at scale and large-repo performance.",
+      "tags": ["nix", "large", "iac", "hard"]
+    },
+    {
+      "id": "terraform",
+      "url": "https://github.com/hashicorp/terraform.git",
+      "commit": "b504e11a82620281e940b3cb06a6e2cbf637d21f",
+      "note": "HashiCorp Terraform: Go CLI with embedded HCL processing; exercises Go and HCL classification in one repo.",
+      "tags": ["go", "hcl", "large"]
+    },
+    {
+      "id": "actions-toolkit",
+      "url": "https://github.com/actions/toolkit.git",
+      "commit": "193fa46c20fde8b0ed54194bc08b841c78c0776d",
+      "note": "GitHub Actions toolkit: CI-heavy TypeScript monorepo; exercises CI workflow detection and TypeScript monorepo layout.",
+      "tags": ["typescript", "javascript", "ci-heavy", "monorepo", "medium"]
+    },
+    {
+      "id": "pnpm",
+      "url": "https://github.com/pnpm/pnpm.git",
+      "commit": "fe63309c6288d9e142bd14133e3c657d283b97f7",
+      "note": "pnpm: TypeScript/JS monorepo with pnpm workspace; deliberately hard case for JS workspace detection.",
+      "tags": ["typescript", "javascript", "pnpm", "workspace", "monorepo", "hard"]
+    },
+    {
+      "id": "next",
+      "url": "https://github.com/vercel/next.js.git",
+      "commit": "0c129d011a49de45506b0149a63373526dc03687",
+      "note": "Next.js: large TypeScript/JS monorepo with packages/ and examples/; exercises TypeScript and JS classification at scale.",
+      "tags": ["typescript", "javascript", "large", "monorepo"]
+    },
+    {
+      "id": "prometheus",
+      "url": "https://github.com/prometheus/prometheus.git",
+      "commit": "ae12f1afea9837adad6fd6ee750b83b0b17541e6",
+      "note": "Prometheus: Go monitoring system; exercises Go classification with embedded assets.",
+      "tags": ["go", "medium"]
+    },
+    {
+      "id": "traefik",
+      "url": "https://github.com/traefik/traefik.git",
+      "commit": "34ea85d945c38c90fd923dfd72048990b00bb9e5",
+      "note": "Traefik: Go reverse proxy with extensive YAML/TOML config; exercises Go and IaC classification.",
+      "tags": ["go", "yaml", "medium"]
+    }
+  ]
+}
