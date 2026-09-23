@@ -32,7 +32,9 @@ permissions:
 jobs:
   atlas:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    # The full corpus includes Linguist on every repository (the Linux kernel
+    # alone takes about four minutes), so it gets a longer bound.
+    timeout-minutes: 180
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -62,9 +64,7 @@ jobs:
 
       - name: Build Linguist Docker image
         # Uses the same Dockerfile as the existing linguist-conformance CI job.
-        # Builds once and is reused for the smoke Linguist comparison.
-        # The full-corpus run skips Linguist to keep CI time under the 60-minute
-        # limit; trigger workflow_dispatch with subset=smoke to include Linguist.
+        # Built once and reused for every Linguist comparison in this run.
         run: make reference
 
       - name: Run Python unit tests for atlas harness
@@ -97,19 +97,15 @@ jobs:
             --output .cache/atlas \
             --smoke
 
-      - name: Run atlas (full, scc-only)
+      - name: Run atlas (full, with Linguist)
         if: steps.subset.outputs.mode == 'full'
         run: |
-          # Linguist is skipped for the full corpus run to keep CI under 60 minutes.
-          # The smoke subset (above) always runs Linguist. To run Linguist on the
-          # full corpus, trigger workflow_dispatch with subset=smoke and extend ids.
           python3 tests/atlas/run.py \
             --candidate bin/dircue \
             --scc "$SCC" \
             --cache "$RUNNER_TEMP/atlas-cache" \
             --output .cache/atlas \
-            --all \
-            --no-linguist
+            --all
 
       - name: Upload atlas results
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -119,12 +115,27 @@ jobs:
           name: atlas-results-${{ steps.subset.outputs.mode }}
           path: .cache/atlas/
 
+  publish:
+    # Attaching assets needs write access, so it is a separate job that runs
+    # only for an explicit workflow_dispatch release tag.
+    needs: atlas
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_tag != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: atlas-results-${{ github.event.inputs.subset || 'smoke' }}
+          path: atlas
       - name: Attach results as release assets
-        if: github.event.inputs.release_tag != ''
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.event.inputs.release_tag }}
+          GH_REPO: ${{ github.repository }}
         run: |
-          tag="${{ github.event.inputs.release_tag }}"
-          for f in .cache/atlas/atlas-results.jsonl .cache/atlas/atlas-summary.md; do
-            [ -f "$f" ] && gh release upload "$tag" "$f" --clobber || true
-          done
+          case "$RELEASE_TAG" in
+            v[0-9]*) ;;
+            *) echo "release_tag must look like vX.Y.Z" >&2; exit 1 ;;
+          esac
+          gh release upload "$RELEASE_TAG" atlas/atlas-results.jsonl atlas/atlas-summary.md --clobber

@@ -15,7 +15,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-DEFAULT_CACHE = Path("/private/tmp/claude-501/-Users-gingeleski-Workspace-dircue/5f190bc5-4b78-405a-873f-236759143b25/scratchpad/atlas-cache")
+DEFAULT_CACHE = Path(__file__).resolve().parent.parent.parent / ".cache" / "atlas-repos"
 
 
 def run(command, **kwargs):

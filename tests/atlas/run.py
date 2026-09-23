@@ -32,7 +32,7 @@ from typing import Any
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
-DEFAULT_CACHE = Path("/private/tmp/claude-501/-Users-gingeleski-Workspace-dircue/5f190bc5-4b78-405a-873f-236759143b25/scratchpad/atlas-cache")
+DEFAULT_CACHE = Path(__file__).resolve().parent.parent.parent / ".cache" / "atlas-repos"
 LINGUIST_IMAGE = "dircue-linguist:9.7.0"
 LINGUIST_VERSION_PIN = "9.7.0"
 SCC_VERSION_PIN = "4.1.0"
@@ -109,28 +109,17 @@ def run_linguist_on_repo(repo_path: Path, image: str) -> tuple[dict, float, int]
     to ensure deterministic timing.
     """
     with tempfile.TemporaryDirectory(prefix="atlas-linguist-") as tmpdir:
-        # Use git archive to extract committed files: this includes files that
-        # are tracked but gitignored (e.g. the kernel's Documentation/.renames.txt),
-        # unlike a plain directory listing.
+        # Linguist reads the committed HEAD tree, the same input dircue's
+        # default Git-source profile reads. Copying only the repository's Git
+        # directory gives it exactly that tree. A `git archive` extraction would
+        # apply export-ignore and export-subst attributes and a re-commit could
+        # change the file set, so neither is used.
         archive = Path(tmpdir) / "repo.tar"
-        run(["git", "-C", str(repo_path), "archive", "--format=tar",
-             "-o", str(archive), "HEAD"])
-
-        # Build a one-shot container that extracts the tar, wraps it in a new git
-        # repo, and runs Linguist.  git add --force . (not --all) is critical: it
-        # stages every file in the working tree, overriding .gitignore, so that
-        # committed-but-gitignored files (present in the git archive) are visible
-        # to Linguist via git ls-files.  git add --all would apply .gitignore and
-        # drop those files, giving Linguist a different file list than dircue sees.
+        run(["tar", "-C", str(repo_path / ".git"), "-cf", str(archive), "."])
         script = (
-            "mkdir -p /repo && cd /repo && "
+            "mkdir -p /repo.git && cd /repo.git && "
             "tar -xf /repo.tar && "
-            "git init -q && "
-            "git config user.email noreply@atlas && "
-            "git config user.name atlas && "
-            "git add --force . 2>/dev/null && "
-            "git commit -q --allow-empty-message -m '' 2>/dev/null && "
-            "github-linguist --json . 2>/dev/null"
+            "github-linguist --json /repo.git 2>/dev/null"
         )
         cmd = [
             "docker", "run", "--rm", "--network", "none",
