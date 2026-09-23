@@ -1,0 +1,148 @@
+// Package mapdoc defines dircue's portable, deterministic map document.
+package mapdoc
+
+const SchemaVersion = "1.0.0"
+
+type NodeKind string
+
+const (
+	NodeContent    NodeKind = "content"
+	NodeComponent  NodeKind = "component"
+	NodeDeployable NodeKind = "deployable"
+	NodeInterface  NodeKind = "interface"
+	NodeCapability NodeKind = "capability"
+	NodePackage    NodeKind = "package"
+	NodeToolRun    NodeKind = "tool_run"
+)
+
+type EdgeType string
+
+const (
+	EdgeContains       EdgeType = "contains"
+	EdgeMemberOf       EdgeType = "member_of"
+	EdgeDependsOnLocal EdgeType = "depends_on_local"
+	EdgeBuilds         EdgeType = "builds"
+	EdgeRuns           EdgeType = "runs"
+	EdgeExposes        EdgeType = "exposes"
+	EdgeDeclares       EdgeType = "declares"
+	EdgeUsesCapability EdgeType = "uses_capability"
+	EdgePackagedIn     EdgeType = "packaged_in"
+	EdgeAnalyzedBy     EdgeType = "analyzed_by"
+	EdgeConflictsWith  EdgeType = "conflicts_with"
+)
+
+type CoverageStatus string
+
+const (
+	CoverageComplete CoverageStatus = "complete"
+	CoveragePartial  CoverageStatus = "partial"
+	CoverageUnknown  CoverageStatus = "unknown"
+)
+
+type EvidenceBasis string
+
+const (
+	BasisDeclaredConfig    EvidenceBasis = "declared_config"
+	BasisCodeSyntax        EvidenceBasis = "code_syntax"
+	BasisResolvedReference EvidenceBasis = "resolved_reference"
+	BasisProviderReported  EvidenceBasis = "provider_reported"
+	BasisRuleInferred      EvidenceBasis = "rule_inferred"
+	BasisFilenameHint      EvidenceBasis = "filename_hint"
+)
+
+type EvidenceSource string
+
+const (
+	SourceFile          EvidenceSource = "file"
+	SourceConfiguration EvidenceSource = "configuration"
+	SourceCode          EvidenceSource = "code"
+	SourceComment       EvidenceSource = "comment"
+	SourceDocstring     EvidenceSource = "docstring"
+	SourceDocumentation EvidenceSource = "documentation"
+)
+
+type Document struct {
+	SchemaVersion string             `json:"schema_version"`
+	Kind          string             `json:"kind"`
+	Status        CoverageStatus     `json:"status"`
+	Source        Source             `json:"source"`
+	Coverage      []QuestionCoverage `json:"coverage"`
+	Nodes         []Node             `json:"nodes"`
+	Edges         []Edge             `json:"edges"`
+}
+
+type Source struct {
+	Mode     string `json:"mode"`
+	Revision string `json:"revision,omitempty"`
+	Tree     string `json:"tree,omitempty"`
+	Digest   string `json:"digest,omitempty"`
+}
+
+type Coverage struct {
+	Status  CoverageStatus `json:"status"`
+	Reasons []string       `json:"reasons"`
+}
+
+type QuestionCoverage struct {
+	Question string `json:"question"`
+	Scope    string `json:"scope"`
+	Coverage
+}
+
+type Node struct {
+	ID            string            `json:"id"`
+	Kind          NodeKind          `json:"kind"`
+	Name          string            `json:"name,omitempty"`
+	Paths         []string          `json:"paths"`
+	Discriminator string            `json:"discriminator,omitempty"`
+	Coverage      Coverage          `json:"coverage"`
+	Evidence      []Evidence        `json:"evidence"`
+	Properties    map[string]string `json:"properties,omitempty"`
+	Facts         []Fact            `json:"facts,omitempty"`
+}
+
+// Fact retains an attributable observation about a node when it is not itself
+// a node or relationship. It can represent manifest requirements, unresolved
+// references, declared interfaces, metrics, and provider annotations.
+type Fact struct {
+	Kind       string            `json:"kind"`
+	Name       string            `json:"name,omitempty"`
+	Value      string            `json:"value,omitempty"`
+	State      string            `json:"state,omitempty"`
+	Condition  string            `json:"condition,omitempty"`
+	Properties map[string]string `json:"properties,omitempty"`
+	Coverage   Coverage          `json:"coverage"`
+	Evidence   []Evidence        `json:"evidence"`
+}
+
+type Edge struct {
+	ID            string            `json:"id"`
+	Type          EdgeType          `json:"type"`
+	From          string            `json:"from"`
+	To            string            `json:"to"`
+	Discriminator string            `json:"discriminator,omitempty"`
+	Coverage      Coverage          `json:"coverage"`
+	Evidence      []Evidence        `json:"evidence"`
+	Properties    map[string]string `json:"properties,omitempty"`
+}
+
+type Evidence struct {
+	Basis      EvidenceBasis  `json:"basis"`
+	Path       string         `json:"path"`
+	Span       *Span          `json:"span,omitempty"`
+	SourceKind EvidenceSource `json:"source_kind"`
+	Rule       *Producer      `json:"rule,omitempty"`
+	Provider   *Producer      `json:"provider,omitempty"`
+}
+
+type Span struct {
+	StartLine   int `json:"start_line"`
+	StartColumn int `json:"start_column,omitempty"`
+	EndLine     int `json:"end_line"`
+	EndColumn   int `json:"end_column,omitempty"`
+}
+
+type Producer struct {
+	ID      string `json:"id"`
+	Version string `json:"version"`
+}
