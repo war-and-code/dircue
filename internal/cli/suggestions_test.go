@@ -124,3 +124,51 @@ func TestUnknownFirstTokenSuggestsSubcommand(t *testing.T) {
 		t.Fatalf("existing-path two-arg: %v", err)
 	}
 }
+
+func TestMapNestedCommandTyposTeachWithoutGuessingOrBreakingPaths(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"map", "routee", "missing.json"}, "did you mean `dircue map route`?"},
+		{[]string{"map", "locat", "map.json", "results.sarif"}, "did you mean `dircue map locate`?"},
+	} {
+		out, stderr, err := invoke(tc.args...)
+		if err == nil || out != "" || stderr != "" || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%v: stdout=%q stderr=%q err=%v", tc.args, out, stderr, err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(root, "routee"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "routee", "main.go"), []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"map", "--source", "directory", "--json", "--", "routee"},
+		{"map", "--source", "directory", "--json", "./routee"},
+	} {
+		out, stderr, err := invoke(args...)
+		if err != nil || stderr != "" || !strings.Contains(out, `"Go"`) || strings.Contains(out, "did you mean") {
+			t.Fatalf("explicit path %v: stdout=%q stderr=%q err=%v", args, out, stderr, err)
+		}
+	}
+}
+
+func TestMapSavedInputArgumentErrorsPointToExactHelp(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"map", "route"}, "map route requires one saved map file; see: dircue map route --help"},
+		{[]string{"map", "locate"}, "map locate requires a saved map and SARIF report; see: dircue map locate --help"},
+		{[]string{"map", "compare"}, "map compare requires base and head map files; see: dircue map compare --help"},
+	} {
+		out, stderr, err := invoke(tc.args...)
+		if err == nil || out != "" || stderr != "" || err.Error() != tc.want {
+			t.Fatalf("%v: stdout=%q stderr=%q err=%v", tc.args, out, stderr, err)
+		}
+	}
+}

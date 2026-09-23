@@ -88,7 +88,12 @@ func newMapRouteCommand(opts *options) *cobra.Command {
 		Short:   "Create inert analyzer follow-up plans from a saved map",
 		Long:    "Read a saved dircue map and emit deterministic, non-executable routing plans. Plans contain placeholders and declared prerequisites; dircue does not inspect PATH, download tools, or execute any plan.",
 		Example: "  dircue map --json /checkout > map.json\n  dircue map route map.json --json",
-		Args:    cobra.ExactArgs(1),
+		Args: func(_ *cobra.Command, args []string) error {
+			if len(args) != 1 {
+				return fmt.Errorf("map route requires one saved map file; see: dircue map route --help")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := rejectMapSavedInputFlags(cmd, opts); err != nil {
 				return err
@@ -121,7 +126,12 @@ func newMapLocateCommand(opts *options) *cobra.Command {
 		Short:   "Annotate SARIF locations with map ownership",
 		Long:    "Read a saved dircue map and SARIF 2.1.0 log, then add dircue.map ownership properties to result locations. The inputs are treated as data and are never executed. The annotated SARIF is written to stdout; --summary emits bounded resolution counts instead.",
 		Example: "  dircue map locate map.json results.sarif > located.sarif\n  dircue map locate --summary map.json results.sarif\n  dircue map locate --source-uri /checkout map.json results.sarif",
-		Args:    cobra.ExactArgs(2),
+		Args: func(_ *cobra.Command, args []string) error {
+			if len(args) != 2 {
+				return fmt.Errorf("map locate requires a saved map and SARIF report; see: dircue map locate --help")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := rejectMapSavedInputFlags(cmd, opts); err != nil {
 				return err

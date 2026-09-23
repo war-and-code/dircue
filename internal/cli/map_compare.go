@@ -20,7 +20,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 		Example: "  dircue map --json old-checkout > before.json\n  dircue map --json new-checkout > after.json\n  dircue map compare --json before.json after.json",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
-				return fmt.Errorf("map compare requires base and head map files")
+				return fmt.Errorf("map compare requires base and head map files; see: dircue map compare --help")
 			}
 			return nil
 		},
