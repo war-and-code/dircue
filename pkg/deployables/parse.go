@@ -235,6 +235,8 @@ func parseYAMLDocument(name string, doc map[interface{}]interface{}, content []b
 		return helmChartDefinition(doc, content)
 	case base == "serverless.yml" || base == "serverless.yaml":
 		return serverlessDefinitions(doc, content)
+	case base == "skaffold.yaml" || base == "skaffold.yml":
+		return skaffoldDefinitions(doc, content)
 	}
 	api, _ := stringValue(doc, "apiVersion")
 	kind, _ := stringValue(doc, "kind")
@@ -248,6 +250,58 @@ func parseYAMLDocument(name string, doc map[interface{}]interface{}, content []b
 		return cloudFormationDefinitions(doc, content)
 	}
 	return nil, false, nil
+}
+
+func skaffoldDefinitions(doc map[interface{}]interface{}, content []byte) ([]Definition, bool, error) {
+	build, ok := object(doc, "build")
+	if !ok {
+		return nil, false, nil
+	}
+	artifacts, ok := sequence(build, "artifacts")
+	if !ok || len(artifacts) == 0 {
+		return nil, false, nil
+	}
+	defs := []Definition{}
+	for _, raw := range artifacts {
+		artifact, ok := asObject(raw)
+		if !ok {
+			continue
+		}
+		image, imageOK := stringValue(artifact, "image")
+		contextDir, contextOK := stringValue(artifact, "context")
+		if !imageOK || image == "" || !contextOK || contextDir == "" {
+			continue
+		}
+		imageLine := lineOf(content, "image: "+image)
+		contextLine := lineOf(content, "context: "+contextDir)
+		imageEvidence := Evidence{Field: "image", Value: bounded(image), Line: imageLine, Basis: "skaffold-artifact"}
+		contextEvidence := Evidence{Field: "context", Value: bounded(contextDir), Line: contextLine, Basis: "skaffold-artifact"}
+		coverage := "complete"
+		imageQualification := "declared"
+		contextQualification := "local"
+		if dynamic(image) {
+			coverage, imageQualification = "qualified", "unresolved"
+		}
+		if dynamic(contextDir) || !safeRelative(contextDir) {
+			coverage, contextQualification = "qualified", "unresolved"
+		}
+		d := Definition{Kind: "container_build", Provider: "skaffold", Name: bounded(image), Coverage: coverage,
+			Evidence: []Evidence{imageEvidence, contextEvidence}, References: []Reference{
+				{Kind: "image", Value: bounded(image), Qualification: imageQualification, Evidence: imageEvidence},
+				{Kind: "build_context", Value: bounded(contextDir), Qualification: contextQualification, Evidence: contextEvidence},
+			}}
+		if docker, ok := object(artifact, "docker"); ok {
+			if dockerfile, ok := stringValue(docker, "dockerfile"); ok && dockerfile != "" {
+				q := "local"
+				if dynamic(dockerfile) || !safeRelative(dockerfile) {
+					q, d.Coverage = "unresolved", "qualified"
+				}
+				d.References = append(d.References, Reference{Kind: "dockerfile", Value: bounded(dockerfile), Qualification: q, Evidence: Evidence{Field: "dockerfile", Value: bounded(dockerfile), Line: lineOf(content, "dockerfile: "+dockerfile), Basis: "skaffold-artifact"}})
+			}
+		}
+		defs = append(defs, d)
+	}
+	return defs, len(defs) > 0, nil
 }
 
 func disambiguateDocumentDefinitions(defs []Definition) []Definition {
