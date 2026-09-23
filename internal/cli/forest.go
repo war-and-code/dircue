@@ -47,8 +47,9 @@ type ResidualTotals struct {
 
 // ForestSource describes the input to a forest scan.
 type ForestSource struct {
-	Mode string `json:"mode"`
-	Path string `json:"path"`
+	Mode   string         `json:"mode"`
+	Path   string         `json:"path"`
+	Digest *mapdoc.Digest `json:"digest,omitempty"`
 }
 
 // ForestRoot holds the identity and map for one discovered root.
@@ -276,17 +277,29 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		}
 	}
 
+	// The input root's content identity covers everything under it, with
+	// nested repositories recorded as gitlinks at their checked-out commits.
+	sourceDigest, sourceBinding, err := directorySourceDigest(ctx, abs, settings)
+	if err != nil {
+		return err
+	}
+	residualCoverage := mapdoc.Coverage{Status: residualDoc.Status, Reasons: []string{}}
+	if residualCoverage.Status != mapdoc.CoverageComplete {
+		residualCoverage.Reasons = []string{"residual_map_not_complete_see_residual_coverage"}
+	}
 	doc := ForestDocument{
 		SchemaVersion: "1.0.0",
 		Kind:          "forest",
 		Status:        forestStatus,
-		Source:        ForestSource{Mode: "directory", Path: abs},
+		// Paths are portable: the input root is always ".".
+		Source: ForestSource{Mode: "directory", Path: ".", Digest: sourceDigest},
 		Coverage: []mapdoc.QuestionCoverage{
+			{Question: mapdoc.QuestionSourceBinding, Scope: ".", Coverage: *sourceBinding},
 			{Question: "roots", Scope: ".", Coverage: mapdoc.Coverage{
 				Status:  rootsStatus,
 				Reasons: rootsReasons,
 			}},
-			{Question: "residual", Scope: ".", Coverage: mapdoc.Coverage{Status: residualDoc.Status, Reasons: []string{}}},
+			{Question: "residual", Scope: ".", Coverage: residualCoverage},
 			{Question: "environment_trees", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}},
 		},
 		Roots:            forestRoots,
