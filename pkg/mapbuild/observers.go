@@ -80,7 +80,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 						continue
 					}
 					root := path.Clean(component.Properties["root"])
-					if root != "." && fileDir != root && !strings.HasPrefix(fileDir, strings.TrimSuffix(root, "/")+"/") {
+					if fileDir != root {
 						continue
 					}
 					name := strings.ToLower(path.Base(root))

@@ -105,6 +105,24 @@ func TestKubernetesImageDoesNotChooseAmongDuplicateComponentRoots(t *testing.T) 
 	}
 }
 
+func TestKubernetesImageDoesNotClaimAncestorComponentFromNestedDockerfile(t *testing.T) {
+	doc := mapdoc.New()
+	outer := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/cartservice"}, "dotnet")
+	outer.Properties = map[string]string{"root": "src/cartservice"}
+	doc.Nodes = append(doc.Nodes, outer)
+	evidence := deployables.Evidence{Field: "image", Value: "cartservice:v1", Line: 1, Basis: "kubernetes-container-field"}
+	definitions := []deployables.Definition{
+		{Provider: "kubernetes", Kind: "workload", Name: "cartservice", Path: "k8s/cartservice.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "image", Value: evidence.Value, Qualification: "external", Evidence: evidence}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "src/cartservice/src/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeRuns {
+			t.Fatalf("nested Dockerfile alone linked an ancestor component: %+v", edge)
+		}
+	}
+}
+
 func TestSkaffoldArtifactSelectsNestedComponentForKubernetesImage(t *testing.T) {
 	doc := mapdoc.New()
 	outer := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/cartservice"}, "dotnet")
