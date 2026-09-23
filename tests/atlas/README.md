@@ -72,11 +72,18 @@ python3 tests/atlas/fetch.py --cache /tmp/atlas-cache --smoke
 make atlas-smoke
 ```
 
-This installs scc 4.1.0 automatically and skips the Linguist Docker comparison.
-Results appear in `.cache/atlas/`. To include Linguist, first run `make reference`,
-then remove `--no-linguist` from the command in the Makefile.
+This installs scc 4.1.0 automatically. The Linguist comparison runs whenever the
+`dircue-linguist:9.7.0` image exists locally (build it once with `make reference`);
+without it, the smoke run reports the Linguist comparison as skipped. Results
+appear in `.cache/atlas/`.
 
-### 3. Run the full atlas (all ~50 repos)
+Linguist and dircue read the same input: the repository's committed `HEAD`
+tree. The harness copies only the clone's `.git` directory into the container
+(`--network none`) and runs `github-linguist` on it. It does not use `git
+archive` (which applies `export-ignore` and `export-subst`) or re-commit files
+(which applies `.gitignore`).
+
+### 3. Run the full atlas (all 38 pinned repos)
 
 ```
 make atlas

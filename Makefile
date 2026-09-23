@@ -2,7 +2,7 @@ VERSION ?= 1.0.0-dev
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
-ATLAS_CACHE ?= /private/tmp/claude-501/-Users-gingeleski-Workspace-dircue/5f190bc5-4b78-405a-873f-236759143b25/scratchpad/atlas-cache
+ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
 .PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives atlas-fetch atlas atlas-smoke accuracy-cards
