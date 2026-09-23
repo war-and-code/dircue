@@ -134,6 +134,19 @@ func TestRouterDoesNotRouteNonSourceDirectory(t *testing.T) {
 	}
 }
 
+func TestRouterUsesDeclaredComponentRootNotManifest(t *testing.T) {
+	n := component()
+	n.Paths = []string{"services/api/go.mod", "services/api"}
+	n.Properties["root"] = "services/api"
+	// Recreate the canonical ID after changing identity paths.
+	n.ID = mapdoc.NodeID(n.Kind, n.Paths, n.Discriminator)
+	for _, plan := range providerjoin.Route(providerjoin.Input{Nodes: []mapdoc.Node{n}}) {
+		if plan.Scope != "services/api" {
+			t.Fatalf("manifest used as scope: %+v", plan)
+		}
+	}
+}
+
 func TestIgnoredSARIFResultsDoNotChangePortableIdentity(t *testing.T) {
 	base := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}}],"properties":{"dircue_snapshot_tree":"abc"},"results":[%s]}]}`
 	input := providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}

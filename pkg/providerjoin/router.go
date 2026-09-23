@@ -47,7 +47,9 @@ func Route(in Input) []Plan {
 	var out []Plan
 	for _, c := range components {
 		scope := "."
-		if len(c.Paths) > 0 {
+		if root, ok := cleanReportPath(c.Properties["root"]); ok {
+			scope = root
+		} else if len(c.Paths) > 0 {
 			scope = c.Paths[0]
 		}
 		langs := strings.ToLower(c.Properties["language"] + " " + c.Properties["ecosystem"] + " " + c.Discriminator)
