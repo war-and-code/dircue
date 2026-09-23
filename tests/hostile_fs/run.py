@@ -581,7 +581,7 @@ def main():
                     help="Path to the dircue binary (default: bin/dircue)")
     ap.add_argument("--quick", action="store_true",
                     help="Run only the quick subset (for CI)")
-    ap.add_argument("--output", default=str(ROOT / "hostile_fs_results.jsonl"),
+    ap.add_argument("--output", default=str(ROOT / ".cache" / "hostile_fs_results.jsonl"),
                     help="JSONL output file")
     args = ap.parse_args()
 
