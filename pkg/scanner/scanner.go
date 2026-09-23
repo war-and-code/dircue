@@ -84,8 +84,11 @@ type Options struct {
 	// GitReadMetrics enables internal, opt-in Git work counters. Counters do
 	// not enter deterministic reports and may vary with scheduling/cache state.
 	GitReadMetrics *GitReadMetrics
-	structureGate  chan struct{}
-	languageTrace  *explain.LanguageTrace
+	// GitObjectCacheBytes bounds go-git's retained decoded-object cache. Zero
+	// uses go-git's default; this changes memory/speed, not selected content.
+	GitObjectCacheBytes int64
+	structureGate       chan struct{}
+	languageTrace       *explain.LanguageTrace
 }
 
 type ErrorPolicy string

@@ -41,12 +41,13 @@ type mapSettingsReport struct {
 }
 
 type resolvedMapSettings struct {
-	Workers      int
-	MaxFiles     int
-	MaxFileBytes int64
-	CPULimit     int
-	MemoryLimit  int64
-	Report       mapSettingsReport
+	Workers       int
+	MaxFiles      int
+	MaxFileBytes  int64
+	GitCacheBytes int64
+	CPULimit      int
+	MemoryLimit   int64
+	Report        mapSettingsReport
 }
 
 func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags) {
@@ -61,13 +62,16 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 		return resolvedMapSettings{}, enumValueError("--preset", strings.Join(mapPresetNames, ", "), flags.Preset, mapPresetNames)
 	}
 	workers, maxFiles, maxFileBytes := 0, scanner.DefaultMaxTreeSize, int64(0)
+	gitCacheBytes := int64(96 << 20)
 	cpuLimit, memoryLimit := 0, int64(0)
-	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited"}
+	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited"}
 	switch flags.Preset {
 	case "fast":
 		workers, origins["workers"] = 16, "preset:fast"
+		gitCacheBytes, origins["git.object_cache_bytes"] = 128<<20, "preset:fast"
 	case "low-memory":
 		workers, origins["workers"] = 2, "preset:low-memory"
+		gitCacheBytes, origins["git.object_cache_bytes"] = 8<<20, "preset:low-memory"
 	case "thorough":
 		maxFiles, origins["inventory.files"] = 250000, "preset:thorough"
 	}
@@ -96,6 +100,12 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 				return resolvedMapSettings{}, fmt.Errorf("--set %s requires an integer of zero or greater", name)
 			}
 			maxFileBytes = parsed
+		case "git.object_cache_bytes":
+			parsed, err := parseMemoryLimit(value)
+			if err != nil || parsed == 0 || parsed > 2<<30 {
+				return resolvedMapSettings{}, fmt.Errorf("--set %s requires 1MiB to 2GiB", name)
+			}
+			gitCacheBytes = parsed
 		case "runtime.cpu":
 			parsed, err := parseMapSettingInt(name, value, 0, 1024)
 			if err != nil {
@@ -109,7 +119,7 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 			}
 			memoryLimit = parsed
 		default:
-			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, runtime.cpu, runtime.memory_bytes", diagnosticValue(name))
+			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes", diagnosticValue(name))
 		}
 		origins[name] = "--set"
 	}
@@ -151,15 +161,16 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	}
 	settings := []mapEffectiveSetting{
 		{Name: "workers", Value: strconv.Itoa(workers), Unit: "workers", Category: "performance-only", Origin: origins["workers"], Description: "Concurrent file workers; 0 selects min(GOMAXPROCS, 16).", Minimum: "0", Maximum: "1024"},
+		{Name: "git.object_cache_bytes", Value: strconv.FormatInt(gitCacheBytes, 10), Unit: "bytes", Category: "performance-only", Origin: origins["git.object_cache_bytes"], Description: "Retained decoded Git object cache; lower values may save memory and cost extra object reads.", Minimum: "1048576", Maximum: "2147483648"},
 		{Name: "inventory.files", Value: strconv.Itoa(maxFiles), Unit: "entries", Category: "coverage-affecting", Origin: origins["inventory.files"], Description: "Maximum selected-source entries inventoried before partial coverage.", Minimum: "1", Maximum: "10000000"},
 		{Name: "content.file_bytes", Value: strconv.FormatInt(maxFileBytes, 10), Unit: "bytes", Category: "coverage-affecting", Origin: origins["content.file_bytes"], Description: "Skip larger files with explicit partial coverage; 0 disables this optional limit.", Minimum: "0"},
 		{Name: "runtime.cpu", Value: strconv.Itoa(cpuLimit), Unit: "logical CPUs", Category: "performance-only", Origin: origins["runtime.cpu"], Description: "Cooperative GOMAXPROCS setting scoped to this command; 0 inherits the process setting.", Minimum: "0", Maximum: "1024"},
 		{Name: "runtime.memory_bytes", Value: strconv.FormatInt(memoryLimit, 10), Unit: "bytes", Category: "performance-only", Origin: origins["runtime.memory_bytes"], Description: "Cooperative Go-managed memory target scoped to this command; 0 inherits the process setting and nonzero values must be at least 1048576.", Minimum: "0", Maximum: "9223372036854775807"},
 	}
-	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, Report: mapSettingsReport{
+	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, Report: mapSettingsReport{
 		SchemaVersion: "1.0.0", Kind: "map_settings", Preset: flags.Preset, Settings: settings,
 		Notes: []string{
-			"fast and low-memory currently tune worker concurrency only and must preserve map answers",
+			"fast and low-memory tune worker concurrency and retained Git object cache size; both must preserve map answers",
 			"low-memory is a relative execution preference, not a measured RSS guarantee or hard memory ceiling",
 			"GOMEMLIMIT is a cooperative Go runtime limit inherited from the process environment; it is not a hard process or native-worker limit",
 			"--cpu-limit and --memory-limit are scoped cooperative runtime controls, not hard CPU, RSS, subprocess, or operating-system ceilings",

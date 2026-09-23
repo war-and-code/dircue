@@ -105,8 +105,8 @@ The default `balanced` preset retains automatic worker selection and the
 | Preset | Current effect |
 | --- | --- |
 | `balanced` | Automatic workers and the default inventory limit. |
-| `fast` | Use 16 file workers. This is an execution preference and must preserve answers. |
-| `low-memory` | Use two file workers. This is a relative preference, not a hard RSS ceiling. |
+| `fast` | Use 16 file workers and a 128 MiB retained Git object cache. This must preserve answers. |
+| `low-memory` | Use two file workers and an 8 MiB retained Git object cache. This is a relative preference, not a hard RSS ceiling. |
 | `thorough` | Raise the inventory limit to 250,000 entries; this can replace a partial answer with a more complete one. |
 
 Inspect effective values, categories, and origins without scanning:
@@ -118,8 +118,8 @@ dircue map settings --preset fast --set workers=8 --json
 dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
 ```
 
-`--set` accepts `workers`, `inventory.files`, `content.file_bytes`,
-`runtime.cpu`, and `runtime.memory_bytes`. A named
+`--set` accepts `workers`, `git.object_cache_bytes`, `inventory.files`,
+`content.file_bytes`, `runtime.cpu`, and `runtime.memory_bytes`. A named
 flag such as `--workers`, `--budget-files`, `--tree-size`, or
 `--max-file-bytes` has the highest precedence, as do `--cpu-limit` and
 `--memory-limit`; `--set` follows, then the preset. Memory values accept bytes
