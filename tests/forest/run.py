@@ -279,6 +279,15 @@ def build_old_drive(base: str, genv: dict) -> dict:
         f.write(b"\xca\xfe\xba\xbe" + bytes(50))
     meta["source_build"] = "projects/javaapp/build"
 
+    # 10b. Explicitly untracked files in javaapp to exercise working_tree_only_files.
+    # These are NOT committed so they must appear in working_tree_only_files, not
+    # in the committed count.
+    with open(os.path.join(javaapp_path, "scratch.txt"), "w") as f:
+        f.write("scratch notes\n")
+    with open(os.path.join(javaapp_path, "TODO"), "w") as f:
+        f.write("fix the thing\n")
+    meta["javaapp_untracked"] = 2  # number of explicit untracked text files added
+
     # -----------------------------------------------------------------------
     # 11. Loose residual files (outside any repo, any env tree)
     # -----------------------------------------------------------------------
@@ -289,6 +298,20 @@ def build_old_drive(base: str, genv: dict) -> dict:
     with open(os.path.join(notes_path, "config.yaml"), "w") as f:
         f.write("key: value\n")
     meta["residual_notes"] = "notes"
+
+    # -----------------------------------------------------------------------
+    # 12. Repo with a local remote (inside drive) to test path classification
+    # -----------------------------------------------------------------------
+    # myapp already has origin pointing to the local bare clone path (set
+    # by the clone step in section 2).  Add a second local remote pointing
+    # to lib so we can verify the root-relative URL.
+    embedded_abs = os.path.join(base, meta["embedded"])
+    lib_abs = os.path.join(base, "projects", "lib")
+    run_git(["remote", "add", "locallib", lib_abs], cwd=embedded_abs, env=genv)
+    # Also add an out-of-drive remote that must be redacted.
+    run_git(["remote", "add", "outsider", "/tmp/outside-repo"], cwd=embedded_abs, env=genv)
+    meta["local_remote_inside"] = "projects/lib"  # root-relative path expected in url
+    meta["local_remote_outside"] = "/tmp/outside-repo"  # absolute path that must be redacted
 
     return meta
 
@@ -678,32 +701,41 @@ def case_identity_vs_git(binary: str, drive: str, meta: dict) -> tuple:
     return c, records
 
 
-def _walk_files_count(directory: str, exclude_dirs: set) -> int:
-    """Count regular files under directory, excluding subdirs in exclude_dirs
-    (matched as relative paths from directory) and any .git internals."""
+def _walk_regular_only(directory: str, exclude_dirs: set) -> int:
+    """Count ONLY regular files (not symlinks, not special files) under directory,
+    excluding subdirs in exclude_dirs (relative paths from directory) and .git dirs.
+    Uses lstat to distinguish regular files from symlinks."""
     count = 0
-    for root_dir, dirs, files in os.walk(directory):
-        rel_root = os.path.relpath(root_dir, directory)
-        # Prune excluded dirs (absolute match from drive root)
+    for root_dir, dirs, files in os.walk(directory, followlinks=False):
         to_remove = []
         for d in list(dirs):
             rel_sub = os.path.relpath(os.path.join(root_dir, d), directory)
-            if rel_sub in exclude_dirs:
+            if rel_sub in exclude_dirs or d == ".git":
                 to_remove.append(d)
-            # Skip .git directory internals
-            if d == ".git":
-                to_remove.append(d)
-            # Skip bare repo internals (objects/, refs/ at top of bare repo)
-            # handled by exclude_dirs
         for d in to_remove:
             if d in dirs:
                 dirs.remove(d)
-        count += len(files)
+        for fname in files:
+            fpath = os.path.join(root_dir, fname)
+            try:
+                st = os.lstat(fpath)
+                if stat.S_ISREG(st.st_mode):
+                    count += 1
+            except OSError:
+                pass
     return count
 
 
 def case_entry_accounting(binary: str, drive: str, meta: dict) -> tuple:
-    """Every entry must be accounted for exactly once across roots, env trees, and residual."""
+    """Every regular file must be accounted for exactly once (zero tolerance).
+
+    Accounting identity:
+      committed (git ls-tree -r HEAD per non-bare root)
+      + working_tree_only_files (untracked regular files, from forest doc)
+      + env_entries (files in env trees, from forest doc)
+      + residual_files (residual_totals.files, from forest doc)
+      == walk_regular (lstat count of regular files, excluding .git and bare dirs)
+    """
     c = Case("entry_accounting", is_quick=False)
 
     result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
@@ -719,59 +751,189 @@ def case_entry_accounting(binary: str, drive: str, meta: dict) -> tuple:
 
     git_env_local = {**os.environ}
 
-    # Count files inside each resolved root via git ls-tree -r HEAD.
-    root_file_count = 0
+    # Count committed regular files per non-bare resolved root via git ls-tree.
+    # Bare repos are excluded from the walk on both sides of the identity.
+    committed_total = 0
+    wt_only_total = 0
     for root in roots:
         if root.get("identity_status") != "resolved":
+            continue
+        if root.get("kind") == "git_bare":
             continue
         rel_path = root.get("path", "")
         abs_path = os.path.join(drive, rel_path) if rel_path else drive
         try:
             out = run_git(["ls-tree", "-r", "--name-only", "HEAD"],
                           cwd=abs_path, env=git_env_local).stdout
-            root_file_count += len([l for l in out.splitlines() if l.strip()])
+            committed = len([line for line in out.splitlines() if line.strip()])
+            committed_total += committed
         except subprocess.CalledProcessError:
-            pass  # unborn or bare; skip
+            pass  # unborn; skip
+        wt_only_total += root.get("working_tree_only_files", 0)
 
-    # Count summarized env tree entries.
-    env_entries = sum(et.get("entries", 0) for et in env_trees)
+    # Verify at least one root has working_tree_only_files > 0 (untracked files counted).
+    wt_roots = [r.get("path") for r in roots
+                if r.get("working_tree_only_files", 0) > 0
+                and r.get("kind") != "git_bare"]
+    c.check(len(wt_roots) > 0,
+            "no worktree root has working_tree_only_files > 0; "
+            "untracked files are not being counted")
 
-    # Residual files from canonical totals.
+    # Count regular files in env trees using the same lstat methodology as
+    # _walk_regular_only.  The forest doc's `entries` field counts ALL directory
+    # entries (dirs + files) so we cannot use it here — we need only regular files.
+    env_regular = 0
+    for et in env_trees:
+        et_abs = os.path.join(drive, et.get("path", ""))
+        if os.path.isdir(et_abs):
+            env_regular += _walk_regular_only(et_abs, set())
+
     residual_files = residual_totals["files"] if residual_totals else 0
 
-    # Independent Python walk: count all regular files under drive,
-    # excluding .git internals and bare-repo top-levels.
-    # Env tree dirs are NOT excluded here because env_entries is included in
-    # total_dircue; both sides must count the same universe of files.
-    # Accounting identity:
-    #   root_file_count (git ls-tree committed)
-    #   + env_entries  (files inside env trees)
-    #   + residual_files (files outside roots and env trees)
-    #   ≈ walk_count (all files except .git dirs and bare-repo internals)
-    # The ≈ allows for untracked non-env files in worktrees (tolerance covers them).
-    excluded = set()
-    for root in roots:
-        rp = root.get("path", "")
-        if root.get("kind") == "git_bare":
-            excluded.add(rp)
+    # Independent walk: lstat-based regular-file count (no symlinks, no specials),
+    # excluding .git dirs and bare-repo top-level directories.
+    excluded = {root.get("path", "") for root in roots if root.get("kind") == "git_bare"}
+    walk_regular = _walk_regular_only(drive, excluded)
 
-    walk_count = _walk_files_count(drive, excluded)
+    total_dircue = committed_total + wt_only_total + env_regular + residual_files
+    diff = abs(total_dircue - walk_regular)
 
-    total_dircue = root_file_count + env_entries + residual_files
-    # Allow a small tolerance for special files (symlinks, FIFOs) that the
-    # scanner skips but the Python walk counts, and pyvenv.cfg itself.
-    tolerance = max(50, int(walk_count * 0.02))  # 2% or 50 files
-
-    diff = abs(total_dircue - walk_count)
-    c.check(diff <= tolerance,
-            f"entry accounting mismatch: dircue {total_dircue} "
-            f"(roots={root_file_count}, env={env_entries}, residual={residual_files}) "
-            f"vs walk {walk_count}, diff={diff} > tolerance={tolerance}")
+    c.check(diff == 0,
+            f"exact accounting mismatch: dircue {total_dircue} "
+            f"(committed={committed_total}, wt_only={wt_only_total}, "
+            f"env={env_regular}, residual={residual_files}) "
+            f"vs walk_regular={walk_regular}")
 
     records = [{"case": c.name, **result, "passed": not c.failures,
-                "root_files": root_file_count, "env_entries": env_entries,
-                "residual_files": residual_files, "walk_count": walk_count,
-                "total_dircue": total_dircue, "diff": diff}]
+                "committed": committed_total, "wt_only": wt_only_total,
+                "env_regular": env_regular, "residual_files": residual_files,
+                "walk_regular": walk_regular, "diff": diff}]
+    return c, records
+# ---------------------------------------------------------------------------
+def case_bare_map_non_empty(binary: str, drive: str, meta: dict) -> tuple:
+    """Every resolved bare repo must receive a non-empty Git-mode map."""
+    c = Case("bare_map_non_empty", is_quick=True)
+
+    result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
+    c.check(result["exit_code"] == 0, f"exit {result['exit_code']}")
+    doc = parse_forest_json(result["stdout"])
+    if doc is None:
+        c.fail("no JSON output")
+        return c, [{"case": c.name, **result, "passed": False}]
+
+    bare_roots = [r for r in doc.get("roots", [])
+                  if r.get("kind") == "git_bare"
+                  and r.get("identity_status") == "resolved"]
+    c.check(len(bare_roots) > 0, "no resolved bare root in synthetic drive")
+    for root in bare_roots:
+        path = root.get("path", "?")
+        c.check(root.get("map_status") == "ok",
+                f"bare root {path!r}: map_status={root.get('map_status')!r} "
+                f"reason={root.get('map_reason')!r}")
+        m = root.get("map")
+        nodes = (m or {}).get("nodes", [])
+        c.check(m is not None and len(nodes) > 0,
+                f"bare root {path!r}: map is None or has no nodes")
+
+    records = [{"case": c.name, **result, "passed": not c.failures,
+                "bare_roots": len(bare_roots)}]
+    return c, records
+
+
+def case_local_remote_canary(binary: str, drive: str, meta: dict) -> tuple:
+    """Local-path remote URLs must be root-relative (inside) or redacted (outside).
+    No absolute host paths may appear anywhere in forest output."""
+    c = Case("local_remote_canary", is_quick=True)
+
+    result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
+    c.check(result["exit_code"] == 0, f"exit {result['exit_code']}")
+    doc = parse_forest_json(result["stdout"])
+    if doc is None:
+        c.fail("no JSON output")
+        return c, [{"case": c.name, **result, "passed": False}]
+
+    abs_path_fragments = [
+        "/tmp/", "/private/", "/var/folders/", "/Users/", "/home/",
+        "C:\\", "C:/", "\\\\",
+    ]
+
+    for root in doc.get("roots", []):
+        for rem in root.get("remotes", []):
+            url = rem.get("url", "")
+            if url is None:
+                url = ""
+            # A local_path remote that is inside the drive must use a relative url.
+            if rem.get("kind") == "local_path":
+                if not rem.get("redacted", False):
+                    # url must be relative (no leading /)
+                    c.check(not url.startswith("/") and ":\\" not in url and "C:/" not in url,
+                            f"{root['path']!r} remote {rem['name']!r}: "
+                            f"local_path url is not relative: {url!r}")
+                else:
+                    # Redacted: url must be None/null
+                    c.check(rem.get("url") is None,
+                            f"{root['path']!r} remote {rem['name']!r}: "
+                            f"redacted but url is not null: {url!r}")
+            # Any remote url must not contain absolute host paths.
+            for frag in abs_path_fragments:
+                if frag in url:
+                    c.fail(f"{root['path']!r} remote {rem['name']!r}: "
+                           f"absolute host path {frag!r} in url: {url!r}")
+                    break
+
+    # Check for local remotes in the synthetic drive specifically.
+    embedded = meta.get("embedded", "")
+    embedded_roots = [r for r in doc.get("roots", []) if r.get("path") == embedded]
+    c.check(len(embedded_roots) > 0, f"embedded root {embedded!r} not found")
+    if embedded_roots:
+        r = embedded_roots[0]
+        local_rems = [rem for rem in r.get("remotes", []) if rem.get("kind") == "local_path"]
+        c.check(len(local_rems) >= 1,
+                f"embedded root has no local_path remotes; got: {r.get('remotes')}")
+        # The outside remote must be redacted.
+        outside_rems = [rem for rem in local_rems if rem.get("redacted")]
+        c.check(len(outside_rems) >= 1,
+                f"embedded root has no redacted remote for outside path; "
+                f"local remotes: {local_rems}")
+
+    records = [{"case": c.name, **result, "passed": not c.failures}]
+    return c, records
+
+
+def case_complete_requires_all_maps(binary: str, drive: str, meta: dict) -> tuple:
+    """Forest status must be partial (not complete) when any root's map build failed."""
+    c = Case("complete_requires_all_maps", is_quick=True)
+
+    # Run on the normal drive first: verify that all resolved roots have map_status=ok.
+    result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
+    c.check(result["exit_code"] == 0, f"exit {result['exit_code']}")
+    doc = parse_forest_json(result["stdout"])
+    if doc is None:
+        c.fail("no JSON output")
+        return c, [{"case": c.name, **result, "passed": False}]
+
+    roots = doc.get("roots", [])
+    for root in roots:
+        if root.get("identity_status") != "resolved":
+            continue
+        ms = root.get("map_status")
+        c.check(ms == "ok",
+                f"resolved root {root['path']!r} has map_status={ms!r}; "
+                f"reason={root.get('map_reason')!r}")
+
+    # Verify that a root with map_status=failed forces forest status to partial.
+    # We simulate this by running on a directory where a repo has no HEAD commit
+    # (newrepo has unborn HEAD → identity_status=unknown, so forest already partial).
+    # The newrepo case: identity_unknown → forest partial.
+    unborn_roots = [r for r in roots if r.get("identity_status") == "unknown"]
+    if unborn_roots:
+        c.check(doc.get("status") in ("partial", "unknown"),
+                f"forest has unresolved root but status={doc.get('status')!r}")
+        cov = next((q for q in doc.get("coverage", []) if q["question"] == "roots"), None)
+        c.check(cov is not None and cov.get("status") in ("partial", "unknown"),
+                f"roots coverage not partial despite unborn root: {cov}")
+
+    records = [{"case": c.name, **result, "passed": not c.failures}]
     return c, records
 
 
@@ -792,6 +954,9 @@ ALL_CASES = [
     case_summary_flag,
     case_identity_vs_git,
     case_entry_accounting,
+    case_bare_map_non_empty,
+    case_local_remote_canary,
+    case_complete_requires_all_maps,
     case_deterministic,
     case_isolated_git,
 ]

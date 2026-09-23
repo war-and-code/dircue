@@ -53,17 +53,22 @@ type ForestSource struct {
 
 // ForestRoot holds the identity and map for one discovered root.
 type ForestRoot struct {
-	Path           string           `json:"path"`
-	Kind           string           `json:"kind"`
-	HEAD           string           `json:"head"`
-	Commit         string           `json:"commit,omitempty"`
-	Tree           string           `json:"tree,omitempty"`
-	CommitterTime  int64            `json:"committer_time,omitempty"`
-	Remotes        []forest.Remote  `json:"remotes"`
-	SubmoduleOf    string           `json:"submodule_of,omitempty"`
-	IdentityStatus string           `json:"identity_status"`
-	IdentityReason string           `json:"identity_reason,omitempty"`
-	Map            *mapdoc.Document `json:"map,omitempty"`
+	Path                 string           `json:"path"`
+	Kind                 string           `json:"kind"`
+	HEAD                 string           `json:"head"`
+	Commit               string           `json:"commit,omitempty"`
+	Tree                 string           `json:"tree,omitempty"`
+	CommitterTime        int64            `json:"committer_time,omitempty"`
+	Remotes              []forest.Remote  `json:"remotes"`
+	SubmoduleOf          string           `json:"submodule_of,omitempty"`
+	IdentityStatus       string           `json:"identity_status"`
+	IdentityReason       string           `json:"identity_reason,omitempty"`
+	MapStatus            string           `json:"map_status,omitempty"`              // "ok" or "failed"
+	MapReason            string           `json:"map_reason,omitempty"`              // stable reason when failed
+	WorkingTreeOnlyFiles int64            `json:"working_tree_only_files,omitempty"` // untracked regular files
+	SymlinkFiles         int64            `json:"symlink_files,omitempty"`
+	SpecialFiles         int64            `json:"special_files,omitempty"`
+	Map                  *mapdoc.Document `json:"map,omitempty"`
 }
 
 // ForestEnvTree summarizes a recognized environment or build-output tree.
@@ -116,6 +121,13 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 	// Phase 2: build per-root maps.
 	forestRoots := make([]ForestRoot, 0, len(discResult.Roots))
 	for _, r := range discResult.Roots {
+		// Classify remotes: convert local filesystem paths to root-relative or redact.
+		rootWorkdir := filepath.Join(abs, r.Path)
+		classifiedRemotes := make([]forest.Remote, len(r.Remotes))
+		for i, rem := range r.Remotes {
+			classifiedRemotes[i] = forest.ClassifyRemote(rem, abs, rootWorkdir)
+		}
+
 		fr := ForestRoot{
 			Path:           r.Path,
 			Kind:           string(r.Kind),
@@ -123,17 +135,34 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 			Commit:         r.Commit,
 			Tree:           r.Tree,
 			CommitterTime:  r.CommitterTime,
-			Remotes:        r.Remotes,
+			Remotes:        classifiedRemotes,
 			SubmoduleOf:    r.SubmoduleOf,
 			IdentityStatus: string(r.IdentityStatus),
 			IdentityReason: r.IdentityReason,
 		}
-		// Build a map for this root in Git mode (committed HEAD tree).
-		if r.IdentityStatus == forest.IdentityResolved && r.Kind != forest.RootGitBare {
-			rootAbs := filepath.Join(abs, r.Path)
-			m, mapErr := buildRootMap(ctx, rootAbs, settings)
-			if mapErr == nil {
-				fr.Map = m
+
+		// Build a Git-mode map for every resolved root, including bare repos.
+		if r.IdentityStatus == forest.IdentityResolved {
+			res := buildRootMap(ctx, rootWorkdir, settings)
+			if res.Status == "ok" {
+				fr.MapStatus = "ok"
+				fr.Map = res.Map
+			} else {
+				fr.MapStatus = "failed"
+				fr.MapReason = res.Reason
+			}
+
+			// For worktrees, count filesystem entries not in the committed tree.
+			if r.Kind != forest.RootGitBare {
+				wtCounts := forest.CountWorkingTreeFiles(root, r.Path, excludedPaths)
+				committed := res.CommittedFiles
+				wto := wtCounts.Regular - committed
+				if wto < 0 {
+					wto = 0
+				}
+				fr.WorkingTreeOnlyFiles = wto
+				fr.SymlinkFiles = wtCounts.Symlinks
+				fr.SpecialFiles = wtCounts.Special
 			}
 		}
 		forestRoots = append(forestRoots, fr)
@@ -216,21 +245,35 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 
 	// Assemble forest document.
 	forestStatus := mapdoc.CoverageComplete
-	var coverageReasons []string
+	rootsStatus := mapdoc.CoverageComplete
+	rootsReasons := []string{}
+
 	if discResult.Partial {
 		forestStatus = mapdoc.CoveragePartial
-		coverageReasons = append(coverageReasons, discResult.PartialReason)
+		rootsStatus = mapdoc.CoveragePartial
+		rootsReasons = append(rootsReasons, discResult.PartialReason)
 	}
 	for _, r := range forestRoots {
 		if r.IdentityStatus == string(forest.IdentityUnknown) {
 			forestStatus = mapdoc.CoveragePartial
+			rootsStatus = mapdoc.CoveragePartial
+			if !containsString(rootsReasons, "identity_unknown") {
+				rootsReasons = append(rootsReasons, "identity_unknown")
+			}
 		}
-	}
-
-	rootsStatus := mapdoc.CoverageComplete
-	if discResult.Partial {
-		rootsStatus = mapdoc.CoveragePartial
-		_ = coverageReasons
+		if r.MapStatus == "failed" {
+			forestStatus = mapdoc.CoveragePartial
+			rootsStatus = mapdoc.CoveragePartial
+			if !containsString(rootsReasons, "map_build_failed") {
+				rootsReasons = append(rootsReasons, "map_build_failed")
+			}
+		}
+		if r.WorkingTreeOnlyFiles > 0 {
+			rootsStatus = mapdoc.CoveragePartial
+			if !containsString(rootsReasons, "working_tree_only_files") {
+				rootsReasons = append(rootsReasons, "working_tree_only_files")
+			}
+		}
 	}
 
 	doc := ForestDocument{
@@ -240,13 +283,8 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		Source:        ForestSource{Mode: "directory", Path: abs},
 		Coverage: []mapdoc.QuestionCoverage{
 			{Question: "roots", Scope: ".", Coverage: mapdoc.Coverage{
-				Status: rootsStatus,
-				Reasons: func() []string {
-					if discResult.Partial {
-						return []string{discResult.PartialReason}
-					}
-					return []string{}
-				}(),
+				Status:  rootsStatus,
+				Reasons: rootsReasons,
 			}},
 			{Question: "residual", Scope: ".", Coverage: mapdoc.Coverage{Status: residualDoc.Status, Reasons: []string{}}},
 			{Question: "environment_trees", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}},
@@ -270,13 +308,23 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 	return err
 }
 
+// rootMapResult holds the outcome of a single-root map build.
+type rootMapResult struct {
+	Map            *mapdoc.Document
+	Status         string // "ok" or "failed"
+	Reason         string // stable reason string when Status == "failed"
+	CommittedFiles int64  // from map's Discovery.Inventory when available
+}
+
 // buildRootMap runs a Git-mode map on a single discovered root.
-func buildRootMap(ctx context.Context, rootPath string, settings resolvedMapSettings) (*mapdoc.Document, error) {
+// It always uses Source: "git" to ensure committed-tree scanning regardless of
+// whether the root is a bare repo or a working tree.
+func buildRootMap(ctx context.Context, rootPath string, settings resolvedMapSettings) rootMapResult {
 	deployObserver := deployables.NewCollector(deployables.Options{})
 	intentObserver := intentmap.New(intentmap.Options{})
 	hooks := append(detectors.Default(), deployObserver, intentObserver)
 	report, err := scanner.Scan(ctx, rootPath, scanner.Options{
-		Source:              "auto",
+		Source:              "git",
 		ErrorPolicy:         scanner.ErrorPolicyContinue,
 		Workers:             settings.Workers,
 		MaxTreeSize:         settings.MaxFiles,
@@ -291,23 +339,47 @@ func buildRootMap(ctx context.Context, rootPath string, settings resolvedMapSett
 		Registries:          true,
 	})
 	if err != nil {
-		return nil, err
+		return rootMapResult{Status: "failed", Reason: classifyMapError(err)}
 	}
 	if report.Declarations != nil {
 		intentObserver.AddDeclarations(report.Declarations.Projects)
 	}
 	intentReport, err := intentObserver.Finish(ctx)
 	if err != nil {
-		return nil, err
+		return rootMapResult{Status: "failed", Reason: "intent_finish_error"}
 	}
 	doc, err := mapbuild.Build(report, mapbuild.Options{
 		Deployables: deployObserver.Finish(),
 		Intent:      intentReport,
 	})
 	if err != nil {
-		return nil, err
+		return rootMapResult{Status: "failed", Reason: "mapbuild_error"}
 	}
-	return &doc, nil
+	committed := int64(0)
+	if report.Discovery != nil {
+		committed = report.Discovery.Inventory.Files
+	}
+	return rootMapResult{Map: &doc, Status: "ok", CommittedFiles: committed}
+}
+
+// classifyMapError returns a stable, path-free reason string for a map build error.
+func classifyMapError(err error) string {
+	if err == nil {
+		return ""
+	}
+	msg := err.Error()
+	switch {
+	case strings.Contains(msg, "no git repository"):
+		return "no_git_repository"
+	case strings.Contains(msg, "HEAD"):
+		return "head_unresolvable"
+	case strings.Contains(msg, "tree size"):
+		return "tree_size_limit"
+	case strings.Contains(msg, "timeout") || strings.Contains(msg, "context"):
+		return "timeout"
+	default:
+		return "scan_error"
+	}
 }
 
 // writeForestSummary writes a one-screen human-readable summary of a forest.
@@ -341,7 +413,7 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 			remoteHost := ""
 			for _, rem := range r.Remotes {
 				if rem.Name == "origin" || remoteHost == "" {
-					remoteHost = extractHost(rem.URL)
+					remoteHost = extractRemoteLabel(rem)
 				}
 			}
 
@@ -464,7 +536,15 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 	return err
 }
 
-func extractHost(u string) string {
+// extractRemoteLabel returns a short display label for a remote (host or "local").
+func extractRemoteLabel(rem forest.Remote) string {
+	if rem.Kind == "local_path" {
+		return "local"
+	}
+	if rem.URL == nil {
+		return ""
+	}
+	u := *rem.URL
 	// For scp-like: host:path
 	if !strings.Contains(u, "://") {
 		if colon := strings.IndexByte(u, ':'); colon >= 0 {
@@ -481,6 +561,16 @@ func extractHost(u string) string {
 		return rest
 	}
 	return u
+}
+
+// containsString reports whether s is in slice.
+func containsString(slice []string, s string) bool {
+	for _, v := range slice {
+		if v == s {
+			return true
+		}
+	}
+	return false
 }
 
 func truncate(s string, n int) string {

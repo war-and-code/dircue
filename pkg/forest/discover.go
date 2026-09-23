@@ -39,8 +39,126 @@ const (
 
 // Remote holds one stripped Git remote.
 type Remote struct {
-	Name string `json:"name"`
-	URL  string `json:"url"`
+	Name     string  `json:"name"`
+	Kind     string  `json:"kind,omitempty"`     // "local_path" when the URL is a local filesystem path
+	URL      *string `json:"url"`                // nil when redacted (local path outside forest root)
+	Redacted bool    `json:"redacted,omitempty"` // true when URL is a local path outside the forest root
+}
+
+// IsLocalRemoteURL reports whether u is a local filesystem path or a file:// URL.
+func IsLocalRemoteURL(u string) bool {
+	if strings.HasPrefix(u, "/") {
+		return true
+	}
+	if strings.HasPrefix(u, "./") || strings.HasPrefix(u, "../") {
+		return true
+	}
+	if strings.HasPrefix(u, "file://") {
+		return true
+	}
+	// Windows absolute: C:/ or C:\ or UNC \\host\share
+	if len(u) >= 3 && u[1] == ':' && (u[2] == '/' || u[2] == '\\') {
+		return true
+	}
+	if strings.HasPrefix(u, "\\\\") {
+		return true
+	}
+	return false
+}
+
+// resolveLocalRemotePath converts a local remote URL to an absolute filesystem path.
+// baseDir is the working directory of the git root (not the .git dir).
+func resolveLocalRemotePath(u, baseDir string) string {
+	if strings.HasPrefix(u, "file://") {
+		// file:///path → /path  OR  file://localhost/path → /path
+		rest := strings.TrimPrefix(u, "file://")
+		if strings.HasPrefix(rest, "/") {
+			return filepath.FromSlash(rest)
+		}
+		if idx := strings.IndexByte(rest, '/'); idx >= 0 {
+			return filepath.FromSlash(rest[idx:])
+		}
+		return filepath.FromSlash(rest)
+	}
+	if filepath.IsAbs(u) {
+		return filepath.FromSlash(u)
+	}
+	// relative path: resolve relative to the working directory
+	return filepath.Clean(filepath.Join(baseDir, filepath.FromSlash(u)))
+}
+
+// ClassifyRemote inspects rem's URL for a local filesystem path and, if found,
+// either converts it to a root-relative path (inside forestRootAbs) or redacts it.
+// rootWorkdirAbs is the absolute path of the git working tree for this root.
+func ClassifyRemote(rem Remote, forestRootAbs, rootWorkdirAbs string) Remote {
+	if rem.URL == nil || !IsLocalRemoteURL(*rem.URL) {
+		return rem
+	}
+	absPath := resolveLocalRemotePath(*rem.URL, rootWorkdirAbs)
+	// Ensure forestRootAbs ends with separator for prefix check.
+	rootPrefix := forestRootAbs
+	if !strings.HasSuffix(rootPrefix, string(filepath.Separator)) {
+		rootPrefix += string(filepath.Separator)
+	}
+	rem.Kind = "local_path"
+	if strings.HasPrefix(absPath, rootPrefix) || absPath == forestRootAbs {
+		rel, err := filepath.Rel(forestRootAbs, absPath)
+		if err == nil {
+			relSlash := filepath.ToSlash(rel)
+			rem.URL = &relSlash
+		} else {
+			rem.URL = nil
+			rem.Redacted = true
+		}
+	} else {
+		rem.URL = nil
+		rem.Redacted = true
+	}
+	return rem
+}
+
+// WorkingTreeCounts holds per-root filesystem entry counts for a working tree.
+type WorkingTreeCounts struct {
+	Regular  int64 // regular files (excluding .git and env tree subtrees)
+	Symlinks int64 // symbolic links
+	Special  int64 // FIFOs, sockets, devices
+}
+
+// CountWorkingTreeFiles walks dirPath inside root and counts filesystem entries by type.
+// excludedForestPaths is a set of paths (relative to the forest root, using forward slashes)
+// that should be skipped entirely (e.g., env tree directories inside this root).
+func CountWorkingTreeFiles(root *os.Root, dirPath string, excludedForestPaths map[string]bool) WorkingTreeCounts {
+	var counts WorkingTreeCounts
+	dirFS := root.FS()
+	_ = fs.WalkDir(dirFS, dirPath, func(p string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return nil
+		}
+		if p == dirPath {
+			return nil
+		}
+		name := path.Base(p)
+		if d.IsDir() {
+			if name == ".git" {
+				return fs.SkipDir
+			}
+			if excludedForestPaths[p] {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		typ := d.Type()
+		switch {
+		case typ&fs.ModeSymlink != 0:
+			counts.Symlinks++
+		case typ&(fs.ModeNamedPipe|fs.ModeSocket|fs.ModeDevice|fs.ModeCharDevice) != 0:
+			counts.Special++
+		case typ.IsRegular():
+			counts.Regular++
+		}
+		return nil
+	})
+	return counts
 }
 
 // RootIdentity holds the resolved identity of a discovered Git root.
@@ -460,7 +578,7 @@ func parseGitConfigRemotes(data []byte) []Remote {
 			if key == "url" && !seen[currentRemote] {
 				seen[currentRemote] = true
 				stripped := StripCredentials(value)
-				remotes = append(remotes, Remote{Name: currentRemote, URL: stripped})
+				remotes = append(remotes, Remote{Name: currentRemote, URL: &stripped})
 			}
 		}
 	}

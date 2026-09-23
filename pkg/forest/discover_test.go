@@ -363,23 +363,33 @@ func TestParseGitConfigRemotes(t *testing.T) {
 	}
 	// The canary must not appear in any remote URL.
 	for _, rem := range r.Remotes {
-		if strings.Contains(rem.URL, "canary") {
-			t.Errorf("canary token found in remote URL: %q", rem.URL)
-		}
-		if strings.Contains(rem.URL, "user:") {
-			t.Errorf("credentials found in remote URL: %q", rem.URL)
+		if rem.URL != nil {
+			if strings.Contains(*rem.URL, "canary") {
+				t.Errorf("canary token found in remote URL: %q", *rem.URL)
+			}
+			if strings.Contains(*rem.URL, "user:") {
+				t.Errorf("credentials found in remote URL: %q", *rem.URL)
+			}
 		}
 	}
 	// origin should have been stripped.
 	for _, rem := range r.Remotes {
 		if rem.Name == "origin" {
-			if rem.URL != "https://github.com/org/repo.git" {
-				t.Errorf("origin URL: want %q, got %q", "https://github.com/org/repo.git", rem.URL)
+			if rem.URL == nil || *rem.URL != "https://github.com/org/repo.git" {
+				got := "<nil>"
+				if rem.URL != nil {
+					got = *rem.URL
+				}
+				t.Errorf("origin URL: want %q, got %q", "https://github.com/org/repo.git", got)
 			}
 		}
 		if rem.Name == "upstream" {
-			if rem.URL != "github.com:upstream/repo.git" {
-				t.Errorf("upstream URL: want %q, got %q", "github.com:upstream/repo.git", rem.URL)
+			if rem.URL == nil || *rem.URL != "github.com:upstream/repo.git" {
+				got := "<nil>"
+				if rem.URL != nil {
+					got = *rem.URL
+				}
+				t.Errorf("upstream URL: want %q, got %q", "github.com:upstream/repo.git", got)
 			}
 		}
 	}
