@@ -308,6 +308,16 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		ResidualTotals:   residualTotals,
 	}
 
+	// As with a map document, the forest status is the weakest question
+	// status, so a complete forest never hides a partial answer.
+	for _, q := range doc.Coverage {
+		switch {
+		case q.Status == mapdoc.CoverageUnknown && doc.Status == mapdoc.CoverageComplete:
+			doc.Status = mapdoc.CoveragePartial
+		case q.Status == mapdoc.CoveragePartial && doc.Status == mapdoc.CoverageComplete:
+			doc.Status = mapdoc.CoveragePartial
+		}
+	}
 	if summary || !opts.json && isTerminalWriter(cmd.OutOrStdout()) {
 		return writeForestSummary(cmd.OutOrStdout(), doc)
 	}
