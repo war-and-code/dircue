@@ -3,7 +3,6 @@ package mapbuild
 import (
 	"path"
 	"slices"
-	"strconv"
 	"strings"
 
 	"dircue/pkg/deployables"
@@ -174,35 +173,3 @@ func intentEvidence(o intentmap.Observation) mapdoc.Evidence {
 	}
 	return item
 }
-
-func countKind(d mapdoc.Document, kind mapdoc.NodeKind) int {
-	count := 0
-	for _, n := range d.Nodes {
-		if n.Kind == kind {
-			count++
-		}
-	}
-	return count
-}
-
-func countProperty(d mapdoc.Document, kind mapdoc.NodeKind, key, value string) int {
-	count := 0
-	for _, n := range d.Nodes {
-		if n.Kind == kind && n.Properties[key] == value {
-			count++
-		}
-	}
-	return count
-}
-
-func countEdges(d mapdoc.Document, typ mapdoc.EdgeType) int {
-	count := 0
-	for _, e := range d.Edges {
-		if e.Type == typ {
-			count++
-		}
-	}
-	return count
-}
-
-func countString(v int) string { return strconv.Itoa(v) }
