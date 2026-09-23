@@ -73,7 +73,7 @@ func TestCommandHintsPreserveExplicitAndExistingPaths(t *testing.T) {
 			}
 		}
 	}
-	for _, token := range []string{"languages", "analyse", "plan", "capabilities", "compare", "-odd"} {
+	for _, token := range []string{"languages", "analyse", "plan", "capabilities", "compare", "map", "-odd"} {
 		if err := os.Mkdir(token, 0700); err != nil {
 			t.Fatal(err)
 		}

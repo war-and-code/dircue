@@ -16,7 +16,7 @@ import (
 // nearbyName because isTypoCandidate rejects them at the caller, and
 // nearbyName itself refuses ties and inputs over 64 bytes.
 func TestNearbyNameEditDistance(t *testing.T) {
-	subcommands := []string{"analyze", "capabilities", "compare", "help", "plan"}
+	subcommands := []string{"analyze", "capabilities", "compare", "help", "map", "plan"}
 	analyzers := []string{"availability", "declarations", "discovery", "environments", "focus", "formats", "metrics", "structure"}
 	enumSource := []string{"auto", "git", "directory"}
 	enumOnError := []string{"fail", "continue"}
@@ -28,6 +28,7 @@ func TestNearbyNameEditDistance(t *testing.T) {
 	}{
 		{"exact", "plan", subcommands, "plan"},
 		{"one_edit_subcommand", "plann", subcommands, "plan"},
+		{"one_edit_map_subcommand", "maps", subcommands, "map"},
 		{"one_edit_source", "sourc", enumSource, ""},
 		{"typo_source_delete", "gt", enumSource, "git"},
 		{"typo_source_substitution", "atuo", enumSource, "auto"},
@@ -100,6 +101,7 @@ func TestUnknownFirstTokenSuggestsSubcommand(t *testing.T) {
 	}{
 		{"plann", "if you intended the command, use: dircue plan --help"},
 		{"capabilties", "if you intended the command, use: dircue capabilities --help"},
+		{"maps", "if you intended the command, use: dircue map --help"},
 	} {
 		_, _, err := invoke(tc.token)
 		if err == nil || !strings.Contains(err.Error(), tc.want) {

@@ -276,7 +276,7 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
 	case "map":
-		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. Named resource flags override --set, which overrides --preset. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, and noir-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
+		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. Named resource flags override --set, which overrides --preset. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, noir-json, and bifrost-code-query-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
 	case "route":
 		r = append(r, "Exactly one saved map document; inherited source scan flags are rejected. Output plans are inert templates with placeholders and require caller validation before execution.")
 	case "locate":
