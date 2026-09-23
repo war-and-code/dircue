@@ -23,7 +23,7 @@ const (
 )
 
 type reportIdentity struct {
-	Tree, Algorithm, Scope, Digest string
+	Tree, Commit, Algorithm, Scope, Digest string
 }
 
 func join(ctx context.Context, in Input, attachments []Attachment, opts Options) (Result, error) {
@@ -41,7 +41,7 @@ func join(ctx context.Context, in Input, attachments []Attachment, opts Options)
 		if err := ctx.Err(); err != nil {
 			return Result{}, err
 		}
-		data, err := readBounded(a.Path, opts.MaxReportBytes)
+		data, err := readBounded(ctx, a.Path, opts.MaxReportBytes)
 		if err != nil {
 			return Result{}, fmt.Errorf("attach %s: %w", a.Kind, err)
 		}
@@ -112,16 +112,44 @@ func deduplicateResult(r *Result) error {
 	return nil
 }
 
-func readBounded(filename string, limit int64) ([]byte, error) {
-	f, err := os.Open(filename)
+func readBounded(ctx context.Context, filename string, limit int64) ([]byte, error) {
+	info, err := os.Lstat(filename)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("report must be a regular file")
+	}
+	f, err := openReportFile(filename)
 	if err != nil {
 		return nil, err
 	}
 	defer f.Close()
-	r := io.LimitReader(f, limit+1)
-	b, err := io.ReadAll(r)
+	info, err = f.Stat()
 	if err != nil {
 		return nil, err
+	}
+	if !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("report must be a regular file")
+	}
+	var b []byte
+	buf := make([]byte, 32*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		remaining := limit + 1 - int64(len(b))
+		if remaining <= 0 {
+			break
+		}
+		n, readErr := f.Read(buf[:min(int64(len(buf)), remaining)])
+		b = append(b, buf[:n]...)
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return nil, readErr
+		}
 	}
 	if int64(len(b)) > limit {
 		return nil, fmt.Errorf("report exceeds %d-byte limit", limit)
@@ -142,6 +170,16 @@ func decodeOne(data []byte, dst any) error {
 }
 
 func binding(in Snapshot, id reportIdentity) (Binding, string) {
+	comparable := false
+	if id.Commit != "" {
+		if in.Commit == "" {
+			return BindingUnknown, "selected_snapshot_has_no_commit"
+		}
+		comparable = true
+		if !strings.EqualFold(id.Commit, in.Commit) {
+			return BindingMismatch, "report_commit_mismatch"
+		}
+	}
 	if id.Tree != "" {
 		if in.Mode != "git" || in.Tree == "" {
 			return BindingUnknown, "report_tree_cannot_bind_selected_snapshot"
@@ -149,7 +187,7 @@ func binding(in Snapshot, id reportIdentity) (Binding, string) {
 		if id.Tree != in.Tree {
 			return BindingMismatch, "report_tree_mismatch"
 		}
-		return BindingVerified, ""
+		comparable = true
 	}
 	if id.Digest != "" {
 		if in.Digest == nil || in.Digest.Value == "" {
@@ -158,9 +196,44 @@ func binding(in Snapshot, id reportIdentity) (Binding, string) {
 		if !strings.EqualFold(id.Algorithm, in.Digest.Algorithm) || id.Scope != in.Digest.Scope || !strings.EqualFold(id.Digest, in.Digest.Value) {
 			return BindingMismatch, "report_digest_mismatch"
 		}
+		comparable = true
+	}
+	if comparable {
 		return BindingVerified, ""
 	}
+	if in.CallerAsserted {
+		return BindingCallerAsserted, "caller_asserted_report_binding"
+	}
 	return BindingUnknown, "report_has_no_snapshot_identity"
+}
+
+// qualifyUnbound downgrades every claim derived from a report unless its source
+// binding is verified. A caller assertion records provenance without upgrading
+// coverage to verified.
+func qualifyUnbound(r *Result) {
+	verified := len(r.Ledger) > 0
+	for _, entry := range r.Ledger {
+		verified = verified && entry.Binding == BindingVerified
+	}
+	if verified {
+		return
+	}
+	for i := range r.Nodes {
+		n := &r.Nodes[i]
+		if n.Coverage.Status == mapdoc.CoverageComplete {
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"report_snapshot_not_verified"}}
+		}
+		for j := range n.Facts {
+			if n.Facts[j].Coverage.Status == mapdoc.CoverageComplete {
+				n.Facts[j].Coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"report_snapshot_not_verified"}}
+			}
+		}
+	}
+	for i := range r.Edges {
+		if r.Edges[i].Coverage.Status == mapdoc.CoverageComplete {
+			r.Edges[i].Coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"report_snapshot_not_verified"}}
+		}
+	}
 }
 
 func cleanReportPath(v string) (string, bool) {
@@ -212,6 +285,7 @@ func fallbackVersion(v string) string {
 }
 
 func merge(dst *Result, src Result) {
+	qualifyUnbound(&src)
 	dst.Nodes = append(dst.Nodes, src.Nodes...)
 	dst.Edges = append(dst.Edges, src.Edges...)
 	dst.Diagnostics = append(dst.Diagnostics, src.Diagnostics...)
@@ -253,7 +327,7 @@ func coverageFor(r Result) []mapdoc.QuestionCoverage {
 	return []mapdoc.QuestionCoverage{
 		{Question: "packages", Scope: ".", Coverage: mapdoc.Coverage{Status: packageStatus, Reasons: packageReasons}},
 		{Question: "analyzer_coverage", Scope: ".", Coverage: mapdoc.Coverage{Status: analyzerStatus, Reasons: analyzerReasons}},
-		{Question: "routing", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}},
+		{Question: "routing", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"routing_templates_do_not_prove_execution"}}},
 	}
 }
 

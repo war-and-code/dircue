@@ -79,6 +79,59 @@ func TestMismatchAndUnboundDirectoryStayQualified(t *testing.T) {
 	}
 }
 
+func TestSyftWrongCommitFactsAndEdgesAreNeverComplete(t *testing.T) {
+	body := `{"descriptor":{"name":"syft","version":"1"},"source":{"metadata":{"dircue_snapshot_commit":"deadbeef"}},"artifacts":[{"id":"a","name":"demo","version":"1","type":"npm","locations":[{"path":"package.json"}]}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Nodes) < 2 || r.Ledger[0].Binding != providerjoin.BindingMismatch {
+		t.Fatalf("ledger/nodes = %+v / %d", r.Ledger, len(r.Nodes))
+	}
+	for _, n := range r.Nodes {
+		if n.Coverage.Status == mapdoc.CoverageComplete {
+			t.Fatalf("mismatched node has complete coverage: %+v", n)
+		}
+		for _, f := range n.Facts {
+			if f.Coverage.Status == mapdoc.CoverageComplete {
+				t.Fatalf("mismatched fact has complete coverage: %+v", f)
+			}
+		}
+	}
+	for _, e := range r.Edges {
+		if e.Coverage.Status == mapdoc.CoverageComplete {
+			t.Fatalf("mismatched edge has complete coverage: %+v", e)
+		}
+	}
+}
+
+func TestSARIFStandardRevisionProvenanceAndEncodedPath(t *testing.T) {
+	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint"}},"versionControlProvenance":[{"repositoryUri":"https://example.test/repo","revisionId":"abc123"}],"artifacts":[{"location":{"uri":"services%2Fapi%2Fmain.go"}},{"location":{"uri":"%2e%2e%2f%2e%2e%2fprivate.txt"}}]}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "abc123"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Ledger[0].Binding != providerjoin.BindingVerified || len(r.Ledger[0].CoveredFiles) != 1 || r.Ledger[0].CoveredFiles[0] != "services/api/main.go" {
+		t.Fatalf("ledger = %+v", r.Ledger[0])
+	}
+}
+
+func TestCallerAssertedBindingDoesNotUpgradeCoverage(t *testing.T) {
+	body := `{"descriptor":{"name":"syft"},"artifacts":[{"id":"a","name":"demo","type":"npm"}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory", CallerAsserted: true}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Ledger[0].Binding != providerjoin.BindingCallerAsserted {
+		t.Fatalf("binding = %s", r.Ledger[0].Binding)
+	}
+	for _, n := range r.Nodes {
+		if n.Coverage.Status == mapdoc.CoverageComplete {
+			t.Fatalf("assertion upgraded node coverage: %+v", n)
+		}
+	}
+}
+
 func TestSyftDuplicateCoordinatesRemainDistinctWithoutRelativeLocations(t *testing.T) {
 	report := `{"descriptor":{"name":"syft","version":"1"},"artifacts":[` +
 		`{"id":"first","name":"demo","version":"1","type":"go-module","purl":"pkg:golang/demo@1","locations":[{"path":"/absolute/one"}]},` +

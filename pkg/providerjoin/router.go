@@ -1,6 +1,7 @@
 package providerjoin
 
 import (
+	"path"
 	"sort"
 	"strings"
 
@@ -34,6 +35,9 @@ func Route(in Input) []Plan {
 	repositoryLanguages := []string{}
 	for _, n := range in.Nodes {
 		if n.Kind == mapdoc.NodeComponent {
+			if routeAuxiliaryComponent(n) {
+				continue
+			}
 			components = append(components, n)
 		}
 		if n.Kind == mapdoc.NodeContent {
@@ -56,6 +60,9 @@ func Route(in Input) []Plan {
 			scope = root
 		} else if len(c.Paths) > 0 {
 			scope = c.Paths[0]
+		}
+		if strings.HasPrefix(scope, "-") {
+			scope = "./" + scope
 		}
 		languages := routerLanguages(c.Properties["language"])
 		ecosystem := strings.ToLower(strings.TrimSpace(c.Properties["ecosystem"]))
@@ -84,6 +91,37 @@ func Route(in Input) []Plan {
 		}
 	}
 	return dedupePlans(out)
+}
+
+func routeAuxiliaryComponent(n mapdoc.Node) bool {
+	declared := strings.ToLower(strings.TrimSpace(n.Properties["role"]))
+	if declared == "" || n.Properties["role_basis"] != "path_name" {
+		return false
+	}
+	for _, value := range n.Paths {
+		clean := strings.ToLower(strings.ReplaceAll(value, "\\", "/"))
+		for _, segment := range strings.Split(clean, "/") {
+			var derived string
+			switch segment {
+			case "vendor", "node_modules", "third_party":
+				derived = "vendored"
+			case "fixtures", "testdata", "__fixtures__":
+				derived = "fixture"
+			case "examples", "samples":
+				derived = "example"
+			case "test", "tests", "__tests__":
+				derived = "test"
+			}
+			if derived != "" {
+				return derived == declared
+			}
+		}
+		base := path.Base(clean)
+		if strings.Contains(base, ".tests.") || strings.HasSuffix(base, "test.csproj") || strings.HasSuffix(base, "tests.csproj") || strings.HasSuffix(base, "test.vbproj") || strings.HasSuffix(base, "tests.vbproj") {
+			return declared == "test"
+		}
+	}
+	return false
 }
 
 func unverifiedPlan(tool, componentID, reason, scope, reportKind string) Plan {

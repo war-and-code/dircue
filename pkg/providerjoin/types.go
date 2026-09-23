@@ -17,9 +17,11 @@ type Attachment struct {
 }
 
 type Snapshot struct {
-	Mode   string
-	Tree   string
-	Digest *mapdoc.Digest
+	Mode           string
+	Tree           string
+	Commit         string
+	Digest         *mapdoc.Digest
+	CallerAsserted bool
 }
 
 type Input struct {
@@ -42,9 +44,10 @@ type Diagnostic struct {
 type Binding string
 
 const (
-	BindingVerified Binding = "verified"
-	BindingMismatch Binding = "mismatch"
-	BindingUnknown  Binding = "unknown"
+	BindingVerified       Binding = "verified"
+	BindingMismatch       Binding = "mismatch"
+	BindingUnknown        Binding = "unknown"
+	BindingCallerAsserted Binding = "caller_asserted"
 )
 
 type CoverageEntry struct {
