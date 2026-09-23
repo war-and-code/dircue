@@ -198,7 +198,7 @@ func parseYAML(name string, content []byte) ([]Definition, bool, error) {
 			if strings.Contains(name, "/templates/") && strings.Contains(string(content), "{{") {
 				api, kind := literalField(content, "apiVersion"), literalField(content, "kind")
 				if api != "" && kind != "" {
-					d := Definition{Kind: "workload", Provider: "helm-template", Name: bounded(kind), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: api, Line: lineOf(content, "apiVersion:"), Basis: "literal-template-field"}, {Field: "kind", Value: kind, Line: lineOf(content, "kind:"), Basis: "literal-template-field"}}, References: []Reference{{Kind: "template_expression", Value: "unexpanded", Qualification: "unresolved", Evidence: Evidence{Field: "template", Basis: "helm-template-not-rendered"}}}}
+					d := Definition{Kind: kubernetesDefinitionKind(kind), Provider: "helm-template", Name: bounded(kind), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: api, Line: lineOf(content, "apiVersion:"), Basis: "literal-template-field"}, {Field: "kind", Value: kind, Line: lineOf(content, "kind:"), Basis: "literal-template-field"}}, References: []Reference{{Kind: "template_expression", Value: "unexpanded", Qualification: "unresolved", Evidence: Evidence{Field: "template", Basis: "helm-template-not-rendered"}}}}
 					return []Definition{d}, true, nil
 				}
 			}
@@ -244,7 +244,7 @@ func parseYAMLDocument(name string, doc map[interface{}]interface{}, content []b
 		return resourceDefinition(doc, content, "workflow", "tekton", kind)
 	}
 	if api != "" && kind != "" {
-		return resourceDefinition(doc, content, "workload", "kubernetes", kind)
+		return resourceDefinition(doc, content, kubernetesDefinitionKind(kind), "kubernetes", kind)
 	}
 	if _, ok := lookup(doc, "Resources"); ok {
 		return cloudFormationDefinitions(doc, content)
@@ -513,16 +513,34 @@ func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, p
 		return nil, false, nil
 	}
 	d := Definition{Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified", Evidence: []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}}, References: []Reference{}}
-	if spec, ok := object(doc, "spec"); ok {
-		for _, image := range kubernetesImages(spec, 0) {
-			q := "external"
-			if dynamic(image) {
-				q = "unresolved"
+	if provider == "tekton" || (provider == "kubernetes" && kind == "workload") {
+		if spec, ok := object(doc, "spec"); ok {
+			for _, image := range kubernetesImages(spec, 0) {
+				q := "external"
+				if dynamic(image) {
+					q = "unresolved"
+				}
+				d.References = append(d.References, Reference{Kind: "image", Value: bounded(image), Qualification: q, Evidence: Evidence{Field: "image", Value: bounded(image), Line: lineOf(content, "image:"), Basis: "kubernetes-container-field"}})
 			}
-			d.References = append(d.References, Reference{Kind: "image", Value: bounded(image), Qualification: q, Evidence: Evidence{Field: "image", Value: bounded(image), Line: lineOf(content, "image:"), Basis: "kubernetes-container-field"}})
 		}
 	}
 	return []Definition{d}, true, nil
+}
+
+// kubernetesDefinitionKind separates known runtime workloads and Services
+// from known infrastructure resources. Unrecognized API kinds remain visible
+// as qualified generic resources instead of being assigned a guessed role.
+func kubernetesDefinitionKind(resourceKind string) string {
+	switch resourceKind {
+	case "Pod", "ReplicationController", "ReplicaSet", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob":
+		return "workload"
+	case "Service":
+		return "service"
+	case "ServiceAccount", "ConfigMap", "Secret", "Namespace", "PersistentVolume", "PersistentVolumeClaim", "StorageClass", "Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding", "NetworkPolicy":
+		return "infrastructure"
+	default:
+		return "resource"
+	}
 }
 
 func kubernetesImages(value interface{}, depth int) []string {
