@@ -1215,7 +1215,7 @@
       "expected_nodes": [
         {
           "kind": "component",
-          "name": "pom",
+          "name": "spring-petclinic",
           "paths": [
             "pom.xml"
           ],
