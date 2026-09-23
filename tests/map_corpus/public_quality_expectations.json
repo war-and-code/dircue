@@ -290,6 +290,39 @@
           "evidence_paths": [
             "src/emailservice/requirements.txt"
           ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "emailservice",
+            "paths": [
+              "kubernetes-manifests/emailservice.yaml"
+            ],
+            "properties": {
+              "kind": "workload",
+              "provider": "kubernetes",
+              "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "root": "src/emailservice"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "kubernetes-manifests/emailservice.yaml",
+            "skaffold.yaml"
+          ]
         }
       ],
       "expected_coverage": [
@@ -370,7 +403,14 @@
           ".github/workflows/make-release.yaml",
           ".github/workflows/terraform-validate-ci.yaml"
         ]
-      }
+      },
+      "supporting_files": [
+        {
+          "path": "skaffold.yaml",
+          "sha256": "04ce2acc42fdcdc3378fdeda1e9a5769a307663e8d22306c1eb5d081c6627b08",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/skaffold.yaml"
+        }
+      ]
     },
     {
       "id": "eshop",
