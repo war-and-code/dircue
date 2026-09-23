@@ -116,6 +116,30 @@ func TestSignaturesAndHintsDoNotValidateArchives(t *testing.T) {
 		t.Fatal("out-of-bounds PE header accepted")
 	}
 }
+
+func TestAdditionalNonSourceHeadersRemainHeaderOnly(t *testing.T) {
+	tar := make([]byte, 512)
+	copy(tar[257:], "ustar\x00")
+	for _, tt := range []struct {
+		name   string
+		data   []byte
+		format string
+	}{
+		{"a.wasm", []byte("\x00asm\x01\x00\x00\x00"), "wasm"},
+		{"a.class", []byte("\xca\xfe\xba\xbe\x00\x00\x00\x3d"), "java_class"},
+		{"a.dylib", []byte("\xcf\xfa\xed\xfe"), "mach_o"},
+		{"a", []byte("\xca\xfe\xba\xbe\x00\x00\x00\x01"), "mach_o_fat"},
+		{"a.tar", tar, "tar"},
+	} {
+		o := inspect(tt.name, tt.data, true)
+		if !hasEvidence(o, tt.format, "signature_match") || hasEvidence(o, tt.format, "complete_validation") {
+			t.Fatalf("%s: expected a qualified header match: %+v", tt.name, o)
+		}
+	}
+	if hasEvidence(inspect("fake.class", []byte("hello"), true), "java_class", "signature_match") {
+		t.Fatal("extension-only class file was promoted to a signature match")
+	}
+}
 func TestTextScope(t *testing.T) {
 	for _, tt := range []struct {
 		data           []byte
