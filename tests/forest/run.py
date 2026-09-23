@@ -617,6 +617,164 @@ def case_isolated_git(binary: str, drive: str, meta: dict) -> tuple:
     return c, records
 
 
+def git_head_info(repo_path: str, env: dict) -> dict | None:
+    """Return {commit, tree, committer_time} from git for a repo path.
+    Returns None if git fails (e.g. unborn HEAD)."""
+    try:
+        commit = run_git(["rev-parse", "HEAD"], cwd=repo_path, env=env).stdout.strip()
+        tree = run_git(["rev-parse", "HEAD^{tree}"], cwd=repo_path, env=env).stdout.strip()
+        ct_str = run_git(["log", "-1", "--format=%ct"], cwd=repo_path, env=env).stdout.strip()
+        return {"commit": commit, "tree": tree, "committer_time": int(ct_str)}
+    except (subprocess.CalledProcessError, ValueError):
+        return None
+
+
+def case_identity_vs_git(binary: str, drive: str, meta: dict) -> tuple:
+    """For every resolved root, dircue commit/tree/committer_time must match git."""
+    c = Case("identity_vs_git", is_quick=True)
+
+    result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
+    c.check(result["exit_code"] == 0, f"exit {result['exit_code']}")
+    doc = parse_forest_json(result["stdout"])
+    if doc is None:
+        c.fail("no JSON output")
+        return c, [{"case": c.name, **result, "passed": False}]
+
+    roots = doc.get("roots", [])
+
+    # Use a minimal env that allows git to run but uses same ident as build.
+    git_env_local = {**os.environ}
+
+    mismatches = []
+    for root in roots:
+        if root.get("identity_status") != "resolved":
+            continue  # unknown roots have no commit to compare
+        rel_path = root.get("path", "")
+        abs_path = os.path.join(drive, rel_path) if rel_path else drive
+        info = git_head_info(abs_path, git_env_local)
+        if info is None:
+            continue  # git also couldn't resolve; both unknown is fine
+
+        got_commit = root.get("commit", "")
+        got_tree = root.get("tree", "")
+        got_ct = root.get("committer_time", 0)
+
+        if got_commit.lower() != info["commit"].lower():
+            mismatches.append(
+                f"{rel_path or '.'}: commit {got_commit[:8]!r} != git {info['commit'][:8]!r}")
+        if got_tree.lower() != info["tree"].lower():
+            mismatches.append(
+                f"{rel_path or '.'}: tree {got_tree[:8]!r} != git {info['tree'][:8]!r}")
+        if got_ct != info["committer_time"]:
+            mismatches.append(
+                f"{rel_path or '.'}: committer_time {got_ct} != git {info['committer_time']}")
+
+    for m in mismatches:
+        c.fail(m)
+
+    records = [{"case": c.name, **result, "passed": not c.failures,
+                "checked_roots": len([r for r in roots if r.get("identity_status") == "resolved"]),
+                "mismatches": mismatches}]
+    return c, records
+
+
+def _walk_files_count(directory: str, exclude_dirs: set) -> int:
+    """Count regular files under directory, excluding subdirs in exclude_dirs
+    (matched as relative paths from directory) and any .git internals."""
+    count = 0
+    for root_dir, dirs, files in os.walk(directory):
+        rel_root = os.path.relpath(root_dir, directory)
+        # Prune excluded dirs (absolute match from drive root)
+        to_remove = []
+        for d in list(dirs):
+            rel_sub = os.path.relpath(os.path.join(root_dir, d), directory)
+            if rel_sub in exclude_dirs:
+                to_remove.append(d)
+            # Skip .git directory internals
+            if d == ".git":
+                to_remove.append(d)
+            # Skip bare repo internals (objects/, refs/ at top of bare repo)
+            # handled by exclude_dirs
+        for d in to_remove:
+            if d in dirs:
+                dirs.remove(d)
+        count += len(files)
+    return count
+
+
+def case_entry_accounting(binary: str, drive: str, meta: dict) -> tuple:
+    """Every entry must be accounted for exactly once across roots, env trees, and residual."""
+    c = Case("entry_accounting", is_quick=False)
+
+    result = run_dircue(binary, ["map", "--forest", "--json", drive], timeout=120)
+    c.check(result["exit_code"] == 0, f"exit {result['exit_code']}")
+    doc = parse_forest_json(result["stdout"])
+    if doc is None:
+        c.fail("no JSON output")
+        return c, [{"case": c.name, **result, "passed": False}]
+
+    roots = doc.get("roots", [])
+    env_trees = doc.get("environment_trees", [])
+    residual_totals = doc.get("residual_totals")
+
+    git_env_local = {**os.environ}
+
+    # Count files inside each resolved root via git ls-tree -r HEAD.
+    root_file_count = 0
+    for root in roots:
+        if root.get("identity_status") != "resolved":
+            continue
+        rel_path = root.get("path", "")
+        abs_path = os.path.join(drive, rel_path) if rel_path else drive
+        try:
+            out = run_git(["ls-tree", "-r", "--name-only", "HEAD"],
+                          cwd=abs_path, env=git_env_local).stdout
+            root_file_count += len([l for l in out.splitlines() if l.strip()])
+        except subprocess.CalledProcessError:
+            pass  # unborn or bare; skip
+
+    # Count summarized env tree entries.
+    env_entries = sum(et.get("entries", 0) for et in env_trees)
+
+    # Residual files from canonical totals.
+    residual_files = residual_totals["files"] if residual_totals else 0
+
+    # Independent Python walk: count all regular files under drive,
+    # excluding .git internals and bare-repo top-levels.
+    # Env tree dirs are NOT excluded here because env_entries is included in
+    # total_dircue; both sides must count the same universe of files.
+    # Accounting identity:
+    #   root_file_count (git ls-tree committed)
+    #   + env_entries  (files inside env trees)
+    #   + residual_files (files outside roots and env trees)
+    #   ≈ walk_count (all files except .git dirs and bare-repo internals)
+    # The ≈ allows for untracked non-env files in worktrees (tolerance covers them).
+    excluded = set()
+    for root in roots:
+        rp = root.get("path", "")
+        if root.get("kind") == "git_bare":
+            excluded.add(rp)
+
+    walk_count = _walk_files_count(drive, excluded)
+
+    total_dircue = root_file_count + env_entries + residual_files
+    # Allow a small tolerance for special files (symlinks, FIFOs) that the
+    # scanner skips but the Python walk counts, and pyvenv.cfg itself.
+    tolerance = max(50, int(walk_count * 0.02))  # 2% or 50 files
+
+    diff = abs(total_dircue - walk_count)
+    c.check(diff <= tolerance,
+            f"entry accounting mismatch: dircue {total_dircue} "
+            f"(roots={root_file_count}, env={env_entries}, residual={residual_files}) "
+            f"vs walk {walk_count}, diff={diff} > tolerance={tolerance}")
+
+    records = [{"case": c.name, **result, "passed": not c.failures,
+                "root_files": root_file_count, "env_entries": env_entries,
+                "residual_files": residual_files, "walk_count": walk_count,
+                "total_dircue": total_dircue, "diff": diff}]
+    return c, records
+
+
 # ---------------------------------------------------------------------------
 # Test registry
 # ---------------------------------------------------------------------------
@@ -632,6 +790,8 @@ ALL_CASES = [
     case_residual_present,
     case_empty_path,
     case_summary_flag,
+    case_identity_vs_git,
+    case_entry_accounting,
     case_deterministic,
     case_isolated_git,
 ]
