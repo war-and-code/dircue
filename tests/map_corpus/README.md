@@ -133,8 +133,9 @@ each repository. The aggregate wall times were 18.64–18.98 seconds for
 `balanced`, 18.64–18.83 seconds for `fast`, and 25.75–26.08 seconds for
 `low-memory`. Maximum observed RSS across the corpus was 596–608 MiB for
 `balanced`, 638–669 MiB for `fast`, and 274–323 MiB for `low-memory`. `fast`
-was slightly slower in aggregate and used more memory, so it was removed; custom
-worker and Git-cache values remain available via `--set`. On this corpus,
+showed no consistent or material speed improvement and used more memory, so it
+was removed; custom worker and Git-cache values remain available via `--set`.
+On this corpus,
 `low-memory` traded roughly 38% more wall time for about half the maximum RSS.
 These are warm-cache observations on one machine, without approved thresholds;
 they are not portable performance or memory guarantees. The measured binary

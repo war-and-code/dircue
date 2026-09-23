@@ -158,7 +158,8 @@ claim. Effective settings are available from `map settings`;
 they are omitted from the map document so worker-only choices preserve JSON bytes.
 
 The `fast` preset was removed after a three-run scan of the pinned 21-repository
-corpus on one Apple Silicon host showed no aggregate speed benefit: it took
+corpus on one Apple Silicon host showed no consistent or material aggregate
+speed improvement: it took
 18.64–18.83 seconds versus 18.64–18.98 seconds for `balanced`, while its maximum
 observed RSS was 638–669 MiB versus 596–608 MiB. The `low-memory` preset took
 25.75–26.08 seconds and reduced maximum observed RSS to 274–323 MiB on that
