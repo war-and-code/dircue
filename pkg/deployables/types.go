@@ -71,7 +71,7 @@ type Reference struct {
 // provisioned resource, running service, effective permission, or network exposure.
 type Definition struct {
 	ID           string      `json:"id"`
-	Kind         string      `json:"kind"` // container_build, service, workload, infrastructure, workflow
+	Kind         string      `json:"kind"` // container_build, service, workload, infrastructure, workflow, resource
 	Provider     string      `json:"provider"`
 	Name         string      `json:"name"`
 	Path         string      `json:"path"`

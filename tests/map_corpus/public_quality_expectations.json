@@ -1,6 +1,6 @@
 {
   "schema": "dircue-public-map-quality-0.1",
-  "metric_scope": "Exact precision and recall over each entry\u2019s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
+  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
   "repositories": [
     {
       "id": "microservices-demo",
@@ -15,19 +15,9 @@
       ],
       "oracle_files": [
         {
-          "path": "src/emailservice/requirements.txt",
-          "sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
-          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt"
-        },
-        {
-          "path": "src/emailservice/Dockerfile",
-          "sha256": "210978a1c6e3bb24468a78a4274fa914d112dd6eda0d7af259277fc481344c98",
-          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/Dockerfile"
-        },
-        {
-          "path": "src/cartservice/src/Dockerfile",
-          "sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb",
-          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/Dockerfile"
+          "path": "kubernetes-manifests/cartservice.yaml",
+          "sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/kubernetes-manifests/cartservice.yaml"
         },
         {
           "path": "kubernetes-manifests/emailservice.yaml",
@@ -35,12 +25,60 @@
           "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/kubernetes-manifests/emailservice.yaml"
         },
         {
-          "path": "helm-chart/templates/emailservice.yaml",
-          "sha256": "8c9652d00d34dc75414b42b0885a03ffeda02b03ad403883195359f95afc2f25",
-          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/helm-chart/templates/emailservice.yaml"
+          "path": "src/cartservice/src/Dockerfile",
+          "sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/Dockerfile"
+        },
+        {
+          "path": "src/cartservice/src/cartservice.csproj",
+          "sha256": "256b767fad32bc8e0eeee598b695e820368774c1e7c503d101365404106509b5",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/cartservice.csproj"
+        },
+        {
+          "path": "src/cartservice/src/protos/Cart.proto",
+          "sha256": "4063800d81cf560f9756cc16b66ec38b6b5f6f5898061ac34d714f573f7b9a42",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/protos/Cart.proto"
+        },
+        {
+          "path": "src/emailservice/Dockerfile",
+          "sha256": "210978a1c6e3bb24468a78a4274fa914d112dd6eda0d7af259277fc481344c98",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/Dockerfile"
+        },
+        {
+          "path": "src/emailservice/requirements.txt",
+          "sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt"
         }
       ],
       "expected_nodes": [
+        {
+          "kind": "capability",
+          "name": "cache:redis",
+          "paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
+            "requirement_kind": "package-reference",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "Npgsql@10.0.3",
+            "requirement_kind": "package-reference",
+            "state": "declared"
+          }
+        },
         {
           "kind": "capability",
           "name": "net:http-client",
@@ -52,6 +90,20 @@
             "observation_kind": "capability",
             "requirement": "requests==2.32.5",
             "requirement_kind": "python-dependency",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "serialization:protobuf",
+          "paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "Protobuf",
+            "requirement_kind": "code-generation",
             "state": "declared"
           }
         },
@@ -71,6 +123,22 @@
         },
         {
           "kind": "component",
+          "name": "cartservice",
+          "paths": [
+            "src/cartservice/src",
+            "src/cartservice/src/cartservice.csproj"
+          ],
+          "properties": {
+            "ecosystem": "dotnet",
+            "language": "C#",
+            "language_basis": "project_file_extension",
+            "language_scope": "declared_primary_project_language",
+            "project_kind": "dotnet",
+            "root": "src/cartservice/src"
+          }
+        },
+        {
+          "kind": "component",
           "name": "emailservice",
           "paths": [
             "src/emailservice",
@@ -84,38 +152,38 @@
         },
         {
           "kind": "deployable",
-          "name": "emailservice",
+          "name": "cartservice",
           "paths": [
-            "kubernetes-manifests/emailservice.yaml"
+            "kubernetes-manifests/cartservice.yaml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "infrastructure",
             "provider": "kubernetes",
-            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
           }
         },
         {
           "kind": "deployable",
-          "name": "default",
+          "name": "cartservice",
           "paths": [
-            "src/cartservice/src/Dockerfile"
+            "kubernetes-manifests/cartservice.yaml"
           ],
           "properties": {
-            "kind": "container_build",
-            "provider": "dockerfile",
-            "source_sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb"
+            "kind": "service",
+            "provider": "kubernetes",
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
           }
         },
         {
           "kind": "deployable",
-          "name": "emailservice#document-3",
+          "name": "cartservice",
           "paths": [
-            "kubernetes-manifests/emailservice.yaml"
+            "kubernetes-manifests/cartservice.yaml"
           ],
           "properties": {
             "kind": "workload",
             "provider": "kubernetes",
-            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
           }
         },
         {
@@ -132,19 +200,43 @@
         },
         {
           "kind": "deployable",
-          "name": "ServiceAccount",
+          "name": "default",
           "paths": [
-            "helm-chart/templates/emailservice.yaml"
+            "src/cartservice/src/Dockerfile"
           ],
           "properties": {
-            "kind": "workload",
-            "provider": "helm-template",
-            "source_sha256": "8c9652d00d34dc75414b42b0885a03ffeda02b03ad403883195359f95afc2f25"
+            "kind": "container_build",
+            "provider": "dockerfile",
+            "source_sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb"
           }
         },
         {
           "kind": "deployable",
-          "name": "emailservice#document-2",
+          "name": "emailservice",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "service",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice",
           "paths": [
             "kubernetes-manifests/emailservice.yaml"
           ],
@@ -152,6 +244,89 @@
             "kind": "workload",
             "provider": "kubernetes",
             "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "redis-cart",
+          "paths": [
+            "kubernetes-manifests/cartservice.yaml"
+          ],
+          "properties": {
+            "kind": "service",
+            "provider": "kubernetes",
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "redis-cart",
+          "paths": [
+            "kubernetes-manifests/cartservice.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "hipstershop.CartService",
+          "paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ],
+          "properties": {
+            "basis": "declared_contract",
+            "interface_kind": "service",
+            "observation_kind": "interface",
+            "protocol": "protobuf",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "hipstershop.CartService/AddItem",
+          "paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ],
+          "properties": {
+            "basis": "declared_contract",
+            "interface_kind": "operation",
+            "observation_kind": "interface",
+            "protocol": "protobuf",
+            "state": "declared",
+            "service": "hipstershop.CartService"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "hipstershop.CartService/EmptyCart",
+          "paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ],
+          "properties": {
+            "basis": "declared_contract",
+            "interface_kind": "operation",
+            "observation_kind": "interface",
+            "protocol": "protobuf",
+            "state": "declared",
+            "service": "hipstershop.CartService"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "hipstershop.CartService/GetCart",
+          "paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ],
+          "properties": {
+            "basis": "declared_contract",
+            "interface_kind": "operation",
+            "observation_kind": "interface",
+            "protocol": "protobuf",
+            "state": "declared",
+            "service": "hipstershop.CartService"
           }
         }
       ],
@@ -224,6 +399,376 @@
           ]
         },
         {
+          "type": "contains",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice",
+              "src/cartservice/cartservice.sln"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "project_kind": "solution",
+              "root": "src/cartservice"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "properties": {
+            "declaration_kind": "root-containment",
+            "state": "inferred"
+          },
+          "evidence_paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "hipstershop.CartService",
+            "paths": [
+              "src/cartservice/src/protos/Cart.proto"
+            ],
+            "properties": {
+              "basis": "declared_contract",
+              "interface_kind": "service",
+              "observation_kind": "interface",
+              "protocol": "protobuf",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "hipstershop.CartService/AddItem",
+            "paths": [
+              "src/cartservice/src/protos/Cart.proto"
+            ],
+            "properties": {
+              "basis": "declared_contract",
+              "interface_kind": "operation",
+              "observation_kind": "interface",
+              "protocol": "protobuf",
+              "state": "declared",
+              "service": "hipstershop.CartService"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "hipstershop.CartService/EmptyCart",
+            "paths": [
+              "src/cartservice/src/protos/Cart.proto"
+            ],
+            "properties": {
+              "basis": "declared_contract",
+              "interface_kind": "operation",
+              "observation_kind": "interface",
+              "protocol": "protobuf",
+              "state": "declared",
+              "service": "hipstershop.CartService"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "hipstershop.CartService/GetCart",
+            "paths": [
+              "src/cartservice/src/protos/Cart.proto"
+            ],
+            "properties": {
+              "basis": "declared_contract",
+              "interface_kind": "operation",
+              "observation_kind": "interface",
+              "protocol": "protobuf",
+              "state": "declared",
+              "service": "hipstershop.CartService"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/protos/Cart.proto"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "cartservice",
+            "paths": [
+              "kubernetes-manifests/cartservice.yaml"
+            ],
+            "properties": {
+              "kind": "workload",
+              "provider": "kubernetes",
+              "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "kubernetes-manifests/cartservice.yaml",
+            "skaffold.yaml"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "emailservice",
+            "paths": [
+              "kubernetes-manifests/emailservice.yaml"
+            ],
+            "properties": {
+              "kind": "workload",
+              "provider": "kubernetes",
+              "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "root": "src/emailservice"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "kubernetes-manifests/emailservice.yaml",
+            "skaffold.yaml"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "cache:redis",
+            "paths": [
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
+              "requirement_kind": "package-reference",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:postgresql",
+            "paths": [
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "Npgsql@10.0.3",
+              "requirement_kind": "package-reference",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "serialization:protobuf",
+            "paths": [
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "Protobuf",
+              "requirement_kind": "code-generation",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/cartservice.csproj"
+          ]
+        },
+        {
           "type": "uses_capability",
           "from": {
             "kind": "component",
@@ -289,39 +834,6 @@
           "properties": {},
           "evidence_paths": [
             "src/emailservice/requirements.txt"
-          ]
-        },
-        {
-          "type": "runs",
-          "from": {
-            "kind": "deployable",
-            "name": "emailservice",
-            "paths": [
-              "kubernetes-manifests/emailservice.yaml"
-            ],
-            "properties": {
-              "kind": "workload",
-              "provider": "kubernetes",
-              "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
-            }
-          },
-          "to": {
-            "kind": "component",
-            "name": "emailservice",
-            "paths": [
-              "src/emailservice",
-              "src/emailservice/requirements.txt"
-            ],
-            "properties": {
-              "ecosystem": "python",
-              "project_kind": "python",
-              "root": "src/emailservice"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "kubernetes-manifests/emailservice.yaml",
-            "skaffold.yaml"
           ]
         }
       ],
@@ -406,9 +918,19 @@
       },
       "supporting_files": [
         {
+          "path": "helm-chart/templates/emailservice.yaml",
+          "sha256": "8c9652d00d34dc75414b42b0885a03ffeda02b03ad403883195359f95afc2f25",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/helm-chart/templates/emailservice.yaml"
+        },
+        {
           "path": "skaffold.yaml",
           "sha256": "04ce2acc42fdcdc3378fdeda1e9a5769a307663e8d22306c1eb5d081c6627b08",
           "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/skaffold.yaml"
+        },
+        {
+          "path": "src/cartservice/cartservice.sln",
+          "sha256": "5441a4749f82326525f1137a6dfdae7d9a0d68896f1059c6dbcdaa5ffcf8dc69",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/cartservice.sln"
         }
       ]
     },
@@ -1222,6 +1744,58 @@
           "question": "source_binding",
           "status": "complete"
         }
+      ],
+      "supporting_files": [
+        {
+          "path": "src/Catalog.API/Catalog.API.csproj",
+          "sha256": "75b3e506af2a29a4856c035e4874f4282c04bb0380cf18489656221f47c7d700",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Catalog.API/Catalog.API.csproj"
+        },
+        {
+          "path": "src/EventBusRabbitMQ/EventBusRabbitMQ.csproj",
+          "sha256": "cd72fd512488be76426a147e839efa65f13531dedadb6a05a8d6832250994cbc",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/EventBusRabbitMQ/EventBusRabbitMQ.csproj"
+        },
+        {
+          "path": "src/Identity.API/Identity.API.csproj",
+          "sha256": "ed70ecc1b47d9c4d286be5dae46dcba7cb4ce96fa9daa4ca308bae73bf3c85ab",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Identity.API/Identity.API.csproj"
+        },
+        {
+          "path": "src/OrderProcessor/OrderProcessor.csproj",
+          "sha256": "e9699b0c9c62632a10e105ea6d0c6318536575cd1333330e699152a8f8aaf200",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/OrderProcessor/OrderProcessor.csproj"
+        },
+        {
+          "path": "src/Ordering.API/Ordering.API.csproj",
+          "sha256": "e3ba30c993e36386beea033c379da325076333a9c9ab0497d1ba0ec0e3a2227f",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Ordering.API/Ordering.API.csproj"
+        },
+        {
+          "path": "src/PaymentProcessor/PaymentProcessor.csproj",
+          "sha256": "b7b453417acb8d406edb5073aabf7483bc9a18ac4f9367daef91b161c43d3f57",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/PaymentProcessor/PaymentProcessor.csproj"
+        },
+        {
+          "path": "src/WebApp/WebApp.csproj",
+          "sha256": "f985a38a16a47592df2a201c68c51c0a49e9745e31e1ace3c1c4d9af21bdea07",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/WebApp/WebApp.csproj"
+        },
+        {
+          "path": "src/WebhookClient/WebhookClient.csproj",
+          "sha256": "d105ed6a9a66e8b6bb1e1e79b6398dbff287c7ebbc2926cf90d3979c5df5b4e1",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/WebhookClient/WebhookClient.csproj"
+        },
+        {
+          "path": "src/Webhooks.API/Webhooks.API.csproj",
+          "sha256": "a2ec569a3946008a1aab9b666586b643cf27e9207cc471a8a2041ef548b685f9",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Webhooks.API/Webhooks.API.csproj"
+        },
+        {
+          "path": "src/eShop.ServiceDefaults/eShop.ServiceDefaults.csproj",
+          "sha256": "14d9f6aa35b60de92a730f9b12ec8ab236296e17a8e60882faa00e9d4b4a99a8",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/eShop.ServiceDefaults/eShop.ServiceDefaults.csproj"
+        }
       ]
     },
     {
@@ -1267,19 +1841,19 @@
         },
         {
           "kind": "deployable",
-          "name": "petclinic#document-2",
+          "name": "petclinic",
           "paths": [
             "k8s/petclinic.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "service",
             "provider": "kubernetes",
             "source_sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb"
           }
         },
         {
           "kind": "deployable",
-          "name": "demo-db#document-3",
+          "name": "demo-db",
           "paths": [
             "k8s/db.yml"
           ],
@@ -1303,12 +1877,12 @@
         },
         {
           "kind": "deployable",
-          "name": "demo-db#document-2",
+          "name": "demo-db",
           "paths": [
             "k8s/db.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "service",
             "provider": "kubernetes",
             "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
           }
@@ -1320,7 +1894,7 @@
             "k8s/db.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "infrastructure",
             "provider": "kubernetes",
             "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
           }
