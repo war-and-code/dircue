@@ -60,8 +60,32 @@ five-file, hash-pinned Linux-kernel slice lives in
 `tests/conformance/public_corpus.json`; it covers ambiguous Perl and the 50 KiB
 classifier window rather than claiming to represent the complete kernel.
 
-The optional fetch helper is manual and never runs in CI. It requires every
-repository ID explicitly and refuses to update or replace existing checkouts:
+An additional bounded quality gate measures exact precision and recall rather
+than extrapolating from targeted assertions. It labels every component,
+deployable, interface, capability, and evidenced edge emitted from 20 reviewed
+source paths, plus every coverage status. The eight entries include pinned
+microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example,
+Express, Flask, Helm examples, and the checked-in non-source fixture. Other map
+records remain outside the denominator and the report says so explicitly:
+
+```sh
+python3 tests/map_corpus/verify_public_quality.py \
+  --binary ./dircue \
+  --corpus-root /path/to/pinned-corpus \
+  --output .cache/public-map-quality.json
+```
+
+Each oracle path is content-hashed and linked to its exact upstream commit.
+The expectations cover multi-document Kubernetes, Python requirements-only
+components, Dockerfile-to-component build edges, .NET project relationships,
+declared Redis and event-bus capabilities, Terraform provider aliases, manifest
+interfaces, and honest partial/unknown coverage. This is a precise score for a
+reviewable slice, not a claim about every observation in the full repositories.
+
+The optional fetch helper requires every repository ID explicitly and refuses
+to update or replace existing checkouts. Ordinary push and pull-request CI does
+not fetch the public corpus; the event-driven `Public map quality` workflow runs
+it only when explicitly dispatched:
 
 ```sh
 python3 tests/map_corpus/fetch_public.py \
