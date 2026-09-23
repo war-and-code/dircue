@@ -196,7 +196,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			"schema_version": "1.0.0",
 			"kind":           "forest",
 			"status":         "complete",
-			"source":         map[string]any{"mode": "directory", "path": "/example"},
+			"source":         map[string]any{"mode": "directory", "path": "."},
 			"coverage": []map[string]any{
 				{"question": "roots", "scope": ".", "status": "complete", "reasons": []string{}},
 				{"question": "residual", "scope": ".", "status": "complete", "reasons": []string{}},

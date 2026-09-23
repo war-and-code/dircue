@@ -34,7 +34,7 @@
       "type": "object", "additionalProperties": false, "required": ["mode", "path"],
       "properties": {
         "mode": { "const": "directory" },
-        "path": { "$ref": "#/$defs/nonempty" },
+        "path": { "const": "." },
         "digest": {
           "type": "object", "additionalProperties": false, "required": ["algorithm", "scope", "value"],
           "properties": {
