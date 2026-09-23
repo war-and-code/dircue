@@ -52,7 +52,8 @@
         "source_kind": { "enum": ["file", "configuration", "code", "comment", "docstring", "documentation"] },
         "rule": { "$ref": "#/$defs/producer" }, "provider": { "$ref": "#/$defs/producer" }
       },
-      "oneOf": [{ "required": ["rule"], "not": { "required": ["provider"] } }, { "required": ["provider"], "not": { "required": ["rule"] } }]
+      "oneOf": [{ "required": ["rule"], "not": { "required": ["provider"] } }, { "required": ["provider"], "not": { "required": ["rule"] } }],
+      "allOf": [{ "if": { "properties": { "basis": { "const": "provider_reported" } }, "required": ["basis"] }, "then": { "required": ["provider"] } }]
     },
     "properties": { "type": "object", "additionalProperties": { "type": "string" } },
     "fact": {
