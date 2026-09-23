@@ -15,16 +15,17 @@ import (
 const SchemaVersion = "1.0.0"
 
 type Report struct {
-	SchemaVersion   string           `json:"schema_version"`
-	Kind            string           `json:"kind"`
-	Status          string           `json:"status"`
-	SourceBinding   string           `json:"source_binding"`
-	Base            mapdoc.Source    `json:"base"`
-	Head            mapdoc.Source    `json:"head"`
-	Counts          Counts           `json:"counts"`
-	Changes         []Change         `json:"changes"`
-	CoverageChanges []CoverageChange `json:"coverage_changes"`
-	Caveats         []string         `json:"caveats"`
+	SchemaVersion         string           `json:"schema_version"`
+	Kind                  string           `json:"kind"`
+	Status                string           `json:"status"`
+	SourceBinding         string           `json:"source_binding"`
+	ObserverCompatibility string           `json:"observer_compatibility"`
+	Base                  mapdoc.Source    `json:"base"`
+	Head                  mapdoc.Source    `json:"head"`
+	Counts                Counts           `json:"counts"`
+	Changes               []Change         `json:"changes"`
+	CoverageChanges       []CoverageChange `json:"coverage_changes"`
+	Caveats               []string         `json:"caveats"`
 }
 
 type Counts struct {
@@ -47,10 +48,16 @@ type Change struct {
 }
 
 type CoverageChange struct {
-	Question string          `json:"question"`
-	Scope    string          `json:"scope"`
-	Base     mapdoc.Coverage `json:"base"`
-	Head     mapdoc.Coverage `json:"head"`
+	Question string       `json:"question"`
+	Scope    string       `json:"scope"`
+	Base     CoverageView `json:"base"`
+	Head     CoverageView `json:"head"`
+}
+
+type CoverageView struct {
+	Present bool                  `json:"present"`
+	Status  mapdoc.CoverageStatus `json:"status,omitempty"`
+	Reasons []string              `json:"reasons"`
 }
 
 // Compare reports observable map changes. It does not infer Git ancestry,
@@ -73,6 +80,11 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		Caveats:       []string{"source ancestry and merge-base are not inferred; the caller selected this pairing"},
 	}
 	report.SourceBinding = compareSource(base.Source, head.Source)
+	report.ObserverCompatibility = "same"
+	if !slices.Equal(producerSet(base), producerSet(head)) {
+		report.ObserverCompatibility = "different"
+		report.Caveats = append(report.Caveats, "observer or provider identities differ; map changes cannot be attributed solely to source changes")
+	}
 	if report.SourceBinding == "unknown" {
 		report.Caveats = append(report.Caveats, "source identity is not fully bound; the caller selected this pairing")
 	}
@@ -228,13 +240,13 @@ func questionForEdge(kind mapdoc.EdgeType) string {
 
 func coverageChanges(base, head []mapdoc.QuestionCoverage) []CoverageChange {
 	type key struct{ question, scope string }
-	a := make(map[key]mapdoc.Coverage, len(base))
-	b := make(map[key]mapdoc.Coverage, len(head))
+	a := make(map[key]CoverageView, len(base))
+	b := make(map[key]CoverageView, len(head))
 	for _, value := range base {
-		a[key{value.Question, value.Scope}] = value.Coverage
+		a[key{value.Question, value.Scope}] = CoverageView{Present: true, Status: value.Status, Reasons: value.Reasons}
 	}
 	for _, value := range head {
-		b[key{value.Question, value.Scope}] = value.Coverage
+		b[key{value.Question, value.Scope}] = CoverageView{Present: true, Status: value.Status, Reasons: value.Reasons}
 	}
 	keys := make(map[key]struct{}, len(a)+len(b))
 	for value := range a {
@@ -250,6 +262,31 @@ func coverageChanges(base, head []mapdoc.QuestionCoverage) []CoverageChange {
 		}
 	}
 	return result
+}
+
+func producerSet(document mapdoc.Document) []string {
+	result := []string{}
+	add := func(values []mapdoc.Evidence) {
+		for _, evidence := range values {
+			if evidence.Rule != nil {
+				result = append(result, "rule:"+evidence.Rule.ID+"@"+evidence.Rule.Version)
+			}
+			if evidence.Provider != nil {
+				result = append(result, "provider:"+evidence.Provider.ID+"@"+evidence.Provider.Version)
+			}
+		}
+	}
+	for _, node := range document.Nodes {
+		add(node.Evidence)
+		for _, fact := range node.Facts {
+			add(fact.Evidence)
+		}
+	}
+	for _, edge := range document.Edges {
+		add(edge.Evidence)
+	}
+	slices.Sort(result)
+	return slices.Compact(result)
 }
 
 func nodeFields(a, b mapdoc.Node) ([]string, bool) {

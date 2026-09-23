@@ -78,7 +78,7 @@ func loadMapDocument(filename, role string) (mapdoc.Document, error) {
 }
 
 func writeMapComparison(out io.Writer, report mapdiff.Report) error {
-	if _, err := fmt.Fprintf(out, "Map comparison: %s\nSource binding: %s\nMaterial changes: %d\nObserved entries: %d added, %d removed, %d changed, %d unchanged\n", report.Status, report.SourceBinding, report.Counts.Material, report.Counts.Added, report.Counts.Removed, report.Counts.Changed, report.Counts.Unchanged); err != nil {
+	if _, err := fmt.Fprintf(out, "Map comparison: %s\nSource binding: %s\nObserver compatibility: %s\nMaterial changes: %d\nObserved entries: %d added, %d removed, %d changed, %d unchanged\n", report.Status, report.SourceBinding, report.ObserverCompatibility, report.Counts.Material, report.Counts.Added, report.Counts.Removed, report.Counts.Changed, report.Counts.Unchanged); err != nil {
 		return err
 	}
 	if report.Counts.IndeterminateRemoval > 0 {
