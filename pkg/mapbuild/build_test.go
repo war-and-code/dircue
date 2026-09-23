@@ -3,10 +3,59 @@ package mapbuild
 import (
 	"testing"
 
+	"dircue/pkg/deployables"
 	"dircue/pkg/discovery"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/profile"
 )
+
+func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
+	n := fileNode("opaque.lib", "binary", "static_library", "extension", 20)
+	if n.Coverage.Status != mapdoc.CoveragePartial || n.Evidence[0].Basis != mapdoc.BasisFilenameHint {
+		t.Fatalf("unverified suffix claimed a complete binary: %+v", n)
+	}
+}
+
+func TestDeclaredBuildAndRunLinksHaveEvidence(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "services/api"}
+	doc.Nodes = append(doc.Nodes, component)
+	evidence := deployables.Evidence{Field: "declaration", Line: 1, Basis: "static-field"}
+	definitions := []deployables.Definition{
+		{Provider: "compose", Kind: "service", Name: "api", Path: "compose.yml", Coverage: "complete", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{
+			{Kind: "build_context", Value: "services/api", Qualification: "local", Evidence: evidence},
+			{Kind: "image", Value: "example/api:v1", Qualification: "external", Evidence: evidence},
+		}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "services/api/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{evidence}},
+		{Provider: "kubernetes", Kind: "workload", Name: "api", Path: "k8s/api.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "image", Value: "example/api:v1", Qualification: "external", Evidence: evidence}}},
+		{Provider: "cloudformation", Kind: "infrastructure", Name: "function", Path: "template.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "code_uri", Value: "services/api", Qualification: "local", Evidence: evidence}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	builds, runs := 0, 0
+	for _, edge := range doc.Edges {
+		if edge.To != component.ID {
+			t.Fatalf("edge points to wrong component: %+v", edge)
+		}
+		if edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Evidence) == 0 {
+			t.Fatalf("declared link lacks qualification or evidence: %+v", edge)
+		}
+		switch edge.Type {
+		case mapdoc.EdgeBuilds:
+			builds++
+		case mapdoc.EdgeRuns:
+			runs++
+		}
+	}
+	if builds != 3 || runs != 2 {
+		t.Fatalf("want Dockerfile, Compose and SAM builds plus Compose and Kubernetes runs; got builds=%d runs=%d", builds, runs)
+	}
+	for _, question := range doc.Coverage {
+		if question.Question == "deployables" && question.Status != mapdoc.CoveragePartial {
+			t.Fatalf("bounded parser claimed complete deployable catalog: %+v", question)
+		}
+	}
+}
 
 func TestContentPopulationsHaveUserMeaningfulStableIdentity(t *testing.T) {
 	makeReport := func(first, second string) *profile.Report {
@@ -54,6 +103,20 @@ func TestSingleMapDoesNotClaimMaterialChangeQuestion(t *testing.T) {
 	for _, question := range doc.Coverage {
 		if question.Question == "material_change" {
 			t.Fatal("a single directory map cannot answer a comparison question")
+		}
+	}
+}
+
+func TestAuxiliaryPathRolesAreHintsNotDeletedFacts(t *testing.T) {
+	for _, test := range []struct{ filename, role string }{
+		{"services/api/App.csproj", ""},
+		{"tests/map_corpus/fixtures/app/package.json", "fixture"},
+		{"src/Tests/Compiler.Tests.csproj", "test"},
+		{"examples/demo/Dockerfile", "example"},
+		{"vendor/lib/Cargo.toml", "vendored"},
+	} {
+		if got := mapPathRole(test.filename); got != test.role {
+			t.Errorf("%s: role %q, want %q", test.filename, got, test.role)
 		}
 	}
 }

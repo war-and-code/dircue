@@ -26,6 +26,11 @@
       "id": "misleading-declarations",
       "description": "recognized filenames whose contents do not satisfy the referenced declaration grammars",
       "expectations": "misleading-declarations.json"
+    },
+    {
+      "id": "review-regressions",
+      "description": "Terraform aliases, punctuation-heavy workflow, multi-document Kubernetes, Python requirements, and Makefile fragment",
+      "expectations": "review-regressions.json"
     }
   ]
 }

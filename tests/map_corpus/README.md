@@ -77,8 +77,8 @@ no `--all` mode. The verification gate itself never accesses the network.
 The resource harness records wall time, user and system CPU, peak RSS, output
 bytes, map status, node and edge counts, and raw and semantic output hashes. It runs balanced,
 fast, and low-memory by default and fails if execution-only presets change the
-map answer after removing only the top-level `execution` provenance object. Raw
-outputs are expected to identify their effective settings. It streams maps to temporary files and enforces an output
+raw map bytes. Effective settings remain available through `map settings` rather
+than inside the map document. It streams maps to temporary files and enforces an output
 size limit instead of retaining every map in memory:
 
 ```sh
@@ -89,14 +89,14 @@ python3 tests/map_corpus/benchmark_public.py \
   --output .cache/public-map-benchmark.json
 ```
 
-One 2026-09-23 Apple Silicon run passed semantic preset equivalence on all 21
+One pre-fix 2026-09-23 Apple Silicon run passed semantic preset equivalence on all 21
 repositories. Aggregate single-run wall times were 18.77 seconds balanced,
 18.70 seconds fast, and 21.68 seconds low-memory. TypeScript had the largest
 observed peak RSS: 578.4 MiB balanced, 577.3 MiB fast, and 559.2 MiB
 low-memory. Roslyn was slowest at 5.55, 5.53, and 6.49 seconds respectively;
 the largest map was 11.3 MiB. Raw hashes differed for all 21 repositories
-because each output retained its effective execution settings; semantic hashes
-matched after removing only that provenance object. The measured binary came
+because each output retained its effective execution settings at that point;
+semantic hashes matched after removing only that provenance object. The measured binary came
 from commit `125609fcc981bc4151d60fabcf96665061ca80b3` and its SHA-256 was
 `92b0797f5de755c6c99d8172e1c59bea8f51676012a0517778e995685457f1cd`.
 These are warm-cache observations from one host, without approved thresholds;

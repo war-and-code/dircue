@@ -10,6 +10,9 @@ FIXTURES = HERE / "fixtures"
 
 def entries(doc):
     out = []
+    for question in doc.get("coverage", []):
+        out.append({"kind": "coverage", "name": question.get("question", ""), "properties": {
+            "status": question.get("status", ""), "reasons": question.get("reasons", [])}})
     nodes = {n.get("id"): n for n in doc.get("nodes", [])}
     for n in doc.get("nodes", []):
         out.append({"kind": n.get("kind"), "name": n.get("name", ""), "paths": n.get("paths", []), "properties": n.get("properties", {}), "evidence": n.get("evidence", [])})
@@ -71,6 +74,9 @@ def main():
             forbidden = [x for x in question["must_not_include"] if any(matches(i, x) for i in items)]
             if missing or forbidden: raise SystemExit(f"{entry['id']}/{question['id']}: missing={missing} forbidden={forbidden}")
             passed += len(question["must_include"]) + len(question["must_not_include"])
-    print(json.dumps({"gate":"initial-map-corpus","passed":passed,"assertions":total,"precision":1.0,"recall":1.0,"scope":"five compact hand-written fixtures; not full #75 corpus"}, indent=2))
+    print(json.dumps({"gate":"initial-map-corpus","passed":passed,"assertions":total,
+                      "precision":None,"recall":None,
+                      "metric_scope":"Targeted positive and negative assertions are not an exhaustive output labeling; precision and recall are unmeasured.",
+                      "scope":f"{len(manifest['fixtures'])} compact hand-written fixtures; not full #75 corpus"}, indent=2))
 
 if __name__ == "__main__": main()

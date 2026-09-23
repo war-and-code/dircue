@@ -62,10 +62,11 @@ Source selection follows the rest of dircue:
 - `--source git` requires committed Git content.
 - `--rev REV` chooses a Git revision. `--tree ID` chooses an exact tree object.
 
-A Git map records the exact selected tree object. Its `revision` field records
-the caller's revision expression, which can be symbolic, such as `HEAD`. A
-symbolic revision is not treated as equal to an external tool's commit hash.
-A provider binding is verified only when comparable snapshot identities match.
+A Git map records the selected tree object and, when a commit was selected, its
+resolved commit ID. `revision` retains the caller's expression, such as `HEAD`;
+`commit` is the resolved ID used when a provider supplies a comparable revision.
+An explicit tree selection has no commit ID. A provider binding is verified
+only when comparable snapshot identities match.
 
 The CLI does not calculate a full-content digest for a live directory. Such a
 map reports `source_binding: unknown` with
@@ -82,8 +83,8 @@ each entry in `coverage`.
 
 | Coverage status | Meaning |
 | --- | --- |
-| `complete` | The named observer completed for its declared scope. |
-| `partial` | Some relevant input was omitted, bounded, unreadable under `--on-error continue`, or supplied with unverified provider binding. |
+| `complete` | The evidence fully supports the named question within its declared scope. |
+| `partial` | Recognized evidence is useful, but supported patterns, input limits, unresolved references, or binding prevent an exhaustive answer. |
 | `unknown` | The observer did not have evidence sufficient to answer the question. |
 
 The default inventory budget is 100,000 source entries. `--budget-files N` and
@@ -125,8 +126,8 @@ flag such as `--workers`, `--budget-files`, `--tree-size`, or
 or `KiB`, `MiB`, and `GiB` suffixes; nonzero values must be at least 1 MiB. The settings report exposes the effective
 value, unit, origin, and applicable fixed range. It labels runtime controls and
 worker concurrency `performance-only`, and the two skip/inventory bounds
-`coverage-affecting`. The same effective settings and qualifications appear in
-the generated map's `execution` provenance.
+`coverage-affecting`. Effective settings are available from `map settings`;
+they are omitted from the map document so worker-only choices preserve JSON bytes.
 
 `--cpu-limit` scopes `GOMAXPROCS` to the map command. `--memory-limit` scopes
 Go's soft memory limit to the command. A value of zero inherits the process
@@ -150,6 +151,10 @@ dircue map --json \
   --attach sarif=analysis.sarif \
   --attach noir-json=noir.json \
   /path/to/checkout > enriched-map.json
+
+# Use only after independently verifying the report's source snapshot.
+dircue map --json --attach-binding caller-asserted \
+  --attach syft-json=syft.json /path/to/checkout > asserted-map.json
 ```
 
 Supported attachment kinds are:
@@ -166,14 +171,18 @@ Supported attachment kinds are:
   fields stay with Bifrost.
 
 An attachment without comparable source identity is retained with an `unknown`
-binding. A mismatched identity is not silently promoted to repository evidence.
+binding, unless `--attach-binding caller-asserted` records the caller's explicit
+assertion. An identity mismatch cannot be overridden by that flag and does not
+become complete repository evidence. SARIF's standard version-control revision
+is compared with the map's resolved commit when both are present.
 Provider coverage replaces the corresponding `packages`, `analyzer_coverage`,
 and `routing` question entries in the resulting document. Each attached run
 also receives a typed `coverage_ledger` entry with its tool, report kind,
 scope, binding, run state, and reported files. This ledger records only what
 the supplied report disclosed. An empty `covered_files` array means unknown
-coverage rather than a clean run. At most 16 attachments are accepted; each is
-bounded to 32 MiB and 100,000 records by default.
+coverage rather than a clean run. Attachments must be regular files. At most
+16 attachments are accepted; each is bounded to 32 MiB and 100,000 records by
+default.
 
 ## Analyzer coverage and blind spots
 

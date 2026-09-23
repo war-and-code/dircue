@@ -149,7 +149,6 @@ func describeCLI(root *cobra.Command) cliContract {
 	}{
 		{"GOMAXPROCS", "Go runtime", "Automatic file workers use min(GOMAXPROCS, 16); map --cpu-limit temporarily sets GOMAXPROCS, while --workers explicitly selects worker count."},
 		{"GOMEMLIMIT", "Go runtime", "map --memory-limit temporarily sets the cooperative Go-managed memory target. Neither setting is a hard CPU, RSS, subprocess, or operating-system ceiling."},
-		{"GOMEMLIMIT", "Go runtime", "Cooperative Go memory limit; not a hard process memory cap and does not constrain the separate native worker."},
 		{"SystemRoot", "Windows worker cancellation", "Locates System32/taskkill.exe for worker-tree cancellation; falls back to C:\\Windows."},
 	}
 	d.Behavior = []string{"No dircue-specific environment configuration, telemetry, or scan-time downloads.", "Output is unstyled and noninteractive, including when NO_COLOR, CI, or TERM=dumb is set. These variables do not activate a separate rendering mode.", "Reports contain no wall-clock timestamps; SOURCE_DATE_EPOCH does not change them.", "Core inspection does not execute inspected code. Structural analysis executes only the explicitly supplied trusted worker; the worker is not a sandbox.", "Saved-report planning, comparison, and capabilities never open the report's declared source root. Planned argv is inert and requires caller revalidation.", "Metadata describes supported command syntax and explicit semantic restrictions; it is not a host tool-availability probe."}

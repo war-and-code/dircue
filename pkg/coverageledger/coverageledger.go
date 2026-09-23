@@ -87,6 +87,9 @@ func Reconcile(d *mapdoc.Document) {
 
 func setCoverageQuestion(d *mapdoc.Document) {
 	coverage := mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"provider_file_lists_are_not_exhaustive_proof"}}
+	if len(d.CoverageLedger) == 0 {
+		coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"no_analyzer_report_attached"}}
+	}
 	if len(d.AnalyzerCoverage) == 0 {
 		coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"no_source_population_observed"}}
 		for _, question := range d.Coverage {
@@ -97,7 +100,7 @@ func setCoverageQuestion(d *mapdoc.Document) {
 		}
 	}
 	for _, entry := range d.AnalyzerCoverage {
-		if entry.LanguageBasis == "unattributed" {
+		if len(d.CoverageLedger) > 0 && entry.LanguageBasis == "unattributed" {
 			coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"component_language_not_exactly_attributed"}}
 			break
 		}
