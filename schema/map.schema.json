@@ -14,6 +14,15 @@
     "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
     "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
   },
+  "allOf": [{
+    "if": {
+      "properties": { "source": { "properties": { "mode": { "const": "directory" } }, "required": ["mode"], "not": { "required": ["digest"] } } },
+      "required": ["source"]
+    },
+    "then": {
+      "properties": { "coverage": { "contains": { "type": "object", "properties": { "question": { "const": "source_binding" }, "scope": { "const": "." }, "status": { "enum": ["unknown", "partial"] } }, "required": ["question", "scope", "status"] } } }
+    }
+  }],
   "$defs": {
     "nonempty": { "type": "string", "minLength": 1 },
     "relative_path": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]" },
@@ -23,12 +32,16 @@
       "properties": { "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
       "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
     },
+    "digest": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "scope", "value"],
+      "properties": { "algorithm": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "value": { "$ref": "#/$defs/nonempty" } }
+    },
     "source": {
       "type": "object", "additionalProperties": false, "required": ["mode"],
-      "properties": { "mode": { "enum": ["git", "directory"] }, "revision": { "$ref": "#/$defs/nonempty" }, "tree": { "$ref": "#/$defs/nonempty" }, "digest": { "$ref": "#/$defs/nonempty" } },
+      "properties": { "mode": { "enum": ["git", "directory"] }, "revision": { "$ref": "#/$defs/nonempty" }, "tree": { "$ref": "#/$defs/nonempty" }, "digest": { "$ref": "#/$defs/digest" } },
       "oneOf": [
         { "properties": { "mode": { "const": "git" } }, "required": ["revision", "tree"], "not": { "required": ["digest"] } },
-        { "properties": { "mode": { "const": "directory" } }, "required": ["digest"], "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["tree"] }] } }
+        { "properties": { "mode": { "const": "directory" } }, "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["tree"] }] } }
       ]
     },
     "question_coverage": {
@@ -49,7 +62,7 @@
       "properties": {
         "basis": { "enum": ["declared_config", "code_syntax", "resolved_reference", "provider_reported", "rule_inferred", "filename_hint"] },
         "path": { "$ref": "#/$defs/relative_path" }, "span": { "$ref": "#/$defs/span" },
-        "source_kind": { "enum": ["file", "configuration", "code", "comment", "docstring", "documentation"] },
+        "source_kind": { "enum": ["file", "directory", "configuration", "code", "comment", "docstring", "documentation"] },
         "rule": { "$ref": "#/$defs/producer" }, "provider": { "$ref": "#/$defs/producer" }
       },
       "oneOf": [{ "required": ["rule"], "not": { "required": ["provider"] } }, { "required": ["provider"], "not": { "required": ["rule"] } }],
@@ -66,7 +79,8 @@
         "id": { "$ref": "#/$defs/nonempty" }, "kind": { "enum": ["content", "component", "deployable", "interface", "capability", "package", "tool_run"] },
         "name": { "type": "string" }, "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/relative_path" } }, "discriminator": { "type": "string" },
         "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }, "properties": { "$ref": "#/$defs/properties" }, "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } }
-      }
+      },
+      "allOf": [{ "if": { "properties": { "evidence": { "contains": { "properties": { "source_kind": { "const": "directory" } }, "required": ["source_kind"] } } }, "required": ["evidence"] }, "then": { "properties": { "kind": { "const": "content" } } } }]
     },
     "edge": {
       "type": "object", "additionalProperties": false, "required": ["id", "type", "from", "to", "coverage", "evidence"],

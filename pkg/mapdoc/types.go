@@ -3,6 +3,8 @@ package mapdoc
 
 const SchemaVersion = "1.0.0"
 
+const QuestionSourceBinding = "source_binding"
+
 type NodeKind string
 
 const (
@@ -54,6 +56,7 @@ type EvidenceSource string
 
 const (
 	SourceFile          EvidenceSource = "file"
+	SourceDirectory     EvidenceSource = "directory"
 	SourceConfiguration EvidenceSource = "configuration"
 	SourceCode          EvidenceSource = "code"
 	SourceComment       EvidenceSource = "comment"
@@ -72,10 +75,19 @@ type Document struct {
 }
 
 type Source struct {
-	Mode     string `json:"mode"`
-	Revision string `json:"revision,omitempty"`
-	Tree     string `json:"tree,omitempty"`
-	Digest   string `json:"digest,omitempty"`
+	Mode     string  `json:"mode"`
+	Revision string  `json:"revision,omitempty"`
+	Tree     string  `json:"tree,omitempty"`
+	Digest   *Digest `json:"digest,omitempty"`
+}
+
+// Digest binds a directory snapshot only when the producer actually read the
+// declared scope. A cheap metadata-only map should leave Digest nil and report
+// source_binding as unknown or partial in question coverage.
+type Digest struct {
+	Algorithm string `json:"algorithm"`
+	Scope     string `json:"scope"`
+	Value     string `json:"value"`
 }
 
 type Coverage struct {
