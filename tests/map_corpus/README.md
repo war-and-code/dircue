@@ -76,6 +76,11 @@ python3 tests/map_corpus/verify_public_quality.py \
 ```
 
 Each oracle path is content-hashed and linked to its exact upstream commit.
+For microservices-demo, the same gate also checks the full repository's twelve
+service roots, twelve primary Dockerfiles, and nine GitHub workflow files
+against source-enumerated path sets. These full-population guards catch dropped
+services or workflows, but are not included in the bounded precision/recall
+denominator.
 The expectations cover multi-document Kubernetes, Python requirements-only
 components, Dockerfile-to-component build edges, .NET project relationships,
 declared Redis and event-bus capabilities, Terraform provider aliases, manifest
