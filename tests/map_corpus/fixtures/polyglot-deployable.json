@@ -1,16 +1,20 @@
 {
   "questions": [
-    {"id":"components","must_include":[
+    {"id":"components","oracle":{"source":"Go module, npm package and Cargo manifest specifications","url":"https://go.dev/ref/mod#go-mod-file","fixture_evidence":"go.mod, package.json and Cargo.toml each declare one project"},"must_include":[
       {"kind":"component","path":"services/api"},
       {"kind":"component","path":"services/web"},
       {"kind":"component","path":"services/worker"}
     ],"must_not_include":[],"allowed_unknown":["unresolved package dependencies"]},
-    {"id":"deployables-and-interfaces","must_include":[
-      {"kind":"deployable","path":"deploy/compose.yaml"},
-      {"kind":"deployable","path":"deploy/k8s/deployment.yaml"},
-      {"kind":"interface","path":"contracts/order.proto"},
-      {"kind":"edge","type":"builds"},
-      {"kind":"edge","type":"declares"}
+    {"id":"deployables-and-interfaces","oracle":{"source":"Compose build, Kubernetes Deployment and Protocol Buffers service declarations","url":"https://compose-spec.github.io/compose-spec/build.html","fixture_evidence":"compose.yaml declares two build contexts, deployment.yaml one workload, and order.proto one service plus RPC"},"must_include":[
+      {"kind":"deployable","name":"api","path":"deploy/compose.yaml"},
+      {"kind":"deployable","name":"web","path":"deploy/compose.yaml"},
+      {"kind":"deployable","name":"api","path":"deploy/k8s/deployment.yaml"},
+      {"kind":"interface","name":"Orders","path":"contracts/order.proto"},
+      {"kind":"interface","name":"Orders/Get","path":"contracts/order.proto"},
+      {"kind":"edge","type":"builds","from_path":"deploy/compose.yaml","from_name":"api","to_path":"services/api"},
+      {"kind":"edge","type":"builds","from_path":"deploy/compose.yaml","from_name":"web","to_path":"services/web"},
+      {"kind":"edge","type":"declares","from_path":"contracts/order.proto","to_name":"Orders"},
+      {"kind":"edge","type":"declares","from_path":"contracts/order.proto","to_name":"Orders/Get"}
     ],"must_not_include":[{"kind":"deployable","property":"name","value":"eleven services"}],"allowed_unknown":["provider-reported routes"]}
   ]
 }

@@ -16,6 +16,16 @@
       "id": "documentation-boundary",
       "description": "README claims that are intentionally not evidence",
       "expectations": "documentation-boundary.json"
+    },
+    {
+      "id": "declared-intent",
+      "description": "Go imports and ASP.NET-style configuration declarations with no runtime inference",
+      "expectations": "declared-intent.json"
+    },
+    {
+      "id": "misleading-declarations",
+      "description": "recognized filenames whose contents do not satisfy the referenced declaration grammars",
+      "expectations": "misleading-declarations.json"
     }
   ]
 }
