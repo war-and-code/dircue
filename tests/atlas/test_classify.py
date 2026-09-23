@@ -143,41 +143,113 @@ class TestClassifyLinguistTopLevel(unittest.TestCase):
 
 
 class TestSkipDircueOnly(unittest.TestCase):
-    """Files that dircue counted but scc did not output."""
+    """Files that dircue counted but scc did not output.
 
-    def test_known_extension_returns_scc_excludes(self):
-        cat = classify_skip_dircue_only("src/main.go", "Go")
-        self.assertEqual(cat, "scc_excludes_by_its_walker")
+    The third argument is the set of file extensions present in scc's output
+    for the current repo, used to distinguish scc_no_language from unexplained.
+    """
 
-    def test_no_extension_returns_scc_excludes(self):
-        cat = classify_skip_dircue_only("Makefile", "Makefile")
-        self.assertEqual(cat, "scc_excludes_by_its_walker")
+    def test_dotfile_returns_scc_skips_dotfiles(self):
+        # basename starts with '.' → scc skips it regardless of extensions present
+        cat = classify_skip_dircue_only("tests/modules/home1/.jq", "jq", {".jq"})
+        self.assertEqual(cat, "scc_skips_dotfiles")
 
-    def test_shebang_script_returns_scc_excludes(self):
-        cat = classify_skip_dircue_only("scripts/build", "Shell")
-        self.assertEqual(cat, "scc_excludes_by_its_walker")
+    def test_dotfile_at_root_returns_scc_skips_dotfiles(self):
+        cat = classify_skip_dircue_only(".flaskenv", "INI", set())
+        self.assertEqual(cat, "scc_skips_dotfiles")
+
+    def test_unknown_extension_returns_scc_no_language(self):
+        # .am not in scc_extensions for this repo → scc's registry doesn't map it
+        cat = classify_skip_dircue_only("Makefile.am", "Makefile", set())
+        self.assertEqual(cat, "scc_no_language")
+
+    def test_no_extension_not_in_scc_returns_scc_no_language(self):
+        # No extension; bare name not in scc_extensions
+        cat = classify_skip_dircue_only("Makefile", "Makefile", set())
+        self.assertEqual(cat, "scc_no_language")
+
+    def test_known_extension_in_scc_returns_unexplained(self):
+        # .go IS in scc output but scc still did not output this file → unexplained
+        cat = classify_skip_dircue_only("src/main.go", "Go", {".go"})
+        self.assertEqual(cat, "unexplained")
+
+    def test_extension_case_insensitive(self):
+        # Extension matching is lowercase-normalised
+        cat = classify_skip_dircue_only("Module.PY", "Python", {".py"})
+        self.assertEqual(cat, "unexplained")
+
+    def test_unknown_extension_even_if_other_py_in_repo(self):
+        # .am not in scc output even though .py is
+        cat = classify_skip_dircue_only("configure.am", "Autoconf", {".py", ".go"})
+        self.assertEqual(cat, "scc_no_language")
+
+    def test_case_collision_returns_harness_case_collision(self):
+        # xt_CONNMARK.h (uppercase) collides with xt_connmark.h on macOS HFS+/APFS
+        scc_paths_lower = {"include/uapi/linux/netfilter/xt_connmark.h"}
+        cat = classify_skip_dircue_only(
+            "include/uapi/linux/netfilter/xt_CONNMARK.h", "C",
+            {".h"}, scc_paths_lower,
+        )
+        self.assertEqual(cat, "harness_case_collision")
+
+    def test_no_case_collision_falls_through(self):
+        # Path not in scc_paths_lower → normal extension check
+        cat = classify_skip_dircue_only(
+            "include/uapi/linux/netfilter/xt_CONNMARK.h", "C",
+            {".h"}, {"something_else.h"},
+        )
+        # .h IS in extensions but no case collision → unexplained
+        self.assertEqual(cat, "unexplained")
+
+    def test_scc_paths_lower_none_skips_collision_check(self):
+        # Backwards compat: scc_paths_lower=None means skip the case check
+        cat = classify_skip_dircue_only("foo/Bar.go", "Go", {".go"}, None)
+        self.assertEqual(cat, "unexplained")
 
 
 class TestSkipSccOnly(unittest.TestCase):
     """Files that scc output but dircue did not count as source."""
 
-    def test_dircue_row_none_returns_selection_excludes(self):
-        # No dircue row at all → outside git selection or not-counted
+    def test_no_dircue_row_is_unexplained(self):
+        # No dircue row at all → cannot attribute the skip → unexplained
         cat = classify_skip_scc_only("vendor/foo/bar.go", None)
-        self.assertEqual(cat, "dircue_selection_excludes")
+        self.assertEqual(cat, "unexplained")
 
-    def test_dircue_row_skipped_status(self):
-        row = {"path": "vendor/dep/main.go", "status": "skipped", "reason": "vendored"}
-        cat = classify_skip_scc_only("vendor/dep/main.go", row)
-        self.assertEqual(cat, "dircue_selection_excludes")
+    def test_outside_scope_maps_to_dircue_out_of_scope(self):
+        row = {"path": "README.md", "status": "skipped", "reason": "outside_scope"}
+        cat = classify_skip_scc_only("README.md", row)
+        self.assertEqual(cat, "dircue_out_of_scope")
 
-    def test_dircue_row_counted_status_still_selection_excludes(self):
-        # File is counted in dircue but not in dircue_index subset (edge case)
-        row = {"path": "generated/pb.go", "status": "counted"}
-        cat = classify_skip_scc_only("generated/pb.go", row)
-        # status=counted means dircue DID count it — compare_scc would have caught this
-        # in the main loop; still classify as dircue_selection_excludes (wrong-path edge case)
-        self.assertEqual(cat, "dircue_selection_excludes")
+    def test_unsupported_language(self):
+        row = {"path": "foo.x10", "status": "skipped", "reason": "unsupported_language"}
+        cat = classify_skip_scc_only("foo.x10", row)
+        self.assertEqual(cat, "dircue_unsupported_language")
+
+    def test_binary(self):
+        row = {"path": "assets/logo.png", "status": "skipped", "reason": "binary"}
+        cat = classify_skip_scc_only("assets/logo.png", row)
+        self.assertEqual(cat, "dircue_binary")
+
+    def test_non_regular_file(self):
+        row = {"path": "symlink_target", "status": "skipped", "reason": "non_regular_file"}
+        cat = classify_skip_scc_only("symlink_target", row)
+        self.assertEqual(cat, "dircue_non_regular_file")
+
+    def test_file_too_large(self):
+        row = {"path": "big.bin", "status": "skipped", "reason": "file_too_large"}
+        cat = classify_skip_scc_only("big.bin", row)
+        self.assertEqual(cat, "dircue_file_too_large")
+
+    def test_unknown_reason_is_unexplained(self):
+        # A reason that is not in the mapping → unexplained
+        row = {"path": "foo.go", "status": "skipped", "reason": "some_future_reason"}
+        cat = classify_skip_scc_only("foo.go", row)
+        self.assertEqual(cat, "unexplained")
+
+    def test_empty_reason_is_unexplained(self):
+        row = {"path": "foo.go", "status": "skipped", "reason": ""}
+        cat = classify_skip_scc_only("foo.go", row)
+        self.assertEqual(cat, "unexplained")
 
 
 class TestAdversarialCases(unittest.TestCase):
