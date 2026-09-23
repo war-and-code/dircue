@@ -33,6 +33,16 @@ type ForestDocument struct {
 	Roots            []ForestRoot              `json:"roots"`
 	EnvironmentTrees []ForestEnvTree           `json:"environment_trees,omitempty"`
 	Residual         *mapdoc.Document          `json:"residual"`
+	// ResidualTotals counts every regular file in the residual scan exactly once,
+	// sourced directly from the scanner's inventory summary (not from map nodes).
+	ResidualTotals *ResidualTotals `json:"residual_totals,omitempty"`
+}
+
+// ResidualTotals holds a canonical file and byte count for the residual scan.
+// Each regular file is counted exactly once regardless of its content role.
+type ResidualTotals struct {
+	Files int64 `json:"files"`
+	Bytes int64 `json:"bytes"`
 }
 
 // ForestSource describes the input to a forest scan.
@@ -92,25 +102,27 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		SummarizeTrees: true,
 		EnvTreeCap:     1_000_000,
 	}
-	discovery := forest.DiscoverRoots(root, discoverOpts)
+	discResult := forest.DiscoverRoots(root, discoverOpts)
 
 	// Build a set of excluded paths (roots and env tree roots) for residual scan.
 	excludedPaths := map[string]bool{}
-	for _, r := range discovery.Roots {
+	for _, r := range discResult.Roots {
 		excludedPaths[r.Path] = true
 	}
-	for _, et := range discovery.EnvTrees {
+	for _, et := range discResult.EnvTrees {
 		excludedPaths[et.Path] = true
 	}
 
 	// Phase 2: build per-root maps.
-	forestRoots := make([]ForestRoot, 0, len(discovery.Roots))
-	for _, r := range discovery.Roots {
+	forestRoots := make([]ForestRoot, 0, len(discResult.Roots))
+	for _, r := range discResult.Roots {
 		fr := ForestRoot{
 			Path:           r.Path,
 			Kind:           string(r.Kind),
 			HEAD:           r.HEAD,
 			Commit:         r.Commit,
+			Tree:           r.Tree,
+			CommitterTime:  r.CommitterTime,
 			Remotes:        r.Remotes,
 			SubmoduleOf:    r.SubmoduleOf,
 			IdentityStatus: string(r.IdentityStatus),
@@ -146,13 +158,32 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		return fmt.Errorf("forest residual scan: %w", err)
 	}
 	// Add env tree summaries to residual report for coverage accounting.
-	for _, et := range discovery.EnvTrees {
+	for _, et := range discResult.EnvTrees {
 		residualReport.SummarizedTrees = append(residualReport.SummarizedTrees, profile.SummarizedTree{
 			Path: et.Path, Kind: string(et.Kind), Ecosystem: et.Ecosystem,
 			Marker: et.Marker, Basis: et.Basis,
 			Entries: et.Entries, Bytes: et.Bytes, Bounded: et.Bounded,
 			LowerBound: et.LowerBound, Reason: et.Reason,
 		})
+	}
+
+	// Compute residual totals from the scanner's inventory — each regular file
+	// is counted exactly once here, unlike the overlapping map node properties.
+	var residualTotals *ResidualTotals
+	if residualReport.Discovery != nil {
+		inv := residualReport.Discovery.Inventory
+		residualTotals = &ResidualTotals{
+			Files: inv.Files,
+			Bytes: inv.Bytes,
+		}
+	} else {
+		// Fallback: sum language bytes when discovery report is absent.
+		var totalFiles, totalBytes int64
+		for _, lang := range residualReport.Languages {
+			totalFiles += lang.FileCount
+			totalBytes += lang.Bytes
+		}
+		residualTotals = &ResidualTotals{Files: totalFiles, Bytes: totalBytes}
 	}
 
 	deployObserver := deployables.NewCollector(deployables.Options{})
@@ -167,8 +198,8 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 	}
 
 	// Build env tree list for output.
-	envTrees := make([]ForestEnvTree, 0, len(discovery.EnvTrees))
-	for _, et := range discovery.EnvTrees {
+	envTrees := make([]ForestEnvTree, 0, len(discResult.EnvTrees))
+	for _, et := range discResult.EnvTrees {
 		envTrees = append(envTrees, ForestEnvTree{
 			Path:       et.Path,
 			Kind:       string(et.Kind),
@@ -186,9 +217,9 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 	// Assemble forest document.
 	forestStatus := mapdoc.CoverageComplete
 	var coverageReasons []string
-	if discovery.Partial {
+	if discResult.Partial {
 		forestStatus = mapdoc.CoveragePartial
-		coverageReasons = append(coverageReasons, discovery.PartialReason)
+		coverageReasons = append(coverageReasons, discResult.PartialReason)
 	}
 	for _, r := range forestRoots {
 		if r.IdentityStatus == string(forest.IdentityUnknown) {
@@ -197,7 +228,7 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 	}
 
 	rootsStatus := mapdoc.CoverageComplete
-	if discovery.Partial {
+	if discResult.Partial {
 		rootsStatus = mapdoc.CoveragePartial
 		_ = coverageReasons
 	}
@@ -211,8 +242,8 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 			{Question: "roots", Scope: ".", Coverage: mapdoc.Coverage{
 				Status: rootsStatus,
 				Reasons: func() []string {
-					if discovery.Partial {
-						return []string{discovery.PartialReason}
+					if discResult.Partial {
+						return []string{discResult.PartialReason}
 					}
 					return []string{}
 				}(),
@@ -223,6 +254,7 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		Roots:            forestRoots,
 		EnvironmentTrees: envTrees,
 		Residual:         &residualDoc,
+		ResidualTotals:   residualTotals,
 	}
 
 	if summary || !opts.json && isTerminalWriter(cmd.OutOrStdout()) {
@@ -288,14 +320,15 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 
 	if len(doc.Roots) > 0 {
 		line("Roots:")
-		line("  %-30s %-14s %-9s %-9s %-12s %s", "Path", "Kind", "Branch", "Commit", "Date", "Remote host")
+		line("  %-30s %-14s %-9s %-9s %-12s %-5s %-5s %s",
+			"Path", "Kind", "Branch", "Commit", "Date", "Comp", "Lang", "Top languages / Remote host")
 		for _, r := range doc.Roots {
 			branch := r.HEAD
 			if strings.HasPrefix(branch, "refs/heads/") {
 				branch = strings.TrimPrefix(branch, "refs/heads/")
 			}
-			if len(branch) > 14 {
-				branch = branch[:13] + "…"
+			if len(branch) > 9 {
+				branch = branch[:8] + "…"
 			}
 			shortCommit := r.Commit
 			if len(shortCommit) > 8 {
@@ -311,8 +344,45 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 					remoteHost = extractHost(rem.URL)
 				}
 			}
-			kind := r.Kind
-			line("  %-30s %-14s %-9s %-9s %-12s %s", truncate(r.Path, 30), kind, branch, shortCommit, dateStr, remoteHost)
+
+			// Extract top 3 languages and component count from the root map.
+			compCount := 0
+			var topLangs []string
+			if r.Map != nil {
+				type langEntry struct {
+					name  string
+					bytes int64
+				}
+				var langs []langEntry
+				for _, n := range r.Map.Nodes {
+					if n.Kind == mapdoc.NodeContent && n.Properties["role"] == "language_population" {
+						if langName := n.Properties["language"]; langName != "" {
+							b, _ := strconv.ParseInt(n.Properties["bytes"], 10, 64)
+							langs = append(langs, langEntry{langName, b})
+						}
+					}
+					if n.Kind == mapdoc.NodeComponent {
+						compCount++
+					}
+				}
+				sort.Slice(langs, func(i, j int) bool { return langs[i].bytes > langs[j].bytes })
+				for i, l := range langs {
+					if i >= 3 {
+						break
+					}
+					topLangs = append(topLangs, l.name)
+				}
+			}
+			langStr := strings.Join(topLangs, ", ")
+			if langStr == "" {
+				langStr = remoteHost
+			} else if remoteHost != "" {
+				langStr = langStr + " · " + remoteHost
+			}
+
+			line("  %-30s %-14s %-9s %-9s %-12s %-5d %-5d %s",
+				truncate(r.Path, 30), r.Kind, branch, shortCommit, dateStr,
+				compCount, len(topLangs), langStr)
 		}
 		line("")
 	}
@@ -354,17 +424,21 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 		line("")
 	}
 
-	if doc.Residual != nil {
+	// Residual totals from the canonical inventory (each file counted once).
+	if doc.ResidualTotals != nil {
+		line("Residual (unrooted): %s files, %s",
+			formatCount(doc.ResidualTotals.Files), formatBytes(doc.ResidualTotals.Bytes))
+		line("")
+	} else if doc.Residual != nil {
+		// Legacy fallback: first language_population node avoids double-counting.
 		var residualFiles, residualBytes int64
 		for _, n := range doc.Residual.Nodes {
-			if n.Kind == mapdoc.NodeContent {
-				if n.Properties != nil {
-					if f, err := strconv.ParseInt(n.Properties["files"], 10, 64); err == nil {
-						residualFiles += f
-					}
-					if b, err := strconv.ParseInt(n.Properties["bytes"], 10, 64); err == nil {
-						residualBytes += b
-					}
+			if n.Kind == mapdoc.NodeContent && n.Properties["scope"] == "inventory_population" {
+				if f, err := strconv.ParseInt(n.Properties["files"], 10, 64); err == nil {
+					residualFiles += f
+				}
+				if bv, err := strconv.ParseInt(n.Properties["bytes"], 10, 64); err == nil {
+					residualBytes += bv
 				}
 			}
 		}
