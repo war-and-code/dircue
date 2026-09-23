@@ -26,7 +26,7 @@ type sarifDocument struct {
 	} `json:"runs"`
 }
 
-func ingestSARIF(data []byte, in Input, limit int) (Result, error) {
+func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 	var doc sarifDocument
 	if err := decodeOne(data, &doc); err != nil {
 		return Result{}, err
@@ -65,9 +65,12 @@ func ingestSARIF(data []byte, in Input, limit int) (Result, error) {
 		}
 		if failed {
 			state = "tool_error"
+			if reason == "" {
+				reason = "tool_execution_failed"
+			}
 		}
 		facts := []mapdoc.Fact{{Kind: "run_metadata", State: state, Properties: map[string]string{"artifacts": fmt.Sprint(len(covered)), "notifications": fmt.Sprint(notifications)}, Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: []mapdoc.Evidence{evidence(tool, version, ".", 0)}}}
-		n := toolNode(tool, version, fmt.Sprintf("%s:%d", reportKey(data), i), b, reason, facts)
+		n := toolNode(tool, version, fmt.Sprintf("%s:run:%d", key, i), b, reason, facts)
 		out.Nodes = append(out.Nodes, n)
 		for _, owner := range ownersForPaths(in.Nodes, covered) {
 			e := mapdoc.NewEdge(mapdoc.EdgeAnalyzedBy, owner, n.ID, "")
@@ -75,7 +78,7 @@ func ingestSARIF(data []byte, in Input, limit int) (Result, error) {
 			e.Evidence = []mapdoc.Evidence{evidence(tool, version, ".", 0)}
 			out.Edges = append(out.Edges, e)
 		}
-		out.Ledger = append(out.Ledger, CoverageEntry{Tool: tool, Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: state, Reason: reason})
+		out.Ledger = append(out.Ledger, CoverageEntry{Tool: tool, ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: state, Reason: reason})
 	}
 	return out, nil
 }

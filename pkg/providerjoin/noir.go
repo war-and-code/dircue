@@ -23,7 +23,7 @@ type noirEndpoint struct {
 	} `json:"source"`
 }
 
-func ingestNoir(data []byte, in Input, limit int) (Result, error) {
+func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 	var doc noirReport
 	if err := decodeOne(data, &doc); err != nil { // Noir also emits a bare endpoint array.
 		var endpoints []noirEndpoint
@@ -37,7 +37,6 @@ func ingestNoir(data []byte, in Input, limit int) (Result, error) {
 	}
 	version := fallbackVersion(doc.Version)
 	b, reason := binding(in.Snapshot, identityFromMaps(doc.Properties))
-	key := reportKey(data)
 	tool := toolNode("noir", version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	covered := []string{}
@@ -67,7 +66,7 @@ func ingestNoir(data []byte, in Input, limit int) (Result, error) {
 		}
 		n := mapdoc.NewNode(mapdoc.NodeInterface, []string{clean}, "noir:"+method+":"+route)
 		n.Name = method + " " + route
-		n.Properties = map[string]string{"kind": "http", "method": method, "route": route}
+		n.Properties = map[string]string{"kind": "http", "method": method}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		n.Evidence = []mapdoc.Evidence{evidence("noir", version, clean, line)}
 		for _, p := range endpoint.Params {
@@ -86,6 +85,6 @@ func ingestNoir(data []byte, in Input, limit int) (Result, error) {
 		}
 	}
 	covered = compact(covered)
-	out.Ledger = []CoverageEntry{{Tool: "noir", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
+	out.Ledger = []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
 	return out, nil
 }

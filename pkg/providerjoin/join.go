@@ -3,8 +3,6 @@ package providerjoin
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,7 +32,7 @@ func join(ctx context.Context, in Input, attachments []Attachment, opts Options)
 		opts.MaxRecords = defaultMaxRecords
 	}
 	var out Result
-	for _, a := range attachments {
+	for attachmentIndex, a := range attachments {
 		if err := ctx.Err(); err != nil {
 			return Result{}, err
 		}
@@ -44,19 +42,19 @@ func join(ctx context.Context, in Input, attachments []Attachment, opts Options)
 		}
 		switch strings.ToLower(a.Kind) {
 		case "syft", "syft-json":
-			r, err := ingestSyft(data, in, opts.MaxRecords)
+			r, err := ingestSyft(data, in, opts.MaxRecords, fmt.Sprintf("attachment:%d", attachmentIndex))
 			if err != nil {
 				return Result{}, fmt.Errorf("attach syft-json: %w", err)
 			}
 			merge(&out, r)
 		case "sarif":
-			r, err := ingestSARIF(data, in, opts.MaxRecords)
+			r, err := ingestSARIF(data, in, opts.MaxRecords, fmt.Sprintf("attachment:%d", attachmentIndex))
 			if err != nil {
 				return Result{}, fmt.Errorf("attach sarif: %w", err)
 			}
 			merge(&out, r)
 		case "noir", "noir-json":
-			r, err := ingestNoir(data, in, opts.MaxRecords)
+			r, err := ingestNoir(data, in, opts.MaxRecords, fmt.Sprintf("attachment:%d", attachmentIndex))
 			if err != nil {
 				return Result{}, fmt.Errorf("attach noir-json: %w", err)
 			}
@@ -145,8 +143,6 @@ func evidence(provider, version, p string, line int) mapdoc.Evidence {
 	return e
 }
 
-func reportKey(data []byte) string { s := sha256.Sum256(data); return hex.EncodeToString(s[:8]) }
-
 func toolNode(tool, version, key string, b Binding, reason string, facts []mapdoc.Fact) mapdoc.Node {
 	n := mapdoc.NewNode(mapdoc.NodeToolRun, []string{"."}, tool+":"+key)
 	n.Name, n.Properties = tool, map[string]string{"tool": tool, "binding": string(b), "report_identity": key}
@@ -180,22 +176,40 @@ func merge(dst *Result, src Result) {
 }
 
 func coverageFor(r Result) []mapdoc.QuestionCoverage {
-	providerStatus := mapdoc.CoverageComplete
-	providerReasons := []string{}
+	packageStatus := mapdoc.CoverageUnknown
+	packageReasons := []string{"no_syft_report_attached"}
+	analyzerStatus := mapdoc.CoverageUnknown
+	analyzerReasons := []string{"no_provider_reports_attached"}
+	hasSyft := false
+	if len(r.Ledger) > 0 {
+		analyzerStatus = mapdoc.CoveragePartial
+		analyzerReasons = []string{"provider_artifacts_do_not_prove_complete_coverage"}
+	}
 	for _, x := range r.Ledger {
+		if x.ReportKind == "syft-json" {
+			hasSyft = true
+			packageStatus = mapdoc.CoverageComplete
+			packageReasons = nil
+		}
 		if x.Binding != BindingVerified {
-			providerStatus = mapdoc.CoveragePartial
-			providerReasons = append(providerReasons, x.Reason)
+			analyzerReasons = append(analyzerReasons, x.Reason)
+			if x.ReportKind == "syft-json" {
+				packageStatus = mapdoc.CoveragePartial
+				packageReasons = append(packageReasons, x.Reason)
+			}
+		}
+		if x.State == "unknown" || x.State == "tool_error" {
+			analyzerReasons = append(analyzerReasons, x.State)
 		}
 	}
-	if len(r.Ledger) == 0 {
-		providerStatus = mapdoc.CoverageUnknown
-		providerReasons = []string{"no_provider_reports_attached"}
+	if !hasSyft {
+		packageStatus = mapdoc.CoverageUnknown
 	}
-	providerReasons = compact(providerReasons)
+	packageReasons = compact(packageReasons)
+	analyzerReasons = compact(analyzerReasons)
 	return []mapdoc.QuestionCoverage{
-		{Question: "packages", Scope: ".", Coverage: mapdoc.Coverage{Status: providerStatus, Reasons: providerReasons}},
-		{Question: "analyzer_coverage", Scope: ".", Coverage: mapdoc.Coverage{Status: providerStatus, Reasons: providerReasons}},
+		{Question: "packages", Scope: ".", Coverage: mapdoc.Coverage{Status: packageStatus, Reasons: packageReasons}},
+		{Question: "analyzer_coverage", Scope: ".", Coverage: mapdoc.Coverage{Status: analyzerStatus, Reasons: analyzerReasons}},
 		{Question: "routing", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}},
 	}
 }

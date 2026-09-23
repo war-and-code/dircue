@@ -52,8 +52,14 @@ func TestMapAttachmentAndRouting(t *testing.T) {
 		t.Fatalf("plans: %v %s", err, routes)
 	}
 	for _, plan := range plans {
-		if plan.Argv == nil || !strings.Contains(strings.Join(plan.Argv, " "), "{") {
-			t.Fatalf("route is not an inert placeholder plan: %+v", plan)
+		if plan.Tool == "syft" {
+			if !strings.Contains(strings.Join(plan.Argv, " "), "{") {
+				t.Fatalf("verified route is not an inert placeholder plan: %+v", plan)
+			}
+			continue
+		}
+		if len(plan.Argv) != 0 || len(plan.Prerequisites) == 0 || plan.Prerequisites[0].Name != "exact_invocation" || plan.Prerequisites[0].Observed || plan.ReportKind == "" || plan.Reason == "" {
+			t.Fatalf("unverified route exposed argv without an explicit prerequisite: %+v", plan)
 		}
 	}
 }
