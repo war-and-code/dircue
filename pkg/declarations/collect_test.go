@@ -79,6 +79,76 @@ func TestCollectorDeterministicAndSelectedOnly(t *testing.T) {
 		}
 	}
 }
+
+func TestPythonRequirementsNeedSelectedPythonSource(t *testing.T) {
+	collect := func(withSource bool) *Report {
+		c := New("directory", "", 0)
+		c.Add("svc/requirements.txt", candidateFor("svc/requirements.txt", "fastapi==0.115\nredis>=5\n"))
+		if withSource {
+			c.Add("svc/app/main.py", nil)
+		}
+		r, err := c.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	without := collect(false)
+	if len(without.Projects) != 0 {
+		t.Fatalf("requirements alone overclaimed a project: %+v", without.Projects)
+	}
+	with := collect(true)
+	if len(with.Projects) != 1 || with.Projects[0].Kind != "python" {
+		t.Fatalf("Python source did not qualify a requirements project: %+v", with.Projects)
+	}
+	pythonTestReq(t, &Document{Project: &with.Projects[0]}, "python-dependency", "fastapi==0.115", "declared")
+}
+
+func TestPythonSetupPyReadsOnlyStaticArguments(t *testing.T) {
+	setup := "from setuptools import setup\nsetup(name='svc', version='1.0', install_requires=['fastapi>=0.1', get_extra()])\n"
+	c := New("directory", "", 0)
+	c.Add("svc/setup.py", candidateFor("svc/setup.py", setup))
+	c.Add("svc/main.py", nil)
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Projects) != 1 || r.Projects[0].Name != "svc" || r.Status != "partial" {
+		t.Fatalf("static/dynamic setup.py evidence was misreported: %+v", r)
+	}
+	foundStatic, foundUnknown := false, false
+	for _, req := range r.Projects[0].Requirements {
+		foundStatic = foundStatic || req.Kind == "python-dependency" && req.Value == "fastapi>=0.1"
+	}
+	for _, diag := range r.Diagnostics {
+		foundUnknown = foundUnknown || diag.Code == "dynamic-python-requirements"
+	}
+	if !foundStatic || !foundUnknown {
+		t.Fatalf("missing static dependency or dynamic coverage diagnostic: %+v", r)
+	}
+}
+
+func TestKbuildProjectRequiresBothSelectedRootMarkers(t *testing.T) {
+	make := func(withConfig bool) *Report {
+		c := New("directory", "", 0)
+		c.Add("Kbuild", candidateFor("Kbuild", "obj-y += tools/pyynl/"))
+		if withConfig {
+			c.Add("Kconfig", candidateFor("Kconfig", "mainmenu \"Example\"\n"))
+		}
+		r, err := c.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	if r := make(false); len(r.Projects) != 0 {
+		t.Fatalf("single marker overclaimed project: %+v", r.Projects)
+	}
+	r := make(true)
+	if len(r.Projects) != 1 || r.Projects[0].Kind != "kbuild-kconfig" || len(r.Projects[0].Requirements) != 2 {
+		t.Fatalf("root marker project missing or overclaimed: %+v", r.Projects)
+	}
+}
 func TestCollectorLexicalManifestLimit(t *testing.T) {
 	c := New("directory", "", 0)
 	reads := 0

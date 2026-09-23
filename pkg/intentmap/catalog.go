@@ -12,6 +12,8 @@ var catalog = []catalogEntry{
 	{"datastore:mongodb", []string{"mongodb", "mongo-go-driver", "mongoose"}},
 	{"cache:redis", []string{"redis", "stackexchange.redis", "go-redis"}},
 	{"messaging:kafka", []string{"kafka", "confluent-kafka", "sarama"}},
+	{"messaging:amqp", []string{"rabbitmq.client", "rabbitmq", "amqp091-go", "aio-pika", "pika", "amqp"}},
+	{"messaging:event-bus", []string{"masstransit", "azure.messaging.servicebus", "nservicebus"}},
 	{"net:http-client", []string{"axios", "requests", "reqwest", "net/http", "httpclient"}},
 	{"auth:oidc", []string{"openidconnect", "oidc", "oauth2-proxy"}},
 	{"auth:jwt", []string{"jsonwebtoken", "pyjwt", "jwt-go", "golang-jwt"}},
@@ -40,5 +42,16 @@ func capabilitiesFor(value string) []string {
 	return out
 }
 func coordinateMatch(value, coordinate string) bool {
-	return value == coordinate || strings.HasPrefix(value, coordinate+"/") || strings.HasPrefix(value, coordinate+" ") || strings.HasPrefix(value, coordinate+"@")
+	if !strings.HasPrefix(value, coordinate) {
+		return false
+	}
+	if len(value) == len(coordinate) {
+		return true
+	}
+	switch value[len(coordinate)] {
+	case '/', ' ', '@', '>', '<', '=', '!', '~', '[', ';':
+		return true
+	default:
+		return false
+	}
 }

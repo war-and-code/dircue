@@ -70,7 +70,7 @@ func New(source, tree string, maxFileBytes int64) *Collector {
 	if maxFileBytes > 0 {
 		limit = min(limit, maxFileBytes)
 	}
-	return &Collector{report: Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", SupportedEcosystems: []string{"cargo", "dotnet", "go", "gradle", "maven", "npm", "python-uv"}, Selection: "selected-regular-files-excluding-node-modules", Source: source, Tree: tree, Limits: Limits{ManifestBytes: limit, Documents: MaxDocuments, ObservationsPerManifest: MaxObservationsPerManifest, TotalObservations: MaxTotalObservations, StringBytes: MaxStringBytes, Patterns: MaxPatterns, InventoryPaths: MaxInventoryPaths, InputBytes: MaxInputBytes, OutputBytes: MaxOutputBytes, ResolutionWork: map[string]int{"npm": 1 << 20, "python-uv": pythonMatchBudget, "cargo": cargoMaxResolutionWork}}, Projects: []Project{}, Diagnostics: []Diagnostic{}}, files: map[string]bool{}, readLimit: limit}
+	return &Collector{report: Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", SupportedEcosystems: []string{"cargo", "dotnet", "go", "gradle", "maven", "npm", "python", "python-uv", "kbuild-kconfig"}, Selection: "selected-regular-files-excluding-node-modules", Source: source, Tree: tree, Limits: Limits{ManifestBytes: limit, Documents: MaxDocuments, ObservationsPerManifest: MaxObservationsPerManifest, TotalObservations: MaxTotalObservations, StringBytes: MaxStringBytes, Patterns: MaxPatterns, InventoryPaths: MaxInventoryPaths, InputBytes: MaxInputBytes, OutputBytes: MaxOutputBytes, ResolutionWork: map[string]int{"npm": 1 << 20, "python-uv": pythonMatchBudget, "cargo": cargoMaxResolutionWork}}, Projects: []Project{}, Diagnostics: []Diagnostic{}}, files: map[string]bool{}, readLimit: limit}
 }
 
 // IsManifest excludes installed npm contents even when language analysis includes them.
@@ -79,7 +79,11 @@ func IsManifest(name string) bool {
 		return false
 	}
 	switch path.Base(name) {
-	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml":
+	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml", "setup.py", "Kbuild", "Kconfig":
+		return true
+	}
+	base := path.Base(name)
+	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
 		return true
 	}
 	return projects.IsDotnet(name) || projects.IsJVM(name)
@@ -220,7 +224,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 			}
 		}
 	}
-	for _, resolve := range []func([]*Document, map[string]bool){ResolveNPM, ResolveGo, ResolvePython, ResolveCargo} {
+	for _, resolve := range []func([]*Document, map[string]bool){ResolveNPM, ResolveGo, ResolvePython, ResolveCargo, ResolveKernelProjects} {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
@@ -348,8 +352,15 @@ func Parse(name string, content []byte) *Document {
 		return ParseGo(name, content)
 	case "pyproject.toml":
 		return ParsePython(name, content)
+	case "setup.py":
+		return ParsePython(name, content)
 	case "Cargo.toml":
 		return ParseCargo(name, content)
+	case "Kbuild", "Kconfig":
+		return ParseKernelMarker(name, content)
+	}
+	if strings.HasPrefix(path.Base(name), "requirements") && strings.HasSuffix(path.Base(name), ".txt") {
+		return ParsePython(name, content)
 	}
 	if projects.IsDotnet(name) || projects.IsJVM(name) {
 		return fromLegacy(name, projects.Parse(name, content))
