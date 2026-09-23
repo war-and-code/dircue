@@ -22,7 +22,7 @@ import (
 )
 
 // Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "0.9.0"
+var Version = "1.0.0-dev"
 
 type options struct {
 	environments           bool
