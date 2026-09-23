@@ -38,7 +38,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if got := byName["classification.prefix_bytes"]; got.Value != "131072" || got.Category != "conformance-locked" || got.Origin != "fixed:linguist-parity" {
 		t.Fatalf("classifier window = %+v", got)
 	}
-	if !strings.Contains(strings.Join(report.Notes, " "), "not a measured RSS guarantee") {
+	if !strings.Contains(strings.Join(report.Notes, " "), "not an RSS guarantee") {
 		t.Fatalf("resource qualification missing: %+v", report.Notes)
 	}
 }

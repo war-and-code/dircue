@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/war-and-code/dircue/pkg/declarations"
+	"dircue/pkg/declarations"
 )
 
 // Build converts the declaration report into a deterministic component graph.

@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"github.com/war-and-code/dircue/pkg/declarations"
+	"dircue/pkg/declarations"
 )
 
 func TestBuildNormalizesPolyglotComponentsAndLocalRelationships(t *testing.T) {

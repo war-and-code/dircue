@@ -3,10 +3,10 @@ package mapbuild
 import (
 	"testing"
 
-	"github.com/war-and-code/dircue/pkg/deployables"
-	"github.com/war-and-code/dircue/pkg/discovery"
-	"github.com/war-and-code/dircue/pkg/mapdoc"
-	"github.com/war-and-code/dircue/pkg/profile"
+	"dircue/pkg/deployables"
+	"dircue/pkg/discovery"
+	"dircue/pkg/mapdoc"
+	"dircue/pkg/profile"
 )
 
 func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
