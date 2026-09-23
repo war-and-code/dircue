@@ -97,7 +97,7 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		ProviderChanges: []Change{},
 		Caveats:         []string{"source ancestry and merge-base are not inferred; the caller selected this pairing"},
 	}
-	report.SourceBinding = compareSource(base.Source, head.Source)
+	report.SourceBinding = compareSourceDocuments(base, head)
 	report.ObserverCompatibility = "same"
 	if !slices.Equal(producerSet(base), producerSet(head)) {
 		report.ObserverCompatibility = "different"
@@ -321,6 +321,55 @@ func (r *Report) add(change Change) {
 		r.Counts.IndeterminateRemoval++
 		r.Caveats = append(r.Caveats, "incomplete head coverage prevents one or more absences from being confirmed as removals")
 	}
+}
+
+// compareSourceDocuments extends compareSource across source modes: a
+// directory digest in Git tree-ID form can be compared with a Git map's
+// selected tree. Equal IDs prove equal content. Unequal IDs prove different
+// content only when the directory digest was complete, because a qualified
+// digest (for example with an unapplied filter driver) can differ from what
+// Git records for identical files.
+func compareSourceDocuments(base, head mapdoc.Document) string {
+	a, b := base.Source, head.Source
+	if a.Mode == b.Mode {
+		return compareSource(a, b)
+	}
+	git, dir, dirDoc := a, b, head
+	if a.Mode == "directory" {
+		git, dir, dirDoc = b, a, base
+	}
+	if dir.Digest == nil || git.Tree == "" || !gitTreeDigest(dir.Digest, git.Tree) {
+		return "different"
+	}
+	if strings.EqualFold(dir.Digest.Value, git.Tree) {
+		return "same"
+	}
+	if sourceBindingStatus(dirDoc) == mapdoc.CoverageComplete {
+		return "different"
+	}
+	return "unknown"
+}
+
+func gitTreeDigest(d *mapdoc.Digest, tree string) bool {
+	if d.Scope != "gitignore_filtered+git_normalized" {
+		return false
+	}
+	switch d.Algorithm {
+	case "git-sha1":
+		return len(tree) == 40
+	case "git-sha256":
+		return len(tree) == 64
+	}
+	return false
+}
+
+func sourceBindingStatus(d mapdoc.Document) mapdoc.CoverageStatus {
+	for _, q := range d.Coverage {
+		if q.Question == mapdoc.QuestionSourceBinding && q.Scope == "." {
+			return q.Status
+		}
+	}
+	return mapdoc.CoverageUnknown
 }
 
 func compareSource(a, b mapdoc.Source) string {

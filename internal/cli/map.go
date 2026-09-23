@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,13 +12,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"dircue/pkg/deployables"
 	"dircue/pkg/detectors"
 	"dircue/pkg/intentmap"
 	"dircue/pkg/mapbuild"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/scanner"
+	"dircue/pkg/treehash"
+	"github.com/spf13/cobra"
 )
 
 func newMapCommand(opts *options) *cobra.Command {
@@ -112,7 +114,14 @@ func newMapCommand(opts *options) *cobra.Command {
 			if opts.tree != "" {
 				mapRevision = "tree:" + opts.tree
 			}
-			doc, err := mapbuild.Build(report, mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport})
+			buildOptions := mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport}
+			if report.Discovery.Source.Mode == "directory" {
+				buildOptions.SourceDigest, buildOptions.SourceBinding, err = directorySourceDigest(cmd.Context(), root, settings)
+				if err != nil {
+					return err
+				}
+			}
+			doc, err := mapbuild.Build(report, buildOptions)
 			if err != nil {
 				return err
 			}
@@ -462,4 +471,34 @@ func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
 	default:
 		return safeMapLabel(strings.ReplaceAll(q.Question, "_", " ")) + ": needs review"
 	}
+}
+
+// directorySourceDigest computes the directory's content identity for the map
+// source block. Scope problems qualify source binding instead of failing the
+// map; only cancellation is returned as an error.
+func directorySourceDigest(ctx context.Context, dir string, settings resolvedMapSettings) (*mapdoc.Digest, *mapdoc.Coverage, error) {
+	if settings.DigestScope == "" {
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"source_digest_disabled"}}, nil
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{treehash.ReasonUnreadableEntry}}, nil
+	}
+	defer root.Close()
+	result, err := treehash.Compute(ctx, root, treehash.Options{
+		Format: treehash.Format(settings.DigestFormat), Scope: treehash.Scope(settings.DigestScope),
+		MaxEntries: settings.MaxFiles, MaxBytes: settings.DigestBytes, Workers: settings.Workers,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	switch result.Status {
+	case treehash.StatusUnavailable:
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: result.Reasons}, nil
+	case treehash.StatusPartial:
+		digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+		return digest, &mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: result.Reasons}, nil
+	}
+	digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+	return digest, &mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}, nil
 }
