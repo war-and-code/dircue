@@ -42,6 +42,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		evidence  mapdoc.Evidence
 	}
 	composeImages := map[string][]imageOwner{}
+	seenDeployables := map[string]int{}
+	seenEdges := map[string]bool{}
+	for _, edge := range d.Edges {
+		seenEdges[edge.ID] = true
+	}
 	imageUsers := []struct {
 		id       string
 		image    string
@@ -49,6 +54,10 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	}{}
 	addRelationship := func(kind mapdoc.EdgeType, from, to, source, reason string, evidence ...mapdoc.Evidence) {
 		e := mapdoc.NewEdge(kind, from, to, source+":"+to)
+		if seenEdges[e.ID] {
+			return
+		}
+		seenEdges[e.ID] = true
 		e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
 		e.Evidence = evidence
 		d.Edges = append(d.Edges, e)
@@ -71,6 +80,15 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if len(n.Evidence) == 0 {
 			continue
 		}
+		if original, duplicate := seenDeployables[n.ID]; duplicate {
+			// Two declarations cannot share a stable identity in a valid map.
+			// Retain the first observation, disclose the omission, and keep the
+			// rest of the map available to callers.
+			d.Nodes[original].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"duplicate_deployable_identity"}}
+			setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog", "duplicate_deployable_identity"}})
+			continue
+		}
+		seenDeployables[n.ID] = len(d.Nodes)
 		var localComponent string
 		var localEvidence mapdoc.Evidence
 		var declaredImages []struct {

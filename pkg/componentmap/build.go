@@ -132,7 +132,7 @@ func packageRequirementKind(kind string) bool {
 
 func componentKind(kind string) bool {
 	switch kind {
-	case "npm", "go", "go-workspace", "cargo", "cargo-workspace", "python", "python-workspace", "maven", "gradle", "solution", "dotnet":
+	case "npm", "go", "go-workspace", "cargo", "cargo-workspace", "python", "python-uv", "python-workspace", "kbuild-kconfig", "maven", "gradle", "solution", "dotnet":
 		return true
 	default:
 		return false
@@ -172,8 +172,12 @@ func ecosystem(kind string) string {
 		return "go"
 	case strings.HasPrefix(kind, "cargo"):
 		return "cargo"
-	case kind == "python" || kind == "python-workspace":
+	case kind == "python":
+		return "python"
+	case kind == "python-uv" || kind == "python-workspace":
 		return "python-uv"
+	case kind == "kbuild-kconfig":
+		return "kbuild-kconfig"
 	case kind == "maven":
 		return "maven"
 	case kind == "gradle":

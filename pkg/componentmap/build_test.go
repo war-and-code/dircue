@@ -17,7 +17,7 @@ func TestBuildNormalizesPolyglotComponentsAndLocalRelationships(t *testing.T) {
 		{ID: "rust/Cargo.toml", Root: "rust", Kind: "cargo-workspace", References: []declarations.Reference{{Kind: "cargo-workspace-member", Target: "rust/core/Cargo.toml", TargetStatus: "present", State: "declared", Evidence: "rust/Cargo.toml"}}},
 		{ID: "rust/core/Cargo.toml", Root: "rust/core", Kind: "cargo", Name: "core"},
 		{ID: "py/pyproject.toml", Root: "py", Kind: "python-workspace", References: []declarations.Reference{{Kind: "uv-workspace-member", Target: "py/lib/pyproject.toml", TargetStatus: "present", State: "resolved", Evidence: "py/pyproject.toml"}}},
-		{ID: "py/lib/pyproject.toml", Root: "py/lib", Kind: "python", Name: "lib"},
+		{ID: "py/lib/pyproject.toml", Root: "py/lib", Kind: "python-uv", Name: "lib"},
 		{ID: "java/pom.xml", Root: "java", Kind: "maven", References: []declarations.Reference{{Kind: "module", Target: "java/api/pom.xml", TargetStatus: "present", State: "declared", Evidence: "java/pom.xml"}}},
 		{ID: "java/api/pom.xml", Root: "java/api", Kind: "maven"},
 		{ID: "gradle/settings.gradle", Root: "gradle", Kind: "gradle", References: []declarations.Reference{{Kind: "gradle-module", Target: "gradle/app", TargetStatus: "present", State: "conditional", Condition: "Gradle script evaluation", Evidence: "gradle/settings.gradle"}}},
@@ -76,6 +76,20 @@ func TestBuildQualifiesUnknownsAndIsDeterministic(t *testing.T) {
 	}
 	if a.QualifiedReferences[0].Reason == "" || a.QualifiedReferences[1].Reason == "" {
 		t.Fatalf("qualified reasons missing: %+v", a.QualifiedReferences)
+	}
+}
+
+func TestPythonWithoutUVIsNotLabeledUV(t *testing.T) {
+	fragment := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{
+		{ID: "services/email/requirements.txt", Root: "services/email", Kind: "python"},
+		{ID: "workspace/pyproject.toml", Root: "workspace", Kind: "python-workspace"},
+	}})
+	got := map[string]string{}
+	for _, component := range fragment.Components {
+		got[component.Key] = component.Ecosystem
+	}
+	if got["services/email/requirements.txt"] != "python" || got["workspace/pyproject.toml"] != "python-uv" {
+		t.Fatalf("Python ecosystem attribution: %+v", got)
 	}
 }
 

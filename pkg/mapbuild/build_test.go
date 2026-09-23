@@ -57,6 +57,34 @@ func TestDeclaredBuildAndRunLinksHaveEvidence(t *testing.T) {
 	}
 }
 
+func TestDuplicateObserverIdentityDoesNotDiscardWholeMap(t *testing.T) {
+	evidence := deployables.Evidence{Field: "provider", Line: 1, Basis: "static-field"}
+	definition := deployables.Definition{Provider: "terraform", Kind: "infrastructure", Name: "provider:aws", Path: "main.tf", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}}
+	report := &profile.Report{Discovery: &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory"}}}
+	doc, err := Build(report, Options{Deployables: &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition, definition}}})
+	if err != nil {
+		t.Fatalf("duplicate observer identity discarded the map: %v", err)
+	}
+	count := 0
+	for _, n := range doc.Nodes {
+		if n.Kind == mapdoc.NodeDeployable {
+			count++
+			if n.Coverage.Status != mapdoc.CoveragePartial {
+				t.Fatalf("duplicate was not qualified: %+v", n)
+			}
+		}
+	}
+	if count != 1 {
+		t.Fatalf("retained deployable count=%d", count)
+	}
+	for _, q := range doc.Coverage {
+		if q.Question == "deployables" && q.Status == mapdoc.CoveragePartial && len(q.Reasons) == 2 {
+			return
+		}
+	}
+	t.Fatal("duplicate omission was not disclosed in deployable coverage")
+}
+
 func TestContentPopulationsHaveUserMeaningfulStableIdentity(t *testing.T) {
 	makeReport := func(first, second string) *profile.Report {
 		return &profile.Report{Discovery: &discovery.Report{
