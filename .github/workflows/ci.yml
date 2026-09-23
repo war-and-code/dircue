@@ -96,6 +96,12 @@ jobs:
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Test staged-analysis consumer against the built CLI
         run: python examples/staged_analysis/test_route.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Hostile-filesystem conformance (quick, POSIX only)
+        if: runner.os != 'Windows'
+        run: python3 tests/hostile_fs/run.py --binary bin/dircue --quick
+      - name: Forest E2E conformance (quick, POSIX only)
+        if: runner.os != 'Windows'
+        run: python3 tests/forest/run.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --quick
 
   linguist-conformance:
     needs: preflight

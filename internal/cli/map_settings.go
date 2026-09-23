@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"dircue/pkg/scanner"
+	"dircue/pkg/treehash"
 	"github.com/spf13/cobra"
 )
 
@@ -41,13 +42,17 @@ type mapSettingsReport struct {
 }
 
 type resolvedMapSettings struct {
-	Workers       int
-	MaxFiles      int
-	MaxFileBytes  int64
-	GitCacheBytes int64
-	CPULimit      int
-	MemoryLimit   int64
-	Report        mapSettingsReport
+	Workers        int
+	MaxFiles       int
+	MaxFileBytes   int64
+	GitCacheBytes  int64
+	DigestScope    string // "" disables the directory digest
+	DigestFormat   string
+	DigestBytes    int64
+	CPULimit       int
+	MemoryLimit    int64
+	SummarizeTrees bool
+	Report         mapSettingsReport
 }
 
 func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags) {
@@ -64,7 +69,9 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	workers, maxFiles, maxFileBytes := 0, scanner.DefaultMaxTreeSize, int64(0)
 	gitCacheBytes := int64(96 << 20)
 	cpuLimit, memoryLimit := 0, int64(0)
-	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited"}
+	digestMode, digestFormat, digestBytes := "git", "sha1", int64(defaultDigestBytes)
+	summarizeTrees := true // default on
+	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited", "source.digest": "default", "source.digest_format": "default", "source.digest_bytes": "default", "content.summarize_trees": "default"}
 	switch flags.Preset {
 	case "low-memory":
 		workers, origins["workers"] = 2, "preset:low-memory"
@@ -115,8 +122,29 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 				return resolvedMapSettings{}, fmt.Errorf("--set %s: %w", name, err)
 			}
 			memoryLimit = parsed
+		case "source.digest":
+			if !slices.Contains([]string{"git", "raw", "off"}, value) {
+				return resolvedMapSettings{}, enumValueError("--set source.digest", "git, raw, or off", value, []string{"git", "raw", "off"})
+			}
+			digestMode = value
+		case "source.digest_format":
+			if !slices.Contains([]string{"sha1", "sha256"}, value) {
+				return resolvedMapSettings{}, enumValueError("--set source.digest_format", "sha1 or sha256", value, []string{"sha1", "sha256"})
+			}
+			digestFormat = value
+		case "source.digest_bytes":
+			parsed, err := parseMemoryLimit(value)
+			if err != nil {
+				return resolvedMapSettings{}, fmt.Errorf("--set %s requires 0 (no limit) or a byte size: %w", name, err)
+			}
+			digestBytes = parsed
+		case "content.summarize_trees":
+			if !slices.Contains([]string{"on", "off"}, value) {
+				return resolvedMapSettings{}, enumValueError("--set content.summarize_trees", "on or off", value, []string{"on", "off"})
+			}
+			summarizeTrees = value == "on"
 		default:
-			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes", diagnosticValue(name))
+			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes, source.digest, source.digest_format, source.digest_bytes, content.summarize_trees", diagnosticValue(name))
 		}
 		origins[name] = "--set"
 	}
@@ -163,9 +191,25 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 		{Name: "content.file_bytes", Value: strconv.FormatInt(maxFileBytes, 10), Unit: "bytes", Category: "coverage-affecting", Origin: origins["content.file_bytes"], Description: "Skip larger files with explicit partial coverage; 0 disables this optional limit.", Minimum: "0"},
 		{Name: "runtime.cpu", Value: strconv.Itoa(cpuLimit), Unit: "logical CPUs", Category: "performance-only", Origin: origins["runtime.cpu"], Description: "Cooperative GOMAXPROCS setting scoped to this command; 0 inherits the process setting.", Minimum: "0", Maximum: "1024"},
 		{Name: "runtime.memory_bytes", Value: strconv.FormatInt(memoryLimit, 10), Unit: "bytes", Category: "performance-only", Origin: origins["runtime.memory_bytes"], Description: "Cooperative Go-managed memory target scoped to this command; 0 inherits the process setting and nonzero values must be at least 1048576.", Minimum: "0", Maximum: "9223372036854775807"},
+		{Name: "source.digest", Value: digestMode, Unit: "mode", Category: "coverage-affecting", Origin: origins["source.digest"], Description: "Directory content identity: git computes the Git-compatible tree ID (ignore rules and line-ending normalization applied), raw hashes every entry byte for byte, off skips it and leaves source binding unknown. Git sources always use their selected tree."},
+		{Name: "source.digest_format", Value: digestFormat, Unit: "object format", Category: "coverage-affecting", Origin: origins["source.digest_format"], Description: "Git object format for the directory tree ID: sha1 or sha256."},
+		{Name: "source.digest_bytes", Value: strconv.FormatInt(digestBytes, 10), Unit: "bytes", Category: "coverage-affecting", Origin: origins["source.digest_bytes"], Description: "Maximum content bytes hashed for the directory tree ID; above it the digest is omitted and source binding stays unknown. 0 disables the limit.", Minimum: "0"},
+		{Name: "content.summarize_trees", Value: func() string {
+			if summarizeTrees {
+				return "on"
+			}
+			return "off"
+		}(), Unit: "flag", Category: "coverage-affecting", Origin: origins["content.summarize_trees"], Description: "Recognize and summarize environment and build-output trees (node_modules, virtualenvs, Rust target/, .gradle, etc.) rather than walking them; on by default in directory mode. Off disables summarization and counts their contents in the language inventory."},
 		{Name: "classification.prefix_bytes", Value: strconv.FormatInt(scanner.ClassificationBytes, 10), Unit: "bytes", Category: "conformance-locked", Origin: "fixed:linguist-parity", Description: "Fixed classifier input window. Changing this value can change language results and invalidates the current Linguist conformance claim.", Minimum: strconv.FormatInt(scanner.ClassificationBytes, 10), Maximum: strconv.FormatInt(scanner.ClassificationBytes, 10)},
 	}
-	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, Report: mapSettingsReport{
+	digestScope := ""
+	switch digestMode {
+	case "git":
+		digestScope = string(treehash.ScopeGit)
+	case "raw":
+		digestScope = string(treehash.ScopeRaw)
+	}
+	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, DigestScope: digestScope, DigestFormat: digestFormat, DigestBytes: digestBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, SummarizeTrees: summarizeTrees, Report: mapSettingsReport{
 		SchemaVersion: "1.0.0", Kind: "map_settings", Preset: flags.Preset, Settings: settings,
 		Notes: []string{
 			"low-memory tunes worker concurrency and retained Git object cache size while preserving map answers",
@@ -173,9 +217,15 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 			"GOMEMLIMIT is a cooperative Go runtime limit inherited from the process environment; it is not a hard process or native-worker limit",
 			"--cpu-limit and --memory-limit are scoped cooperative runtime controls, not hard CPU, RSS, subprocess, or operating-system ceilings",
 			"thorough raises an inventory coverage limit and may change answers that balanced reports as partial",
+			"source.digest reads every in-scope directory file once more to compute its Git-compatible tree ID; set it to off for metadata-only runs",
+			"content.summarize_trees only applies to directory-mode maps; Git-mode maps always scan committed content",
 		},
 	}}, nil
 }
+
+// defaultDigestBytes bounds directory hashing so an unexpectedly large input
+// (for example a whole disk) cannot turn one map into an unbounded read.
+const defaultDigestBytes = 16 << 30
 
 func parseMemoryLimit(value string) (int64, error) {
 	value = strings.TrimSpace(value)

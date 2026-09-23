@@ -1,23 +1,26 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"dircue/pkg/deployables"
 	"dircue/pkg/detectors"
 	"dircue/pkg/intentmap"
 	"dircue/pkg/mapbuild"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/scanner"
+	"dircue/pkg/treehash"
+	"github.com/spf13/cobra"
 )
 
 func newMapCommand(opts *options) *cobra.Command {
@@ -25,12 +28,13 @@ func newMapCommand(opts *options) *cobra.Command {
 	var budgetFiles int
 	var attachments []string
 	var attachBinding string
+	var forestMode bool
 	var settingsFlags mapSettingsFlags
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
-		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
-		Example: "  dircue map --json /checkout\n  dircue map --summary --source directory /content\n  dircue map --budget-files 50000 --json /checkout",
+		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Use --forest to discover nested Git roots and produce a forest document. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
+		Example: "  dircue map --json /checkout\n  dircue map --summary --source directory /content\n  dircue map --forest /disk\n  dircue map --budget-files 50000 --json /checkout",
 		Args:    pathArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, name := range []string{"breakdown", "strategies"} {
@@ -78,9 +82,28 @@ func newMapCommand(opts *options) *cobra.Command {
 			if st, err := os.Stat(root); err == nil && !st.IsDir() {
 				return fmt.Errorf("map requires a directory")
 			}
+			// Forest mode: discover nested roots and produce a forest document.
+			if forestMode {
+				if opts.source != "auto" && opts.source != "directory" {
+					return fmt.Errorf("--forest requires --source auto or --source directory")
+				}
+				return runForest(cmd.Context(), cmd, root, summary, opts, settings)
+			}
 			revision := ""
 			if cmd.Flags().Changed("rev") {
 				revision = opts.revision
+			}
+			// A directory source's digest is independent of the scan, so it runs
+			// concurrently whenever the source is known to be a directory.
+			digestCtx, cancelDigest := context.WithCancel(cmd.Context())
+			defer cancelDigest()
+			var early chan digestOutcome
+			if settings.DigestScope != "" && (opts.source == "directory" || opts.source == "auto" && !hasRootDotGit(root)) {
+				early = make(chan digestOutcome, 1)
+				go func() {
+					digest, binding, err := directorySourceDigest(digestCtx, root, settings)
+					early <- digestOutcome{digest, binding, err}
+				}()
 			}
 			deployObserver := deployables.NewCollector(deployables.Options{})
 			intentObserver := intentmap.New(intentmap.Options{})
@@ -90,6 +113,7 @@ func newMapCommand(opts *options) *cobra.Command {
 				ErrorPolicy: scanner.ErrorPolicy(opts.onError), Workers: settings.Workers,
 				MaxTreeSize: settings.MaxFiles, MaxFileBytes: settings.MaxFileBytes,
 				GitObjectCacheBytes: settings.GitCacheBytes,
+				SummarizeTrees:      settings.SummarizeTrees,
 				Detectors:           hooks, Discovery: true, Declarations: true,
 				Formats: true, Availability: true, Environments: true, Registries: true,
 			})
@@ -112,7 +136,20 @@ func newMapCommand(opts *options) *cobra.Command {
 			if opts.tree != "" {
 				mapRevision = "tree:" + opts.tree
 			}
-			doc, err := mapbuild.Build(report, mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport})
+			buildOptions := mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport}
+			if report.Discovery.Source.Mode == "directory" {
+				var outcome digestOutcome
+				if early != nil {
+					outcome = <-early
+				} else {
+					outcome.digest, outcome.binding, outcome.err = directorySourceDigest(cmd.Context(), root, settings)
+				}
+				if outcome.err != nil {
+					return outcome.err
+				}
+				buildOptions.SourceDigest, buildOptions.SourceBinding = outcome.digest, outcome.binding
+			}
+			doc, err := mapbuild.Build(report, buildOptions)
 			if err != nil {
 				return err
 			}
@@ -145,6 +182,7 @@ func newMapCommand(opts *options) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
+	cmd.Flags().BoolVar(&forestMode, "forest", false, "Discover nested Git roots and produce a forest document instead of a single map")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
 	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert binding for reports without snapshot identity: caller-asserted")
@@ -462,4 +500,45 @@ func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
 	default:
 		return safeMapLabel(strings.ReplaceAll(q.Question, "_", " ")) + ": needs review"
 	}
+}
+
+// directorySourceDigest computes the directory's content identity for the map
+// source block. Scope problems qualify source binding instead of failing the
+// map; only cancellation is returned as an error.
+func directorySourceDigest(ctx context.Context, dir string, settings resolvedMapSettings) (*mapdoc.Digest, *mapdoc.Coverage, error) {
+	if settings.DigestScope == "" {
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"source_digest_disabled"}}, nil
+	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{treehash.ReasonUnreadableEntry}}, nil
+	}
+	defer root.Close()
+	result, err := treehash.Compute(ctx, root, treehash.Options{
+		Format: treehash.Format(settings.DigestFormat), Scope: treehash.Scope(settings.DigestScope),
+		MaxEntries: settings.MaxFiles, MaxBytes: settings.DigestBytes, Workers: settings.Workers,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	switch result.Status {
+	case treehash.StatusUnavailable:
+		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: result.Reasons}, nil
+	case treehash.StatusPartial:
+		digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+		return digest, &mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: result.Reasons}, nil
+	}
+	digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+	return digest, &mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}, nil
+}
+
+type digestOutcome struct {
+	digest  *mapdoc.Digest
+	binding *mapdoc.Coverage
+	err     error
+}
+
+func hasRootDotGit(dir string) bool {
+	_, err := os.Lstat(filepath.Join(dir, ".git"))
+	return err == nil
 }

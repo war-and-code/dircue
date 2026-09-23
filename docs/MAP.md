@@ -86,12 +86,51 @@ resolved commit ID. `revision` retains the caller's expression, such as `HEAD`;
 An explicit tree selection has no commit ID. A provider binding is verified
 only when comparable snapshot identities match.
 
-The CLI does not calculate a full-content digest for a live directory. Such a
-map reports `source_binding: unknown` with
-`live_directory_has_no_full_content_digest`. Embedding producers can supply the
-optional directory digest defined by the map schema. Absent that digest,
-attached reports and SARIF locations can still be joined by path, but the
-output does not claim they came from the same immutable snapshot.
+A directory map records a content identity in `source.digest`. By default
+it is the **Git-compatible tree ID**: the tree object ID that `git add -A &&
+git write-tree` would record for the same files in a fresh repository
+(`algorithm: git-sha1`, `scope: gitignore_filtered+git_normalized`). A clean
+checkout of a commit therefore has the same digest as that commit's tree, so a
+directory map can be tied to a Git snapshot, and `map compare` reports a Git
+map and a directory map of identical content as the same source. Without the
+checkout's `.git` index, a committed file that matches an ignore rule cannot be
+told apart from ignored build output, so such a digest is qualified. On a
+case-insensitive filesystem, a checkout of a repository with case-only name
+pairs cannot hold both files, and its digest honestly differs from the commit.
+The digest runs concurrently with the scan when the source is known to be a
+directory; on the Linux kernel it added about one second on an Apple M1 Max.
+
+The digest applies repository content the way Git does:
+
+- `.gitignore` files, `$GIT_DIR/info/exclude`, and, when the directory is a
+  checkout, its index (tracked files are never ignored, and uninitialized
+  submodules keep their recorded commit);
+- `.gitattributes` and `$GIT_DIR/info/attributes` line-ending normalization
+  (`text`, `text=auto`, `eol`, and the legacy `crlf` attribute);
+- executable bits, symlinks, and nested repositories, which are recorded as
+  gitlinks at their checked-out commit.
+
+User and system Git configuration is deliberately not consulted. The digest
+assumes `core.autocrlf=false`, `core.filemode=true`, `core.symlinks=true`,
+`core.ignorecase=false`, `core.precomposeunicode=false`, and no global excludes
+or attributes. The CLI never runs Git and never reads outside the selected root.
+
+`source_binding` states how far the digest can be trusted:
+
+| Status | Meaning |
+| --- | --- |
+| `complete` | The digest is exactly what Git records for this directory under the stated assumptions. |
+| `partial` | The digest identifies the content, but Git could record something different: `filter_driver_not_applied`, `ident_not_applied`, `working_tree_encoding_not_applied`, `special_files_excluded`, `nested_repository_unresolved`, `text_auto_index_state_assumed_empty`, `ignored_entries_without_index` (ignore rules excluded entries and no checkout index was available to show which of them are committed), or `sparse_checkout_entries_not_present`. |
+| `unknown` | No digest was produced: `source_digest_disabled`, `unreadable_entry`, `digest_entry_limit`, `digest_byte_limit`, or `content_changed_during_read`. |
+
+Computing the digest reads every in-scope file once more. Control it with
+`--set source.digest=git|raw|off` (`raw` hashes every file and symlink byte for
+byte without ignore rules or normalization, as `all_entries+raw`),
+`--set source.digest_format=sha1|sha256`, and `--set source.digest_bytes=N`
+(default 16 GiB; `0` removes the limit). The digest also honors the inventory
+entry limit. Absent a digest, attached reports and SARIF locations can still be
+joined by path, but the output does not claim they came from the same immutable
+snapshot. Embedding producers can supply their own digest in the same field.
 
 ## Coverage and limits
 
@@ -143,7 +182,8 @@ dircue map settings --set workers=8 --set git.object_cache_bytes=128MiB --json
 dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
 ```
 
-`--set` accepts `workers`, `git.object_cache_bytes`, `inventory.files`,
+`--set` accepts `source.digest`, `source.digest_format`, `source.digest_bytes`,
+`workers`, `git.object_cache_bytes`, `inventory.files`,
 `content.file_bytes`, `runtime.cpu`, and `runtime.memory_bytes`. A named
 flag such as `--workers`, `--budget-files`, `--tree-size`, or
 `--max-file-bytes` has the highest precedence, as do `--cpu-limit` and
@@ -265,6 +305,78 @@ Current route descriptors cover Syft, scc, BCA, Noir, OpenTaint, and Bifrost
 where the map contains applicable evidence. A routing descriptor does not mean
 that dircue can import every output mode from that tool; attachment support is
 limited to the formats listed above.
+
+## Forests
+
+`dircue map --forest PATH` scans a directory that may contain multiple Git
+repositories — a developer laptop, an archive drive, a CI workspace — and
+produces a single forest document that covers every nested root plus the
+remaining unrooted content.
+
+```sh
+dircue map --forest --json /path/to/drive > forest.json
+dircue map --forest --summary /path/to/drive
+```
+
+### What a forest document contains
+
+| Field | Description |
+| --- | --- |
+| `roots` | One entry per discovered Git root with path, kind, HEAD, commit, tree, credential-stripped remotes, and committer time. |
+| `environment_trees` | Recognized dependency, build-output, and cache trees that were counted rather than scanned in detail. |
+| `residual` | A directory-mode map of all content not covered by a root or an environment tree. |
+| `coverage` | Per-question coverage for roots, residual, and environment trees. |
+
+### Root kinds
+
+| Kind | Description |
+| --- | --- |
+| `git_worktree` | Normal working-tree repository (`.git/` directory or file). |
+| `git_bare` | Bare repository (HEAD + objects/ + refs/ without a working tree). |
+| `git_submodule` | Working tree whose `.git` is a file pointing to a parent's `.git/modules/`. |
+
+### Environment and build-output trees
+
+The following directories are recognized and summarized rather than scanned
+entry-by-entry:
+
+| Pattern | Kind | Ecosystem |
+| --- | --- | --- |
+| `node_modules/` | `dependency_tree` | Node.js |
+| `pyvenv.cfg` sibling | `dependency_tree` | Python |
+| `__pycache__/` | `cache` | Python |
+| `.tox/`, `.nox/` | `cache` | Python |
+| `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/` | `cache` | Python |
+| CACHEDIR.TAG with correct signature | `cache` | (ecosystem from parent) |
+| `.gradle/` with Gradle sibling | `build_output` | Gradle |
+| `build/` with Gradle sibling | `build_output` | Gradle |
+| `.terraform/` | `build_output` | Terraform |
+| `Pods/` with `Podfile` sibling | `dependency_tree` | CocoaPods |
+
+`vendor/`, `third_party/`, `dist/`, and a plain `build/` without a Gradle
+sibling are never summarized. Set `--set content.summarize_trees=off` to
+disable summarization and scan every directory as content.
+
+### Credential stripping
+
+Remote URLs are stripped of credentials before they appear in any output.
+HTTPS user-info (`user:token@host` → `host`) and SCP-style user prefixes
+(`git@host:path` → `host:path`) are removed. Query strings and fragments are
+dropped. A canary embedded in a remote URL will not appear in the forest
+document.
+
+### Identity resolution
+
+Each root's `identity_status` is either `resolved` (HEAD commit read
+successfully) or `unknown` (unborn HEAD, missing objects, or unreadable
+`.git`). Unknowns are listed separately in `--summary` output. A forest with
+any unknown root has `status: partial`.
+
+### Export the schema
+
+```sh
+dircue capabilities --schema forest --json > forest.schema.json
+```
 
 ## Compare saved maps
 
