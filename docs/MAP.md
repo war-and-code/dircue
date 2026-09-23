@@ -150,6 +150,9 @@ Supported attachment kinds are:
   are intentionally outside this importer.
 - `noir-json`: endpoint interfaces, supported parameters, ownership links,
   reported files, and snapshot binding.
+- `bifrost-code-query-json`: selected neutral CodeQuery structure facts and
+  reported files. Finding, witness, conflict, severity, and source-snippet
+  fields stay with Bifrost.
 
 An attachment without comparable source identity is retained with an `unknown`
 binding. A mismatched identity is not silently promoted to repository evidence.
@@ -157,10 +160,31 @@ Provider coverage replaces the corresponding `packages`, `analyzer_coverage`,
 and `routing` question entries in the resulting document. Each attached run
 also receives a typed `coverage_ledger` entry with its tool, report kind,
 scope, binding, run state, and reported files. This ledger records only what
-the supplied report disclosed. It is not comprehensive per-component,
-per-language blind-spot accounting, and an empty `covered_files` array means
-unknown coverage rather than a clean run. The default per-file attachment bound
-is 32 MiB and the default record bound is 100,000.
+the supplied report disclosed. An empty `covered_files` array means unknown
+coverage rather than a clean run. At most 16 attachments are accepted; each is
+bounded to 32 MiB and 100,000 records by default.
+
+## Analyzer coverage and blind spots
+
+The map's `analyzer_coverage` matrix accounts for every known component,
+attributable language, and built-in analyzer descriptor. Entries distinguish
+`not_run`, `unsupported_language`, `unsupported_framework`,
+`prerequisite_unmet`, `tool_error`, and `unknown`. The compact
+`analyzer_blind_spots` array counts entries in each state for summary display.
+
+Descriptors are versioned dircue data and include their upstream documentation
+source. Built-ins cover Syft, OpenTaint, Noir, Bifrost, BCA, and scc. An
+unrecognized SARIF producer receives the generic SARIF descriptor and remains
+`unknown`; SARIF syntax does not prove analyzer language support.
+
+This accounting is intentionally conservative. `language_basis` distinguishes
+an explicit component property, a root language population, and an
+unattributed language. Component languages that cannot be
+attributed remain `unknown`; no per-component file denominator is invented.
+Provider file lists are retained but do
+not prove exhaustive coverage. No report means `not_run`, while an empty report
+from a tool that ran remains `unknown`. Repository content cannot override the
+built-in capability data.
 
 ## Route follow-up tools
 
@@ -181,8 +205,8 @@ confined paths, apply resource policy, and validate the final invocation.
 
 Current route descriptors cover Syft, scc, BCA, Noir, OpenTaint, and Bifrost
 where the map contains applicable evidence. A routing descriptor does not mean
-that dircue can import that tool's report; attachment support is the narrower
-list above.
+that dircue can import every output mode from that tool; attachment support is
+limited to the formats listed above.
 
 ## Compare saved maps
 
@@ -191,9 +215,11 @@ dircue map compare --json before.json after.json > map-change.json
 ```
 
 Comparison uses stable IDs and opens neither source tree. It separates material
-node/edge changes from evidence-only and coverage-only changes. If the head map
-has incomplete coverage, a missing observation is reported as an indeterminate
-removal rather than a proven deletion. The caller selects the pair; dircue does
+source changes, provider observations, evidence changes, and coverage changes.
+Provider-only nodes and edges do not inflate source material-change counts. If
+the head map has incomplete or incomparable provider coverage, a missing
+observation is reported as an indeterminate removal rather than a proven
+deletion. The caller selects the pair; dircue does
 not infer repository identity or rename relationships. A valid comparison exits
 `0` even when changes are present.
 

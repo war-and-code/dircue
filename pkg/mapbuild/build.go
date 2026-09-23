@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"dircue/pkg/componentmap"
+	"dircue/pkg/coverageledger"
 	"dircue/pkg/deployables"
 	"dircue/pkg/discovery"
 	"dircue/pkg/formats"
@@ -71,6 +72,14 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
+	if len(r.Languages) == 1 {
+		for i := range components {
+			if components[i].Properties["root"] == "." {
+				components[i].Properties["language"] = r.Languages[0].Name
+				components[i].Properties["language_basis"] = "repository_population"
+			}
+		}
+	}
 	d.Nodes = append(d.Nodes, components...)
 	d.Edges = append(d.Edges, relationships...)
 	componentStatus := status(fragment.Coverage.Status)
@@ -91,6 +100,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Nodes = append(d.Nodes, opts.ExtraNodes...)
 	d.Edges = append(d.Edges, opts.ExtraEdges...)
+	coverageledger.Reconcile(&d)
 	d.Status = mapdoc.CoverageComplete
 	for _, q := range d.Coverage {
 		if q.Status != mapdoc.CoverageComplete {

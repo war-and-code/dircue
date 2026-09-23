@@ -4,7 +4,7 @@
   "title": "dircue map document",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "kind", "status", "source", "coverage", "coverage_ledger", "nodes", "edges"],
+  "required": ["schema_version", "kind", "status", "source", "coverage", "coverage_ledger", "analyzer_coverage", "analyzer_blind_spots", "nodes", "edges"],
   "properties": {
     "schema_version": { "const": "1.0.0" },
     "kind": { "const": "map" },
@@ -12,6 +12,8 @@
     "source": { "$ref": "#/$defs/source" },
     "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
     "coverage_ledger": { "type": "array", "items": { "$ref": "#/$defs/coverage_ledger_entry" } },
+    "analyzer_coverage": { "type": "array", "items": { "$ref": "#/$defs/analyzer_coverage_entry" } },
+    "analyzer_blind_spots": { "type": "array", "items": { "$ref": "#/$defs/analyzer_blind_spot" } },
     "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
     "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
   },
@@ -59,6 +61,22 @@
         "ran": { "type": "boolean" }, "covered_files": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
         "state": { "$ref": "#/$defs/nonempty" }, "reason": { "type": "string" }
       }
+    },
+    "analyzer_coverage_entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["component_id", "language", "language_basis", "tool", "descriptor_version", "descriptor_source", "expected_applicable", "ran", "covered_files", "not_covered", "reason"],
+      "properties": {
+        "component_id": { "$ref": "#/$defs/nonempty" }, "language": { "$ref": "#/$defs/nonempty" }, "language_basis": { "enum": ["component_property", "repository_population", "unattributed"] }, "tool": { "$ref": "#/$defs/nonempty" },
+        "descriptor_version": { "$ref": "#/$defs/nonempty" }, "descriptor_source": { "$ref": "#/$defs/nonempty" },
+        "expected_applicable": { "type": "boolean" }, "ran": { "type": "boolean" },
+        "covered_files": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
+        "not_covered": { "enum": ["not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"] },
+        "reason": { "$ref": "#/$defs/nonempty" }
+      }
+    },
+    "analyzer_blind_spot": {
+      "type": "object", "additionalProperties": false, "required": ["reason", "entries"],
+      "properties": { "reason": { "enum": ["not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"] }, "entries": { "type": "integer", "minimum": 1 } }
     },
     "producer": {
       "type": "object", "additionalProperties": false, "required": ["id", "version"],

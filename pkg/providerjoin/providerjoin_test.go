@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -307,5 +308,63 @@ func TestBoundsAndTrailingJSON(t *testing.T) {
 	p = attachment(t, strings.Repeat("x", 10))
 	if _, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "syft", Path: p}}, providerjoin.Options{MaxReportBytes: 4}); err == nil {
 		t.Fatal("accepted oversized report")
+	}
+}
+
+func TestAttachmentCountIsBounded(t *testing.T) {
+	items := make([]providerjoin.Attachment, 17)
+	for i := range items {
+		items[i] = providerjoin.Attachment{Kind: "syft-json", Path: attachment(t, `{"artifacts":[]}`)}
+	}
+	if _, err := providerjoin.Join(context.Background(), providerjoin.Input{}, items, providerjoin.Options{}); err == nil || !strings.Contains(err.Error(), "16-report") {
+		t.Fatalf("attachment bound error=%v", err)
+	}
+}
+
+func TestRepeatedEquivalentSyftAttachmentDeduplicatesPackages(t *testing.T) {
+	p := attachment(t, `{"descriptor":{"name":"syft","version":"1"},"artifacts":[{"id":"a","name":"demo","version":"1","type":"go-module","locations":[{"path":"go.mod"}]}]}`)
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "syft-json", Path: p}, {Kind: "syft-json", Path: p}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	packages := 0
+	for _, node := range r.Nodes {
+		if node.Kind == mapdoc.NodePackage {
+			packages++
+		}
+	}
+	if packages != 1 {
+		t.Fatalf("packages=%d, nodes=%+v", packages, r.Nodes)
+	}
+}
+
+func TestSyftVirtualRootPathsAreConfinedAndHostPathsRejected(t *testing.T) {
+	fixture, err := os.ReadFile(filepath.Join("..", "..", "tests", "packageevidence", "fixtures", "syft-1.52.0.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, string(fixture))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Ledger) == 0 || !slices.Contains(r.Ledger[0].CoveredFiles, "dotnet/app/app.deps.json") {
+		t.Fatalf("virtual-root location missing: %+v", r.Ledger)
+	}
+	hostile := `{"artifacts":[{"id":"a","name":"x","locations":[{"path":"/Users/alice/secret"},{"path":"/../../escape"}]}]}`
+	r, err = providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, hostile)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(r)
+	if strings.Contains(string(encoded), "Users/alice") || strings.Contains(string(encoded), "escape") {
+		t.Fatalf("host path leaked: %s", encoded)
+	}
+	legitimate := `{"source":{"type":"directory"},"artifacts":[{"id":"a","name":"x","locations":[{"path":"/home/example.go"},{"path":"/../../escape"}]}]}`
+	r, err = providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, legitimate)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Contains(r.Ledger[0].CoveredFiles, "home/example.go") || slices.Contains(r.Ledger[0].CoveredFiles, "escape") {
+		t.Fatalf("directory virtual roots=%+v", r.Ledger[0])
 	}
 }

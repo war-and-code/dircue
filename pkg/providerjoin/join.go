@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"reflect"
 	"sort"
 	"strings"
 
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	defaultMaxBytes   = 32 << 20
-	defaultMaxRecords = 100_000
+	defaultMaxBytes       = 32 << 20
+	defaultMaxRecords     = 100_000
+	defaultMaxAttachments = 16
 )
 
 type reportIdentity struct {
@@ -25,6 +27,9 @@ type reportIdentity struct {
 }
 
 func join(ctx context.Context, in Input, attachments []Attachment, opts Options) (Result, error) {
+	if len(attachments) > defaultMaxAttachments {
+		return Result{}, fmt.Errorf("attachments exceed %d-report limit", defaultMaxAttachments)
+	}
 	if opts.MaxReportBytes <= 0 {
 		opts.MaxReportBytes = defaultMaxBytes
 	}
@@ -71,8 +76,40 @@ func join(ctx context.Context, in Input, attachments []Attachment, opts Options)
 	}
 	out.Plans = Route(in)
 	out.Coverage = coverageFor(out)
+	if err := deduplicateResult(&out); err != nil {
+		return Result{}, err
+	}
 	sortResult(&out)
 	return out, nil
+}
+
+func deduplicateResult(r *Result) error {
+	seenNodes := map[string]int{}
+	nodes := make([]mapdoc.Node, 0, len(r.Nodes))
+	for _, node := range r.Nodes {
+		if index, ok := seenNodes[node.ID]; ok {
+			previous := &nodes[index]
+			if previous.Kind != node.Kind || previous.Name != node.Name || previous.Discriminator != node.Discriminator || !reflect.DeepEqual(previous.Paths, node.Paths) || !reflect.DeepEqual(previous.Properties, node.Properties) {
+				return fmt.Errorf("provider reports produced conflicting node %q", node.ID)
+			}
+			previous.Evidence = append(previous.Evidence, node.Evidence...)
+			previous.Facts = append(previous.Facts, node.Facts...)
+			continue
+		}
+		seenNodes[node.ID] = len(nodes)
+		nodes = append(nodes, node)
+	}
+	r.Nodes = nodes
+	seenEdges := map[string]bool{}
+	edges := r.Edges[:0]
+	for _, edge := range r.Edges {
+		if !seenEdges[edge.ID] {
+			seenEdges[edge.ID] = true
+			edges = append(edges, edge)
+		}
+	}
+	r.Edges = edges
+	return nil
 }
 
 func readBounded(filename string, limit int64) ([]byte, error) {

@@ -24,20 +24,27 @@
   code/configuration interface and capability observations. Documentation does
   not become evidence for non-documentation claims.
 - Add repeatable `map --attach KIND=PATH` ingestion for saved Syft JSON, SARIF
-  2.1.0, and Noir JSON reports. Imported package, run, endpoint, relationship,
+  2.1.0, Noir JSON, and Bifrost CodeQuery JSON reports. Imported package, run, endpoint, relationship,
   coverage, and source-binding evidence remains attributable to its provider;
-  the typed coverage ledger records only files and run state disclosed by the
-  report, not comprehensive blind-spot accounting. Dircue never invokes the
+  the typed provider-run ledger records only files and run state disclosed by the
+  report. Dircue never invokes the
   provider. SARIF findings and verdicts remain outside the map attachment
   contract.
+- Add conservative component-language-analyzer accounting with versioned,
+  sourced capability descriptors and explicit blind-spot reasons. Missing runs,
+  unsupported languages or frameworks, unmet prerequisites, tool errors, and
+  unknown coverage stay distinct. Empty reports and provider file lists never
+  become claims of complete analysis.
 - Add `dircue map route` for deterministic, non-executable follow-up plans.
   Plans expose scope, prerequisites, and report kinds. Reviewed recipes carry
   argv placeholders; other tools retain an explicit unmet invocation
   prerequisite. Routing does not probe installed tools, download dependencies,
   or execute commands.
 - Add `dircue map compare` for offline node/edge comparison by stable identity.
-  Material, evidence, and coverage changes remain distinct; incomplete head
-  coverage produces indeterminate removals instead of deletion claims. This is
+  Material source changes, provider observations, evidence, and provider-run
+  coverage changes remain distinct. Provider-only nodes and edges do not alter
+  source material-change counts; incomplete or incomparable provider coverage
+  produces indeterminate removals instead of deletion claims. This is
   separate from the existing aggregate-profile `dircue compare` command.
 - Add `dircue map locate` to annotate SARIF physical locations with owning map
   components, deployables, interfaces, and content roles while retaining

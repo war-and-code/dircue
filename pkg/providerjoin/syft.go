@@ -13,6 +13,7 @@ type syftReport struct {
 		Configuration map[string]any
 	} `json:"descriptor"`
 	Source struct {
+		Type     string         `json:"type"`
 		Metadata map[string]any `json:"metadata"`
 	} `json:"source"`
 	Artifacts []struct {
@@ -48,7 +49,7 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 			if p == "" {
 				p = loc.AccessPath
 			}
-			if clean, ok := cleanReportPath(p); ok {
+			if clean, ok := cleanSyftPath(p, doc.Source.Type); ok {
 				paths = append(paths, clean)
 				covered = append(covered, clean)
 			}
@@ -113,6 +114,20 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	covered = compact(covered)
 	out.Ledger = []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
 	return out, nil
+}
+
+func cleanSyftPath(value, sourceType string) (string, bool) {
+	v := strings.ReplaceAll(strings.TrimSpace(value), "\\", "/")
+	if strings.Contains(v, "://") || (len(v) >= 2 && v[1] == ':') {
+		return "", false
+	}
+	if strings.HasPrefix(v, "/") {
+		if !strings.EqualFold(sourceType, "directory") {
+			return "", false
+		}
+		v = strings.TrimPrefix(v, "/")
+	}
+	return cleanReportPath(v)
 }
 
 func nearestOwner(nodes []mapdoc.Node, paths []string) string {

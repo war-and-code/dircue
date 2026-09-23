@@ -65,14 +65,37 @@ const (
 )
 
 type Document struct {
-	SchemaVersion  string                `json:"schema_version"`
-	Kind           string                `json:"kind"`
-	Status         CoverageStatus        `json:"status"`
-	Source         Source                `json:"source"`
-	Coverage       []QuestionCoverage    `json:"coverage"`
-	CoverageLedger []CoverageLedgerEntry `json:"coverage_ledger"`
-	Nodes          []Node                `json:"nodes"`
-	Edges          []Edge                `json:"edges"`
+	SchemaVersion      string                  `json:"schema_version"`
+	Kind               string                  `json:"kind"`
+	Status             CoverageStatus          `json:"status"`
+	Source             Source                  `json:"source"`
+	Coverage           []QuestionCoverage      `json:"coverage"`
+	CoverageLedger     []CoverageLedgerEntry   `json:"coverage_ledger"`
+	AnalyzerCoverage   []AnalyzerCoverageEntry `json:"analyzer_coverage"`
+	AnalyzerBlindSpots []AnalyzerBlindSpot     `json:"analyzer_blind_spots"`
+	Nodes              []Node                  `json:"nodes"`
+	Edges              []Edge                  `json:"edges"`
+}
+
+// AnalyzerCoverageEntry accounts for one component, language, and analyzer.
+// CoveredFiles is provider-reported evidence, never proof of exhaustive coverage.
+type AnalyzerCoverageEntry struct {
+	ComponentID        string   `json:"component_id"`
+	Language           string   `json:"language"`
+	LanguageBasis      string   `json:"language_basis"`
+	Tool               string   `json:"tool"`
+	DescriptorVersion  string   `json:"descriptor_version"`
+	DescriptorSource   string   `json:"descriptor_source"`
+	ExpectedApplicable bool     `json:"expected_applicable"`
+	Ran                bool     `json:"ran"`
+	CoveredFiles       []string `json:"covered_files"`
+	NotCovered         string   `json:"not_covered"`
+	Reason             string   `json:"reason"`
+}
+
+type AnalyzerBlindSpot struct {
+	Reason  string `json:"reason"`
+	Entries int    `json:"entries"`
 }
 
 // CoverageLedgerEntry records only coverage a supplied provider report actually

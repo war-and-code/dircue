@@ -26,9 +26,11 @@ func TestMapSchemaDirectoryBindingAndAggregateEvidence(t *testing.T) {
 			Scope:    ".",
 			Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"full selected tree content was not read"}},
 		}},
-		CoverageLedger: []mapdoc.CoverageLedgerEntry{},
-		Nodes:          []mapdoc.Node{schemaMapNode(mapdoc.NodeContent, mapdoc.SourceDirectory)},
-		Edges:          []mapdoc.Edge{},
+		CoverageLedger:     []mapdoc.CoverageLedgerEntry{},
+		AnalyzerCoverage:   []mapdoc.AnalyzerCoverageEntry{},
+		AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{},
+		Nodes:              []mapdoc.Node{schemaMapNode(mapdoc.NodeContent, mapdoc.SourceDirectory)},
+		Edges:              []mapdoc.Edge{},
 	}
 	if err := compiled.Validate(exportJSONValue(t, base)); err != nil {
 		t.Fatalf("unbound directory map rejected: %v", err)

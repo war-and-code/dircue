@@ -131,7 +131,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
-	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json)")
+	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
 	addMapSettingsFlags(cmd, &settingsFlags)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
@@ -178,6 +178,16 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	if _, err := fmt.Fprintf(out, "Attached provider runs: %d\n", len(d.CoverageLedger)); err != nil {
 		return err
+	}
+	if len(d.AnalyzerCoverage) > 0 {
+		if _, err := fmt.Fprintf(out, "Analyzer coverage entries: %d   Blind spots: %d\n", len(d.AnalyzerCoverage), len(d.AnalyzerBlindSpots)); err != nil {
+			return err
+		}
+		for _, spot := range d.AnalyzerBlindSpots {
+			if _, err := fmt.Fprintf(out, "  %s: %d\n", spot.Reason, spot.Entries); err != nil {
+				return err
+			}
+		}
 	}
 	var unknown []string
 	for _, q := range d.Coverage {
