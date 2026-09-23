@@ -42,14 +42,8 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		evidence      mapdoc.Evidence
 		imageEvidence mapdoc.Evidence
 	}
-	type dockerfileOwner struct {
-		component string
-		evidence  mapdoc.Evidence
-	}
 	composeImages := map[string][]imageOwner{}
 	skaffoldImages := map[string][]imageOwner{}
-	dockerfileImages := map[string][]dockerfileOwner{}
-	seenDockerfileOwners := map[string]bool{}
 	seenDeployables := map[string]int{}
 	seenEdges := map[string]bool{}
 	for _, edge := range d.Edges {
@@ -71,27 +65,6 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		d.Edges = append(d.Edges, e)
 	}
 	for _, def := range r.Definitions {
-		if def.Provider == "dockerfile" && def.Kind == "container_build" {
-			dockerEvidence := dockerfileDefinitionEvidence(def)
-			if dockerEvidence.Path != "" {
-				fileDir := path.Clean(path.Dir(def.Path))
-				for _, component := range d.Nodes {
-					if component.Kind != mapdoc.NodeComponent {
-						continue
-					}
-					root := path.Clean(component.Properties["root"])
-					if fileDir != root {
-						continue
-					}
-					name := strings.ToLower(path.Base(root))
-					key := name + "\x00" + component.ID
-					if !seenDockerfileOwners[key] {
-						seenDockerfileOwners[key] = true
-						dockerfileImages[name] = append(dockerfileImages[name], dockerfileOwner{component.ID, dockerEvidence})
-					}
-				}
-			}
-		}
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, []string{def.Path}, def.Provider+":"+def.Kind+":"+def.Name)
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
@@ -154,10 +127,13 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		for _, image := range declaredImages {
 			if def.Provider == "compose" && localComponent != "" {
-				composeImages[image.name] = append(composeImages[image.name], imageOwner{component: localComponent, evidence: localEvidence, imageEvidence: image.evidence})
+				name := normalizedImageRepository(image.name)
+				if name != "" {
+					composeImages[name] = append(composeImages[name], imageOwner{component: localComponent, evidence: localEvidence, imageEvidence: image.evidence})
+				}
 			}
 			if def.Provider == "skaffold" && localComponent != "" {
-				name := imageRepositoryName(image.name)
+				name := normalizedImageRepository(image.name)
 				if name != "" {
 					skaffoldImages[name] = append(skaffoldImages[name], imageOwner{component: localComponent, evidence: localEvidence, imageEvidence: image.evidence})
 				}
@@ -173,7 +149,8 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		d.Nodes = append(d.Nodes, n)
 	}
 	for _, use := range imageUsers {
-		owners := composeImages[use.image]
+		imageName := normalizedImageRepository(use.image)
+		owners := composeImages[imageName]
 		if len(owners) == 1 {
 			addRelationship(mapdoc.EdgeRuns, use.id, owners[0].component, "image:"+use.image, "image_matches_compose_build_declaration", use.evidence, owners[0].evidence)
 			continue
@@ -181,7 +158,6 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if len(owners) != 0 {
 			continue
 		}
-		imageName := imageRepositoryName(use.image)
 		owners = skaffoldImages[imageName]
 		if len(owners) == 1 {
 			addRelationship(mapdoc.EdgeRuns, use.id, owners[0].component, "skaffold-image:"+imageName, "kubernetes_image_matches_skaffold_artifact_and_context", use.evidence, owners[0].imageEvidence, owners[0].evidence)
@@ -190,37 +166,20 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if len(owners) != 0 {
 			continue
 		}
-		buildOwners := dockerfileImages[imageName]
-		if imageName != "" && len(buildOwners) == 1 {
-			addRelationship(mapdoc.EdgeRuns, use.id, buildOwners[0].component, "image-basename:"+imageName, "image_basename_matches_unique_component_with_dockerfile_evidence", use.evidence, buildOwners[0].evidence)
-		}
 	}
 }
 
-func imageRepositoryName(image string) string {
+// normalizedImageRepository removes only an image tag or digest. Keeping the
+// registry and namespace avoids linking unrelated images that share a basename.
+func normalizedImageRepository(image string) string {
 	image = strings.TrimSpace(image)
 	if at := strings.IndexByte(image, '@'); at >= 0 {
 		image = image[:at]
 	}
-	if slash := strings.LastIndexByte(image, '/'); slash >= 0 {
-		image = image[slash+1:]
-	}
-	if tag := strings.LastIndexByte(image, ':'); tag >= 0 {
+	if tag := strings.LastIndexByte(image, ':'); tag > strings.LastIndexByte(image, '/') {
 		image = image[:tag]
 	}
 	return strings.ToLower(image)
-}
-
-func dockerfileDefinitionEvidence(def deployables.Definition) mapdoc.Evidence {
-	for _, ref := range def.References {
-		if ref.Kind == "base_image_or_stage" {
-			return deployableEvidence(def.Path, ref.Evidence)
-		}
-	}
-	if len(def.Evidence) > 0 {
-		return deployableEvidence(def.Path, def.Evidence[0])
-	}
-	return mapdoc.Evidence{}
 }
 
 func referenceCoverage(qualification string) mapdoc.Coverage {
@@ -231,7 +190,7 @@ func referenceCoverage(qualification string) mapdoc.Coverage {
 }
 
 func deployableEvidence(filename string, e deployables.Evidence) mapdoc.Evidence {
-	item := mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: filename, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "github.com/war-and-code/dircue/deployables/" + e.Basis, Version: deployables.ProviderVersion}}
+	item := mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: filename, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/deployables/" + e.Basis, Version: deployables.ProviderVersion}}
 	if e.Line > 0 {
 		item.Span = &mapdoc.Span{StartLine: e.Line, EndLine: e.Line}
 	}
@@ -329,7 +288,7 @@ func intentEvidence(o intentmap.Observation) mapdoc.Evidence {
 	if o.Basis == "imported" {
 		basis, source = mapdoc.BasisRuleInferred, mapdoc.SourceCode
 	}
-	item := mapdoc.Evidence{Basis: basis, Path: o.Path, SourceKind: source, Rule: &mapdoc.Producer{ID: "github.com/war-and-code/dircue/intent/" + o.Basis, Version: intentmap.DetectorVersion}}
+	item := mapdoc.Evidence{Basis: basis, Path: o.Path, SourceKind: source, Rule: &mapdoc.Producer{ID: "dircue/intent/" + o.Basis, Version: intentmap.DetectorVersion}}
 	if o.StartLine > 0 {
 		item.Span = &mapdoc.Span{StartLine: o.StartLine, EndLine: max(o.StartLine, o.EndLine)}
 	}
