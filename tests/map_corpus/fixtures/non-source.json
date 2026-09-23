@@ -1,0 +1,10 @@
+{
+  "questions": [
+    {"id":"content-populations","must_include":[
+      {"kind":"content","property":"role","value":"binary"},
+      {"kind":"content","property":"role","value":"data"},
+      {"kind":"content","property":"role","value":"certificate"},
+      {"kind":"content","property":"role","value":"documentation"}
+    ],"must_not_include":[{"kind":"deployable"},{"kind":"component","property":"name","value":"release service"}],"allowed_unknown":["binary format subtype"]}
+  ]
+}

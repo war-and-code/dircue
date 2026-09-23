@@ -1,0 +1,7 @@
+{
+  "questions": [
+    {"id":"documentation-is-not-evidence","must_include":[{"kind":"content","property":"role","value":"documentation"}],"must_not_include":[
+      {"kind":"deployable"},{"kind":"capability","property":"name","value":"Redis"},{"kind":"interface","property":"name","value":"/admin"},{"kind":"component","property":"name","value":"complete Kubernetes microservice"}
+    ],"allowed_unknown":["all claims made only in documentation"]}
+  ]
+}
