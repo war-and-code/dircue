@@ -96,6 +96,19 @@ func TestRootProjectOwnsRootFiles(t *testing.T) {
 	}
 }
 
+func TestGoImportEvidenceUsesSourceLine(t *testing.T) {
+	source := []byte("\n\npackage p\n\nimport \"net/http\"\n")
+	observations := parseGoImports("main.go", source)
+	if len(observations) == 0 {
+		t.Fatal("expected import observation")
+	}
+	for _, observation := range observations {
+		if observation.StartLine != 5 || observation.EndLine != 5 {
+			t.Fatalf("evidence line = %d-%d, want 5", observation.StartLine, observation.EndLine)
+		}
+	}
+}
+
 func TestConcurrentDetectionIsDeterministicAndBounded(t *testing.T) {
 	run := func() *Report {
 		d := New(Options{MaxObservations: 8})
