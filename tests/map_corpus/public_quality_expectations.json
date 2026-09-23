@@ -217,6 +217,30 @@
             "kubernetes-manifests/emailservice.yaml"
           ],
           "properties": {
+            "kind": "infrastructure",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "service",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
             "kind": "workload",
             "provider": "kubernetes",
             "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"

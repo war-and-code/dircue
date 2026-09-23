@@ -101,17 +101,16 @@ sources declare Redis caching, PostgreSQL, and Protobuf generation; the contract
 declares `CartService` and its three RPCs. The manifest contains five Kubernetes
 objects: two Deployments, two Services, and a ServiceAccount. The expected
 categories are respectively `workload`, `service`, and `infrastructure`, with
-the metadata names preserved. The candidate currently labels all five as
-workloads and adds document-number suffixes where names repeat. It also misses
-the Redis capability and its component relationship. The emailservice manifest
-has the same Deployment, Service, and ServiceAccount distinction. These
-source-grounded failures are intentional and must be fixed before this gate can
-pass. The Helm emailservice template is pinned as supporting evidence but is
-outside exact identity scoring: it conditionally declares six resource kinds,
-and its names and rendered set depend on chart values. `dircue` must not present
-one unrendered template fragment as a complete resource inventory. Supporting
-receipts also pin eShop project files referenced by project-relationship
-edges, without expanding the scored path slice.
+the metadata names preserved. The emailservice manifest uses the same
+Deployment, Service, and ServiceAccount distinction, and the expectations label
+all three. The gate fails if a candidate collapses these Kubernetes kinds into
+workloads, loses source names while disambiguating repeated resources, or omits
+the cartservice Redis capability and its component relationship. The Helm
+emailservice template is hash-pinned as supporting evidence but stays outside
+exact identity scoring: its conditional resource set and templated names remain
+unresolved without evaluating chart values, and `dircue` does not render Helm.
+Supporting receipts also pin eShop project files referenced by
+project-relationship edges, without expanding the scored path slice.
 
 The optional fetch helper requires every repository ID explicitly and refuses
 to update or replace existing checkouts. It fetches complete snapshots because
