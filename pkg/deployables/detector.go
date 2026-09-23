@@ -11,11 +11,20 @@ import (
 	"dircue/pkg/profile"
 )
 
-// Collector is a concurrent scanner detector. Detect parses each bounded view
-// immediately and retains only structural observations, never file content.
+// Collector is a concurrent scanner detector. It retains the lexically first
+// declaration views within its input budget and parses them after scanning.
 type Collector struct {
-	mu     sync.Mutex
-	report Report
+	mu           sync.Mutex
+	report       Report
+	pending      []pendingFile
+	pendingBytes int64
+	budgetDrops  int64
+	cutoff       string
+}
+
+type pendingFile struct {
+	path    string
+	content []byte
 }
 
 func NewCollector(options Options) *Collector {
@@ -55,28 +64,27 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 		c.mu.Unlock()
 		return nil, nil
 	}
-	defs, recognized, err := parse(file.Path, file.Content)
-	digest := fmt.Sprintf("%x", sha256.Sum256(file.Content))
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.report.Coverage.SelectedFiles++
 	c.report.Coverage.CandidateFiles++
-	c.report.Coverage.ReadFiles++
-	c.report.Coverage.InspectedBytes += file.Size
-	if err != nil {
-		c.report.omit("parse_error", 1, file.Path, err.Error())
+	if c.cutoff != "" && file.Path >= c.cutoff {
+		c.budgetDrops++
 		return nil, nil
 	}
-	if !recognized {
-		return nil, nil
-	}
-	c.report.Coverage.ParsedFiles++
-	for i := range defs {
-		defs[i].Path, defs[i].SourceSHA256 = file.Path, digest
-		defs[i].ID = stableID(defs[i])
-		slices.SortFunc(defs[i].Evidence, compareEvidence)
-		slices.SortFunc(defs[i].References, compareReference)
-		c.report.Definitions = append(c.report.Definitions, defs[i])
+	item := pendingFile{path: file.Path, content: append([]byte(nil), file.Content...)}
+	index, _ := slices.BinarySearchFunc(c.pending, item, func(a, b pendingFile) int { return strings.Compare(a.path, b.path) })
+	c.pending = slices.Insert(c.pending, index, item)
+	c.pendingBytes += file.Size
+	for len(c.pending) > c.report.Limits.Files || c.pendingBytes > c.report.Limits.InputBytes {
+		last := len(c.pending) - 1
+		if c.cutoff == "" || c.pending[last].path < c.cutoff {
+			c.cutoff = c.pending[last].path
+		}
+		c.pendingBytes -= int64(len(c.pending[last].content))
+		c.pending[last].content = nil
+		c.pending = c.pending[:last]
+		c.budgetDrops++
 	}
 	return nil, nil
 }
@@ -92,6 +100,30 @@ func (c *Collector) Finish() *Report {
 	out.Omissions = make(map[string]int64, len(c.report.Omissions))
 	for k, v := range c.report.Omissions {
 		out.Omissions[k] = v
+	}
+	if c.budgetDrops > 0 {
+		out.omit("selection_budget", c.budgetDrops, "", "Only the lexically first declaration candidates within the file and input-byte budgets were parsed.")
+	}
+	for _, file := range c.pending {
+		out.Coverage.ReadFiles++
+		out.Coverage.InspectedBytes += int64(len(file.content))
+		defs, recognized, err := parse(file.path, file.content)
+		if err != nil {
+			out.omit("parse_error", 1, file.path, err.Error())
+			continue
+		}
+		if !recognized {
+			continue
+		}
+		out.Coverage.ParsedFiles++
+		digest := fmt.Sprintf("%x", sha256.Sum256(file.content))
+		for i := range defs {
+			defs[i].Path, defs[i].SourceSHA256 = file.path, digest
+			defs[i].ID = stableID(defs[i])
+			slices.SortFunc(defs[i].Evidence, compareEvidence)
+			slices.SortFunc(defs[i].References, compareReference)
+			out.Definitions = append(out.Definitions, defs[i])
+		}
 	}
 	slices.SortFunc(out.Definitions, func(a, b Definition) int { return strings.Compare(a.ID, b.ID) })
 	if len(out.Definitions) > out.Limits.Definitions {

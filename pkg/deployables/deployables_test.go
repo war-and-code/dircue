@@ -164,6 +164,38 @@ func TestCollectorRejectsTruncatedScannerViews(t *testing.T) {
 	}
 }
 
+func TestCollectorSelectionBudgetIsOrderIndependent(t *testing.T) {
+	files := []profile.File{
+		{Path: "z/Dockerfile", Content: []byte("FROM scratch\n")},
+		{Path: "m/Dockerfile", Content: []byte("FROM scratch\n")},
+		{Path: "a/Dockerfile", Content: []byte("FROM scratch\n")},
+	}
+	for i := range files {
+		files[i].Size = int64(len(files[i].Content))
+	}
+	run := func(order []int) *Report {
+		c := NewCollector(Options{Files: 2, InputBytes: 26})
+		for _, i := range order {
+			if _, err := c.Detect(context.Background(), files[i]); err != nil {
+				t.Fatal(err)
+			}
+		}
+		return c.Finish()
+	}
+	a, b := run([]int{0, 1, 2}), run([]int{2, 1, 0})
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("budget selection depends on worker order:\n%+v\n%+v", a, b)
+	}
+	if a.Coverage.ReadFiles != 2 || a.Omissions["selection_budget"] != 1 || a.Status != "partial" {
+		t.Fatalf("unexpected budget coverage: %+v", a)
+	}
+	for _, d := range a.Definitions {
+		if d.Path == "z/Dockerfile" {
+			t.Fatalf("retained lexically late declaration: %+v", a.Definitions)
+		}
+	}
+}
+
 func TestCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
