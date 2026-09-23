@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 	"regexp"
 	"strings"
@@ -91,6 +92,19 @@ func parseTerraform(content []byte) ([]Definition, bool, error) {
 		if second != "" {
 			name = first + "." + second
 		}
+		if kind == "provider" {
+			// Provider aliases are body attributes, not block labels. Include
+			// the literal alias in the identity to distinguish configurations.
+			open := bytes.IndexByte(content[m[0]:m[1]], '{') + m[0]
+			if open >= m[0] {
+				bodyEnd := terraformBlockEnd(content, open)
+				if bodyEnd > open {
+					if alias := terraformAlias.FindSubmatch(content[open+1 : bodyEnd]); alias != nil {
+						name += ".alias=" + string(alias[1])
+					}
+				}
+			}
+		}
 		line := 1 + bytes.Count(content[:m[0]], []byte("\n"))
 		d := Definition{Kind: "infrastructure", Provider: "terraform", Name: bounded(kind + ":" + name), Coverage: "qualified", Evidence: []Evidence{{Field: kind, Value: bounded(name), Line: line, Basis: "terraform-literal-block"}}, References: []Reference{}}
 		if kind == "module" {
@@ -99,6 +113,55 @@ func parseTerraform(content []byte) ([]Definition, bool, error) {
 		defs = append(defs, d)
 	}
 	return defs, true, nil
+}
+
+var terraformAlias = regexp.MustCompile(`(?m)^\s*alias\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$`)
+
+func terraformBlockEnd(content []byte, open int) int {
+	depth := 0
+	quoted, escaped, comment := false, false, false
+	for i := open; i < len(content); i++ {
+		c := content[i]
+		if comment {
+			if c == '\n' {
+				comment = false
+			}
+			continue
+		}
+		if quoted {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if c == '\\' {
+				escaped = true
+				continue
+			}
+			if c == '"' {
+				quoted = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			quoted = true
+		case '#':
+			comment = true
+		case '/':
+			if i+1 < len(content) && content[i+1] == '/' {
+				comment = true
+				i++
+			}
+		case '{':
+			depth++
+		case '}':
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
 }
 
 func parseJenkins(content []byte) ([]Definition, bool, error) {
@@ -116,31 +179,50 @@ func parseYAML(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("YAML candidate contains binary data")
 	}
-	if bytes.Contains(content, []byte("\n---")) || bytes.Contains(content, []byte("\n...")) {
-		return nil, false, errors.New("multiple YAML documents are outside the supported subset")
-	}
-	if err := yamlAdmission(content); err != nil {
-		return nil, false, err
-	}
 	if tooDeep(content, 64) {
 		return nil, false, errors.New("YAML nesting exceeds the supported depth")
 	}
-	var doc map[interface{}]interface{}
-	if err := yaml.UnmarshalStrict(content, &doc); err != nil {
-		// Helm templates are intentionally not rendered. Retain only literal
-		// apiVersion/kind evidence and qualify the unexpanded declaration.
-		if strings.Contains(name, "/templates/") && strings.Contains(string(content), "{{") {
-			api, kind := literalField(content, "apiVersion"), literalField(content, "kind")
-			if api != "" && kind != "" {
-				d := Definition{Kind: "workload", Provider: "helm-template", Name: bounded(kind), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: api, Line: lineOf(content, "apiVersion:"), Basis: "literal-template-field"}, {Field: "kind", Value: kind, Line: lineOf(content, "kind:"), Basis: "literal-template-field"}}, References: []Reference{{Kind: "template_expression", Value: "unexpanded", Qualification: "unresolved", Evidence: Evidence{Field: "template", Basis: "helm-template-not-rendered"}}}}
-				return []Definition{d}, true, nil
-			}
+	decoder := yaml.NewDecoder(bytes.NewReader(content))
+	decoder.SetStrict(true)
+	var defs []Definition
+	recognized := false
+	for document := 0; ; document++ {
+		var doc map[interface{}]interface{}
+		err := decoder.Decode(&doc)
+		if errors.Is(err, io.EOF) {
+			break
 		}
-		return nil, false, fmt.Errorf("malformed or unsupported YAML: %w", err)
+		if err != nil {
+			// Helm templates are intentionally not rendered. Retain only literal
+			// apiVersion/kind evidence and qualify the unexpanded declaration.
+			if strings.Contains(name, "/templates/") && strings.Contains(string(content), "{{") {
+				api, kind := literalField(content, "apiVersion"), literalField(content, "kind")
+				if api != "" && kind != "" {
+					d := Definition{Kind: "workload", Provider: "helm-template", Name: bounded(kind), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: api, Line: lineOf(content, "apiVersion:"), Basis: "literal-template-field"}, {Field: "kind", Value: kind, Line: lineOf(content, "kind:"), Basis: "literal-template-field"}}, References: []Reference{{Kind: "template_expression", Value: "unexpanded", Qualification: "unresolved", Evidence: Evidence{Field: "template", Basis: "helm-template-not-rendered"}}}}
+					return []Definition{d}, true, nil
+				}
+			}
+			return nil, false, fmt.Errorf("malformed or unsupported YAML: %w", err)
+		}
+		if document >= 128 {
+			return nil, false, errors.New("YAML document limit exceeded (128)")
+		}
+		if doc == nil {
+			continue
+		}
+		found, ok, parseErr := parseYAMLDocument(name, doc, content)
+		if parseErr != nil {
+			return nil, false, parseErr
+		}
+		if ok {
+			recognized = true
+			defs = append(defs, found...)
+		}
 	}
-	if doc == nil {
-		return nil, false, nil
-	}
+	return disambiguateDocumentDefinitions(defs), recognized, nil
+}
+
+func parseYAMLDocument(name string, doc map[interface{}]interface{}, content []byte) ([]Definition, bool, error) {
 	base := strings.ToLower(path.Base(name))
 	switch {
 	case base == "compose.yml" || base == "compose.yaml" || base == "docker-compose.yml" || base == "docker-compose.yaml":
@@ -166,6 +248,18 @@ func parseYAML(name string, content []byte) ([]Definition, bool, error) {
 		return cloudFormationDefinitions(doc, content)
 	}
 	return nil, false, nil
+}
+
+func disambiguateDocumentDefinitions(defs []Definition) []Definition {
+	seen := make(map[string]int, len(defs))
+	for i := range defs {
+		key := defs[i].Kind + "\x00" + defs[i].Provider + "\x00" + defs[i].Name
+		seen[key]++
+		if seen[key] > 1 {
+			defs[i].Name = bounded(fmt.Sprintf("%s#document-%d", defs[i].Name, seen[key]))
+		}
+	}
+	return defs
 }
 
 func composeDefinitions(filename string, doc map[interface{}]interface{}, content []byte) ([]Definition, bool, error) {
@@ -325,6 +419,29 @@ func serverlessDefinitions(doc map[interface{}]interface{}, content []byte) ([]D
 			d.Evidence = append(d.Evidence, Evidence{Field: "function", Value: bounded(n), Line: lineOf(content, n+":"), Basis: "serverless-functions-map"})
 		}
 	}
+	if resources, ok := object(doc, "Resources"); ok {
+		for _, resourceName := range sortedKeys(resources) {
+			resource, ok := asObject(resources[resourceName])
+			if !ok {
+				continue
+			}
+			typ, _ := stringValue(resource, "Type")
+			if typ != "AWS::Serverless::Function" {
+				continue
+			}
+			props, ok := object(resource, "Properties")
+			if !ok {
+				continue
+			}
+			if code, ok := lookup(props, "CodeUri"); ok {
+				if codePath, ok := code.(string); ok && codePath != "" {
+					ref := localBuildRef("CodeUri", codePath, content, "sam-function-code-uri")
+					ref.Kind = "code_uri"
+					d.References = append(d.References, ref)
+				}
+			}
+		}
+	}
 	if dynamic(service) {
 		d.Coverage = "qualified"
 	}
@@ -342,7 +459,53 @@ func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, p
 		return nil, false, nil
 	}
 	d := Definition{Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified", Evidence: []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}}, References: []Reference{}}
+	if spec, ok := object(doc, "spec"); ok {
+		for _, image := range kubernetesImages(spec, 0) {
+			q := "external"
+			if dynamic(image) {
+				q = "unresolved"
+			}
+			d.References = append(d.References, Reference{Kind: "image", Value: bounded(image), Qualification: q, Evidence: Evidence{Field: "image", Value: bounded(image), Line: lineOf(content, "image:"), Basis: "kubernetes-container-field"}})
+		}
+	}
 	return []Definition{d}, true, nil
+}
+
+func kubernetesImages(value interface{}, depth int) []string {
+	if depth > 64 {
+		return nil
+	}
+	out := []string{}
+	switch node := value.(type) {
+	case map[interface{}]interface{}:
+		for key, child := range node {
+			if key == "containers" || key == "initContainers" {
+				if items, ok := child.([]interface{}); ok {
+					for _, item := range items {
+						if container, ok := asObject(item); ok {
+							if image, ok := stringValue(container, "image"); ok {
+								out = append(out, image)
+							}
+						}
+					}
+				}
+			}
+			out = append(out, kubernetesImages(child, depth+1)...)
+		}
+	case []interface{}:
+		for _, child := range node {
+			out = append(out, kubernetesImages(child, depth+1)...)
+		}
+	}
+	return out
+}
+
+func localBuildRef(kind, value string, content []byte, basis string) Reference {
+	qualification := "local"
+	if dynamic(value) || !safeRelative(value) {
+		qualification = "unresolved"
+	}
+	return Reference{Kind: kind, Value: bounded(value), Qualification: qualification, Evidence: Evidence{Field: kind, Value: bounded(value), Line: lineOf(content, kind+":"), Basis: basis}}
 }
 func cloudFormationDefinitions(doc map[interface{}]interface{}, content []byte) ([]Definition, bool, error) {
 	resources, ok := object(doc, "Resources")
@@ -359,7 +522,18 @@ func cloudFormationDefinitions(doc map[interface{}]interface{}, content []byte) 
 		if typ == "" {
 			continue
 		}
-		defs = append(defs, Definition{Kind: "infrastructure", Provider: "cloudformation", Name: bounded(n), Coverage: "qualified", Evidence: []Evidence{{Field: "Type", Value: bounded(typ), Line: lineOf(content, "Type:"), Basis: "cloudformation-resource"}}, References: []Reference{}})
+		d := Definition{Kind: "infrastructure", Provider: "cloudformation", Name: bounded(n), Coverage: "qualified", Evidence: []Evidence{{Field: "Type", Value: bounded(typ), Line: lineOf(content, "Type:"), Basis: "cloudformation-resource"}}, References: []Reference{}}
+		if typ == "AWS::Serverless::Function" {
+			if props, ok := object(r, "Properties"); ok {
+				if code, ok := lookup(props, "CodeUri"); ok {
+					if codePath, ok := code.(string); ok && codePath != "" {
+						d.References = append(d.References, localBuildRef("CodeUri", codePath, content, "sam-function-code-uri"))
+						d.References[len(d.References)-1].Kind = "code_uri"
+					}
+				}
+			}
+		}
+		defs = append(defs, d)
 	}
 	return defs, len(defs) > 0, nil
 }
@@ -415,7 +589,7 @@ func lineOf(content []byte, needle string) int {
 	return 1 + bytes.Count(content[:i], []byte("\n"))
 }
 func literalField(content []byte, key string) string {
-	re := regexp.MustCompile(`(?m)^\s*` + regexp.QuoteMeta(key) + `:\s*([^#\s{][^#]*)$`)
+	re := regexp.MustCompile(`(?m)^[ \t]*` + regexp.QuoteMeta(key) + `:[ \t]*([^#\s{][^\r\n#]*)[ \t]*(?:#.*)?$`)
 	m := re.FindSubmatch(content)
 	if m == nil {
 		return ""
@@ -430,28 +604,6 @@ func tooDeep(content []byte, maxDepth int) bool {
 		}
 	}
 	return false
-}
-
-func yamlAdmission(content []byte) error {
-	lines := bytes.Split(content, []byte("\n"))
-	if len(lines) > 16384 {
-		return errors.New("YAML node admission limit exceeded")
-	}
-	for _, raw := range lines {
-		line := strings.TrimSpace(string(raw))
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		// Anchors, aliases and explicit tags are outside this initial subset.
-		// Quoted occurrences are data; only token-shaped occurrences are rejected.
-		for _, field := range strings.Fields(line) {
-			field = strings.Trim(field, "[]{}(),")
-			if strings.HasPrefix(field, "&") || strings.HasPrefix(field, "*") || strings.HasPrefix(field, "!!") || strings.HasPrefix(field, "!<") {
-				return errors.New("YAML aliases, anchors, or custom tags are outside the supported subset")
-			}
-		}
-	}
-	return nil
 }
 
 func topLevelKeyLine(content []byte, key string) int {

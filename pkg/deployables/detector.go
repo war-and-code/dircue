@@ -50,7 +50,7 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 		c.mu.Lock()
 		c.report.Coverage.SelectedFiles++
 		c.report.Coverage.CandidateFiles++
-		c.report.omit("invalid_path", 1, "", "A candidate path was invalid or exceeded the string limit.")
+		c.report.omit("invalid_path", 1, bounded(file.Path), "A candidate path was invalid or exceeded the string limit.")
 		c.mu.Unlock()
 		return nil, nil
 	}

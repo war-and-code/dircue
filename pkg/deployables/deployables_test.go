@@ -92,15 +92,87 @@ func TestDocumentationAndNestedWorkflowPathsAreNotPromoted(t *testing.T) {
 	}
 }
 
-func TestUnsupportedYAMLAliasIsPartialBeforeParsing(t *testing.T) {
+func TestYAMLAliasIsParsedWithinParserLimits(t *testing.T) {
 	body := "services:\n  base: &base\n    image: alpine\n  copy: *base\n"
 	r, err := Observe(context.Background(), []Candidate{{Path: "compose.yaml", Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(body), int64(len(body)), nil }}}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Status != "partial" || r.Omissions["parse_error"] != 1 || len(r.Definitions) != 0 {
+	if r.Status != "complete" || r.Coverage.ParsedFiles != 1 || len(r.Definitions) != 2 {
 		t.Fatalf("unexpected: %+v", r)
 	}
+}
+
+func TestYAMLAdmissionAcceptsValidPunctuationAndCron(t *testing.T) {
+	body := "name: CI\non:\n  schedule:\n    - cron: '*/5 * * * *'\njobs:\n  test:\n    steps:\n      - run: echo foo && echo bar\n"
+	r := observeOne(t, ".github/workflows/ci.yml", body)
+	if r.Status != "complete" || len(r.Definitions) != 1 {
+		t.Fatalf("valid YAML syntax was rejected: %+v", r)
+	}
+}
+
+func TestKubernetesMultiDocumentYAML(t *testing.T) {
+	body := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\nspec:\n  template:\n    spec:\n      containers:\n        - name: api\n          image: example/api:v1\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: api\n"
+	r := observeOne(t, "deploy/k8s.yaml", body)
+	if r.Status != "complete" || r.Coverage.ParsedFiles != 1 || len(r.Definitions) != 2 {
+		t.Fatalf("multi-document manifest was not fully parsed: %+v", r)
+	}
+	for _, d := range r.Definitions {
+		if d.Provider == "kubernetes" && d.Kind == "workload" && d.Name == "api" && len(d.References) != 1 {
+			t.Errorf("expected one workload image reference: %+v", d)
+		}
+	}
+}
+
+func TestTerraformAliasedProvidersHaveDistinctIDs(t *testing.T) {
+	body := "provider \"aws\" {}\nprovider \"aws\" {\n  alias = \"west\"\n}\n"
+	r := observeOne(t, "infra/providers.tf", body)
+	if len(r.Definitions) != 2 || r.Definitions[0].ID == r.Definitions[1].ID {
+		t.Fatalf("provider aliases collided: %+v", r.Definitions)
+	}
+	if r.Definitions[0].Name == r.Definitions[1].Name {
+		t.Fatalf("provider alias missing from identity: %+v", r.Definitions)
+	}
+}
+
+func TestHelmTemplateLiteralFieldDoesNotConsumeFollowingLines(t *testing.T) {
+	body := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{ .Values.name }}\nspec: {{- .Values.spec | toYaml | nindent 2 }}\n"
+	r := observeOne(t, "chart/templates/deployment.yaml", body)
+	if len(r.Definitions) != 1 || r.Definitions[0].Name != "Deployment" {
+		t.Fatalf("literal kind was not isolated: %+v", r)
+	}
+}
+
+func TestSAMCodeURICapturedAsLocalReference(t *testing.T) {
+	body := "service: orders\nResources:\n  Function:\n    Type: AWS::Serverless::Function\n    Properties:\n      CodeUri: src/\n"
+	r := observeOne(t, "template.yaml", body)
+	if len(r.Definitions) != 1 || len(r.Definitions[0].References) != 1 {
+		t.Fatalf("CodeUri reference missing: %+v", r.Definitions)
+	}
+	ref := r.Definitions[0].References[0]
+	if ref.Kind != "code_uri" || ref.Value != "src/" || ref.Qualification != "local" {
+		t.Fatalf("unexpected CodeUri reference: %+v", ref)
+	}
+}
+
+func TestYAMLOmissionDiagnosticIdentifiesFile(t *testing.T) {
+	body := "services:\n  api: [\n"
+	r := observeOne(t, "deploy/compose.yaml", body)
+	if r.Status != "partial" || r.Omissions["parse_error"] != 1 || len(r.Diagnostics) != 1 {
+		t.Fatalf("expected one parse omission diagnostic: %+v", r)
+	}
+	if r.Diagnostics[0].Path != "deploy/compose.yaml" || r.Diagnostics[0].Message == "" {
+		t.Fatalf("diagnostic lacks file context: %+v", r.Diagnostics[0])
+	}
+}
+
+func observeOne(t *testing.T, name, body string) *Report {
+	t.Helper()
+	r, err := Observe(context.Background(), []Candidate{{Path: name, Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(body), int64(len(body)), nil }}}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return r
 }
 
 func TestBoundedAndMalformedAreExplicitlyPartial(t *testing.T) {
