@@ -58,6 +58,25 @@
   source material-change counts; incomplete or incomparable provider coverage
   produces indeterminate removals instead of deletion claims. This is
   separate from the existing aggregate-profile `dircue compare` command.
+- Add environment and build-output tree summarization for directory maps.
+  Recognized patterns — `node_modules/`, Python virtualenvs, `__pycache__`,
+  CACHEDIR.TAG directories (Rust `target/`), Gradle `build/` and `.gradle/`,
+  `.terraform/`, `.tox/`, `.nox/`, Python cache dirs, and CocoaPods `Pods/` —
+  are counted rather than scanned entry-by-entry and recorded as summarized
+  nodes with role, ecosystem, entry count, and byte total. `vendor/`,
+  `third_party/`, `dist/`, and plain `build/` dirs without Gradle markers are
+  never summarized. `--set content.summarize_trees=off` disables it.
+- Add `dircue map --forest PATH` for multi-root directory trees. A forest
+  document covers every discovered Git root (worktree, bare, submodule),
+  recognized environment trees, and a residual directory-mode map of all
+  remaining content. Discovery is metadata-only and bounded at 1,000 roots;
+  it never descends into `.git` directories or summarized env trees. Remote
+  URLs are stripped of credentials before output — HTTPS user-info and
+  SCP-style user prefixes are removed. Roots whose HEAD cannot be resolved
+  receive `identity_status: unknown`. `--summary` prints a one-screen table
+  of roots, environment trees, residual totals, and unknowns. The forest
+  document schema is bundled and exportable via
+  `dircue capabilities --schema forest --json`.
 - Add `dircue map locate` to annotate SARIF physical locations with owning map
   components, deployables, interfaces, and content roles while retaining
   unknown SARIF fields. URI confinement, snapshot binding, regular-file checks,

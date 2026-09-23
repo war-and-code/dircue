@@ -306,6 +306,78 @@ where the map contains applicable evidence. A routing descriptor does not mean
 that dircue can import every output mode from that tool; attachment support is
 limited to the formats listed above.
 
+## Forests
+
+`dircue map --forest PATH` scans a directory that may contain multiple Git
+repositories — a developer laptop, an archive drive, a CI workspace — and
+produces a single forest document that covers every nested root plus the
+remaining unrooted content.
+
+```sh
+dircue map --forest --json /path/to/drive > forest.json
+dircue map --forest --summary /path/to/drive
+```
+
+### What a forest document contains
+
+| Field | Description |
+| --- | --- |
+| `roots` | One entry per discovered Git root with path, kind, HEAD, commit, tree, credential-stripped remotes, and committer time. |
+| `environment_trees` | Recognized dependency, build-output, and cache trees that were counted rather than scanned in detail. |
+| `residual` | A directory-mode map of all content not covered by a root or an environment tree. |
+| `coverage` | Per-question coverage for roots, residual, and environment trees. |
+
+### Root kinds
+
+| Kind | Description |
+| --- | --- |
+| `git_worktree` | Normal working-tree repository (`.git/` directory or file). |
+| `git_bare` | Bare repository (HEAD + objects/ + refs/ without a working tree). |
+| `git_submodule` | Working tree whose `.git` is a file pointing to a parent's `.git/modules/`. |
+
+### Environment and build-output trees
+
+The following directories are recognized and summarized rather than scanned
+entry-by-entry:
+
+| Pattern | Kind | Ecosystem |
+| --- | --- | --- |
+| `node_modules/` | `dependency_tree` | Node.js |
+| `pyvenv.cfg` sibling | `dependency_tree` | Python |
+| `__pycache__/` | `cache` | Python |
+| `.tox/`, `.nox/` | `cache` | Python |
+| `.mypy_cache/`, `.pytest_cache/`, `.ruff_cache/` | `cache` | Python |
+| CACHEDIR.TAG with correct signature | `cache` | (ecosystem from parent) |
+| `.gradle/` with Gradle sibling | `build_output` | Gradle |
+| `build/` with Gradle sibling | `build_output` | Gradle |
+| `.terraform/` | `build_output` | Terraform |
+| `Pods/` with `Podfile` sibling | `dependency_tree` | CocoaPods |
+
+`vendor/`, `third_party/`, `dist/`, and a plain `build/` without a Gradle
+sibling are never summarized. Set `--set content.summarize_trees=off` to
+disable summarization and scan every directory as content.
+
+### Credential stripping
+
+Remote URLs are stripped of credentials before they appear in any output.
+HTTPS user-info (`user:token@host` → `host`) and SCP-style user prefixes
+(`git@host:path` → `host:path`) are removed. Query strings and fragments are
+dropped. A canary embedded in a remote URL will not appear in the forest
+document.
+
+### Identity resolution
+
+Each root's `identity_status` is either `resolved` (HEAD commit read
+successfully) or `unknown` (unborn HEAD, missing objects, or unreadable
+`.git`). Unknowns are listed separately in `--summary` output. A forest with
+any unknown root has `status: partial`.
+
+### Export the schema
+
+```sh
+dircue capabilities --schema forest --json > forest.schema.json
+```
+
 ## Compare saved maps
 
 ```sh
