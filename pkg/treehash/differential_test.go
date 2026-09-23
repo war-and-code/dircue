@@ -230,7 +230,13 @@ func TestComputeMatchesGitOnRandomTrees(t *testing.T) {
 				g.fill(t, dir, "", 0)
 				got := computeDir(t, dir, Options{Format: format})
 				want := oracleTree(t, git, dir, format)
-				if got.Status != StatusComplete {
+				// Without an index, ignored entries leave the ID equal to a fresh
+				// "git add -A" but possibly not to an original commit; that is the
+				// only qualification a generated tree may carry.
+				switch {
+				case got.Ignored > 0 && (got.Status != StatusPartial || len(got.Reasons) != 1 || got.Reasons[0] != ReasonIgnoredWithoutIndex):
+					t.Fatalf("ignored=%d status %s reasons %v", got.Ignored, got.Status, got.Reasons)
+				case got.Ignored == 0 && got.Status != StatusComplete:
 					t.Fatalf("status %s reasons %v", got.Status, got.Reasons)
 				}
 				if got.TreeID != want {
@@ -381,9 +387,9 @@ func TestSpecialFilesAreReportedNotHashed(t *testing.T) {
 	if got.Status != StatusPartial || !contains(got.Reasons, ReasonSpecialFiles) || got.SpecialFiles != 1 {
 		t.Fatalf("got %+v", got)
 	}
-	// An ignored special file does not qualify the result.
+	// An ignored special file is not reported as excluded content.
 	write(t, filepath.Join(dir, ".gitignore"), []byte("pipe\n"), 0o644)
-	if got := computeDir(t, dir, Options{}); got.Status != StatusComplete {
+	if got := computeDir(t, dir, Options{}); contains(got.Reasons, ReasonSpecialFiles) || got.SpecialFiles != 0 {
 		t.Fatalf("got %+v", got)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"runtime/debug"
 	"slices"
@@ -84,6 +85,18 @@ func newMapCommand(opts *options) *cobra.Command {
 			if cmd.Flags().Changed("rev") {
 				revision = opts.revision
 			}
+			// A directory source's digest is independent of the scan, so it runs
+			// concurrently whenever the source is known to be a directory.
+			digestCtx, cancelDigest := context.WithCancel(cmd.Context())
+			defer cancelDigest()
+			var early chan digestOutcome
+			if settings.DigestScope != "" && (opts.source == "directory" || opts.source == "auto" && !hasRootDotGit(root)) {
+				early = make(chan digestOutcome, 1)
+				go func() {
+					digest, binding, err := directorySourceDigest(digestCtx, root, settings)
+					early <- digestOutcome{digest, binding, err}
+				}()
+			}
 			deployObserver := deployables.NewCollector(deployables.Options{})
 			intentObserver := intentmap.New(intentmap.Options{})
 			hooks := append(detectors.Default(), deployObserver, intentObserver)
@@ -116,10 +129,16 @@ func newMapCommand(opts *options) *cobra.Command {
 			}
 			buildOptions := mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport}
 			if report.Discovery.Source.Mode == "directory" {
-				buildOptions.SourceDigest, buildOptions.SourceBinding, err = directorySourceDigest(cmd.Context(), root, settings)
-				if err != nil {
-					return err
+				var outcome digestOutcome
+				if early != nil {
+					outcome = <-early
+				} else {
+					outcome.digest, outcome.binding, outcome.err = directorySourceDigest(cmd.Context(), root, settings)
 				}
+				if outcome.err != nil {
+					return outcome.err
+				}
+				buildOptions.SourceDigest, buildOptions.SourceBinding = outcome.digest, outcome.binding
 			}
 			doc, err := mapbuild.Build(report, buildOptions)
 			if err != nil {
@@ -501,4 +520,15 @@ func directorySourceDigest(ctx context.Context, dir string, settings resolvedMap
 	}
 	digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
 	return digest, &mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}, nil
+}
+
+type digestOutcome struct {
+	digest  *mapdoc.Digest
+	binding *mapdoc.Coverage
+	err     error
+}
+
+func hasRootDotGit(dir string) bool {
+	_, err := os.Lstat(filepath.Join(dir, ".git"))
+	return err == nil
 }

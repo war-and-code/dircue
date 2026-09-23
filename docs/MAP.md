@@ -92,7 +92,13 @@ git write-tree` would record for the same files in a fresh repository
 (`algorithm: git-sha1`, `scope: gitignore_filtered+git_normalized`). A clean
 checkout of a commit therefore has the same digest as that commit's tree, so a
 directory map can be tied to a Git snapshot, and `map compare` reports a Git
-map and a directory map of identical content as the same source.
+map and a directory map of identical content as the same source. Without the
+checkout's `.git` index, a committed file that matches an ignore rule cannot be
+told apart from ignored build output, so such a digest is qualified. On a
+case-insensitive filesystem, a checkout of a repository with case-only name
+pairs cannot hold both files, and its digest honestly differs from the commit.
+The digest runs concurrently with the scan when the source is known to be a
+directory; on the Linux kernel it added about one second on an Apple M1 Max.
 
 The digest applies repository content the way Git does:
 
@@ -114,7 +120,7 @@ or attributes. The CLI never runs Git and never reads outside the selected root.
 | Status | Meaning |
 | --- | --- |
 | `complete` | The digest is exactly what Git records for this directory under the stated assumptions. |
-| `partial` | The digest identifies the content, but Git could record something different: `filter_driver_not_applied`, `ident_not_applied`, `working_tree_encoding_not_applied`, `special_files_excluded`, `nested_repository_unresolved`, `text_auto_index_state_assumed_empty`, `repository_index_not_consulted`, or `sparse_checkout_entries_not_present`. |
+| `partial` | The digest identifies the content, but Git could record something different: `filter_driver_not_applied`, `ident_not_applied`, `working_tree_encoding_not_applied`, `special_files_excluded`, `nested_repository_unresolved`, `text_auto_index_state_assumed_empty`, `ignored_entries_without_index` (ignore rules excluded entries and no checkout index was available to show which of them are committed), or `sparse_checkout_entries_not_present`. |
 | `unknown` | No digest was produced: `source_digest_disabled`, `unreadable_entry`, `digest_entry_limit`, `digest_byte_limit`, or `content_changed_during_read`. |
 
 Computing the digest reads every in-scope file once more. Control it with

@@ -88,7 +88,7 @@ const (
 	ReasonSpecialFiles          = "special_files_excluded"
 	ReasonNestedUnresolved      = "nested_repository_unresolved"
 	ReasonTextAutoIndexAssumed  = "text_auto_index_state_assumed_empty"
-	ReasonIndexNotConsulted     = "repository_index_not_consulted"
+	ReasonIgnoredWithoutIndex   = "ignored_entries_without_index"
 	ReasonSparseEntries         = "sparse_checkout_entries_not_present"
 	ReasonUnreadableEntry       = "unreadable_entry"
 	ReasonEntryLimit            = "digest_entry_limit"
@@ -140,6 +140,8 @@ type dirNode struct {
 }
 
 type fileJob struct {
+	dir     string // root-relative directory, "." for the root
+	name    string // entry name within dir
 	path    string
 	size    int64
 	action  crlfAction
@@ -222,9 +224,10 @@ func (w *walker) finish(ctx context.Context, rootNode *dirNode, err error) (Resu
 		w.reasons[ReasonSparseEntries] = true
 	}
 	if w.opts.Scope == ScopeGit && !w.indexKnown && w.anyIgnored {
-		if _, ok := gitDirFor(w.root, "."); ok {
-			w.reasons[ReasonIndexNotConsulted] = true
-		}
+		// Without a checkout index, a committed file that matches an ignore
+		// rule is indistinguishable from ignored build output, so the ID may
+		// differ from the commit this directory came from.
+		w.reasons[ReasonIgnoredWithoutIndex] = true
 	}
 	if err := w.hashAll(ctx); err != nil {
 		if errors.As(err, &stop) {
@@ -271,23 +274,24 @@ func (w *walker) walk(ctx context.Context, dir string, ign *ignoreStack, attrs [
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	entries, err := fs.ReadDir(w.root.FS(), dir)
-	if err != nil {
-		return nil, stopError{ReasonUnreadableEntry}
-	}
 	git := w.opts.Scope == ScopeGit
 	base := dir
 	if base == "." {
 		base = ""
 	}
+	listing, err := w.readDirectory(dir, git)
+	if err != nil {
+		return nil, err
+	}
 	if git {
-		if data, err := readSmall(w.root, path.Join(dir, ".gitignore"), maxIndexBytes); err == nil {
-			ign = ign.with(parseIgnore(data, base))
+		if listing.ignore != nil {
+			ign = ign.with(parseIgnore(listing.ignore, base))
 		}
-		if data, err := readSmall(w.root, path.Join(dir, ".gitattributes"), maxIndexBytes); err == nil {
-			attrs = append(slices.Clip(attrs), parseAttributes(data, base, dir == "."))
+		if listing.attributes != nil {
+			attrs = append(slices.Clip(attrs), parseAttributes(listing.attributes, base, dir == "."))
 		}
 	}
+	entries := listing.entries
 	var stack *attrStack
 	if git {
 		files := attrs
@@ -302,7 +306,7 @@ func (w *walker) walk(ctx context.Context, dir string, ign *ignoreStack, attrs [
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		name := e.Name()
+		name := e.name
 		if name == ".git" {
 			continue
 		}
@@ -314,17 +318,14 @@ func (w *walker) walk(ctx context.Context, dir string, ign *ignoreStack, attrs [
 		if dir != "." {
 			rel = dir + "/" + name
 		}
-		info, err := w.root.Lstat(rel)
-		if err != nil {
-			return nil, stopError{ReasonUnreadableEntry}
-		}
+		info := e.info
 		mode := info.Mode()
 		tracked := w.index != nil && w.index.tracked[rel]
 		switch {
 		case mode.IsDir():
 			trackedDir := w.index != nil && w.index.trackedDirs[rel]
 			if git {
-				if id, ok := w.index.gitlink(rel); ok && !hasDotGit(w.root, rel) {
+				if id, ok := w.index.gitlink(rel); ok && !e.hasDotGit {
 					// An uninitialized submodule keeps its recorded commit.
 					raw, _ := hex.DecodeString(id)
 					node.children = append(node.children, &child{name: name, mode: "160000", id: raw})
@@ -340,7 +341,7 @@ func (w *walker) walk(ctx context.Context, dir string, ign *ignoreStack, attrs [
 					w.anyIgnored = true
 					continue
 				}
-				if hasDotGit(w.root, rel) {
+				if e.hasDotGit {
 					commit, ok := w.nestedCommit(rel)
 					if !ok {
 						w.reasons[ReasonNestedUnresolved] = true
@@ -377,7 +378,7 @@ func (w *walker) walk(ctx context.Context, dir string, ign *ignoreStack, attrs [
 				continue
 			}
 			c := &child{name: name}
-			job := fileJob{path: rel, size: info.Size(), target: c}
+			job := fileJob{dir: dir, name: name, path: rel, size: info.Size(), target: c}
 			if mode&fs.ModeSymlink != 0 {
 				c.mode = "120000"
 				job.symlink = true
@@ -418,9 +419,65 @@ func (idx *repositoryIndex) gitlink(rel string) (string, bool) {
 	return id, ok
 }
 
-func hasDotGit(root *os.Root, dir string) bool {
-	_, err := root.Lstat(path.Join(dir, ".git"))
-	return err == nil
+type dirEntry struct {
+	name      string
+	info      fs.FileInfo
+	hasDotGit bool
+}
+
+type dirListing struct {
+	entries    []dirEntry
+	ignore     []byte
+	attributes []byte
+}
+
+// readDirectory lists dir through a single directory handle, so per-entry
+// metadata and rule files cost one lookup each rather than a component-by-
+// component resolution from the root. The handle is closed before the walk
+// descends, so tree depth does not hold file descriptors open.
+func (w *walker) readDirectory(dir string, git bool) (dirListing, error) {
+	handle := w.root
+	if dir != "." {
+		opened, err := w.root.OpenRoot(dir)
+		if err != nil {
+			return dirListing{}, stopError{ReasonUnreadableEntry}
+		}
+		defer opened.Close()
+		handle = opened
+	}
+	f, err := handle.Open(".")
+	if err != nil {
+		return dirListing{}, stopError{ReasonUnreadableEntry}
+	}
+	raw, err := f.ReadDir(-1)
+	f.Close()
+	if err != nil {
+		return dirListing{}, stopError{ReasonUnreadableEntry}
+	}
+	slices.SortFunc(raw, func(a, b fs.DirEntry) int { return strings.Compare(a.Name(), b.Name()) })
+	var out dirListing
+	out.entries = make([]dirEntry, 0, len(raw))
+	for _, e := range raw {
+		info, err := handle.Lstat(e.Name())
+		if err != nil {
+			return dirListing{}, stopError{ReasonUnreadableEntry}
+		}
+		entry := dirEntry{name: e.Name(), info: info}
+		if git && info.IsDir() && e.Name() != ".git" {
+			_, err := handle.Lstat(e.Name() + "/.git")
+			entry.hasDotGit = err == nil
+		}
+		if git && info.Mode().IsRegular() {
+			switch e.Name() {
+			case ".gitignore":
+				out.ignore, _ = readSmall(handle, ".gitignore", maxIndexBytes)
+			case ".gitattributes":
+				out.attributes, _ = readSmall(handle, ".gitattributes", maxIndexBytes)
+			}
+		}
+		out.entries = append(out.entries, entry)
+	}
+	return out, nil
 }
 
 func (w *walker) nestedCommit(dir string) (string, bool) {
@@ -453,6 +510,18 @@ func (w *walker) hashAll(ctx context.Context) error {
 	if w.opts.KeepBlobs {
 		w.result.Blobs = make(map[string]string, len(w.jobs))
 	}
+	// Jobs are grouped by directory (the walk emits them in directory order)
+	// and split into bounded batches; each batch opens its directory once.
+	type batch struct{ start, end int }
+	var batches []batch
+	for i := 0; i < len(w.jobs); {
+		j := i + 1
+		for j < len(w.jobs) && j-i < 128 && w.jobs[j].dir == w.jobs[i].dir {
+			j++
+		}
+		batches = append(batches, batch{i, j})
+		i = j
+	}
 	var (
 		mu       sync.Mutex
 		firstErr error
@@ -461,7 +530,14 @@ func (w *walker) hashAll(ctx context.Context) error {
 		read     int64
 		autoConv bool
 	)
-	workers := min(w.opts.Workers, max(1, len(w.jobs)))
+	fail := func(err error) {
+		mu.Lock()
+		if firstErr == nil {
+			firstErr = err
+		}
+		mu.Unlock()
+	}
+	workers := min(w.opts.Workers, max(1, len(batches)))
 	for range workers {
 		wg.Add(1)
 		go func() {
@@ -470,35 +546,50 @@ func (w *walker) hashAll(ctx context.Context) error {
 			var out []byte
 			for {
 				mu.Lock()
-				if firstErr != nil || next >= len(w.jobs) {
+				if firstErr != nil || next >= len(batches) {
 					mu.Unlock()
 					return
 				}
-				job := w.jobs[next]
+				b := batches[next]
 				next++
 				mu.Unlock()
 				if err := ctx.Err(); err != nil {
-					mu.Lock()
-					if firstErr == nil {
-						firstErr = err
-					}
-					mu.Unlock()
+					fail(err)
 					return
 				}
-				id, n, converted, err := w.hashOne(job, buf, &out)
-				mu.Lock()
-				if err != nil && firstErr == nil {
-					firstErr = err
+				handle := w.root
+				if dir := w.jobs[b.start].dir; dir != "." {
+					opened, err := w.root.OpenRoot(dir)
+					if err != nil {
+						fail(stopError{ReasonUnreadableEntry})
+						return
+					}
+					handle = opened
 				}
-				read += n
-				if converted {
-					autoConv = true
+				for k := b.start; k < b.end; k++ {
+					job := w.jobs[k]
+					id, n, converted, err := w.hashOne(handle, job, buf, &out)
+					mu.Lock()
+					if err != nil && firstErr == nil {
+						firstErr = err
+					}
+					read += n
+					if converted {
+						autoConv = true
+					}
+					job.target.id = id
+					if w.result.Blobs != nil && err == nil {
+						w.result.Blobs[job.path] = hex.EncodeToString(id)
+					}
+					stop := firstErr != nil
+					mu.Unlock()
+					if stop {
+						break
+					}
 				}
-				job.target.id = id
-				if w.result.Blobs != nil && err == nil {
-					w.result.Blobs[job.path] = hex.EncodeToString(id)
+				if handle != w.root {
+					handle.Close()
 				}
-				mu.Unlock()
 			}
 		}()
 	}
@@ -513,9 +604,9 @@ func (w *walker) hashAll(ctx context.Context) error {
 	return nil
 }
 
-func (w *walker) hashOne(job fileJob, buf []byte, out *[]byte) ([]byte, int64, bool, error) {
+func (w *walker) hashOne(dir *os.Root, job fileJob, buf []byte, out *[]byte) ([]byte, int64, bool, error) {
 	if job.symlink {
-		target, err := w.root.Readlink(job.path)
+		target, err := dir.Readlink(job.name)
 		if err != nil {
 			return nil, 0, false, stopError{ReasonUnreadableEntry}
 		}
@@ -527,7 +618,7 @@ func (w *walker) hashOne(job fileJob, buf []byte, out *[]byte) ([]byte, int64, b
 		io.WriteString(h, target)
 		return h.Sum(nil), int64(len(target)), false, nil
 	}
-	f, err := openRegular(w.root, job.path)
+	f, err := openRegular(dir, job.name)
 	if err != nil {
 		return nil, 0, false, stopError{ReasonUnreadableEntry}
 	}
