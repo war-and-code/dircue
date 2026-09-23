@@ -49,12 +49,25 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 
 	contentStatus := status(r.Discovery.Status)
 	contentReasons := reasons(r.Discovery.Omissions, r.Discovery.OmittedCandidates)
+	for _, warning := range r.Warnings {
+		switch warning.Code {
+		case "file_too_large", "file_read_error", "unsupported_gitattributes", "tree_size_limit":
+			contentStatus = mapdoc.CoveragePartial
+			contentReasons = append(contentReasons, warning.Code)
+		}
+	}
+	if r.Formats != nil && r.Formats.Status != "complete" {
+		contentStatus = mapdoc.CoveragePartial
+		contentReasons = append(contentReasons, "format_observations_incomplete")
+	}
+	slices.Sort(contentReasons)
+	contentReasons = slices.Compact(contentReasons)
 	if contentStatus != mapdoc.CoverageComplete && len(contentReasons) == 0 {
 		contentReasons = []string{"content_inventory_incomplete"}
 	}
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons}})
 	d.Nodes = append(d.Nodes, contentNodes(r)...)
-	d.Nodes = append(d.Nodes, languageNodes(r.Languages)...)
+	d.Nodes = append(d.Nodes, languageNodes(r.Languages, mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons})...)
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
@@ -163,7 +176,7 @@ func contentNodes(r *profile.Report) []mapdoc.Node {
 	return uniqueNodes(nodes)
 }
 
-func languageNodes(languages []profile.Language) []mapdoc.Node {
+func languageNodes(languages []profile.Language, coverage mapdoc.Coverage) []mapdoc.Node {
 	nodes := make([]mapdoc.Node, 0, len(languages))
 	for _, language := range languages {
 		n := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "language:"+language.Name)
@@ -174,7 +187,7 @@ func languageNodes(languages []profile.Language) []mapdoc.Node {
 			"files":      strconv.FormatInt(language.FileCount, 10),
 			"percentage": strconv.FormatFloat(language.Percentage, 'f', 4, 64),
 		}
-		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		n.Coverage = coverage
 		n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory,
 			Rule: &mapdoc.Producer{ID: "dircue/linguist-language-population", Version: ruleVersion}}}
 		nodes = append(nodes, n)
