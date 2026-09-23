@@ -42,9 +42,30 @@ python3 tests/map_corpus/verify_public.py \
   --output .cache/public-map-gate.json
 ```
 
-`public_expectations.json` binds twelve upstream commits to simple facts taken
-directly from named manifests and source languages. The gate verifies pins
-before scanning and records elapsed time plus map sizes. It never clones or
-updates a repository. These checks materially broaden the initial gate, but
-they still do not satisfy every real-repository shape or every quality item in
-#75 and #83; the remaining gaps must stay visible in release readiness.
+`public_expectations.json` binds twenty-one upstream commits to facts taken
+directly from cited manifests, source files, and tree inventories. It includes
+Terraform, an unrendered Helm chart, Serverless Framework examples, uv, Kotlin,
+.NET samples, a Python functions framework, OCI client source, and a Java SAM
+application in addition to the original language corpus. The gate verifies
+every commit and cited path before scanning. Its report retains each question,
+its source URL, targeted negative checks, and questions deliberately left
+unknown.
+
+Precision is not claimed: the hand-authored expectations do not exhaustively
+label every observation emitted from these repositories. Per-question recall
+therefore covers only the cited positive facts; negative assertions are narrow
+false-positive checks, and unknowns do not become passes. The repositories
+also do not yet include a bounded Linux-kernel slice. These limits remain
+visible instead of being converted into an aggregate 100% score.
+
+The optional fetch helper is manual and never runs in CI. It requires every
+repository ID explicitly and refuses to update or replace existing checkouts:
+
+```sh
+python3 tests/map_corpus/fetch_public.py \
+  --destination /path/to/pinned-corpus \
+  --id helm-examples --id aws-sam-java-rest
+```
+
+Fetching the full corpus can consume substantial disk space, so the helper has
+no `--all` mode. The verification gate itself never accesses the network.
