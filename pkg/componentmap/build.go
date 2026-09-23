@@ -5,7 +5,7 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 // Build converts the declaration report into a deterministic component graph.
@@ -22,6 +22,17 @@ func Build(report *declarations.Report) Fragment {
 	ambiguousRoot := make(map[string]bool)
 	projects := slices.Clone(report.Projects)
 	slices.SortFunc(projects, func(a, b declarations.Project) int { return strings.Compare(a.ID, b.ID) })
+	unnamedDotnetNames := map[string]int{}
+	for _, p := range projects {
+		if p.Name != "" || p.Kind != "dotnet" || strings.ToLower(path.Base(cleanRoot(p.Root))) != "src" || strings.ToLower(path.Ext(p.ID)) != ".csproj" {
+			continue
+		}
+		stem := strings.TrimSuffix(path.Base(p.ID), path.Ext(p.ID))
+		if stem != "" {
+			key := cleanRoot(p.Root) + "\x00" + strings.ToLower(stem)
+			unnamedDotnetNames[key]++
+		}
+	}
 	for _, p := range projects {
 		if p.ID == "" || byManifest[p.ID].Key != "" || !componentKind(p.Kind) {
 			continue
@@ -30,7 +41,15 @@ func Build(report *declarations.Report) Fragment {
 		if report.Status != "complete" {
 			coverage = "partial"
 		}
-		c := Component{Key: p.ID, Root: cleanRoot(p.Root), Manifest: p.ID, Ecosystem: ecosystem(p.Kind), Kind: p.Kind, Name: p.Name, Version: p.Version, Coverage: coverage, Requirements: declaredRequirements(p)}
+		name := p.Name
+		if name == "" && p.Kind == "dotnet" && strings.ToLower(path.Base(cleanRoot(p.Root))) == "src" && strings.ToLower(path.Ext(p.ID)) == ".csproj" {
+			stem := strings.TrimSuffix(path.Base(p.ID), path.Ext(p.ID))
+			key := cleanRoot(p.Root) + "\x00" + strings.ToLower(stem)
+			if unnamedDotnetNames[key] == 1 {
+				name = stem
+			}
+		}
+		c := Component{Key: p.ID, Root: cleanRoot(p.Root), Manifest: p.ID, Ecosystem: ecosystem(p.Kind), Kind: p.Kind, Name: name, Version: p.Version, Coverage: coverage, Requirements: declaredRequirements(p)}
 		byManifest[p.ID] = c
 		if _, exists := byRoot[c.Root]; exists {
 			ambiguousRoot[c.Root] = true
