@@ -71,6 +71,9 @@ func parseJSONConfigBounded(name string, content []byte) ([]Observation, bool) {
 			if child, ok := v.(map[string]any); ok {
 				walk(child, key, depth+1)
 			}
+			if text, ok := v.(string); ok && amqpURI(text) {
+				out = append(out, Observation{Kind: KindCapability, Name: "messaging:amqp", State: "declared", Basis: "declared_config", Path: name, Properties: map[string]string{"key": key}})
+			}
 			if cap, ok := configCapability(key); ok {
 				out = append(out, Observation{Kind: KindCapability, Name: cap, State: "declared", Basis: "declared_config", Path: name, Properties: map[string]string{"key": key}})
 			}
@@ -82,6 +85,12 @@ func parseJSONConfigBounded(name string, content []byte) ([]Observation, bool) {
 	walk(root, "", 0)
 	return out, depthLimited
 }
+
+func amqpURI(value string) bool {
+	value = strings.ToLower(strings.TrimSpace(value))
+	return strings.HasPrefix(value, "amqp://") || strings.HasPrefix(value, "amqps://")
+}
+
 func safeConfigKey(s string) bool {
 	if len(s) > 256 {
 		return false

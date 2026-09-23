@@ -129,7 +129,7 @@ func TestGoBinaryRequiresPackageMainAndMainFunction(t *testing.T) {
 
 func TestAppsettingsRedisAndEventBusCapabilitiesUseKeyEvidence(t *testing.T) {
 	d := New(Options{})
-	body := []byte(`{"ConnectionStrings":{"Redis":"redis://secret","EventBus":"amqp://secret"},"EventBus":{"HostAddress":"rabbitmq"},"RabbitMQ":{"HostName":"broker"}}`)
+	body := []byte(`{"ConnectionStrings":{"Redis":"redis://secret"},"EventBus":"amqps://user:secret@rabbitmq.example/path","RabbitMQ":{"HostName":"broker"}}`)
 	if _, err := d.Detect(context.Background(), profile.File{Path: "appsettings.json", Size: int64(len(body)), Content: body}); err != nil {
 		t.Fatal(err)
 	}
@@ -155,8 +155,10 @@ func TestAppsettingsRedisAndEventBusCapabilitiesUseKeyEvidence(t *testing.T) {
 		t.Fatalf("missing appsettings capability evidence: %+v", r.Observations)
 	}
 	encoded, _ := json.Marshal(r)
-	if strings.Contains(string(encoded), "secret") {
-		t.Fatalf("configuration value leaked: %s", encoded)
+	for _, forbidden := range []string{"secret", "rabbitmq.example", "user", "amqps://"} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("configuration value %q leaked: %s", forbidden, encoded)
+		}
 	}
 }
 
