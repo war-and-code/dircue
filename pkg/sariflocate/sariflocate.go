@@ -427,7 +427,14 @@ func sourceBinding(run rawObject, doc mapdoc.Document, opts Options) string {
 	for _, v := range vcs {
 		rev := stringValue(v["revisionId"])
 		if rev != "" {
-			if rev == doc.Source.Revision {
+			// The map records the caller's revision expression. Symbolic names
+			// such as HEAD, branches, tags, and tree:<oid> are not comparable
+			// with SARIF's resolved commit revisionId and must not manufacture
+			// either a match or a mismatch.
+			if !gitObjectID(doc.Source.Revision) || !gitObjectID(rev) {
+				return "unknown"
+			}
+			if strings.EqualFold(rev, doc.Source.Revision) {
 				return "matched"
 			}
 			return "mismatch"
@@ -435,6 +442,10 @@ func sourceBinding(run rawObject, doc mapdoc.Document, opts Options) string {
 	}
 	return "unknown"
 }
+
+var gitObjectIDRE = regexp.MustCompile(`^(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})$`)
+
+func gitObjectID(value string) bool { return gitObjectIDRE.MatchString(value) }
 func toolIdentity(run rawObject) (string, string) {
 	var tool, driver rawObject
 	_ = json.Unmarshal(run["tool"], &tool)
