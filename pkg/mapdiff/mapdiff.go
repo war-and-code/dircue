@@ -25,6 +25,8 @@ type Report struct {
 	Head                  mapdoc.Source    `json:"head"`
 	Counts                Counts           `json:"counts"`
 	Changes               []Change         `json:"changes"`
+	ProviderStatus        string           `json:"provider_status"`
+	ProviderChanges       []Change         `json:"provider_changes"`
 	CoverageChanges       []CoverageChange `json:"coverage_changes"`
 	CoverageLedgerStatus  string           `json:"coverage_ledger_status"`
 	CoverageLedgerChanges []LedgerChange   `json:"coverage_ledger_changes"`
@@ -86,12 +88,14 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		return Report{}, fmt.Errorf("head map: %w", err)
 	}
 	report := Report{
-		SchemaVersion: SchemaVersion,
-		Kind:          "map_comparison",
-		Base:          base.Source,
-		Head:          head.Source,
-		Changes:       []Change{},
-		Caveats:       []string{"source ancestry and merge-base are not inferred; the caller selected this pairing"},
+		SchemaVersion:   SchemaVersion,
+		Kind:            "map_comparison",
+		Base:            base.Source,
+		Head:            head.Source,
+		Changes:         []Change{},
+		ProviderStatus:  "same",
+		ProviderChanges: []Change{},
+		Caveats:         []string{"source ancestry and merge-base are not inferred; the caller selected this pairing"},
 	}
 	report.SourceBinding = compareSource(base.Source, head.Source)
 	report.ObserverCompatibility = "same"
@@ -117,17 +121,36 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		after, inHead := headNodes[id]
 		switch {
 		case !inBase:
-			report.add(Change{Entity: "node", ID: id, Status: "added", Material: true, Certainty: "observed"})
+			change := Change{Entity: "node", ID: id, Status: "added", Material: true, Certainty: "observed"}
+			if providerOnlyNode(after) {
+				change.Material = false
+				report.addProvider(change)
+			} else {
+				report.add(change)
+			}
 		case !inHead:
-			certainty, reason := removalCertainty(head, questionForNode(before.Kind))
-			report.add(Change{Entity: "node", ID: id, Status: "removed", Material: true, Certainty: certainty, Reason: reason})
+			if providerOnlyNode(before) {
+				certainty, reason := providerRemovalCertainty(head, before.Evidence)
+				report.addProvider(Change{Entity: "node", ID: id, Status: "removed", Material: false, Certainty: certainty, Reason: reason})
+			} else {
+				certainty, reason := removalCertainty(head, questionForNode(before.Kind))
+				report.add(Change{Entity: "node", ID: id, Status: "removed", Material: true, Certainty: certainty, Reason: reason})
+			}
 		default:
 			fields, material := nodeFields(before, after)
 			if len(fields) == 0 {
-				report.Counts.Unchanged++
+				if !providerOnlyNode(before) && !providerOnlyNode(after) {
+					report.Counts.Unchanged++
+				}
 				continue
 			}
-			report.add(Change{Entity: "node", ID: id, Status: "changed", Fields: fields, Material: material, Certainty: "observed"})
+			change := Change{Entity: "node", ID: id, Status: "changed", Fields: fields, Material: material, Certainty: "observed"}
+			if providerOnlyNode(before) || providerOnlyNode(after) {
+				change.Material = false
+				report.addProvider(change)
+			} else {
+				report.add(change)
+			}
 		}
 	}
 
@@ -138,17 +161,36 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		after, inHead := headEdges[id]
 		switch {
 		case !inBase:
-			report.add(Change{Entity: "edge", ID: id, Status: "added", Material: true, Certainty: "observed"})
+			change := Change{Entity: "edge", ID: id, Status: "added", Material: true, Certainty: "observed"}
+			if providerOnlyEdge(after) {
+				change.Material = false
+				report.addProvider(change)
+			} else {
+				report.add(change)
+			}
 		case !inHead:
-			certainty, reason := removalCertainty(head, questionForEdge(before.Type))
-			report.add(Change{Entity: "edge", ID: id, Status: "removed", Material: true, Certainty: certainty, Reason: reason})
+			if providerOnlyEdge(before) {
+				certainty, reason := providerRemovalCertainty(head, before.Evidence)
+				report.addProvider(Change{Entity: "edge", ID: id, Status: "removed", Material: false, Certainty: certainty, Reason: reason})
+			} else {
+				certainty, reason := removalCertainty(head, questionForEdge(before.Type))
+				report.add(Change{Entity: "edge", ID: id, Status: "removed", Material: true, Certainty: certainty, Reason: reason})
+			}
 		default:
 			fields, material := edgeFields(before, after)
 			if len(fields) == 0 {
-				report.Counts.Unchanged++
+				if !providerOnlyEdge(before) && !providerOnlyEdge(after) {
+					report.Counts.Unchanged++
+				}
 				continue
 			}
-			report.add(Change{Entity: "edge", ID: id, Status: "changed", Fields: fields, Material: material, Certainty: "observed"})
+			change := Change{Entity: "edge", ID: id, Status: "changed", Fields: fields, Material: material, Certainty: "observed"}
+			if providerOnlyEdge(before) || providerOnlyEdge(after) {
+				change.Material = false
+				report.addProvider(change)
+			} else {
+				report.add(change)
+			}
 		}
 	}
 	slices.SortFunc(report.Changes, func(a, b Change) int {
@@ -156,6 +198,9 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 	})
 	slices.SortFunc(report.CoverageChanges, func(a, b CoverageChange) int {
 		return strings.Compare(a.Question+"\x00"+a.Scope, b.Question+"\x00"+b.Scope)
+	})
+	slices.SortFunc(report.ProviderChanges, func(a, b Change) int {
+		return strings.Compare(a.Entity+"\x00"+a.ID, b.Entity+"\x00"+b.ID)
 	})
 	slices.Sort(report.Caveats)
 	report.Caveats = slices.Compact(report.Caveats)
@@ -168,6 +213,16 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		report.Status = "unchanged"
 	}
 	return report, nil
+}
+
+func (r *Report) addProvider(change Change) {
+	r.ProviderChanges = append(r.ProviderChanges, change)
+	if change.Certainty == "indeterminate" {
+		r.ProviderStatus = "indeterminate"
+		r.Caveats = append(r.Caveats, "provider observations disappeared without a comparable provider run in the head map")
+	} else if r.ProviderStatus == "same" {
+		r.ProviderStatus = "changed"
+	}
 }
 
 func coverageLedgerChanges(base, head []mapdoc.CoverageLedgerEntry) []LedgerChange {
@@ -297,6 +352,61 @@ func removalCertainty(head mapdoc.Document, question string) (string, string) {
 		}
 	}
 	return "indeterminate", question + " coverage is absent from the head map"
+}
+
+func providerRemovalCertainty(head mapdoc.Document, evidence []mapdoc.Evidence) (string, string) {
+	providers := providerIDs(evidence)
+	if len(providers) == 0 {
+		return "indeterminate", "provider identity is absent from the removed observation"
+	}
+	for _, run := range head.CoverageLedger {
+		if !slices.Contains(providers, run.Tool) || !run.Ran || run.Binding == "mismatch" {
+			continue
+		}
+		if run.State == "covered_files_reported" || run.State == "selected_query_reported" || run.State == "provider_reported" {
+			return "confirmed", ""
+		}
+		return "indeterminate", "matching provider run has incomplete or unknown coverage in the head map"
+	}
+	return "indeterminate", "matching provider run is absent from the head map"
+}
+
+func providerOnlyNode(node mapdoc.Node) bool {
+	if node.Kind == mapdoc.NodeToolRun {
+		return true
+	}
+	evidence := slices.Clone(node.Evidence)
+	for _, fact := range node.Facts {
+		evidence = append(evidence, fact.Evidence...)
+	}
+	return providerOnlyEvidence(evidence)
+}
+
+func providerOnlyEdge(edge mapdoc.Edge) bool {
+	return edge.Type == mapdoc.EdgeAnalyzedBy || providerOnlyEvidence(edge.Evidence)
+}
+
+func providerOnlyEvidence(evidence []mapdoc.Evidence) bool {
+	if len(evidence) == 0 {
+		return false
+	}
+	for _, item := range evidence {
+		if item.Basis != mapdoc.BasisProviderReported || item.Provider == nil {
+			return false
+		}
+	}
+	return true
+}
+
+func providerIDs(evidence []mapdoc.Evidence) []string {
+	ids := []string{}
+	for _, item := range evidence {
+		if item.Provider != nil && item.Provider.ID != "" {
+			ids = append(ids, item.Provider.ID)
+		}
+	}
+	slices.Sort(ids)
+	return slices.Compact(ids)
 }
 
 func questionForNode(kind mapdoc.NodeKind) string {

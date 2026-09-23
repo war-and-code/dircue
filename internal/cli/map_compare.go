@@ -97,6 +97,17 @@ func writeMapComparison(out io.Writer, report mapdiff.Report) error {
 	if _, err := fmt.Fprintln(out); err != nil {
 		return err
 	}
+	if _, err := fmt.Fprintf(out, "Provider observations: %s", report.ProviderStatus); err != nil {
+		return err
+	}
+	if len(report.ProviderChanges) > 0 {
+		if _, err := fmt.Fprintf(out, " (%d changes)", len(report.ProviderChanges)); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintln(out); err != nil {
+		return err
+	}
 	for _, caveat := range report.Caveats {
 		if _, err := fmt.Fprintf(out, "Caveat: %s\n", caveat); err != nil {
 			return err
