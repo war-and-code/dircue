@@ -437,8 +437,6 @@ func questionForEdge(kind mapdoc.EdgeType) string {
 		return "capabilities"
 	case mapdoc.EdgePackagedIn:
 		return "packages"
-	case mapdoc.EdgeConflictsWith:
-		return "routing"
 	default:
 		return "analyzer_coverage"
 	}

@@ -152,7 +152,10 @@ flag such as `--workers`, `--budget-files`, `--tree-size`, or
 or `KiB`, `MiB`, and `GiB` suffixes; nonzero values must be at least 1 MiB. The settings report exposes the effective
 value, unit, origin, and applicable fixed range. It labels runtime controls and
 worker concurrency `performance-only`, and the two skip/inventory bounds
-`coverage-affecting`. Effective settings are available from `map settings`;
+`coverage-affecting`. The report also lists the classifier's fixed
+`classification.prefix_bytes` window as `conformance-locked`; it cannot be
+overridden because changing it would invalidate the current Linguist parity
+claim. Effective settings are available from `map settings`;
 they are omitted from the map document so worker-only choices preserve JSON bytes.
 
 `--cpu-limit` scopes `GOMAXPROCS` to the map command. `--memory-limit` scopes
@@ -271,7 +274,8 @@ not infer repository identity or rename relationships. A valid comparison exits
 
 `dircue map compare` consumes map documents. The older `dircue compare`
 command consumes aggregate `analyze all` profiles; their input and output
-contracts are different.
+contracts are different. This split preserves the legacy command contract;
+scripts comparing maps should use `dircue map compare` explicitly.
 
 ## Locate SARIF results in the map
 

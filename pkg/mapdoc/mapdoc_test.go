@@ -174,6 +174,17 @@ func TestCoverageLedgerRequiresConfinedFilesAndBinding(t *testing.T) {
 	}
 }
 
+func TestRejectsUnimplementedRelationshipKinds(t *testing.T) {
+	d := document()
+	edge := mapdoc.NewEdge(mapdoc.EdgeType("conflicts_with"), d.Nodes[0].ID, d.Nodes[1].ID, "")
+	edge.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	edge.Evidence = []mapdoc.Evidence{evidence("b/package.json")}
+	d.Edges = append(d.Edges, edge)
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("relationship without an observer was accepted into the map contract")
+	}
+}
+
 func TestDirectoryEvidenceOnlySupportsContentNodes(t *testing.T) {
 	d := document()
 	d.Nodes[1].Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory, Rule: &mapdoc.Producer{ID: "inventory", Version: "1"}}}
