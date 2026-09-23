@@ -290,3 +290,15 @@ func TestCollectorContinueDoesNotSwallowReaderCancellation(t *testing.T) {
 		}
 	}
 }
+
+func TestMavenComponentNameComesFromRootArtifact(t *testing.T) {
+	content := `<project><artifactId>spring-petclinic</artifactId><profiles><profile><id>alternate</id><artifactId>other</artifactId></profile></profiles></project>`
+	d := Parse("pom.xml", []byte(content))
+	if d == nil || d.Project == nil || d.Project.Name != "spring-petclinic" {
+		t.Fatalf("root artifact name was not retained: %+v", d)
+	}
+	placeholder := Parse("pom.xml", []byte(`<project><artifactId>${module.name}</artifactId></project>`))
+	if placeholder == nil || placeholder.Project == nil || placeholder.Project.Name != "" {
+		t.Fatalf("unresolved expression became a component name: %+v", placeholder)
+	}
+}

@@ -398,6 +398,14 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 	for _, r := range legacy.References {
 		addLegacyReference(d, r)
 	}
+	if d.Project.Kind == "maven" {
+		for _, requirement := range d.Project.Requirements {
+			if requirement.Kind == "maven-artifactId" && requirement.Condition == "" && mavenArtifactName.MatchString(requirement.Value) {
+				d.Project.Name = requirement.Value
+				break
+			}
+		}
+	}
 	if len(legacy.Diagnostics) > 0 {
 		d.Parsed = false
 	}
@@ -463,6 +471,7 @@ func legacyCondition(value string) string {
 }
 
 var legacyHostPath = regexp.MustCompile(`(?:[A-Za-z]:[/\\]|\\|(^|[\s"'(=@])/)`)
+var mavenArtifactName = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,255}$`)
 
 func unsafeLegacyText(value string) bool {
 	return strings.Contains(value, "://") || strings.IndexFunc(value, unicode.IsControl) >= 0 || legacyHostPath.MatchString(value)
