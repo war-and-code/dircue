@@ -67,17 +67,6 @@ func Normalize(input Document) (Document, error) {
 	if d.Coverage == nil {
 		d.Coverage = []QuestionCoverage{}
 	}
-	if d.Execution != nil {
-		if d.Execution.Settings == nil {
-			d.Execution.Settings = []ExecutionSetting{}
-		}
-		if d.Execution.Notes == nil {
-			d.Execution.Notes = []string{}
-		}
-		slices.SortFunc(d.Execution.Settings, func(a, b ExecutionSetting) int { return strings.Compare(a.Name, b.Name) })
-		slices.Sort(d.Execution.Notes)
-		d.Execution.Notes = slices.Compact(d.Execution.Notes)
-	}
 	if d.CoverageLedger == nil {
 		d.CoverageLedger = []CoverageLedgerEntry{}
 	}

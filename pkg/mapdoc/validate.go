@@ -9,6 +9,7 @@ import (
 )
 
 var drivePath = regexp.MustCompile(`^[A-Za-z]:[/\\]`)
+var fullObjectID = regexp.MustCompile(`^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$`)
 
 func Validate(d Document) error {
 	fail := func(format string, args ...any) error {
@@ -32,32 +33,17 @@ func Validate(d Document) error {
 	if d.Source.Mode == "git" && (d.Source.Revision == "" || d.Source.Tree == "") {
 		return fail("git source requires revision and tree")
 	}
+	if d.Source.Commit != "" && !fullObjectID.MatchString(d.Source.Commit) {
+		return fail("source commit must be a resolved 40- or 64-digit object ID")
+	}
 	if d.Source.Mode == "git" && d.Source.Digest != nil {
 		return fail("git source must not contain a directory digest")
 	}
-	if d.Source.Mode == "directory" && (d.Source.Revision != "" || d.Source.Tree != "") {
+	if d.Source.Mode == "directory" && (d.Source.Revision != "" || d.Source.Commit != "" || d.Source.Tree != "") {
 		return fail("directory source must not contain git identity")
 	}
 	if d.Source.Digest != nil && (d.Source.Digest.Algorithm == "" || d.Source.Digest.Scope == "" || d.Source.Digest.Value == "") {
 		return fail("source digest requires algorithm, scope, and value")
-	}
-	if d.Execution != nil {
-		if !slices.Contains([]string{"balanced", "fast", "low-memory", "thorough"}, d.Execution.Preset) {
-			return fail("execution has invalid preset %q", d.Execution.Preset)
-		}
-		settings := map[string]bool{}
-		for _, setting := range d.Execution.Settings {
-			if setting.Name == "" || setting.Unit == "" || setting.Origin == "" || setting.Description == "" {
-				return fail("execution setting requires name, unit, origin, and description")
-			}
-			if setting.Category != "performance-only" && setting.Category != "coverage-affecting" {
-				return fail("execution setting %q has invalid category %q", setting.Name, setting.Category)
-			}
-			if settings[setting.Name] {
-				return fail("duplicate execution setting %q", setting.Name)
-			}
-			settings[setting.Name] = true
-		}
 	}
 	questions := map[string]bool{}
 	sourceBindingQualified := false

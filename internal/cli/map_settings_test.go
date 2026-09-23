@@ -8,8 +8,6 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
-
-	"dircue/pkg/mapdoc"
 )
 
 func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
@@ -149,36 +147,16 @@ func TestMapRuntimeLimitsPrecedenceProvenanceAndRestoration(t *testing.T) {
 	if after := debug.SetMemoryLimit(-1); after != beforeMemory {
 		t.Fatalf("memory limit leaked: before=%d after=%d", beforeMemory, after)
 	}
-	var document mapdoc.Document
+	var document map[string]json.RawMessage
 	if err := json.Unmarshal([]byte(mapJSON), &document); err != nil {
 		t.Fatal(err)
 	}
-	if document.Execution == nil || document.Execution.Preset != "balanced" {
-		t.Fatalf("execution provenance absent: %+v", document.Execution)
-	}
-	provenance := map[string]mapdoc.ExecutionSetting{}
-	for _, setting := range document.Execution.Settings {
-		provenance[setting.Name] = setting
-	}
-	if provenance["runtime.cpu"].Value != "1" || provenance["runtime.memory_bytes"].Value != "67108864" {
-		t.Fatalf("execution limits absent: %+v", provenance)
-	}
-	if !strings.Contains(strings.Join(document.Execution.Notes, " "), "not hard CPU") {
-		t.Fatalf("hard-ceiling qualification absent: %+v", document.Execution.Notes)
+	if _, exists := document["execution"]; exists {
+		t.Fatal("execution settings must not alter the portable map document; inspect map settings instead")
 	}
 }
 
 func sameMapAnswer(t *testing.T, left, right string) bool {
 	t.Helper()
-	var a, b mapdoc.Document
-	if err := json.Unmarshal([]byte(left), &a); err != nil {
-		t.Fatal(err)
-	}
-	if err := json.Unmarshal([]byte(right), &b); err != nil {
-		t.Fatal(err)
-	}
-	a.Execution, b.Execution = nil, nil
-	aJSON, _ := json.Marshal(a)
-	bJSON, _ := json.Marshal(b)
-	return string(aJSON) == string(bJSON)
+	return left == right
 }

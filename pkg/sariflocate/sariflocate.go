@@ -427,14 +427,16 @@ func sourceBinding(run rawObject, doc mapdoc.Document, opts Options) string {
 	for _, v := range vcs {
 		rev := stringValue(v["revisionId"])
 		if rev != "" {
-			// The map records the caller's revision expression. Symbolic names
-			// such as HEAD, branches, tags, and tree:<oid> are not comparable
-			// with SARIF's resolved commit revisionId and must not manufacture
-			// either a match or a mismatch.
-			if !gitObjectID(doc.Source.Revision) || !gitObjectID(rev) {
+			commit := doc.Source.Commit
+			// Older saved maps only carried the selector. A full object ID is
+			// comparable, but a symbolic selector must stay unknown.
+			if commit == "" {
+				commit = doc.Source.Revision
+			}
+			if !gitObjectID(commit) || !gitObjectID(rev) {
 				return "unknown"
 			}
-			if strings.EqualFold(rev, doc.Source.Revision) {
+			if strings.EqualFold(rev, commit) {
 				return "matched"
 			}
 			return "mismatch"

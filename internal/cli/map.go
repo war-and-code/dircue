@@ -23,6 +23,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	var summary bool
 	var budgetFiles int
 	var attachments []string
+	var attachBinding string
 	var settingsFlags mapSettingsFlags
 	cmd := &cobra.Command{
 		Use:     "map [path]",
@@ -113,11 +114,13 @@ func newMapCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			doc, err = joinMapAttachments(cmd, doc, attachments)
+			if attachBinding != "" && attachBinding != "caller-asserted" {
+				return fmt.Errorf("--attach-binding supports only caller-asserted")
+			}
+			doc, err = joinMapAttachments(cmd, doc, attachments, attachBinding == "caller-asserted")
 			if err != nil {
 				return err
 			}
-			doc.Execution = mapExecutionProvenance(settings.Report)
 			doc, err = mapdoc.Normalize(doc)
 			if err != nil {
 				return err
@@ -142,6 +145,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
+	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert binding for reports without snapshot identity: caller-asserted")
 	addMapSettingsFlags(cmd, &settingsFlags)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
@@ -164,17 +168,6 @@ func applyMapRuntimeSettings(settings resolvedMapSettings) func() {
 			runtime.GOMAXPROCS(previousCPU)
 		}
 	}
-}
-
-func mapExecutionProvenance(report mapSettingsReport) *mapdoc.Execution {
-	settings := make([]mapdoc.ExecutionSetting, 0, len(report.Settings))
-	for _, setting := range report.Settings {
-		settings = append(settings, mapdoc.ExecutionSetting{
-			Name: setting.Name, Value: setting.Value, Unit: setting.Unit, Category: setting.Category,
-			Origin: setting.Origin, Description: setting.Description, Minimum: setting.Minimum, Maximum: setting.Maximum,
-		})
-	}
-	return &mapdoc.Execution{Preset: report.Preset, Settings: settings, Notes: slices.Clone(report.Notes)}
 }
 
 func terminalOutput(out io.Writer) bool {

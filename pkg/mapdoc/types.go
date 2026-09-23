@@ -69,32 +69,12 @@ type Document struct {
 	Kind               string                  `json:"kind"`
 	Status             CoverageStatus          `json:"status"`
 	Source             Source                  `json:"source"`
-	Execution          *Execution              `json:"execution,omitempty"`
 	Coverage           []QuestionCoverage      `json:"coverage"`
 	CoverageLedger     []CoverageLedgerEntry   `json:"coverage_ledger"`
 	AnalyzerCoverage   []AnalyzerCoverageEntry `json:"analyzer_coverage"`
 	AnalyzerBlindSpots []AnalyzerBlindSpot     `json:"analyzer_blind_spots"`
 	Nodes              []Node                  `json:"nodes"`
 	Edges              []Edge                  `json:"edges"`
-}
-
-// Execution records effective controls for the process that produced a map.
-// Its runtime limits are cooperative preferences, never hard resource ceilings.
-type Execution struct {
-	Preset   string             `json:"preset"`
-	Settings []ExecutionSetting `json:"settings"`
-	Notes    []string           `json:"notes"`
-}
-
-type ExecutionSetting struct {
-	Name        string `json:"name"`
-	Value       string `json:"value"`
-	Unit        string `json:"unit"`
-	Category    string `json:"category"`
-	Origin      string `json:"origin"`
-	Description string `json:"description"`
-	Minimum     string `json:"minimum,omitempty"`
-	Maximum     string `json:"maximum,omitempty"`
 }
 
 // AnalyzerCoverageEntry accounts for one component, language, and analyzer.
@@ -134,6 +114,7 @@ type CoverageLedgerEntry struct {
 type Source struct {
 	Mode     string  `json:"mode"`
 	Revision string  `json:"revision,omitempty"`
+	Commit   string  `json:"commit,omitempty"`
 	Tree     string  `json:"tree,omitempty"`
 	Digest   *Digest `json:"digest,omitempty"`
 }

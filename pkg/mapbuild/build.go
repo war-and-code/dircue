@@ -22,6 +22,7 @@ const ruleVersion = "1.0.0"
 
 type Options struct {
 	Revision    string
+	Commit      string
 	Deployables *deployables.Report
 	Intent      *intentmap.Report
 	ExtraNodes  []mapdoc.Node
@@ -38,6 +39,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	if mode == "git" {
 		d.Source.Tree = r.Discovery.Source.Tree
 		d.Source.Revision = opts.Revision
+		d.Source.Commit = opts.Commit
 		if d.Source.Revision == "" {
 			d.Source.Revision = "HEAD"
 		}
@@ -89,9 +91,14 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: componentStatus, Reasons: componentReasons}})
 
-	for _, q := range []string{"deployables", "interfaces", "capabilities", "packages", "routing", "analyzer_coverage", "material_change"} {
-		d.Coverage = append(d.Coverage, question(q, mapdoc.CoverageUnknown, "observer_not_yet_bound_to_map"))
+	for _, q := range []string{"deployables", "interfaces", "capabilities"} {
+		d.Coverage = append(d.Coverage, question(q, mapdoc.CoverageUnknown, "native_observation_unavailable"))
 	}
+	d.Coverage = append(d.Coverage,
+		question("packages", mapdoc.CoverageUnknown, "no_package_report_attached"),
+		question("routing", mapdoc.CoverageUnknown, "no_route_plan_evaluated"),
+		question("analyzer_coverage", mapdoc.CoverageUnknown, "no_analyzer_report_attached"),
+	)
 	if opts.Deployables != nil {
 		addDeployables(&d, opts.Deployables)
 	}
@@ -141,12 +148,16 @@ func reasons(maps ...map[string]int64) []string {
 
 func contentNodes(r *profile.Report) []mapdoc.Node {
 	var nodes []mapdoc.Node
+	roleCounts := map[string]discovery.Counts{}
 	for _, group := range r.Discovery.Roles {
 		role := group.Name
 		if role == "test_candidate" {
 			role = "test"
 		}
-		nodes = append(nodes, population(role, group.Name+":"+group.Basis, group.Counts))
+		counts := roleCounts[role]
+		counts.Files += group.Files
+		counts.Bytes += group.Bytes
+		roleCounts[role] = counts
 	}
 	for _, group := range r.Discovery.Categories {
 		var role string
@@ -158,9 +169,20 @@ func contentNodes(r *profile.Report) []mapdoc.Node {
 		case "documentation_candidate":
 			role = "documentation"
 		}
-		if role != "" {
-			nodes = append(nodes, population(role, group.Name+":"+group.Basis, group.Counts))
+		if role != "" && role != "documentation" {
+			counts := roleCounts[role]
+			counts.Files += group.Files
+			counts.Bytes += group.Bytes
+			roleCounts[role] = counts
 		}
+	}
+	roles := make([]string, 0, len(roleCounts))
+	for role := range roleCounts {
+		roles = append(roles, role)
+	}
+	slices.Sort(roles)
+	for _, role := range roles {
+		nodes = append(nodes, population(role, roleCounts[role]))
 	}
 	for _, c := range r.Discovery.Candidates {
 		role := ""
@@ -205,8 +227,8 @@ func languageNodes(languages []profile.Language, coverage mapdoc.Coverage) []map
 	return nodes
 }
 
-func population(role, discriminator string, counts discovery.Counts) mapdoc.Node {
-	n := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "population:"+discriminator)
+func population(role string, counts discovery.Counts) mapdoc.Node {
+	n := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "population:"+role)
 	n.Name = role + " population"
 	n.Properties = map[string]string{"role": role, "files": strconv.FormatInt(counts.Files, 10), "bytes": strconv.FormatInt(counts.Bytes, 10), "scope": "inventory_population"}
 	n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
