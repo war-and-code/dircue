@@ -192,7 +192,11 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		percentage float64
 	}
 	languages := []languageSummary{}
+	visibleIDs := map[string]bool{}
 	for _, n := range d.Nodes {
+		if !auxiliaryMapNode(n) {
+			visibleIDs[n.ID] = true
+		}
 		switch n.Kind {
 		case mapdoc.NodeComponent:
 			if !auxiliaryMapNode(n) {
@@ -245,7 +249,13 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	} else {
 		line("Languages: none observed")
 	}
-	line("Content populations: %d   Relationships: %d   Packages: %d", populations, len(d.Edges), packages)
+	visibleRelationships := 0
+	for _, edge := range d.Edges {
+		if visibleIDs[edge.From] && visibleIDs[edge.To] {
+			visibleRelationships++
+		}
+	}
+	line("Content populations: %d   Relationships: %d   Packages: %d", populations, visibleRelationships, packages)
 	ecosystems := map[string]int{}
 	for _, n := range components {
 		ecosystem := n.Properties["ecosystem"]
