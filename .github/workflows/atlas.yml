@@ -60,6 +60,13 @@ jobs:
           GOBIN="$RUNNER_TEMP/dircue-scc" CGO_ENABLED=0 go install github.com/boyter/scc/v4@v4.1.0
           echo "SCC=$RUNNER_TEMP/dircue-scc/scc" >> "$GITHUB_ENV"
 
+      - name: Build Linguist Docker image
+        # Uses the same Dockerfile as the existing linguist-conformance CI job.
+        # Builds once and is reused for the smoke Linguist comparison.
+        # The full-corpus run skips Linguist to keep CI time under the 60-minute
+        # limit; trigger workflow_dispatch with subset=smoke to include Linguist.
+        run: make reference
+
       - name: Run Python unit tests for atlas harness
         run: python3 -m unittest tests/atlas/test_classify.py tests/atlas/test_accuracy.py -v
 
@@ -80,7 +87,7 @@ jobs:
         if: steps.subset.outputs.mode == 'full'
         run: python3 tests/atlas/fetch.py --cache "$RUNNER_TEMP/atlas-cache" --all
 
-      - name: Run atlas (smoke)
+      - name: Run atlas (smoke, with Linguist)
         if: steps.subset.outputs.mode == 'smoke'
         run: |
           python3 tests/atlas/run.py \
@@ -88,12 +95,14 @@ jobs:
             --scc "$SCC" \
             --cache "$RUNNER_TEMP/atlas-cache" \
             --output .cache/atlas \
-            --smoke \
-            --no-linguist
+            --smoke
 
-      - name: Run atlas (full)
+      - name: Run atlas (full, scc-only)
         if: steps.subset.outputs.mode == 'full'
         run: |
+          # Linguist is skipped for the full corpus run to keep CI under 60 minutes.
+          # The smoke subset (above) always runs Linguist. To run Linguist on the
+          # full corpus, trigger workflow_dispatch with subset=smoke and extend ids.
           python3 tests/atlas/run.py \
             --candidate bin/dircue \
             --scc "$SCC" \

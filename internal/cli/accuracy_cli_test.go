@@ -21,6 +21,31 @@ func TestCapabilitiesAccuracyPlainText(t *testing.T) {
 	if !strings.Contains(out, "Accuracy cards:") {
 		t.Errorf("plain-text output missing 'Accuracy cards:' header; got: %q", out[:min(len(out), 200)])
 	}
+	// Kind lines are indented with two spaces ("  kind: ...").
+	// Every kind line must contain "correct", "CI lower=", and "path-scoped".
+	kindLineCount := 0
+	for _, line := range strings.Split(out, "\n") {
+		if !strings.HasPrefix(line, "  ") {
+			continue // header or scope-note line
+		}
+		kindLineCount++
+		if !strings.Contains(line, "correct") {
+			t.Errorf("kind line missing 'correct': %q", line)
+		}
+		if !strings.Contains(line, "CI lower=") {
+			t.Errorf("kind line missing 'CI lower=': %q", line)
+		}
+		if !strings.Contains(line, "path-scoped") {
+			t.Errorf("kind line missing 'path-scoped': %q", line)
+		}
+		// All current kinds have < 30 labels; every line must flag insufficient_labels
+		if !strings.Contains(line, "INSUFFICIENT") {
+			t.Errorf("kind line missing INSUFFICIENT label warning: %q", line)
+		}
+	}
+	if kindLineCount == 0 {
+		t.Errorf("no kind lines found in output; got: %q", out[:min(len(out), 400)])
+	}
 }
 
 // TestCapabilitiesAccuracyJSON checks that --accuracy --json emits valid JSON

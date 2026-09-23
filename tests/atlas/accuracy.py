@@ -30,7 +30,8 @@ ROOT = HERE.parent.parent
 QUALITY_EXPECTATIONS = ROOT / "tests" / "map_corpus" / "public_quality_expectations.json"
 ACCURACY_MD = ROOT / "docs" / "ACCURACY.md"
 ACCURACY_DATA = ROOT / "internal" / "atlas" / "accuracy_data.json"
-SCHEMA_VERSION = "dircue-accuracy-cards-0.1"
+SCHEMA_VERSION = "dircue-accuracy-cards-0.2"
+SUFFICIENT_LABEL_THRESHOLD = 30  # minimum labels for a kind to be considered "sufficient"
 
 
 def wilson_ci(successes: int, total: int, z: float = 1.96) -> tuple[float, float]:
@@ -117,6 +118,8 @@ def score_repo(expected: dict, document: dict) -> dict[str, dict]:
         recall = tp / (tp + fn) if (tp + fn) > 0 else None
         p_lo, p_hi = wilson_ci(tp, tp + fp) if (tp + fp) > 0 else (None, None)
         r_lo, r_hi = wilson_ci(tp, tp + fn) if (tp + fn) > 0 else (None, None)
+        ci_lower = round(p_lo, 4) if p_lo is not None else None
+        sufficiency = "sufficient" if len(exp) >= SUFFICIENT_LABEL_THRESHOLD else "insufficient_labels"
         scores[kind] = {
             "tp": tp,
             "fp": fp,
@@ -125,6 +128,8 @@ def score_repo(expected: dict, document: dict) -> dict[str, dict]:
             "recall": round(recall, 4) if recall is not None else None,
             "precision_ci_95": [round(p_lo, 4), round(p_hi, 4)] if p_lo is not None else None,
             "recall_ci_95": [round(r_lo, 4), round(r_hi, 4)] if r_lo is not None else None,
+            "ci_lower": ci_lower,
+            "sufficiency": sufficiency,
             "label_count": len(exp),
             "note": None,
         }
@@ -158,6 +163,9 @@ def aggregate_kind_scores(kind_scores_list: list[dict[str, dict]]) -> dict[str, 
         recall = tp / (tp + fn) if (tp + fn) > 0 else None
         p_lo, p_hi = wilson_ci(tp, tp + fp) if (tp + fp) > 0 else (None, None)
         r_lo, r_hi = wilson_ci(tp, tp + fn) if (tp + fn) > 0 else (None, None)
+        ci_lower = round(p_lo, 4) if p_lo is not None else None
+        label_count = t["label_count"]
+        sufficiency = "sufficient" if label_count >= SUFFICIENT_LABEL_THRESHOLD else "insufficient_labels"
         result[kind] = {
             "tp": tp,
             "fp": fp,
@@ -166,7 +174,9 @@ def aggregate_kind_scores(kind_scores_list: list[dict[str, dict]]) -> dict[str, 
             "recall": round(recall, 4) if recall is not None else None,
             "precision_ci_95": [round(p_lo, 4), round(p_hi, 4)] if p_lo is not None else None,
             "recall_ci_95": [round(r_lo, 4), round(r_hi, 4)] if r_lo is not None else None,
-            "label_count": t["label_count"],
+            "ci_lower": ci_lower,
+            "sufficiency": sufficiency,
+            "label_count": label_count,
             "repo_count": t["repo_count"],
         }
     return result
@@ -198,6 +208,10 @@ def write_accuracy_md(cards: dict, output_path: Path) -> None:
         "Confidence intervals use the Wilson score at 95%. A question with zero labels",
         "reports N/A — not a score of zero or one.",
         "",
+        f"A kind is marked **`insufficient_labels`** when it has fewer than {SUFFICIENT_LABEL_THRESHOLD} labels.",
+        "These results are directional only; the confidence intervals are wide.",
+        "Broader hand-labeling is tracked in issue #75.",
+        "",
         "## Per-question accuracy",
         "",
     ]
@@ -209,19 +223,18 @@ def write_accuracy_md(cards: dict, output_path: Path) -> None:
     lines += [
         f"Evaluated repositories: {evaluated_repos}",
         "",
-        "| Question (kind) | Precision | Recall | P 95% CI | R 95% CI | Labels | Repos |",
-        "|-----------------|-----------|--------|----------|----------|--------|-------|",
+        "| Question (kind) | Labels | 95% CI lower | Precision | Recall | Repos | Sufficiency |",
+        "|-----------------|--------|--------------|-----------|--------|-------|-------------|",
     ]
 
     for kind, s in sorted(overall.items()):
         p = f"{s['precision']:.3f}" if s["precision"] is not None else "N/A"
         r = f"{s['recall']:.3f}" if s["recall"] is not None else "N/A"
-        p_ci = (f"[{s['precision_ci_95'][0]:.3f}, {s['precision_ci_95'][1]:.3f}]"
-                if s["precision_ci_95"] else "N/A")
-        r_ci = (f"[{s['recall_ci_95'][0]:.3f}, {s['recall_ci_95'][1]:.3f}]"
-                if s["recall_ci_95"] else "N/A")
+        ci_lower = f"{s['ci_lower']:.2f}" if s.get("ci_lower") is not None else "N/A"
+        sufficiency = s.get("sufficiency", "insufficient_labels")
+        suf_label = f"**{sufficiency}**" if sufficiency == "insufficient_labels" else sufficiency
         lines.append(
-            f"| {kind} | {p} | {r} | {p_ci} | {r_ci} | {s['label_count']} | {s['repo_count']} |"
+            f"| {kind} | {s['label_count']} | {ci_lower} | {p} | {r} | {s['repo_count']} | {suf_label} |"
         )
 
     lines += [
@@ -349,7 +362,10 @@ def main():
         "scope_note": (
             "Scores cover nodes evidenced by oracle_files paths only. "
             "Nodes outside those paths are not in the evaluated universe. "
-            "Precision and recall are not computable for kinds with zero labels."
+            "Precision and recall are not computable for kinds with zero labels. "
+            f"Kinds with fewer than {SUFFICIENT_LABEL_THRESHOLD} labels are marked "
+            "insufficient_labels; results are directional. "
+            "Broader hand-labeling is tracked in issue #75."
         ),
         "overall": overall,
         "per_repo": per_repo_scores,

@@ -11,6 +11,8 @@ from classify import (
     classify_linguist_top_level_mismatch,
     classify_oracle_version,
     classify_scc_mismatch,
+    classify_skip_dircue_only,
+    classify_skip_scc_only,
 )
 
 KNOWN_DIFFS = [
@@ -138,6 +140,44 @@ class TestClassifyLinguistTopLevel(unittest.TestCase):
             "any-repo", {}, {}, diffs
         )
         self.assertEqual(cat, "known-upstream-diff")
+
+
+class TestSkipDircueOnly(unittest.TestCase):
+    """Files that dircue counted but scc did not output."""
+
+    def test_known_extension_returns_scc_excludes(self):
+        cat = classify_skip_dircue_only("src/main.go", "Go")
+        self.assertEqual(cat, "scc_excludes_by_its_walker")
+
+    def test_no_extension_returns_scc_excludes(self):
+        cat = classify_skip_dircue_only("Makefile", "Makefile")
+        self.assertEqual(cat, "scc_excludes_by_its_walker")
+
+    def test_shebang_script_returns_scc_excludes(self):
+        cat = classify_skip_dircue_only("scripts/build", "Shell")
+        self.assertEqual(cat, "scc_excludes_by_its_walker")
+
+
+class TestSkipSccOnly(unittest.TestCase):
+    """Files that scc output but dircue did not count as source."""
+
+    def test_dircue_row_none_returns_selection_excludes(self):
+        # No dircue row at all → outside git selection or not-counted
+        cat = classify_skip_scc_only("vendor/foo/bar.go", None)
+        self.assertEqual(cat, "dircue_selection_excludes")
+
+    def test_dircue_row_skipped_status(self):
+        row = {"path": "vendor/dep/main.go", "status": "skipped", "reason": "vendored"}
+        cat = classify_skip_scc_only("vendor/dep/main.go", row)
+        self.assertEqual(cat, "dircue_selection_excludes")
+
+    def test_dircue_row_counted_status_still_selection_excludes(self):
+        # File is counted in dircue but not in dircue_index subset (edge case)
+        row = {"path": "generated/pb.go", "status": "counted"}
+        cat = classify_skip_scc_only("generated/pb.go", row)
+        # status=counted means dircue DID count it — compare_scc would have caught this
+        # in the main loop; still classify as dircue_selection_excludes (wrong-path edge case)
+        self.assertEqual(cat, "dircue_selection_excludes")
 
 
 class TestAdversarialCases(unittest.TestCase):

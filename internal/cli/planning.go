@@ -6,6 +6,7 @@ import (
 	"io"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -262,17 +263,26 @@ func writeAccuracyCards(out io.Writer, cards *atlas.AccuracyCards) error {
 		cards.SchemaVersion, cards.EvaluatedRepos, cards.ScopeNote); err != nil {
 		return err
 	}
-	for kind, s := range cards.Overall {
-		p := "N/A"
-		r := "N/A"
-		if s.Precision != nil {
-			p = fmt.Sprintf("%.3f", *s.Precision)
+	// Sort kinds for deterministic output
+	kinds := make([]string, 0, len(cards.Overall))
+	for k := range cards.Overall {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds)
+	for _, kind := range kinds {
+		s := cards.Overall[kind]
+		tp := s.TP
+		labels := s.LabelCount
+		ciLower := "N/A"
+		if s.CILower != nil {
+			ciLower = fmt.Sprintf("%.2f", *s.CILower)
 		}
-		if s.Recall != nil {
-			r = fmt.Sprintf("%.3f", *s.Recall)
+		suffNote := ""
+		if s.Sufficiency == "insufficient_labels" {
+			suffNote = fmt.Sprintf(" [INSUFFICIENT: %d < 30 labels; results directional only]", labels)
 		}
-		if _, err := fmt.Fprintf(out, "  %s: precision=%s recall=%s labels=%d repos=%d\n",
-			kind, p, r, s.LabelCount, s.RepoCount); err != nil {
+		if _, err := fmt.Fprintf(out, "  %s: %d/%d correct (95%% CI lower=%s), %d repos, path-scoped%s\n",
+			kind, tp, labels, ciLower, s.RepoCount, suffNote); err != nil {
 			return err
 		}
 	}
