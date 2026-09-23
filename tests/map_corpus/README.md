@@ -90,17 +90,17 @@ python3 tests/map_corpus/benchmark_public.py \
 ```
 
 One 2026-09-23 Apple Silicon run passed semantic preset equivalence on all 21
-repositories. Aggregate single-run wall times were 19.00 seconds balanced,
-18.66 seconds fast, and 21.37 seconds low-memory. TypeScript had the largest
-observed peak RSS: 582.3 MiB balanced, 609.2 MiB fast, and 531.6 MiB
-low-memory. The largest map was 10.1 MiB. Raw hashes differed for all 21
-repositories because each output retained its effective execution settings;
-the semantic hashes matched after removing only that provenance object. The
-measured binary came from commit
-`0aa0cb924b3e2285f7ee505bb3b25e16a8cf0592` and its SHA-256 was
-`0c1187da1b0f09fcae1c723806424b36745a81359ccc1fbdecba5365b27fd64d`. These are warm-cache observations from
-one host, without approved thresholds; they are not portable performance or
-memory guarantees.
+repositories. Aggregate single-run wall times were 18.77 seconds balanced,
+18.70 seconds fast, and 21.68 seconds low-memory. TypeScript had the largest
+observed peak RSS: 578.4 MiB balanced, 577.3 MiB fast, and 559.2 MiB
+low-memory. Roslyn was slowest at 5.55, 5.53, and 6.49 seconds respectively;
+the largest map was 11.3 MiB. Raw hashes differed for all 21 repositories
+because each output retained its effective execution settings; semantic hashes
+matched after removing only that provenance object. The measured binary came
+from commit `125609fcc981bc4151d60fabcf96665061ca80b3` and its SHA-256 was
+`92b0797f5de755c6c99d8172e1c59bea8f51676012a0517778e995685457f1cd`.
+These are warm-cache observations from one host, without approved thresholds;
+they are not portable performance or memory guarantees.
 
 Two optional compatibility harnesses exercise the same exact commits. The
 first requires the pinned local Linguist 9.7.0 container and disables its
@@ -121,7 +121,11 @@ python3 tests/map_corpus/compare_public_legacy.py \
 
 The 2026-09-23 runs matched Linguist's legacy JSON on 21 of 21 repositories and
 matched dircue 0.9.0 byte-for-byte in all 63 legacy checks: JSON, breakdown
-JSON, and breakdown with strategies. The existing kernel-slice Linguist gate
-also passed both JSON breakdown and strategy labels. These checks establish
-only their named interfaces; they do not prove map-level parity with Linguist,
-which has no equivalent map document.
+JSON, and breakdown with strategies. The Linguist differential used map-only
+precursor commit `0aa0cb924b3e2285f7ee505bb3b25e16a8cf0592` (binary SHA-256
+`0c1187da1b0f09fcae1c723806424b36745a81359ccc1fbdecba5365b27fd64d`);
+the final 63-check run used the candidate commit and binary named above. Later
+changes did not touch the legacy language path. The existing kernel-slice
+Linguist gate also passed both JSON breakdown and strategy labels. These checks
+establish only their named interfaces; they do not prove map-level parity with
+Linguist, which has no equivalent map document.
