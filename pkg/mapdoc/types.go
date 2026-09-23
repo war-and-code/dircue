@@ -30,7 +30,10 @@ const (
 	EdgeUsesCapability EdgeType = "uses_capability"
 	EdgePackagedIn     EdgeType = "packaged_in"
 	EdgeAnalyzedBy     EdgeType = "analyzed_by"
-	EdgeConflictsWith  EdgeType = "conflicts_with"
+	// EdgeConflictsWith is reserved for a later schema that has an observer
+	// capable of producing evidence-backed conflict relationships. Validation
+	// intentionally rejects it in schema 1.0.0.
+	EdgeConflictsWith EdgeType = "conflicts_with"
 )
 
 type CoverageStatus string
