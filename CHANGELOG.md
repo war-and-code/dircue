@@ -9,9 +9,21 @@
   observations. Redirected output defaults to JSON; terminals receive a compact
   summary. Inspected content is not executed.
 - Preserve committed-tree and ordinary-directory operation. Git maps carry the
-  exact selected tree; live directory maps explicitly report that they lack a
-  full-content digest. Inventory and observer bounds return qualified coverage
-  rather than silently presenting bounded evidence as complete.
+  exact selected tree. Directory maps carry a Git-compatible tree ID computed
+  without running Git: a clean checkout has the same ID as its commit's tree,
+  so directory and Git maps of identical content compare as the same source.
+  Ignore rules, `.gitattributes` line-ending normalization, the checkout index,
+  executable bits, symlinks, and nested repositories are applied as Git does;
+  conversions dircue cannot reproduce (filter drivers, `ident`,
+  `working-tree-encoding`) qualify source binding as partial instead of being
+  guessed. `--set source.digest=git|raw|off` controls it. Inventory and
+  observer bounds return qualified coverage rather than silently presenting
+  bounded evidence as complete.
+- Treat hostile filesystem entries explicitly: FIFOs, sockets, devices,
+  symlink loops, and escaping symlinks are skipped with warnings, and an
+  unreadable directory under `--on-error continue` is reported as
+  `permission_denied` with partial content coverage instead of aborting the
+  map.
 - Add inspectable `balanced`, `fast`, `low-memory`, and `thorough` map presets
   plus typed `--set` overrides for workers, inventory entries, and per-file
   content bytes. `map settings` reports effective values, origins, and whether

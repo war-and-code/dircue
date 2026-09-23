@@ -21,12 +21,16 @@ import (
 const ruleVersion = "1.0.0"
 
 type Options struct {
-	Revision    string
-	Commit      string
-	Deployables *deployables.Report
-	Intent      *intentmap.Report
-	ExtraNodes  []mapdoc.Node
-	ExtraEdges  []mapdoc.Edge
+	Revision string
+	Commit   string
+	// SourceDigest and SourceBinding describe a directory source's content
+	// identity. A nil SourceBinding keeps the unqualified default.
+	SourceDigest  *mapdoc.Digest
+	SourceBinding *mapdoc.Coverage
+	Deployables   *deployables.Report
+	Intent        *intentmap.Report
+	ExtraNodes    []mapdoc.Node
+	ExtraEdges    []mapdoc.Edge
 }
 
 func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
@@ -45,7 +49,13 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 		}
 	}
 	if mode == "directory" {
-		d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageUnknown, "live_directory_has_no_full_content_digest"))
+		d.Source.Digest = opts.SourceDigest
+		switch {
+		case opts.SourceBinding != nil:
+			d.Coverage = append(d.Coverage, question("source_binding", opts.SourceBinding.Status, opts.SourceBinding.Reasons...))
+		default:
+			d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageUnknown, "live_directory_has_no_full_content_digest"))
+		}
 	} else {
 		d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageComplete))
 	}
@@ -54,7 +64,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	contentReasons := reasons(r.Discovery.Omissions, r.Discovery.OmittedCandidates)
 	for _, warning := range r.Warnings {
 		switch warning.Code {
-		case "file_too_large", "file_read_error", "unsupported_gitattributes", "tree_size_limit":
+		case "file_too_large", "file_read_error", "unsupported_gitattributes", "tree_size_limit", "permission_denied", "walk_error":
 			contentStatus = mapdoc.CoveragePartial
 			contentReasons = append(contentReasons, warning.Code)
 		}

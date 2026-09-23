@@ -19,7 +19,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 7 {
+	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 10 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -34,6 +34,12 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	}
 	if got := byName["git.object_cache_bytes"]; got.Value != "134217728" || got.Category != "performance-only" || got.Origin != "--set" {
 		t.Fatalf("custom Git cache = %+v", got)
+	}
+	if got := byName["source.digest"]; got.Value != "git" || got.Category != "coverage-affecting" || got.Origin != "default" {
+		t.Fatalf("source.digest = %+v", got)
+	}
+	if got := byName["source.digest_bytes"]; got.Value != "17179869184" || got.Category != "coverage-affecting" {
+		t.Fatalf("source.digest_bytes = %+v", got)
 	}
 	if got := byName["classification.prefix_bytes"]; got.Value != "131072" || got.Category != "conformance-locked" || got.Origin != "fixed:linguist-parity" {
 		t.Fatalf("classifier window = %+v", got)
@@ -171,4 +177,25 @@ func TestMapRuntimeLimitsPrecedenceProvenanceAndRestoration(t *testing.T) {
 func sameMapAnswer(t *testing.T, left, right string) bool {
 	t.Helper()
 	return left == right
+}
+
+func TestMapSettingsValidatesDigestOverrides(t *testing.T) {
+	for _, tc := range []struct{ set, want string }{
+		{"source.digest=raw", ""},
+		{"source.digest=off", ""},
+		{"source.digest_format=sha256", ""},
+		{"source.digest_bytes=0", ""},
+		{"source.digest_bytes=64MiB", ""},
+		{"source.digest=sha1", "git, raw, or off"},
+		{"source.digest_format=md5", "sha1 or sha256"},
+		{"source.digest_bytes=12", "1MiB"},
+	} {
+		_, _, err := invoke("map", "settings", "--set", tc.set, "--json")
+		if tc.want == "" && err != nil {
+			t.Fatalf("%s: unexpected error %v", tc.set, err)
+		}
+		if tc.want != "" && (err == nil || !strings.Contains(err.Error(), tc.want)) {
+			t.Fatalf("%s: error %v does not mention %q", tc.set, err, tc.want)
+		}
+	}
 }
