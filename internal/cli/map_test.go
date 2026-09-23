@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"dircue/pkg/mapdoc"
 )
 
 func TestMapOneShotPortableEvidenceAndBudget(t *testing.T) {

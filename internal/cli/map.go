@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/war-and-code/dircue/pkg/deployables"
-	"github.com/war-and-code/dircue/pkg/detectors"
-	"github.com/war-and-code/dircue/pkg/intentmap"
-	"github.com/war-and-code/dircue/pkg/mapbuild"
-	"github.com/war-and-code/dircue/pkg/mapdoc"
-	"github.com/war-and-code/dircue/pkg/scanner"
+	"dircue/pkg/deployables"
+	"dircue/pkg/detectors"
+	"dircue/pkg/intentmap"
+	"dircue/pkg/mapbuild"
+	"dircue/pkg/mapdoc"
+	"dircue/pkg/scanner"
 )
 
 func newMapCommand(opts *options) *cobra.Command {

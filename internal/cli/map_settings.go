@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var mapPresetNames = []string{"balanced", "fast", "low-memory", "thorough"}
+var mapPresetNames = []string{"balanced", "low-memory", "thorough"}
 
 type mapSettingsFlags struct {
 	Preset      string
