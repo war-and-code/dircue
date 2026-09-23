@@ -32,8 +32,14 @@ func Validate(d Document) error {
 	if d.Source.Mode == "git" && (d.Source.Revision == "" || d.Source.Tree == "") {
 		return fail("git source requires revision and tree")
 	}
+	if d.Source.Mode == "git" && d.Source.Digest != "" {
+		return fail("git source must not contain a directory digest")
+	}
 	if d.Source.Mode == "directory" && d.Source.Digest == "" {
 		return fail("directory source requires digest")
+	}
+	if d.Source.Mode == "directory" && (d.Source.Revision != "" || d.Source.Tree != "") {
+		return fail("directory source must not contain git identity")
 	}
 	questions := map[string]bool{}
 	for _, q := range d.Coverage {
@@ -205,7 +211,7 @@ func validateEvidence(values []Evidence, documentationFact bool) error {
 func isDocumentationPath(p string) bool {
 	base := strings.ToLower(pathBase(p))
 	ext := strings.ToLower(filepath.Ext(base))
-	return strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing") || slices.Contains([]string{".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc", ".txt"}, ext)
+	return strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing") || slices.Contains([]string{".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc"}, ext)
 }
 func pathBase(p string) string {
 	if i := strings.LastIndexByte(p, '/'); i >= 0 {
