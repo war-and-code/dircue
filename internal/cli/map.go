@@ -148,6 +148,18 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	if _, err := fmt.Fprintf(out, "Content populations: %d   Components: %d   Relationships: %d\n", counts[mapdoc.NodeContent], counts[mapdoc.NodeComponent], len(d.Edges)); err != nil {
 		return err
 	}
+	languages := []string{}
+	for _, n := range d.Nodes {
+		if n.Kind == mapdoc.NodeContent && n.Properties["role"] == "language_population" {
+			languages = append(languages, n.Name+" "+n.Properties["percentage"]+"%")
+		}
+	}
+	slices.Sort(languages)
+	if len(languages) > 0 {
+		if _, err := fmt.Fprintf(out, "Languages: %s\n", strings.Join(languages[:min(6, len(languages))], ", ")); err != nil {
+			return err
+		}
+	}
 	if _, err := fmt.Fprintf(out, "Deployables: %d   Interfaces: %d   Capabilities: %d   Packages: %d\n", counts[mapdoc.NodeDeployable], counts[mapdoc.NodeInterface], counts[mapdoc.NodeCapability], counts[mapdoc.NodePackage]); err != nil {
 		return err
 	}

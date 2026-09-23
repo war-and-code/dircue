@@ -54,6 +54,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons}})
 	d.Nodes = append(d.Nodes, contentNodes(r)...)
+	d.Nodes = append(d.Nodes, languageNodes(r.Languages)...)
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
@@ -160,6 +161,25 @@ func contentNodes(r *profile.Report) []mapdoc.Node {
 		}
 	}
 	return uniqueNodes(nodes)
+}
+
+func languageNodes(languages []profile.Language) []mapdoc.Node {
+	nodes := make([]mapdoc.Node, 0, len(languages))
+	for _, language := range languages {
+		n := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "language:"+language.Name)
+		n.Name = language.Name
+		n.Properties = map[string]string{
+			"role": "language_population", "language": language.Name,
+			"bytes":      strconv.FormatInt(language.Bytes, 10),
+			"files":      strconv.FormatInt(language.FileCount, 10),
+			"percentage": strconv.FormatFloat(language.Percentage, 'f', 4, 64),
+		}
+		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory,
+			Rule: &mapdoc.Producer{ID: "dircue/linguist-language-population", Version: ruleVersion}}}
+		nodes = append(nodes, n)
+	}
+	return nodes
 }
 
 func population(role, discriminator string, counts discovery.Counts) mapdoc.Node {
