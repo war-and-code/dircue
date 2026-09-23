@@ -2,7 +2,11 @@
 
 Profile source code repos and other directories of computer content.
 
-Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. Profiling is offline and does not run project build scripts. Optional structural analysis invokes a worker explicitly selected by the caller.
+Dircue identifies languages, maps content, components, deployables, interfaces,
+and relationships, and describes unfamiliar directories with explicit evidence
+and coverage. Its Go binary works with committed Git trees or ordinary files.
+Profiling is offline and does not run project build scripts. Optional structural
+analysis invokes a worker explicitly selected by the caller.
 
 The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md). What's new in 0.9.0 is in the [CHANGELOG](CHANGELOG.md).
 
@@ -35,6 +39,20 @@ $ head -n 12 profile.json
   "languages": [
     {
 ```
+
+For the candidate 1.0 directory-map workflow:
+
+```sh
+dircue map --summary .
+dircue map --json . > map.json
+dircue map settings --preset low-memory --json
+dircue map route --json map.json > routes.json
+```
+
+The map is a portable node-and-edge document with stable identities, source
+evidence, and question-by-question coverage. See the [directory-map
+guide](docs/MAP.md) for its schema, source semantics, provider attachments,
+saved-map comparison, and SARIF location workflow.
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
 
@@ -77,10 +95,11 @@ CGO_ENABLED=0 go build -trimpath -o bin/dircue .
 ## Compatibility direction
 
 Version 0.9 keeps the documented legacy Linguist CLI and JSON as a
-compatibility target. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
-reserves 1.0 for the directory map, which will become the primary 1.x contract.
-The [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) is a discussion
-draft; it does not yet freeze every existing `analyze` report shape for 1.x.
+compatibility target. The candidate 1.0 work introduces the
+[`dircue map`](docs/MAP.md) document as the proposed primary 1.x contract. The
+[proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) remains a discussion
+draft while the candidate is under review; it does not declare 1.0 released or
+freeze every existing `analyze` report shape for 1.x.
 
 ## License
 
@@ -102,6 +121,10 @@ dircue analyze availability --json /path/to/checkout
 dircue analyze explain --file src/main.go --json /path/to/checkout
 dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
+dircue map --json /path/to/checkout
+dircue map compare --json before-map.json after-map.json
+dircue map route --json map.json
+dircue map locate map.json results.sarif > located.sarif
 dircue --breakdown --json /path/to/checkout
 dircue capabilities --json
 dircue plan saved-profile.json --module declarations --json
@@ -117,6 +140,9 @@ source directory or execute their examples:
 dircue --help
 dircue analyze --help
 dircue analyze metrics --help
+dircue map --help
+dircue map settings --help
+dircue map locate --help
 dircue capabilities --guide
 dircue capabilities --guide --json
 dircue capabilities --cli --json
@@ -172,7 +198,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Metadata and format evidence, project declarations and graphs, package/configuration observations, caller rules, optional scc and structural metrics/hotspots |
+| Additional profiling | Language metadata | Language metadata | Portable directory maps; metadata and format evidence; project declarations and graphs; package/configuration observations; caller rules; optional scc and structural metrics/hotspots |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -229,6 +255,22 @@ For trees with 100,000 or more entries, raise `--tree-size` **above** the entry 
 
 ## Profiling beyond languages
 
+The candidate 1.0 entry point is `dircue map`. It performs one bounded scan and
+produces a portable graph of observed content, languages, components,
+deployables, interfaces, capabilities, and supported relationships. Coverage
+is part of the document, so an unknown or bounded question does not look like a
+proven absence.
+
+```sh
+dircue map --json /checkout > map.json
+dircue map --summary /checkout
+dircue map --json --attach syft-json=syft.json /checkout > enriched-map.json
+```
+
+The command does not replace the narrower `analyze` reports while the candidate
+is under review. The [map guide](docs/MAP.md) documents its node and edge model,
+limits, source binding, attachments, comparison, routing, and SARIF annotation.
+
 ```sh
 dircue analyze languages /checkout --json
 dircue analyze ecosystems /checkout --json
@@ -257,7 +299,10 @@ For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md
 
 Plain `analyze all` retains its existing behavior. Add `--declarations`, `--environments`, `--projects`, `--metrics`, or `--structure` for the modules you need. Environment analysis automatically includes the declaration evidence it reuses. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
-The [roadmap](https://github.com/war-and-code/dircue/issues/41) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
+The candidate directory map now combines supported relationship and entry-point
+observations in one document; [issue #81](https://github.com/war-and-code/dircue/issues/81)
+tracks its 1.0 scope and review. The [capability matrix](docs/CAPABILITIES.md)
+describes the supported inputs and limits of the existing analysis modules.
 
 Available since 0.4.0:
 
@@ -305,13 +350,23 @@ Committed Git tree or directory
    deterministic text or JSON report
 ```
 
-Saved reports can be compared without rescanning their source directories:
+Portable maps and aggregate profiles have separate saved-report comparison
+commands:
 
 ```sh
+dircue map compare before-map.json after-map.json --json
 dircue compare before.json after.json --json
 ```
 
-Use aggregate reports such as those from `analyze all --json`. Comparison reports distinguish observation changes from changes in provider or selection policy; incomplete coverage limits what absence can establish. The caller chooses the pair; dircue does not verify repository identity. Valid comparisons exit zero even when observations differ. See [saved-report comparison](docs/COMPARISON.md).
+`map compare` uses stable map node and edge IDs and keeps indeterminate removals
+separate when head coverage is incomplete. The older top-level `compare`
+command uses aggregate reports such as those from `analyze all --json`.
+Comparison reports distinguish observation changes from changes in provider or
+selection policy; incomplete coverage limits what absence can establish. The
+caller chooses the pair, and dircue does not verify repository identity. Valid
+comparisons exit zero even when observations differ. See the [map
+guide](docs/MAP.md#compare-saved-maps) and [aggregate saved-report
+comparison](docs/COMPARISON.md).
 
 ## Attributes and boundaries
 
@@ -371,6 +426,9 @@ The 0.9.0 release does not include a PyPI publication step. If a future release 
 | `dircue: command not found` | Add the installation directory to `PATH`, or call `./bin/dircue`. |
 | Recent edits are missing from the report | Repository roots use committed `HEAD`. Use `--source directory` to inspect working files. |
 | A large repository returns empty language statistics | Check stderr for the tree-size warning and set `--tree-size` above the entry count. |
+| A map exits `0` but says `partial` | Exit status confirms that a valid map was produced. Inspect each `coverage` entry and its reasons before relying on absence. |
+| An attached report has `binding: unknown` | The report and selected source lack comparable snapshot identity. See [source selection and binding](docs/MAP.md#source-selection-and-binding); do not treat path association as immutable-snapshot proof. |
+| `map locate` reports `unresolvable_uri` | Supply `--source-uri` when SARIF uses absolute artifact URIs, and confirm that the URI is inside that root. |
 | Docker cannot read mounted source | Check file permissions and use `--user` to select a suitable UID/GID. |
 | uv cannot find dircue on PyPI | The 0.9.0 release does not publish to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
 

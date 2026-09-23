@@ -1,5 +1,60 @@
 # Changelog
 
+## 1.0.0 (candidate; unreleased)
+
+- Add `dircue map`, a bounded one-pass directory map with a standalone 1.0.0
+  schema. The map records selected-source identity, question-by-question
+  coverage, stable nodes and edges, evidence provenance, and supported content,
+  language, component, deployable, interface, capability, and relationship
+  observations. Redirected output defaults to JSON; terminals receive a compact
+  summary. Inspected content is not executed.
+- Preserve committed-tree and ordinary-directory operation. Git maps carry the
+  exact selected tree; live directory maps explicitly report that they lack a
+  full-content digest. Inventory and observer bounds return qualified coverage
+  rather than silently presenting bounded evidence as complete.
+- Add inspectable `balanced`, `fast`, `low-memory`, and `thorough` map presets
+  plus typed `--set` overrides for workers, inventory entries, and per-file
+  content bytes. `map settings` reports effective values, origins, and whether
+  a control is performance-only or coverage-affecting. Presets do not claim
+  hard CPU or memory enforcement.
+- Add static declaration mapping for npm, Go, Python/uv, Cargo, Maven, Gradle,
+  and .NET project populations, including supported workspace membership and
+  local relationships. Add bounded recognition of container, Compose,
+  Kubernetes, Helm, Terraform, serverless, and CI definitions plus supported
+  code/configuration interface and capability observations. Documentation does
+  not become evidence for non-documentation claims.
+- Add repeatable `map --attach KIND=PATH` ingestion for saved Syft JSON, SARIF
+  2.1.0, and Noir JSON reports. Imported package, run, endpoint, relationship,
+  coverage, and source-binding evidence remains attributable to its provider;
+  the typed coverage ledger records only files and run state disclosed by the
+  report, not comprehensive blind-spot accounting. Dircue never invokes the
+  provider. SARIF findings and verdicts remain outside the map attachment
+  contract.
+- Add `dircue map route` for deterministic, non-executable follow-up plans.
+  Plans expose scope, prerequisites, and report kinds. Reviewed recipes carry
+  argv placeholders; other tools retain an explicit unmet invocation
+  prerequisite. Routing does not probe installed tools, download dependencies,
+  or execute commands.
+- Add `dircue map compare` for offline node/edge comparison by stable identity.
+  Material, evidence, and coverage changes remain distinct; incomplete head
+  coverage produces indeterminate removals instead of deletion claims. This is
+  separate from the existing aggregate-profile `dircue compare` command.
+- Add `dircue map locate` to annotate SARIF physical locations with owning map
+  components, deployables, interfaces, and content roles while retaining
+  unknown SARIF fields. URI confinement, snapshot binding, regular-file checks,
+  and explicit input/run/result/location bounds qualify resolution. Symbolic
+  Git revisions such as `HEAD` cannot manufacture a match or mismatch against a
+  provider's resolved commit hash.
+- Add a compact hand-written map corpus covering non-source content, polyglot
+  deployables, declaration intent, misleading declarations, and documentation
+  boundaries, plus deterministic and metamorphic checks. This corpus establishes
+  focused contract behavior; it is not equivalent to broad real-repository
+  validation.
+- Keep the legacy Linguist-compatible entry point and existing `analyze`
+  commands available. The candidate remains subject to adversarial review,
+  compatibility validation, multi-platform CI, packaging checks, and an explicit
+  release decision before 1.0.0 is published.
+
 ## 0.9.0 (2026-09-22)
 
 - Match pinned Linguist 9.7.0 candidate narrowing for filename and extension
