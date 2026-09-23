@@ -21,6 +21,7 @@ def entries(doc):
 def matches(item, want):
     if item.get("kind") != want.get("kind"): return False
     for key in ("name", "value", "type"):
+        if key == "value" and "property" in want: continue
         if key in want and item.get(key) != want[key]: return False
     if "property" in want and item.get("properties", {}).get(want["property"]) != want.get("value"): return False
     if "path" in want and want["path"] not in item.get("paths", []): return False

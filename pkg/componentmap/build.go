@@ -43,7 +43,7 @@ func Build(report *declarations.Report) Fragment {
 	// Physical containment is independently true and does not imply workspace
 	// membership or a build dependency. Link only the nearest containing root.
 	for _, child := range f.Components {
-		parent := nearestParent(child, f.Components)
+		parent := nearestParent(child, byRoot, ambiguousRoot)
 		if parent == "" {
 			continue
 		}
@@ -160,24 +160,18 @@ func cleanRoot(root string) string {
 	return path.Clean(root)
 }
 
-func nearestParent(child Component, all []Component) string {
-	best, depth := "", -1
-	for _, candidate := range all {
-		if candidate.Key == child.Key || candidate.Root == child.Root || candidate.Root == "." && child.Root == "." {
-			continue
-		}
-		prefix := candidate.Root + "/"
-		if candidate.Root == "." {
-			prefix = ""
-		}
-		if strings.HasPrefix(child.Root+"/", prefix) {
-			d := strings.Count(candidate.Root, "/")
-			if d > depth || d == depth && candidate.Key < best {
-				best, depth = candidate.Key, d
+func nearestParent(child Component, byRoot map[string]Component, ambiguousRoot map[string]bool) string {
+	for root := path.Dir(child.Root); ; root = path.Dir(root) {
+		if !ambiguousRoot[root] {
+			if parent, ok := byRoot[root]; ok && parent.Key != child.Key {
+				return parent.Key
 			}
 		}
+		if root == "." {
+			break
+		}
 	}
-	return best
+	return ""
 }
 
 func relationshipKey(r Relationship) string {

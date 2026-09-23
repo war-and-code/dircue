@@ -164,6 +164,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	root.AddCommand(newCompareCommand(opts))
 	root.AddCommand(newPlanCommand(opts))
 	root.AddCommand(newCapabilitiesCommand(opts))
+	root.AddCommand(newMapCommand(opts))
 	return safeCLIError(root.ExecuteContext(ctx))
 }
 
