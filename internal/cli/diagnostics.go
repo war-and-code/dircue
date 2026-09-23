@@ -220,7 +220,7 @@ func flagErrorWithHint(cmd *cobra.Command, err error) error {
 var analysisFlagNames = []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "tree-size", "on-error"}
 
 func savedReportFlagRejected(cmd *cobra.Command, name string) bool {
-	return slices.Contains([]string{"capabilities", "plan", "compare"}, cmd.Name()) && slices.Contains(analysisFlagNames, name)
+	return slices.Contains([]string{"capabilities", "plan", "compare", "locate", "route"}, cmd.Name()) && slices.Contains(analysisFlagNames, name)
 }
 
 func analysisSelectionError(cmd *cobra.Command, args []string) error {

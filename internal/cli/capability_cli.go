@@ -159,6 +159,10 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"profile", "versioned aggregate profile", "profile", "whole output", "Version depends on selected modules. Module schemas below describe components, not the full standalone analyzer envelope."},
 		{"map", "portable node and edge map", "map", "whole output", "Question coverage distinguishes unknown and partial evidence; --summary selects a separate compact text view."},
 		{"map-summary", "compact text map", "", "unavailable", "Human summary omits detailed facts and evidence; use --json for the full map."},
+		{"map-routing", "inert analyzer plan array", "", "self-described", "Plans contain placeholders and prerequisites; no plan is executed and host tool availability is not checked."},
+		{"map-comparison", "saved map comparison", "", "self-described", "Stable IDs distinguish material, evidence, coverage, and indeterminate changes without opening either source."},
+		{"sarif-located", "SARIF 2.1.0 log with dircue.map location properties", "", "self-described", "Upstream SARIF with a dircue.map property extension. Unknown SARIF fields are retained; source binding and URI resolution determine annotation resolution."},
+		{"sarif-location-summary", "resolution and per-node count object", "", "self-described", "Selected by --summary; emits counts instead of the annotated SARIF log."},
 		{"comparison", "saved-report comparison", "comparison", "whole output", "Successful comparisons can contain differences; inspect coverage and module compatibility."},
 		{"planner-capabilities", "planner module registry", "capabilities", "whole output", "Default capabilities output retains its independent versioned contract."},
 		{"plan", "inert follow-up plan", "planning", "whole output", "argv placeholders and executable:false require caller revalidation; reported cost is evidence, not a timing prediction."},
@@ -233,6 +237,12 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 		return []string{"comparison"}
 	case "dircue map":
 		return []string{"map", "map-summary"}
+	case "dircue map route":
+		return []string{"map-routing"}
+	case "dircue map compare":
+		return []string{"map-comparison"}
+	case "dircue map locate":
+		return []string{"sarif-located", "sarif-location-summary"}
 	case "dircue help":
 		return []string{"help-text"}
 	case "dircue analyze":
@@ -250,11 +260,18 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	if cmd.Parent() == nil || (cmd.Parent() != nil && cmd.Parent().Name() == "analyze") {
 		r = append(r, "At most one source path. --rev and --tree are mutually exclusive. --rev requires a Git source.")
 	}
+	if cmd.CommandPath() == "dircue map compare" {
+		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. A zero exit status means the comparison completed, not that the maps are identical.")
+	}
 	switch cmd.Name() {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
 	case "map":
-		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. --json and --summary are mutually exclusive. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
+		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, and noir-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
+	case "route":
+		r = append(r, "Exactly one saved map document; inherited source scan flags are rejected. Output plans are inert templates with placeholders and require caller validation before execution.")
+	case "locate":
+		r = append(r, "Exactly one saved map and one SARIF 2.1.0 log; inherited source scan flags are rejected. Default output is annotated SARIF; --summary selects a separate JSON count object.")
 	case "plan":
 		r = append(r, "Exactly one saved aggregate report and at least one --module or --question. Module/question vocabulary and prerequisites come from default capabilities. One --project, only for focus. Cataloged --input values are the union of caller-supplied prerequisites; each is accepted only when required by a selected module.")
 	case "compare":

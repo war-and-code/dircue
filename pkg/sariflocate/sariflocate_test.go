@@ -131,13 +131,25 @@ func TestWindowsPathsAreCaseInsensitiveAndConfined(t *testing.T) {
 
 func TestRevisionMismatchPreventsAttribution(t *testing.T) {
 	doc := fixtureMap(t)
-	doc.Source = mapdoc.Source{Mode: "git", Revision: "abc", Tree: "tree"}
-	out, s, err := sariflocate.Annotate(sarif("services/api/generated/client.go", "", 1, "def"), doc, sariflocate.Options{})
+	doc.Source = mapdoc.Source{Mode: "git", Revision: strings.Repeat("a", 40), Tree: "tree"}
+	out, s, err := sariflocate.Annotate(sarif("services/api/generated/client.go", "", 1, strings.Repeat("b", 40)), doc, sariflocate.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if annotation(t, out)["resolution"] != "not_in_snapshot" || s.Runs[0].Binding != "mismatch" || len(s.NodeCounts) != 0 {
 		t.Fatalf("annotation=%v summary=%+v", annotation(t, out), s)
+	}
+}
+
+func TestSymbolicRevisionCannotClaimBinding(t *testing.T) {
+	doc := fixtureMap(t)
+	doc.Source = mapdoc.Source{Mode: "git", Revision: "HEAD", Tree: "tree"}
+	out, summary, err := sariflocate.Annotate(sarif("services/api/generated/client.go", "", 1, strings.Repeat("a", 40)), doc, sariflocate.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Runs[0].Binding != "unknown" || annotation(t, out)["resolution"] != "resolved" {
+		t.Fatalf("symbolic revision manufactured binding: annotation=%v summary=%+v", annotation(t, out), summary)
 	}
 }
 
