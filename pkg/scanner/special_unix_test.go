@@ -5,6 +5,7 @@ package scanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -754,4 +755,35 @@ func TestFilesGrowDuringRead(t *testing.T) {
 		t.Fatalf("read %d bytes from growing file, expected at most %d", len(data), limit+1)
 	}
 	_ = ctx
+}
+
+// A summarized environment tree must not consume the inventory limit in the
+// directory preflight; otherwise a large node_modules makes the map partial.
+func TestSummarizedTreesDoNotExhaustTreeSizePreflight(t *testing.T) {
+	root := t.TempDir()
+	dir := filepath.Join(root, "node_modules", "pkg")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	for i := 0; i < 50; i++ {
+		if err := os.WriteFile(filepath.Join(dir, fmt.Sprintf("f%d.js", i)), []byte("x"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	r, err := os.OpenRoot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer r.Close()
+	exceeded, err := directoryTreeLimit(context.Background(), r, Options{MaxTreeSize: 10, SummarizeTrees: true})
+	if err != nil || exceeded {
+		t.Fatalf("summarized tree consumed the preflight limit: exceeded=%v err=%v", exceeded, err)
+	}
+	exceeded, _ = directoryTreeLimit(context.Background(), r, Options{MaxTreeSize: 10})
+	if !exceeded {
+		t.Fatal("without summarization the preflight should count node_modules")
+	}
 }
