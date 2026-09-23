@@ -49,6 +49,10 @@ jobs:
         run: python -m unittest discover -s tests/focus_v070 -p 'test_*.py' -v
       - name: Test context evidence receipt contracts
         run: python -m unittest discover -s tests/context_v080 -p 'test_*.py' -v
+      - name: Test atlas classification and map quality harnesses
+        run: |
+          python -m unittest discover -s tests/atlas -p 'test_*.py' -v
+          python -m unittest discover -s tests/map_corpus -p 'test_verify_public_quality.py' -v
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
 

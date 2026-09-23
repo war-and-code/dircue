@@ -3,6 +3,7 @@ package providerjoin
 import (
 	"fmt"
 	"net/url"
+	"strings"
 
 	"dircue/pkg/mapdoc"
 )
@@ -22,7 +23,6 @@ type sarifDocument struct {
 			ExecutionSuccessful        *bool `json:"executionSuccessful"`
 			ToolExecutionNotifications []any `json:"toolExecutionNotifications"`
 		} `json:"invocations"`
-		Properties               map[string]any `json:"properties"`
 		VersionControlProvenance []struct {
 			RevisionID string `json:"revisionId"`
 		} `json:"versionControlProvenance"`
@@ -50,13 +50,7 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 		if tool == "" {
 			tool = "sarif"
 		}
-		id := identityFromMaps(run.Properties)
-		for _, provenance := range run.VersionControlProvenance {
-			if id.Commit == "" {
-				id.Commit = provenance.RevisionID
-			}
-		}
-		b, reason := binding(in.Snapshot, id)
+		b, reason := bindingSARIF(in.Snapshot, run.VersionControlProvenance)
 		covered := []string{}
 		for _, a := range run.Artifacts {
 			decoded, decodeErr := url.PathUnescape(a.Location.URI)
@@ -93,6 +87,33 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 		out.Ledger = append(out.Ledger, CoverageEntry{Tool: tool, ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: state, Reason: reason})
 	}
 	return out, nil
+}
+
+func bindingSARIF(snapshot Snapshot, provenance []struct {
+	RevisionID string `json:"revisionId"`
+}) (Binding, string) {
+	var revisions []string
+	for _, source := range provenance {
+		if revision := strings.TrimSpace(source.RevisionID); revision != "" {
+			revisions = append(revisions, revision)
+		}
+	}
+	if len(revisions) == 0 {
+		return binding(snapshot, reportIdentity{})
+	}
+	if snapshot.Commit == "" {
+		return binding(snapshot, reportIdentity{Commit: revisions[0]})
+	}
+	for _, revision := range revisions {
+		state, reason := binding(snapshot, reportIdentity{Commit: revision})
+		if state == BindingMismatch {
+			return state, reason
+		}
+		if state != BindingVerified {
+			return state, reason
+		}
+	}
+	return BindingVerified, ""
 }
 
 func ownersForPaths(nodes []mapdoc.Node, paths []string) []string {

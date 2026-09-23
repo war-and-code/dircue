@@ -170,41 +170,59 @@ func decodeOne(data []byte, dst any) error {
 }
 
 func binding(in Snapshot, id reportIdentity) (Binding, string) {
-	comparable := false
+	hasIdentity, allComparable := false, true
+	unavailableReason := ""
 	if id.Commit != "" {
+		hasIdentity = true
 		if in.Commit == "" {
-			return BindingUnknown, "selected_snapshot_has_no_commit"
-		}
-		comparable = true
-		if !strings.EqualFold(id.Commit, in.Commit) {
-			return BindingMismatch, "report_commit_mismatch"
+			allComparable = false
+			unavailableReason = "selected_snapshot_has_no_commit"
+		} else {
+			if !strings.EqualFold(id.Commit, in.Commit) {
+				return BindingMismatch, "report_commit_mismatch"
+			}
 		}
 	}
 	if id.Tree != "" {
+		hasIdentity = true
 		if in.Mode != "git" || in.Tree == "" {
-			return BindingUnknown, "report_tree_cannot_bind_selected_snapshot"
+			allComparable = false
+			if unavailableReason == "" {
+				unavailableReason = "report_tree_cannot_bind_selected_snapshot"
+			}
+		} else {
+			if id.Tree != in.Tree {
+				return BindingMismatch, "report_tree_mismatch"
+			}
 		}
-		if id.Tree != in.Tree {
-			return BindingMismatch, "report_tree_mismatch"
-		}
-		comparable = true
 	}
 	if id.Digest != "" {
-		if in.Digest == nil || in.Digest.Value == "" {
-			return BindingUnknown, "selected_snapshot_has_no_digest"
+		hasIdentity = true
+		if !in.DigestComplete || in.Digest == nil || in.Digest.Value == "" {
+			allComparable = false
+			if unavailableReason == "" {
+				unavailableReason = "selected_snapshot_digest_unavailable_or_incomplete"
+			}
+		} else {
+			if !strings.EqualFold(id.Algorithm, in.Digest.Algorithm) || id.Scope != in.Digest.Scope || !strings.EqualFold(id.Digest, in.Digest.Value) {
+				return BindingMismatch, "report_digest_mismatch"
+			}
 		}
-		if !strings.EqualFold(id.Algorithm, in.Digest.Algorithm) || id.Scope != in.Digest.Scope || !strings.EqualFold(id.Digest, in.Digest.Value) {
-			return BindingMismatch, "report_digest_mismatch"
-		}
-		comparable = true
 	}
-	if comparable {
+	if hasIdentity && allComparable {
 		return BindingVerified, ""
 	}
-	if in.CallerAsserted {
+	if canCallerAssert(in) {
 		return BindingCallerAsserted, "caller_asserted_report_binding"
 	}
+	if unavailableReason != "" {
+		return BindingUnknown, unavailableReason
+	}
 	return BindingUnknown, "report_has_no_snapshot_identity"
+}
+
+func canCallerAssert(in Snapshot) bool {
+	return in.CallerAsserted && in.Mode == "directory" && in.Digest != nil && in.Digest.Value != "" && in.DigestComplete
 }
 
 // qualifyUnbound downgrades every claim derived from a report unless its source

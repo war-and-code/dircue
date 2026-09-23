@@ -286,7 +286,7 @@ def write_accuracy_md(cards: dict, output_path: Path) -> None:
     ]
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("\n".join(lines) + "\n")
+    output_path.write_text("\n".join(lines).rstrip("\n") + "\n")
 
 
 def write_accuracy_data(cards: dict, output_path: Path) -> None:

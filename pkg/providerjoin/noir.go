@@ -9,9 +9,8 @@ import (
 )
 
 type noirReport struct {
-	Version    string         `json:"version"`
-	Properties map[string]any `json:"properties"`
-	Endpoints  []noirEndpoint `json:"endpoints"`
+	Version   string         `json:"version"`
+	Endpoints []noirEndpoint `json:"endpoints"`
 }
 type noirEndpoint struct {
 	Method, Path  string
@@ -49,7 +48,7 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
 	}
 	version := fallbackVersion(doc.Version)
-	b, reason := binding(in.Snapshot, identityFromMaps(doc.Properties))
+	b, reason := binding(in.Snapshot, reportIdentity{})
 	tool := toolNode("noir", version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	covered := []string{}

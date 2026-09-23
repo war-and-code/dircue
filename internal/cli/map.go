@@ -185,7 +185,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd.Flags().BoolVar(&forestMode, "forest", false, "Discover nested Git roots and produce a forest document instead of a single map")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
-	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert binding for reports without snapshot identity: caller-asserted")
+	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert saved reports belong to this fully digested plain directory: caller-asserted (never verified)")
 	addMapSettingsFlags(cmd, &settingsFlags)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd

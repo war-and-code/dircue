@@ -24,7 +24,7 @@ tracked in issue #110.
 
 ```
 tests/atlas/
-  corpus.json              Pinned corpus manifest (~50 repos, commit SHAs, notes)
+  corpus.json              Pinned corpus manifest (38 repos, commit SHAs, notes)
   fetch.py                 Fetch script: shallow-clones pinned commits into a cache dir
   run.py                   Differential runner (Linguist + scc)
   classify.py              Discrepancy classification logic
@@ -108,7 +108,7 @@ dircue capabilities --accuracy --json
 
 ## Corpus selection
 
-The corpus (`corpus.json`) contains ~50 repositories across ecosystems. The
+The corpus (`corpus.json`) contains 38 repositories across ecosystems. The
 `smoke_ids` field lists the 5-repo subset used in CI. Hard cases include:
 
 - `linux`: Linux kernel — exercises C/Assembly/Kconfig/Makefile, strategy chain (#72 regression)
@@ -131,7 +131,8 @@ Nothing is silently excluded. The runner exits 1 on any uncategorized mismatch.
 ## CI
 
 The `atlas.yml` workflow runs on `workflow_dispatch` (full or smoke) and on
-`pull_request` with a `paths:` filter on `tests/atlas/**` (smoke subset only).
+review-ready pull requests that change the atlas or analysis code (smoke subset
+only). Draft pull requests skip the Docker-backed corpus job.
 There is no `schedule:` trigger. Results are uploaded as GitHub Actions artifacts
 (7-day retention) and optionally attached to a release when `release_tag` is
 supplied to `workflow_dispatch`.

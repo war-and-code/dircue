@@ -15,7 +15,6 @@ import ctypes
 import json
 import os
 import platform
-import resource
 import signal
 import socket
 import stat
@@ -25,6 +24,11 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+
+try:
+    import resource
+except ImportError:  # Windows has no resource module.
+    resource = None
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent.parent
@@ -72,6 +76,8 @@ def run_dircue(binary, args, timeout=30):
 
 
 def _get_rss_kb():
+    if resource is None:
+        return 0
     try:
         usage = resource.getrusage(resource.RUSAGE_CHILDREN)
         rss = usage.ru_maxrss
@@ -103,6 +109,7 @@ def extract_warnings(stderr):
 
 
 def write_jsonl(path, records):
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "a") as f:
         for rec in records:
             f.write(json.dumps(rec) + "\n")
@@ -520,9 +527,8 @@ ALL_CASES = [
 
 
 def run_all(binary, quick, jsonl_out):
+    print(f"Platform: {platform.system()}")
     if SKIP_WINDOWS:
-        print(f"Platform: {platform.system()}")
-    else:
         print("Note: Windows — POSIX-only cases (FIFO, sockets, symlinks) skipped")
 
     passed = 0
