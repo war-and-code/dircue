@@ -311,7 +311,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		return nil, err
 	}
 	if snapshot == nil {
-		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize, opts.ErrorPolicy)
+		exceeded, err := directoryTreeLimit(ctx, root, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -1334,7 +1334,11 @@ func newReport(root string) *profile.Report {
 
 // Preflight avoids reporting partial statistics when a filesystem tree reaches
 // the same file-count limit as a Git tree. No file content is opened here.
-func directoryTreeLimit(ctx context.Context, root *os.Root, limit int, policy ErrorPolicy) (bool, error) {
+// The preflight skips exactly what the directory walk skips: .git
+// directories, forest-excluded roots, and summarized environment trees, so a
+// large node_modules cannot exhaust the inventory limit it never consumes.
+func directoryTreeLimit(ctx context.Context, root *os.Root, opts Options) (bool, error) {
+	limit, policy := opts.MaxTreeSize, opts.ErrorPolicy
 	count := 0
 	stop := errors.New("tree size reached")
 	err := fs.WalkDir(root.FS(), ".", func(name string, entry fs.DirEntry, walkErr error) error {
@@ -1349,6 +1353,12 @@ func directoryTreeLimit(ctx context.Context, root *os.Root, limit int, policy Er
 		}
 		if entry.IsDir() {
 			if entry.Name() == ".git" {
+				return fs.SkipDir
+			}
+			if opts.ExcludePaths != nil && opts.ExcludePaths[name] {
+				return fs.SkipDir
+			}
+			if opts.SummarizeTrees && name != "." && forest.CheckEnvTree(root, name) != nil {
 				return fs.SkipDir
 			}
 			return nil
