@@ -294,7 +294,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		return nil, err
 	}
 	if snapshot == nil {
-		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize)
+		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize, opts.ErrorPolicy)
 		if err != nil {
 			return nil, err
 		}
@@ -414,6 +414,18 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		attributeRuleCount := 0
 		err := fs.WalkDir(root.FS(), ".", func(filename string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
+				if opts.ErrorPolicy == ErrorPolicyContinue {
+					code := "walk_error"
+					msg := walkErr.Error()
+					if errors.Is(walkErr, fs.ErrPermission) {
+						code = "permission_denied"
+						msg = fmt.Sprintf("directory not accessible: %s", walkErr)
+					}
+					if !send(result{path: filename, skipped: true, warnings: []profile.Warning{{Path: filename, Code: code, Message: msg}}}) {
+						return ctx.Err()
+					}
+					return nil
+				}
 				return walkErr
 			}
 			if err := ctx.Err(); err != nil {
@@ -432,6 +444,13 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				attrsPath := path.Join(filename, ".gitattributes")
 				info, attrErr := root.Lstat(attrsPath)
 				if attrErr != nil && !errors.Is(attrErr, fs.ErrNotExist) {
+					if opts.ErrorPolicy == ErrorPolicyContinue && errors.Is(attrErr, fs.ErrPermission) {
+						// Directory is inaccessible; skip gitattributes silently
+						// and continue (the directory's files will be skipped
+						// when WalkDir reports the ReadDir failure as walkErr).
+						stack = append(stack, local)
+						return nil
+					}
 					return fmt.Errorf("inspect %s: %w", attrsPath, attrErr)
 				}
 				if attrErr == nil {
@@ -1273,11 +1292,14 @@ func newReport(root string) *profile.Report {
 
 // Preflight avoids reporting partial statistics when a filesystem tree reaches
 // the same file-count limit as a Git tree. No file content is opened here.
-func directoryTreeLimit(ctx context.Context, root *os.Root, limit int) (bool, error) {
+func directoryTreeLimit(ctx context.Context, root *os.Root, limit int, policy ErrorPolicy) (bool, error) {
 	count := 0
 	stop := errors.New("tree size reached")
 	err := fs.WalkDir(root.FS(), ".", func(name string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
+			if policy == ErrorPolicyContinue && errors.Is(walkErr, fs.ErrPermission) {
+				return nil
+			}
 			return walkErr
 		}
 		if err := ctx.Err(); err != nil {
