@@ -20,7 +20,7 @@ func document() mapdoc.Document {
 	b.Name, b.Properties, b.Coverage, b.Evidence = "a.go", map[string]string{"role": "source"}, mapdoc.Coverage{Status: mapdoc.CoverageComplete}, []mapdoc.Evidence{{Basis: mapdoc.BasisFilenameHint, Path: "a.go", SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "content", Version: "1"}}}
 	e := mapdoc.NewEdge(mapdoc.EdgeContains, a.ID, b.ID, "")
 	e.Coverage, e.Evidence = mapdoc.Coverage{Status: mapdoc.CoverageComplete}, []mapdoc.Evidence{evidence("b/package.json")}
-	return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: strings.Repeat("a", 64)}, Coverage: []mapdoc.QuestionCoverage{{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}}}, Nodes: []mapdoc.Node{a, b}, Edges: []mapdoc.Edge{e}}
+	return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}}}, Nodes: []mapdoc.Node{a, b}, Edges: []mapdoc.Edge{e}}
 }
 
 func TestMarshalDeterministicAndDetached(t *testing.T) {
@@ -94,6 +94,59 @@ func TestUnknownRequiresReasonAndNeverMeansAbsent(t *testing.T) {
 		t.Fatal("unknown coverage without a reason accepted")
 	}
 	d.Nodes[0].Coverage.Reasons = []string{"manifest exceeded byte limit"}
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDirectorySourceMayBeHonestlyUnbound(t *testing.T) {
+	d := document()
+	d.Source.Digest = nil
+	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: mapdoc.QuestionSourceBinding, Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"full selected tree content was not read"}}})
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatal(err)
+	}
+	d.Coverage[len(d.Coverage)-1].Status = mapdoc.CoverageComplete
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("unbound directory source reported complete binding")
+	}
+}
+
+func TestDirectoryDigestRequiresAlgorithmScopeAndValue(t *testing.T) {
+	for name, digest := range map[string]*mapdoc.Digest{
+		"algorithm": {Scope: "full_selected_tree", Value: strings.Repeat("a", 64)},
+		"scope":     {Algorithm: "sha256", Value: strings.Repeat("a", 64)},
+		"value":     {Algorithm: "sha256", Scope: "full_selected_tree"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			d := document()
+			d.Source.Digest = digest
+			if _, err := mapdoc.Marshal(d); err == nil {
+				t.Fatal("incomplete digest accepted")
+			}
+		})
+	}
+}
+
+func TestDirectoryEvidenceOnlySupportsContentNodes(t *testing.T) {
+	d := document()
+	d.Nodes[1].Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory, Rule: &mapdoc.Producer{ID: "inventory", Version: "1"}}}
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatal(err)
+	}
+	d.Nodes[0].Evidence = d.Nodes[1].Evidence
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("directory aggregate evidence supported a component")
+	}
+}
+
+func TestDocumentationOnlyRootCanEvidenceDocumentationContent(t *testing.T) {
+	d := document()
+	n := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "documentation")
+	n.Properties = map[string]string{"role": "documentation"}
+	n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory, Rule: &mapdoc.Producer{ID: "content-population", Version: "1"}}}
+	d.Nodes = append(d.Nodes, n)
 	if _, err := mapdoc.Marshal(d); err != nil {
 		t.Fatal(err)
 	}

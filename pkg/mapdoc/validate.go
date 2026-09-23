@@ -32,16 +32,17 @@ func Validate(d Document) error {
 	if d.Source.Mode == "git" && (d.Source.Revision == "" || d.Source.Tree == "") {
 		return fail("git source requires revision and tree")
 	}
-	if d.Source.Mode == "git" && d.Source.Digest != "" {
+	if d.Source.Mode == "git" && d.Source.Digest != nil {
 		return fail("git source must not contain a directory digest")
-	}
-	if d.Source.Mode == "directory" && d.Source.Digest == "" {
-		return fail("directory source requires digest")
 	}
 	if d.Source.Mode == "directory" && (d.Source.Revision != "" || d.Source.Tree != "") {
 		return fail("directory source must not contain git identity")
 	}
+	if d.Source.Digest != nil && (d.Source.Digest.Algorithm == "" || d.Source.Digest.Scope == "" || d.Source.Digest.Value == "") {
+		return fail("source digest requires algorithm, scope, and value")
+	}
 	questions := map[string]bool{}
+	sourceBindingQualified := false
 	for _, q := range d.Coverage {
 		if q.Question == "" {
 			return fail("coverage question is required")
@@ -59,6 +60,12 @@ func Validate(d Document) error {
 		if err := validateCoverage(q.Coverage); err != nil {
 			return err
 		}
+		if q.Question == QuestionSourceBinding && q.Scope == "." && (q.Status == CoverageUnknown || q.Status == CoveragePartial) {
+			sourceBindingQualified = true
+		}
+	}
+	if d.Source.Mode == "directory" && d.Source.Digest == nil && !sourceBindingQualified {
+		return fail("unbound directory source requires unknown or partial source_binding coverage at scope .")
 	}
 	ids := map[string]bool{}
 	for _, n := range d.Nodes {
@@ -84,7 +91,7 @@ func Validate(d Document) error {
 			return err
 		}
 		documentation := n.Kind == NodeContent && n.Properties["role"] == "documentation"
-		if err := validateEvidence(n.Evidence, documentation); err != nil {
+		if err := validateEvidence(n.Evidence, documentation, n.Kind == NodeContent); err != nil {
 			return fail("node %q: %v", n.ID, err)
 		}
 		if err := validateProperties(n.Properties); err != nil {
@@ -97,7 +104,7 @@ func Validate(d Document) error {
 			if err := validateCoverage(f.Coverage); err != nil {
 				return err
 			}
-			if err := validateEvidence(f.Evidence, false); err != nil {
+			if err := validateEvidence(f.Evidence, false, false); err != nil {
 				return fail("node %q fact %q: %v", n.ID, f.Kind, err)
 			}
 			if err := validateProperties(f.Properties); err != nil {
@@ -122,7 +129,7 @@ func Validate(d Document) error {
 		if err := validateCoverage(e.Coverage); err != nil {
 			return err
 		}
-		if err := validateEvidence(e.Evidence, false); err != nil {
+		if err := validateEvidence(e.Evidence, false, false); err != nil {
 			return fail("edge %q: %v", e.ID, err)
 		}
 		if err := validateProperties(e.Properties); err != nil {
@@ -170,7 +177,7 @@ func validateProperties(p map[string]string) error {
 	}
 	return nil
 }
-func validateEvidence(values []Evidence, documentationFact bool) error {
+func validateEvidence(values []Evidence, documentationFact, directoryAllowed bool) error {
 	if len(values) == 0 {
 		return fmt.Errorf("evidence is required")
 	}
@@ -181,8 +188,11 @@ func validateEvidence(values []Evidence, documentationFact bool) error {
 		if err := validatePath(e.Path); err != nil {
 			return err
 		}
-		if !slices.Contains([]EvidenceSource{SourceFile, SourceConfiguration, SourceCode, SourceComment, SourceDocstring, SourceDocumentation}, e.SourceKind) {
+		if !slices.Contains([]EvidenceSource{SourceFile, SourceDirectory, SourceConfiguration, SourceCode, SourceComment, SourceDocstring, SourceDocumentation}, e.SourceKind) {
 			return fmt.Errorf("invalid evidence source %q", e.SourceKind)
+		}
+		if e.SourceKind == SourceDirectory && !directoryAllowed {
+			return fmt.Errorf("directory evidence is only valid for content nodes")
 		}
 		if !documentationFact && (e.SourceKind == SourceComment || e.SourceKind == SourceDocstring || e.SourceKind == SourceDocumentation || isDocumentationPath(e.Path)) {
 			return fmt.Errorf("documentation cannot evidence a non-documentation fact")
