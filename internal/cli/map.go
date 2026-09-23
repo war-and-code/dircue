@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"runtime/debug"
 	"slices"
 	"strings"
 
@@ -64,6 +66,8 @@ func newMapCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			restoreRuntime := applyMapRuntimeSettings(settings)
+			defer restoreRuntime()
 			root := "."
 			if len(args) == 1 {
 				root = args[0]
@@ -112,6 +116,11 @@ func newMapCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			doc.Execution = mapExecutionProvenance(settings.Report)
+			doc, err = mapdoc.Normalize(doc)
+			if err != nil {
+				return err
+			}
 			if summary || !opts.json && terminalOutput(cmd.OutOrStdout()) {
 				return writeMapSummary(cmd.OutOrStdout(), doc)
 			}
@@ -135,6 +144,36 @@ func newMapCommand(opts *options) *cobra.Command {
 	addMapSettingsFlags(cmd, &settingsFlags)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
+}
+
+func applyMapRuntimeSettings(settings resolvedMapSettings) func() {
+	previousCPU := 0
+	if settings.CPULimit > 0 {
+		previousCPU = runtime.GOMAXPROCS(settings.CPULimit)
+	}
+	previousMemory := int64(0)
+	if settings.MemoryLimit > 0 {
+		previousMemory = debug.SetMemoryLimit(settings.MemoryLimit)
+	}
+	return func() {
+		if settings.MemoryLimit > 0 {
+			debug.SetMemoryLimit(previousMemory)
+		}
+		if settings.CPULimit > 0 {
+			runtime.GOMAXPROCS(previousCPU)
+		}
+	}
+}
+
+func mapExecutionProvenance(report mapSettingsReport) *mapdoc.Execution {
+	settings := make([]mapdoc.ExecutionSetting, 0, len(report.Settings))
+	for _, setting := range report.Settings {
+		settings = append(settings, mapdoc.ExecutionSetting{
+			Name: setting.Name, Value: setting.Value, Unit: setting.Unit, Category: setting.Category,
+			Origin: setting.Origin, Description: setting.Description, Minimum: setting.Minimum, Maximum: setting.Maximum,
+		})
+	}
+	return &mapdoc.Execution{Preset: report.Preset, Settings: settings, Notes: slices.Clone(report.Notes)}
 }
 
 func terminalOutput(out io.Writer) bool {

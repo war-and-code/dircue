@@ -114,18 +114,29 @@ Inspect effective values, categories, and origins without scanning:
 dircue map settings
 dircue map settings --preset low-memory --json
 dircue map settings --preset fast --set workers=8 --json
+dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
 ```
 
-`--set` accepts `workers`, `inventory.files`, and `content.file_bytes`. A named
+`--set` accepts `workers`, `inventory.files`, `content.file_bytes`,
+`runtime.cpu`, and `runtime.memory_bytes`. A named
 flag such as `--workers`, `--budget-files`, `--tree-size`, or
-`--max-file-bytes` has the highest precedence, followed by `--set`, then the
-preset. The settings report labels worker concurrency `performance-only` and
-the two skip/inventory bounds `coverage-affecting`.
+`--max-file-bytes` has the highest precedence, as do `--cpu-limit` and
+`--memory-limit`; `--set` follows, then the preset. Memory values accept bytes
+or `KiB`, `MiB`, and `GiB` suffixes; nonzero values must be at least 1 MiB. The settings report exposes the effective
+value, unit, origin, and applicable fixed range. It labels runtime controls and
+worker concurrency `performance-only`, and the two skip/inventory bounds
+`coverage-affecting`. The same effective settings and qualifications appear in
+the generated map's `execution` provenance.
 
-`GOMEMLIMIT` remains a cooperative Go runtime control inherited from the
-process environment. It is not a hard process limit. Use operating-system or
-container controls when a workload requires enforced CPU, memory, or wall-time
-bounds.
+`--cpu-limit` scopes `GOMAXPROCS` to the map command. `--memory-limit` scopes
+Go's soft memory limit to the command. A value of zero inherits the process
+setting. These controls preserve the map answer and are restored before an
+embedded caller regains control. They are cooperative preferences: neither is
+a hard CPU quota or RSS ceiling, and they do not constrain child processes,
+native allocations, memory-mapped files, or operating-system caches.
+`GOMEMLIMIT` remains an inherited cooperative default when no explicit memory
+limit is supplied. Use operating-system or container controls when a workload
+requires enforced CPU, memory, or wall-time bounds.
 
 ## Attach saved provider reports
 

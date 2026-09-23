@@ -147,7 +147,8 @@ func describeCLI(root *cobra.Command) cliContract {
 		Scope  string `json:"scope"`
 		Effect string `json:"effect"`
 	}{
-		{"GOMAXPROCS", "Go runtime", "Automatic file workers use min(GOMAXPROCS, 16); --workers explicitly overrides worker count."},
+		{"GOMAXPROCS", "Go runtime", "Automatic file workers use min(GOMAXPROCS, 16); map --cpu-limit temporarily sets GOMAXPROCS, while --workers explicitly selects worker count."},
+		{"GOMEMLIMIT", "Go runtime", "map --memory-limit temporarily sets the cooperative Go-managed memory target. Neither setting is a hard CPU, RSS, subprocess, or operating-system ceiling."},
 		{"GOMEMLIMIT", "Go runtime", "Cooperative Go memory limit; not a hard process memory cap and does not constrain the separate native worker."},
 		{"SystemRoot", "Windows worker cancellation", "Locates System32/taskkill.exe for worker-tree cancellation; falls back to C:\\Windows."},
 	}

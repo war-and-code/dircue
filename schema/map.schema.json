@@ -10,6 +10,7 @@
     "kind": { "const": "map" },
     "status": { "$ref": "#/$defs/coverage_status" },
     "source": { "$ref": "#/$defs/source" },
+    "execution": { "$ref": "#/$defs/execution" },
     "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
     "coverage_ledger": { "type": "array", "items": { "$ref": "#/$defs/coverage_ledger_entry" } },
     "analyzer_coverage": { "type": "array", "items": { "$ref": "#/$defs/analyzer_coverage_entry" } },
@@ -46,6 +47,25 @@
         { "properties": { "mode": { "const": "git" } }, "required": ["revision", "tree"], "not": { "required": ["digest"] } },
         { "properties": { "mode": { "const": "directory" } }, "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["tree"] }] } }
       ]
+    },
+    "execution_setting": {
+      "type": "object", "additionalProperties": false,
+      "required": ["name", "value", "unit", "category", "origin", "description"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonempty" }, "value": { "type": "string" },
+        "unit": { "$ref": "#/$defs/nonempty" }, "category": { "enum": ["performance-only", "coverage-affecting"] },
+        "origin": { "$ref": "#/$defs/nonempty" }, "description": { "$ref": "#/$defs/nonempty" },
+        "minimum": { "type": "string" }, "maximum": { "type": "string" }
+      }
+    },
+    "execution": {
+      "type": "object", "additionalProperties": false,
+      "required": ["preset", "settings", "notes"],
+      "properties": {
+        "preset": { "enum": ["balanced", "fast", "low-memory", "thorough"] },
+        "settings": { "type": "array", "items": { "$ref": "#/$defs/execution_setting" } },
+        "notes": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } }
+      }
     },
     "question_coverage": {
       "type": "object", "additionalProperties": false, "required": ["question", "scope", "status", "reasons"],

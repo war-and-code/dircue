@@ -4,8 +4,12 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
+	"runtime/debug"
 	"strings"
 	"testing"
+
+	"dircue/pkg/mapdoc"
 )
 
 func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
@@ -17,7 +21,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "fast" || len(report.Settings) != 3 {
+	if report.Kind != "map_settings" || report.Preset != "fast" || len(report.Settings) != 5 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -53,6 +57,10 @@ func TestMapSettingsPresetValuesAndValidation(t *testing.T) {
 		{"map", "settings", "--preset", "turbo"},
 		{"map", "settings", "--set", "workers=-1"},
 		{"map", "settings", "--set", "invented=1"},
+		{"map", "settings", "--cpu-limit", "-1"},
+		{"map", "settings", "--memory-limit", "nope"},
+		{"map", "settings", "--memory-limit", "1"},
+		{"map", "settings", "--set", "runtime.memory_bytes=-1"},
 		{"map", "settings", "--source", "directory"},
 	} {
 		if _, _, err := invoke(args...); err == nil {
@@ -75,12 +83,102 @@ func TestMapPresetAndWorkerOverridePreserveAnswers(t *testing.T) {
 		{"--preset", "low-memory"},
 		{"--preset", "balanced", "--set", "workers=3"},
 		{"--preset", "fast", "--set", "workers=7", "--workers", "1"},
+		{"--set", "runtime.cpu=2", "--set", "runtime.memory_bytes=64MiB"},
+		{"--cpu-limit", "1", "--memory-limit", "67108864"},
 	} {
 		args := append([]string{"map", "--source", "directory"}, flags...)
 		args = append(args, "--json", root)
 		got, gotStderr, gotErr := invoke(args...)
-		if gotErr != nil || gotStderr != "" || got != baseline {
+		if gotErr != nil || gotStderr != "" || !sameMapAnswer(t, baseline, got) {
 			t.Fatalf("%v changed answer: stderr=%q err=%v\nbase=%s\ngot=%s", flags, gotStderr, gotErr, baseline, got)
 		}
 	}
+}
+
+func TestMapRuntimeLimitsPrecedenceProvenanceAndRestoration(t *testing.T) {
+	out, stderr, err := invoke("map", "settings",
+		"--set", "runtime.cpu=3", "--set", "runtime.memory_bytes=32MiB",
+		"--cpu-limit", "2", "--memory-limit", "64MiB", "--json")
+	if err != nil || stderr != "" {
+		t.Fatalf("stderr=%q err=%v", stderr, err)
+	}
+	var report mapSettingsReport
+	if err := json.Unmarshal([]byte(out), &report); err != nil {
+		t.Fatal(err)
+	}
+	byName := map[string]mapEffectiveSetting{}
+	for _, setting := range report.Settings {
+		byName[setting.Name] = setting
+	}
+	if got := byName["runtime.cpu"]; got.Value != "2" || got.Origin != "--cpu-limit" || got.Minimum != "0" || got.Maximum != "1024" {
+		t.Fatalf("CPU setting = %+v", got)
+	}
+	if got := byName["runtime.memory_bytes"]; got.Value != "67108864" || got.Origin != "--memory-limit" || !strings.Contains(got.Description, "Cooperative") {
+		t.Fatalf("memory setting = %+v", got)
+	}
+
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	beforeCPU := runtime.GOMAXPROCS(0)
+	beforeMemory := debug.SetMemoryLimit(-1)
+	restore := applyMapRuntimeSettings(resolvedMapSettings{CPULimit: 1, MemoryLimit: 64 << 20})
+	if got := runtime.GOMAXPROCS(0); got != 1 {
+		restore()
+		t.Fatalf("CPU limit was not applied: %d", got)
+	}
+	if got := debug.SetMemoryLimit(-1); got != 64<<20 {
+		restore()
+		t.Fatalf("memory limit was not applied: %d", got)
+	}
+	restore()
+	if got := runtime.GOMAXPROCS(0); got != beforeCPU {
+		t.Fatalf("direct GOMAXPROCS restore failed: %d", got)
+	}
+	if got := debug.SetMemoryLimit(-1); got != beforeMemory {
+		t.Fatalf("direct memory restore failed: %d", got)
+	}
+	mapJSON, mapStderr, err := invoke("map", "--source", "directory", "--cpu-limit", "1", "--memory-limit", "64MiB", "--json", root)
+	if err != nil || mapStderr != "" {
+		t.Fatalf("stderr=%q err=%v", mapStderr, err)
+	}
+	if after := runtime.GOMAXPROCS(0); after != beforeCPU {
+		t.Fatalf("GOMAXPROCS leaked: before=%d after=%d", beforeCPU, after)
+	}
+	if after := debug.SetMemoryLimit(-1); after != beforeMemory {
+		t.Fatalf("memory limit leaked: before=%d after=%d", beforeMemory, after)
+	}
+	var document mapdoc.Document
+	if err := json.Unmarshal([]byte(mapJSON), &document); err != nil {
+		t.Fatal(err)
+	}
+	if document.Execution == nil || document.Execution.Preset != "balanced" {
+		t.Fatalf("execution provenance absent: %+v", document.Execution)
+	}
+	provenance := map[string]mapdoc.ExecutionSetting{}
+	for _, setting := range document.Execution.Settings {
+		provenance[setting.Name] = setting
+	}
+	if provenance["runtime.cpu"].Value != "1" || provenance["runtime.memory_bytes"].Value != "67108864" {
+		t.Fatalf("execution limits absent: %+v", provenance)
+	}
+	if !strings.Contains(strings.Join(document.Execution.Notes, " "), "not hard CPU") {
+		t.Fatalf("hard-ceiling qualification absent: %+v", document.Execution.Notes)
+	}
+}
+
+func sameMapAnswer(t *testing.T, left, right string) bool {
+	t.Helper()
+	var a, b mapdoc.Document
+	if err := json.Unmarshal([]byte(left), &a); err != nil {
+		t.Fatal(err)
+	}
+	if err := json.Unmarshal([]byte(right), &b); err != nil {
+		t.Fatal(err)
+	}
+	a.Execution, b.Execution = nil, nil
+	aJSON, _ := json.Marshal(a)
+	bJSON, _ := json.Marshal(b)
+	return string(aJSON) == string(bJSON)
 }
