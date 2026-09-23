@@ -1841,19 +1841,19 @@
         },
         {
           "kind": "deployable",
-          "name": "petclinic#document-2",
+          "name": "petclinic",
           "paths": [
             "k8s/petclinic.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "service",
             "provider": "kubernetes",
             "source_sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb"
           }
         },
         {
           "kind": "deployable",
-          "name": "demo-db#document-3",
+          "name": "demo-db",
           "paths": [
             "k8s/db.yml"
           ],
@@ -1877,12 +1877,12 @@
         },
         {
           "kind": "deployable",
-          "name": "demo-db#document-2",
+          "name": "demo-db",
           "paths": [
             "k8s/db.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "service",
             "provider": "kubernetes",
             "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
           }
@@ -1894,7 +1894,7 @@
             "k8s/db.yml"
           ],
           "properties": {
-            "kind": "workload",
+            "kind": "infrastructure",
             "provider": "kubernetes",
             "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
           }
