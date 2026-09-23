@@ -148,7 +148,7 @@ func TestProviderAttachmentEntitiesAreSeparateFromSourceMaterial(t *testing.T) {
 	}
 }
 
-func TestProviderRemovalIsConfirmedOnlyByComparableHeadRun(t *testing.T) {
+func TestProviderRemovalRemainsIndeterminateWithoutExhaustiveCoverage(t *testing.T) {
 	node := component("service")
 	base := withSyftAttachment(testDocument("same-tree", node, mapdoc.CoverageComplete))
 	head := testDocument("same-tree", node, mapdoc.CoverageComplete)
@@ -158,13 +158,33 @@ func TestProviderRemovalIsConfirmedOnlyByComparableHeadRun(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != "unchanged" || report.ProviderStatus != "changed" {
-		t.Fatalf("comparable provider run should confirm provider-only removals: %#v", report)
+	if report.Status != "unchanged" || report.ProviderStatus != "indeterminate" {
+		t.Fatalf("non-exhaustive provider run confirmed an absence: %#v", report)
 	}
 	for _, change := range report.ProviderChanges {
-		if change.Certainty != "confirmed" {
-			t.Fatalf("provider removal uncertainty unexpectedly retained: %#v", change)
+		if change.Certainty != "indeterminate" || !strings.Contains(change.Reason, "exhaustive") {
+			t.Fatalf("provider removal uncertainty was not retained: %#v", change)
 		}
+	}
+}
+
+func TestProviderFactOnNativeNodeIsNotMaterial(t *testing.T) {
+	baseNode := component("service")
+	headNode := component("service")
+	headNode.Facts = []mapdoc.Fact{{
+		Kind: "provider_annotation", Value: "observed", State: "provider_reported",
+		Coverage: mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"provider_scope_not_exhaustive"}},
+		Evidence: []mapdoc.Evidence{{
+			Basis: mapdoc.BasisProviderReported, Path: "go.mod", SourceKind: mapdoc.SourceFile,
+			Provider: &mapdoc.Producer{ID: "external", Version: "1"},
+		}},
+	}}
+	report, err := mapdiff.Compare(testDocument("same-tree", baseNode, mapdoc.CoverageComplete), testDocument("same-tree", headNode, mapdoc.CoverageComplete))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != "unchanged" || report.Counts.Material != 0 || len(report.Changes) != 1 || report.Changes[0].Material {
+		t.Fatalf("provider fact on native node became material: %#v", report)
 	}
 }
 
