@@ -79,3 +79,30 @@ func TestMapSummaryAndFormatSelection(t *testing.T) {
 		t.Fatal("conflicting inventory limits accepted")
 	}
 }
+
+func TestMapFileByteLimitQualifiesContentCoverage(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, _, err := invoke("map", "--source", "directory", "--json", "--max-file-bytes", "1", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var d mapdoc.Document
+	if err := json.Unmarshal([]byte(out), &d); err != nil {
+		t.Fatal(err)
+	}
+	if d.Status != mapdoc.CoveragePartial {
+		t.Fatalf("file byte limit failed to qualify document: %s", out)
+	}
+	for _, q := range d.Coverage {
+		if q.Question == "content" {
+			if q.Status != mapdoc.CoveragePartial || !strings.Contains(strings.Join(q.Reasons, ","), "file_too_large") {
+				t.Fatalf("content coverage lost file byte limit: %+v", q)
+			}
+			return
+		}
+	}
+	t.Fatal("missing content coverage")
+}
