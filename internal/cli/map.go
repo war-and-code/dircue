@@ -28,12 +28,13 @@ func newMapCommand(opts *options) *cobra.Command {
 	var budgetFiles int
 	var attachments []string
 	var attachBinding string
+	var forestMode bool
 	var settingsFlags mapSettingsFlags
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
-		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
-		Example: "  dircue map --json /checkout\n  dircue map --summary --source directory /content\n  dircue map --budget-files 50000 --json /checkout",
+		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Use --forest to discover nested Git roots and produce a forest document. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
+		Example: "  dircue map --json /checkout\n  dircue map --summary --source directory /content\n  dircue map --forest /disk\n  dircue map --budget-files 50000 --json /checkout",
 		Args:    pathArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, name := range []string{"breakdown", "strategies"} {
@@ -81,6 +82,13 @@ func newMapCommand(opts *options) *cobra.Command {
 			if st, err := os.Stat(root); err == nil && !st.IsDir() {
 				return fmt.Errorf("map requires a directory")
 			}
+			// Forest mode: discover nested roots and produce a forest document.
+			if forestMode {
+				if opts.source != "auto" && opts.source != "directory" {
+					return fmt.Errorf("--forest requires --source auto or --source directory")
+				}
+				return runForest(cmd.Context(), cmd, root, summary, opts, settings)
+			}
 			revision := ""
 			if cmd.Flags().Changed("rev") {
 				revision = opts.revision
@@ -105,6 +113,7 @@ func newMapCommand(opts *options) *cobra.Command {
 				ErrorPolicy: scanner.ErrorPolicy(opts.onError), Workers: settings.Workers,
 				MaxTreeSize: settings.MaxFiles, MaxFileBytes: settings.MaxFileBytes,
 				GitObjectCacheBytes: settings.GitCacheBytes,
+				SummarizeTrees:      settings.SummarizeTrees,
 				Detectors:           hooks, Discovery: true, Declarations: true,
 				Formats: true, Availability: true, Environments: true, Registries: true,
 			})
@@ -173,6 +182,7 @@ func newMapCommand(opts *options) *cobra.Command {
 		},
 	}
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
+	cmd.Flags().BoolVar(&forestMode, "forest", false, "Discover nested Git roots and produce a forest document instead of a single map")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
 	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert binding for reports without snapshot identity: caller-asserted")
