@@ -128,6 +128,23 @@ func TestDirectoryDigestRequiresAlgorithmScopeAndValue(t *testing.T) {
 	}
 }
 
+func TestCoverageLedgerRequiresConfinedFilesAndBinding(t *testing.T) {
+	d := document()
+	d.CoverageLedger = []mapdoc.CoverageLedgerEntry{{Tool: "syft", ReportKind: "syft-json", Scope: ".", Binding: "unknown", Ran: true, CoveredFiles: []string{"b/package.json"}, State: "covered_files_reported", Reason: "report_has_no_snapshot_identity"}}
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatalf("valid provider-run ledger rejected: %v", err)
+	}
+	d.CoverageLedger[0].CoveredFiles = []string{"../../outside"}
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("provider-run ledger accepted a path outside the selected root")
+	}
+	d.CoverageLedger[0].CoveredFiles = []string{"b/package.json"}
+	d.CoverageLedger[0].Binding = "clean"
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("provider-run ledger accepted an invalid binding")
+	}
+}
+
 func TestDirectoryEvidenceOnlySupportsContentNodes(t *testing.T) {
 	d := document()
 	d.Nodes[1].Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory, Rule: &mapdoc.Producer{ID: "inventory", Version: "1"}}}

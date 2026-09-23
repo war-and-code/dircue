@@ -27,6 +27,13 @@ func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string)
 	}
 	doc.Nodes = append(doc.Nodes, result.Nodes...)
 	doc.Edges = append(doc.Edges, result.Edges...)
+	for _, run := range result.Ledger {
+		doc.CoverageLedger = append(doc.CoverageLedger, mapdoc.CoverageLedgerEntry{
+			Tool: run.Tool, ReportKind: run.ReportKind, Scope: run.Scope,
+			Binding: string(run.Binding), Ran: run.Ran, CoveredFiles: run.CoveredFiles,
+			State: run.State, Reason: run.Reason,
+		})
+	}
 	doc.Coverage = mergeQuestionCoverage(doc.Coverage, result.Coverage)
 	for _, diagnostic := range result.Diagnostics {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: provider %s: %s\n", terminalValue(diagnostic.Kind), terminalValue(diagnostic.Message)); err != nil {

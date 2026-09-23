@@ -16,7 +16,7 @@ import (
 var ErrInvalid = errors.New("invalid map document")
 
 func New() Document {
-	return Document{SchemaVersion: SchemaVersion, Kind: "map", Status: CoverageUnknown, Source: Source{Mode: "directory"}, Coverage: []QuestionCoverage{}, Nodes: []Node{}, Edges: []Edge{}}
+	return Document{SchemaVersion: SchemaVersion, Kind: "map", Status: CoverageUnknown, Source: Source{Mode: "directory"}, Coverage: []QuestionCoverage{}, CoverageLedger: []CoverageLedgerEntry{}, Nodes: []Node{}, Edges: []Edge{}}
 }
 
 func NewNode(kind NodeKind, paths []string, discriminator string) Node {
@@ -66,6 +66,17 @@ func Normalize(input Document) (Document, error) {
 	}
 	if d.Coverage == nil {
 		d.Coverage = []QuestionCoverage{}
+	}
+	if d.CoverageLedger == nil {
+		d.CoverageLedger = []CoverageLedgerEntry{}
+	}
+	for i := range d.CoverageLedger {
+		entry := &d.CoverageLedger[i]
+		if entry.CoveredFiles == nil {
+			entry.CoveredFiles = []string{}
+		}
+		slices.Sort(entry.CoveredFiles)
+		entry.CoveredFiles = slices.Compact(entry.CoveredFiles)
 	}
 	if d.Nodes == nil {
 		d.Nodes = []Node{}
@@ -117,6 +128,10 @@ func Normalize(input Document) (Document, error) {
 	}
 	slices.SortFunc(d.Coverage, func(a, b QuestionCoverage) int {
 		return strings.Compare(a.Question+"\x00"+a.Scope, b.Question+"\x00"+b.Scope)
+	})
+	slices.SortFunc(d.CoverageLedger, func(a, b CoverageLedgerEntry) int {
+		return strings.Compare(a.Tool+"\x00"+a.ReportKind+"\x00"+a.Scope+"\x00"+a.Binding+"\x00"+a.State,
+			b.Tool+"\x00"+b.ReportKind+"\x00"+b.Scope+"\x00"+b.Binding+"\x00"+b.State)
 	})
 	slices.SortFunc(d.Nodes, func(a, b Node) int { return strings.Compare(a.ID, b.ID) })
 	slices.SortFunc(d.Edges, func(a, b Edge) int { return strings.Compare(a.ID, b.ID) })
