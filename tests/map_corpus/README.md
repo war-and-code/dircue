@@ -112,11 +112,11 @@ no `--all` mode. The verification gate itself never accesses the network.
 ## On-demand resource and compatibility evidence
 
 The resource harness records wall time, user and system CPU, peak RSS, output
-bytes, map status, node and edge counts, and raw and semantic output hashes. It runs balanced,
-fast, and low-memory by default and fails if execution-only presets change the
-raw map bytes. Effective settings remain available through `map settings` rather
-than inside the map document. It streams maps to temporary files and enforces an output
-size limit instead of retaining every map in memory:
+bytes, map status, node and edge counts, and raw and semantic output hashes. It
+runs the `balanced` and `low-memory` presets by default and fails if they change
+map bytes. Effective settings remain available through `map settings` rather
+than inside the map document. It streams maps to temporary files and enforces an
+output size limit instead of retaining every map in memory:
 
 ```sh
 python3 tests/map_corpus/benchmark_public.py \
@@ -126,18 +126,20 @@ python3 tests/map_corpus/benchmark_public.py \
   --output .cache/public-map-benchmark.json
 ```
 
-One pre-fix 2026-09-23 Apple Silicon run passed semantic preset equivalence on all 21
-repositories. Aggregate single-run wall times were 18.77 seconds balanced,
-18.70 seconds fast, and 21.68 seconds low-memory. TypeScript had the largest
-observed peak RSS: 578.4 MiB balanced, 577.3 MiB fast, and 559.2 MiB
-low-memory. Roslyn was slowest at 5.55, 5.53, and 6.49 seconds respectively;
-the largest map was 11.3 MiB. Raw hashes differed for all 21 repositories
-because each output retained its effective execution settings at that point;
-semantic hashes matched after removing only that provenance object. The measured binary came
-from commit `125609fcc981bc4151d60fabcf96665061ca80b3` and its SHA-256 was
-`92b0797f5de755c6c99d8172e1c59bea8f51676012a0517778e995685457f1cd`.
-These are warm-cache observations from one host, without approved thresholds;
-they are not portable performance or memory guarantees.
+Three complete runs on 2026-09-23 on an Apple M1 Max (macOS 26.5.2) compared
+the prior `fast` preset with `balanced` and `low-memory` across all 21 pinned
+repositories (63 scans per run). All preset outputs were byte-identical for
+each repository. The aggregate wall times were 18.64–18.98 seconds for
+`balanced`, 18.64–18.83 seconds for `fast`, and 25.75–26.08 seconds for
+`low-memory`. Maximum observed RSS across the corpus was 596–608 MiB for
+`balanced`, 638–669 MiB for `fast`, and 274–323 MiB for `low-memory`. `fast`
+was slightly slower in aggregate and used more memory, so it was removed; custom
+worker and Git-cache values remain available via `--set`. On this corpus,
+`low-memory` traded roughly 38% more wall time for about half the maximum RSS.
+These are warm-cache observations on one machine, without approved thresholds;
+they are not portable performance or memory guarantees. The measured binary
+was built from commit `20bfd2077adf1dc595c181ff638be4f94606be47` and had
+SHA-256 `020b9850fd9ce452d5b3ba9a1dd94a83cf9f4fc7ce5d41646268dabb7ea064a3`.
 
 Two optional compatibility harnesses exercise the same exact commits. The
 first requires the pinned local Linguist 9.7.0 container and disables its

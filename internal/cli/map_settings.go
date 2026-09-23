@@ -51,7 +51,7 @@ type resolvedMapSettings struct {
 }
 
 func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags) {
-	command.Flags().StringVar(&flags.Preset, "preset", "balanced", "Resource preset: balanced, fast, low-memory, or thorough")
+	command.Flags().StringVar(&flags.Preset, "preset", "balanced", "Resource preset: balanced, low-memory, or thorough")
 	command.Flags().StringArrayVar(&flags.Overrides, "set", nil, "Override a map setting as NAME=VALUE (repeatable; see: dircue map settings --json)")
 	command.Flags().IntVar(&flags.CPULimit, "cpu-limit", 0, "Cooperative Go scheduler limit in logical CPUs; 0 inherits the process setting")
 	command.Flags().StringVar(&flags.MemoryLimit, "memory-limit", "0", "Cooperative Go memory limit in bytes or KiB/MiB/GiB; 0 inherits the process setting")
@@ -66,9 +66,6 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	cpuLimit, memoryLimit := 0, int64(0)
 	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited"}
 	switch flags.Preset {
-	case "fast":
-		workers, origins["workers"] = 16, "preset:fast"
-		gitCacheBytes, origins["git.object_cache_bytes"] = 128<<20, "preset:fast"
 	case "low-memory":
 		workers, origins["workers"] = 2, "preset:low-memory"
 		gitCacheBytes, origins["git.object_cache_bytes"] = 8<<20, "preset:low-memory"
@@ -171,8 +168,8 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, Report: mapSettingsReport{
 		SchemaVersion: "1.0.0", Kind: "map_settings", Preset: flags.Preset, Settings: settings,
 		Notes: []string{
-			"fast and low-memory tune worker concurrency and retained Git object cache size; both must preserve map answers",
-			"low-memory is a relative execution preference, not a measured RSS guarantee or hard memory ceiling",
+			"low-memory tunes worker concurrency and retained Git object cache size while preserving map answers",
+			"low-memory is a measured relative preference, not an RSS guarantee or hard memory ceiling",
 			"GOMEMLIMIT is a cooperative Go runtime limit inherited from the process environment; it is not a hard process or native-worker limit",
 			"--cpu-limit and --memory-limit are scoped cooperative runtime controls, not hard CPU, RSS, subprocess, or operating-system ceilings",
 			"thorough raises an inventory coverage limit and may change answers that balanced reports as partial",
@@ -219,7 +216,7 @@ func newMapSettingsCommand(opts *options) *cobra.Command {
 		Use:     "settings",
 		Short:   "Show effective map resource settings",
 		Long:    "Resolve a map preset and fine-grained overrides without scanning. Categories distinguish answer-preserving execution controls from coverage-affecting limits. No preset claims a hard memory or CPU ceiling.",
-		Example: "  dircue map settings --preset low-memory\n  dircue map settings --preset fast --set workers=8 --json\n  dircue map settings --cpu-limit 2 --memory-limit 512MiB --json",
+		Example: "  dircue map settings --preset low-memory\n  dircue map settings --set workers=8 --set git.object_cache_bytes=128MiB --json\n  dircue map settings --cpu-limit 2 --memory-limit 512MiB --json",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			for _, flag := range analysisFlagNames {

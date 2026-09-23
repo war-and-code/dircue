@@ -131,7 +131,6 @@ The default `balanced` preset retains automatic worker selection and the
 | Preset | Current effect |
 | --- | --- |
 | `balanced` | Automatic workers and the default inventory limit. |
-| `fast` | Use 16 file workers and a 128 MiB retained Git object cache. This must preserve answers. |
 | `low-memory` | Use two file workers and an 8 MiB retained Git object cache. This is a relative preference, not a hard RSS ceiling. |
 | `thorough` | Raise the inventory limit to 250,000 entries; this can replace a partial answer with a more complete one. |
 
@@ -140,7 +139,7 @@ Inspect effective values, categories, and origins without scanning:
 ```sh
 dircue map settings
 dircue map settings --preset low-memory --json
-dircue map settings --preset fast --set workers=8 --json
+dircue map settings --set workers=8 --set git.object_cache_bytes=128MiB --json
 dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
 ```
 
@@ -157,6 +156,15 @@ worker concurrency `performance-only`, and the two skip/inventory bounds
 overridden because changing it would invalidate the current Linguist parity
 claim. Effective settings are available from `map settings`;
 they are omitted from the map document so worker-only choices preserve JSON bytes.
+
+The `fast` preset was removed after a three-run scan of the pinned 21-repository
+corpus on one Apple Silicon host showed no aggregate speed benefit: it took
+18.64–18.83 seconds versus 18.64–18.98 seconds for `balanced`, while its maximum
+observed RSS was 638–669 MiB versus 596–608 MiB. The `low-memory` preset took
+25.75–26.08 seconds and reduced maximum observed RSS to 274–323 MiB on that
+corpus. These are host-specific observations, not performance guarantees.
+Custom worker and cache values remain available through `--set` when you want
+to test another tradeoff locally.
 
 `--cpu-limit` scopes `GOMAXPROCS` to the map command. `--memory-limit` scopes
 Go's soft memory limit to the command. A value of zero inherits the process

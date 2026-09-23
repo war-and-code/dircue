@@ -77,14 +77,14 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--candidate-commit", required=True,
                         help="Exact Git commit used to build --binary")
-    parser.add_argument("--preset", action="append", choices=["balanced", "fast", "low-memory"],
-                        help="Execution-only preset to measure; defaults to all three")
+    parser.add_argument("--preset", action="append", choices=["balanced", "low-memory"],
+                        help="Execution-only preset to measure; defaults to both")
     parser.add_argument("--max-output-bytes", type=int, default=256 * 1024 * 1024)
     args = parser.parse_args()
     binary = args.binary.resolve()
     if not binary.is_file():
         raise SystemExit(f"binary not found: {binary}")
-    presets = args.preset or ["balanced", "fast", "low-memory"]
+    presets = args.preset or ["balanced", "low-memory"]
     manifest = json.loads((HERE / "public_expectations.json").read_text())
     results = []
     with tempfile.TemporaryDirectory(prefix="dircue-map-bench-") as temporary:

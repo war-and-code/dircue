@@ -69,7 +69,8 @@ def main():
             raise AssertionError("absolute location or creation order changed the portable map")
         assert_no_absolute_strings(baseline, (ordinary, reversed_tree, root))
 
-        for controls in (("--preset", "fast"), ("--preset", "low-memory"), ("--set", "workers=3")):
+        for controls in (("--preset", "low-memory"), ("--set", "workers=3"),
+                         ("--set", "workers=16", "--set", "git.object_cache_bytes=128MiB")):
             tuned = invoke(binary, "map", "--source", "directory", *controls, "--json", reversed_tree)
             if baseline != tuned:
                 raise AssertionError(f"answer-preserving control changed the map: {controls}")
