@@ -162,6 +162,29 @@ func TestAppsettingsRedisAndEventBusCapabilitiesUseKeyEvidence(t *testing.T) {
 	}
 }
 
+func TestDotnetRedisCachingPackageDeclaresCapability(t *testing.T) {
+	// The pinned microservices-demo cartservice project references this NuGet
+	// package directly; the absence of an appsettings key must not hide it.
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{
+		ID: "src/cartservice/src/cartservice.csproj", Root: "src/cartservice/src", Kind: "dotnet",
+		Requirements: []declarations.Requirement{{
+			Kind: "package-reference", Value: "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
+			State: "declared", Evidence: "src/cartservice/src/cartservice.csproj",
+		}},
+	}})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, observation := range r.Observations {
+		if observation.Kind == KindCapability && observation.Name == "cache:redis" && observation.Basis == "declared_dependency" {
+			return
+		}
+	}
+	t.Fatalf("missing declared Redis caching capability: %+v", r.Observations)
+}
+
 func TestDeclaredPythonRequirementsCreateCapabilitiesAndEntryInterfaces(t *testing.T) {
 	d := New(Options{})
 	d.AddDeclarations([]declarations.Project{{ID: "svc/pyproject.toml", Root: "svc", Kind: "python", Requirements: []declarations.Requirement{{Kind: "python-dependency", Value: "redis>=5", State: "declared", Evidence: "svc/pyproject.toml"}, {Kind: "python-dependency", Value: "aio-pika>=9", State: "declared", Evidence: "svc/pyproject.toml"}}, Interfaces: []declarations.Interface{{Kind: "python-console-script", Name: "svc", Target: "svc.cli:main", State: "declared", Evidence: "svc/pyproject.toml"}}}})
