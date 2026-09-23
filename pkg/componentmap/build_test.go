@@ -5,7 +5,7 @@ import (
 	"slices"
 	"testing"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func TestBuildNormalizesPolyglotComponentsAndLocalRelationships(t *testing.T) {
@@ -90,6 +90,27 @@ func TestPythonWithoutUVIsNotLabeledUV(t *testing.T) {
 	}
 	if got["services/email/requirements.txt"] != "python" || got["workspace/pyproject.toml"] != "python-uv" {
 		t.Fatalf("Python ecosystem attribution: %+v", got)
+	}
+}
+
+func TestUnnamedDotnetProjectUsesUniqueCsprojStemUnderGenericSrcRoot(t *testing.T) {
+	fragment := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{
+		{ID: "src/cartservice/src/cartservice.csproj", Root: "src/cartservice/src", Kind: "dotnet"},
+		{ID: "src/frontend/src/Web.csproj", Root: "src/frontend/src", Kind: "dotnet", Name: "frontend-web"},
+		{ID: "services/api/Api.csproj", Root: "services/api", Kind: "dotnet"},
+	}})
+	got := map[string]string{}
+	for _, component := range fragment.Components {
+		got[component.Key] = component.Name
+	}
+	if got["src/cartservice/src/cartservice.csproj"] != "cartservice" {
+		t.Fatalf("generic src root did not get its unique project stem: %+v", got)
+	}
+	if got["src/frontend/src/Web.csproj"] != "frontend-web" {
+		t.Fatalf("explicit project name was replaced: %+v", got)
+	}
+	if got["services/api/Api.csproj"] != "" {
+		t.Fatalf("fallback changed a non-generic root: %+v", got)
 	}
 }
 

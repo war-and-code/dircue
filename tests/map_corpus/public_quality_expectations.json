@@ -172,7 +172,7 @@
           },
           "to": {
             "kind": "component",
-            "name": "src",
+            "name": "cartservice",
             "paths": [
               "src/cartservice/src",
               "src/cartservice/src/cartservice.csproj"
