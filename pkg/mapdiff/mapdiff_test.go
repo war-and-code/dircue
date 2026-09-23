@@ -78,7 +78,7 @@ func TestEvidenceOnlyChangeIsNotMaterial(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Status != "unchanged" || report.Counts.Changed != 1 || report.Counts.Material != 0 {
+	if report.Status != "unchanged" || report.Counts.Changed != 1 || report.Counts.Material != 0 || report.ObserverCompatibility != "different" || len(report.Caveats) < 2 {
 		t.Fatalf("producer-only change became material: %#v", report)
 	}
 }
@@ -126,4 +126,43 @@ func TestComparisonOutputIsDeterministic(t *testing.T) {
 	if !bytes.Equal(left, right) {
 		t.Fatalf("nondeterministic output:\n%s\n%s", left, right)
 	}
+}
+
+func FuzzStrictMapSelfComparison(f *testing.F) {
+	seed, err := mapdoc.Marshal(documentForFuzz())
+	if err != nil {
+		f.Fatal(err)
+	}
+	f.Add(seed)
+	f.Add([]byte(`{"kind":"map"}`))
+	f.Fuzz(func(t *testing.T, data []byte) {
+		document, err := mapdoc.UnmarshalStrict(data)
+		if err != nil {
+			return
+		}
+		first, err := mapdiff.Compare(document, document)
+		if err != nil {
+			t.Fatal(err)
+		}
+		second, err := mapdiff.Compare(document, document)
+		if err != nil {
+			t.Fatal(err)
+		}
+		left, err := mapdiff.Marshal(first)
+		if err != nil {
+			t.Fatal(err)
+		}
+		right, err := mapdiff.Marshal(second)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(left, right) || first.Status != "unchanged" || first.Counts.Material != 0 || len(first.Changes) != 0 {
+			t.Fatalf("self-comparison invariant failed:\n%s\n%s", left, right)
+		}
+	})
+}
+
+func documentForFuzz() mapdoc.Document {
+	node := component("fuzz")
+	return testDocument("fuzz-tree", node, mapdoc.CoverageComplete)
 }
