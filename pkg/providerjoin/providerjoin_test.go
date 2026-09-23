@@ -154,6 +154,66 @@ func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
 	}
 }
 
+func TestNoirV121ImportsHTTPCodePathsAndDoesNotFabricateCLIHTTPRoutes(t *testing.T) {
+	report, err := os.ReadFile("testdata/noir-1.2.1-flask-relative.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}}, []providerjoin.Attachment{{Kind: "noir-json", Path: attachment(t, string(report))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	interfaces := 0
+	multiPath := false
+	for _, node := range r.Nodes {
+		if node.Kind != mapdoc.NodeInterface {
+			continue
+		}
+		interfaces++
+		if node.Properties["kind"] != "http" || strings.HasPrefix(node.Properties["route"], "cli://") {
+			t.Fatalf("non-HTTP endpoint fabricated as HTTP: %+v", node)
+		}
+		if len(node.Paths) > 1 {
+			multiPath = true
+		}
+	}
+	if interfaces != 23 {
+		t.Fatalf("HTTP interfaces=%d, want 23 from pinned Noir v1.2.1 fixture", interfaces)
+	}
+	if !multiPath {
+		t.Fatal("Noir code_paths were not retained on multi-location endpoint")
+	}
+	if len(r.Ledger) != 1 || len(r.Ledger[0].CoveredFiles) == 0 {
+		t.Fatalf("coverage ledger=%+v", r.Ledger)
+	}
+}
+
+func TestNoirSanitizesAbsoluteURLsAndQualifiesUnconfinedLocations(t *testing.T) {
+	body := `{"endpoints":[{"url":"https://user:secret@example.test/private?q=token#fragment","method":"GET","protocol":"http","details":{"code_paths":[{"path":"/Users/alice/private.go","line":2}]}}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}}, []providerjoin.Attachment{{Kind: "noir-json", Path: attachment(t, body)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Nodes) != 2 {
+		t.Fatalf("nodes=%+v", r.Nodes)
+	}
+	var endpoint mapdoc.Node
+	for _, node := range r.Nodes {
+		if node.Kind == mapdoc.NodeInterface {
+			endpoint = node
+		}
+	}
+	if endpoint.Properties["route"] != "/private" || endpoint.Coverage.Status != mapdoc.CoveragePartial {
+		t.Fatalf("endpoint=%+v", endpoint)
+	}
+	encoded, _ := json.Marshal(r)
+	for _, forbidden := range []string{"secret", "example.test", "token", "/Users/"} {
+		if strings.Contains(string(encoded), forbidden) {
+			t.Fatalf("absolute URL or host path leaked %q: %s", forbidden, encoded)
+		}
+	}
+}
+
 func TestNoirContractComparisonRequiresExactDeclaredHTTPIdentity(t *testing.T) {
 	declared := mapdoc.NewNode(mapdoc.NodeInterface, []string{"openapi.yaml"}, "declared:get-users")
 	declared.Properties = map[string]string{"kind": "http", "method": "GET", "route": "/users", "basis": "declared_contract"}
@@ -366,5 +426,128 @@ func TestSyftVirtualRootPathsAreConfinedAndHostPathsRejected(t *testing.T) {
 	}
 	if !slices.Contains(r.Ledger[0].CoveredFiles, "home/example.go") || slices.Contains(r.Ledger[0].CoveredFiles, "escape") {
 		t.Fatalf("directory virtual roots=%+v", r.Ledger[0])
+	}
+}
+
+func TestSyftMatchesDeclaredRequirementsAcrossEcosystems(t *testing.T) {
+	type declaration struct{ root, ecosystem, kind, value string }
+	declarations := []declaration{
+		{"npm", "npm", "npm-dependency", "lodash@^4"},
+		{"go", "go", "go-require", "github.com/acme/lib v1.2.0"},
+		{"cargo", "cargo", "cargo-dependency", "serde 1"},
+		{"python", "python-uv", "python-dependency", "Requests>=2"},
+		{"dotnet", "dotnet", "package-reference", "Example.Package@1.2.3"},
+		{"maven", "maven", "maven-dependency", "org.example:lib:1.0"},
+		{"gradle", "gradle", "gradle-dependency", "org.gradle:thing:2.0"},
+		{"npm", "npm", "npm-dependency", "missing@1"},
+	}
+	var nodes []mapdoc.Node
+	byRoot := map[string]int{}
+	for _, d := range declarations {
+		fact := mapdoc.Fact{Kind: "declared_requirement", Name: d.kind, Value: d.value, State: "declared", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}}
+		if index, ok := byRoot[d.root]; ok {
+			fact.Evidence = nodes[index].Evidence
+			nodes[index].Facts = append(nodes[index].Facts, fact)
+			continue
+		}
+		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{d.root}, d.ecosystem)
+		n.Properties = map[string]string{"root": d.root, "ecosystem": d.ecosystem}
+		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: d.root + "/manifest", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+		fact.Evidence = n.Evidence
+		n.Facts = []mapdoc.Fact{fact}
+		byRoot[d.root] = len(nodes)
+		nodes = append(nodes, n)
+	}
+	report := `{"descriptor":{"name":"syft","version":"1"},"source":{"type":"directory","metadata":{"dircue_snapshot_tree":"abc"}},"artifacts":[` +
+		`{"id":"npm","name":"lodash","purl":"pkg:npm/lodash@4.17.21","locations":[{"path":"/npm/package-lock.json"}]},` +
+		`{"id":"go","name":"github.com/acme/lib","purl":"pkg:golang/github.com/acme/lib@v1.2.0","locations":[{"path":"/go/go.mod"}]},` +
+		`{"id":"cargo","name":"serde","purl":"pkg:cargo/serde@1.0","locations":[{"path":"/cargo/Cargo.lock"}]},` +
+		`{"id":"python","name":"requests","purl":"pkg:pypi/requests@2.0","locations":[{"path":"/python/uv.lock"}]},` +
+		`{"id":"dotnet","name":"Example.Package","purl":"pkg:nuget/Example.Package@1.2.3","locations":[{"path":"/dotnet/obj/project.assets.json"}]},` +
+		`{"id":"maven","name":"lib","purl":"pkg:maven/org.example/lib@1.0","locations":[{"path":"/maven/pom.xml"}]},` +
+		`{"id":"gradle","name":"thing","purl":"pkg:maven/org.gradle/thing@2.0","locations":[{"path":"/gradle/build.gradle"}]},` +
+		`{"id":"extra","name":"transitive","purl":"pkg:npm/transitive@1","locations":[{"path":"/npm/package-lock.json"}]}` +
+		`]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: nodes}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, report)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	matches, missing, unmatched := 0, 0, 0
+	for _, node := range r.Nodes {
+		for _, fact := range node.Facts {
+			switch fact.State {
+			case "exact_identity":
+				matches++
+			case "no_match_in_supplied_report":
+				missing++
+			case "no_matching_retained_declaration":
+				unmatched++
+			}
+		}
+	}
+	if matches != 7 || missing != 1 || unmatched != 1 {
+		t.Fatalf("matches=%d missing=%d unmatched=%d result=%+v", matches, missing, unmatched, r.Nodes)
+	}
+}
+
+func TestSyftRequirementComparisonRequiresVerifiedBindingAndUnambiguousIdentity(t *testing.T) {
+	c := component()
+	c.Facts = []mapdoc.Fact{{Kind: "declared_requirement", Name: "go-require", Value: "example.test/dep v1", State: "declared", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: c.Evidence}}
+	base := `{"descriptor":{"name":"syft"},"source":{"type":"directory"%s},"artifacts":[{"id":"a","name":"dep","purl":"pkg:golang/example.test/dep@v1","locations":[{"path":"/services/api/go.mod"}]},{"id":"b","name":"dep","purl":"pkg:golang/example.test/dep@v1","locations":[{"path":"/services/api/go.sum"}]}]}`
+	unbound, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{c}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, fmt.Sprintf(base, ""))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate := false
+	for _, node := range unbound.Nodes {
+		for _, fact := range node.Facts {
+			candidate = candidate || fact.State == "ambiguous_reported_identity"
+			if fact.State == "no_match_in_supplied_report" || fact.State == "no_matching_retained_declaration" {
+				t.Fatalf("unbound report produced absence comparison: %+v", fact)
+			}
+		}
+	}
+	if !candidate {
+		t.Fatalf("unbound candidate identity missing: %+v", unbound.Nodes)
+	}
+	verifiedJSON := fmt.Sprintf(base, `,"metadata":{"dircue_snapshot_tree":"abc"}`)
+	verified, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{c}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, verifiedJSON)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, node := range verified.Nodes {
+		for _, fact := range node.Facts {
+			found = found || fact.State == "ambiguous_reported_identity"
+		}
+	}
+	if !found {
+		t.Fatalf("ambiguous comparison missing: %+v", verified.Nodes)
+	}
+}
+
+func TestSyftRequirementComparisonUsesPinnedV152Fixture(t *testing.T) {
+	data, err := os.ReadFile("../../tests/packageevidence/fixtures/syft-1.52.0.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"java"}, "maven")
+	component.Properties = map[string]string{"root": "java", "ecosystem": "maven"}
+	component.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	component.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "java/pom.xml", SourceKind: mapdoc.SourceConfiguration}}
+	component.Facts = []mapdoc.Fact{{Kind: "declared_requirement", Name: "maven-dependency", Value: "example:app:1.0.0", State: "declared", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: component.Evidence}}
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, string(data))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, node := range r.Nodes {
+		for _, fact := range node.Facts {
+			found = found || fact.Kind == "declared_requirement_match" && fact.Value == "maven:example:app" && fact.State == "candidate_identity_unverified_binding" && slices.Contains(fact.Coverage.Reasons, "provider_snapshot_binding_unknown")
+		}
+	}
+	if !found {
+		t.Fatalf("pinned Syft v1.52.0 package did not reconcile: %+v", r.Nodes)
 	}
 }

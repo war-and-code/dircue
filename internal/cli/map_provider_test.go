@@ -136,6 +136,35 @@ func TestMapAcceptsLeadingSlashNoirRouteAndBifrostAttachment(t *testing.T) {
 	}
 }
 
+func TestMapImportsPinnedNoirV121HTTPInterfaces(t *testing.T) {
+	root := t.TempDir()
+	writeMapSourceFixture(t, root)
+	fixture, err := filepath.Abs(filepath.Join("..", "..", "pkg", "providerjoin", "testdata", "noir-1.2.1-flask-relative.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, stderr, err := invoke("map", "--source", "directory", "--json", "--attach", "noir-json="+fixture, root)
+	if err != nil || stderr != "" {
+		t.Fatalf("attach err=%v stderr=%q", err, stderr)
+	}
+	var doc mapdoc.Document
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatal(err)
+	}
+	httpInterfaces := 0
+	for _, node := range doc.Nodes {
+		if node.Kind == mapdoc.NodeInterface && node.Properties["kind"] == "http" {
+			httpInterfaces++
+			if strings.HasPrefix(node.Properties["route"], "cli://") {
+				t.Fatalf("CLI endpoint imported as HTTP: %+v", node)
+			}
+		}
+	}
+	if httpInterfaces != 23 {
+		t.Fatalf("HTTP interfaces=%d, want 23", httpInterfaces)
+	}
+}
+
 func writeMapSourceFixture(t *testing.T, root string) {
 	t.Helper()
 	for name, content := range map[string]string{

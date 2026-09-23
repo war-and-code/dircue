@@ -42,6 +42,7 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	byArtifact := map[string]string{}
 	covered := []string{}
+	observations := []syftPackageObservation{}
 	for index, a := range doc.Artifacts {
 		paths := []string{"."}
 		for _, loc := range a.Locations {
@@ -80,11 +81,14 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		n.Evidence = []mapdoc.Evidence{evidence(provider, version, paths[0], 0)}
 		out.Nodes = append(out.Nodes, n)
+		nodeIndex := len(out.Nodes) - 1
 		byArtifact[a.ID] = n.ID
 		e := mapdoc.NewEdge(mapdoc.EdgeAnalyzedBy, n.ID, tool.ID, "")
 		e.Coverage, e.Evidence = n.Coverage, n.Evidence
 		out.Edges = append(out.Edges, e)
-		if owner := nearestOwner(in.Nodes, paths); owner != "" {
+		owner := nearestOwner(in.Nodes, paths)
+		observations = append(observations, syftPackageObservation{nodeIndex: nodeIndex, key: syftPackageKey(a.Type, a.PURL, a.Name), owner: owner})
+		if owner != "" {
 			associated := mapdoc.NewEdge(mapdoc.EdgePackagedIn, n.ID, owner, "provider_location")
 			associated.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 			associated.Evidence = n.Evidence
@@ -112,6 +116,7 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 		out.Edges = append(out.Edges, e)
 	}
 	covered = compact(covered)
+	reconcileSyftRequirements(&out, in, b, covered, observations)
 	out.Ledger = []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
 	return out, nil
 }

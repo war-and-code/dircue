@@ -107,3 +107,21 @@ func TestBuiltInDescriptorsAreVersionedAndSourced(t *testing.T) {
 		}
 	}
 }
+
+func TestNoSourcePopulationProducesNoSyntheticAnalyzerBlindSpots(t *testing.T) {
+	d := mapdoc.New()
+	d.Coverage = []mapdoc.QuestionCoverage{{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}}}
+	coverageledger.Reconcile(&d)
+	if len(d.AnalyzerCoverage) != 0 || len(d.AnalyzerBlindSpots) != 0 {
+		t.Fatalf("synthetic analyzer accounting: coverage=%+v blind_spots=%+v", d.AnalyzerCoverage, d.AnalyzerBlindSpots)
+	}
+	for _, question := range d.Coverage {
+		if question.Question == "analyzer_coverage" {
+			if question.Status != mapdoc.CoverageUnknown || len(question.Reasons) != 1 || question.Reasons[0] != "no_source_population_observed" {
+				t.Fatalf("analyzer coverage=%+v", question)
+			}
+			return
+		}
+	}
+	t.Fatal("analyzer_coverage question missing")
+}
