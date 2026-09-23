@@ -86,6 +86,17 @@ func writeMapComparison(out io.Writer, report mapdiff.Report) error {
 			return err
 		}
 	}
+	if _, err := fmt.Fprintf(out, "Provider coverage: %s", report.CoverageLedgerStatus); err != nil {
+		return err
+	}
+	if len(report.CoverageLedgerChanges) > 0 {
+		if _, err := fmt.Fprintf(out, " (%d changes)", len(report.CoverageLedgerChanges)); err != nil {
+			return err
+		}
+	}
+	if _, err := fmt.Fprintln(out); err != nil {
+		return err
+	}
 	for _, caveat := range report.Caveats {
 		if _, err := fmt.Fprintf(out, "Caveat: %s\n", caveat); err != nil {
 			return err
