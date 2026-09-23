@@ -112,7 +112,7 @@ def main():
             if commit != expected["commit"]:
                 raise SystemExit(f"{expected['id']}: commit {commit}, expected {expected['commit']}")
         evaluated_paths = set()
-        for oracle in expected["oracle_files"]:
+        for oracle in expected["oracle_files"] + expected.get("supporting_files", []):
             if expected["source_type"] == "git":
                 content = subprocess.run(
                     ["git", "-C", str(source), "show", f"HEAD:{oracle['path']}"],
@@ -125,7 +125,8 @@ def main():
                 raise SystemExit(f"{expected['id']}: oracle digest mismatch for {oracle['path']}")
             if commit and commit not in oracle["url"]:
                 raise SystemExit(f"{expected['id']}: oracle URL is not commit-pinned: {oracle['url']}")
-            evaluated_paths.add(oracle["path"])
+            if oracle in expected["oracle_files"]:
+                evaluated_paths.add(oracle["path"])
         started = time.monotonic()
         command = [str(binary), "map", "--json", str(source)]
         if expected["source_type"] == "git":

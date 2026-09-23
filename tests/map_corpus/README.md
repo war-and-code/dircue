@@ -82,6 +82,8 @@ python3 tests/map_corpus/verify_public_quality.py \
 ```
 
 Each oracle path is content-hashed and linked to its exact upstream commit.
+The microservices-demo run edge also uses a separately hashed Skaffold file as
+supporting evidence; that file does not expand the scored path set.
 For microservices-demo, the same gate also checks the full repository's twelve
 service roots, twelve primary Dockerfiles, and nine GitHub workflow files
 against source-enumerated path sets. These full-population guards catch dropped
