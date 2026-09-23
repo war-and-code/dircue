@@ -248,7 +248,8 @@ func declarationState(state string) string {
 }
 
 func owningProject(filename string, projects map[string]string) string {
-	bestRoot, bestID := "", ""
+	bestID := ""
+	bestLength, ambiguous := -1, false
 	for id, root := range projects {
 		root = strings.Trim(strings.TrimSpace(strings.ReplaceAll(root, "\\", "/")), "/")
 		if root == "." {
@@ -257,11 +258,15 @@ func owningProject(filename string, projects map[string]string) string {
 		if root != "" && filename != root && !strings.HasPrefix(filename, root+"/") {
 			continue
 		}
-		if len(root) > len(bestRoot) {
-			bestRoot, bestID = root, id
-		} else if len(root) == len(bestRoot) && id != bestID {
-			bestID = ""
+		if len(root) > bestLength {
+			bestID = id
+			bestLength, ambiguous = len(root), false
+		} else if len(root) == bestLength && id != bestID {
+			ambiguous = true
 		}
+	}
+	if ambiguous {
+		return ""
 	}
 	return bestID
 }
