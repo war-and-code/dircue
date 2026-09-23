@@ -577,7 +577,10 @@
           "oracle": {
             "source": "pinned upstream tree inventory",
             "path": "",
-            "url": "https://github.com/terraform-aws-modules/terraform-aws-vpc/tree/b3abd6df2ecf052451a361ed55b8f06f8742a795"
+            "url": "https://github.com/terraform-aws-modules/terraform-aws-vpc/tree/b3abd6df2ecf052451a361ed55b8f06f8742a795",
+            "absent_basenames": [
+              "pom.xml"
+            ]
           },
           "must_include": [],
           "must_not_include": [
@@ -623,7 +626,10 @@
           "oracle": {
             "source": "pinned upstream tree inventory",
             "path": "",
-            "url": "https://github.com/helm/examples/tree/4888ba8fb8180dd0c36d1e84c1fcafc6efd81532"
+            "url": "https://github.com/helm/examples/tree/4888ba8fb8180dd0c36d1e84c1fcafc6efd81532",
+            "absent_basenames": [
+              "package.json"
+            ]
           },
           "must_include": [],
           "must_not_include": [
@@ -815,7 +821,10 @@
           "oracle": {
             "source": "pinned upstream tree inventory",
             "path": "",
-            "url": "https://github.com/Kotlin/kotlin-koans/tree/5935a3cab5293bd7967b1bf1f4d2ae713f9e0e9e"
+            "url": "https://github.com/Kotlin/kotlin-koans/tree/5935a3cab5293bd7967b1bf1f4d2ae713f9e0e9e",
+            "absent_basenames": [
+              "pom.xml"
+            ]
           },
           "must_include": [],
           "must_not_include": [

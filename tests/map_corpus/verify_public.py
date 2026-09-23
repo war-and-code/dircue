@@ -4,7 +4,7 @@ import argparse
 import json
 import subprocess
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from verify import entries, matches
 
@@ -28,6 +28,7 @@ def main():
         commit = run(["git", "-C", str(source), "rev-parse", "HEAD"]).stdout.strip()
         if commit != expected["commit"]:
             raise SystemExit(f"{expected['id']}: commit {commit}, expected {expected['commit']}")
+        source_files = run(["git", "-C", str(source), "ls-tree", "-r", "--name-only", "HEAD"]).stdout.splitlines()
         started = time.monotonic()
         mapped = run([str(args.binary), "map", "--source", "git", "--json", str(source)])
         elapsed = time.monotonic() - started
@@ -49,6 +50,10 @@ def main():
                 )
                 if present.returncode != 0:
                     raise SystemExit(f"{expected['id']}/{question['id']}: oracle path absent: {source_path}")
+            for basename in oracle.get("absent_basenames", []):
+                found = [name for name in source_files if PurePosixPath(name).name == basename]
+                if found:
+                    raise SystemExit(f"{expected['id']}/{question['id']}: negative oracle contradicted by {found[:3]}")
             if disposition == "unknown":
                 if not question.get("reason"):
                     raise SystemExit(f"{expected['id']}/{question['id']}: unknown question requires a reason")
