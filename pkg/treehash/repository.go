@@ -165,6 +165,7 @@ func validObjectID(v string, format Format) bool {
 // submodules keep their recorded gitlink, and sparse entries stay recorded.
 type repositoryIndex struct {
 	tracked      map[string]bool
+	blobs        map[string]string // path -> indexed blob ID (stage 0)
 	trackedDirs  map[string]bool
 	gitlinks     map[string]string
 	skipWorktree int
@@ -191,10 +192,15 @@ func readRepositoryIndex(root *os.Root, gitDir string) (idx *repositoryIndex, er
 	if err := index.NewDecoder(bytes.NewReader(data)).Decode(&decoded); err != nil {
 		return nil, err
 	}
-	out := &repositoryIndex{tracked: map[string]bool{}, trackedDirs: map[string]bool{}, gitlinks: map[string]string{}}
+	out := &repositoryIndex{tracked: map[string]bool{}, blobs: map[string]string{}, trackedDirs: map[string]bool{}, gitlinks: map[string]string{}}
 	for _, e := range decoded.Entries {
 		name := e.Name
 		out.tracked[name] = true
+		// Stage 0 is a normal, merged entry. go-git names stage 1 "Merged",
+		// but its decoder stores the raw stage bits, so compare with zero.
+		if e.Stage == 0 && e.Mode != filemode.Submodule {
+			out.blobs[name] = e.Hash.String()
+		}
 		for dir := path.Dir(name); dir != "."; dir = path.Dir(dir) {
 			if out.trackedDirs[dir] {
 				break

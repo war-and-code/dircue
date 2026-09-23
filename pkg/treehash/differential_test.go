@@ -430,3 +430,31 @@ func TestDeterministicAcrossWorkerCounts(t *testing.T) {
 		}
 	}
 }
+
+// Git keeps committed CRLF content under text=auto (has_crlf_in_index). A
+// clean checkout must hash to the commit's tree, and a modified tracked file
+// whose indexed blob is not inspectable must qualify the result.
+func TestTextAutoWithCommittedCRLF(t *testing.T) {
+	git := gitAvailable(t)
+	src := t.TempDir()
+	home := t.TempDir()
+	write(t, filepath.Join(src, "legacy.js"), []byte("a\r\nb\r\n"), 0o644)
+	runGit(t, git, src, home, "init", "-q")
+	runGit(t, git, src, home, "add", "-A")
+	runGit(t, git, src, home, "commit", "-q", "-m", "crlf")
+	write(t, filepath.Join(src, ".gitattributes"), []byte("*.js text=auto eol=lf\n"), 0o644)
+	write(t, filepath.Join(src, "new.js"), []byte("c\r\nd\r\n"), 0o644)
+	runGit(t, git, src, home, "add", ".gitattributes", "new.js")
+	runGit(t, git, src, home, "commit", "-q", "-m", "attrs")
+	want := runGit(t, git, src, home, "rev-parse", "HEAD^{tree}")
+	clone := filepath.Join(t.TempDir(), "clone")
+	runGit(t, git, filepath.Dir(clone), home, "clone", "-q", src, clone)
+	if got := computeDir(t, clone, Options{}); got.TreeID != want || got.Status != StatusComplete {
+		t.Fatalf("clean checkout: got %+v want %s", got, want)
+	}
+	write(t, filepath.Join(clone, "legacy.js"), []byte("a\r\nb\r\nchanged\r\n"), 0o644)
+	got := computeDir(t, clone, Options{})
+	if got.Status != StatusPartial || !contains(got.Reasons, ReasonTextAutoIndexAssumed) {
+		t.Fatalf("modified tracked text=auto file must be qualified: %+v", got)
+	}
+}

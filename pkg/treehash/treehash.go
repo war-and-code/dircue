@@ -491,7 +491,7 @@ func (w *walker) hashAll(ctx context.Context) error {
 					firstErr = err
 				}
 				read += n
-				if converted && job.action == crlfAuto {
+				if converted {
 					autoConv = true
 				}
 				job.target.id = id
@@ -507,9 +507,7 @@ func (w *walker) hashAll(ctx context.Context) error {
 	if firstErr != nil {
 		return firstErr
 	}
-	if autoConv && w.indexKnown {
-		// Git skips text=auto normalization for paths whose indexed blob
-		// already contains CR; that blob content is not consulted here.
+	if autoConv {
 		w.reasons[ReasonTextAutoIndexAssumed] = true
 	}
 	return nil
@@ -565,8 +563,24 @@ func (w *walker) hashOne(job fileJob, buf []byte, out *[]byte) ([]byte, int64, b
 		return raw.Sum(nil), total, false, nil
 	}
 	s := stats.finish()
+	rawID := raw.Sum(nil)
 	if s.crlf == 0 || (job.action == crlfAuto && s.isBinary()) {
-		return raw.Sum(nil), total, false, nil
+		return rawID, total, false, nil
+	}
+	uncertain := false
+	if job.action == crlfAuto && w.index != nil {
+		// Git leaves text=auto content unnormalized when the indexed blob
+		// already contains CR (has_crlf_in_index). If the index records these
+		// exact bytes, that blob contains CRLF, so Git keeps them as they are.
+		// A different indexed blob cannot be inspected without the object
+		// store, so that case stays qualified.
+		if indexed, ok := w.index.blobs[job.path]; ok && indexed == hex.EncodeToString(rawID) {
+			return rawID, total, false, nil
+		}
+		// An untracked path has no indexed blob, so Git normalizes it. A
+		// tracked path whose indexed blob differs (or is conflicted) cannot be
+		// checked for CR without the object store.
+		uncertain = w.index.tracked[job.path]
 	}
 	// Second pass: hash the CRLF-normalized content under its new length.
 	if _, err := f.Seek(0, io.SeekStart); err != nil {
@@ -598,7 +612,7 @@ func (w *walker) hashOne(job fileJob, buf []byte, out *[]byte) ([]byte, int64, b
 	if again != job.size || written != want {
 		return nil, total, false, stopError{ReasonContentChanged}
 	}
-	return normalized.Sum(nil), total + again, true, nil
+	return normalized.Sum(nil), total + again, uncertain, nil
 }
 
 func writeHeader(h hash.Hash, kind string, size int64) {
