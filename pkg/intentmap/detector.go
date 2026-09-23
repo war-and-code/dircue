@@ -152,7 +152,8 @@ func (h *observationHeap) Pop() any {
 func (d *Detector) omit(reason string) { d.mu.Lock(); d.omissions[reason]++; d.mu.Unlock() }
 
 func parseGoImports(name string, content []byte) []Observation {
-	f, err := parser.ParseFile(token.NewFileSet(), name, content, parser.ImportsOnly)
+	fset := token.NewFileSet()
+	f, err := parser.ParseFile(fset, name, content, parser.ImportsOnly)
 	if err != nil {
 		return nil
 	}
@@ -164,7 +165,7 @@ func parseGoImports(name string, content []byte) []Observation {
 		}
 		line := 0
 		if spec.Pos().IsValid() {
-			line = fsetLine(content, int(spec.Pos()-f.Pos()))
+			line = fset.Position(spec.Pos()).Line
 		}
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
 		for _, capability := range capabilitiesFor(value) {
@@ -172,16 +173,6 @@ func parseGoImports(name string, content []byte) []Observation {
 		}
 	}
 	return out
-}
-
-func fsetLine(content []byte, offset int) int {
-	if offset < 0 {
-		return 0
-	}
-	if offset > len(content) {
-		offset = len(content)
-	}
-	return 1 + strings.Count(string(content[:offset]), "\n")
 }
 
 func compareObservation(a, b Observation) int {
