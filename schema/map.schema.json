@@ -4,13 +4,14 @@
   "title": "dircue map document",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schema_version", "kind", "status", "source", "coverage", "nodes", "edges"],
+  "required": ["schema_version", "kind", "status", "source", "coverage", "coverage_ledger", "nodes", "edges"],
   "properties": {
     "schema_version": { "const": "1.0.0" },
     "kind": { "const": "map" },
     "status": { "$ref": "#/$defs/coverage_status" },
     "source": { "$ref": "#/$defs/source" },
     "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
+    "coverage_ledger": { "type": "array", "items": { "$ref": "#/$defs/coverage_ledger_entry" } },
     "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
     "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
   },
@@ -48,6 +49,16 @@
       "type": "object", "additionalProperties": false, "required": ["question", "scope", "status", "reasons"],
       "properties": { "question": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
       "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
+    },
+    "coverage_ledger_entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tool", "report_kind", "scope", "binding", "ran", "covered_files", "state", "reason"],
+      "properties": {
+        "tool": { "$ref": "#/$defs/nonempty" }, "report_kind": { "$ref": "#/$defs/nonempty" },
+        "scope": { "$ref": "#/$defs/relative_path" }, "binding": { "enum": ["verified", "mismatch", "unknown"] },
+        "ran": { "type": "boolean" }, "covered_files": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
+        "state": { "$ref": "#/$defs/nonempty" }, "reason": { "type": "string" }
+      }
     },
     "producer": {
       "type": "object", "additionalProperties": false, "required": ["id", "version"],

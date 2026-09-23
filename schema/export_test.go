@@ -189,7 +189,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			n.Properties = map[string]string{"role": "source"}
 			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}
 			n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisFilenameHint, Path: "main.go", SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "fixture", Version: "1"}}}
-			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
+			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
 		}(),
 		"planning": plan, "profile": base,
 	}

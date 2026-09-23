@@ -39,6 +39,9 @@ func TestMapAttachmentAndRouting(t *testing.T) {
 	if !pkg || !tool {
 		t.Fatalf("attached nodes missing: %s", out)
 	}
+	if len(doc.CoverageLedger) != 1 || doc.CoverageLedger[0].Tool != "syft" || doc.CoverageLedger[0].Binding != "unknown" || !doc.CoverageLedger[0].Ran {
+		t.Fatalf("attached provider run missing from map coverage ledger: %+v", doc.CoverageLedger)
+	}
 	mapPath := filepath.Join(t.TempDir(), "map.json")
 	if err := os.WriteFile(mapPath, []byte(out), 0600); err != nil {
 		t.Fatal(err)

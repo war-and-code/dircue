@@ -65,13 +65,27 @@ const (
 )
 
 type Document struct {
-	SchemaVersion string             `json:"schema_version"`
-	Kind          string             `json:"kind"`
-	Status        CoverageStatus     `json:"status"`
-	Source        Source             `json:"source"`
-	Coverage      []QuestionCoverage `json:"coverage"`
-	Nodes         []Node             `json:"nodes"`
-	Edges         []Edge             `json:"edges"`
+	SchemaVersion  string                `json:"schema_version"`
+	Kind           string                `json:"kind"`
+	Status         CoverageStatus        `json:"status"`
+	Source         Source                `json:"source"`
+	Coverage       []QuestionCoverage    `json:"coverage"`
+	CoverageLedger []CoverageLedgerEntry `json:"coverage_ledger"`
+	Nodes          []Node                `json:"nodes"`
+	Edges          []Edge                `json:"edges"`
+}
+
+// CoverageLedgerEntry records only coverage a supplied provider report actually
+// disclosed. An empty CoveredFiles list is unknown coverage, not a clean run.
+type CoverageLedgerEntry struct {
+	Tool         string   `json:"tool"`
+	ReportKind   string   `json:"report_kind"`
+	Scope        string   `json:"scope"`
+	Binding      string   `json:"binding"`
+	Ran          bool     `json:"ran"`
+	CoveredFiles []string `json:"covered_files"`
+	State        string   `json:"state"`
+	Reason       string   `json:"reason"`
 }
 
 type Source struct {

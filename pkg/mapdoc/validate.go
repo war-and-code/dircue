@@ -64,6 +64,22 @@ func Validate(d Document) error {
 			sourceBindingQualified = true
 		}
 	}
+	for _, run := range d.CoverageLedger {
+		if run.Tool == "" || run.ReportKind == "" || run.State == "" {
+			return fail("coverage ledger requires tool, report kind, and state")
+		}
+		if err := validatePath(run.Scope); err != nil {
+			return fail("coverage ledger scope: %v", err)
+		}
+		if run.Binding != "verified" && run.Binding != "mismatch" && run.Binding != "unknown" {
+			return fail("coverage ledger has invalid binding %q", run.Binding)
+		}
+		for _, filename := range run.CoveredFiles {
+			if err := validatePath(filename); err != nil {
+				return fail("coverage ledger file: %v", err)
+			}
+		}
+	}
 	if d.Source.Mode == "directory" && d.Source.Digest == nil && !sourceBindingQualified {
 		return fail("unbound directory source requires unknown or partial source_binding coverage at scope .")
 	}
