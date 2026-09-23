@@ -219,6 +219,7 @@ func ParsePython(name string, content []byte) *Document {
 	if !ok {
 		return d
 	}
+	d.Project.Kind = "python-uv"
 	if value, found := uv["managed"]; found {
 		managed, ok := value.(bool)
 		data.managed = ok && managed

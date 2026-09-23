@@ -86,7 +86,7 @@ backend-path = ["backend"]
 test = ["pytest", { include-group = "lint" }]
 lint = ["ruff"]
 `))
-	if !d.Parsed || d.Project.Name != "weather-service" || d.Project.Version != "1.2.3" {
+	if !d.Parsed || d.Project.Name != "weather-service" || d.Project.Version != "1.2.3" || d.Project.Kind != "python" {
 		t.Fatalf("identity: %+v", d)
 	}
 	if len(d.Diagnostics) > 0 {
@@ -158,6 +158,9 @@ version="1"
 		"other/uv.lock": "version = 1",
 	})
 	root := pythonTestDoc(t, docs, "pyproject.toml")
+	if root.Project.Kind != "python-uv" {
+		t.Fatalf("explicit uv declaration kind: %+v", root.Project)
+	}
 	pythonTestRef(t, root, "uv-workspace-member", "declared-member", "pyproject.toml", "resolved")
 	pythonTestRef(t, root, "uv-local-dependency", "partner", "other/libs/partner/pyproject.toml", "resolved")
 	api := pythonTestDoc(t, docs, "services/api/pyproject.toml")
