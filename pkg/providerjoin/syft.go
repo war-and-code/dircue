@@ -41,7 +41,7 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	byArtifact := map[string]string{}
 	covered := []string{}
-	for _, a := range doc.Artifacts {
+	for index, a := range doc.Artifacts {
 		paths := []string{"."}
 		for _, loc := range a.Locations {
 			p := loc.Path
@@ -58,6 +58,15 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 		if disc == "" {
 			disc = a.Type + ":" + a.Name + ":" + a.Version
 		}
+		// A provider report can contain separate occurrences with the same
+		// coordinates and no usable root-relative location. Retain the
+		// provider artifact identity so those occurrences cannot collapse
+		// into a duplicate map node.
+		artifactIdentity := a.ID
+		if artifactIdentity == "" {
+			artifactIdentity = fmt.Sprintf("ordinal:%d", index)
+		}
+		disc += "\x00artifact:" + artifactIdentity
 		n := mapdoc.NewNode(mapdoc.NodePackage, paths, disc)
 		n.Name = a.Name
 		n.Properties = map[string]string{"package_type": a.Type}
