@@ -7,8 +7,15 @@ import (
 	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/go-git/go-git/v5/plumbing"
+	gogitcache "github.com/go-git/go-git/v5/plumbing/cache"
+	"github.com/go-git/go-git/v5/plumbing/object"
+	gogitfs "github.com/go-git/go-git/v5/storage/filesystem"
 
 	"dircue/pkg/treehash"
 )
@@ -273,8 +280,42 @@ func resolveRootIdentity(root *os.Root, dirPath, gitDir string, kind RootKind, s
 		return ident
 	}
 	ident.Commit = commitHash
+
+	// Read the commit object to get tree hash and committer time.
+	// Use the common dir (follows worktree commondir pointer) as the storage root.
+	commonRelDir := commonDir(root, gitDir)
+	absCommonDir := filepath.Join(root.Name(), filepath.FromSlash(commonRelDir))
+	treeHash, committerTime, detailErr := readCommitDetails(absCommonDir, commitHash)
+	if detailErr == nil {
+		ident.Tree = treeHash
+		ident.CommitterTime = committerTime
+	}
+	// A missing tree/committer time does not invalidate the identity; the
+	// commit hash itself is still resolved.
 	ident.IdentityStatus = IdentityResolved
 	return ident
+}
+
+// readCommitDetails opens a minimal go-git storage at absGitDir and reads the
+// commit object to extract the tree hash and committer Unix timestamp.
+// It never executes git and uses no network access.
+func readCommitDetails(absGitDir string, commitHex string) (treeHex string, unixTime int64, err error) {
+	// Resolve symlinks so go-git's pack-file index can locate objects.
+	// On macOS, /var/folders is a symlink to /private/var/folders and
+	// some osfs implementations do not follow symlinks for directory opens.
+	realDir, symlinkErr := filepath.EvalSymlinks(absGitDir)
+	if symlinkErr == nil {
+		absGitDir = realDir
+	}
+	repoFS := osfs.New(absGitDir)
+	storage := gogitfs.NewStorageWithOptions(repoFS, gogitcache.NewObjectLRUDefault(), gogitfs.Options{})
+	defer storage.Close()
+	hash := plumbing.NewHash(commitHex)
+	commit, err := object.GetCommit(storage, hash)
+	if err != nil {
+		return "", 0, err
+	}
+	return commit.TreeHash.String(), commit.Committer.When.Unix(), nil
 }
 
 // readSmallFile reads a file from root, bounded to maxBytes.
