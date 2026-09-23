@@ -32,10 +32,12 @@
       "oracle": {
         "source": "Python requirements file and GNU Makefile naming convention",
         "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/",
-        "fixture_evidence": "emailservice has requirements.txt and app.py; scripts/Makefile.lib is text, not a static library"
+        "fixture_evidence": "emailservice has requirements.txt, app.py and appsettings.json; scripts/Makefile.lib is text, not a static library"
       },
       "must_include": [
         {"kind": "component", "path": "services/emailservice/requirements.txt"},
+        {"kind": "capability", "name": "cache:redis", "path": "services/emailservice/requirements.txt"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "services/emailservice/appsettings.json"},
         {"kind": "coverage", "name": "components", "property": "status", "value": "partial"},
         {"kind": "coverage", "name": "capabilities", "property": "status", "value": "partial"}
       ],

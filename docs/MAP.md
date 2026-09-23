@@ -45,6 +45,24 @@ hash-based identities derived from their kind, paths, and discriminator. They
 can be compared across maps of the same logical content, but an ID is not a
 content checksum.
 
+The following `properties` keys carry stable meanings. A missing key means
+the observation did not establish that value; consumers should preserve unknown
+keys for future producers.
+
+| Kind | Common properties |
+| --- | --- |
+| Content population | `role`, `scope=inventory_population`, `files`, `bytes`; language populations also have `language` and `percentage`. |
+| Individual content | `role`, `format`, `bytes`; a filename hint alone has partial coverage. |
+| Component | `root`, `ecosystem`, `project_kind`; `language` is present only when attributed, with `language_basis`. Auxiliary paths may carry `role` and `role_basis=path_name`. |
+| Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. |
+| Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. |
+| Package | `package_type` from the attached provider report. |
+
+An edge's `declaration_kind` and `state` describe a local declaration when
+present. A `builds` or `runs` edge derived from a matching path or image is
+partial and cites both declarations when needed; it does not prove that a
+build or deployment succeeded.
+
 Export the bundled Draft 2020-12 schema without network access:
 
 ```sh
@@ -96,6 +114,14 @@ not a hard process-memory limit.
 
 Warnings go to stderr. JSON remains on stdout. Treat a zero exit status,
 warning-free stderr, and complete coverage as separate facts.
+
+The component, deployable, interface, and capability catalogs are bounded
+static recognizers. Their question coverage stays `partial` even after a
+successful scan, because recognized forms cannot prove that no other project,
+entry point, or dependency declaration exists. A filename-only content role is
+also partial until content evidence verifies it. Nodes under common test,
+fixture, example, and vendor paths remain in JSON with a path-derived `role`
+hint; the summary and default route planner leave them out of headlines.
 
 ## Control execution and coverage
 
