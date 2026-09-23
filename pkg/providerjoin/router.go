@@ -12,7 +12,7 @@ import (
 func Descriptors() []Descriptor {
 	return []Descriptor{
 		{Tool: "bca", Version: "1", Languages: []string{"go", "java", "kotlin", "python", "javascript", "typescript", "rust", "c", "c++", "c#"}, ReportKind: "sarif"},
-		{Tool: "bifrost", Version: "1", Languages: []string{"go", "java", "kotlin", "python", "javascript", "typescript", "rust", "c", "c++", "c#", "ruby", "php", "swift"}, ReportKind: "bifrost-json"},
+		{Tool: "bifrost", Version: "1", Languages: []string{"go", "java", "kotlin", "python", "javascript", "typescript", "rust", "c", "c++", "c#", "ruby", "php", "swift"}, ReportKind: "bifrost-code-query-json"},
 		{Tool: "codeql", Version: "1", Languages: []string{"c", "c++", "c#", "go", "java", "kotlin", "javascript", "typescript", "python", "ruby", "swift"}, ReportKind: "sarif"},
 		{Tool: "noir", Version: "1", RequiresFramework: true, ReportKind: "noir-json"},
 		{Tool: "opengrep", Version: "1", Languages: []string{"generic"}, ReportKind: "sarif"},
@@ -73,7 +73,7 @@ func Route(in Input) []Plan {
 			out = append(out, plan)
 		}
 		if containsAny(langs, "go", "java", "kotlin", "python", "javascript", "typescript", "rust", "c#", "c++", "ruby", "php", "swift") {
-			plan := unverifiedPlan("bifrost", c.ID, "supported_language_observed", scope, "bifrost-json")
+			plan := unverifiedPlan("bifrost", c.ID, "supported_language_observed", scope, "bifrost-code-query-json")
 			plan.Prerequisites = append(plan.Prerequisites, Prerequisite{Name: "staged_regular_file_inventory", Observed: false, Reason: "caller_must_stage_confined_regular_files"}, Prerequisite{Name: "semantic_pack_download_disabled", Observed: false, Reason: "caller_policy_required"}, Prerequisite{Name: "private_cache", Observed: false, Reason: "caller_policy_required"})
 			out = append(out, plan)
 		}
