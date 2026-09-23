@@ -3,6 +3,7 @@ package scanner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -18,6 +19,32 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
+
+func TestGitObjectCacheBudgetPreservesReport(t *testing.T) {
+	root, _, _ := gitFixture(t, map[string]string{
+		"go.mod":  "module example.test/cache\n\ngo 1.24\n",
+		"main.go": "package main\nfunc main() {}\n",
+	})
+	baseline, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, Discovery: true, Declarations: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgeted, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, Discovery: true, Declarations: true, GitObjectCacheBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := json.Marshal(baseline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(budgeted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(a, b) {
+		t.Fatalf("retained-object cache budget changed Git scan answer\nbase=%s\nbudgeted=%s", a, b)
+	}
+}
 
 func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func(...string) string) {
 	t.Helper()

@@ -19,7 +19,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "fast" || len(report.Settings) != 5 {
+	if report.Kind != "map_settings" || report.Preset != "fast" || len(report.Settings) != 6 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -31,6 +31,9 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	}
 	if got := byName["inventory.files"]; got.Value != "100000" || got.Category != "coverage-affecting" {
 		t.Fatalf("inventory.files = %+v", got)
+	}
+	if got := byName["git.object_cache_bytes"]; got.Value != "134217728" || got.Category != "performance-only" || got.Origin != "preset:fast" {
+		t.Fatalf("fast Git cache = %+v", got)
 	}
 	if !strings.Contains(strings.Join(report.Notes, " "), "not a measured RSS guarantee") {
 		t.Fatalf("resource qualification missing: %+v", report.Notes)
@@ -50,11 +53,16 @@ func TestMapSettingsPresetValuesAndValidation(t *testing.T) {
 		if report.Settings[0].Name != "workers" || report.Settings[0].Value != workers {
 			t.Fatalf("%s: %+v", preset, report.Settings)
 		}
+		if preset == "low-memory" && (report.Settings[1].Name != "git.object_cache_bytes" || report.Settings[1].Value != "8388608") {
+			t.Fatalf("low-memory retained Git cache is not reduced: %+v", report.Settings)
+		}
 	}
 	for _, args := range [][]string{
 		{"map", "settings", "--preset", "turbo"},
 		{"map", "settings", "--set", "workers=-1"},
 		{"map", "settings", "--set", "invented=1"},
+		{"map", "settings", "--set", "git.object_cache_bytes=0"},
+		{"map", "settings", "--set", "git.object_cache_bytes=3GiB"},
 		{"map", "settings", "--cpu-limit", "-1"},
 		{"map", "settings", "--memory-limit", "nope"},
 		{"map", "settings", "--memory-limit", "1"},

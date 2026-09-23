@@ -89,7 +89,8 @@ func newMapCommand(opts *options) *cobra.Command {
 				Source: opts.source, Revision: revision, Tree: opts.tree,
 				ErrorPolicy: scanner.ErrorPolicy(opts.onError), Workers: settings.Workers,
 				MaxTreeSize: settings.MaxFiles, MaxFileBytes: settings.MaxFileBytes,
-				Detectors: hooks, Discovery: true, Declarations: true,
+				GitObjectCacheBytes: settings.GitCacheBytes,
+				Detectors:           hooks, Discovery: true, Declarations: true,
 				Formats: true, Availability: true, Environments: true, Registries: true,
 			})
 			if err != nil {

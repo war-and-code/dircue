@@ -299,6 +299,9 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		return nil, fmt.Errorf("open Git repository: %w", err)
 	}
 	objectCache := cache.Object(cache.NewObjectLRUDefault())
+	if opts.GitObjectCacheBytes > 0 {
+		objectCache = cache.NewObjectLRU(cache.FileSize(opts.GitObjectCacheBytes))
+	}
 	if opts.GitReadMetrics != nil {
 		objectCache = &metricsObjectCache{Object: objectCache, metrics: opts.GitReadMetrics}
 	}
