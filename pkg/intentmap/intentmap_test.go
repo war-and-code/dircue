@@ -109,6 +109,75 @@ func TestGoImportEvidenceUsesSourceLine(t *testing.T) {
 	}
 }
 
+func TestGoBinaryRequiresPackageMainAndMainFunction(t *testing.T) {
+	observations := parseGoImports("cmd/tool/main.go", []byte("package main\n\nfunc main() {}\n"))
+	found := false
+	for _, o := range observations {
+		found = found || o.Kind == KindInterface && o.Properties["interface_kind"] == "binary" && o.StartLine == 3
+	}
+	if !found {
+		t.Fatalf("main package did not produce binary entry observation: %+v", observations)
+	}
+	for _, source := range []string{"package main\n", "package cli\nfunc main() {}\n"} {
+		for _, o := range parseGoImports("main.go", []byte(source)) {
+			if o.Kind == KindInterface {
+				t.Fatalf("incomplete/non-main source overclaimed binary: %+v", o)
+			}
+		}
+	}
+}
+
+func TestAppsettingsRedisAndEventBusCapabilitiesUseKeyEvidence(t *testing.T) {
+	d := New(Options{})
+	body := []byte(`{"ConnectionStrings":{"Redis":"redis://secret","EventBus":"amqp://secret"},"EventBus":{"HostAddress":"rabbitmq"},"RabbitMQ":{"HostName":"broker"}}`)
+	if _, err := d.Detect(context.Background(), profile.File{Path: "appsettings.json", Size: int64(len(body)), Content: body}); err != nil {
+		t.Fatal(err)
+	}
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundRedis, foundAMQP, foundBus := false, false, false
+	for _, o := range r.Observations {
+		if o.Kind != KindCapability {
+			continue
+		}
+		switch o.Name {
+		case "cache:redis":
+			foundRedis = true
+		case "messaging:amqp":
+			foundAMQP = true
+		case "messaging:event-bus":
+			foundBus = true
+		}
+	}
+	if !foundRedis || !foundAMQP || !foundBus {
+		t.Fatalf("missing appsettings capability evidence: %+v", r.Observations)
+	}
+	encoded, _ := json.Marshal(r)
+	if strings.Contains(string(encoded), "secret") {
+		t.Fatalf("configuration value leaked: %s", encoded)
+	}
+}
+
+func TestDeclaredPythonRequirementsCreateCapabilitiesAndEntryInterfaces(t *testing.T) {
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "svc/pyproject.toml", Root: "svc", Kind: "python", Requirements: []declarations.Requirement{{Kind: "python-dependency", Value: "redis>=5", State: "declared", Evidence: "svc/pyproject.toml"}, {Kind: "python-dependency", Value: "aio-pika>=9", State: "declared", Evidence: "svc/pyproject.toml"}}, Interfaces: []declarations.Interface{{Kind: "python-console-script", Name: "svc", Target: "svc.cli:main", State: "declared", Evidence: "svc/pyproject.toml"}}}})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundRedis, foundAMQP, foundEntry := false, false, false
+	for _, o := range r.Observations {
+		foundRedis = foundRedis || o.Kind == KindCapability && o.Name == "cache:redis" && o.Basis == "declared_dependency"
+		foundAMQP = foundAMQP || o.Kind == KindCapability && o.Name == "messaging:amqp" && o.Basis == "declared_dependency"
+		foundEntry = foundEntry || o.Kind == KindInterface && o.Name == "svc" && o.Properties["target"] == "svc.cli:main"
+	}
+	if !foundRedis || !foundAMQP || !foundEntry {
+		t.Fatalf("missing declared Python evidence: %+v", r.Observations)
+	}
+}
+
 func TestConcurrentDetectionIsDeterministicAndBounded(t *testing.T) {
 	run := func() *Report {
 		d := New(Options{MaxObservations: 8})

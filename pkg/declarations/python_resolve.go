@@ -16,6 +16,24 @@ type pythonWorkspace struct {
 // ResolvePython only consults the selected inventory. A matched manifest proves
 // a declared relationship, not installability or the active uv environment.
 func ResolvePython(docs []*Document, files map[string]bool) {
+	pyprojectRoots := map[string]bool{}
+	for _, d := range docs {
+		if d != nil && d.Project != nil && path.Base(d.Project.ID) == "pyproject.toml" {
+			pyprojectRoots[d.Project.Root] = true
+		}
+	}
+	for _, d := range docs {
+		if d == nil || d.Project == nil {
+			continue
+		}
+		data, ok := d.Data.(*pythonData)
+		if !ok || !data.auxiliary {
+			continue
+		}
+		if pyprojectRoots[d.Project.Root] || !pythonSourceInRoot(files, d.Project.Root) {
+			d.Project = nil
+		}
+	}
 	pythonDocs := []*Document{}
 	byID := map[string]*Document{}
 	workspaces := map[string]*pythonWorkspace{}
@@ -238,6 +256,19 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 		}
 
 	}
+}
+
+func pythonSourceInRoot(files map[string]bool, root string) bool {
+	for filename := range files {
+		if path.Ext(filename) != ".py" || path.Base(filename) == "setup.py" {
+			continue
+		}
+		relative, ok := pythonRelative(root, path.Dir(filename))
+		if ok && relative != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func pythonRelative(root, dir string) (string, bool) {

@@ -3,6 +3,7 @@ package intentmap
 import (
 	"container/heap"
 	"context"
+	"go/ast"
 	"go/parser"
 	"go/token"
 	"path"
@@ -153,11 +154,22 @@ func (d *Detector) omit(reason string) { d.mu.Lock(); d.omissions[reason]++; d.m
 
 func parseGoImports(name string, content []byte) []Observation {
 	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, name, content, parser.ImportsOnly)
+	f, err := parser.ParseFile(fset, name, content, 0)
 	if err != nil {
 		return nil
 	}
 	var out []Observation
+	if f.Name != nil && f.Name.Name == "main" {
+		for _, decl := range f.Decls {
+			fn, ok := decl.(*ast.FuncDecl)
+			if !ok || fn.Recv != nil || fn.Name.Name != "main" {
+				continue
+			}
+			line := fset.Position(fn.Pos()).Line
+			out = append(out, Observation{Kind: KindInterface, Name: "go-binary", State: "declared", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"interface_kind": "binary", "package": "main"}})
+			break
+		}
+	}
 	for _, spec := range f.Imports {
 		value, err := strconv.Unquote(spec.Path.Value)
 		if err != nil || value == "" {

@@ -47,7 +47,7 @@ godebug panicnil=1
 			t.Errorf("indirect: %+v", ref)
 		}
 	}
-	if len(d.Project.Interfaces) != 2 || d.Project.Interfaces[1].Name != "example.org/tools/check" {
+	if len(d.Project.Interfaces) != 1 || d.Project.Interfaces[0].Name != "example.org/tools/check" {
 		t.Fatalf("interfaces: %+v", d.Project.Interfaces)
 	}
 }

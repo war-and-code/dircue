@@ -100,12 +100,16 @@ func configEntryKey(s string) bool {
 func configCapability(s string) (string, bool) {
 	u := strings.ToUpper(s)
 	switch {
-	case strings.Contains(u, "CONNECTIONSTRINGS") || strings.Contains(u, "DATABASE_URL") || strings.Contains(u, "DATASOURCE"):
-		return "datastore:relational", true
 	case strings.Contains(u, "REDIS"):
 		return "cache:redis", true
+	case strings.Contains(u, "RABBITMQ") || strings.Contains(u, "AMQP"):
+		return "messaging:amqp", true
+	case strings.Contains(u, "EVENTBUS") || strings.Contains(u, "EVENT_BUS") || strings.Contains(u, "MESSAGEBROKER"):
+		return "messaging:event-bus", true
 	case strings.Contains(u, "KAFKA"):
 		return "messaging:kafka", true
+	case strings.Contains(u, "CONNECTIONSTRINGS") || strings.Contains(u, "DATABASE_URL") || strings.Contains(u, "DATASOURCE"):
+		return "datastore:relational", true
 	case strings.Contains(u, "OIDC") || strings.Contains(u, "OPENID"):
 		return "auth:oidc", true
 	case strings.Contains(u, "JWT"):
