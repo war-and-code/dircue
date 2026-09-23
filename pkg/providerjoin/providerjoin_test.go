@@ -78,6 +78,30 @@ func TestMismatchAndUnboundDirectoryStayQualified(t *testing.T) {
 	}
 }
 
+func TestSyftDuplicateCoordinatesRemainDistinctWithoutRelativeLocations(t *testing.T) {
+	report := `{"descriptor":{"name":"syft","version":"1"},"artifacts":[` +
+		`{"id":"first","name":"demo","version":"1","type":"go-module","purl":"pkg:golang/demo@1","locations":[{"path":"/absolute/one"}]},` +
+		`{"id":"second","name":"demo","version":"1","type":"go-module","purl":"pkg:golang/demo@1","locations":[{"path":"/absolute/two"}]}` +
+		`]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, report)}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string]bool{}
+	for _, node := range r.Nodes {
+		if node.Kind != mapdoc.NodePackage {
+			continue
+		}
+		if ids[node.ID] {
+			t.Fatalf("duplicate package node ID %q", node.ID)
+		}
+		ids[node.ID] = true
+	}
+	if len(ids) != 2 {
+		t.Fatalf("package nodes=%d; want 2", len(ids))
+	}
+}
+
 func TestSARIFImportsRunMetadataButNotResults(t *testing.T) {
 	p := attachment(t, `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}},{"location":{"uri":"file:///etc/passwd"}}],"invocations":[{"executionSuccessful":true}],"properties":{"dircue_snapshot_tree":"abc"},"results":[{"ruleId":"secret","message":{"text":"vulnerability"}}]}]}`)
 	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "sarif", Path: p}}, providerjoin.Options{})
