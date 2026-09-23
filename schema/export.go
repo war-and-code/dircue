@@ -37,6 +37,9 @@ var cliCapabilitiesJSON []byte
 //go:embed guide.schema.json
 var guideJSON []byte
 
+//go:embed forest.schema.json
+var forestJSON []byte
+
 const resourceBase = "https://dircue.invalid/schema/"
 
 // The explicit registry is also the export allowlist. In particular, a name
@@ -51,6 +54,7 @@ var exportResources = map[string][]byte{
 	"explanation":      explanationJSON,
 	"findings":         findingsJSON,
 	"focus":            focusJSON,
+	"forest":           forestJSON,
 	"formats":          formatsJSON,
 	"hotspots":         hotspotsJSON,
 	"guide":            guideJSON,

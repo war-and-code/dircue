@@ -26,7 +26,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "formats", "guide", "hotspots", "languages", "map", "planning", "profile"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "planning", "profile"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -192,6 +192,30 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, AnalyzerCoverage: []mapdoc.AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
 		}(),
 		"planning": plan, "profile": base,
+		"forest": map[string]any{
+			"schema_version": "1.0.0",
+			"kind":           "forest",
+			"status":         "complete",
+			"source":         map[string]any{"mode": "directory", "path": "/example"},
+			"coverage": []map[string]any{
+				{"question": "roots", "scope": ".", "status": "complete", "reasons": []string{}},
+				{"question": "residual", "scope": ".", "status": "complete", "reasons": []string{}},
+				{"question": "environment_trees", "scope": ".", "status": "complete", "reasons": []string{}},
+			},
+			"roots": []any{},
+			"residual": map[string]any{
+				"schema_version":     "1.0.0",
+				"kind":               "map",
+				"status":             "complete",
+				"source":             map[string]any{"mode": "directory"},
+				"coverage":           []any{},
+				"coverage_ledger":    []any{},
+				"analyzer_coverage":  []any{},
+				"analyzer_blind_spots": []any{},
+				"nodes":              []any{},
+				"edges":              []any{},
+			},
+		},
 	}
 	for _, name := range schema.Names() {
 		t.Run(name, func(t *testing.T) {

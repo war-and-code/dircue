@@ -22,6 +22,7 @@ import (
 	"dircue/pkg/environments"
 	"dircue/pkg/explain"
 	"dircue/pkg/focus"
+	"dircue/pkg/forest"
 	"dircue/pkg/formats"
 	"dircue/pkg/profile"
 	"dircue/pkg/projects"
@@ -87,8 +88,20 @@ type Options struct {
 	// GitObjectCacheBytes bounds go-git's retained decoded-object cache. Zero
 	// uses go-git's default; this changes memory/speed, not selected content.
 	GitObjectCacheBytes int64
-	structureGate       chan struct{}
-	languageTrace       *explain.LanguageTrace
+	// SummarizeTrees, when true and the source is a directory, recognizes
+	// environment and build-output trees (node_modules, virtualenvs, Rust
+	// target/, .gradle, etc.) and summarizes them instead of walking them.
+	// Has no effect on Git-mode maps.
+	SummarizeTrees bool
+	// SummarizeTreeEntryCap bounds the entry count per summarized tree.
+	// Zero uses the package default (1,000,000).
+	SummarizeTreeEntryCap int64
+	// ExcludePaths is a set of root-relative directory paths to skip entirely
+	// during the directory walk. Used by forest mode to exclude nested roots
+	// from the residual scan.
+	ExcludePaths  map[string]bool
+	structureGate chan struct{}
+	languageTrace *explain.LanguageTrace
 }
 
 type ErrorPolicy string
@@ -148,6 +161,10 @@ type result struct {
 	role                string
 	omission            string
 	structural          *structure.File
+	// envTree is set when this result represents a summarized environment tree
+	// rather than a scanned file. Only populated in directory mode when
+	// SummarizeTrees is true.
+	envTree *profile.SummarizedTree
 }
 
 // Scan returns a deterministic report. A zero worker count uses GOMAXPROCS,
@@ -435,6 +452,26 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				if entry.Name() == ".git" {
 					return fs.SkipDir
 				}
+				// Skip explicitly excluded paths (used by forest residual scans).
+				if opts.ExcludePaths != nil && opts.ExcludePaths[filename] {
+					return fs.SkipDir
+				}
+				// Recognize environment and build-output trees.
+				if opts.SummarizeTrees && filename != "." && snapshot == nil {
+					if match := forest.CheckEnvTree(root, filename); match != nil {
+						summary := forest.SummarizeEnvTree(root, *match, opts.SummarizeTreeEntryCap)
+						st := &profile.SummarizedTree{
+							Path: summary.Path, Kind: string(summary.Kind), Ecosystem: summary.Ecosystem,
+							Marker: summary.Marker, Basis: summary.Basis,
+							Entries: summary.Entries, Bytes: summary.Bytes,
+							Bounded: summary.Bounded, LowerBound: summary.LowerBound, Reason: summary.Reason,
+						}
+						if !send(result{envTree: st}) {
+							return ctx.Err()
+						}
+						return fs.SkipDir
+					}
+				}
 				depth := 0
 				if filename != "." {
 					depth = strings.Count(filename, "/") + 1
@@ -612,6 +649,11 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	var targetTrace *explain.LanguageTrace
 	targetNonRegular := false
 	for value := range results {
+		// Env tree summaries are a distinct result kind; handle them first.
+		if value.envTree != nil {
+			report.SummarizedTrees = append(report.SummarizedTrees, *value.envTree)
+			continue
+		}
 		if environmentCollector != nil {
 			if err := environmentCollector.add(value); err != nil {
 				fail(err)
