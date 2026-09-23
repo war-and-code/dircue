@@ -14,6 +14,7 @@ import (
 
 	"dircue/internal/cli"
 	"dircue/pkg/capabilities"
+	"dircue/pkg/mapdoc"
 	"dircue/pkg/planning"
 	"dircue/pkg/profile"
 	"dircue/pkg/reportdiff"
@@ -25,7 +26,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "formats", "guide", "hotspots", "languages", "planning", "profile"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "formats", "guide", "hotspots", "languages", "map", "planning", "profile"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -183,7 +184,14 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		"findings": exportCLIValue(t, "analyze", "frameworks", "--json", "--source", "directory", root),
 		"focus":    focus["focus"], "formats": base["formats"], "hotspots": hotspots,
 		"languages": exportCLIValue(t, "--json", "--source", "directory", root),
-		"planning":  plan, "profile": base,
+		"map": func() mapdoc.Document {
+			n := mapdoc.NewNode(mapdoc.NodeContent, []string{"main.go"}, "source")
+			n.Properties = map[string]string{"role": "source"}
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}
+			n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisFilenameHint, Path: "main.go", SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "fixture", Version: "1"}}}
+			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: strings.Repeat("a", 64)}, Coverage: []mapdoc.QuestionCoverage{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
+		}(),
+		"planning": plan, "profile": base,
 	}
 	for _, name := range schema.Names() {
 		t.Run(name, func(t *testing.T) {

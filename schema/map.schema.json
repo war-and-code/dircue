@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dircue.invalid/schema/map.schema.json",
+  "title": "dircue map document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "source", "coverage", "nodes", "edges"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "kind": { "const": "map" },
+    "status": { "$ref": "#/$defs/coverage_status" },
+    "source": { "$ref": "#/$defs/source" },
+    "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
+  },
+  "$defs": {
+    "nonempty": { "type": "string", "minLength": 1 },
+    "relative_path": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]" },
+    "coverage_status": { "enum": ["complete", "partial", "unknown"] },
+    "coverage": {
+      "type": "object", "additionalProperties": false, "required": ["status", "reasons"],
+      "properties": { "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
+      "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
+    },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": { "mode": { "enum": ["git", "directory"] }, "revision": { "$ref": "#/$defs/nonempty" }, "tree": { "$ref": "#/$defs/nonempty" }, "digest": { "$ref": "#/$defs/nonempty" } },
+      "oneOf": [
+        { "properties": { "mode": { "const": "git" } }, "required": ["revision", "tree"], "not": { "required": ["digest"] } },
+        { "properties": { "mode": { "const": "directory" } }, "required": ["digest"], "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["tree"] }] } }
+      ]
+    },
+    "question_coverage": {
+      "type": "object", "additionalProperties": false, "required": ["question", "scope", "status", "reasons"],
+      "properties": { "question": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
+      "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
+    },
+    "producer": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version"],
+      "properties": { "id": { "$ref": "#/$defs/nonempty" }, "version": { "$ref": "#/$defs/nonempty" } }
+    },
+    "span": {
+      "type": "object", "additionalProperties": false, "required": ["start_line", "end_line"],
+      "properties": { "start_line": { "type": "integer", "minimum": 1 }, "start_column": { "type": "integer", "minimum": 0 }, "end_line": { "type": "integer", "minimum": 1 }, "end_column": { "type": "integer", "minimum": 0 } }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false, "required": ["basis", "path", "source_kind"],
+      "properties": {
+        "basis": { "enum": ["declared_config", "code_syntax", "resolved_reference", "provider_reported", "rule_inferred", "filename_hint"] },
+        "path": { "$ref": "#/$defs/relative_path" }, "span": { "$ref": "#/$defs/span" },
+        "source_kind": { "enum": ["file", "configuration", "code", "comment", "docstring", "documentation"] },
+        "rule": { "$ref": "#/$defs/producer" }, "provider": { "$ref": "#/$defs/producer" }
+      },
+      "oneOf": [{ "required": ["rule"], "not": { "required": ["provider"] } }, { "required": ["provider"], "not": { "required": ["rule"] } }]
+    },
+    "properties": { "type": "object", "additionalProperties": { "type": "string" } },
+    "fact": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "coverage", "evidence"],
+      "properties": { "kind": { "$ref": "#/$defs/nonempty" }, "name": { "type": "string" }, "value": { "type": "string" }, "state": { "type": "string" }, "condition": { "type": "string" }, "properties": { "$ref": "#/$defs/properties" }, "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } } }
+    },
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id", "kind", "paths", "coverage", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonempty" }, "kind": { "enum": ["content", "component", "deployable", "interface", "capability", "package", "tool_run"] },
+        "name": { "type": "string" }, "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/relative_path" } }, "discriminator": { "type": "string" },
+        "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }, "properties": { "$ref": "#/$defs/properties" }, "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } }
+      }
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "from", "to", "coverage", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonempty" }, "type": { "enum": ["contains", "member_of", "depends_on_local", "builds", "runs", "exposes", "declares", "uses_capability", "packaged_in", "analyzed_by", "conflicts_with"] },
+        "from": { "$ref": "#/$defs/nonempty" }, "to": { "$ref": "#/$defs/nonempty" }, "discriminator": { "type": "string" }, "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }, "properties": { "$ref": "#/$defs/properties" }
+      }
+    }
+  }
+}

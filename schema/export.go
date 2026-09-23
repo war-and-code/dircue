@@ -28,6 +28,9 @@ var languagesJSON []byte
 //go:embed planning.schema.json
 var planningJSON []byte
 
+//go:embed map.schema.json
+var mapJSON []byte
+
 //go:embed cli-capabilities.schema.json
 var cliCapabilitiesJSON []byte
 
@@ -52,6 +55,7 @@ var exportResources = map[string][]byte{
 	"hotspots":         hotspotsJSON,
 	"guide":            guideJSON,
 	"languages":        languagesJSON,
+	"map":              mapJSON,
 	"planning":         planningJSON,
 	"profile":          profileJSON,
 }
