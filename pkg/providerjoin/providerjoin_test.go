@@ -2,6 +2,8 @@ package providerjoin_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -35,11 +37,18 @@ func TestSyftFactsAreBoundAndFindingsAreNotPossible(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(r.Nodes) != 3 || len(r.Edges) != 3 {
+	if len(r.Nodes) != 3 || len(r.Edges) != 4 {
 		t.Fatalf("nodes/edges = %d/%d", len(r.Nodes), len(r.Edges))
 	}
 	if r.Ledger[0].Binding != providerjoin.BindingVerified {
 		t.Fatalf("binding=%s", r.Ledger[0].Binding)
+	}
+	associated := false
+	for _, edge := range r.Edges {
+		associated = associated || edge.Type == mapdoc.EdgePackagedIn && edge.To == component().ID
+	}
+	if !associated {
+		t.Fatal("package location was not associated with its nearest component")
 	}
 	encoded, marshalErr := mapdoc.Marshal(mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoveragePartial, Source: mapdoc.Source{Mode: "git", Revision: "HEAD", Tree: "abc"}, Coverage: r.Coverage, Nodes: append([]mapdoc.Node{component()}, r.Nodes...), Edges: r.Edges})
 	if marshalErr != nil {
@@ -81,6 +90,21 @@ func TestSARIFImportsRunMetadataButNotResults(t *testing.T) {
 	if strings.Contains(strings.ToLower(r.Nodes[0].Facts[0].Value), "vulnerability") {
 		t.Fatal("SARIF result imported")
 	}
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "secret") || strings.Contains(string(encoded), "vulnerability") {
+		t.Fatal("SARIF finding or verdict leaked")
+	}
+	for _, coverage := range r.Coverage {
+		if coverage.Question == "packages" && coverage.Status != mapdoc.CoverageUnknown {
+			t.Fatalf("SARIF claimed package coverage: %+v", coverage)
+		}
+		if coverage.Question == "analyzer_coverage" && coverage.Status == mapdoc.CoverageComplete {
+			t.Fatalf("artifact list claimed complete analyzer coverage: %+v", coverage)
+		}
+	}
 }
 
 func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
@@ -94,6 +118,35 @@ func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
 	}
 	if len(r.Plans) != 4 || r.Plans[0].Argv == nil {
 		t.Fatalf("plans=%+v", r.Plans)
+	}
+	for _, plan := range r.Plans {
+		if plan.Tool != "syft" && len(plan.Argv) != 0 {
+			t.Fatalf("unverified argv for %s: %v", plan.Tool, plan.Argv)
+		}
+	}
+}
+
+func TestRouterDoesNotRouteNonSourceDirectory(t *testing.T) {
+	n := mapdoc.NewNode(mapdoc.NodeContent, []string{"photo.jpg"}, "role:media")
+	n.Properties = map[string]string{"role": "media"}
+	if plans := providerjoin.Route(providerjoin.Input{Nodes: []mapdoc.Node{n}}); len(plans) != 0 {
+		t.Fatalf("non-source plans: %+v", plans)
+	}
+}
+
+func TestIgnoredSARIFResultsDoNotChangePortableIdentity(t *testing.T) {
+	base := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}}],"properties":{"dircue_snapshot_tree":"abc"},"results":[%s]}]}`
+	input := providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}
+	first, err := providerjoin.Join(context.Background(), input, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, fmt.Sprintf(base, `{"ruleId":"one","message":{"text":"/home/alice"}}`))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := providerjoin.Join(context.Background(), input, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, fmt.Sprintf(base, `{"ruleId":"two","message":{"text":"/Users/bob"}}`))}}, providerjoin.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.Nodes[0].ID != second.Nodes[0].ID {
+		t.Fatalf("ignored results changed identity: %s != %s", first.Nodes[0].ID, second.Nodes[0].ID)
 	}
 }
 

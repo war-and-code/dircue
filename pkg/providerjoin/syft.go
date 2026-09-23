@@ -22,7 +22,7 @@ type syftReport struct {
 	ArtifactRelationships []struct{ Parent, Child, Type string } `json:"artifactRelationships"`
 }
 
-func ingestSyft(data []byte, in Input, limit int) (Result, error) {
+func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	var doc syftReport
 	if err := decodeOne(data, &doc); err != nil {
 		return Result{}, err
@@ -37,7 +37,6 @@ func ingestSyft(data []byte, in Input, limit int) (Result, error) {
 	version := fallbackVersion(doc.Descriptor.Version)
 	id := identityFromMaps(doc.Source.Metadata, doc.Descriptor.Configuration)
 	b, reason := binding(in.Snapshot, id)
-	key := reportKey(data)
 	tool := toolNode(provider, version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	byArtifact := map[string]string{}
@@ -61,7 +60,7 @@ func ingestSyft(data []byte, in Input, limit int) (Result, error) {
 		}
 		n := mapdoc.NewNode(mapdoc.NodePackage, paths, disc)
 		n.Name = a.Name
-		n.Properties = map[string]string{"provider_artifact_id": a.ID, "package_type": a.Type}
+		n.Properties = map[string]string{"package_type": a.Type}
 		if a.Version != "" {
 			n.Properties["version"] = a.Version
 		}
@@ -75,6 +74,12 @@ func ingestSyft(data []byte, in Input, limit int) (Result, error) {
 		e := mapdoc.NewEdge(mapdoc.EdgeAnalyzedBy, n.ID, tool.ID, "")
 		e.Coverage, e.Evidence = n.Coverage, n.Evidence
 		out.Edges = append(out.Edges, e)
+		if owner := nearestOwner(in.Nodes, paths); owner != "" {
+			associated := mapdoc.NewEdge(mapdoc.EdgePackagedIn, n.ID, owner, "provider_location")
+			associated.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+			associated.Evidence = n.Evidence
+			out.Edges = append(out.Edges, associated)
+		}
 	}
 	for _, rel := range doc.ArtifactRelationships {
 		parent, pok := byArtifact[rel.Parent]
@@ -97,8 +102,30 @@ func ingestSyft(data []byte, in Input, limit int) (Result, error) {
 		out.Edges = append(out.Edges, e)
 	}
 	covered = compact(covered)
-	out.Ledger = []CoverageEntry{{Tool: provider, Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
+	out.Ledger = []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
 	return out, nil
+}
+
+func nearestOwner(nodes []mapdoc.Node, paths []string) string {
+	best, bestLength := "", -1
+	for _, p := range paths {
+		if p == "." {
+			continue
+		}
+		for _, n := range nodes {
+			if n.Kind != mapdoc.NodeComponent {
+				continue
+			}
+			for _, root := range n.Paths {
+				if root == "." || p == root || strings.HasPrefix(p, root+"/") {
+					if len(root) > bestLength {
+						best, bestLength = n.ID, len(root)
+					}
+				}
+			}
+		}
+	}
+	return best
 }
 
 func identityFromMaps(values ...map[string]any) reportIdentity {

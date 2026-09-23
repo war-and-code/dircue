@@ -49,6 +49,7 @@ const (
 
 type CoverageEntry struct {
 	Tool         string   `json:"tool"`
+	ReportKind   string   `json:"report_kind"`
 	Scope        string   `json:"scope"`
 	Binding      Binding  `json:"binding"`
 	Ran          bool     `json:"ran"`
