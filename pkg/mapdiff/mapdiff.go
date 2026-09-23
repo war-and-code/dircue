@@ -363,10 +363,7 @@ func providerRemovalCertainty(head mapdoc.Document, evidence []mapdoc.Evidence) 
 		if !slices.Contains(providers, run.Tool) || !run.Ran || run.Binding == "mismatch" {
 			continue
 		}
-		if run.State == "covered_files_reported" || run.State == "selected_query_reported" || run.State == "provider_reported" {
-			return "confirmed", ""
-		}
-		return "indeterminate", "matching provider run has incomplete or unknown coverage in the head map"
+		return "indeterminate", "matching provider run does not declare exhaustive observation coverage"
 	}
 	return "indeterminate", "matching provider run is absent from the head map"
 }
@@ -530,6 +527,12 @@ type semanticFact struct {
 func semanticFacts(values []mapdoc.Fact) []semanticFact {
 	result := make([]semanticFact, 0, len(values))
 	for _, value := range values {
+		// Provider annotations on a native node describe an analyzer run, not a
+		// source-material mutation. The full Fact still participates in the
+		// evidence-level field comparison above.
+		if providerOnlyEvidence(value.Evidence) {
+			continue
+		}
 		result = append(result, semanticFact{
 			Kind: value.Kind, Name: value.Name, Value: value.Value, State: value.State,
 			Condition: value.Condition, Properties: value.Properties,
