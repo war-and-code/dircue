@@ -3,6 +3,7 @@ package intentmap
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -121,5 +122,34 @@ func TestOversizeAndCancellation(t *testing.T) {
 	}
 	if _, err := d.Finish(ctx); err == nil {
 		t.Fatal("expected cancellation")
+	}
+}
+
+func TestCandidateScopeAndLexicalObservationLimit(t *testing.T) {
+	goSource := []byte("package p\nimport \"net/http\"\n")
+	run := func(reverse bool) *Report {
+		d := New(Options{MaxObservations: 3})
+		for i := 0; i < 10; i++ {
+			index := i
+			if reverse {
+				index = 9 - i
+			}
+			name := fmt.Sprintf("p/%02d.go", index)
+			_, _ = d.Detect(context.Background(), profile.File{Path: name, Size: int64(len(goSource)), Content: goSource})
+		}
+		// A large non-candidate must not consume this observer's budget.
+		_, _ = d.Detect(context.Background(), profile.File{Path: "logs/huge.xml", Size: 1 << 30})
+		r, err := d.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	a, b := run(false), run(true)
+	if !reflect.DeepEqual(a, b) {
+		t.Fatalf("bounded results differ by delivery order:\n%+v\n%+v", a, b)
+	}
+	if a.Coverage.SelectedFiles != 10 || len(a.Observations) != 3 || a.Observations[0].Path != "p/00.go" || a.Observations[2].Path != "p/02.go" {
+		t.Fatalf("wrong candidate scope or retained set: %+v", a)
 	}
 }

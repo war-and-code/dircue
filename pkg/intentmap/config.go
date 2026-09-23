@@ -3,6 +3,7 @@ package intentmap
 import (
 	"encoding/json"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -39,20 +40,36 @@ func parseConfig(name string, content []byte) []Observation {
 	return out
 }
 func parseJSONConfig(name string, content []byte) []Observation {
+	out, _ := parseJSONConfigBounded(name, content)
+	return out
+}
+
+func parseJSONConfigBounded(name string, content []byte) ([]Observation, bool) {
 	var root map[string]any
 	if json.Unmarshal(content, &root) != nil {
-		return nil
+		return nil, false
 	}
 	var out []Observation
-	var walk func(map[string]any, string)
-	walk = func(m map[string]any, prefix string) {
-		for k, v := range m {
+	depthLimited := false
+	var walk func(map[string]any, string, int)
+	walk = func(m map[string]any, prefix string, depth int) {
+		if depth > 32 {
+			depthLimited = true
+			return
+		}
+		keys := make([]string, 0, len(m))
+		for k := range m {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+		for _, k := range keys {
+			v := m[k]
 			key := k
 			if prefix != "" {
 				key = prefix + ":" + k
 			}
 			if child, ok := v.(map[string]any); ok {
-				walk(child, key)
+				walk(child, key, depth+1)
 			}
 			if cap, ok := configCapability(key); ok {
 				out = append(out, Observation{Kind: KindCapability, Name: cap, State: "declared", Basis: "declared_config", Path: name, Properties: map[string]string{"key": key}})
@@ -62,8 +79,8 @@ func parseJSONConfig(name string, content []byte) []Observation {
 			}
 		}
 	}
-	walk(root, "")
-	return out
+	walk(root, "", 0)
+	return out, depthLimited
 }
 func safeConfigKey(s string) bool {
 	if len(s) > 256 {
