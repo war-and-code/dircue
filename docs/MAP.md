@@ -231,8 +231,9 @@ dircue map --json \
   /path/to/checkout > enriched-map.json
 
 # Use only after independently verifying the report's source snapshot.
+# This assertion requires a plain directory with complete source digest coverage.
 dircue map --json --attach-binding caller-asserted \
-  --attach syft-json=syft.json /path/to/checkout > asserted-map.json
+  --attach syft-json=syft.json /path/to/plain-directory > asserted-map.json
 ```
 
 Supported attachment kinds are:
@@ -249,10 +250,13 @@ Supported attachment kinds are:
   fields stay with Bifrost.
 
 An attachment without comparable source identity is retained with an `unknown`
-binding, unless `--attach-binding caller-asserted` records the caller's explicit
-assertion. An identity mismatch cannot be overridden by that flag and does not
-become complete repository evidence. SARIF's standard version-control revision
-is compared with the map's resolved commit when both are present.
+binding. For a plain directory whose source digest has `complete` coverage,
+`--attach-binding caller-asserted` records the caller's explicit assertion; it
+never becomes `verified`. An identity mismatch cannot be overridden by that
+flag and does not become complete repository evidence. SARIF's standard
+version-control revision is compared with the map's resolved commit when both
+are present. Dircue-specific keys in provider metadata are not treated as
+source identity.
 Provider coverage replaces the corresponding `packages`, `analyzer_coverage`,
 and `routing` question entries in the resulting document. Each attached run
 also receives a typed `coverage_ledger` entry with its tool, report kind,

@@ -21,6 +21,7 @@ type Snapshot struct {
 	Tree           string
 	Commit         string
 	Digest         *mapdoc.Digest
+	DigestComplete bool
 	CallerAsserted bool
 }
 

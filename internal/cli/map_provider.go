@@ -64,8 +64,15 @@ func parseAttachments(specs []string) ([]providerjoin.Attachment, error) {
 }
 
 func providerInput(doc mapdoc.Document) providerjoin.Input {
+	digestComplete := false
+	for _, coverage := range doc.Coverage {
+		if coverage.Question == mapdoc.QuestionSourceBinding && coverage.Scope == "." {
+			digestComplete = coverage.Status == mapdoc.CoverageComplete
+			break
+		}
+	}
 	return providerjoin.Input{Snapshot: providerjoin.Snapshot{
-		Mode: doc.Source.Mode, Tree: doc.Source.Tree, Commit: doc.Source.Commit, Digest: doc.Source.Digest,
+		Mode: doc.Source.Mode, Tree: doc.Source.Tree, Commit: doc.Source.Commit, Digest: doc.Source.Digest, DigestComplete: digestComplete,
 	}, Nodes: doc.Nodes, Edges: doc.Edges}
 }
 

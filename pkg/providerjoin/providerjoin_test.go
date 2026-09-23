@@ -32,8 +32,8 @@ func component() mapdoc.Node {
 	return n
 }
 
-func TestSyftFactsAreBoundAndFindingsAreNotPossible(t *testing.T) {
-	report := `{"descriptor":{"name":"syft","version":"1.20"},"source":{"metadata":{"dircue_snapshot_tree":"abc"}},"artifacts":[{"id":"a","name":"app","version":"1","type":"go-module","purl":"pkg:golang/app@1","locations":[{"path":"services/api/go.mod"},{"path":"/Users/alice/secret"}]},{"id":"b","name":"dep","version":"2","type":"go-module","purl":"pkg:golang/dep@2"}],"artifactRelationships":[{"parent":"a","child":"b","type":"dependency-of"}]}`
+func TestSyftFactsRemainQualifiedAndFindingsAreNotPossible(t *testing.T) {
+	report := `{"descriptor":{"name":"syft","version":"1.20"},"artifacts":[{"id":"a","name":"app","version":"1","type":"go-module","purl":"pkg:golang/app@1","locations":[{"path":"services/api/go.mod"},{"path":"/Users/alice/secret"}]},{"id":"b","name":"dep","version":"2","type":"go-module","purl":"pkg:golang/dep@2"}],"artifactRelationships":[{"parent":"a","child":"b","type":"dependency-of"}]}`
 	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, report)}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -41,7 +41,7 @@ func TestSyftFactsAreBoundAndFindingsAreNotPossible(t *testing.T) {
 	if len(r.Nodes) != 3 || len(r.Edges) != 4 {
 		t.Fatalf("nodes/edges = %d/%d", len(r.Nodes), len(r.Edges))
 	}
-	if r.Ledger[0].Binding != providerjoin.BindingVerified {
+	if r.Ledger[0].Binding != providerjoin.BindingUnknown {
 		t.Fatalf("binding=%s", r.Ledger[0].Binding)
 	}
 	associated := false
@@ -60,13 +60,14 @@ func TestSyftFactsAreBoundAndFindingsAreNotPossible(t *testing.T) {
 	}
 }
 
-func TestMismatchAndUnboundDirectoryStayQualified(t *testing.T) {
-	p := attachment(t, `{"descriptor":{"name":"syft","version":"1"},"source":{"metadata":{"dircue_snapshot_tree":"other"}},"artifacts":[]}`)
+func TestSyftWithoutStandardSourceIdentityStaysUnknown(t *testing.T) {
+	// Legacy dircue-specific metadata must not impersonate a source identity.
+	p := attachment(t, `{"descriptor":{"name":"syft","version":"1"},"source":{"metadata":{"dircue_snapshot_tree":"selected"}},"artifacts":[]}`)
 	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "selected"}}, []providerjoin.Attachment{{Kind: "syft", Path: p}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Ledger[0].Binding != providerjoin.BindingMismatch || r.Ledger[0].Reason != "report_tree_mismatch" {
+	if r.Ledger[0].Binding != providerjoin.BindingUnknown {
 		t.Fatalf("ledger=%+v", r.Ledger[0])
 	}
 	p = attachment(t, `{"descriptor":{"name":"syft","version":"1"},"artifacts":[]}`)
@@ -79,13 +80,13 @@ func TestMismatchAndUnboundDirectoryStayQualified(t *testing.T) {
 	}
 }
 
-func TestSyftWrongCommitFactsAndEdgesAreNeverComplete(t *testing.T) {
-	body := `{"descriptor":{"name":"syft","version":"1"},"source":{"metadata":{"dircue_snapshot_commit":"deadbeef"}},"artifacts":[{"id":"a","name":"demo","version":"1","type":"npm","locations":[{"path":"package.json"}]}]}`
-	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}}, providerjoin.Options{})
+func TestSARIFWrongCommitFactsAndEdgesAreNeverComplete(t *testing.T) {
+	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"cafebabe"},{"revisionId":"deadbeef"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(r.Nodes) < 2 || r.Ledger[0].Binding != providerjoin.BindingMismatch {
+	if len(r.Nodes) < 1 || r.Ledger[0].Binding != providerjoin.BindingMismatch {
 		t.Fatalf("ledger/nodes = %+v / %d", r.Ledger, len(r.Nodes))
 	}
 	for _, n := range r.Nodes {
@@ -106,8 +107,9 @@ func TestSyftWrongCommitFactsAndEdgesAreNeverComplete(t *testing.T) {
 }
 
 func TestSARIFStandardRevisionProvenanceAndEncodedPath(t *testing.T) {
-	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint"}},"versionControlProvenance":[{"repositoryUri":"https://example.test/repo","revisionId":"abc123"}],"artifacts":[{"location":{"uri":"services%2Fapi%2Fmain.go"}},{"location":{"uri":"%2e%2e%2f%2e%2e%2fprivate.txt"}}]}]}`
-	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "abc123"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+	commit := strings.Repeat("a", 40)
+	body := fmt.Sprintf(`{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint"}},"versionControlProvenance":[{"repositoryUri":"https://example.test/repo","revisionId":%q}],"artifacts":[{"location":{"uri":"services%%2Fapi%%2Fmain.go"}},{"location":{"uri":"%%2e%%2e%%2f%%2e%%2e%%2fprivate.txt"}}]}]}`, commit)
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: commit}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +120,8 @@ func TestSARIFStandardRevisionProvenanceAndEncodedPath(t *testing.T) {
 
 func TestCallerAssertedBindingDoesNotUpgradeCoverage(t *testing.T) {
 	body := `{"descriptor":{"name":"syft"},"artifacts":[{"id":"a","name":"demo","type":"npm"}]}`
-	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory", CallerAsserted: true}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}}, providerjoin.Options{})
+	digest := &mapdoc.Digest{Algorithm: "git-sha1", Scope: "all_regular_files", Value: strings.Repeat("a", 40)}
+	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory", Digest: digest, DigestComplete: true, CallerAsserted: true}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +160,7 @@ func TestSyftDuplicateCoordinatesRemainDistinctWithoutRelativeLocations(t *testi
 }
 
 func TestSARIFImportsRunMetadataButNotResults(t *testing.T) {
-	p := attachment(t, `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}},{"location":{"uri":"file:///etc/passwd"}}],"invocations":[{"executionSuccessful":true}],"properties":{"dircue_snapshot_tree":"abc"},"results":[{"ruleId":"secret","message":{"text":"vulnerability"}}]}]}`)
+	p := attachment(t, `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}},{"location":{"uri":"file:///etc/passwd"}}],"invocations":[{"executionSuccessful":true}],"results":[{"ruleId":"secret","message":{"text":"vulnerability"}}]}]}`)
 	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "sarif", Path: p}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -186,7 +189,7 @@ func TestSARIFImportsRunMetadataButNotResults(t *testing.T) {
 }
 
 func TestNoirEndpointsAndRouterAreInert(t *testing.T) {
-	p := attachment(t, `{"version":"0.20","properties":{"dircue_snapshot_tree":"abc"},"endpoints":[{"method":"get","path":"/users","file":"services/api/main.go","line":8,"params":[{"name":"id","type":"query"}]}]}`)
+	p := attachment(t, `{"version":"0.20","endpoints":[{"method":"get","path":"/users","file":"services/api/main.go","line":8,"params":[{"name":"id","type":"query"}]}]}`)
 	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}, []providerjoin.Attachment{{Kind: "noir-json", Path: p}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
@@ -383,7 +386,7 @@ func TestRouterUsesDeclaredComponentRootNotManifest(t *testing.T) {
 }
 
 func TestIgnoredSARIFResultsDoNotChangePortableIdentity(t *testing.T) {
-	base := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}}],"properties":{"dircue_snapshot_tree":"abc"},"results":[%s]}]}`
+	base := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"2"}},"artifacts":[{"location":{"uri":"services/api/main.go"}}],"results":[%s]}]}`
 	input := providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{component()}}
 	first, err := providerjoin.Join(context.Background(), input, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, fmt.Sprintf(base, `{"ruleId":"one","message":{"text":"/home/alice"}}`))}}, providerjoin.Options{})
 	if err != nil {
@@ -482,7 +485,7 @@ func TestSyftVirtualRootPathsAreConfinedAndHostPathsRejected(t *testing.T) {
 	}
 }
 
-func TestSyftMatchesDeclaredRequirementsAcrossEcosystems(t *testing.T) {
+func TestSyftWithoutStandardIdentityDoesNotClaimRequirementAbsence(t *testing.T) {
 	type declaration struct{ root, ecosystem, kind, value string }
 	declarations := []declaration{
 		{"npm", "npm", "npm-dependency", "lodash@^4"},
@@ -512,7 +515,7 @@ func TestSyftMatchesDeclaredRequirementsAcrossEcosystems(t *testing.T) {
 		byRoot[d.root] = len(nodes)
 		nodes = append(nodes, n)
 	}
-	report := `{"descriptor":{"name":"syft","version":"1"},"source":{"type":"directory","metadata":{"dircue_snapshot_tree":"abc"}},"artifacts":[` +
+	report := `{"descriptor":{"name":"syft","version":"1"},"source":{"type":"directory"},"artifacts":[` +
 		`{"id":"npm","name":"lodash","purl":"pkg:npm/lodash@4.17.21","locations":[{"path":"/npm/package-lock.json"}]},` +
 		`{"id":"go","name":"github.com/acme/lib","purl":"pkg:golang/github.com/acme/lib@v1.2.0","locations":[{"path":"/go/go.mod"}]},` +
 		`{"id":"cargo","name":"serde","purl":"pkg:cargo/serde@1.0","locations":[{"path":"/cargo/Cargo.lock"}]},` +
@@ -526,21 +529,19 @@ func TestSyftMatchesDeclaredRequirementsAcrossEcosystems(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	matches, missing, unmatched := 0, 0, 0
+	candidates := 0
 	for _, node := range r.Nodes {
 		for _, fact := range node.Facts {
-			switch fact.State {
-			case "exact_identity":
-				matches++
-			case "no_match_in_supplied_report":
-				missing++
-			case "no_matching_retained_declaration":
-				unmatched++
+			if fact.State == "no_match_in_supplied_report" || fact.State == "no_matching_retained_declaration" {
+				t.Fatalf("unbound Syft report made an absence claim: %+v", fact)
+			}
+			if strings.Contains(fact.State, "unverified_binding") {
+				candidates++
 			}
 		}
 	}
-	if matches != 7 || missing != 1 || unmatched != 1 {
-		t.Fatalf("matches=%d missing=%d unmatched=%d result=%+v", matches, missing, unmatched, r.Nodes)
+	if candidates == 0 {
+		t.Fatalf("unbound Syft report did not retain candidate observations: %+v", r.Nodes)
 	}
 }
 
@@ -564,19 +565,22 @@ func TestSyftRequirementComparisonRequiresVerifiedBindingAndUnambiguousIdentity(
 	if !candidate {
 		t.Fatalf("unbound candidate identity missing: %+v", unbound.Nodes)
 	}
-	verifiedJSON := fmt.Sprintf(base, `,"metadata":{"dircue_snapshot_tree":"abc"}`)
-	verified, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Tree: "abc"}, Nodes: []mapdoc.Node{c}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, verifiedJSON)}}, providerjoin.Options{})
+	digest := &mapdoc.Digest{Algorithm: "git-sha1", Scope: "all_regular_files", Value: strings.Repeat("a", 40)}
+	asserted, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory", Digest: digest, DigestComplete: true, CallerAsserted: true}, Nodes: []mapdoc.Node{c}}, []providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, fmt.Sprintf(base, ""))}}, providerjoin.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	found := false
-	for _, node := range verified.Nodes {
+	for _, node := range asserted.Nodes {
 		for _, fact := range node.Facts {
-			found = found || fact.State == "ambiguous_reported_identity"
+			found = found || fact.State == "candidate_identity_unverified_binding" || fact.State == "ambiguous_reported_identity"
+			if fact.State == "no_match_in_supplied_report" || fact.State == "no_matching_retained_declaration" {
+				t.Fatalf("caller assertion enabled absence comparison: %+v", fact)
+			}
 		}
 	}
 	if !found {
-		t.Fatalf("ambiguous comparison missing: %+v", verified.Nodes)
+		t.Fatalf("caller-asserted candidate missing: %+v", asserted.Nodes)
 	}
 }
 

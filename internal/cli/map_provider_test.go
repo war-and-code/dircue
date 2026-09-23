@@ -67,6 +67,20 @@ func TestMapAttachmentAndRouting(t *testing.T) {
 	}
 }
 
+func TestProviderInputCarriesOnlyCompleteDigestCoverage(t *testing.T) {
+	doc := mapdoc.Document{
+		Source:   mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "git-sha1", Scope: "all_regular_files", Value: strings.Repeat("a", 40)}},
+		Coverage: []mapdoc.QuestionCoverage{{Question: mapdoc.QuestionSourceBinding, Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoveragePartial}}},
+	}
+	if got := providerInput(doc).Snapshot.DigestComplete; got {
+		t.Fatal("partial source digest was marked complete")
+	}
+	doc.Coverage[0].Status = mapdoc.CoverageComplete
+	if got := providerInput(doc).Snapshot.DigestComplete; !got {
+		t.Fatal("complete source digest was not marked complete")
+	}
+}
+
 func TestMapLocateAnnotatesSARIFAndSummarizes(t *testing.T) {
 	root := t.TempDir()
 	writeMapSourceFixture(t, root)

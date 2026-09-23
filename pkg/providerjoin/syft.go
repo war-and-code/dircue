@@ -10,11 +10,9 @@ import (
 type syftReport struct {
 	Descriptor struct {
 		Name, Version string
-		Configuration map[string]any
 	} `json:"descriptor"`
 	Source struct {
-		Type     string         `json:"type"`
-		Metadata map[string]any `json:"metadata"`
+		Type string `json:"type"`
 	} `json:"source"`
 	Artifacts []struct {
 		ID, Name, Version, Type, PURL string
@@ -36,8 +34,7 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 		provider = "syft"
 	}
 	version := fallbackVersion(doc.Descriptor.Version)
-	id := identityFromMaps(doc.Source.Metadata, doc.Descriptor.Configuration)
-	b, reason := binding(in.Snapshot, id)
+	b, reason := binding(in.Snapshot, reportIdentity{})
 	tool := toolNode(provider, version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	byArtifact := map[string]string{}
@@ -155,46 +152,6 @@ func nearestOwner(nodes []mapdoc.Node, paths []string) string {
 		}
 	}
 	return best
-}
-
-func identityFromMaps(values ...map[string]any) reportIdentity {
-	var id reportIdentity
-	for _, m := range values {
-		if m == nil {
-			continue
-		}
-		if v, ok := m["dircue_snapshot_tree"].(string); ok {
-			id.Tree = v
-		}
-		if v, ok := m["dircueSnapshotTree"].(string); ok {
-			id.Tree = v
-		}
-		if v, ok := m["dircue_snapshot_commit"].(string); ok {
-			id.Commit = v
-		}
-		if v, ok := m["dircueSnapshotCommit"].(string); ok {
-			id.Commit = v
-		}
-		if v, ok := m["dircue_snapshot_digest"].(string); ok {
-			id.Digest = v
-		}
-		if v, ok := m["dircueSnapshotDigest"].(string); ok {
-			id.Digest = v
-		}
-		if v, ok := m["dircue_snapshot_algorithm"].(string); ok {
-			id.Algorithm = v
-		}
-		if v, ok := m["dircue_snapshot_scope"].(string); ok {
-			id.Scope = v
-		}
-	}
-	if id.Digest != "" && id.Algorithm == "" {
-		id.Algorithm = "sha256"
-	}
-	if id.Digest != "" && id.Scope == "" {
-		id.Scope = "full_selected_tree"
-	}
-	return id
 }
 
 func coverageState(paths []string) string {

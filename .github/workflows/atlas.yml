@@ -17,9 +17,14 @@ on:
         default: ''
         type: string
   pull_request:
-    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft]
+    types: [opened, reopened, synchronize, ready_for_review]
     paths:
       - 'tests/atlas/**'
+      - '.github/workflows/atlas.yml'
+      - 'internal/**'
+      - 'pkg/**'
+      - 'go.mod'
+      - 'go.sum'
 
 concurrency:
   group: >-
@@ -31,6 +36,9 @@ permissions:
 
 jobs:
   atlas:
+    # The Docker-backed corpus run is reserved for review-ready PRs and
+    # explicit dispatch. Draft updates use the lightweight unit-test CI.
+    if: github.event_name == 'workflow_dispatch' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     # The full corpus includes Linguist on every repository (the Linux kernel
     # alone takes about four minutes), so it gets a longer bound.
