@@ -46,6 +46,7 @@ For the candidate 1.0 directory-map workflow:
 dircue map --summary .
 dircue map --json . > map.json
 dircue map settings --preset low-memory --json
+dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
 dircue map route --json map.json > routes.json
 ```
 

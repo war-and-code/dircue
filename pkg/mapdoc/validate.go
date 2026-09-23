@@ -41,6 +41,24 @@ func Validate(d Document) error {
 	if d.Source.Digest != nil && (d.Source.Digest.Algorithm == "" || d.Source.Digest.Scope == "" || d.Source.Digest.Value == "") {
 		return fail("source digest requires algorithm, scope, and value")
 	}
+	if d.Execution != nil {
+		if !slices.Contains([]string{"balanced", "fast", "low-memory", "thorough"}, d.Execution.Preset) {
+			return fail("execution has invalid preset %q", d.Execution.Preset)
+		}
+		settings := map[string]bool{}
+		for _, setting := range d.Execution.Settings {
+			if setting.Name == "" || setting.Unit == "" || setting.Origin == "" || setting.Description == "" {
+				return fail("execution setting requires name, unit, origin, and description")
+			}
+			if setting.Category != "performance-only" && setting.Category != "coverage-affecting" {
+				return fail("execution setting %q has invalid category %q", setting.Name, setting.Category)
+			}
+			if settings[setting.Name] {
+				return fail("duplicate execution setting %q", setting.Name)
+			}
+			settings[setting.Name] = true
+		}
+	}
 	questions := map[string]bool{}
 	sourceBindingQualified := false
 	for _, q := range d.Coverage {
