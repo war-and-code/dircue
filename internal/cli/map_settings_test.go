@@ -11,7 +11,7 @@ import (
 )
 
 func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
-	out, stderr, err := invoke("map", "settings", "--preset", "fast", "--set", "workers=8", "--json")
+	out, stderr, err := invoke("map", "settings", "--preset", "balanced", "--set", "workers=8", "--set", "git.object_cache_bytes=128MiB", "--json")
 	if err != nil || stderr != "" {
 		t.Fatalf("stderr=%q err=%v", stderr, err)
 	}
@@ -19,7 +19,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "fast" || len(report.Settings) != 7 {
+	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 7 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -32,8 +32,8 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if got := byName["inventory.files"]; got.Value != "100000" || got.Category != "coverage-affecting" {
 		t.Fatalf("inventory.files = %+v", got)
 	}
-	if got := byName["git.object_cache_bytes"]; got.Value != "134217728" || got.Category != "performance-only" || got.Origin != "preset:fast" {
-		t.Fatalf("fast Git cache = %+v", got)
+	if got := byName["git.object_cache_bytes"]; got.Value != "134217728" || got.Category != "performance-only" || got.Origin != "--set" {
+		t.Fatalf("custom Git cache = %+v", got)
 	}
 	if got := byName["classification.prefix_bytes"]; got.Value != "131072" || got.Category != "conformance-locked" || got.Origin != "fixed:linguist-parity" {
 		t.Fatalf("classifier window = %+v", got)
@@ -44,7 +44,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 }
 
 func TestMapSettingsPresetValuesAndValidation(t *testing.T) {
-	for preset, workers := range map[string]string{"balanced": "0", "fast": "16", "low-memory": "2", "thorough": "0"} {
+	for preset, workers := range map[string]string{"balanced": "0", "low-memory": "2", "thorough": "0"} {
 		out, _, err := invoke("map", "settings", "--preset", preset, "--json")
 		if err != nil {
 			t.Fatalf("%s: %v", preset, err)
@@ -62,6 +62,7 @@ func TestMapSettingsPresetValuesAndValidation(t *testing.T) {
 	}
 	for _, args := range [][]string{
 		{"map", "settings", "--preset", "turbo"},
+		{"map", "settings", "--preset", "fast"},
 		{"map", "settings", "--set", "workers=-1"},
 		{"map", "settings", "--set", "invented=1"},
 		{"map", "settings", "--set", "classification.prefix_bytes=65536"},
@@ -89,10 +90,9 @@ func TestMapPresetAndWorkerOverridePreserveAnswers(t *testing.T) {
 		t.Fatalf("baseline stderr=%q err=%v", stderr, err)
 	}
 	for _, flags := range [][]string{
-		{"--preset", "fast"},
 		{"--preset", "low-memory"},
 		{"--preset", "balanced", "--set", "workers=3"},
-		{"--preset", "fast", "--set", "workers=7", "--workers", "1"},
+		{"--set", "workers=16", "--set", "git.object_cache_bytes=128MiB", "--workers", "1"},
 		{"--set", "runtime.cpu=2", "--set", "runtime.memory_bytes=64MiB"},
 		{"--cpu-limit", "1", "--memory-limit", "67108864"},
 	} {
