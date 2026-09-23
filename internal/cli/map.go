@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/detectors"
-	"dircue/pkg/intentmap"
-	"dircue/pkg/mapbuild"
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/scanner"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/detectors"
+	"github.com/war-and-code/dircue/pkg/intentmap"
+	"github.com/war-and-code/dircue/pkg/mapbuild"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
 
 func newMapCommand(opts *options) *cobra.Command {
@@ -250,12 +250,29 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		line("Languages: none observed")
 	}
 	visibleRelationships := 0
+	declarationCounts := map[mapdoc.EdgeType]int{}
+	type linkedDeclarationCounts struct {
+		runs   int
+		builds int
+	}
+	linkedDeclarations := map[string]linkedDeclarationCounts{}
 	for _, edge := range d.Edges {
 		if visibleIDs[edge.From] && visibleIDs[edge.To] {
 			visibleRelationships++
+			if edge.Type == mapdoc.EdgeRuns || edge.Type == mapdoc.EdgeBuilds {
+				declarationCounts[edge.Type]++
+				counts := linkedDeclarations[edge.From]
+				if edge.Type == mapdoc.EdgeRuns {
+					counts.runs++
+				} else {
+					counts.builds++
+				}
+				linkedDeclarations[edge.From] = counts
+			}
 		}
 	}
 	line("Content populations: %d   Relationships: %d   Packages: %d", populations, visibleRelationships, packages)
+	line("Relationship declarations: %d runs, %d builds", declarationCounts[mapdoc.EdgeRuns], declarationCounts[mapdoc.EdgeBuilds])
 	ecosystems := map[string]int{}
 	for _, n := range components {
 		ecosystem := n.Properties["ecosystem"]
@@ -295,7 +312,23 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 			linked[e.From] = append(linked[e.From], string(e.Type)+" "+mapNodeLabel(target))
 		}
 	}
-	slices.SortFunc(deployables, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	slices.SortFunc(deployables, func(a, b mapdoc.Node) int {
+		left, right := linkedDeclarations[a.ID], linkedDeclarations[b.ID]
+		leftTotal, rightTotal := left.runs+left.builds, right.runs+right.builds
+		if leftTotal != rightTotal {
+			return rightTotal - leftTotal
+		}
+		if left.runs != right.runs {
+			return right.runs - left.runs
+		}
+		if left.builds != right.builds {
+			return right.builds - left.builds
+		}
+		if comparison := strings.Compare(mapNodeLabel(a), mapNodeLabel(b)); comparison != 0 {
+			return comparison
+		}
+		return strings.Compare(a.ID, b.ID)
+	})
 	for _, n := range deployables[:min(4, len(deployables))] {
 		links := linked[n.ID]
 		slices.Sort(links)

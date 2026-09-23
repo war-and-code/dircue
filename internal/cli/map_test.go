@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func TestMapOneShotPortableEvidenceAndBudget(t *testing.T) {
@@ -135,6 +135,61 @@ func TestMapSummaryNamesUnitsAndHidesInternalCoverageCodes(t *testing.T) {
 	}
 	if strings.Contains(text, "observer_not_yet_bound_to_map") || len(strings.Split(strings.TrimSpace(text), "\n")) > 40 {
 		t.Fatalf("summary leaks implementation codes or exceeds one screen:\n%s", text)
+	}
+}
+
+func TestMapSummaryPrioritizesLinkedDeployablesAndLabelsCountsAsDeclarations(t *testing.T) {
+	d := mapdoc.New()
+	d.Status = mapdoc.CoveragePartial
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api"}, "go")
+	component.Name = "api"
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "go"}
+	otherComponent := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/worker"}, "go")
+	otherComponent.Name = "worker"
+	otherComponent.Properties = map[string]string{"root": "services/worker", "ecosystem": "go"}
+	deployables := []mapdoc.Node{
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"z-unlinked.yml"}, "workflow-z"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/build.yml"}, "build"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/run.yml"}, "run"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/mixed.yml"}, "mixed"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"a-unlinked.yml"}, "workflow-a"),
+	}
+	for i := range deployables {
+		deployables[i].Name = []string{"z-unlinked", "build declaration", "run declaration", "mixed declaration", "a-unlinked"}[i]
+		deployables[i].Properties = map[string]string{"kind": "workflow"}
+	}
+	d.Nodes = append(d.Nodes, component, otherComponent)
+	d.Nodes = append(d.Nodes, deployables...)
+	d.Edges = []mapdoc.Edge{
+		mapdoc.NewEdge(mapdoc.EdgeBuilds, deployables[1].ID, component.ID, "build-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[2].ID, component.ID, "run-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[3].ID, component.ID, "run-api-1"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[3].ID, otherComponent.ID, "run-api-2"),
+		mapdoc.NewEdge(mapdoc.EdgeBuilds, deployables[3].ID, component.ID, "build-api"),
+	}
+	var output bytes.Buffer
+	if err := writeMapSummary(&output, d); err != nil {
+		t.Fatal(err)
+	}
+	text := output.String()
+	for _, want := range []string{
+		"Relationship declarations: 3 runs, 2 builds",
+		"mixed declaration [workflow] → builds api, runs api",
+		"run declaration [workflow] → runs api",
+	} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("summary missing %q:\n%s", want, text)
+		}
+	}
+	first := strings.Index(text, "mixed declaration [workflow]")
+	second := strings.Index(text, "run declaration [workflow]")
+	third := strings.Index(text, "build declaration [workflow]")
+	unlinked := strings.Index(text, "a-unlinked [workflow]")
+	if first < 0 || second <= first || third <= second || unlinked <= third {
+		t.Fatalf("linked entries were not ranked before unlinked deployables:\n%s", text)
+	}
+	if strings.Contains(strings.ToLower(text), "runtime instance") {
+		t.Fatalf("summary implies a runtime count rather than declaration count:\n%s", text)
 	}
 }
 
