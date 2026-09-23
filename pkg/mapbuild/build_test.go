@@ -3,10 +3,10 @@ package mapbuild
 import (
 	"testing"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/discovery"
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
@@ -55,6 +55,84 @@ func TestDeclaredBuildAndRunLinksHaveEvidence(t *testing.T) {
 			t.Fatalf("bounded parser claimed complete deployable catalog: %+v", question)
 		}
 	}
+}
+
+func TestKubernetesImageLinksOnlyToUniqueComponentWithDockerfileEvidence(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/emailservice", "src/emailservice/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "src/emailservice"}
+	doc.Nodes = append(doc.Nodes, component)
+	workloadEvidence := deployables.Evidence{Field: "image", Value: "registry.example/demo/emailservice:v1", Line: 22, Basis: "kubernetes-container-field"}
+	dockerEvidence := deployables.Evidence{Field: "FROM", Value: "python:3.13", Line: 1, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "kubernetes", Kind: "workload", Name: "emailservice", Path: "k8s/emailservice.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "Deployment", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "image", Value: workloadEvidence.Value, Qualification: "external", Evidence: workloadEvidence}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "src/emailservice/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: dockerEvidence.Value, Qualification: "external", Evidence: dockerEvidence}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeRuns {
+			continue
+		}
+		if edge.To != component.ID || edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Evidence) != 2 {
+			t.Fatalf("run link is not qualified with both source records: %+v", edge)
+		}
+		if edge.Evidence[0].Path != "k8s/emailservice.yaml" || edge.Evidence[1].Path != "src/emailservice/Dockerfile" {
+			t.Fatalf("wrong run evidence: %+v", edge.Evidence)
+		}
+		return
+	}
+	t.Fatal("expected image basename to link the workload to its uniquely named component")
+}
+
+func TestKubernetesImageDoesNotChooseAmongDuplicateComponentRoots(t *testing.T) {
+	doc := mapdoc.New()
+	for _, root := range []string{"one/api", "two/api"} {
+		component := mapdoc.NewNode(mapdoc.NodeComponent, []string{root}, "go")
+		component.Properties = map[string]string{"root": root}
+		doc.Nodes = append(doc.Nodes, component)
+	}
+	evidence := deployables.Evidence{Field: "image", Value: "registry.example/api:v1", Line: 1, Basis: "kubernetes-container-field"}
+	definitions := []deployables.Definition{
+		{Provider: "kubernetes", Kind: "workload", Name: "api", Path: "k8s/api.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "Deployment", Line: 1, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "image", Value: evidence.Value, Qualification: "external", Evidence: evidence}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "one/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "two/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeRuns {
+			t.Fatalf("ambiguous component match emitted a run link: %+v", edge)
+		}
+	}
+}
+
+func TestSkaffoldArtifactSelectsNestedComponentForKubernetesImage(t *testing.T) {
+	doc := mapdoc.New()
+	outer := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/cartservice"}, "dotnet")
+	outer.Properties = map[string]string{"root": "src/cartservice"}
+	nested := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/cartservice/src"}, "dotnet")
+	nested.Properties = map[string]string{"root": "src/cartservice/src"}
+	doc.Nodes = append(doc.Nodes, outer, nested)
+	artifactImage := deployables.Evidence{Field: "image", Value: "cartservice", Line: 10, Basis: "skaffold-artifact"}
+	artifactContext := deployables.Evidence{Field: "context", Value: "src/cartservice/src", Line: 11, Basis: "skaffold-artifact"}
+	kubeImage := deployables.Evidence{Field: "image", Value: "registry.example/cartservice:v1", Line: 22, Basis: "kubernetes-container-field"}
+	definitions := []deployables.Definition{
+		{Provider: "skaffold", Kind: "container_build", Name: "cartservice", Path: "skaffold.yaml", Coverage: "complete", Evidence: []deployables.Evidence{artifactImage, artifactContext}, References: []deployables.Reference{{Kind: "image", Value: "cartservice", Qualification: "local", Evidence: artifactImage}, {Kind: "build_context", Value: "src/cartservice/src", Qualification: "local", Evidence: artifactContext}}},
+		{Provider: "kubernetes", Kind: "workload", Name: "cartservice", Path: "k8s/cartservice.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "Deployment", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "image", Value: kubeImage.Value, Qualification: "external", Evidence: kubeImage}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeRuns {
+			continue
+		}
+		if edge.To != nested.ID || edge.To == outer.ID || len(edge.Evidence) != 3 || edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Fatalf("Skaffold mapping did not select and qualify the nested component: %+v", edge)
+		}
+		if edge.Evidence[0].Path != "k8s/cartservice.yaml" || edge.Evidence[1].Path != "skaffold.yaml" || edge.Evidence[2].Path != "skaffold.yaml" {
+			t.Fatalf("run link lacks Kubernetes/Skaffold evidence: %+v", edge.Evidence)
+		}
+		return
+	}
+	t.Fatal("expected a Kubernetes run edge through the explicit Skaffold artifact mapping")
 }
 
 func TestDuplicateObserverIdentityDoesNotDiscardWholeMap(t *testing.T) {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestObserveStaticDeclarationKindsAndQualifications(t *testing.T) {
@@ -152,6 +152,21 @@ func TestSAMCodeURICapturedAsLocalReference(t *testing.T) {
 	ref := r.Definitions[0].References[0]
 	if ref.Kind != "code_uri" || ref.Value != "src/" || ref.Qualification != "local" {
 		t.Fatalf("unexpected CodeUri reference: %+v", ref)
+	}
+}
+
+func TestSkaffoldBuildArtifactReferencesImageAndContext(t *testing.T) {
+	body := "apiVersion: skaffold/v3\nkind: Config\nbuild:\n  artifacts:\n    - image: cartservice\n      context: src/cartservice/src\n      docker:\n        dockerfile: Dockerfile\n"
+	r := observeOne(t, "skaffold.yaml", body)
+	if len(r.Definitions) != 1 || r.Definitions[0].Provider != "skaffold" || r.Definitions[0].Kind != "container_build" {
+		t.Fatalf("Skaffold config was not recognized as a build declaration: %+v", r.Definitions)
+	}
+	refs := map[string]Reference{}
+	for _, ref := range r.Definitions[0].References {
+		refs[ref.Kind] = ref
+	}
+	if refs["image"].Value != "cartservice" || refs["build_context"].Value != "src/cartservice/src" || refs["dockerfile"].Value != "Dockerfile" {
+		t.Fatalf("missing Skaffold artifact mapping: %+v", refs)
 	}
 }
 
