@@ -115,6 +115,85 @@ func TestProviderCoverageChangeIsSeparateFromSourceMaterial(t *testing.T) {
 	}
 }
 
+func TestProviderAttachmentEntitiesAreSeparateFromSourceMaterial(t *testing.T) {
+	node := component("service")
+	without := testDocument("same-tree", node, mapdoc.CoverageComplete)
+	with := withSyftAttachment(testDocument("same-tree", node, mapdoc.CoverageComplete))
+
+	added, err := mapdiff.Compare(without, with)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if added.Status != "unchanged" || added.Counts.Material != 0 || len(added.Changes) != 0 {
+		t.Fatalf("provider attachment became a material source change: %#v", added)
+	}
+	if added.ProviderStatus != "changed" || len(added.ProviderChanges) != 3 {
+		t.Fatalf("provider attachment additions not separated: %#v", added)
+	}
+	for _, change := range added.ProviderChanges {
+		if change.Status != "added" || change.Material || change.Certainty != "observed" {
+			t.Fatalf("unexpected provider addition: %#v", change)
+		}
+	}
+
+	removed, err := mapdiff.Compare(with, without)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removed.Status != "unchanged" || removed.Counts.Material != 0 || removed.Counts.IndeterminateRemoval != 0 {
+		t.Fatalf("provider removal changed source status: %#v", removed)
+	}
+	if removed.ProviderStatus != "indeterminate" || len(removed.ProviderChanges) != 3 {
+		t.Fatalf("missing provider run did not retain uncertainty: %#v", removed)
+	}
+}
+
+func TestProviderRemovalIsConfirmedOnlyByComparableHeadRun(t *testing.T) {
+	node := component("service")
+	base := withSyftAttachment(testDocument("same-tree", node, mapdoc.CoverageComplete))
+	head := testDocument("same-tree", node, mapdoc.CoverageComplete)
+	head.CoverageLedger = slices.Clone(base.CoverageLedger)
+
+	report, err := mapdiff.Compare(base, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != "unchanged" || report.ProviderStatus != "changed" {
+		t.Fatalf("comparable provider run should confirm provider-only removals: %#v", report)
+	}
+	for _, change := range report.ProviderChanges {
+		if change.Certainty != "confirmed" {
+			t.Fatalf("provider removal uncertainty unexpectedly retained: %#v", change)
+		}
+	}
+}
+
+func withSyftAttachment(document mapdoc.Document) mapdoc.Document {
+	evidence := []mapdoc.Evidence{{
+		Basis: mapdoc.BasisProviderReported, Path: "go.mod", SourceKind: mapdoc.SourceFile,
+		Provider: &mapdoc.Producer{ID: "syft", Version: "1.0.0"},
+	}}
+	tool := mapdoc.NewNode(mapdoc.NodeToolRun, []string{"."}, "syft:attachment:0")
+	tool.Name = "syft"
+	tool.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	tool.Evidence = slices.Clone(evidence)
+	tool.Facts = []mapdoc.Fact{{Kind: "run_metadata", State: "provider_reported", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}, Evidence: slices.Clone(evidence)}}
+	packageNode := mapdoc.NewNode(mapdoc.NodePackage, []string{"go.mod"}, "go:example.org/dependency@v1.0.0")
+	packageNode.Name = "example.org/dependency"
+	packageNode.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	packageNode.Evidence = slices.Clone(evidence)
+	edge := mapdoc.NewEdge(mapdoc.EdgeAnalyzedBy, packageNode.ID, tool.ID, "")
+	edge.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	edge.Evidence = slices.Clone(evidence)
+	document.Nodes = append(document.Nodes, tool, packageNode)
+	document.Edges = append(document.Edges, edge)
+	document.CoverageLedger = []mapdoc.CoverageLedgerEntry{{
+		Tool: "syft", ReportKind: "syft-json", Scope: ".", Binding: "verified", Ran: true,
+		CoveredFiles: []string{"go.mod"}, State: "covered_files_reported",
+	}}
+	return document
+}
+
 func TestUnboundDirectoriesExposeSourceCaveat(t *testing.T) {
 	node := component("service")
 	base := testDocument("aaa", node, mapdoc.CoverageComplete)
