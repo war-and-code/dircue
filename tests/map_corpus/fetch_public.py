@@ -57,7 +57,9 @@ def main():
         try:
             run(["git", "-C", str(target), "init", "--quiet"])
             run(["git", "-C", str(target), "remote", "add", "origin", entry["url"]])
-            run(["git", "-C", str(target), "fetch", "--quiet", "--depth", "1", "--filter=blob:limit=2m", "origin", entry["commit"]])
+            # A partial clone can leave local Git objects missing. Dircue never
+            # fetches them, so the fixture must be complete before profiling.
+            run(["git", "-C", str(target), "fetch", "--quiet", "--depth", "1", "origin", entry["commit"]])
             run(["git", "-C", str(target), "checkout", "--quiet", "--detach", "FETCH_HEAD"])
         except Exception:
             print(f"{repo_id}: fetch failed; remove incomplete directory before retrying: {target}")
