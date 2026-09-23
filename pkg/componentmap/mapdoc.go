@@ -1,6 +1,7 @@
 package componentmap
 
 import (
+	"path/filepath"
 	"strings"
 
 	"dircue/pkg/mapdoc"
@@ -25,6 +26,18 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 		n.Coverage = mapCoverage(c.Coverage, "declaration input was incomplete")
 		n.Evidence = []mapdoc.Evidence{evidence(mapdoc.BasisDeclaredConfig, c.Manifest)}
 		n.Properties = map[string]string{"root": c.Root, "ecosystem": c.Ecosystem, "project_kind": c.Kind}
+		if language := primaryProjectLanguage(c.Manifest); language != "" {
+			n.Properties["language"] = language
+			n.Properties["language_basis"] = "project_file_extension"
+			n.Properties["language_scope"] = "declared_primary_project_language"
+		}
+		for _, requirement := range c.Requirements {
+			coverage := mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+			if requirement.State == "conditional" || requirement.State == "unresolved" {
+				coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"declaration_" + requirement.State}}
+			}
+			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "declared_requirement", Name: requirement.Kind, Value: requirement.Value, State: requirement.State, Condition: requirement.Condition, Properties: map[string]string{"ecosystem": c.Ecosystem}, Coverage: coverage, Evidence: []mapdoc.Evidence{evidence(mapdoc.BasisDeclaredConfig, requirement.Evidence)}})
+		}
 		if c.Version != "" {
 			n.Properties["version"] = c.Version
 		}
@@ -68,6 +81,19 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 		edges = append(edges, e)
 	}
 	return nodes, edges
+}
+
+func primaryProjectLanguage(manifest string) string {
+	switch strings.ToLower(filepath.Ext(manifest)) {
+	case ".csproj":
+		return "C#"
+	case ".vbproj":
+		return "Visual Basic .NET"
+	case ".fsproj":
+		return "F#"
+	default:
+		return ""
+	}
 }
 
 func evidence(basis mapdoc.EvidenceBasis, filename string) mapdoc.Evidence {

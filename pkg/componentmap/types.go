@@ -6,14 +6,23 @@ package componentmap
 // Component is a buildable, installable, or aggregating unit identified by
 // its root-relative manifest path.
 type Component struct {
-	Key       string `json:"key"`
-	Root      string `json:"root"`
-	Manifest  string `json:"manifest"`
-	Ecosystem string `json:"ecosystem"`
+	Key          string                `json:"key"`
+	Root         string                `json:"root"`
+	Manifest     string                `json:"manifest"`
+	Ecosystem    string                `json:"ecosystem"`
+	Kind         string                `json:"kind"`
+	Name         string                `json:"name,omitempty"`
+	Version      string                `json:"version,omitempty"`
+	Coverage     string                `json:"coverage"`
+	Requirements []DeclaredRequirement `json:"requirements"`
+}
+
+type DeclaredRequirement struct {
 	Kind      string `json:"kind"`
-	Name      string `json:"name,omitempty"`
-	Version   string `json:"version,omitempty"`
-	Coverage  string `json:"coverage"`
+	Value     string `json:"value"`
+	State     string `json:"state"`
+	Evidence  string `json:"evidence"`
+	Condition string `json:"condition,omitempty"`
 }
 
 // Relationship is a local relationship between two retained components.

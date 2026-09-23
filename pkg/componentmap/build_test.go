@@ -93,6 +93,39 @@ func TestMapFactsRetainsQualifiedReferencesOnComponent(t *testing.T) {
 	}
 }
 
+func TestMapFactsRetainsOnlyPackageRequirements(t *testing.T) {
+	f := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{{
+		ID: "package.json", Root: ".", Kind: "npm",
+		Requirements: []declarations.Requirement{{Kind: "java-toolchain", Value: "21", State: "declared", Evidence: "package.json"}},
+		References:   []declarations.Reference{{Kind: "npm-dependency", Value: "lodash@^4", State: "declared", TargetStatus: "external"}},
+	}}})
+	nodes, _ := MapFacts(f)
+	if len(nodes) != 1 || len(nodes[0].Facts) != 1 {
+		t.Fatalf("facts=%+v", nodes)
+	}
+	fact := nodes[0].Facts[0]
+	if fact.Kind != "declared_requirement" || fact.Name != "npm-dependency" || fact.Value != "lodash@^4" || fact.Properties["ecosystem"] != "npm" {
+		t.Fatalf("fact=%+v", fact)
+	}
+	if len(fact.Evidence) != 1 || fact.Evidence[0].Path != "package.json" {
+		t.Fatalf("fallback evidence=%+v", fact.Evidence)
+	}
+}
+
+func TestMapFactsAttributesDotNetPrimaryLanguageFromProjectExtension(t *testing.T) {
+	for manifest, want := range map[string]string{
+		"src/App.csproj": "C#",
+		"src/App.vbproj": "Visual Basic .NET",
+		"src/App.fsproj": "F#",
+	} {
+		fragment := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{{ID: manifest, Root: "src", Kind: "dotnet"}}})
+		nodes, _ := MapFacts(fragment)
+		if len(nodes) != 1 || nodes[0].Properties["language"] != want || nodes[0].Properties["language_basis"] != "project_file_extension" || nodes[0].Properties["language_scope"] != "declared_primary_project_language" {
+			t.Fatalf("%s properties=%+v", manifest, nodes)
+		}
+	}
+}
+
 func relationship(t *testing.T, f Fragment, declarationKind string) Relationship {
 	t.Helper()
 	for _, r := range f.Relationships {

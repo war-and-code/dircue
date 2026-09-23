@@ -30,7 +30,7 @@ func Build(report *declarations.Report) Fragment {
 		if report.Status != "complete" {
 			coverage = "partial"
 		}
-		c := Component{Key: p.ID, Root: cleanRoot(p.Root), Manifest: p.ID, Ecosystem: ecosystem(p.Kind), Kind: p.Kind, Name: p.Name, Version: p.Version, Coverage: coverage}
+		c := Component{Key: p.ID, Root: cleanRoot(p.Root), Manifest: p.ID, Ecosystem: ecosystem(p.Kind), Kind: p.Kind, Name: p.Name, Version: p.Version, Coverage: coverage, Requirements: declaredRequirements(p)}
 		byManifest[p.ID] = c
 		if _, exists := byRoot[c.Root]; exists {
 			ambiguousRoot[c.Root] = true
@@ -96,6 +96,38 @@ func Build(report *declarations.Report) Fragment {
 		f.Coverage.Status = "partial"
 	}
 	return f
+}
+
+func declaredRequirements(p declarations.Project) []DeclaredRequirement {
+	var out []DeclaredRequirement
+	add := func(kind, value, state, evidence, condition string) {
+		if !packageRequirementKind(kind) || value == "" {
+			return
+		}
+		if evidence == "" {
+			evidence = p.ID
+		}
+		out = append(out, DeclaredRequirement{Kind: kind, Value: value, State: state, Evidence: evidence, Condition: condition})
+	}
+	for _, r := range p.Requirements {
+		add(r.Kind, r.Value, r.State, r.Evidence, r.Condition)
+	}
+	for _, r := range p.References {
+		add(r.Kind, r.Value, r.State, r.Evidence, r.Condition)
+	}
+	slices.SortFunc(out, func(a, b DeclaredRequirement) int {
+		return strings.Compare(a.Kind+"\x00"+a.Value+"\x00"+a.Evidence, b.Kind+"\x00"+b.Value+"\x00"+b.Evidence)
+	})
+	return out
+}
+
+func packageRequirementKind(kind string) bool {
+	switch kind {
+	case "npm-dependency", "go-require", "cargo-dependency", "cargo-workspace-dependency", "python-dependency", "python-build-requirement", "package-reference", "maven-dependency", "gradle-dependency":
+		return true
+	default:
+		return false
+	}
 }
 
 func componentKind(kind string) bool {

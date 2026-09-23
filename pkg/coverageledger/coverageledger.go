@@ -87,6 +87,15 @@ func Reconcile(d *mapdoc.Document) {
 
 func setCoverageQuestion(d *mapdoc.Document) {
 	coverage := mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"provider_file_lists_are_not_exhaustive_proof"}}
+	if len(d.AnalyzerCoverage) == 0 {
+		coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"no_source_population_observed"}}
+		for _, question := range d.Coverage {
+			if question.Question == "content" && question.Scope == "." && question.Status != mapdoc.CoverageComplete {
+				coverage.Reasons = append(coverage.Reasons, "source_population_inventory_incomplete")
+				break
+			}
+		}
+	}
 	for _, entry := range d.AnalyzerCoverage {
 		if entry.LanguageBasis == "unattributed" {
 			coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"component_language_not_exactly_attributed"}}
@@ -132,7 +141,7 @@ func populations(d mapdoc.Document) []population {
 		}
 		languages = compact(languages)
 		if len(languages) == 0 {
-			languages = []string{"unknown"}
+			return nil
 		}
 		out = append(out, population{id: "repository", root: ".", languages: languages, languageBasis: "repository_population"})
 	}
