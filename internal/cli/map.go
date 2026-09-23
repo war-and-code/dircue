@@ -19,6 +19,7 @@ import (
 func newMapCommand(opts *options) *cobra.Command {
 	var summary bool
 	var budgetFiles int
+	var attachments []string
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
@@ -106,6 +107,10 @@ func newMapCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			doc, err = joinMapAttachments(cmd, doc, attachments)
+			if err != nil {
+				return err
+			}
 			if summary || !opts.json && terminalOutput(cmd.OutOrStdout()) {
 				return writeMapSummary(cmd.OutOrStdout(), doc)
 			}
@@ -125,6 +130,8 @@ func newMapCommand(opts *options) *cobra.Command {
 	}
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
+	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json)")
+	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts))
 	return cmd
 }
 
@@ -139,13 +146,17 @@ func terminalOutput(out io.Writer) bool {
 
 func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	counts := make(map[mapdoc.NodeKind]int)
+	populations := 0
 	for _, n := range d.Nodes {
 		counts[n.Kind]++
+		if n.Kind == mapdoc.NodeContent && n.Properties["scope"] == "inventory_population" {
+			populations++
+		}
 	}
 	if _, err := fmt.Fprintf(out, "Directory map (%s; %s source)\n", d.Status, d.Source.Mode); err != nil {
 		return err
 	}
-	if _, err := fmt.Fprintf(out, "Content populations: %d   Components: %d   Relationships: %d\n", counts[mapdoc.NodeContent], counts[mapdoc.NodeComponent], len(d.Edges)); err != nil {
+	if _, err := fmt.Fprintf(out, "Content populations: %d   Components: %d   Relationships: %d\n", populations, counts[mapdoc.NodeComponent], len(d.Edges)); err != nil {
 		return err
 	}
 	languages := []string{}
