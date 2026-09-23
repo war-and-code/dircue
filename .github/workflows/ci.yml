@@ -93,6 +93,7 @@ jobs:
           python3 tests/map_corpus/run.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --output .cache/map-corpus
           python3 tests/map_corpus/verify.py --results .cache/map-corpus
           python3 tests/map_corpus/metamorphic.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+          python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Test staged-analysis consumer against the built CLI
         run: python examples/staged_analysis/test_route.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
 

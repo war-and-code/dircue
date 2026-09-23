@@ -18,6 +18,7 @@ Run the gate against map JSON produced by a candidate binary:
 python3 tests/map_corpus/run.py --binary ./dircue --output .cache/map-corpus
 python3 tests/map_corpus/verify.py --results .cache/map-corpus
 python3 tests/map_corpus/metamorphic.py --binary ./dircue
+python3 tests/map_corpus/robustness.py --binary ./dircue
 ```
 
 The runner uses the intended one-shot shape, `dircue map --json PATH`, and
@@ -32,6 +33,11 @@ requirements.
 creation-order portability, documentation non-interference, honest byte/file
 budget coverage, absence of absolute source paths, and self-comparison. It uses
 temporary copies and leaves no corpus output in the repository.
+
+`robustness.py` feeds 80 deterministic combinations of repeated Terraform
+provider declarations, punctuation-heavy workflows, and multi-document YAML
+through the full CLI. Each must return a parseable map; a declaration identity
+collision or parser failure must not discard the entire document.
 
 An already-materialized pinned public corpus can be checked without downloads:
 
