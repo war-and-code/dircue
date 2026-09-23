@@ -212,9 +212,9 @@ func formatRole(o formats.Observation) (role, format, basis string) {
 	for _, e := range o.Evidence {
 		if e.Basis == "signature_match" {
 			switch e.Format {
-			case "elf", "pe", "dos-executable":
+			case "elf", "pe", "dos-executable", "mach_o", "mach_o_fat", "java_class", "wasm":
 				return "binary", e.Format, e.Basis
-			case "zip", "gzip", "7z":
+			case "zip", "gzip", "7z", "tar":
 				return "archive", e.Format, e.Basis
 			case "sqlite":
 				return "data", e.Format, e.Basis
