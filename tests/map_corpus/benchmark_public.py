@@ -2,8 +2,9 @@
 """Measure map resource use on an already-materialized pinned public corpus.
 
 This on-demand harness does not fetch repositories and defines no release
-thresholds. It also checks that execution-only presets produce byte-identical
-map documents for each pinned source.
+thresholds. It also checks that execution-only presets produce semantically
+identical map documents for each pinned source, excluding only the recorded
+execution settings.
 """
 import argparse
 import hashlib
