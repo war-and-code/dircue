@@ -777,6 +777,9 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	if discoveryCollector != nil {
 		report.Discovery = discoveryCollector.Finish()
+		if snapshot != nil && !snapshot.commit.IsZero() {
+			report.Discovery.Source.Commit = snapshot.commit.String()
+		}
 		for _, warning := range report.Warnings {
 			switch warning.Code {
 			case "tree_size_limit":

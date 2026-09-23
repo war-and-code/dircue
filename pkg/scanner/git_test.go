@@ -541,3 +541,69 @@ func TestAutoSourceRejectsInvalidHEADWithoutBranchRefs(t *testing.T) {
 		t.Fatalf("invalid HEAD silently downgraded: report=%+v err=%v", report, err)
 	}
 }
+
+func TestLocalGitRevisionResolutionAcrossPackedRefsAndAncestry(t *testing.T) {
+	gitBinary, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git needed for revision fixture")
+	}
+	root := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(gitBinary, append([]string{"-C", root}, args...)...)
+		cmd.Env = append(os.Environ(), "GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid", "GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid")
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, output)
+		}
+		return strings.TrimSpace(string(output))
+	}
+	run("init", "-q")
+	commits := make([]string, 0, 3)
+	for i, file := range []string{"first.py", "second.go", "third.java"} {
+		if err := os.WriteFile(filepath.Join(root, file), []byte("// fixture\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		run("add", file)
+		run("commit", "-q", "-m", fmt.Sprintf("commit %d", i+1))
+		commits = append(commits, run("rev-parse", "HEAD"))
+	}
+	run("branch", "packed-branch", commits[1])
+	run("tag", "packed-lightweight", commits[0])
+	run("tag", "-a", "packed-annotated", commits[1], "-m", "fixture tag")
+	run("pack-refs", "--all", "--prune")
+
+	cases := map[string]string{
+		"HEAD":               commits[2],
+		"packed-branch":      commits[1],
+		"packed-lightweight": commits[0],
+		"packed-annotated":   commits[1],
+		commits[1]:           commits[1],
+		commits[2][:12]:      commits[2],
+		"HEAD^":              commits[1],
+		"HEAD~2":             commits[0],
+	}
+	for revision, want := range cases {
+		t.Run(revision, func(t *testing.T) {
+			report, err := Scan(t.Context(), root, Options{Source: "git", Revision: revision, Discovery: true})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if report.Discovery == nil || report.Discovery.Source.Commit != want {
+				t.Fatalf("resolved commit=%q, want %q", report.Discovery.Source.Commit, want)
+			}
+		})
+	}
+	bare := filepath.Join(t.TempDir(), "fixture.git")
+	clone := exec.Command(gitBinary, "clone", "-q", "--bare", root, bare)
+	if output, err := clone.CombinedOutput(); err != nil {
+		t.Fatalf("clone bare fixture: %v: %s", err, output)
+	}
+	bareReport, err := Scan(t.Context(), bare, Options{Source: "git", Discovery: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bareReport.Discovery.Source.Commit != commits[2] {
+		t.Fatalf("bare resolved commit=%q, want %q", bareReport.Discovery.Source.Commit, commits[2])
+	}
+}

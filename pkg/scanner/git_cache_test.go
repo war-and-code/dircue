@@ -16,6 +16,7 @@ import (
 	"dircue/pkg/profile"
 	git "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func(...string) string) {
@@ -82,7 +83,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lazy, err := snapshot.repo.BlobObject(first.Hash)
+	lazy, err := object.GetBlob(snapshot.storage, first.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +92,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err = snapshot.repo.BlobObject(entry.Hash); err != nil {
+		if _, err = object.GetBlob(snapshot.storage, entry.Hash); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -158,7 +159,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alternateBlob, err := alternateSnapshot.repo.BlobObject(entry.Hash)
+	alternateBlob, err := object.GetBlob(alternateSnapshot.storage, entry.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
