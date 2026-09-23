@@ -109,21 +109,26 @@ def run_linguist_on_repo(repo_path: Path, image: str) -> tuple[dict, float, int]
     to ensure deterministic timing.
     """
     with tempfile.TemporaryDirectory(prefix="atlas-linguist-") as tmpdir:
-        # Copy repo into a tar to send to Docker
+        # Use git archive to extract committed files: this includes files that
+        # are tracked but gitignored (e.g. the kernel's Documentation/.renames.txt),
+        # unlike a plain directory listing.
         archive = Path(tmpdir) / "repo.tar"
         run(["git", "-C", str(repo_path), "archive", "--format=tar",
              "-o", str(archive), "HEAD"])
 
-        # Build a one-shot container that extracts the tar, wraps it in a git
-        # repo (Linguist requires .git to exist), and runs linguist --json.
-        # git config values are minimal placeholders; no network is used.
+        # Build a one-shot container that extracts the tar, wraps it in a new git
+        # repo, and runs Linguist.  git add --force . (not --all) is critical: it
+        # stages every file in the working tree, overriding .gitignore, so that
+        # committed-but-gitignored files (present in the git archive) are visible
+        # to Linguist via git ls-files.  git add --all would apply .gitignore and
+        # drop those files, giving Linguist a different file list than dircue sees.
         script = (
             "mkdir -p /repo && cd /repo && "
             "tar -xf /repo.tar && "
             "git init -q && "
             "git config user.email noreply@atlas && "
             "git config user.name atlas && "
-            "git add --all 2>/dev/null && "
+            "git add --force . 2>/dev/null && "
             "git commit -q --allow-empty-message -m '' 2>/dev/null && "
             "github-linguist --json . 2>/dev/null"
         )
@@ -341,6 +346,22 @@ def compare_scc(
     # Build scc index by path
     scc_index: dict = {f["path"]: f for f in scc_files}
 
+    # Build per-repo scc evidence sets for dircue-only classification.
+    # scc_extensions_in_repo: file extensions present anywhere in scc's output
+    #   → distinguishes scc_no_language from unexplained
+    # scc_paths_lower: lowercase-normalised version of every scc output path
+    #   → detects harness_case_collision on macOS case-insensitive filesystems
+    scc_extensions_in_repo: set = set()
+    scc_paths_lower: set = set()
+    for f in scc_files:
+        p = f["path"]
+        scc_paths_lower.add(p.lower())
+        basename = p.rsplit("/", 1)[-1]
+        if "." in basename and not basename.startswith("."):
+            scc_extensions_in_repo.add("." + p.rsplit(".", 1)[-1].lower())
+        elif not basename.startswith("."):
+            scc_extensions_in_repo.add(basename.lower())
+
     matched = 0
     mismatched = 0
     dircue_only = 0
@@ -357,7 +378,7 @@ def compare_scc(
         if path not in scc_index:
             # dircue counted this file but scc did not output it
             language = dircue_row.get("language", "")
-            cat = classify_skip_dircue_only(path, language)
+            cat = classify_skip_dircue_only(path, language, scc_extensions_in_repo, scc_paths_lower)
             dircue_only += 1
             _inc_skip("dircue_only", cat)
             continue
@@ -407,6 +428,12 @@ def compare_scc(
     union_size = matched + mismatched + dircue_only + scc_only
     agreement_rate = round(matched / union_size, 4) if union_size > 0 else None
 
+    # Count unexplained one-sided files; non-zero is a smoke-gate failure.
+    unexplained_count = sum(
+        cnt for key, cnt in skip_categories.items()
+        if key.endswith("/unexplained")
+    )
+
     return {
         "matched": matched,
         "mismatched": mismatched,
@@ -414,6 +441,7 @@ def compare_scc(
         "scc_only": scc_only,
         "union_size": union_size,
         "agreement_rate": agreement_rate,
+        "unexplained_count": unexplained_count,
         "mismatches": mismatches,
         "categories": categories,
         "skip_categories": skip_categories,
@@ -501,20 +529,40 @@ def write_summary(results: list[dict], output_dir: Path) -> None:
         lines += ["## scc 4.1.0 per-file parity", ""]
         total_matched = sum(r["comparison"]["matched"] for r in scc)
         total_mismatch = sum(r["comparison"]["mismatched"] for r in scc)
-        total_dircue_only = sum(r["comparison"].get("dircue_only", r["comparison"].get("skipped", 0)) for r in scc)
+        total_dircue_only = sum(r["comparison"].get("dircue_only", 0) for r in scc)
         total_scc_only = sum(r["comparison"].get("scc_only", 0) for r in scc)
-        total_union = sum(r["comparison"].get("union_size", r["comparison"]["matched"] + r["comparison"]["mismatched"]) for r in scc)
-        pct = f"{100 * total_matched / total_union:.1f}" if total_union else "N/A"
+        total_union = sum(r["comparison"].get("union_size", 0) for r in scc)
+        total_unexplained = sum(r["comparison"].get("unexplained_count", 0) for r in scc)
+        both_count = total_matched + total_mismatch  # files present in both tools
+
+        # Headline: per-file counter identity on files both tools counted
+        if both_count > 0:
+            if total_mismatch == 0:
+                identity_line = (
+                    f"Counter identity: {total_matched}/{both_count} "
+                    f"(all counters identical on every file both tools counted)"
+                )
+            else:
+                identity_line = (
+                    f"Counter identity: {total_matched}/{both_count} "
+                    f"({total_mismatch} documented grammar differences, "
+                    f"0 unexplained counter mismatches)"
+                )
+        else:
+            identity_line = "Counter identity: N/A (no files counted by both tools)"
+
         lines += [
+            identity_line,
+            "",
             f"| Metric | Value |",
             f"|--------|-------|",
             f"| Repos | {len(scc)} |",
-            f"| Files matched | {total_matched} |",
-            f"| Files mismatched (categorized) | {total_mismatch} |",
-            f"| dircue-only (not in scc output) | {total_dircue_only} |",
-            f"| scc-only (not in dircue source set) | {total_scc_only} |",
+            f"| Counters identical (both tools) | {total_matched}/{both_count} |",
+            f"| Counter differences (documented) | {total_mismatch} |",
+            f"| dircue-only (scc did not output) | {total_dircue_only} |",
+            f"| scc-only (dircue outside scope) | {total_scc_only} |",
             f"| Union size | {total_union} |",
-            f"| Agreement rate (matched / union) | {pct}% |",
+            f"| Unexplained one-sided files | **{total_unexplained}** |",
             "",
         ]
         # Mismatch category breakdown
@@ -523,28 +571,30 @@ def write_summary(results: list[dict], output_dir: Path) -> None:
             for cat, cnt in r["comparison"].get("categories", {}).items():
                 all_cats[cat] = all_cats.get(cat, 0) + cnt
         if all_cats:
-            lines += ["### Mismatch categories", ""]
+            lines += ["### Counter-mismatch categories", ""]
             for cat, cnt in sorted(all_cats.items()):
                 lines.append(f"- `{cat}`: {cnt}")
             lines.append("")
-        # Skip category breakdown
+        # Skip category breakdown (one-sided files, evidenced)
         all_skip_cats: dict[str, int] = {}
         for r in scc:
             for cat, cnt in r["comparison"].get("skip_categories", {}).items():
                 all_skip_cats[cat] = all_skip_cats.get(cat, 0) + cnt
         if all_skip_cats:
-            lines += ["### Skip categories (classified non-overlap)", ""]
+            lines += ["### One-sided file reasons (evidenced)", ""]
             for cat, cnt in sorted(all_skip_cats.items()):
-                lines.append(f"- `{cat}`: {cnt}")
+                marker = " **[SMOKE GATE FAILURE]**" if cat.endswith("/unexplained") else ""
+                lines.append(f"- `{cat}`: {cnt}{marker}")
             lines.append("")
 
-        unexplained = [r for r in scc if any(
+        # dircue-bug counter mismatches (tracked, not a gate failure for now)
+        bugs = [r for r in scc if any(
             m["category"] == "dircue-bug"
             for m in r["comparison"].get("mismatches", [])
         )]
-        if unexplained:
-            lines += ["### Unexplained scc disagreements", ""]
-            for r in unexplained:
+        if bugs:
+            lines += ["### Counter mismatches not covered by known-differences.json", ""]
+            for r in bugs:
                 for m in r["comparison"]["mismatches"]:
                     if m["category"] == "dircue-bug":
                         lines.append(
@@ -750,9 +800,22 @@ def main():
         m for r in results for m in r.get("comparison", {}).get("mismatches", [])
         if m.get("category") not in ("known-upstream-diff", "dircue-bug", "harness-issue")
     ]
-    if uncategorized or failed_repos:
-        print(f"\nFAILED: {len(uncategorized)} uncategorized mismatches, "
-              f"{len(failed_repos)} failed repos", flush=True)
+    total_unexplained_skips = sum(
+        r.get("comparison", {}).get("unexplained_count", 0)
+        for r in results
+    )
+    if uncategorized or failed_repos or total_unexplained_skips > 0:
+        msg_parts = []
+        if uncategorized:
+            msg_parts.append(f"{len(uncategorized)} uncategorized counter mismatches")
+        if total_unexplained_skips > 0:
+            msg_parts.append(
+                f"{total_unexplained_skips} unexplained one-sided files "
+                f"(add root cause to known-differences.json to suppress)"
+            )
+        if failed_repos:
+            msg_parts.append(f"{len(failed_repos)} failed repos")
+        print(f"\nFAILED: {'; '.join(msg_parts)}", flush=True)
         sys.exit(1)
     else:
         # Count dircue-bug mismatches (tracked but not fatal)
@@ -761,9 +824,9 @@ def main():
             if m.get("category") == "dircue-bug"
         ]
         if bugs:
-            print(f"\nPASSED with {len(bugs)} tracked dircue-bug mismatches", flush=True)
+            print(f"\nPASSED with {len(bugs)} tracked dircue-bug mismatches, 0 unexplained skips", flush=True)
         else:
-            print(f"\nPASSED: all files matched or differences categorized", flush=True)
+            print(f"\nPASSED: all files matched or differences categorized, 0 unexplained skips", flush=True)
         sys.exit(0)
 
 

@@ -11,13 +11,13 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/spf13/cobra"
 	"dircue/pkg/deployables"
 	"dircue/pkg/detectors"
 	"dircue/pkg/intentmap"
 	"dircue/pkg/mapbuild"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/scanner"
+	"github.com/spf13/cobra"
 )
 
 func newMapCommand(opts *options) *cobra.Command {

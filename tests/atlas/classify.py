@@ -137,33 +137,68 @@ def classify_linguist_top_level_mismatch(
     return "dircue-bug"
 
 
-def classify_skip_dircue_only(path: str, language: str) -> str:
+def classify_skip_dircue_only(
+    path: str,
+    language: str,
+    scc_extensions_in_repo: set,
+    scc_paths_lower: set | None = None,
+) -> str:
     """Classify a file that dircue counted as source but scc did not output.
 
-    scc only outputs files it maps to a known language via its built-in extension
-    registry.  dircue uses Linguist-compatible detection (extension table, shebang,
-    content heuristics) and recognises file types that scc's registry does not.
-    Root cause: scc's filesystem walker silently drops the file.
+    Evidence-backed via scc's known walker behaviour:
+    - scc_skips_dotfiles: basename starts with '.' (scc skips dotfiles even with
+      --no-ignore; confirmed empirically for scc 4.1.0)
+    - harness_case_collision: the path differs only in case from a path that scc
+      DID output; on macOS's case-insensitive filesystem, tar extraction collapses
+      case-variant pairs (e.g. the Linux kernel's xt_CONNMARK.h / xt_connmark.h)
+      so scc only sees one member of each pair — not an scc skip, a harness limit
+    - scc_no_language: the file's extension does not appear anywhere in scc's
+      output for this repo, meaning scc's language registry does not map that
+      extension to any language
+    - unexplained: none of the above evidence applies; the skip requires
+      investigation
     """
-    return "scc_excludes_by_its_walker"
+    basename = path.rsplit("/", 1)[-1]
+    if basename.startswith("."):
+        return "scc_skips_dotfiles"
+    if scc_paths_lower is not None and path.lower() in scc_paths_lower:
+        return "harness_case_collision"
+    # Extension: e.g. "foo.bar" -> ".bar"; "Makefile" -> "makefile"
+    if "." in basename:
+        ext = "." + path.rsplit(".", 1)[-1].lower()
+    else:
+        ext = basename.lower()
+    if ext not in scc_extensions_in_repo:
+        return "scc_no_language"
+    return "unexplained"
 
 
 def classify_skip_scc_only(path: str, dircue_row: dict | None) -> str:
     """Classify a file that scc output but dircue did not count as source.
 
-    dircue applies Linguist-compatible vendored/generated/documentation rules that
-    exclude files scc counts indiscriminately.  If dircue included the file but
-    assigned a non-counted status, the cause is dircue's selection policy.  If the
-    file is absent from dircue's output entirely, it was not tracked by git or
-    falls outside dircue's evaluated scope.
+    Evidence-backed via dircue's per-file 'reason' field in the metrics JSON:
+    - dircue_out_of_scope: reason == 'outside_scope' (CI/config/docs/legal,
+      Linguist-compatible selection rules)
+    - dircue_unsupported_language: reason == 'unsupported_language'
+    - dircue_binary: reason == 'binary'
+    - dircue_non_regular_file: reason == 'non_regular_file' (symlinks, etc.)
+    - dircue_file_too_large: reason == 'file_too_large'
+    - unexplained: dircue_row is absent or reason is not in the known set;
+      the skip is not accounted for and requires investigation
     """
-    if dircue_row is not None:
-        status = dircue_row.get("status", "counted")
-        if status != "counted":
-            return "dircue_selection_excludes"
-    # File present in scc but absent from dircue output: outside git selection or
-    # excluded by dircue's vendored/generated/documentation rules.
-    return "dircue_selection_excludes"
+    if dircue_row is None:
+        return "unexplained"
+    reason = dircue_row.get("reason", "")
+    _REASON_MAP = {
+        "outside_scope": "dircue_out_of_scope",
+        "unsupported_language": "dircue_unsupported_language",
+        "binary": "dircue_binary",
+        "non_regular_file": "dircue_non_regular_file",
+        "file_too_large": "dircue_file_too_large",
+    }
+    if reason in _REASON_MAP:
+        return _REASON_MAP[reason]
+    return "unexplained"
 
 
 def classify_oracle_version(actual: str, expected: str) -> str:
