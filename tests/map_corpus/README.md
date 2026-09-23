@@ -94,7 +94,9 @@ interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
 
 The optional fetch helper requires every repository ID explicitly and refuses
-to update or replace existing checkouts. Ordinary push and pull-request CI does
+to update or replace existing checkouts. It fetches complete snapshots because
+dircue's local Git reader cannot fill missing blobs from a partial clone.
+Ordinary push and pull-request CI does
 not fetch the public corpus; the event-driven `Public map quality` workflow runs
 it only when explicitly dispatched:
 
