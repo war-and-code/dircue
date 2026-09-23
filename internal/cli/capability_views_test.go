@@ -71,6 +71,19 @@ func TestCLIContractDerivesActualCommandsFlagsAndDefaultValues(t *testing.T) {
 			t.Fatal("single-file falsely mapped to directory schema")
 		}
 	}
+	var mapCommand *cliCommandContract
+	for i := range contract.Commands {
+		if strings.Join(contract.Commands[i].Path, " ") == "dircue map" {
+			mapCommand = &contract.Commands[i]
+			break
+		}
+	}
+	if mapCommand == nil {
+		t.Fatal("CLI catalog omits the map command")
+	}
+	if restrictions := strings.Join(mapCommand.Restrictions, " "); !strings.Contains(restrictions, "bifrost-code-query-json") {
+		t.Fatalf("map attachment contract omits a supported provider: %q", restrictions)
+	}
 	for _, resource := range contract.SchemaResources {
 		if resource.Name == "hotspots" && (resource.Scope != "profile component" || resource.Pointer != "/structure/hotspots") {
 			t.Fatal("component schema mislabeled")
