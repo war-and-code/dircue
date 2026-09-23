@@ -68,7 +68,7 @@ classifier window rather than claiming to represent the complete kernel.
 
 An additional bounded quality gate measures exact precision and recall rather
 than extrapolating from targeted assertions. It labels every component,
-deployable, interface, capability, and evidenced edge emitted from 20 reviewed
+deployable, interface, capability, and evidenced edge emitted from 22 reviewed
 source paths, plus every coverage status. The eight entries include pinned
 microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example,
 Express, Flask, Helm examples, and the checked-in non-source fixture. Other map
@@ -94,6 +94,24 @@ components, Dockerfile-to-component build edges, .NET project relationships,
 declared Redis and event-bus capabilities, Terraform provider aliases, manifest
 interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
+
+The microservices-demo slice now includes the C# cartservice project, its
+Protobuf contract, container build, and a pinned Kubernetes manifest. Those
+sources declare Redis caching, PostgreSQL, and Protobuf generation; the contract
+declares `CartService` and its three RPCs. The manifest contains five Kubernetes
+objects: two Deployments, two Services, and a ServiceAccount. The expected
+categories are respectively `workload`, `service`, and `infrastructure`, with
+the metadata names preserved. The candidate currently labels all five as
+workloads and adds document-number suffixes where names repeat. It also misses
+the Redis capability and its component relationship. The emailservice manifest
+has the same Deployment, Service, and ServiceAccount distinction. These
+source-grounded failures are intentional and must be fixed before this gate can
+pass. The Helm emailservice template is pinned as supporting evidence but is
+outside exact identity scoring: it conditionally declares six resource kinds,
+and its names and rendered set depend on chart values. `dircue` must not present
+one unrendered template fragment as a complete resource inventory. Supporting
+receipts also pin eShop project files referenced by project-relationship
+edges, without expanding the scored path slice.
 
 The optional fetch helper requires every repository ID explicitly and refuses
 to update or replace existing checkouts. It fetches complete snapshots because
