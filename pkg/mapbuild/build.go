@@ -21,12 +21,16 @@ import (
 const ruleVersion = "1.0.0"
 
 type Options struct {
-	Revision    string
-	Commit      string
-	Deployables *deployables.Report
-	Intent      *intentmap.Report
-	ExtraNodes  []mapdoc.Node
-	ExtraEdges  []mapdoc.Edge
+	Revision string
+	Commit   string
+	// SourceDigest and SourceBinding describe a directory source's content
+	// identity. A nil SourceBinding keeps the unqualified default.
+	SourceDigest  *mapdoc.Digest
+	SourceBinding *mapdoc.Coverage
+	Deployables   *deployables.Report
+	Intent        *intentmap.Report
+	ExtraNodes    []mapdoc.Node
+	ExtraEdges    []mapdoc.Edge
 }
 
 func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
@@ -45,7 +49,13 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 		}
 	}
 	if mode == "directory" {
-		d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageUnknown, "live_directory_has_no_full_content_digest"))
+		d.Source.Digest = opts.SourceDigest
+		switch {
+		case opts.SourceBinding != nil:
+			d.Coverage = append(d.Coverage, question("source_binding", opts.SourceBinding.Status, opts.SourceBinding.Reasons...))
+		default:
+			d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageUnknown, "live_directory_has_no_full_content_digest"))
+		}
 	} else {
 		d.Coverage = append(d.Coverage, question("source_binding", mapdoc.CoverageComplete))
 	}
@@ -54,7 +64,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	contentReasons := reasons(r.Discovery.Omissions, r.Discovery.OmittedCandidates)
 	for _, warning := range r.Warnings {
 		switch warning.Code {
-		case "file_too_large", "file_read_error", "unsupported_gitattributes", "tree_size_limit":
+		case "file_too_large", "file_read_error", "unsupported_gitattributes", "tree_size_limit", "permission_denied", "walk_error":
 			contentStatus = mapdoc.CoveragePartial
 			contentReasons = append(contentReasons, warning.Code)
 		}
@@ -71,6 +81,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons}})
 	d.Nodes = append(d.Nodes, contentNodes(r)...)
 	d.Nodes = append(d.Nodes, languageNodes(r.Languages, mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons})...)
+	d.Nodes = append(d.Nodes, summarizedTreeNodes(r)...)
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
@@ -345,4 +356,44 @@ func mapPathRole(paths ...string) string {
 		}
 	}
 	return role
+}
+
+// summarizedTreeNodes creates content nodes for summarized environment and
+// build-output trees. These nodes carry the counted metadata rather than
+// language-classified content, and are marked partial coverage because the
+// tree was not walked in detail.
+func summarizedTreeNodes(r *profile.Report) []mapdoc.Node {
+	if len(r.SummarizedTrees) == 0 {
+		return nil
+	}
+	nodes := make([]mapdoc.Node, 0, len(r.SummarizedTrees))
+	for _, st := range r.SummarizedTrees {
+		n := mapdoc.NewNode(mapdoc.NodeContent, []string{st.Path}, "env_tree:"+st.Ecosystem)
+		n.Name = path.Base(st.Path)
+		coverageStatus := mapdoc.CoverageComplete
+		coverageReasons := []string{}
+		if !st.Bounded {
+			coverageStatus = mapdoc.CoveragePartial
+			coverageReasons = []string{"entry_cap_reached"}
+		}
+		n.Coverage = mapdoc.Coverage{Status: coverageStatus, Reasons: coverageReasons}
+		n.Properties = map[string]string{
+			"role":      st.Kind,
+			"ecosystem": st.Ecosystem,
+			"entries":   strconv.FormatInt(st.Entries, 10),
+			"bytes":     strconv.FormatInt(st.Bytes, 10),
+		}
+		evidenceBasis := mapdoc.BasisFilenameHint
+		if st.Basis == "rule_inferred" {
+			evidenceBasis = mapdoc.BasisRuleInferred
+		}
+		n.Evidence = []mapdoc.Evidence{{
+			Basis:      evidenceBasis,
+			Path:       st.Marker,
+			SourceKind: mapdoc.SourceDirectory,
+			Rule:       &mapdoc.Producer{ID: "dircue/env-tree-recognizer", Version: ruleVersion},
+		}}
+		nodes = append(nodes, n)
+	}
+	return nodes
 }

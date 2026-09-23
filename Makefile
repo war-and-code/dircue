@@ -3,7 +3,7 @@ REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -19,6 +19,12 @@ check:
 
 bench:
 	go test ./pkg/scanner -run '^$$' -bench . -benchmem
+
+hostile-fs: build
+	python3 tests/hostile_fs/run.py --binary bin/dircue
+
+forest-e2e: build
+	python3 tests/forest/run.py --binary bin/dircue
 
 reference:
 	docker build -t $(REFERENCE_IMAGE) -f tests/conformance/Dockerfile tests/conformance
