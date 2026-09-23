@@ -69,6 +69,11 @@ def main():
             raise AssertionError("absolute location or creation order changed the portable map")
         assert_no_absolute_strings(baseline, (ordinary, reversed_tree, root))
 
+        for controls in (("--preset", "fast"), ("--preset", "low-memory"), ("--set", "workers=3")):
+            tuned = invoke(binary, "map", "--source", "directory", *controls, "--json", reversed_tree)
+            if baseline != tuned:
+                raise AssertionError(f"answer-preserving control changed the map: {controls}")
+
         readme = ordinary / "README.md"
         readme.write_text(readme.read_text() + "\nClaims: Redis, /admin, and twelve deployables.\n")
         documentation_mutation = invoke(binary, "map", "--source", "directory", "--json", ordinary)
@@ -91,7 +96,7 @@ def main():
         if comparison["status"] != "unchanged" or comparison["counts"]["material"] != 0:
             raise AssertionError("identical portable maps did not compare unchanged")
 
-    print(json.dumps({"gate":"map-metamorphic", "invariants":7, "status":"passed"}, indent=2))
+    print(json.dumps({"gate":"map-metamorphic", "invariants":10, "status":"passed"}, indent=2))
 
 if __name__ == "__main__":
     main()

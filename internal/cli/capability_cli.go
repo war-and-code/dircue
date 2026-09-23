@@ -161,6 +161,7 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"map-summary", "compact text map", "", "unavailable", "Human summary omits detailed facts and evidence; use --json for the full map."},
 		{"map-routing", "inert analyzer plan array", "", "self-described", "Plans contain placeholders and prerequisites; no plan is executed and host tool availability is not checked."},
 		{"map-comparison", "saved map comparison", "", "self-described", "Stable IDs distinguish material, evidence, coverage, and indeterminate changes without opening either source."},
+		{"map-settings", "effective map settings", "", "self-described", "Typed execution and coverage controls with resolved values, categories, origins, and honest resource-limit qualifications."},
 		{"sarif-located", "SARIF 2.1.0 log with dircue.map location properties", "", "self-described", "Upstream SARIF with a dircue.map property extension. Unknown SARIF fields are retained; source binding and URI resolution determine annotation resolution."},
 		{"sarif-location-summary", "resolution and per-node count object", "", "self-described", "Selected by --summary; emits counts instead of the annotated SARIF log."},
 		{"comparison", "saved-report comparison", "comparison", "whole output", "Successful comparisons can contain differences; inspect coverage and module compatibility."},
@@ -185,6 +186,9 @@ func describeCLI(root *cobra.Command) cliContract {
 }
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
+	if name == "preset" && (cmd.CommandPath() == "dircue map" || cmd.CommandPath() == "dircue map settings") {
+		return slices.Clone(mapPresetNames)
+	}
 	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Name() == "map" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
 	if scanCommand {
 		switch name {
@@ -241,6 +245,8 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 		return []string{"map-routing"}
 	case "dircue map compare":
 		return []string{"map-comparison"}
+	case "dircue map settings":
+		return []string{"map-settings"}
 	case "dircue map locate":
 		return []string{"sarif-located", "sarif-location-summary"}
 	case "dircue help":
@@ -263,11 +269,14 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	if cmd.CommandPath() == "dircue map compare" {
 		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. A zero exit status means the comparison completed, not that the maps are identical.")
 	}
+	if cmd.CommandPath() == "dircue map settings" {
+		return append(r, "No source is scanned. --preset and repeatable --set resolve effective values; inherited analysis flags are rejected. Resource notes are contractual qualifications, not measured ceiling claims.")
+	}
 	switch cmd.Name() {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
 	case "map":
-		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, and noir-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
+		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. Named resource flags override --set, which overrides --preset. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, and noir-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
 	case "route":
 		r = append(r, "Exactly one saved map document; inherited source scan flags are rejected. Output plans are inert templates with placeholders and require caller validation before execution.")
 	case "locate":

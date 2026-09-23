@@ -20,6 +20,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	var summary bool
 	var budgetFiles int
 	var attachments []string
+	var settingsFlags mapSettingsFlags
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
@@ -59,16 +60,16 @@ func newMapCommand(opts *options) *cobra.Command {
 			if cmd.Flags().Changed("tree") && opts.tree == "" {
 				return fmt.Errorf("--tree requires a full Git tree object ID")
 			}
+			settings, err := resolveMapSettings(cmd, opts, budgetFiles, settingsFlags)
+			if err != nil {
+				return err
+			}
 			root := "."
 			if len(args) == 1 {
 				root = args[0]
 			}
 			if st, err := os.Stat(root); err == nil && !st.IsDir() {
 				return fmt.Errorf("map requires a directory")
-			}
-			maxFiles := opts.maxTreeSize
-			if cmd.Flags().Changed("budget-files") {
-				maxFiles = budgetFiles
 			}
 			revision := ""
 			if cmd.Flags().Changed("rev") {
@@ -79,8 +80,8 @@ func newMapCommand(opts *options) *cobra.Command {
 			hooks := append(detectors.Default(), deployObserver, intentObserver)
 			report, err := scanner.Scan(cmd.Context(), root, scanner.Options{
 				Source: opts.source, Revision: revision, Tree: opts.tree,
-				ErrorPolicy: scanner.ErrorPolicy(opts.onError), Workers: opts.workers,
-				MaxTreeSize: maxFiles, MaxFileBytes: opts.maxFileBytes,
+				ErrorPolicy: scanner.ErrorPolicy(opts.onError), Workers: settings.Workers,
+				MaxTreeSize: settings.MaxFiles, MaxFileBytes: settings.MaxFileBytes,
 				Detectors: hooks, Discovery: true, Declarations: true,
 				Formats: true, Availability: true, Environments: true, Registries: true,
 			})
@@ -131,7 +132,8 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd.Flags().BoolVar(&summary, "summary", false, "Print a compact human-readable map summary")
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json)")
-	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts))
+	addMapSettingsFlags(cmd, &settingsFlags)
+	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
 }
 
@@ -172,6 +174,9 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		}
 	}
 	if _, err := fmt.Fprintf(out, "Deployables: %d   Interfaces: %d   Capabilities: %d   Packages: %d\n", counts[mapdoc.NodeDeployable], counts[mapdoc.NodeInterface], counts[mapdoc.NodeCapability], counts[mapdoc.NodePackage]); err != nil {
+		return err
+	}
+	if _, err := fmt.Fprintf(out, "Attached provider runs: %d\n", len(d.CoverageLedger)); err != nil {
 		return err
 	}
 	var unknown []string
