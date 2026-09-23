@@ -86,7 +86,7 @@ func newMapCommand(opts *options) *cobra.Command {
 				Formats: true, Availability: true, Environments: true, Registries: true,
 			})
 			if err != nil {
-				return err
+				return missingPathCommandHint(cmd, args, err)
 			}
 			if report.Declarations != nil {
 				intentObserver.AddDeclarations(report.Declarations.Projects)
