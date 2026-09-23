@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"runtime"
 	"runtime/debug"
 	"slices"
@@ -110,7 +111,7 @@ func newMapCommand(opts *options) *cobra.Command {
 			if opts.tree != "" {
 				mapRevision = "tree:" + opts.tree
 			}
-			doc, err := mapbuild.Build(report, mapbuild.Options{Revision: mapRevision, Deployables: deployObserver.Finish(), Intent: intentReport})
+			doc, err := mapbuild.Build(report, mapbuild.Options{Revision: mapRevision, Commit: report.Discovery.Source.Commit, Deployables: deployObserver.Finish(), Intent: intentReport})
 			if err != nil {
 				return err
 			}
@@ -180,30 +181,45 @@ func terminalOutput(out io.Writer) bool {
 }
 
 func writeMapSummary(out io.Writer, d mapdoc.Document) error {
-	counts := make(map[mapdoc.NodeKind]int)
-	populations := 0
-	for _, n := range d.Nodes {
-		counts[n.Kind]++
-		if n.Kind == mapdoc.NodeContent && n.Properties["scope"] == "inventory_population" {
-			populations++
-		}
-	}
-	if _, err := fmt.Fprintf(out, "Directory map (%s; %s source)\n", d.Status, d.Source.Mode); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "Content populations: %d   Components: %d   Relationships: %d\n", populations, counts[mapdoc.NodeComponent], len(d.Edges)); err != nil {
-		return err
-	}
+	var b strings.Builder
+	line := func(format string, args ...any) { fmt.Fprintf(&b, format+"\n", args...) }
+	line("Directory map: %s (%s source)", d.Status, d.Source.Mode)
+	components, deployables, interfaces, capabilities := []mapdoc.Node{}, []mapdoc.Node{}, []mapdoc.Node{}, []mapdoc.Node{}
+	populations, packages := 0, 0
 	type languageSummary struct {
 		name       string
 		percentage float64
-		text       string
 	}
 	languages := []languageSummary{}
 	for _, n := range d.Nodes {
-		if n.Kind == mapdoc.NodeContent && n.Properties["role"] == "language_population" {
+		switch n.Kind {
+		case mapdoc.NodeComponent:
+			if !auxiliaryMapNode(n) {
+				components = append(components, n)
+			}
+		case mapdoc.NodeDeployable:
+			if !auxiliaryMapNode(n) {
+				deployables = append(deployables, n)
+			}
+		case mapdoc.NodeInterface:
+			if !auxiliaryMapNode(n) {
+				interfaces = append(interfaces, n)
+			}
+		case mapdoc.NodeCapability:
+			if !auxiliaryMapNode(n) {
+				capabilities = append(capabilities, n)
+			}
+		case mapdoc.NodePackage:
+			packages++
+		case mapdoc.NodeContent:
+			if n.Properties["scope"] == "inventory_population" {
+				populations++
+			}
+			if n.Properties["role"] != "language_population" {
+				continue
+			}
 			percentage, _ := strconv.ParseFloat(n.Properties["percentage"], 64)
-			languages = append(languages, languageSummary{name: n.Name, percentage: percentage, text: n.Name + " " + n.Properties["percentage"] + "%"})
+			languages = append(languages, languageSummary{name: n.Name, percentage: percentage})
 		}
 	}
 	slices.SortFunc(languages, func(a, b languageSummary) int {
@@ -218,50 +234,188 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	if len(languages) > 0 {
 		shown := make([]string, min(6, len(languages)))
 		for i := range shown {
-			shown[i] = languages[i].text
+			shown[i] = fmt.Sprintf("%s %.1f%%", safeMapLabel(languages[i].name), languages[i].percentage)
 		}
 		more := ""
 		if len(languages) > len(shown) {
 			more = fmt.Sprintf(" (+%d more)", len(languages)-len(shown))
 		}
-		if _, err := fmt.Fprintf(out, "Languages: %s%s\n", strings.Join(shown, ", "), more); err != nil {
-			return err
+		line("Languages: %s%s", strings.Join(shown, ", "), more)
+	} else {
+		line("Languages: none observed")
+	}
+	line("Content populations: %d   Relationships: %d   Packages: %d", populations, len(d.Edges), packages)
+	ecosystems := map[string]int{}
+	for _, n := range components {
+		ecosystem := n.Properties["ecosystem"]
+		if ecosystem == "" {
+			ecosystem = "other"
+		}
+		ecosystems[ecosystem]++
+	}
+	ecosystemNames := make([]string, 0, len(ecosystems))
+	for name := range ecosystems {
+		ecosystemNames = append(ecosystemNames, name)
+	}
+	slices.Sort(ecosystemNames)
+	byEcosystem := make([]string, 0, len(ecosystemNames))
+	for _, name := range ecosystemNames {
+		byEcosystem = append(byEcosystem, fmt.Sprintf("%s %d", safeMapLabel(name), ecosystems[name]))
+	}
+	line("Components: %d (%s)", len(components), strings.Join(byEcosystem, ", "))
+	slices.SortFunc(components, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	for _, n := range components[:min(4, len(components))] {
+		line("  %s [%s]", mapNodeLabel(n), safeMapLabel(n.Properties["ecosystem"]))
+	}
+	if len(components) > 4 {
+		line("  (+%d more components)", len(components)-4)
+	}
+	line("Deployables: %d", len(deployables))
+	linked := map[string][]string{}
+	componentByID := make(map[string]mapdoc.Node, len(components))
+	for _, component := range components {
+		componentByID[component.ID] = component
+	}
+	for _, e := range d.Edges {
+		if e.Type != mapdoc.EdgeBuilds && e.Type != mapdoc.EdgeRuns {
+			continue
+		}
+		if target, ok := componentByID[e.To]; ok {
+			linked[e.From] = append(linked[e.From], string(e.Type)+" "+mapNodeLabel(target))
 		}
 	}
-	if _, err := fmt.Fprintf(out, "Deployables: %d   Interfaces: %d   Capabilities: %d   Packages: %d\n", counts[mapdoc.NodeDeployable], counts[mapdoc.NodeInterface], counts[mapdoc.NodeCapability], counts[mapdoc.NodePackage]); err != nil {
-		return err
-	}
-	if _, err := fmt.Fprintf(out, "Attached provider runs: %d\n", len(d.CoverageLedger)); err != nil {
-		return err
-	}
-	if len(d.AnalyzerCoverage) > 0 {
-		if _, err := fmt.Fprintf(out, "Analyzer coverage entries: %d   Blind spots: %d\n", len(d.AnalyzerCoverage), len(d.AnalyzerBlindSpots)); err != nil {
-			return err
+	slices.SortFunc(deployables, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	for _, n := range deployables[:min(4, len(deployables))] {
+		links := linked[n.ID]
+		slices.Sort(links)
+		suffix := ""
+		if len(links) > 0 {
+			suffix = " → " + strings.Join(links[:min(2, len(links))], ", ")
 		}
-		for _, spot := range d.AnalyzerBlindSpots {
-			if _, err := fmt.Fprintf(out, "  %s: %d\n", spot.Reason, spot.Entries); err != nil {
-				return err
-			}
+		line("  %s [%s]%s", mapNodeLabel(n), safeMapLabel(n.Properties["kind"]), suffix)
+	}
+	if len(deployables) > 4 {
+		line("  (+%d more deployables)", len(deployables)-4)
+	}
+	writeMapNames := func(title string, nodes []mapdoc.Node) {
+		names := make([]string, 0, len(nodes))
+		for _, n := range nodes {
+			names = append(names, mapNodeLabel(n))
+		}
+		slices.Sort(names)
+		names = slices.Compact(names)
+		if len(names) == 0 {
+			line("%s: none observed", title)
+			return
+		}
+		more := ""
+		if len(names) > 4 {
+			more = fmt.Sprintf(" (+%d more)", len(names)-4)
+		}
+		line("%s: %s%s", title, strings.Join(names[:min(4, len(names))], ", "), more)
+	}
+	writeMapNames("Interfaces", interfaces)
+	writeMapNames("Capabilities", capabilities)
+	suggestions := map[string]bool{}
+	for _, entry := range d.AnalyzerCoverage {
+		if entry.ExpectedApplicable && entry.NotCovered == "not_run" {
+			suggestions[entry.Tool] = true
 		}
 	}
+	tools := make([]string, 0, len(suggestions))
+	for tool := range suggestions {
+		tools = append(tools, tool)
+	}
+	slices.Sort(tools)
+	if len(tools) > 0 {
+		line("Possible next analyzers: %s", strings.Join(tools[:min(6, len(tools))], ", "))
+	}
+	line("Attached provider runs: %d", len(d.CoverageLedger))
 	var unknown []string
 	for _, q := range d.Coverage {
 		if q.Status != mapdoc.CoverageComplete {
-			reason := strings.Join(q.Reasons, ", ")
-			unknown = append(unknown, fmt.Sprintf("%s: %s (%s)", q.Question, q.Status, reason))
+			unknown = append(unknown, mapCoverageSummary(q, d.Source.Mode))
 		}
 	}
 	slices.Sort(unknown)
 	if len(unknown) > 0 {
-		if _, err := fmt.Fprintln(out, "Coverage to inspect:"); err != nil {
-			return err
+		line("Still uncertain:")
+		for _, item := range unknown[:min(len(unknown), 6)] {
+			line("  %s", item)
 		}
-		for _, item := range unknown[:min(len(unknown), 12)] {
-			if _, err := fmt.Fprintln(out, "  "+item); err != nil {
-				return err
-			}
+		if len(unknown) > 6 {
+			line("  (+%d more questions)", len(unknown)-6)
 		}
 	}
-	_, err := fmt.Fprintln(out, "Use --json for evidence, IDs, and complete coverage details.")
+	line("Use --json for evidence and full coverage details.")
+	_, err := io.WriteString(out, b.String())
 	return err
+}
+
+func auxiliaryMapNode(n mapdoc.Node) bool {
+	role := n.Properties["role"]
+	if role == "test" || role == "fixture" || role == "example" || role == "vendored" {
+		return true
+	}
+	for _, p := range n.Paths {
+		p = strings.ToLower(p)
+		if strings.HasPrefix(p, "test/") || strings.HasPrefix(p, "tests/") || strings.HasPrefix(p, "testdata/") || strings.HasPrefix(p, "fixtures/") || strings.HasPrefix(p, "examples/") || strings.HasPrefix(p, "vendor/") || strings.Contains(p, "/testdata/") || strings.Contains(p, "/fixtures/") {
+			return true
+		}
+	}
+	return false
+}
+
+func safeMapLabel(value string) string {
+	value = terminalValue(strings.TrimSpace(value))
+	runes := []rune(value)
+	if len(runes) > 96 {
+		value = string(runes[:96]) + "…"
+	}
+	return value
+}
+
+func mapNodeLabel(n mapdoc.Node) string {
+	name := strings.TrimSpace(n.Name)
+	if name == "" || name == "?" {
+		name = n.Properties["root"]
+		if name == "" || name == "." {
+			if len(n.Paths) > 0 {
+				name = n.Paths[0]
+			}
+		}
+		name = strings.TrimSuffix(path.Base(name), path.Ext(name))
+	}
+	return safeMapLabel(name)
+}
+
+func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
+	switch q.Question {
+	case "source_binding":
+		if mode == "directory" {
+			return "Source identity: live directory has no full-content digest"
+		}
+		return "Source identity: snapshot could not be fully verified"
+	case "content":
+		return "Content: some selected files were omitted or unreadable"
+	case "components":
+		return "Components: some project declarations or references may be unresolved"
+	case "deployables":
+		return "Deployables: some build or deployment declarations may be unrecognized"
+	case "interfaces":
+		return "Interfaces: some entry points or contracts may be unrecognized"
+	case "capabilities":
+		return "Capabilities: some service dependencies may be unrecognized"
+	case "packages":
+		return "Packages: no complete package inventory is established"
+	case "routing":
+		return "Routing: follow-up plans have not been evaluated"
+	case "analyzer_coverage":
+		if slices.Contains(q.Reasons, "no_analyzer_report_attached") {
+			return "Analyzer coverage: no analyzer report attached"
+		}
+		return "Analyzer coverage: supplied reports do not prove exhaustive coverage"
+	default:
+		return safeMapLabel(strings.ReplaceAll(q.Question, "_", " ")) + ": needs review"
+	}
 }

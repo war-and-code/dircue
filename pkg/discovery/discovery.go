@@ -218,6 +218,11 @@ func classify(filename string) (string, string, *Candidate) {
 		return makeCandidate("shared_configuration", format, "filename")
 	}
 	if format, ok := artifactExtensions[ext]; ok {
+		// GNU Make conventionally uses Makefile.* for included text fragments.
+		// The suffix is not evidence that Makefile.lib is a static library.
+		if strings.HasPrefix(lower, "makefile.") {
+			return "source_candidate", "filename", nil
+		}
 		return makeCandidate("artifact", format, "extension")
 	}
 	// Versioned shared libraries retain their .so identity (libexample.so.1.2).

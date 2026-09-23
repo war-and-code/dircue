@@ -103,9 +103,38 @@ func TestMapSummaryShowsDominantLanguagesAndDisclosesTruncation(t *testing.T) {
 	if err := writeMapSummary(&output, document); err != nil {
 		t.Fatal(err)
 	}
-	languageLine := "Languages: Java 98.9000%, Kotlin 0.9637%, AspectJ 0.0608%, FreeMarker 0.0572%, Groovy 0.0132%, HTML 0.0022% (+2 more)"
+	languageLine := "Languages: Java 98.9%, Kotlin 1.0%, AspectJ 0.1%, FreeMarker 0.1%, Groovy 0.0%, HTML 0.0% (+2 more)"
 	if !strings.Contains(output.String(), languageLine) {
 		t.Fatalf("dominant languages were hidden or truncation was not disclosed:\n%s", output.String())
+	}
+}
+
+func TestMapSummaryNamesUnitsAndHidesInternalCoverageCodes(t *testing.T) {
+	d := mapdoc.New()
+	d.Status = mapdoc.CoveragePartial
+	d.Source.Mode = "directory"
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/App.csproj", "services/api"}, "dotnet")
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "dotnet"}
+	deployable := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile"}, "container")
+	deployable.Name = "api container"
+	deployable.Properties = map[string]string{"kind": "container"}
+	capability := mapdoc.NewNode(mapdoc.NodeCapability, []string{"services/api/appsettings.json"}, "redis")
+	capability.Name = "cache:redis"
+	d.Nodes = []mapdoc.Node{component, deployable, capability}
+	d.Edges = []mapdoc.Edge{mapdoc.NewEdge(mapdoc.EdgeBuilds, deployable.ID, component.ID, "Dockerfile context")}
+	d.Coverage = []mapdoc.QuestionCoverage{{Question: "packages", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"observer_not_yet_bound_to_map"}}}}
+	var output bytes.Buffer
+	if err := writeMapSummary(&output, d); err != nil {
+		t.Fatal(err)
+	}
+	text := output.String()
+	for _, want := range []string{"api [dotnet]", "api container [container] → builds api", "cache:redis", "Packages: no complete package inventory is established"} {
+		if !strings.Contains(text, want) {
+			t.Fatalf("summary missing %q:\n%s", want, text)
+		}
+	}
+	if strings.Contains(text, "observer_not_yet_bound_to_map") || len(strings.Split(strings.TrimSpace(text), "\n")) > 40 {
+		t.Fatalf("summary leaks implementation codes or exceeds one screen:\n%s", text)
 	}
 }
 

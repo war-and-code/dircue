@@ -74,6 +74,28 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
+	for i := range components {
+		if strings.TrimSpace(components[i].Name) == "" {
+			root := components[i].Properties["root"]
+			if root == "" || root == "." {
+				for _, candidate := range components[i].Paths {
+					if candidate != "." {
+						root = strings.TrimSuffix(path.Base(candidate), path.Ext(candidate))
+						break
+					}
+				}
+			} else {
+				root = path.Base(root)
+			}
+			if root != "" && root != "." {
+				components[i].Name = root
+			}
+		}
+		if role := mapPathRole(components[i].Paths...); role != "" {
+			components[i].Properties["role"] = role
+			components[i].Properties["role_basis"] = "path_name"
+		}
+	}
 	if len(r.Languages) == 1 {
 		for i := range components {
 			if components[i].Properties["root"] == "." {
@@ -84,10 +106,12 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Nodes = append(d.Nodes, components...)
 	d.Edges = append(d.Edges, relationships...)
-	componentStatus := status(fragment.Coverage.Status)
-	componentReasons := []string{}
-	if componentStatus != mapdoc.CoverageComplete {
-		componentReasons = []string{"declarations_incomplete_or_local_references_unresolved"}
+	// The declaration parser covers a bounded set of ecosystems and forms. A
+	// successful pass is not proof that every project in the tree was found.
+	componentStatus := mapdoc.CoveragePartial
+	componentReasons := []string{"bounded_declaration_catalog"}
+	if status(fragment.Coverage.Status) != mapdoc.CoverageComplete {
+		componentReasons = append(componentReasons, "declarations_incomplete_or_local_references_unresolved")
 	}
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: componentStatus, Reasons: componentReasons}})
 
@@ -246,7 +270,9 @@ func fileNode(filename, role, format, basis string, size int64) mapdoc.Node {
 		evidenceBasis = mapdoc.BasisRuleInferred
 	}
 	n.Evidence = []mapdoc.Evidence{{Basis: evidenceBasis, Path: filename, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/content-role", Version: ruleVersion}}}
-	if basis == "parsed_prefix" || basis == "signature_match" {
+	if evidenceBasis == mapdoc.BasisFilenameHint {
+		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"filename_hint_unverified"}}
+	} else if basis == "parsed_prefix" || basis == "signature_match" {
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"prefix_or_header_only"}}
 	}
 	return n
@@ -287,4 +313,36 @@ func uniqueNodes(nodes []mapdoc.Node) []mapdoc.Node {
 		}
 	}
 	return out
+}
+
+// mapPathRole is a conservative path-name hint. It marks auxiliary material
+// without discarding any node from the machine-readable map.
+func mapPathRole(paths ...string) string {
+	role, priority := "", 0
+	choose := func(candidate string, rank int) {
+		if rank > priority {
+			role, priority = candidate, rank
+		}
+	}
+	for _, filename := range paths {
+		lower := strings.ToLower(strings.ReplaceAll(filename, "\\", "/"))
+		segments := strings.Split(lower, "/")
+		for _, segment := range segments {
+			switch segment {
+			case "vendor", "node_modules", "third_party":
+				choose("vendored", 4)
+			case "fixtures", "testdata", "__fixtures__":
+				choose("fixture", 3)
+			case "examples", "samples":
+				choose("example", 2)
+			case "test", "tests", "__tests__":
+				choose("test", 1)
+			}
+		}
+		base := path.Base(lower)
+		if strings.Contains(base, ".tests.") || strings.HasSuffix(base, "test.csproj") || strings.HasSuffix(base, "tests.csproj") || strings.HasSuffix(base, "test.vbproj") || strings.HasSuffix(base, "tests.vbproj") {
+			choose("test", 1)
+		}
+	}
+	return role
 }

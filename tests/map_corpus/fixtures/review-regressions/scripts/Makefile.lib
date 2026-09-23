@@ -1,0 +1,2 @@
+quiet_cmd_cc = CC $@
+cmd_cc = $(CC) -c $< -o $@

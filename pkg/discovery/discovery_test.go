@@ -97,6 +97,13 @@ func TestCandidateFormatHintsDoNotInspectOrValidate(t *testing.T) {
 	}
 }
 
+func TestMakefileFragmentIsNotAStaticLibrary(t *testing.T) {
+	category, _, candidate := classify("scripts/Makefile.lib")
+	if category == "artifact" || candidate != nil {
+		t.Fatalf("Makefile fragment was classified as a binary artifact: %q %+v", category, candidate)
+	}
+}
+
 func TestGenericSuffixesRemainMetadataHints(t *testing.T) {
 	for _, name := range []string{"settings.app", "settings.APP", "suite.resource", "view.tag"} {
 		t.Run(name, func(t *testing.T) {

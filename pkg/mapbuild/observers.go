@@ -29,7 +29,7 @@ func observerCoverage(value string, fallback string) mapdoc.Coverage {
 }
 
 func addDeployables(d *mapdoc.Document, r *deployables.Report) {
-	setQuestion(d, "deployables", observerCoverage(r.Status, "deployable_observations_incomplete"))
+	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeComponent {
@@ -37,10 +37,30 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			componentsByRoot[root] = append(componentsByRoot[root], n.ID)
 		}
 	}
+	type imageOwner struct {
+		component string
+		evidence  mapdoc.Evidence
+	}
+	composeImages := map[string][]imageOwner{}
+	imageUsers := []struct {
+		id       string
+		image    string
+		evidence mapdoc.Evidence
+	}{}
+	addRelationship := func(kind mapdoc.EdgeType, from, to, source, reason string, evidence ...mapdoc.Evidence) {
+		e := mapdoc.NewEdge(kind, from, to, source+":"+to)
+		e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
+		e.Evidence = evidence
+		d.Edges = append(d.Edges, e)
+	}
 	for _, def := range r.Definitions {
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, []string{def.Path}, def.Provider+":"+def.Kind+":"+def.Name)
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
+		if role := mapPathRole(def.Path); role != "" {
+			n.Properties["role"] = role
+			n.Properties["role_basis"] = "path_name"
+		}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		if def.Coverage != "complete" {
 			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"static_declaration_not_evaluated"}}
@@ -51,20 +71,57 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if len(n.Evidence) == 0 {
 			continue
 		}
+		var localComponent string
+		var localEvidence mapdoc.Evidence
+		var declaredImages []struct {
+			name     string
+			evidence mapdoc.Evidence
+		}
 		for _, ref := range def.References {
 			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
-			if ref.Kind == "build_context" && ref.Qualification == "local" {
+			if (ref.Kind == "build_context" || ref.Kind == "code_uri") && ref.Qualification == "local" {
 				root := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
 				owners := componentsByRoot[root]
 				if len(owners) == 1 {
-					e := mapdoc.NewEdge(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+root)
-					e.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
-					e.Evidence = []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}
-					d.Edges = append(d.Edges, e)
+					localComponent = owners[0]
+					localEvidence = deployableEvidence(def.Path, ref.Evidence)
+					addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+root, "declared_context_matches_component_root", localEvidence)
+					if def.Provider == "compose" && def.Kind == "service" {
+						addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "compose-service:"+root, "service_declares_build_context", localEvidence)
+					}
 				}
+			}
+			if ref.Kind == "image" && ref.Qualification != "unresolved" {
+				declaredImages = append(declaredImages, struct {
+					name     string
+					evidence mapdoc.Evidence
+				}{ref.Value, deployableEvidence(def.Path, ref.Evidence)})
+			}
+		}
+		if def.Provider == "dockerfile" && def.Kind == "container_build" {
+			if owners := componentsByRoot[path.Dir(def.Path)]; len(owners) == 1 {
+				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
+			}
+		}
+		for _, image := range declaredImages {
+			if def.Provider == "compose" && localComponent != "" {
+				composeImages[image.name] = append(composeImages[image.name], imageOwner{localComponent, localEvidence})
+			}
+			if def.Provider == "kubernetes" {
+				imageUsers = append(imageUsers, struct {
+					id       string
+					image    string
+					evidence mapdoc.Evidence
+				}{n.ID, image.name, image.evidence})
 			}
 		}
 		d.Nodes = append(d.Nodes, n)
+	}
+	for _, use := range imageUsers {
+		owners := composeImages[use.image]
+		if len(owners) == 1 {
+			addRelationship(mapdoc.EdgeRuns, use.id, owners[0].component, "image:"+use.image, "image_matches_compose_build_declaration", use.evidence, owners[0].evidence)
+		}
 	}
 }
 
@@ -84,7 +141,10 @@ func deployableEvidence(filename string, e deployables.Evidence) mapdoc.Evidence
 }
 
 func addIntent(d *mapdoc.Document, r *intentmap.Report) {
-	coverage := observerCoverage(r.Coverage.Status, "interface_or_capability_observations_incomplete")
+	coverage := mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_interface_and_capability_catalog"}}
+	if r.Coverage.Status != "complete" {
+		coverage.Reasons = append(coverage.Reasons, "interface_or_capability_observations_incomplete")
+	}
 	setQuestion(d, "interfaces", coverage)
 	setQuestion(d, "capabilities", coverage)
 	componentsByManifest := map[string]string{}
@@ -121,6 +181,10 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		n := mapdoc.NewNode(kind, []string{o.Path}, string(o.Kind)+":"+o.Name+":"+o.ProjectID)
 		n.Name = o.Name
 		n.Properties = map[string]string{"observation_kind": string(o.Kind), "state": o.State, "basis": o.Basis}
+		if role := mapPathRole(o.Path); role != "" {
+			n.Properties["role"] = role
+			n.Properties["role_basis"] = "path_name"
+		}
 		for k, v := range o.Properties {
 			n.Properties[k] = v
 		}
