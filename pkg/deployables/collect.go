@@ -38,7 +38,7 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 			return nil, err
 		}
 		if !validPath(candidate.Path, limits.StringBytes) {
-			r.omit("invalid_path", 1, "", "A candidate path was invalid or exceeded the string limit.")
+			r.omit("invalid_path", 1, bounded(candidate.Path), "A candidate path was invalid or exceeded the string limit.")
 			continue
 		}
 		if candidate.Read == nil {
