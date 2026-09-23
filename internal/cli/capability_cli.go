@@ -169,6 +169,7 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"plan", "inert follow-up plan", "planning", "whole output", "argv placeholders and executable:false require caller revalidation; reported cost is evidence, not a timing prediction."},
 		{"cli-capabilities", "versioned CLI contract", "cli-capabilities", "whole output", "This explicit CLI metadata view uses its independent schema_version 1.0.0."},
 		{"guide", "versioned guide sections and example argv", "guide", "whole output", "Static guidance; examples are never executed."},
+		{"accuracy-cards", "embedded accuracy cards", "", "self-described", "Precision and recall per map question derived from hand-labeled ground truth; embedded in the binary. Does not access the network or scan anything."},
 		{"json-schema", "Draft 2020-12 compound schema", "", "self-described", "Offline bundled resources have identifiers, not URLs that need fetching."},
 		{"help-text", "unstructured help", "", "unavailable", "Plain-text usage suitable for humans; --json is accepted but ignored. Use capabilities --guide --json for structured guidance."},
 	}
@@ -234,7 +235,7 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 	case "dircue analyze ecosystems", "dircue analyze frameworks":
 		return []string{"findings"}
 	case "dircue capabilities":
-		return []string{"planner-capabilities", "cli-capabilities", "guide", "json-schema"}
+		return []string{"planner-capabilities", "cli-capabilities", "guide", "json-schema", "accuracy-cards"}
 	case "dircue plan":
 		return []string{"plan"}
 	case "dircue compare":
@@ -286,7 +287,7 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	case "compare":
 		r = append(r, "Exactly two saved aggregate reports; no source scan options.")
 	case "capabilities":
-		r = append(r, "No positional arguments. --cli, --guide, and --schema are mutually exclusive by flag presence. Schema output is JSON whether or not --json is supplied.")
+		r = append(r, "No positional arguments. --cli, --guide, --accuracy, and --schema are mutually exclusive by flag presence. Schema output is JSON whether or not --json is supplied. --accuracy reads the embedded binary data; it never accesses the network or scans anything.")
 	case "help":
 		r = append(r, "Help always emits plain text. Inherited analysis options and --json are accepted only for parser compatibility and ignored; use dircue capabilities --guide --json or dircue capabilities --cli --json for structured guidance.")
 	case "structure":
