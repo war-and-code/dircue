@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -77,6 +78,34 @@ func TestMapSummaryAndFormatSelection(t *testing.T) {
 	}
 	if _, _, err := invoke("map", "--budget-files", "2", "--tree-size", "2", root); err == nil {
 		t.Fatal("conflicting inventory limits accepted")
+	}
+}
+
+func TestMapSummaryShowsDominantLanguagesAndDisclosesTruncation(t *testing.T) {
+	document := mapdoc.New()
+	document.Status = mapdoc.CoverageComplete
+	for _, language := range []struct {
+		name       string
+		percentage string
+	}{
+		{"AspectJ", "0.0608"}, {"CSS", "0.0020"}, {"FreeMarker", "0.0572"},
+		{"Go Template", "0.0009"}, {"Groovy", "0.0132"}, {"HTML", "0.0022"},
+		{"Java", "98.9000"}, {"Kotlin", "0.9637"},
+	} {
+		node := mapdoc.NewNode(mapdoc.NodeContent, []string{"."}, "language:"+language.name)
+		node.Name = language.name
+		node.Properties = map[string]string{"role": "language_population", "percentage": language.percentage}
+		node.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}
+		node.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisRuleInferred, Path: ".", SourceKind: mapdoc.SourceDirectory, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+		document.Nodes = append(document.Nodes, node)
+	}
+	var output bytes.Buffer
+	if err := writeMapSummary(&output, document); err != nil {
+		t.Fatal(err)
+	}
+	languageLine := "Languages: Java 98.9000%, Kotlin 0.9637%, AspectJ 0.0608%, FreeMarker 0.0572%, Groovy 0.0132%, HTML 0.0022% (+2 more)"
+	if !strings.Contains(output.String(), languageLine) {
+		t.Fatalf("dominant languages were hidden or truncation was not disclosed:\n%s", output.String())
 	}
 }
 

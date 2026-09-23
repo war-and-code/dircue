@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"slices"
+	"strconv"
 	"strings"
 
 	"dircue/pkg/deployables"
@@ -200,15 +201,37 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	if _, err := fmt.Fprintf(out, "Content populations: %d   Components: %d   Relationships: %d\n", populations, counts[mapdoc.NodeComponent], len(d.Edges)); err != nil {
 		return err
 	}
-	languages := []string{}
+	type languageSummary struct {
+		name       string
+		percentage float64
+		text       string
+	}
+	languages := []languageSummary{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeContent && n.Properties["role"] == "language_population" {
-			languages = append(languages, n.Name+" "+n.Properties["percentage"]+"%")
+			percentage, _ := strconv.ParseFloat(n.Properties["percentage"], 64)
+			languages = append(languages, languageSummary{name: n.Name, percentage: percentage, text: n.Name + " " + n.Properties["percentage"] + "%"})
 		}
 	}
-	slices.Sort(languages)
+	slices.SortFunc(languages, func(a, b languageSummary) int {
+		if a.percentage > b.percentage {
+			return -1
+		}
+		if a.percentage < b.percentage {
+			return 1
+		}
+		return strings.Compare(a.name, b.name)
+	})
 	if len(languages) > 0 {
-		if _, err := fmt.Fprintf(out, "Languages: %s\n", strings.Join(languages[:min(6, len(languages))], ", ")); err != nil {
+		shown := make([]string, min(6, len(languages)))
+		for i := range shown {
+			shown[i] = languages[i].text
+		}
+		more := ""
+		if len(languages) > len(shown) {
+			more = fmt.Sprintf(" (+%d more)", len(languages)-len(shown))
+		}
+		if _, err := fmt.Fprintf(out, "Languages: %s%s\n", strings.Join(shown, ", "), more); err != nil {
 			return err
 		}
 	}
