@@ -22,8 +22,19 @@ def main():
     parser.add_argument("--id", action="append", required=True,
                         help="Repository ID to fetch (repeat for more; there is deliberately no --all)")
     args = parser.parse_args()
-    manifest = json.loads((HERE / "public_expectations.json").read_text())
-    by_id = {entry["id"]: entry for entry in manifest["repositories"]}
+    manifests = [
+        json.loads((HERE / "public_expectations.json").read_text()),
+        json.loads((HERE / "public_quality_expectations.json").read_text()),
+    ]
+    by_id = {}
+    for manifest in manifests:
+        for entry in manifest["repositories"]:
+            if entry.get("source_type", "git") != "git":
+                continue
+            previous = by_id.get(entry["id"])
+            if previous and (previous["url"], previous["commit"]) != (entry["url"], entry["commit"]):
+                raise SystemExit(f"conflicting pins for repository ID: {entry['id']}")
+            by_id[entry["id"]] = entry
     unknown = sorted(set(args.id) - by_id.keys())
     if unknown:
         raise SystemExit(f"unknown repository IDs: {', '.join(unknown)}")

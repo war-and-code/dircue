@@ -1,0 +1,2195 @@
+{
+  "schema": "dircue-public-map-quality-0.1",
+  "metric_scope": "Exact precision and recall over each entry\u2019s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated.",
+  "repositories": [
+    {
+      "id": "microservices-demo",
+      "source_type": "git",
+      "url": "https://github.com/GoogleCloudPlatform/microservices-demo.git",
+      "commit": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "src/emailservice/requirements.txt",
+          "sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt"
+        },
+        {
+          "path": "src/emailservice/Dockerfile",
+          "sha256": "210978a1c6e3bb24468a78a4274fa914d112dd6eda0d7af259277fc481344c98",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/Dockerfile"
+        },
+        {
+          "path": "src/cartservice/src/Dockerfile",
+          "sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/Dockerfile"
+        },
+        {
+          "path": "kubernetes-manifests/emailservice.yaml",
+          "sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/kubernetes-manifests/emailservice.yaml"
+        },
+        {
+          "path": "helm-chart/templates/emailservice.yaml",
+          "sha256": "8c9652d00d34dc75414b42b0885a03ffeda02b03ad403883195359f95afc2f25",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/helm-chart/templates/emailservice.yaml"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "capability",
+          "name": "net:http-client",
+          "paths": [
+            "src/emailservice/requirements.txt"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "requests==2.32.5",
+            "requirement_kind": "python-dependency",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "serialization:protobuf",
+          "paths": [
+            "src/emailservice/requirements.txt"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "protobuf==6.33.5",
+            "requirement_kind": "python-dependency",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "component",
+          "name": "emailservice",
+          "paths": [
+            "src/emailservice",
+            "src/emailservice/requirements.txt"
+          ],
+          "properties": {
+            "ecosystem": "python",
+            "project_kind": "python",
+            "root": "src/emailservice"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "default",
+          "paths": [
+            "src/cartservice/src/Dockerfile"
+          ],
+          "properties": {
+            "kind": "container_build",
+            "provider": "dockerfile",
+            "source_sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice#document-3",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "default",
+          "paths": [
+            "src/emailservice/Dockerfile"
+          ],
+          "properties": {
+            "kind": "container_build",
+            "provider": "dockerfile",
+            "source_sha256": "210978a1c6e3bb24468a78a4274fa914d112dd6eda0d7af259277fc481344c98"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "ServiceAccount",
+          "paths": [
+            "helm-chart/templates/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "helm-template",
+            "source_sha256": "8c9652d00d34dc75414b42b0885a03ffeda02b03ad403883195359f95afc2f25"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "emailservice#document-2",
+          "paths": [
+            "kubernetes-manifests/emailservice.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+          }
+        }
+      ],
+      "expected_edges": [
+        {
+          "type": "builds",
+          "from": {
+            "kind": "deployable",
+            "name": "default",
+            "paths": [
+              "src/cartservice/src/Dockerfile"
+            ],
+            "properties": {
+              "kind": "container_build",
+              "provider": "dockerfile",
+              "source_sha256": "2b79faa2ddc46ef1c4f1e480385991f1b1d10a7073119c9757b8dccfab6b9ceb"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "src",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/cartservice/src"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/Dockerfile"
+          ]
+        },
+        {
+          "type": "builds",
+          "from": {
+            "kind": "deployable",
+            "name": "default",
+            "paths": [
+              "src/emailservice/Dockerfile"
+            ],
+            "properties": {
+              "kind": "container_build",
+              "provider": "dockerfile",
+              "source_sha256": "210978a1c6e3bb24468a78a4274fa914d112dd6eda0d7af259277fc481344c98"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "root": "src/emailservice"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/Dockerfile"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "root": "src/emailservice"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "net:http-client",
+            "paths": [
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "requests==2.32.5",
+              "requirement_kind": "python-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/requirements.txt"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "root": "src/emailservice"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "serialization:protobuf",
+            "paths": [
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "protobuf==6.33.5",
+              "requirement_kind": "python-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/requirements.txt"
+          ]
+        }
+      ],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "eshop",
+      "source_type": "git",
+      "url": "https://github.com/dotnet/eShop.git",
+      "commit": "b4a40872005d4bb29e5b1fa1ff7e244143d39215",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "src/Basket.API/Basket.API.csproj",
+          "sha256": "79c868889255812ab9b1e5b51b296779c59ea6d51c59c7392690cb03f6f3240a",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Basket.API/Basket.API.csproj"
+        },
+        {
+          "path": "src/Basket.API/appsettings.json",
+          "sha256": "1af10c5eea5d7531727075516927555c4d7ed9d9c89866c7be03dedd9ec85ec3",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Basket.API/appsettings.json"
+        },
+        {
+          "path": "src/eShop.AppHost/eShop.AppHost.csproj",
+          "sha256": "ad0b0cd0b5eb630c07c5baf34069f81613d8c3b03ce5d5f34f91fe7e915e40f7",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/eShop.AppHost/eShop.AppHost.csproj"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "capability",
+          "name": "messaging:amqp",
+          "paths": [
+            "src/Basket.API/appsettings.json"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "key": "ConnectionStrings:EventBus",
+            "observation_kind": "capability",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "serialization:protobuf",
+          "paths": [
+            "src/Basket.API/Basket.API.csproj"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "observation_kind": "capability",
+            "requirement": "Protobuf",
+            "requirement_kind": "code-generation",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "cache:redis",
+          "paths": [
+            "src/Basket.API/appsettings.json"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "key": "ConnectionStrings:Redis",
+            "observation_kind": "capability",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:relational",
+          "paths": [
+            "src/Basket.API/appsettings.json"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "key": "ConnectionStrings",
+            "observation_kind": "capability",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "messaging:event-bus",
+          "paths": [
+            "src/Basket.API/appsettings.json"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "key": "ConnectionStrings:EventBus",
+            "observation_kind": "capability",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "component",
+          "name": "Basket.API",
+          "paths": [
+            "src/Basket.API",
+            "src/Basket.API/Basket.API.csproj"
+          ],
+          "properties": {
+            "ecosystem": "dotnet",
+            "language": "C#",
+            "language_basis": "project_file_extension",
+            "language_scope": "declared_primary_project_language",
+            "project_kind": "dotnet",
+            "root": "src/Basket.API"
+          }
+        },
+        {
+          "kind": "component",
+          "name": "eShop.AppHost",
+          "paths": [
+            "src/eShop.AppHost",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ],
+          "properties": {
+            "ecosystem": "dotnet",
+            "language": "C#",
+            "language_basis": "project_file_extension",
+            "language_scope": "declared_primary_project_language",
+            "project_kind": "dotnet",
+            "root": "src/eShop.AppHost"
+          }
+        }
+      ],
+      "expected_edges": [
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "WebApp",
+            "paths": [
+              "src/WebApp",
+              "src/WebApp/WebApp.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/WebApp"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Ordering.API",
+            "paths": [
+              "src/Ordering.API",
+              "src/Ordering.API/Ordering.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Ordering.API"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "EventBusRabbitMQ",
+            "paths": [
+              "src/EventBusRabbitMQ",
+              "src/EventBusRabbitMQ/EventBusRabbitMQ.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/EventBusRabbitMQ"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/Basket.API/Basket.API.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "PaymentProcessor",
+            "paths": [
+              "src/PaymentProcessor",
+              "src/PaymentProcessor/PaymentProcessor.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/PaymentProcessor"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Identity.API",
+            "paths": [
+              "src/Identity.API",
+              "src/Identity.API/Identity.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Identity.API"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "eShop.ServiceDefaults",
+            "paths": [
+              "src/eShop.ServiceDefaults",
+              "src/eShop.ServiceDefaults/eShop.ServiceDefaults.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.ServiceDefaults"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/Basket.API/Basket.API.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "WebhookClient",
+            "paths": [
+              "src/WebhookClient",
+              "src/WebhookClient/WebhookClient.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/WebhookClient"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Webhooks.API",
+            "paths": [
+              "src/Webhooks.API",
+              "src/Webhooks.API/Webhooks.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Webhooks.API"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "OrderProcessor",
+            "paths": [
+              "src/OrderProcessor",
+              "src/OrderProcessor/OrderProcessor.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/OrderProcessor"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "depends_on_local",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Catalog.API",
+            "paths": [
+              "src/Catalog.API",
+              "src/Catalog.API/Catalog.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Catalog.API"
+            }
+          },
+          "properties": {
+            "declaration_kind": "project-reference",
+            "state": "resolved"
+          },
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "messaging:event-bus",
+            "paths": [
+              "src/Basket.API/appsettings.json"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "key": "ConnectionStrings:EventBus",
+              "observation_kind": "capability",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/Basket.API/appsettings.json"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "cache:redis",
+            "paths": [
+              "src/Basket.API/appsettings.json"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "key": "ConnectionStrings:Redis",
+              "observation_kind": "capability",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/Basket.API/appsettings.json"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "messaging:amqp",
+            "paths": [
+              "src/Basket.API/appsettings.json"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "key": "ConnectionStrings:EventBus",
+              "observation_kind": "capability",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/Basket.API/appsettings.json"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:relational",
+            "paths": [
+              "src/Basket.API/appsettings.json"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "key": "ConnectionStrings",
+              "observation_kind": "capability",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/Basket.API/appsettings.json"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/Basket.API"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "serialization:protobuf",
+            "paths": [
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "observation_kind": "capability",
+              "requirement": "Protobuf",
+              "requirement_kind": "code-generation",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/Basket.API/Basket.API.csproj"
+          ]
+        }
+      ],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "spring-petclinic",
+      "source_type": "git",
+      "url": "https://github.com/spring-projects/spring-petclinic.git",
+      "commit": "818c4136ea971c21674525f9053de0d9c7ad8cfe",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "pom.xml",
+          "sha256": "7e61df0a43d538a5404e8130a55b8085541ec8e841fcf39f81bb6d3d81dcd2f4",
+          "url": "https://github.com/spring-projects/spring-petclinic/blob/818c4136ea971c21674525f9053de0d9c7ad8cfe/pom.xml"
+        },
+        {
+          "path": "k8s/db.yml",
+          "sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838",
+          "url": "https://github.com/spring-projects/spring-petclinic/blob/818c4136ea971c21674525f9053de0d9c7ad8cfe/k8s/db.yml"
+        },
+        {
+          "path": "k8s/petclinic.yml",
+          "sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb",
+          "url": "https://github.com/spring-projects/spring-petclinic/blob/818c4136ea971c21674525f9053de0d9c7ad8cfe/k8s/petclinic.yml"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "component",
+          "name": "pom",
+          "paths": [
+            "pom.xml"
+          ],
+          "properties": {
+            "ecosystem": "maven",
+            "project_kind": "maven",
+            "root": "."
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "petclinic#document-2",
+          "paths": [
+            "k8s/petclinic.yml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "demo-db#document-3",
+          "paths": [
+            "k8s/db.yml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "petclinic",
+          "paths": [
+            "k8s/petclinic.yml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "demo-db#document-2",
+          "paths": [
+            "k8s/db.yml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "demo-db",
+          "paths": [
+            "k8s/db.yml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "kubernetes",
+            "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
+          }
+        }
+      ],
+      "expected_edges": [],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "terraform-alias",
+      "source_type": "git",
+      "url": "https://github.com/hashicorp-education/learn-terraform-aws-assume-role-iam.git",
+      "commit": "21b3edcecfb8f0415450aa96869c71bb53e029ea",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "main.tf",
+          "sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5",
+          "url": "https://github.com/hashicorp-education/learn-terraform-aws-assume-role-iam/blob/21b3edcecfb8f0415450aa96869c71bb53e029ea/main.tf"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "deployable",
+          "name": "resource:aws_iam_role.assume_role",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "data:aws_caller_identity.source",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "data:aws_iam_policy_document.assume_role",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "provider:aws.alias=destination",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "provider:aws.alias=source",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        },
+        {
+          "kind": "deployable",
+          "name": "data:aws_iam_policy.ec2",
+          "paths": [
+            "main.tf"
+          ],
+          "properties": {
+            "kind": "infrastructure",
+            "provider": "terraform",
+            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+          }
+        }
+      ],
+      "expected_edges": [],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "express",
+      "source_type": "git",
+      "url": "https://github.com/expressjs/express.git",
+      "commit": "cd7d4397c398a3f3ecadeaf9ef6ac1377bd414c4",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "package.json",
+          "sha256": "0ca5c69a8c6647bd6c8b7d9ee3451e0eefce551304f6bfeb57f8df3ab79823e1",
+          "url": "https://github.com/expressjs/express/blob/cd7d4397c398a3f3ecadeaf9ef6ac1377bd414c4/package.json"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "component",
+          "name": "express",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "ecosystem": "npm",
+            "project_kind": "npm",
+            "root": ".",
+            "version": "5.1.0"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "test-tap",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "script",
+            "observation_kind": "interface",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "test",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "script",
+            "observation_kind": "interface",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "lint",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "script",
+            "observation_kind": "interface",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "test-ci",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "script",
+            "observation_kind": "interface",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "test-cov",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "script",
+            "observation_kind": "interface",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "node",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "condition": "engine range declaration",
+            "interface_kind": "prerequisite",
+            "observation_kind": "interface",
+            "state": "declared",
+            "target": ">= 18"
+          }
+        }
+      ],
+      "expected_edges": [
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "test",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "script",
+              "observation_kind": "interface",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "node",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "condition": "engine range declaration",
+              "interface_kind": "prerequisite",
+              "observation_kind": "interface",
+              "state": "declared",
+              "target": ">= 18"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "test-ci",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "script",
+              "observation_kind": "interface",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "lint",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "script",
+              "observation_kind": "interface",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "test-cov",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "script",
+              "observation_kind": "interface",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "test-tap",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "script",
+              "observation_kind": "interface",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        }
+      ],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "flask",
+      "source_type": "git",
+      "url": "https://github.com/pallets/flask.git",
+      "commit": "2c1b30d0503cfb064f1cb252e6614a06915a362a",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "pyproject.toml",
+          "sha256": "e14476b8d0cadf862b25eee62f63793db0cf941a96cb8b8a9eaee6ce2a70c4f6",
+          "url": "https://github.com/pallets/flask/blob/2c1b30d0503cfb064f1cb252e6614a06915a362a/pyproject.toml"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "capability",
+          "name": "crypto:library",
+          "paths": [
+            "pyproject.toml"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "condition": "group:typing",
+            "observation_kind": "capability",
+            "requirement": "cryptography",
+            "requirement_kind": "python-dependency",
+            "state": "conditional"
+          }
+        },
+        {
+          "kind": "component",
+          "name": "Flask",
+          "paths": [
+            "pyproject.toml"
+          ],
+          "properties": {
+            "ecosystem": "python-uv",
+            "project_kind": "python-uv",
+            "root": ".",
+            "version": "3.1.2"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "flask",
+          "paths": [
+            "pyproject.toml"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "python-console-script",
+            "observation_kind": "interface",
+            "state": "declared",
+            "target": "flask.cli:main"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "flit_core.buildapi",
+          "paths": [
+            "pyproject.toml"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "python-build-backend",
+            "observation_kind": "interface",
+            "state": "declared",
+            "target": "flit_core.buildapi"
+          }
+        }
+      ],
+      "expected_edges": [
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "Flask",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "ecosystem": "python-uv",
+              "project_kind": "python-uv",
+              "root": ".",
+              "version": "3.1.2"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "flask",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "python-console-script",
+              "observation_kind": "interface",
+              "state": "declared",
+              "target": "flask.cli:main"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pyproject.toml"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "Flask",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "ecosystem": "python-uv",
+              "project_kind": "python-uv",
+              "root": ".",
+              "version": "3.1.2"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "flit_core.buildapi",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "python-build-backend",
+              "observation_kind": "interface",
+              "state": "declared",
+              "target": "flit_core.buildapi"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pyproject.toml"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "Flask",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "ecosystem": "python-uv",
+              "project_kind": "python-uv",
+              "root": ".",
+              "version": "3.1.2"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "crypto:library",
+            "paths": [
+              "pyproject.toml"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "condition": "group:typing",
+              "observation_kind": "capability",
+              "requirement": "cryptography",
+              "requirement_kind": "python-dependency",
+              "state": "conditional"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pyproject.toml"
+          ]
+        }
+      ],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "helm-examples",
+      "source_type": "git",
+      "url": "https://github.com/helm/examples.git",
+      "commit": "4888ba8fb8180dd0c36d1e84c1fcafc6efd81532",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "charts/hello-world/templates/deployment.yaml",
+          "sha256": "71b04aee8f995c0b8bdf2d8d8e3f98908cf71d519fd0612408b506161149987e",
+          "url": "https://github.com/helm/examples/blob/4888ba8fb8180dd0c36d1e84c1fcafc6efd81532/charts/hello-world/templates/deployment.yaml"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "deployable",
+          "name": "Deployment",
+          "paths": [
+            "charts/hello-world/templates/deployment.yaml"
+          ],
+          "properties": {
+            "kind": "workload",
+            "provider": "helm-template",
+            "source_sha256": "71b04aee8f995c0b8bdf2d8d8e3f98908cf71d519fd0612408b506161149987e"
+          }
+        }
+      ],
+      "expected_edges": [],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
+      "id": "non-source",
+      "source_type": "fixture",
+      "fixture": "fixtures/non-source",
+      "evaluated_kinds": [
+        "component",
+        "deployable",
+        "interface",
+        "capability",
+        "content"
+      ],
+      "oracle_files": [
+        {
+          "path": "README.md",
+          "sha256": "90f8c3369f9c8f21099da6a8f61bddbedfefd25017429647dd85273f37008353",
+          "url": "tests/map_corpus/fixtures/non-source/README.md"
+        },
+        {
+          "path": "release/app",
+          "sha256": "a0c18f78e47883bd66aef69eba50183b6230b3b52bfe48bd066a1c38a8e2e2c2",
+          "url": "tests/map_corpus/fixtures/non-source/release/app"
+        },
+        {
+          "path": "certs/service.crt",
+          "sha256": "7ddc38c50d1348753efb70dfb94f38b93dcd975ce03db104094708676a9efe73",
+          "url": "tests/map_corpus/fixtures/non-source/certs/service.crt"
+        },
+        {
+          "path": "data/users.csv",
+          "sha256": "b57e1a894aa62a12ddad0a68f4caa364a9f5b111631f10e146e28df2f88a7068",
+          "url": "tests/map_corpus/fixtures/non-source/data/users.csv"
+        },
+        {
+          "path": "data/state.sqlite",
+          "sha256": "f2df3384ecf856bf654e04a9d8251bdd1973170479f4ad33ab6705ac95322254",
+          "url": "tests/map_corpus/fixtures/non-source/data/state.sqlite"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "content",
+          "name": "service.crt",
+          "paths": [
+            "certs/service.crt"
+          ],
+          "properties": {
+            "bytes": "75",
+            "format": "certificate_candidate",
+            "role": "certificate"
+          }
+        },
+        {
+          "kind": "content",
+          "name": "users.csv",
+          "paths": [
+            "data/users.csv"
+          ],
+          "properties": {
+            "bytes": "14",
+            "format": "data_candidate",
+            "role": "data"
+          }
+        },
+        {
+          "kind": "content",
+          "name": "state.sqlite",
+          "paths": [
+            "data/state.sqlite"
+          ],
+          "properties": {
+            "bytes": "24",
+            "format": "sqlite",
+            "role": "data"
+          }
+        },
+        {
+          "kind": "content",
+          "name": "app",
+          "paths": [
+            "release/app"
+          ],
+          "properties": {
+            "bytes": "29",
+            "format": "elf",
+            "role": "binary"
+          }
+        }
+      ],
+      "expected_edges": [],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "unknown"
+        }
+      ]
+    }
+  ]
+}
