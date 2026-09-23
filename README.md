@@ -49,6 +49,12 @@ dircue map settings --preset low-memory --json
 dircue map route --json map.json > routes.json
 ```
 
+Map JSON also includes conservative analyzer coverage accounting. It separates
+tools that were not run, do not support an observed language, lacked a known
+prerequisite, reported an error, or did not disclose enough information to
+establish coverage. Empty reports are never treated as proof that nothing was
+found or that analysis was complete.
+
 The map is a portable node-and-edge document with stable identities, source
 evidence, and question-by-question coverage. See the [directory-map
 guide](docs/MAP.md) for its schema, source semantics, provider attachments,

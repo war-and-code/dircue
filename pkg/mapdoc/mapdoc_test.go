@@ -99,6 +99,18 @@ func TestUnknownRequiresReasonAndNeverMeansAbsent(t *testing.T) {
 	}
 }
 
+func TestHTTPRoutePropertyIsNotTreatedAsAHostPath(t *testing.T) {
+	d := document()
+	d.Nodes[0].Properties = map[string]string{"route": "/users/{id}"}
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatalf("HTTP route rejected as filesystem path: %v", err)
+	}
+	d.Nodes[0].Properties = map[string]string{"other": "/Users/alice/secret"}
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("absolute host path accepted in ordinary property")
+	}
+}
+
 func TestDirectorySourceMayBeHonestlyUnbound(t *testing.T) {
 	d := document()
 	d.Source.Digest = nil

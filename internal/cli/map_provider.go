@@ -7,6 +7,7 @@ import (
 	"slices"
 	"strings"
 
+	"dircue/pkg/coverageledger"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/providerjoin"
 	"dircue/pkg/sariflocate"
@@ -35,6 +36,7 @@ func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string)
 		})
 	}
 	doc.Coverage = mergeQuestionCoverage(doc.Coverage, result.Coverage)
+	coverageledger.Reconcile(&doc)
 	for _, diagnostic := range result.Diagnostics {
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: provider %s: %s\n", terminalValue(diagnostic.Kind), terminalValue(diagnostic.Message)); err != nil {
 			return mapdoc.Document{}, err
@@ -49,10 +51,10 @@ func parseAttachments(specs []string) ([]providerjoin.Attachment, error) {
 		kind, filename, ok := strings.Cut(spec, "=")
 		kind, filename = strings.TrimSpace(kind), strings.TrimSpace(filename)
 		if !ok || kind == "" || filename == "" {
-			return nil, fmt.Errorf("--attach requires KIND=PATH; supported kinds: syft-json, sarif, noir-json")
+			return nil, fmt.Errorf("--attach requires KIND=PATH; supported kinds: syft-json, sarif, noir-json, bifrost-code-query-json")
 		}
-		if !slices.Contains([]string{"syft", "syft-json", "sarif", "noir", "noir-json"}, strings.ToLower(kind)) {
-			return nil, fmt.Errorf("unsupported --attach kind %q; expected syft-json, sarif, or noir-json", kind)
+		if !slices.Contains([]string{"syft", "syft-json", "sarif", "noir", "noir-json", "bifrost", "bifrost-json", "bifrost-code-query-json"}, strings.ToLower(kind)) {
+			return nil, fmt.Errorf("unsupported --attach kind %q; expected syft-json, sarif, noir-json, or bifrost-code-query-json", kind)
 		}
 		out = append(out, providerjoin.Attachment{Kind: kind, Path: filename})
 	}

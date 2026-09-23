@@ -80,6 +80,46 @@ func Validate(d Document) error {
 			}
 		}
 	}
+	coverageKeys := map[string]bool{}
+	coverageCounts := map[string]int{}
+	for _, entry := range d.AnalyzerCoverage {
+		if entry.ComponentID == "" || entry.Language == "" || entry.Tool == "" || entry.DescriptorVersion == "" || entry.DescriptorSource == "" {
+			return fail("analyzer coverage requires component, language, tool, and descriptor provenance")
+		}
+		if !slices.Contains([]string{"component_property", "repository_population", "unattributed"}, entry.LanguageBasis) {
+			return fail("analyzer coverage has invalid language_basis %q", entry.LanguageBasis)
+		}
+		if !slices.Contains([]string{"not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"}, entry.NotCovered) {
+			return fail("analyzer coverage has invalid not_covered %q", entry.NotCovered)
+		}
+		if entry.Reason == "" {
+			return fail("analyzer coverage requires reason")
+		}
+		key := entry.ComponentID + "\x00" + entry.Language + "\x00" + entry.Tool
+		if coverageKeys[key] {
+			return fail("duplicate analyzer coverage entry %q", key)
+		}
+		coverageKeys[key] = true
+		coverageCounts[entry.NotCovered]++
+		for _, filename := range entry.CoveredFiles {
+			if err := validatePath(filename); err != nil {
+				return fail("analyzer coverage file: %v", err)
+			}
+		}
+	}
+	spotReasons := map[string]bool{}
+	for _, spot := range d.AnalyzerBlindSpots {
+		if !slices.Contains([]string{"not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"}, spot.Reason) || spot.Entries < 1 {
+			return fail("analyzer blind spot requires reason and positive entries")
+		}
+		if spotReasons[spot.Reason] || coverageCounts[spot.Reason] != spot.Entries {
+			return fail("analyzer blind spot %q does not match coverage entries", spot.Reason)
+		}
+		spotReasons[spot.Reason] = true
+	}
+	if len(spotReasons) != len(coverageCounts) {
+		return fail("analyzer blind spot summary is incomplete")
+	}
 	if d.Source.Mode == "directory" && d.Source.Digest == nil && !sourceBindingQualified {
 		return fail("unbound directory source requires unknown or partial source_binding coverage at scope .")
 	}
@@ -125,6 +165,18 @@ func Validate(d Document) error {
 			}
 			if err := validateProperties(f.Properties); err != nil {
 				return err
+			}
+		}
+	}
+	for _, entry := range d.AnalyzerCoverage {
+		if entry.ComponentID != "repository" && !ids[entry.ComponentID] {
+			return fail("analyzer coverage references unknown component %q", entry.ComponentID)
+		}
+		if entry.ComponentID != "repository" {
+			for _, node := range d.Nodes {
+				if node.ID == entry.ComponentID && node.Kind != NodeComponent {
+					return fail("analyzer coverage reference %q is not a component", entry.ComponentID)
+				}
 			}
 		}
 	}
@@ -187,11 +239,15 @@ func validateProperties(p map[string]string) error {
 		if k == "" {
 			return fmt.Errorf("%w: empty property name", ErrInvalid)
 		}
-		if looksAbsolute(v) {
+		if looksAbsolute(v) && !validRouteProperty(k, v) {
 			return fmt.Errorf("%w: property %q contains an absolute path", ErrInvalid, k)
 		}
 	}
 	return nil
+}
+
+func validRouteProperty(key, value string) bool {
+	return key == "route" && strings.HasPrefix(value, "/") && !strings.HasPrefix(value, "//") && !strings.Contains(value, "\\")
 }
 func validateEvidence(values []Evidence, documentationFact, directoryAllowed bool) error {
 	if len(values) == 0 {

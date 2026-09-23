@@ -16,7 +16,7 @@ import (
 var ErrInvalid = errors.New("invalid map document")
 
 func New() Document {
-	return Document{SchemaVersion: SchemaVersion, Kind: "map", Status: CoverageUnknown, Source: Source{Mode: "directory"}, Coverage: []QuestionCoverage{}, CoverageLedger: []CoverageLedgerEntry{}, Nodes: []Node{}, Edges: []Edge{}}
+	return Document{SchemaVersion: SchemaVersion, Kind: "map", Status: CoverageUnknown, Source: Source{Mode: "directory"}, Coverage: []QuestionCoverage{}, CoverageLedger: []CoverageLedgerEntry{}, AnalyzerCoverage: []AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []AnalyzerBlindSpot{}, Nodes: []Node{}, Edges: []Edge{}}
 }
 
 func NewNode(kind NodeKind, paths []string, discriminator string) Node {
@@ -69,6 +69,20 @@ func Normalize(input Document) (Document, error) {
 	}
 	if d.CoverageLedger == nil {
 		d.CoverageLedger = []CoverageLedgerEntry{}
+	}
+	if d.AnalyzerCoverage == nil {
+		d.AnalyzerCoverage = []AnalyzerCoverageEntry{}
+	}
+	if d.AnalyzerBlindSpots == nil {
+		d.AnalyzerBlindSpots = []AnalyzerBlindSpot{}
+	}
+	for i := range d.AnalyzerCoverage {
+		entry := &d.AnalyzerCoverage[i]
+		if entry.CoveredFiles == nil {
+			entry.CoveredFiles = []string{}
+		}
+		slices.Sort(entry.CoveredFiles)
+		entry.CoveredFiles = slices.Compact(entry.CoveredFiles)
 	}
 	for i := range d.CoverageLedger {
 		entry := &d.CoverageLedger[i]
@@ -133,6 +147,10 @@ func Normalize(input Document) (Document, error) {
 		return strings.Compare(a.Tool+"\x00"+a.ReportKind+"\x00"+a.Scope+"\x00"+a.Binding+"\x00"+a.State,
 			b.Tool+"\x00"+b.ReportKind+"\x00"+b.Scope+"\x00"+b.Binding+"\x00"+b.State)
 	})
+	slices.SortFunc(d.AnalyzerCoverage, func(a, b AnalyzerCoverageEntry) int {
+		return strings.Compare(a.ComponentID+"\x00"+a.Language+"\x00"+a.Tool, b.ComponentID+"\x00"+b.Language+"\x00"+b.Tool)
+	})
+	slices.SortFunc(d.AnalyzerBlindSpots, func(a, b AnalyzerBlindSpot) int { return strings.Compare(a.Reason, b.Reason) })
 	slices.SortFunc(d.Nodes, func(a, b Node) int { return strings.Compare(a.ID, b.ID) })
 	slices.SortFunc(d.Edges, func(a, b Edge) int { return strings.Compare(a.ID, b.ID) })
 	if err := Validate(d); err != nil {

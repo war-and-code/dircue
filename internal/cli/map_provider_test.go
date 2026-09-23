@@ -104,6 +104,38 @@ func TestMapProviderInputErrorsAreActionable(t *testing.T) {
 	}
 }
 
+func TestMapAcceptsLeadingSlashNoirRouteAndBifrostAttachment(t *testing.T) {
+	root := t.TempDir()
+	writeMapSourceFixture(t, root)
+	noir := filepath.Join(t.TempDir(), "noir.json")
+	if err := os.WriteFile(noir, []byte(`[{"method":"GET","path":"/users","file":"main.go"}]`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	bifrost := filepath.Join(t.TempDir(), "bifrost.json")
+	if err := os.WriteFile(bifrost, []byte(`{"results":[{"result_type":"file","path":"main.go","language":"go"}],"truncated":false}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, stderr, err := invoke("map", "--source", "directory", "--json", "--attach", "noir-json="+noir, "--attach", "bifrost-code-query-json="+bifrost, root)
+	if err != nil || stderr != "" {
+		t.Fatalf("attach err=%v stderr=%q", err, stderr)
+	}
+	var doc mapdoc.Document
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := mapdoc.Validate(doc); err != nil {
+		t.Fatal(err)
+	}
+	foundRoute, foundBifrost := false, false
+	for _, node := range doc.Nodes {
+		foundRoute = foundRoute || node.Properties["route"] == "/users"
+		foundBifrost = foundBifrost || node.Kind == mapdoc.NodeToolRun && node.Name == "bifrost"
+	}
+	if !foundRoute || !foundBifrost {
+		t.Fatalf("attachments absent: route=%t bifrost=%t", foundRoute, foundBifrost)
+	}
+}
+
 func writeMapSourceFixture(t *testing.T, root string) {
 	t.Helper()
 	for name, content := range map[string]string{
