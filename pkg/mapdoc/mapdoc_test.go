@@ -124,6 +124,23 @@ func TestDirectorySourceMayBeHonestlyUnbound(t *testing.T) {
 	}
 }
 
+func TestGitSourceSeparatesSymbolicSelectorFromResolvedCommit(t *testing.T) {
+	d := document()
+	d.Source = mapdoc.Source{Mode: "git", Revision: "HEAD", Commit: strings.Repeat("a", 40), Tree: strings.Repeat("b", 40)}
+	if _, err := mapdoc.Marshal(d); err != nil {
+		t.Fatalf("resolved Git commit rejected: %v", err)
+	}
+	d.Source.Commit = "HEAD"
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("symbolic selector was accepted as resolved commit")
+	}
+	d.Source.Mode, d.Source.Revision, d.Source.Tree = "directory", "", ""
+	d.Source.Commit = strings.Repeat("a", 40)
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("directory source retained Git commit identity")
+	}
+}
+
 func TestDirectoryDigestRequiresAlgorithmScopeAndValue(t *testing.T) {
 	for name, digest := range map[string]*mapdoc.Digest{
 		"algorithm": {Scope: "full_selected_tree", Value: strings.Repeat("a", 64)},

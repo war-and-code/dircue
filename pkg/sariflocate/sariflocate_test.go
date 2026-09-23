@@ -153,6 +153,18 @@ func TestSymbolicRevisionCannotClaimBinding(t *testing.T) {
 	}
 }
 
+func TestResolvedCommitBindsEvenWhenSelectorIsSymbolic(t *testing.T) {
+	doc := fixtureMap(t)
+	doc.Source = mapdoc.Source{Mode: "git", Revision: "HEAD", Commit: strings.Repeat("a", 40), Tree: "tree"}
+	out, summary, err := sariflocate.Annotate(sarif("services/api/generated/client.go", "", 1, strings.Repeat("a", 40)), doc, sariflocate.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if summary.Runs[0].Binding != "matched" || annotation(t, out)["resolution"] != "resolved" {
+		t.Fatalf("resolved commit was not compared: annotation=%v summary=%+v", annotation(t, out), summary)
+	}
+}
+
 func TestMultipleComponentsAreAmbiguous(t *testing.T) {
 	doc := fixtureMap(t)
 	other := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/package.json"}, "npm")

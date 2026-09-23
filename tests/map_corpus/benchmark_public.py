@@ -2,9 +2,8 @@
 """Measure map resource use on an already-materialized pinned public corpus.
 
 This on-demand harness does not fetch repositories and defines no release
-thresholds. It also checks that execution-only presets produce semantically
-identical map documents for each pinned source, excluding only the recorded
-execution settings.
+thresholds. It also checks that execution-only presets produce byte-identical
+map documents for each pinned source.
 """
 import argparse
 import hashlib
@@ -33,10 +32,8 @@ def digest_file(path):
 
 
 def semantic_digest(document):
-    """Hash the map answer while excluding only execution provenance."""
-    answer = dict(document)
-    answer.pop("execution", None)
-    encoded = json.dumps(answer, sort_keys=True, separators=(",", ":")).encode()
+    """Hash the complete map answer in canonical key order."""
+    encoded = json.dumps(document, sort_keys=True, separators=(",", ":")).encode()
     return hashlib.sha256(encoded).hexdigest()
 
 
@@ -122,10 +119,12 @@ def main():
             if len(semantic_hashes) != 1:
                 raise SystemExit(f"{expected['id']}: execution-only presets changed map answers")
             raw_hashes = {run["raw_output_sha256"] for run in runs}
+            if len(raw_hashes) != 1:
+                raise SystemExit(f"{expected['id']}: execution-only presets changed map bytes")
             results.append({
                 "id": expected["id"], "commit": commit,
                 "preset_answers_equal": True, "raw_outputs_equal": len(raw_hashes) == 1,
-                "semantic_hash_exclusion": ["execution"], "runs": runs,
+                "semantic_hash_exclusion": [], "runs": runs,
             })
             print(f"{expected['id']}: {len(runs)} presets, identical answers", file=sys.stderr)
     report = {

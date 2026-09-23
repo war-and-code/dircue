@@ -39,11 +39,6 @@ def non_documentation_projection(document):
         "coverage": document["coverage"],
     }
 
-def semantic_projection(document):
-    # Worker and preset choices are recorded as execution provenance. They are
-    # expected to differ even when the observed directory map is identical.
-    return {key: value for key, value in document.items() if key != "execution"}
-
 def assert_no_absolute_strings(value, roots):
     if isinstance(value, dict):
         for child in value.values(): assert_no_absolute_strings(child, roots)
@@ -68,15 +63,15 @@ def main():
         baseline = invoke(binary, "map", "--source", "directory", "--workers", "1", "--json", ordinary)
         parallel = invoke(binary, "map", "--source", "directory", "--workers", "4", "--json", ordinary)
         relocated = invoke(binary, "map", "--source", "directory", "--workers", "1", "--json", reversed_tree)
-        if semantic_projection(baseline) != semantic_projection(parallel):
+        if baseline != parallel:
             raise AssertionError("worker count changed map semantics")
-        if semantic_projection(baseline) != semantic_projection(relocated):
+        if baseline != relocated:
             raise AssertionError("absolute location or creation order changed the portable map")
         assert_no_absolute_strings(baseline, (ordinary, reversed_tree, root))
 
         for controls in (("--preset", "fast"), ("--preset", "low-memory"), ("--set", "workers=3")):
             tuned = invoke(binary, "map", "--source", "directory", *controls, "--json", reversed_tree)
-            if semantic_projection(baseline) != semantic_projection(tuned):
+            if baseline != tuned:
                 raise AssertionError(f"answer-preserving control changed the map: {controls}")
 
         readme = ordinary / "README.md"
