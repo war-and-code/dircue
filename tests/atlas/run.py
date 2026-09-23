@@ -235,12 +235,17 @@ def run_scc_on_repo(scc_path: Path, repo_path: Path) -> tuple[list[dict], float,
                 f"scc exited {result.returncode}: {result.stderr[:500]}"
             )
         data = json.loads(result.stdout)
-        # Flatten: scc returns [{Language:.., Files:[{Name:.., Lines:..}]}, ...]
+        # Flatten: scc returns [{Language:.., Files:[{Filename:.., Location:.., Lines:..}]}, ...]
+        # Use Location (full path) to get the relative path; fall back to Filename
         files = []
         for group in data:
             for f in group.get("Files", []):
-                # Make paths relative to extract_dir
-                rel = Path(f["Filename"]).relative_to(extract_dir)
+                location = f.get("Location") or f.get("Filename", "")
+                try:
+                    rel = Path(location).relative_to(extract_dir)
+                except ValueError:
+                    # Filename may be a basename; try prefixing with extract_dir
+                    rel = Path(f.get("Filename", location))
                 files.append({
                     "path": str(rel),
                     "language": group["Name"],
@@ -255,7 +260,11 @@ def run_scc_on_repo(scc_path: Path, repo_path: Path) -> tuple[list[dict], float,
 
 
 def run_dircue_metrics(binary: str, repo_path: Path) -> tuple[dict, float, int]:
-    """Run dircue analyze metrics --files --json on the repo."""
+    """Run dircue analyze metrics --files --json on the repo.
+
+    Returns the inner 'metrics' object (which contains 'files', 'totals', etc.),
+    wall time, and RSS.
+    """
     cmd = [binary, "analyze", "metrics", "--files", "--json",
            "--source", "git", str(repo_path)]
     result, wall_s, rss = run_timed(cmd, text=True)
@@ -264,8 +273,12 @@ def run_dircue_metrics(binary: str, repo_path: Path) -> tuple[dict, float, int]:
             f"dircue metrics exited {result.returncode}: {result.stderr[:500]}"
         )
     data = json.loads(result.stdout)
-    assert data.get("schema_version") == "1.1.0", f"unexpected schema: {data.get('schema_version')}"
-    return data, wall_s, rss
+    schema = data.get("schema_version")
+    # Accept both the outer profile schema (1.1.0) and the direct metrics schema
+    metrics = data.get("metrics", data)
+    assert metrics.get("engine") or metrics.get("files") is not None, \
+        f"unexpected metrics shape: {list(metrics.keys())[:5]}"
+    return metrics, wall_s, rss
 
 
 COUNTER_MAP = {
@@ -331,11 +344,13 @@ def compare_scc(
         if not mismatch_fields:
             matched += 1
         else:
+            field_names = [f["field"] for f in mismatch_fields]
             category = classify_scc_mismatch(
                 path,
                 {k: dc.get(k, 0) for k in ("lines", "code", "comment", "blank", "complexity", "bytes")},
                 scc_row,
                 known_diffs,
+                mismatch_fields=field_names,
             )
             mismatched += 1
             mismatches.append({

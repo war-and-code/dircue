@@ -14,5 +14,31 @@
     "category": "known-upstream-diff",
     "root_cause": "scc 4.1.0 counts the // line inside a C# raw-string literal as a comment even though it is raw-string content; this is a known scc limitation documented in tests/metrics/run.py",
     "resolved_in": null
+  },
+  {
+    "tool": "scc",
+    "repo": "*",
+    "file_extension": ".h",
+    "fields": ["complexity"],
+    "category": "known-upstream-diff",
+    "root_cause": "Standalone scc 4.1.0 classifies C header files (.h) as 'C Header' grammar and counts #ifdef/#if/#elif/#else preprocessor branches as complexity contributions. dircue's embedded scc uses the 'C' grammar for the same files, which counts fewer complexity keywords. The code/comment/blank/lines counts agree; only complexity differs. This is a grammar-selection difference, not a counting bug.",
+    "resolved_in": null
+  },
+  {
+    "tool": "scc",
+    "repo": "*",
+    "file_extension": ".tpl",
+    "category": "known-upstream-diff",
+    "root_cause": "Standalone scc 4.1.0 classifies Helm template .tpl files as 'Smarty Template' grammar. dircue classifies them as 'Go Template' (more accurate for Helm/Go text/template syntax). The comment syntax {{/* ... */}} is parsed differently: dircue correctly recognizes these as comments; scc's Smarty grammar does not. Code/comment counts differ due to this grammar selection difference, not a counting error.",
+    "resolved_in": null
+  },
+  {
+    "tool": "scc",
+    "repo": "*",
+    "file_extension": ".t",
+    "fields": ["complexity"],
+    "category": "known-upstream-diff",
+    "root_cause": "Standalone scc 4.1.0 classifies .t files as 'Raku' (Perl 6) by extension, even when the file starts with #!/bin/bash and is a shell script. dircue uses the shebang to classify these as 'Shell'. The complexity counts differ because Raku and Shell grammars have different complexity-keyword sets. dircue's classification is more accurate for shebang-identified shell test scripts.",
+    "resolved_in": null
   }
 ]

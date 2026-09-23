@@ -62,32 +62,44 @@ def classify_scc_mismatch(
     dircue_counts: dict[str, Any],
     scc_counts: dict[str, Any],
     known_diffs: list[dict],
+    mismatch_fields: list[str] | None = None,
 ) -> str:
     """Classify a per-file scc counter mismatch.
 
     Returns one of the category strings defined in the module docstring.
+    mismatch_fields is the list of field names that differ (e.g. ["complexity"]).
     """
+    # Determine file extension
+    ext = ""
+    if "." in path:
+        ext = "." + path.rsplit(".", 1)[-1].lower()
+
     # Check known-differences manifest first
     for diff in known_diffs:
-        if diff.get("tool") != "scc":
+        if diff.get("tool") not in ("scc", None):
             continue
+        # Check file-extension rule (takes precedence over specific file rules)
+        if diff.get("file_extension"):
+            if ext != diff["file_extension"]:
+                continue
+            # If the diff specifies which fields must mismatch, check that
+            if diff.get("fields") and mismatch_fields:
+                if not all(f in mismatch_fields for f in diff["fields"]):
+                    continue
+            return "known-upstream-diff"
+        # Check specific file rule
         if diff.get("file") and diff["file"] != path:
             continue
+        # A diff with neither file nor file_extension applies to all files
         return "known-upstream-diff"
 
     # Check hardcoded known upstream differences
-    # scc 4.1.0 raw-string comment overcounting
+    # scc 4.1.0 raw-string comment overcounting in Java/C#
     if _SCC_RAW_STRING_COMMENT_PATTERN.match(path):
-        if (
-            dircue_counts.get("comment", 0) != scc_counts.get("Comment", 0)
-            or dircue_counts.get("comment", 0) != scc_counts.get("comment", 0)
-        ):
-            diff_comment = abs(
-                dircue_counts.get("comment", 0)
-                - scc_counts.get("Comment", scc_counts.get("comment", 0))
-            )
-            if diff_comment == 1:
-                return "known-upstream-diff"
+        scc_comment = scc_counts.get("Comment", scc_counts.get("comment", 0))
+        dc_comment = dircue_counts.get("comment", 0)
+        if abs(dc_comment - scc_comment) == 1:
+            return "known-upstream-diff"
 
     return "dircue-bug"
 
