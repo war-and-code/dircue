@@ -169,6 +169,12 @@ func identityFromMaps(values ...map[string]any) reportIdentity {
 		if v, ok := m["dircueSnapshotTree"].(string); ok {
 			id.Tree = v
 		}
+		if v, ok := m["dircue_snapshot_commit"].(string); ok {
+			id.Commit = v
+		}
+		if v, ok := m["dircueSnapshotCommit"].(string); ok {
+			id.Commit = v
+		}
 		if v, ok := m["dircue_snapshot_digest"].(string); ok {
 			id.Digest = v
 		}

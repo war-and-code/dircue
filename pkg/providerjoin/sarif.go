@@ -2,6 +2,7 @@ package providerjoin
 
 import (
 	"fmt"
+	"net/url"
 
 	"dircue/pkg/mapdoc"
 )
@@ -21,7 +22,10 @@ type sarifDocument struct {
 			ExecutionSuccessful        *bool `json:"executionSuccessful"`
 			ToolExecutionNotifications []any `json:"toolExecutionNotifications"`
 		} `json:"invocations"`
-		Properties map[string]any `json:"properties"`
+		Properties               map[string]any `json:"properties"`
+		VersionControlProvenance []struct {
+			RevisionID string `json:"revisionId"`
+		} `json:"versionControlProvenance"`
 		// Results are intentionally absent: findings are outside dircue's contract.
 	} `json:"runs"`
 }
@@ -47,11 +51,19 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 			tool = "sarif"
 		}
 		id := identityFromMaps(run.Properties)
+		for _, provenance := range run.VersionControlProvenance {
+			if id.Commit == "" {
+				id.Commit = provenance.RevisionID
+			}
+		}
 		b, reason := binding(in.Snapshot, id)
 		covered := []string{}
 		for _, a := range run.Artifacts {
-			if p, ok := cleanReportPath(a.Location.URI); ok {
-				covered = append(covered, p)
+			decoded, decodeErr := url.PathUnescape(a.Location.URI)
+			if decodeErr == nil {
+				if p, ok := cleanReportPath(decoded); ok {
+					covered = append(covered, p)
+				}
 			}
 		}
 		covered = compact(covered)

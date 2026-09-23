@@ -102,3 +102,38 @@ func TestRouteUsesRepositoryPopulationOnlyForSyntheticRoot(t *testing.T) {
 		t.Fatalf("unknown-language root plans=%+v; want generic scc only", withoutPopulation)
 	}
 }
+
+func TestRouteDashLeadingScopeGetsRelativePrefix(t *testing.T) {
+	plans := providerjoin.Route(providerjoin.Input{Nodes: []mapdoc.Node{routingComponent("-service", "Go")}})
+	if len(plans) == 0 {
+		t.Fatal("expected plans")
+	}
+	for _, plan := range plans {
+		if plan.Scope != "./-service" {
+			t.Fatalf("scope = %q", plan.Scope)
+		}
+		for _, arg := range plan.Argv {
+			if arg == "-service" {
+				t.Fatalf("dash-leading scope emitted directly: %+v", plan.Argv)
+			}
+		}
+	}
+}
+
+func TestRouteSkipsPathBackedAuxiliaryComponentsOnly(t *testing.T) {
+	auxiliary := routingComponent("testdata/service", "Go")
+	auxiliary.Properties["role"] = "fixture"
+	auxiliary.Properties["role_basis"] = "path_name"
+	for _, plan := range providerjoin.Route(providerjoin.Input{Nodes: []mapdoc.Node{auxiliary}}) {
+		if plan.ComponentID == auxiliary.ID {
+			t.Fatalf("fixture component was routed: %+v", plan)
+		}
+	}
+	production := routingComponent("src/service", "Go")
+	production.Properties["role"] = "fixture"
+	production.Properties["role_basis"] = "path_name"
+	plans := providerjoin.Route(providerjoin.Input{Nodes: []mapdoc.Node{production}})
+	if len(plans) == 0 {
+		t.Fatal("caller-provided role suppressed production routing")
+	}
+}

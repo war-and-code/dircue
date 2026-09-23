@@ -1,9 +1,9 @@
 package cli
 
 import (
+	"context"
 	"fmt"
 	"io"
-	"os"
 	"slices"
 	"strings"
 
@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string) (mapdoc.Document, error) {
+func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string, callerAsserted bool) (mapdoc.Document, error) {
 	if len(specs) == 0 {
 		return doc, nil
 	}
@@ -22,7 +22,9 @@ func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string)
 	if err != nil {
 		return mapdoc.Document{}, err
 	}
-	result, err := providerjoin.Join(cmd.Context(), providerInput(doc), attachments, providerjoin.Options{})
+	input := providerInput(doc)
+	input.Snapshot.CallerAsserted = callerAsserted
+	result, err := providerjoin.Join(cmd.Context(), input, attachments, providerjoin.Options{})
 	if err != nil {
 		return mapdoc.Document{}, err
 	}
@@ -63,7 +65,7 @@ func parseAttachments(specs []string) ([]providerjoin.Attachment, error) {
 
 func providerInput(doc mapdoc.Document) providerjoin.Input {
 	return providerjoin.Input{Snapshot: providerjoin.Snapshot{
-		Mode: doc.Source.Mode, Tree: doc.Source.Tree, Digest: doc.Source.Digest,
+		Mode: doc.Source.Mode, Tree: doc.Source.Tree, Commit: doc.Source.Commit, Digest: doc.Source.Digest,
 	}, Nodes: doc.Nodes, Edges: doc.Edges}
 }
 
@@ -140,7 +142,7 @@ func newMapLocateCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			input, err := readRegularFileBounded(args[1], sariflocate.DefaultLimits().Bytes, "SARIF report")
+			input, err := readRegularFileBounded(cmd.Context(), args[1], sariflocate.DefaultLimits().Bytes, "SARIF report")
 			if err != nil {
 				return err
 			}
@@ -181,8 +183,8 @@ func rejectMapSavedInputFlags(cmd *cobra.Command, _ *options) error {
 	return cmd.Context().Err()
 }
 
-func readRegularFileBounded(filename string, limit int, role string) ([]byte, error) {
-	file, err := os.Open(filename)
+func readRegularFileBounded(ctx context.Context, filename string, limit int, role string) ([]byte, error) {
+	file, err := openInputFile(filename, role)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", role, err)
 	}
@@ -194,7 +196,28 @@ func readRegularFileBounded(filename string, limit int, role string) ([]byte, er
 	if info.Size() > int64(limit) {
 		return nil, fmt.Errorf("%s exceeds %d-byte limit", role, limit)
 	}
-	return io.ReadAll(io.LimitReader(file, int64(limit)+1))
+	var data []byte
+	buf := make([]byte, 32*1024)
+	for {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if len(data) > limit {
+			return nil, fmt.Errorf("%s exceeds %d-byte limit", role, limit)
+		}
+		n, readErr := file.Read(buf[:min(len(buf), limit+1-len(data))])
+		data = append(data, buf[:n]...)
+		if readErr == io.EOF {
+			break
+		}
+		if readErr != nil {
+			return nil, readErr
+		}
+	}
+	if len(data) > limit {
+		return nil, fmt.Errorf("%s exceeds %d-byte limit", role, limit)
+	}
+	return data, nil
 }
 
 func parseMapDigest(spec string) (*mapdoc.Digest, error) {
