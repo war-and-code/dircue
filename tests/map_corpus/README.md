@@ -54,9 +54,11 @@ unknown.
 Precision is not claimed: the hand-authored expectations do not exhaustively
 label every observation emitted from these repositories. Per-question recall
 therefore covers only the cited positive facts; negative assertions are narrow
-false-positive checks, and unknowns do not become passes. The repositories
-also do not yet include a bounded Linux-kernel slice. These limits remain
-visible instead of being converted into an aggregate 100% score.
+false-positive checks, and unknowns do not become passes. These limits remain
+visible instead of being converted into an aggregate 100% score. A separate
+five-file, hash-pinned Linux-kernel slice lives in
+`tests/conformance/public_corpus.json`; it covers ambiguous Perl and the 50 KiB
+classifier window rather than claiming to represent the complete kernel.
 
 The optional fetch helper is manual and never runs in CI. It requires every
 repository ID explicitly and refuses to update or replace existing checkouts:
@@ -69,3 +71,57 @@ python3 tests/map_corpus/fetch_public.py \
 
 Fetching the full corpus can consume substantial disk space, so the helper has
 no `--all` mode. The verification gate itself never accesses the network.
+
+## On-demand resource and compatibility evidence
+
+The resource harness records wall time, user and system CPU, peak RSS, output
+bytes, map status, node and edge counts, and raw and semantic output hashes. It runs balanced,
+fast, and low-memory by default and fails if execution-only presets change the
+map answer after removing only the top-level `execution` provenance object. Raw
+outputs are expected to identify their effective settings. It streams maps to temporary files and enforces an output
+size limit instead of retaining every map in memory:
+
+```sh
+python3 tests/map_corpus/benchmark_public.py \
+  --binary ./dircue \
+  --candidate-commit "$(git rev-parse HEAD)" \
+  --corpus-root /path/to/pinned-corpus \
+  --output .cache/public-map-benchmark.json
+```
+
+One 2026-09-23 Apple Silicon run passed semantic preset equivalence on all 21
+repositories. Aggregate single-run wall times were 19.00 seconds balanced,
+18.66 seconds fast, and 21.37 seconds low-memory. TypeScript had the largest
+observed peak RSS: 582.3 MiB balanced, 609.2 MiB fast, and 531.6 MiB
+low-memory. The largest map was 10.1 MiB. Raw hashes differed for all 21
+repositories because each output retained its effective execution settings;
+the semantic hashes matched after removing only that provenance object. The
+measured binary came from commit
+`0aa0cb924b3e2285f7ee505bb3b25e16a8cf0592` and its SHA-256 was
+`0c1187da1b0f09fcae1c723806424b36745a81359ccc1fbdecba5365b27fd64d`. These are warm-cache observations from
+one host, without approved thresholds; they are not portable performance or
+memory guarantees.
+
+Two optional compatibility harnesses exercise the same exact commits. The
+first requires the pinned local Linguist 9.7.0 container and disables its
+network. The second byte-compares a candidate with a published dircue binary:
+
+```sh
+python3 tests/map_corpus/compare_public_languages.py \
+  --binary ./dircue --corpus-root /path/to/pinned-corpus \
+  --candidate-commit "$(git rev-parse HEAD)" \
+  --output .cache/public-language-parity.json
+
+python3 tests/map_corpus/compare_public_legacy.py \
+  --candidate ./dircue --baseline /path/to/dircue-0.9.0 \
+  --candidate-commit "$(git rev-parse HEAD)" \
+  --corpus-root /path/to/pinned-corpus \
+  --output .cache/public-legacy-v090.json
+```
+
+The 2026-09-23 runs matched Linguist's legacy JSON on 21 of 21 repositories and
+matched dircue 0.9.0 byte-for-byte in all 63 legacy checks: JSON, breakdown
+JSON, and breakdown with strategies. The existing kernel-slice Linguist gate
+also passed both JSON breakdown and strategy labels. These checks establish
+only their named interfaces; they do not prove map-level parity with Linguist,
+which has no equivalent map document.
