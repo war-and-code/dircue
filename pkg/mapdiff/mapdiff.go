@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
 	"dircue/pkg/mapdoc"
@@ -25,6 +26,8 @@ type Report struct {
 	Counts                Counts           `json:"counts"`
 	Changes               []Change         `json:"changes"`
 	CoverageChanges       []CoverageChange `json:"coverage_changes"`
+	CoverageLedgerStatus  string           `json:"coverage_ledger_status"`
+	CoverageLedgerChanges []LedgerChange   `json:"coverage_ledger_changes"`
 	Caveats               []string         `json:"caveats"`
 }
 
@@ -60,6 +63,17 @@ type CoverageView struct {
 	Reasons []string              `json:"reasons"`
 }
 
+// LedgerChange describes a change in what an attached provider reported
+// covering. It is deliberately separate from Changes: provider execution is
+// evidence about an observation, not a source-material change.
+type LedgerChange struct {
+	Tool       string   `json:"tool"`
+	ReportKind string   `json:"report_kind"`
+	Scope      string   `json:"scope"`
+	Status     string   `json:"status"`
+	Fields     []string `json:"fields"`
+}
+
 // Compare reports observable map changes. It does not infer Git ancestry,
 // renames, or source equivalence when a directory map lacks a full digest.
 func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
@@ -89,6 +103,12 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		report.Caveats = append(report.Caveats, "source identity is not fully bound; the caller selected this pairing")
 	}
 	report.CoverageChanges = coverageChanges(base.Coverage, head.Coverage)
+	report.CoverageLedgerStatus = "same"
+	report.CoverageLedgerChanges = coverageLedgerChanges(base.CoverageLedger, head.CoverageLedger)
+	if len(report.CoverageLedgerChanges) > 0 {
+		report.CoverageLedgerStatus = "changed"
+		report.Caveats = append(report.Caveats, "provider run coverage changed separately from source material")
+	}
 
 	baseNodes := indexNodes(base.Nodes)
 	headNodes := indexNodes(head.Nodes)
@@ -148,6 +168,85 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 		report.Status = "unchanged"
 	}
 	return report, nil
+}
+
+func coverageLedgerChanges(base, head []mapdoc.CoverageLedgerEntry) []LedgerChange {
+	type key struct{ tool, reportKind, scope string }
+	a := make(map[key][]mapdoc.CoverageLedgerEntry)
+	b := make(map[key][]mapdoc.CoverageLedgerEntry)
+	for _, entry := range base {
+		k := key{entry.Tool, entry.ReportKind, entry.Scope}
+		a[k] = append(a[k], entry)
+	}
+	for _, entry := range head {
+		k := key{entry.Tool, entry.ReportKind, entry.Scope}
+		b[k] = append(b[k], entry)
+	}
+	keys := make(map[key]struct{}, len(a)+len(b))
+	for k := range a {
+		keys[k] = struct{}{}
+	}
+	for k := range b {
+		keys[k] = struct{}{}
+	}
+	result := make([]LedgerChange, 0)
+	for k := range keys {
+		before, inBase := a[k]
+		after, inHead := b[k]
+		slices.SortFunc(before, func(a, b mapdoc.CoverageLedgerEntry) int {
+			return strings.Compare(ledgerEntryKey(a), ledgerEntryKey(b))
+		})
+		slices.SortFunc(after, func(a, b mapdoc.CoverageLedgerEntry) int {
+			return strings.Compare(ledgerEntryKey(a), ledgerEntryKey(b))
+		})
+		if reflect.DeepEqual(before, after) {
+			continue
+		}
+		change := LedgerChange{Tool: k.tool, ReportKind: k.reportKind, Scope: k.scope, Fields: []string{}}
+		switch {
+		case !inBase:
+			change.Status = "added"
+		case !inHead:
+			change.Status = "removed"
+		default:
+			change.Status = "changed"
+			change.Fields = ledgerFields(before, after)
+		}
+		result = append(result, change)
+	}
+	slices.SortFunc(result, func(a, b LedgerChange) int {
+		return strings.Compare(a.Tool+"\x00"+a.ReportKind+"\x00"+a.Scope, b.Tool+"\x00"+b.ReportKind+"\x00"+b.Scope)
+	})
+	return result
+}
+
+func ledgerEntryKey(value mapdoc.CoverageLedgerEntry) string {
+	return value.Binding + "\x00" + strconv.FormatBool(value.Ran) + "\x00" + strings.Join(value.CoveredFiles, "\x00") + "\x00" + value.State + "\x00" + value.Reason
+}
+
+func ledgerFields(a, b []mapdoc.CoverageLedgerEntry) []string {
+	fields := []string{}
+	compare := func(name string, left, right any) {
+		if !reflect.DeepEqual(left, right) {
+			fields = append(fields, name)
+		}
+	}
+	if len(a) != len(b) {
+		fields = append(fields, "runs")
+	}
+	project := func(values []mapdoc.CoverageLedgerEntry, field func(mapdoc.CoverageLedgerEntry) any) []any {
+		out := make([]any, 0, len(values))
+		for _, value := range values {
+			out = append(out, field(value))
+		}
+		return out
+	}
+	compare("binding", project(a, func(v mapdoc.CoverageLedgerEntry) any { return v.Binding }), project(b, func(v mapdoc.CoverageLedgerEntry) any { return v.Binding }))
+	compare("ran", project(a, func(v mapdoc.CoverageLedgerEntry) any { return v.Ran }), project(b, func(v mapdoc.CoverageLedgerEntry) any { return v.Ran }))
+	compare("covered_files", project(a, func(v mapdoc.CoverageLedgerEntry) any { return v.CoveredFiles }), project(b, func(v mapdoc.CoverageLedgerEntry) any { return v.CoveredFiles }))
+	compare("state", project(a, func(v mapdoc.CoverageLedgerEntry) any { return v.State }), project(b, func(v mapdoc.CoverageLedgerEntry) any { return v.State }))
+	compare("reason", project(a, func(v mapdoc.CoverageLedgerEntry) any { return v.Reason }), project(b, func(v mapdoc.CoverageLedgerEntry) any { return v.Reason }))
+	return fields
 }
 
 func (r *Report) add(change Change) {

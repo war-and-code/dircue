@@ -2,6 +2,7 @@ package mapdiff_test
 
 import (
 	"bytes"
+	"slices"
 	"strings"
 	"testing"
 
@@ -80,6 +81,37 @@ func TestEvidenceOnlyChangeIsNotMaterial(t *testing.T) {
 	}
 	if report.Status != "unchanged" || report.Counts.Changed != 1 || report.Counts.Material != 0 || report.ObserverCompatibility != "different" || len(report.Caveats) < 2 {
 		t.Fatalf("producer-only change became material: %#v", report)
+	}
+}
+
+func TestProviderCoverageChangeIsSeparateFromSourceMaterial(t *testing.T) {
+	node := component("service")
+	base := testDocument("aaa", node, mapdoc.CoverageComplete)
+	head := testDocument("aaa", node, mapdoc.CoverageComplete)
+	base.CoverageLedger = []mapdoc.CoverageLedgerEntry{{
+		Tool: "syft", ReportKind: "syft-json", Scope: ".", Binding: "unknown", Ran: true,
+		CoveredFiles: []string{"go.mod"}, State: "covered_files_reported", Reason: "report_has_no_snapshot_identity",
+	}}
+	head.CoverageLedger = []mapdoc.CoverageLedgerEntry{{
+		Tool: "syft", ReportKind: "syft-json", Scope: ".", Binding: "unknown", Ran: true,
+		CoveredFiles: []string{"go.mod", "sub/go.mod"}, State: "covered_files_reported", Reason: "report_has_no_snapshot_identity",
+	}}
+	report, err := mapdiff.Compare(base, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != "unchanged" || report.Counts.Material != 0 {
+		t.Fatalf("provider coverage became a source-material change: %#v", report)
+	}
+	if report.CoverageLedgerStatus != "changed" || len(report.CoverageLedgerChanges) != 1 {
+		t.Fatalf("provider coverage change not preserved: %#v", report)
+	}
+	change := report.CoverageLedgerChanges[0]
+	if change.Status != "changed" || !slices.Contains(change.Fields, "covered_files") {
+		t.Fatalf("unexpected provider coverage detail: %#v", change)
+	}
+	if !slices.Contains(report.Caveats, "provider run coverage changed separately from source material") {
+		t.Fatalf("provider coverage caveat absent: %#v", report.Caveats)
 	}
 }
 
