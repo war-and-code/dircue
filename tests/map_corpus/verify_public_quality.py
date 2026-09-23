@@ -52,6 +52,40 @@ def score(expected, actual):
     return true_positive, false_positive, false_negative, precision, recall
 
 
+def verify_whole_repo_paths(expected, document):
+    """Check complete source-enumerated populations beyond the scored file slice."""
+    required = expected.get("whole_repo_paths", {})
+    if not required:
+        return
+    observed = {
+        "component_roots": {
+            node.get("properties", {}).get("root") for node in document["nodes"]
+            if node["kind"] == "component"
+            and node.get("properties", {}).get("root", "").startswith("src/")
+            and node.get("properties", {}).get("root", "").count("/") == 1
+        },
+        "dockerfiles": {
+            node["paths"][0] for node in document["nodes"]
+            if node["kind"] == "deployable" and node.get("properties", {}).get("provider") == "dockerfile"
+            and node["paths"][0].endswith("/Dockerfile")
+        },
+        "workflows": {
+            node["paths"][0] for node in document["nodes"]
+            if node["kind"] == "deployable" and node.get("properties", {}).get("provider") == "github-actions"
+        },
+    }
+    for population, paths in required.items():
+        if population not in observed:
+            raise SystemExit(f"{expected['id']}: unknown whole-repo population {population}")
+        missing = sorted(set(paths) - observed[population])
+        unexpected = sorted(observed[population] - set(paths))
+        if missing or unexpected:
+            raise SystemExit(
+                f"{expected['id']}: {population} differs from pinned source: "
+                f"missing={missing}, unexpected={unexpected}"
+            )
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
@@ -108,6 +142,7 @@ def main():
             raise SystemExit(f"{expected['id']}: map is not bound to the pinned commit")
         if not commit and mapped_source.get("mode") != "directory":
             raise SystemExit(f"{expected['id']}: fixture map source is not directory mode")
+        verify_whole_repo_paths(expected, document)
         nodes = {node["id"]: node for node in document["nodes"]}
         actual_nodes = [
             normalize_node(node) for node in document["nodes"]
