@@ -27,6 +27,7 @@ type Group struct {
 type Source struct {
 	Mode        string `json:"mode"`
 	Tree        string `json:"tree,omitempty"`
+	Commit      string `json:"commit,omitempty"`
 	Consistency string `json:"consistency"`
 }
 type Scope struct {
@@ -88,7 +89,7 @@ func New(mode, tree string, maxTreeSize int) *Collector {
 		consistency = "selected_git_tree"
 	}
 	return &Collector{report: Report{Status: "complete", Engine: "dircue-metadata", RuleVersion: RuleVersion, LinguistDataCommit: data.LinguistCommit,
-		Source: Source{mode, tree, consistency}, Scope: Scope{"regular_files_including_vendor_and_data", "none", "existing_scanner_attribute_policy", false, maxTreeSize, EvidenceLimitPerKind},
+		Source: Source{Mode: mode, Tree: tree, Consistency: consistency}, Scope: Scope{"regular_files_including_vendor_and_data", "none", "existing_scanner_attribute_policy", false, maxTreeSize, EvidenceLimitPerKind},
 		Categories: []Group{}, Roles: []Group{}, CandidateCounts: []Group{}, Candidates: []Candidate{}, OmittedCandidates: map[string]int64{}, Omissions: map[string]int64{}},
 		categories: map[string]*Group{}, roles: map[string]*Group{}, kinds: map[string]*Group{}, samples: map[string]*candidateHeap{}}
 }

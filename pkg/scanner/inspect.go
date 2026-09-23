@@ -106,7 +106,11 @@ func Inspect(ctx context.Context, filename string, opts Options) (out *Inspectio
 		if resolveErr != nil {
 			return nil, resolveErr
 		}
-		relative, err = filepath.Rel(snapshot.root, filepath.Join(canonicalParent, filepath.Base(full)))
+		canonicalRoot, resolveErr := filepath.EvalSymlinks(snapshot.root)
+		if resolveErr != nil {
+			return nil, resolveErr
+		}
+		relative, err = filepath.Rel(canonicalRoot, filepath.Join(canonicalParent, filepath.Base(full)))
 		if err != nil {
 			return nil, err
 		}
@@ -118,7 +122,7 @@ func Inspect(ctx context.Context, filename string, opts Options) (out *Inspectio
 		if entry.Mode != filemode.Regular && entry.Mode != filemode.Executable && entry.Mode != filemode.Deprecated {
 			return nil, fmt.Errorf("inspect %s: not a regular Git file", relative)
 		}
-		blob, err := snapshot.repo.BlobObject(entry.Hash)
+		blob, err := object.GetBlob(snapshot.storage, entry.Hash)
 		if err != nil {
 			return nil, fmt.Errorf("read Git blob %s: %w", relative, err)
 		}
@@ -151,7 +155,7 @@ func Inspect(ctx context.Context, filename string, opts Options) (out *Inspectio
 			if entry.Mode != filemode.Regular && entry.Mode != filemode.Executable && entry.Mode != filemode.Deprecated {
 				continue
 			}
-			blob, readErr := snapshot.repo.BlobObject(entry.Hash)
+			blob, readErr := object.GetBlob(snapshot.storage, entry.Hash)
 			if readErr != nil {
 				return nil, readErr
 			}
