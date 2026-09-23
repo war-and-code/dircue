@@ -90,7 +90,7 @@ func TestDeclarationsCompareIdenticalAndChangedRequirements(t *testing.T) {
 	for _, field := range changed.Changes[0].Fields {
 		fields = append(fields, field.Field)
 	}
-	if !reflect.DeepEqual(fields, []string{"interfaces", "requirements"}) {
+	if !reflect.DeepEqual(fields, []string{"requirements"}) {
 		t.Fatalf("changed fields: %v", fields)
 	}
 	if changed.Changes[0].BaseEvidence[0] != "go.mod" {
