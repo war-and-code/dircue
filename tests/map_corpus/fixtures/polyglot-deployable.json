@@ -1,0 +1,16 @@
+{
+  "questions": [
+    {"id":"components","must_include":[
+      {"kind":"component","path":"services/api"},
+      {"kind":"component","path":"services/web"},
+      {"kind":"component","path":"services/worker"}
+    ],"must_not_include":[],"allowed_unknown":["unresolved package dependencies"]},
+    {"id":"deployables-and-interfaces","must_include":[
+      {"kind":"deployable","path":"deploy/compose.yaml"},
+      {"kind":"deployable","path":"deploy/k8s/deployment.yaml"},
+      {"kind":"interface","path":"contracts/order.proto"},
+      {"kind":"edge","type":"builds"},
+      {"kind":"edge","type":"declares"}
+    ],"must_not_include":[{"kind":"deployable","property":"name","value":"eleven services"}],"allowed_unknown":["provider-reported routes"]}
+  ]
+}

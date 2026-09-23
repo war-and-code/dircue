@@ -1,0 +1,21 @@
+{
+  "schema": "dircue-map-corpus-0.1",
+  "scope": "initial hand-written fixtures; not the complete real-repository corpus",
+  "fixtures": [
+    {
+      "id": "non-source",
+      "description": "release-like directory with binary, data, certificate and documentation",
+      "expectations": "non-source.json"
+    },
+    {
+      "id": "polyglot-deployable",
+      "description": "Go, TypeScript and Rust components with Compose, Kubernetes and proto configuration",
+      "expectations": "polyglot-deployable.json"
+    },
+    {
+      "id": "documentation-boundary",
+      "description": "README claims that are intentionally not evidence",
+      "expectations": "documentation-boundary.json"
+    }
+  ]
+}
