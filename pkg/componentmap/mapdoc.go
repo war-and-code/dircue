@@ -16,7 +16,11 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 	ids := make(map[string]string, len(fragment.Components))
 	indices := make(map[string]int, len(fragment.Components))
 	for _, c := range fragment.Components {
-		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{c.Manifest}, c.Kind)
+		paths := []string{c.Manifest}
+		if c.Root != "." && c.Root != c.Manifest {
+			paths = append(paths, c.Root)
+		}
+		n := mapdoc.NewNode(mapdoc.NodeComponent, paths, c.Kind)
 		n.Name = c.Name
 		n.Coverage = mapCoverage(c.Coverage, "declaration input was incomplete")
 		n.Evidence = []mapdoc.Evidence{evidence(mapdoc.BasisDeclaredConfig, c.Manifest)}

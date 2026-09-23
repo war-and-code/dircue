@@ -157,6 +157,8 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"languages-file", "single-file inspection object", "", "unavailable", "Distinct legacy single-file layout; no bundled schema currently covers this variant."},
 		{"findings", "finding array", "findings", "whole output", "Standalone ecosystem/framework results."},
 		{"profile", "versioned aggregate profile", "profile", "whole output", "Version depends on selected modules. Module schemas below describe components, not the full standalone analyzer envelope."},
+		{"map", "portable node and edge map", "map", "whole output", "Question coverage distinguishes unknown and partial evidence; --summary selects a separate compact text view."},
+		{"map-summary", "compact text map", "", "unavailable", "Human summary omits detailed facts and evidence; use --json for the full map."},
 		{"comparison", "saved-report comparison", "comparison", "whole output", "Successful comparisons can contain differences; inspect coverage and module compatibility."},
 		{"planner-capabilities", "planner module registry", "capabilities", "whole output", "Default capabilities output retains its independent versioned contract."},
 		{"plan", "inert follow-up plan", "planning", "whole output", "argv placeholders and executable:false require caller revalidation; reported cost is evidence, not a timing prediction."},
@@ -179,7 +181,7 @@ func describeCLI(root *cobra.Command) cliContract {
 }
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
-	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
+	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Name() == "map" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
 	if scanCommand {
 		switch name {
 		case "source":
@@ -229,6 +231,8 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 		return []string{"plan"}
 	case "dircue compare":
 		return []string{"comparison"}
+	case "dircue map":
+		return []string{"map", "map-summary"}
 	case "dircue help":
 		return []string{"help-text"}
 	case "dircue analyze":
@@ -249,6 +253,8 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	switch cmd.Name() {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
+	case "map":
+		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. --json and --summary are mutually exclusive. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
 	case "plan":
 		r = append(r, "Exactly one saved aggregate report and at least one --module or --question. Module/question vocabulary and prerequisites come from default capabilities. One --project, only for focus. Cataloged --input values are the union of caller-supplied prerequisites; each is accepted only when required by a selected module.")
 	case "compare":
