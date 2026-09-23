@@ -80,6 +80,22 @@ func TestExistingDeclarationsAreConvertedWithoutReadsAndOwnedByContainment(t *te
 	}
 }
 
+func TestRootProjectOwnsRootFiles(t *testing.T) {
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "go.mod", Root: "."}})
+	source := []byte("package p\nimport \"net/http\"\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: "main.go", Size: int64(len(source)), Content: source})
+	report, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, observation := range report.Observations {
+		if observation.ProjectID != "go.mod" {
+			t.Fatalf("root observation is unowned: %+v", observation)
+		}
+	}
+}
+
 func TestConcurrentDetectionIsDeterministicAndBounded(t *testing.T) {
 	run := func() *Report {
 		d := New(Options{MaxObservations: 8})
