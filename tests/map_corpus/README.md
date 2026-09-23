@@ -68,7 +68,7 @@ classifier window rather than claiming to represent the complete kernel.
 
 An additional bounded quality gate measures exact precision and recall rather
 than extrapolating from targeted assertions. It labels every component,
-deployable, interface, capability, and evidenced edge emitted from 20 reviewed
+deployable, interface, capability, and evidenced edge emitted from 22 reviewed
 source paths, plus every coverage status. The eight entries include pinned
 microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example,
 Express, Flask, Helm examples, and the checked-in non-source fixture. Other map
@@ -94,6 +94,28 @@ components, Dockerfile-to-component build edges, .NET project relationships,
 declared Redis and event-bus capabilities, Terraform provider aliases, manifest
 interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
+
+The 2026-09-23 run passed 167 of 167 exact records in that slice: 56 nodes,
+39 edges, and 72 coverage statuses. The separate 21-repository qualitative
+gate passed 44 targeted assertions. Its labels are not exhaustive, so that
+gate does not report whole-repository precision.
+
+The microservices-demo slice now includes the C# cartservice project, its
+Protobuf contract, container build, and a pinned Kubernetes manifest. Those
+sources declare Redis caching, PostgreSQL, and Protobuf generation; the contract
+declares `CartService` and its three RPCs. The manifest contains five Kubernetes
+objects: two Deployments, two Services, and a ServiceAccount. The expected
+categories are respectively `workload`, `service`, and `infrastructure`, with
+the metadata names preserved. The emailservice manifest uses the same
+Deployment, Service, and ServiceAccount distinction, and the expectations label
+all three. The gate fails if a candidate collapses these Kubernetes kinds into
+workloads, loses source names while disambiguating repeated resources, or omits
+the cartservice Redis capability and its component relationship. The Helm
+emailservice template is hash-pinned as supporting evidence but stays outside
+exact identity scoring: its conditional resource set and templated names remain
+unresolved without evaluating chart values, and `dircue` does not render Helm.
+Supporting receipts also pin eShop project files referenced by
+project-relationship edges, without expanding the scored path slice.
 
 The optional fetch helper requires every repository ID explicitly and refuses
 to update or replace existing checkouts. It fetches complete snapshots because
@@ -171,3 +193,12 @@ changes did not touch the legacy language path. The existing kernel-slice
 Linguist gate also passed both JSON breakdown and strategy labels. These checks
 establish only their named interfaces; they do not prove map-level parity with
 Linguist, which has no equivalent map document.
+
+The expanded Linguist differential also checks legacy JSON breakdown and text
+breakdown with strategy labels on all 21 pinned repositories. Its 2026-09-23
+run passed 62 of 63 comparisons exactly, with no unexplained differences. The
+one known difference is the four-line ASP.NET Core text display discrepancy
+recorded as DISC-009 in `tests/conformance/DISCREPANCIES.md`; both JSON modes
+match. That run used commit `6133519946ccf23ee5d478bd766a340c2a78139c`
+and binary SHA-256
+`7bc6d72c4eb15c7fc6479eab977057f3136c514b0dc8c976fb3c8b2e6bfa6afd`.

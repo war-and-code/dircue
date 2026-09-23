@@ -124,6 +124,96 @@ func TestKubernetesMultiDocumentYAML(t *testing.T) {
 	}
 }
 
+func TestKubernetesResourcesKeepKindAndNameIdentity(t *testing.T) {
+	body := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: checkout\nspec:\n  template:\n    spec:\n      containers:\n        - name: checkout\n          image: example/checkout:v1\n---\napiVersion: v1\nkind: Service\nmetadata:\n  name: checkout\nspec:\n  ports:\n    - port: 8080\n---\napiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: checkout\n"
+	r := observeOne(t, "deploy/k8s.yaml", body)
+	if r.Status != "complete" || r.Coverage.ParsedFiles != 1 || len(r.Definitions) != 3 {
+		t.Fatalf("expected all three Kubernetes objects: %+v", r)
+	}
+	want := map[string]string{
+		"Deployment":     "workload",
+		"Service":        "service",
+		"ServiceAccount": "infrastructure",
+	}
+	ids := map[string]bool{}
+	for _, definition := range r.Definitions {
+		resourceKind := ""
+		for _, evidence := range definition.Evidence {
+			if evidence.Field == "kind" {
+				resourceKind = evidence.Value
+				break
+			}
+		}
+		if definition.Provider != "kubernetes" || definition.Name != "checkout" {
+			t.Errorf("resource lost provider or metadata.name: %+v", definition)
+		}
+		if got := want[resourceKind]; got == "" || definition.Kind != got {
+			t.Errorf("%s classified as %q, want %q: %+v", resourceKind, definition.Kind, got, definition)
+		}
+		if ids[definition.ID] {
+			t.Errorf("same-name cross-kind resources collided at ID %q", definition.ID)
+		}
+		ids[definition.ID] = true
+		if resourceKind == "Deployment" && (len(definition.References) != 1 || definition.References[0].Value != "example/checkout:v1") {
+			t.Errorf("workload image was not retained: %+v", definition)
+		}
+		if resourceKind != "Deployment" && len(definition.References) != 0 {
+			t.Errorf("non-workload resource gained workload references: %+v", definition)
+		}
+	}
+}
+
+func TestKubernetesWorkloadKindCatalog(t *testing.T) {
+	for _, resourceKind := range []string{"Pod", "ReplicationController", "ReplicaSet", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob"} {
+		if got := kubernetesDefinitionKind(resourceKind); got != "workload" {
+			t.Errorf("%s classified as %q, want workload", resourceKind, got)
+		}
+	}
+	if got := kubernetesDefinitionKind("Service"); got != "service" {
+		t.Errorf("Service classified as %q, want service", got)
+	}
+	for _, resourceKind := range []string{"ServiceAccount", "ConfigMap", "Secret", "Namespace", "PersistentVolume", "PersistentVolumeClaim", "StorageClass", "Role", "RoleBinding", "ClusterRole", "ClusterRoleBinding", "NetworkPolicy"} {
+		if got := kubernetesDefinitionKind(resourceKind); got != "infrastructure" {
+			t.Errorf("%s classified as %q, want infrastructure", resourceKind, got)
+		}
+	}
+	if got := kubernetesDefinitionKind("CustomResource"); got != "resource" {
+		t.Errorf("unknown API kind classified as %q, want neutral resource", got)
+	}
+}
+
+func TestTektonResourceDefinitionKeepsExistingImageReferences(t *testing.T) {
+	// Keep resourceDefinition's existing Tekton handling when Kubernetes
+	// workload-specific image extraction is narrowed.
+	body := "apiVersion: tekton.dev/v1\nkind: Task\nmetadata:\n  name: build\nspec:\n  containers:\n    - name: worker\n      image: example/worker:v1\n"
+	r := observeOne(t, "pipeline/task.yaml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("Tekton task was not retained: %+v", r)
+	}
+	d := r.Definitions[0]
+	if d.Provider != "tekton" || d.Kind != "workflow" || len(d.References) != 1 {
+		t.Fatalf("Tekton image reference behavior changed: %+v", d)
+	}
+	if ref := d.References[0]; ref.Kind != "image" || ref.Value != "example/worker:v1" {
+		t.Fatalf("unexpected Tekton reference: %+v", ref)
+	}
+}
+
+func TestUnknownKubernetesResourceStaysQualifiedAndIdentifiable(t *testing.T) {
+	body := "apiVersion: apps.example.dev/v1\nkind: CustomWorkload\nmetadata:\n  name: example\n"
+	r := observeOne(t, "deploy/custom.yaml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("unknown resource declaration was dropped: %+v", r)
+	}
+	d := r.Definitions[0]
+	if d.Provider != "kubernetes" || d.Kind != "resource" || d.Name != "example" || d.Coverage != "qualified" {
+		t.Fatalf("unknown resource was overclassified: %+v", d)
+	}
+	if len(d.Evidence) == 0 || d.Evidence[0].Value != "CustomWorkload" {
+		t.Fatalf("original API kind is not retained as evidence: %+v", d)
+	}
+}
+
 func TestTerraformAliasedProvidersHaveDistinctIDs(t *testing.T) {
 	body := "provider \"aws\" {}\nprovider \"aws\" {\n  alias = \"west\"\n}\n"
 	r := observeOne(t, "infra/providers.tf", body)
@@ -138,8 +228,16 @@ func TestTerraformAliasedProvidersHaveDistinctIDs(t *testing.T) {
 func TestHelmTemplateLiteralFieldDoesNotConsumeFollowingLines(t *testing.T) {
 	body := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{ .Values.name }}\nspec: {{- .Values.spec | toYaml | nindent 2 }}\n"
 	r := observeOne(t, "chart/templates/deployment.yaml", body)
-	if len(r.Definitions) != 1 || r.Definitions[0].Name != "Deployment" {
+	if len(r.Definitions) != 1 || r.Definitions[0].Name != "Deployment" || r.Definitions[0].Kind != "workload" || r.Definitions[0].Coverage != "qualified" {
 		t.Fatalf("literal kind was not isolated: %+v", r)
+	}
+}
+
+func TestHelmConditionalServiceAccountRemainsQualifiedInfrastructure(t *testing.T) {
+	body := "apiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: {{ .Values.serviceAccount.name }}\n"
+	r := observeOne(t, "chart/templates/serviceaccount.yaml", body)
+	if len(r.Definitions) != 1 || r.Definitions[0].Provider != "helm-template" || r.Definitions[0].Kind != "infrastructure" || r.Definitions[0].Coverage != "qualified" {
+		t.Fatalf("conditional Helm resource lost partial identity: %+v", r.Definitions)
 	}
 }
 

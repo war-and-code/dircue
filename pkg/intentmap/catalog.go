@@ -10,7 +10,7 @@ type catalogEntry struct {
 var catalog = []catalogEntry{
 	{"datastore:postgresql", []string{"github.com/jackc/pgx", "github.com/lib/pq", "npgsql", "psycopg", "asyncpg", "postgresql"}},
 	{"datastore:mongodb", []string{"mongodb", "mongo-go-driver", "mongoose"}},
-	{"cache:redis", []string{"redis", "stackexchange.redis", "go-redis"}},
+	{"cache:redis", []string{"redis", "stackexchange.redis", "microsoft.extensions.caching.stackexchangeredis", "go-redis"}},
 	{"messaging:kafka", []string{"kafka", "confluent-kafka", "sarama"}},
 	{"messaging:amqp", []string{"rabbitmq.client", "rabbitmq", "amqp091-go", "aio-pika", "pika", "amqp"}},
 	{"messaging:event-bus", []string{"masstransit", "azure.messaging.servicebus", "nservicebus"}},

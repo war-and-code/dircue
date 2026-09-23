@@ -199,7 +199,7 @@
               "name": "Flask",
               "path": "pyproject.toml",
               "properties": {
-                "project_kind": "python"
+                "project_kind": "python-uv"
               }
             }
           ],
