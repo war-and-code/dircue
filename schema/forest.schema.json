@@ -13,7 +13,8 @@
     "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
     "roots": { "type": "array", "items": { "$ref": "#/$defs/root_entry" } },
     "environment_trees": { "type": "array", "items": { "$ref": "#/$defs/env_tree_summary" } },
-    "residual": { "$ref": "#/$defs/residual_map" }
+    "residual": { "$ref": "#/$defs/residual_map" },
+    "residual_totals": { "$ref": "#/$defs/residual_totals" }
   },
   "$defs": {
     "nonempty": { "type": "string", "minLength": 1 },
@@ -82,6 +83,14 @@
         "bounded": { "type": "boolean" },
         "lower_bound": { "type": "boolean" },
         "reason": { "type": "string" }
+      }
+    },
+    "residual_totals": {
+      "type": "object", "additionalProperties": false,
+      "required": ["files", "bytes"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 }
       }
     },
     "residual_map": {
