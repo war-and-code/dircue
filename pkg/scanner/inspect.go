@@ -39,7 +39,10 @@ func DetectLanguage(filename string, content []byte) (string, string) {
 		}
 	}
 	if len(languages) > 0 {
-		return languages[0], last
+		// Linguist labels an unresolved ambiguous extension as Classifier even
+		// when the classifier cannot narrow the candidates (for example, a
+		// BOM-only .cs file). The first candidate remains the language.
+		return languages[0], "Classifier"
 	}
 	return "", ""
 }
