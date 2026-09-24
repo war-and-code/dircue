@@ -30,6 +30,9 @@ func newMapCommand(opts *options) *cobra.Command {
 	var attachBinding string
 	var forestMode bool
 	var settingsFlags mapSettingsFlags
+	var statsJSONPath string
+	var cpuProfilePath string
+	var memProfilePath string
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
@@ -72,6 +75,20 @@ func newMapCommand(opts *options) *cobra.Command {
 			settings, err := resolveMapSettings(cmd, opts, budgetFiles, settingsFlags)
 			if err != nil {
 				return err
+			}
+			// Start CPU profiling before the scan, if requested. The stop
+			// function is always safe to defer; it is a no-op when disabled.
+			stopCPU, err := startCPUProfile(cpuProfilePath)
+			if err != nil {
+				return err
+			}
+			defer stopCPU()
+			// Stats recording and run counters are only allocated when needed.
+			var rec *statsRecorder
+			var counters *scanner.RunCounters
+			if statsJSONPath != "" {
+				rec = newStatsRecorder()
+				counters = &scanner.RunCounters{}
 			}
 			restoreRuntime := applyMapRuntimeSettings(settings)
 			defer restoreRuntime()
@@ -116,7 +133,11 @@ func newMapCommand(opts *options) *cobra.Command {
 				SummarizeTrees:      settings.SummarizeTrees,
 				Detectors:           hooks, Discovery: true, Declarations: true,
 				Formats: true, Availability: true, Environments: true, Registries: true,
+				RunCounters: counters,
 			})
+			if rec != nil {
+				rec.endScan()
+			}
 			if err != nil {
 				return missingPathCommandHint(cmd, args, err)
 			}
@@ -164,6 +185,28 @@ func newMapCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if rec != nil {
+				rec.endBuild()
+			}
+			// Write stats JSON before map output; errors are non-fatal (the
+			// map document is still written, and the error goes to stderr).
+			if rec != nil && statsJSONPath != "" {
+				sourceMode := report.Discovery.Source.Mode
+				statsDoc := buildStatsDoc("map", sourceMode, report, counters, rec)
+				if statsErr := writeStatsJSON(statsJSONPath, statsDoc); statsErr != nil {
+					if _, ferr := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s\n", statsErr); ferr != nil {
+						return ferr
+					}
+				}
+			}
+			// Write heap profile after the scan and build are complete.
+			if memProfilePath != "" {
+				if profErr := writeHeapProfile(memProfilePath); profErr != nil {
+					if _, ferr := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s\n", profErr); ferr != nil {
+						return ferr
+					}
+				}
+			}
 			if summary || !opts.json && terminalOutput(cmd.OutOrStdout()) {
 				return writeMapSummary(cmd.OutOrStdout(), doc)
 			}
@@ -186,6 +229,9 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd.Flags().IntVar(&budgetFiles, "budget-files", scanner.DefaultMaxTreeSize, "Maximum source entries to inventory; a hit returns partial coverage and exit 0")
 	cmd.Flags().StringArrayVar(&attachments, "attach", nil, "Join a saved provider report as KIND=PATH (repeatable: syft-json, sarif, noir-json, bifrost-code-query-json)")
 	cmd.Flags().StringVar(&attachBinding, "attach-binding", "", "Assert saved reports belong to this fully digested plain directory: caller-asserted (never verified)")
+	cmd.Flags().StringVar(&statsJSONPath, "stats-json", "", "Write a run-statistics document (deterministic cost counters and timing) to this path; never enters the map payload")
+	cmd.Flags().StringVar(&cpuProfilePath, "cpuprofile", "", "Write a Go CPU profile to this path (off by default; for diagnostic use)")
+	cmd.Flags().StringVar(&memProfilePath, "memprofile", "", "Write a Go heap profile to this path after the scan completes (off by default; for diagnostic use)")
 	addMapSettingsFlags(cmd, &settingsFlags)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
