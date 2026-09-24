@@ -127,6 +127,11 @@ const (
 	ReasonContentChanged        = "content_changed_during_read"
 	ReasonUnsupportedName       = "unsupported_entry_name"
 	ReasonSymlinkTargetTooLarge = "symlink_target_too_large"
+	// ReasonWindowsSemantics: on Windows the file system cannot record
+	// executable bits, and Git checks out with core.filemode=false,
+	// core.symlinks=false and case-insensitive names, so the directory cannot
+	// be shown to equal a POSIX checkout's tree.
+	ReasonWindowsSemantics = "windows_checkout_semantics"
 )
 
 // Options controls a computation. Zero values select SHA-1, ScopeGit, no
@@ -267,6 +272,9 @@ func (w *walker) finish(ctx context.Context, rootNode *dirNode, err error) (Resu
 			return *res, nil
 		}
 		return Result{}, err
+	}
+	if w.opts.Scope == ScopeGit && runtime.GOOS == "windows" {
+		w.reasons[ReasonWindowsSemantics] = true
 	}
 	if rootNode == nil {
 		rootNode = &dirNode{}

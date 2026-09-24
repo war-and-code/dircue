@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -222,6 +223,9 @@ func iterations(def int) int {
 // TestDifferential is the canonical name for the differential oracle test.
 // Run with: DIRCUE_TREEHASH_ITERATIONS=1500 go test ./pkg/treehash -run Differential -count=1 -v
 func TestDifferential(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("random trees use POSIX names, modes and symlinks; Windows digests are partial (windows_checkout_semantics)")
+	}
 	git := gitAvailable(t)
 	for _, format := range []Format{FormatSHA1, FormatSHA256} {
 		for i := 0; i < iterations(40); i++ {
@@ -427,6 +431,9 @@ func TestFilterAndEncodingAttributesQualifyTheResult(t *testing.T) {
 }
 
 func TestDeterministicAcrossWorkerCounts(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("random trees use POSIX names, modes and symlinks; Windows digests are partial (windows_checkout_semantics)")
+	}
 	dir := t.TempDir()
 	g := &treeGen{r: rand.New(rand.NewSource(42)), used: map[string]bool{}}
 	g.fill(t, dir, "", 0)

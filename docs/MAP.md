@@ -140,7 +140,7 @@ or attributes. The CLI never runs Git and never reads outside the selected root.
 | Status | Meaning |
 | --- | --- |
 | `complete` | The digest is exactly what Git records for this directory under the stated assumptions. |
-| `partial` | The digest identifies the content, but Git could record something different: `filter_driver_not_applied`, `ident_not_applied`, `working_tree_encoding_not_applied`, `special_files_excluded`, `nested_repository_unresolved`, `text_auto_index_state_assumed_empty`, `ignored_entries_without_index` (ignore rules excluded entries and no checkout index was available to show which of them are committed), or `sparse_checkout_entries_not_present`. |
+| `partial` | The digest identifies the content, but Git could record something different: `filter_driver_not_applied`, `ident_not_applied`, `working_tree_encoding_not_applied`, `special_files_excluded`, `nested_repository_unresolved`, `text_auto_index_state_assumed_empty`, `ignored_entries_without_index` (ignore rules excluded entries and no checkout index was available to show which of them are committed), `sparse_checkout_entries_not_present`, or `windows_checkout_semantics` (on Windows the file system cannot record executable bits and Git checks out with `core.filemode=false`, `core.symlinks=false` and case-insensitive names, so a directory cannot be shown to equal a POSIX checkout's tree). |
 | `unknown` | No digest was produced: `source_digest_disabled`, `unreadable_entry`, `digest_entry_limit`, `digest_byte_limit`, or `content_changed_during_read`. |
 
 Computing the digest reads every in-scope file once more. Control it with

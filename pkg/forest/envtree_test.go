@@ -3,6 +3,7 @@ package forest_test
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/forest"
@@ -274,6 +275,9 @@ func TestSummarizeEnvTree_Cap(t *testing.T) {
 func TestSummarizeEnvTree_WalkErrors(t *testing.T) {
 	if os.Getuid() == 0 {
 		t.Skip("root can read everything; permission test meaningless")
+	}
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows ignores POSIX permission bits, so the directory stays readable")
 	}
 	dir := t.TempDir()
 	nm := filepath.Join(dir, "node_modules")
