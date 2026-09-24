@@ -70,9 +70,24 @@ func loadMapDocument(filename, role string) (mapdoc.Document, error) {
 	if len(data) > maxMapComparisonBytes {
 		return mapdoc.Document{}, fmt.Errorf("%s exceeds the %d-byte input limit", role, maxMapComparisonBytes)
 	}
+	// Check the document kind before full parsing so non-map documents get a
+	// helpful error pointing to the right command. An empty kind means the
+	// document has no top-level kind field; treat it like a legacy profile.
+	if kind := documentKind(data); kind != "map" {
+		if kind != "" {
+			return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: dircue compare", role, kind)
+		}
+		// No kind field — check for a profile-shaped document.
+		if isProfileDocument(data) {
+			return mapdoc.Document{}, fmt.Errorf("%s appears to be a legacy profile document (no kind field); use: dircue compare", role)
+		}
+	}
 	document, err := mapdoc.UnmarshalStrict(data)
 	if err != nil {
 		return mapdoc.Document{}, fmt.Errorf("%s: %w", role, err)
+	}
+	if document.Kind != "map" {
+		return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: dircue compare", role, document.Kind)
 	}
 	return document, nil
 }
