@@ -17,24 +17,19 @@ introduced in the 1.0 quality program (issues #89, #90).
 - **Neutral profiler.** dircue is not a security tool. Statistics describe
   logical work, not findings or verdicts.
 
-## Tier 1 — Every PR (deterministic counter gate)
+## Tier 1: every pull request (deterministic counters)
 
 The `counter-regression` CI job (`.github/workflows/ci.yml`) runs on every
-non-draft pull request. It:
+non-draft pull request. It builds the pull request head and its base commit,
+maps each `tests/map_corpus/fixtures/*` directory with both builds using
+`--stats-json`, and writes a base → head table of the `deterministic_costs`
+section to the job summary (`tests/bench/counter_compare.py`). Timings are
+never compared, because they vary between runs.
 
-1. Builds the head binary.
-2. Runs `map --source directory --stats-json .cache/stats.json` on the
-   `tests/map_corpus/fixtures/polyglot-deployable` fixture.
-3. Writes a Markdown table of deterministic cost counters and timing
-   measurements to the job summary.
-4. Uploads `stats.json` as a `counter-regression-stats` artifact
-   (retained 14 days).
-
-The job is report-only until maintainers commit a `counter-regression/budgets.json`
-baseline. To produce a baseline after the first run, download
-`counter-regression-stats`, extract `deterministic_costs`, and commit it as
-`tests/counter-regression/budgets.json`. A gating check can then compare
-any field against `budget * threshold` (e.g. 1.1 for a 10% regression gate).
+The job reports; it does not fail on counter changes. A counter that moves
+is a prompt to read the change, not a verdict: new observers legitimately
+read more files. Run the same comparison locally with
+`python3 tests/bench/counter_compare.py --base OLD --head NEW tests/map_corpus/fixtures/*/`.
 
 ## Tier 2 — On-demand stable-hardware runs
 
