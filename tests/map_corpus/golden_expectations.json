@@ -2258,6 +2258,13 @@
           "path": "superset-core/pyproject.toml",
           "conditional": true,
           "why": "superset-core/pyproject.toml declares SQLAlchemy; core ORM layer uses relational store"
+        },
+        {
+          "capability": "directory:ldap",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml:333 declares the python-ldap client library 'python-ldap>=3.4.7' in the development extra (conditional, like the file's other extras)"
         }
       ],
       "edges": [
@@ -2795,6 +2802,12 @@
           "to": "apache-superset-extensions-cli",
           "conditional": true,
           "why": "pyproject.toml:308 optional-dependencies development includes apache-superset-extensions-cli, declared locally by superset-extensions-cli/"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "directory:ldap",
+          "why": "apache_superset uses directory:ldap; evidenced from the pyproject.toml development extra"
         }
       ],
       "coverage": {
@@ -3120,6 +3133,11 @@
       "repo": "mastodon",
       "change": "added uses_capability edge for the existing net:http-client (Gemfile) capability label",
       "why": "each capability label implies the owner's uses_capability edge; this one was missing"
+    },
+    {
+      "repo": "superset",
+      "change": "added conditional directory:ldap capability and its uses_capability edge",
+      "why": "pyproject.toml:333 declares python-ldap in the development extra. The directory:ldap category was added to the catalog in #143 after these labels were written, so the labels could not name it; other optional-extra client libraries in this file are labeled the same way"
     }
   ]
 }

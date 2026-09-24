@@ -87,6 +87,11 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			if strings.HasPrefix(req.Condition, "group:") {
 				continue
 			}
+			// dev_dependencies (Dart/Flutter and any future ecosystem using this
+			// convention) describe build/test tooling, not runtime capabilities.
+			if req.Condition == "dev_dependencies" {
+				continue
+			}
 			for _, capability := range capabilitiesFor(req.Kind, req.Value) {
 				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(req.State), Basis: "declared_dependency", Path: req.Evidence, Properties: compact(map[string]string{"requirement_kind": req.Kind, "requirement": req.Value, "condition": req.Condition})})
 			}

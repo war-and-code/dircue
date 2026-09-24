@@ -74,6 +74,16 @@ func TestCatalogEcosystemExactMatching(t *testing.T) {
 		{"maven-dependency", "org.springframework.boot:spring-boot-starter-amqp:3.0.0", "messaging:amqp", ""},
 		{"maven-dependency", "org.springframework.boot:spring-boot-starter-security:3.0.0", "auth:oauth2", ""},
 		{"maven-dependency", "org.springframework.boot:spring-boot-starter-oauth2-client:3.0.0", "auth:oauth2", ""},
+		// Specific spring-security OAuth2 artifacts (O-05)
+		{"maven-dependency", "org.springframework.security:spring-security-oauth2-core:6.1.0", "auth:oauth2", ""},
+		{"maven-dependency", "org.springframework.security:spring-security-oauth2-client:6.1.0", "auth:oauth2", ""},
+		{"maven-dependency", "org.springframework.security:spring-security-oauth2-resource-server:6.1.0", "auth:oauth2", ""},
+		{"maven-dependency", "org.springframework.security.oauth:spring-security-oauth2:2.5.2", "auth:oauth2", ""},
+		// Negative: spring-security-crypto is NOT OAuth2 (O-05)
+		{"maven-dependency", "org.springframework.security:spring-security-crypto:6.1.0", "", "auth:oauth2"},
+		// Hibernate Search Elasticsearch backend (O-07)
+		{"maven-dependency", "org.hibernate.search:hibernate-search-backend-elasticsearch:6.2.0", "search:elasticsearch", ""},
+		{"maven-dependency", "org.hibernate.search:hibernate-search-backend-opensearch:6.2.0", "search:elasticsearch", ""},
 		{"maven-dependency", "org.apache.kafka:kafka-clients:3.3.1", "messaging:kafka", ""},
 		{"maven-dependency", "software.amazon.awssdk:s3:2.20.0", "storage:object", ""},
 		{"maven-dependency", "software.amazon.awssdk:dynamodb:2.20.0", "cloud:aws", ""},
@@ -357,6 +367,47 @@ func TestCapabilitiesForRubyHTTPClients(t *testing.T) {
 		got := capabilitiesFor("ruby-gem-dependency", gem)
 		if len(got) != 1 || got[0] != "net:http-client" {
 			t.Errorf("capabilitiesFor(ruby-gem-dependency, %q) = %v, want [net:http-client]", gem, got)
+		}
+	}
+}
+
+func TestPubCapabilityCatalog(t *testing.T) {
+	cases := []struct {
+		pkg  string
+		want string
+	}{
+		{"http", "net:http-client"},
+		{"dio", "net:http-client"},
+		{"sqflite", "datastore:relational"},
+		{"drift", "datastore:relational"},
+		{"sqlite3", "datastore:relational"},
+		{"postgres", "datastore:postgresql"},
+		{"mongo_dart", "datastore:mongodb"},
+		{"firebase_core", "cloud:gcp"},
+		{"protobuf", "serialization:protobuf"},
+		{"grpc", "serialization:protobuf"},
+	}
+	for _, tc := range cases {
+		got := capabilitiesFor("dart-dependency", tc.pkg)
+		found := false
+		for _, c := range got {
+			if c == tc.want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("capabilitiesFor(dart-dependency, %q) = %v; want to include %q", tc.pkg, got, tc.want)
+		}
+	}
+}
+
+func TestPubCapabilityCatalogNoFalsePositives(t *testing.T) {
+	// Packages that should not match any capability.
+	noCap := []string{"provider", "flutter_svg", "collection", "intl", "logging"}
+	for _, pkg := range noCap {
+		got := capabilitiesFor("dart-dependency", pkg)
+		if len(got) != 0 {
+			t.Errorf("capabilitiesFor(dart-dependency, %q) = %v; want no capability", pkg, got)
 		}
 	}
 }

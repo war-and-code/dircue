@@ -1,0 +1,125 @@
+{
+  "repo": "OWASP-Benchmark/BenchmarkJava",
+  "source": "https://github.com/OWASP-Benchmark/BenchmarkJava",
+  "commit": "20cbf3d11123347e47ed89541e6942836def53f7",
+  "oracle_files": [
+    {
+      "path": "pom.xml",
+      "sha256": "8f89c554d5e6448f4bac65701b553b66a1668e8e2b3dc300b1259943b945a8ac"
+    },
+    {
+      "path": "src/config/web.xml",
+      "sha256": "8ab933c1283792ebc7321396de7f3ad878744c0fd9b30d5bc31e4e0cd126a162"
+    },
+    {
+      "path": "src/main/webapp/WEB-INF/benchmark-servlet.xml",
+      "sha256": "d897071f5522a5add27ebd47b057edf5a3323aca6d5b845ef95884c350fa05ac"
+    },
+    {
+      "path": "README.md",
+      "sha256": "c1e28723df337450de95931f87db80a3c54effdb2f01cc06d382b925bce2df7e"
+    },
+    {
+      "path": "src/main/resources/context.xml",
+      "sha256": "56407509afea9fce7987f772a40e19c04106c693ddec012e14f6e5003ad10637"
+    },
+    {
+      "path": "src/config/build.xml",
+      "sha256": "b09a0b9feaa152368a2837c9c1b8c3f66c49bbe8b44c3db82860e774fe02c8ca"
+    }
+  ],
+  "components": [
+    {
+      "name": "benchmark",
+      "root": ".",
+      "ecosystem": "maven",
+      "why": "pom.xml:3-6 declares org.owasp:benchmark:1.2 with packaging war; the README identifies this as the OWASP Benchmark Java web application."
+    }
+  ],
+  "deployables": [
+    {
+      "kind": "archive",
+      "name": "benchmark.war",
+      "path": "pom.xml",
+      "why": "pom.xml declares a WAR artifact; README describes it as a fully runnable web application and runBenchmark.sh launches it in a Tomcat container through the Maven Cargo configuration."
+    }
+  ],
+  "interfaces": [],
+  "capabilities": [
+    {
+      "capability": "datastore:relational",
+      "owner": "benchmark",
+      "path": "pom.xml",
+      "why": "pom.xml declares org.hsqldb:hsqldb; src/main/resources/context.xml configures the HSQLDB driver and URL, while benchmark-servlet.xml looks up that data source through JNDI. This is a relational database dependency."
+    },
+    {
+      "capability": "directory:ldap",
+      "owner": "benchmark",
+      "path": "pom.xml",
+      "why": "pom.xml directly declares Apache Directory Server components; the deploy profile runs src/config/build.xml target=run to start its LDAP test server. This label describes the bundled test support, not an external directory integration."
+    }
+  ],
+  "edges": [
+    {
+      "type": "builds",
+      "from": "benchmark.war",
+      "to": "benchmark",
+      "why": "pom.xml:6 declares war packaging, and finalName benchmark is configured in the Maven build; the deployable WAR is produced by this single Maven component."
+    },
+    {
+      "type": "uses_capability",
+      "from": "benchmark",
+      "to": "datastore:relational",
+      "why": "pom.xml declares HSQLDB and the servlet context configures a data source; this link is limited to the root web application component."
+    },
+    {
+      "type": "uses_capability",
+      "from": "benchmark",
+      "to": "directory:ldap",
+      "why": "The Maven deploy profile starts the bundled Apache Directory server from src/config/build.xml; this is a test-support capability of the root component."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "complete",
+      "why": "Repository-root Maven declaration identifies one WAR project; no Maven modules or other project manifests are in scope."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The root WAR is the principal runnable application. Maven profiles also launch supporting LDAP and database processes, but they are test/benchmark infrastructure and are not modeled as separate deployables here."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "The WAR is a servlet web application: src/config/web.xml maps Spring DispatcherServlet to /service/*, while testcode servlet classes add many routes. The current map interface vocabulary has no general servlet/WAR interface kind; no port label is asserted from the Maven Cargo test-run configuration."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "Labels are limited to HSQLDB and the bundled Apache Directory LDAP server explicitly declared/configured in the Maven project. This is not a complete inventory of the large dependency set or every behavior in the vulnerability fixtures."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "The root Maven component packages the WAR, but the generated route/test fixtures, support servers, and runtime wiring are not exhaustively modeled as graph edges."
+    }
+  },
+  "notes": [
+    "Source-backed structure only; the project is a vulnerability-detection benchmark and deliberately contains many unsafe test cases. Their security behavior is outside this map label.",
+    "The Java testcode directory contains 2,740 Java files at this pinned checkout; these are test cases within one web application, not 2,740 components or deployables."
+  ],
+  "provenance": {
+    "upstream": "https://github.com/OWASP-Benchmark/BenchmarkJava",
+    "revision_source": "git ls-remote HEAD, then shallow checkout resolved to the same commit",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  },
+  "corrections": [
+    {
+      "change": "deployable benchmark.war kind service -> archive",
+      "why": "pom.xml:6 declares war packaging; in docs/MAP.md, service is the Compose and serverless-framework kind (pkg/deployables/parse.go), and a declared packaged archive is kind archive. The fact is unchanged; only its vocabulary is.",
+      "after_first_comparison": true
+    },
+    {
+      "change": "builds edge restated from benchmark.war to benchmark",
+      "why": "docs/MAP.md defines builds from a deployable definition to the component it builds; the label named the same pom.xml:6 relationship in the opposite direction.",
+      "after_first_comparison": true
+    }
+  ]
+}

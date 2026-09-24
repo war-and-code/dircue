@@ -41,6 +41,26 @@
       "id": "capabilities-polyglot",
       "description": "Ecosystem-aware capability matching across npm, Ruby, Maven, NuGet, Go, Cargo, PHP and Python declared dependencies",
       "expectations": "capabilities-polyglot.json"
+    },
+    {
+      "id": "flask-entry-point",
+      "description": "Flask application object detected from module-level assignment; sqlite3 import mapped to datastore:relational",
+      "expectations": "flask-entry-point.json"
+    },
+    {
+      "id": "jvm-dart-declarations",
+      "description": "Maven WAR archive naming from direct POM children and same-file properties; pub path dependencies, git subdirectories and dev-only capabilities",
+      "expectations": "jvm-dart-declarations.json"
+    },
+    {
+      "id": "jvm-maven-sibling-prisma",
+      "description": "Maven reactor sibling depends_on_local edges (normal and test-scope) plus Prisma datasource provider detection",
+      "expectations": "jvm-maven-sibling-prisma.json"
+    },
+    {
+      "id": "python-manifest-extras",
+      "description": "Pipfile runtime and dev packages; -r include resolution; tool-only setup.cfg does not create a component; Pipfile+requirements.txt deduplication",
+      "expectations": "python-manifest-extras.json"
     }
   ]
 }

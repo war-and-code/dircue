@@ -185,6 +185,10 @@ func IsCandidate(name string) bool {
 	if base == "program.cs" && isAppHostDir(path.Dir(name)) {
 		return true
 	}
+	// Maven project descriptor: WAR/EAR packaging declarations.
+	if base == "pom.xml" {
+		return true
+	}
 	return false
 }
 

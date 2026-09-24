@@ -1,0 +1,9 @@
+// Minimal Prisma schema for fixture: datasource provider drives capability detection.
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}

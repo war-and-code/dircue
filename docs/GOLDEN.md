@@ -9,8 +9,8 @@ The seven repositories below were initially labeled by hand from source files, b
 | components | 1.00 | 1.00 | 15 | 0 | 0 |
 | deployables | 1.00 | 1.00 | 40 | 0 | 0 |
 | interfaces | 1.00 | 0.98 | 46 | 0 | 1 |
-| capabilities | 1.00 | 1.00 | 45 | 0 | 0 |
-| edges | 1.00 | 0.98 | 215 | 1 | 4 |
+| capabilities | 1.00 | 1.00 | 46 | 0 | 0 |
+| edges | 1.00 | 0.98 | 216 | 1 | 4 |
 
 Every question meets the gate (`make golden`): precision ≥ 0.90 and recall ≥ 0.80.
 

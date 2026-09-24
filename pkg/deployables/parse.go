@@ -2,6 +2,7 @@ package deployables
 
 import (
 	"bytes"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -36,6 +37,8 @@ func parse(name string, content []byte) ([]Definition, bool, error) {
 		return parseJenkins(content)
 	case base == "program.cs" && isAppHostDir(path.Dir(name)):
 		return parseAspireAppHost(name, content)
+	case base == "pom.xml":
+		return parsePomXML(name, content)
 	default:
 		return parseYAML(name, content)
 	}
@@ -284,6 +287,140 @@ func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error)
 	}
 	if len(d.References) == 0 {
 		return nil, false, nil
+	}
+	return []Definition{d}, true, nil
+}
+
+// mavenPOM holds the direct children of a Maven <project> that name its
+// packaged artifact. encoding/xml matches direct children only, so values
+// inside <parent>, <profiles>, plugin configuration or dependencies are never
+// mistaken for the project's own coordinates.
+type mavenPOM struct {
+	XMLName    xml.Name `xml:"project"`
+	ArtifactID string   `xml:"artifactId"`
+	Version    string   `xml:"version"`
+	Packaging  string   `xml:"packaging"`
+	Parent     struct {
+		ArtifactID string `xml:"artifactId"`
+		Version    string `xml:"version"`
+	} `xml:"parent"`
+	Build struct {
+		FinalName string `xml:"finalName"`
+	} `xml:"build"`
+	Properties struct {
+		Entries []struct {
+			XMLName xml.Name
+			Value   string `xml:",chardata"`
+		} `xml:",any"`
+	} `xml:"properties"`
+}
+
+var mavenPropertyRef = regexp.MustCompile(`\$\{([^}]+)\}`)
+
+// parsePomXML detects Maven WAR and EAR packaging declarations and emits a
+// single archive deployable per pom.xml that declares one of those types. Other
+// packaging types are library or aggregation artifacts, not deployable units.
+//
+// The artifact name follows Maven's convention: <build><finalName> when
+// declared, otherwise ${artifactId}-${version}, with the version inherited
+// from <parent> when the project omits it. Properties are substituted from the
+// same file only; a name that still holds a ${...} expression (for example one
+// defined in a parent POM or supplied on the command line) is qualified.
+func parsePomXML(name string, content []byte) ([]Definition, bool, error) {
+	if bytes.IndexByte(content, 0) >= 0 {
+		return nil, false, errors.New("pom.xml contains binary data")
+	}
+	var pom mavenPOM
+	decoder := xml.NewDecoder(bytes.NewReader(content))
+	decoder.Strict = true
+	// Accept the same encodings as the Maven component parser, so a POM never
+	// yields an archive without the component that builds it.
+	decoder.CharsetReader = func(label string, input io.Reader) (io.Reader, error) {
+		if strings.EqualFold(label, "utf-8") || strings.EqualFold(label, "utf-16") {
+			return input, nil
+		}
+		return nil, errors.New("unsupported XML encoding")
+	}
+	if err := decoder.Decode(&pom); err != nil {
+		// Not a parseable Maven project; the component observer reports
+		// malformed manifests, so this observer stays silent.
+		return nil, false, nil
+	}
+	packaging := strings.ToLower(strings.TrimSpace(pom.Packaging))
+	if packaging != "war" && packaging != "ear" {
+		return nil, false, nil
+	}
+	artifactID := strings.TrimSpace(pom.ArtifactID)
+	if artifactID == "" {
+		return nil, false, nil
+	}
+	version := strings.TrimSpace(pom.Version)
+	versionField := "version"
+	if version == "" {
+		version = strings.TrimSpace(pom.Parent.Version)
+		versionField = "parent.version"
+	}
+	props := map[string]string{}
+	for _, entry := range pom.Properties.Entries {
+		props[entry.XMLName.Local] = strings.TrimSpace(entry.Value)
+	}
+	for _, key := range []string{"project.artifactId", "pom.artifactId", "artifactId"} {
+		props[key] = artifactID
+	}
+	if version != "" {
+		for _, key := range []string{"project.version", "pom.version", "version"} {
+			props[key] = version
+		}
+	}
+	if parentVersion := strings.TrimSpace(pom.Parent.Version); parentVersion != "" {
+		props["project.parent.version"] = parentVersion
+	}
+	resolve := func(value string) string {
+		// Bounded substitution: properties may refer to other properties, but
+		// never more than a few levels deep in practice.
+		for i := 0; i < 4 && strings.Contains(value, "${"); i++ {
+			value = mavenPropertyRef.ReplaceAllStringFunc(value, func(ref string) string {
+				if v, ok := props[ref[2:len(ref)-1]]; ok {
+					return v
+				}
+				return ref
+			})
+		}
+		return value
+	}
+
+	finalName := strings.TrimSpace(pom.Build.FinalName)
+	var base string
+	switch {
+	case finalName != "":
+		base = resolve(finalName)
+	case version != "":
+		base = resolve(artifactID + "-" + version)
+	default:
+		// The version comes from a parent POM that is not declared here.
+		base = resolve(artifactID)
+	}
+	coverage := "complete"
+	if (finalName == "" && version == "") || strings.Contains(base, "${") {
+		coverage = "qualified"
+	}
+
+	evidence := []Evidence{{Field: "packaging", Value: packaging, Line: lineOf(content, "<packaging>"), Basis: "maven-pom-field"}}
+	evidence = append(evidence, Evidence{Field: "artifactId", Value: bounded(artifactID), Line: lineOf(content, "<artifactId>"+pom.ArtifactID), Basis: "maven-pom-field"})
+	if finalName != "" {
+		evidence = append(evidence, Evidence{Field: "finalName", Value: bounded(finalName), Line: lineOf(content, "<finalName>"), Basis: "maven-pom-field"})
+	} else if version != "" {
+		evidence = append(evidence, Evidence{Field: versionField, Value: bounded(version), Line: lineOf(content, "<version>"+version), Basis: "maven-pom-field"})
+	}
+
+	d := Definition{
+		Kind:       "archive",
+		Provider:   "maven",
+		Name:       bounded(base + "." + packaging),
+		Format:     packaging,
+		Coverage:   coverage,
+		Evidence:   evidence,
+		References: []Reference{},
 	}
 	return []Definition{d}, true, nil
 }

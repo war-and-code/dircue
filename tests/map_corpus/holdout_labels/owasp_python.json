@@ -1,0 +1,117 @@
+{
+  "repo": "OWASP-Benchmark/BenchmarkPython",
+  "source": "https://github.com/OWASP-Benchmark/BenchmarkPython",
+  "commit": "f1291485808b66e20ddb6b01b10dc71b3df8c8ba",
+  "oracle_files": [
+    {
+      "path": "README.md",
+      "sha256": "1c8fa4662051425f6aa360ebb13c61383ad41826541f81658806fa35d892ed46"
+    },
+    {
+      "path": "app.py",
+      "sha256": "1e66534772ea54e7fa0c5ed395fba345c281f697bae2277ad637af779a17aeb7"
+    },
+    {
+      "path": "requirements.txt",
+      "sha256": "d071df9f5084dcb89af43d5e2dd5138460ad010bda4d1ae4b363b60e61876177"
+    },
+    {
+      "path": "runBenchmark.sh",
+      "sha256": "f05f0942fd10f96c43b1542a888c8c9866d910a32234a9ba4f105054c59f90dd"
+    },
+    {
+      "path": "helpers/db_sqlite.py",
+      "sha256": "24f852d86bce0ccb0752202ee7736e0c60ad21b637ac5032e001cf888f9d6283"
+    },
+    {
+      "path": "testcode/BenchmarkTest00018.py",
+      "sha256": "0824020070e1fc59fde522330035fb40fd672a1eb5ec2b2d80f6ca9f5097be03"
+    },
+    {
+      "path": "testcode/BenchmarkTest00099.py",
+      "sha256": "70a1ae553181b4ea78e6dec87c0c7ca73fdf1a9babbfeec062ea3465a8e64f8c"
+    }
+  ],
+  "components": [
+    {
+      "name": "(root)",
+      "root": ".",
+      "ecosystem": "pypi",
+      "why": "README identifies the root project as OWASP Benchmark for Python; requirements.txt is its root Python dependency manifest. There is no pyproject.toml or setup.py declaring an installable distribution, so this is a repository application component label, not a claim that a published PyPI package exists."
+    }
+  ],
+  "deployables": [],
+  "interfaces": [
+    {
+      "kind": "flask_application",
+      "name": "app",
+      "path": "app.py",
+      "why": "app.py constructs the Flask application object at module level (app = Flask(...)); runBenchmark.sh launches it with flask --app app.py run. Restated from the original service deployable label: app.py constructs a Flask app and defines the root and benchmark routes; runBenchmark.sh invokes flask --app app.py run --debug --port 8443 with an adhoc TLS certificate."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "datastore:relational",
+      "owner": "(root)",
+      "path": "helpers/db_sqlite.py",
+      "why": "helpers/db_sqlite.py imports sqlite3, connects to testfiles/benchmark-sqlite3.db, and creates/inserts benchmark tables; this is explicit SQLite use in the app support code."
+    }
+  ],
+  "edges": [
+    {
+      "type": "uses_capability",
+      "from": "(root)",
+      "to": "datastore:relational",
+      "why": "app.py dynamically imports benchmark modules; testcode/BenchmarkTest00099.py imports helpers.db_sqlite and calls get_connection() for its route."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "partial",
+      "why": "One root Python application is identified from app.py, README, and requirements.txt. The repository does not declare an installable package/project name in standard Python packaging metadata."
+    },
+    "deployables": {
+      "status": "complete",
+      "why": "The repository launch script starts the single Flask application from app.py; individual dynamically loaded test modules contribute routes to that same process."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "app.py defines HTTP routes, and dynamically imports the testcode modules so they register many more GET/POST routes. The current map interface kinds do not include a generic Flask application or HTTP route kind; the launcher port is documented in a shell command, not an exposed container port."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "Only direct SQLite use is labeled from helper code. requirements.txt has a broad pinned environment, including Flask and analysis/test tooling; dependency presence alone is not treated as proof of runtime capability."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "app.py dynamically imports testcode modules, and helper modules support those routes, but no exhaustive route-to-helper or dependency graph is represented."
+    }
+  },
+  "notes": [
+    "README describes this upstream as preliminary v0.1, so it is a small initial Python OWASP Benchmark release rather than a mature full-version counterpart to BenchmarkJava.",
+    "The testcode directory contains 1,230 Python files at this pinned checkout; app.py loads these modules into one Flask process.",
+    "Benchmark cases intentionally exercise vulnerable patterns. Security findings and test-case truth labels are outside the repository map scope."
+  ],
+  "provenance": {
+    "upstream": "https://github.com/OWASP-Benchmark/BenchmarkPython",
+    "revision_source": "git ls-remote HEAD, then shallow checkout resolved to the same commit",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  },
+  "corrections": [
+    {
+      "change": "component benchmark-python -> (root), with its owners",
+      "why": "The checkout has requirements.txt but no pyproject.toml, setup.py or setup.cfg, so no packaging metadata declares a name; README.md:1 is a heading. The golden labels name an undeclared root (root) (golden_expectations.json).",
+      "after_first_comparison": true
+    },
+    {
+      "change": "capability datastore:sqlite -> datastore:relational, with its edge",
+      "why": "helpers/db_sqlite.py imports sqlite3; every SQLite client in the catalog vocabulary (npm sqlite3 and better-sqlite3, Ruby sqlite3, Rust rusqlite) is datastore:relational, and there is no datastore:sqlite category.",
+      "after_first_comparison": true
+    },
+    {
+      "change": "service deployable app.py -> flask_application interface app at app.py",
+      "why": "docs/MAP.md deployables are container, Compose, Kubernetes, Helm, Terraform, serverless, CI and packaged-archive definitions; a shell script that runs flask is none of these. The source fact (app.py defines the Flask application that runBenchmark.sh launches) is kept as an interface. The flask_application interface kind was added in #143 after the labels were frozen.",
+      "after_first_comparison": true
+    }
+  ]
+}

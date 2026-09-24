@@ -8,39 +8,42 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - **`dircue map [path]`** writes a portable map document (`schema/map.schema.json`, schema version 1.0.0) for a committed Git tree or an ordinary directory. Redirected output defaults to JSON; a terminal gets a one-screen summary (`--summary`). Inspected content is never executed.
 - **Output.** Nodes (content populations, components, deployables, interfaces, capabilities, packages) and edges (`contains`, `member_of`, `depends_on_local`, `depends_on`, `builds`, `runs`, `exposes`, `declares`, `uses_capability`, `packaged_in`, `analyzed_by`) have stable IDs derived from paths and declared names. Each has evidence (file, span, rule and version) and coverage (`complete`, `partial`, `unknown`, `not_run`, `tool_error`, with named reasons).
 - **What `complete` means.** A question, node or edge says `complete` only when its evidence is exhaustive for its scope. Heuristic attribution, such as a capability credited to a component by directory containment or a Dockerfile shared by several projects, is `partial`, with a named reason. Content problems never abort a map; they degrade coverage.
-- **Components** come from static, bounded parsing of 33 manifest kinds across 26 ecosystems:
-  - npm, Go, Cargo and Python (pyproject, uv, `setup.cfg`, requirements-only directories);
+- **Components** come from static, bounded parsing of 34 manifest kinds across 26 ecosystems:
+  - npm, Go, Cargo and Python (pyproject, uv, `setup.cfg` with project metadata, `Pipfile`, requirements files and their `-r` includes);
   - Maven, Gradle, .NET and Kbuild;
   - Ruby (Bundler, gemspec, Rails application name) and PHP (Composer);
-  - Swift, Dart, Elixir, Erlang, Scala (sbt) and Haskell;
+  - Swift, Dart (including `path:` dependencies), Elixir, Erlang, Scala (sbt) and Haskell;
   - CMake, Meson and Autoconf;
   - Deno, Bazel, Zig, Julia, R, Clojure and Perl.
 
-  Each component has a `role`: `primary`, `test`, `fixture`, `example`, `vendored`, `docs` or `tooling`. The summary leads with primary components.
+  Each component has a `role`: `primary`, `test`, `fixture`, `example`, `vendored`, `docs` or `tooling`. The summary leads with primary components. Local project relationships (`depends_on_local`) come from path, workspace and module references, including Maven reactor sibling dependencies and pub `path:` dependencies.
 - **Deployables:**
   - Dockerfiles (named by directory);
   - Compose services;
   - Kubernetes objects, one per kind, name and namespace, with every declaring manifest as evidence;
   - Helm charts, one per chart, with static `values.yaml` images;
   - Terraform modules, one per directory;
-  - SAM and Serverless functions, .NET Aspire app hosts, and CI workflows.
+  - SAM and Serverless functions, .NET Aspire app hosts, and CI workflows;
+  - Maven WAR and EAR packaging, as `archive` deployables named by `finalName` or Maven's `artifactId-version` default, with same-file properties resolved.
 - **How things build and run.** `builds` and `runs` edges come from static declarations:
   - Dockerfile co-location;
   - Skaffold artifacts and exact image references;
   - SAM `CodeUri`;
   - Aspire `AddProject<>()`;
+  - Maven WAR/EAR packaging;
   - GitHub Actions working directories.
 - **Interfaces:**
   - Go `package main` binaries;
   - Rust, npm and Python entry points;
   - Spring Boot applications and Maven/Gradle main classes;
+  - module-level Flask application objects;
   - declared ports (`EXPOSE`, including `ARG`/`ENV` defaults; Compose `ports`/`expose`; Kubernetes `containerPort`; application listener keys);
   - gRPC services and operations;
   - OpenAPI and Swagger documents and their operations;
   - AsyncAPI documents and GraphQL schemas.
 
   Runtime prerequisites (npm `engines`, `requires-python`) and build backends are recorded as component properties (`runtime_requirements`, `build_backend`, `build_script`), not as interfaces.
-- **Capabilities** (datastores, caches, messaging, search, object storage, auth, HTTP clients, cloud SDKs and more) come from an ecosystem-aware catalog of the most common packages per ecosystem, from declared configuration keys and connection strings, and from top-level Go and Python imports. There is one capability node per owning component. Optional dependencies (extras, optional and peer dependencies) are `conditional`. Development-only ones (npm `devDependencies`, PEP 735 dependency groups) are excluded.
+- **Capabilities** (datastores, caches, messaging, search, object storage, auth, HTTP clients, cloud SDKs and more) come from an ecosystem-aware catalog of the most common packages per ecosystem, from declared configuration keys, connection strings and Prisma datasource providers, and from top-level Go and Python imports (including `sqlite3`). There is one capability node per owning component. Optional dependencies (extras, optional and peer dependencies) are `conditional`. Development-only ones (npm `devDependencies`, PEP 735 dependency groups, pub `dev_dependencies`, Pipfile `[dev-packages]`) are excluded. Maven `test` scope is not yet distinguished (#150).
 
 ### Source identity, forests and hostile filesystems
 - Directory maps carry a **Git-compatible tree ID** computed without Git. A clean checkout has the same ID as its commit's tree, so `map compare` recognizes the same source across Git and directory maps. Control it with `--set source.digest=git|raw|off`. On Windows, where Git checks out without executable bits or symlinks and matches names case-insensitively, the digest is `partial` (`windows_checkout_semantics`).
@@ -80,6 +83,8 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
   - relationships: 1.00 / 0.98.
 
   The map never claimed `complete` where the labels did not.
+- **Holdouts labeled before dircue ran.** Four repositories were labeled from source before any map run: OWASP BenchmarkJava and BenchmarkPython, AppFlowy editor (Dart) and AWS CardDemo (COBOL). The first run found 5 of 18 labeled facts. The map work they prompted finds 12 of 18 against those original labels, and 18 of 18 after the labels were restated in the map's documented vocabulary, with each change citing the source (`tests/map_corpus/holdout_labels`).
+- **A fresh blind check.** Four more repositories (OpenMRS core, a Flask application, the bloc Dart monorepo and a Prisma/Express application) were labeled blind before that work was run on them (`tests/map_corpus/fresh_labels`). Against those frozen labels, recall is 1.00 for components, interfaces and capabilities, 0.80 for deployables and 0.88 for relationships. Precision is lower: 0.60 for capabilities and 0.38 for relationships. Source review found that most of the extra facts were true declarations the labels had omitted. After source-checked corrections, capabilities score 1.00 / 1.00 and relationships 0.95 / 0.95; these repositories have since informed development too. Remaining gaps are Procfiles (#146), which module a root Dockerfile ships (#147) and a scorer naming mismatch (#149).
 - Committed fixtures from pinned Syft, OWASP Noir, ruff and Semgrep exercise attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 

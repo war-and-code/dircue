@@ -668,3 +668,80 @@ func TestPythonDependencyGroupsDoNotBecomeCapabilities(t *testing.T) {
 		t.Fatalf("capabilities = %v, want datastore:postgresql only", names)
 	}
 }
+
+// TestPrismaSchemaProviderEmitsSpecificDatastoreCapability verifies that
+// schema.prisma datasource.provider declarations emit the correct specific
+// capability (N-01/N-02).
+func TestPrismaSchemaProviderEmitsSpecificDatastoreCapability(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		content string
+		wantCap string
+		wantNot string
+	}{
+		{
+			name:    "postgresql provider",
+			content: "datasource db {\n  provider = \"postgresql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantCap: "datastore:postgresql",
+			wantNot: "datastore:mysql",
+		},
+		{
+			name:    "mysql provider",
+			content: "datasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantCap: "datastore:mysql",
+		},
+		{
+			name:    "mongodb provider",
+			content: "datasource db {\n  provider = \"mongodb\"\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantCap: "datastore:mongodb",
+		},
+		{
+			name:    "sqlite provider maps to relational",
+			content: "datasource db {\n  provider = \"sqlite\"\n  url      = \"file:./dev.db\"\n}\n",
+			wantCap: "datastore:relational",
+		},
+		{
+			name:    "generator provider before the datasource is not read",
+			content: "generator client {\n  provider = \"go\"\n}\n\ndatasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantCap: "datastore:mysql",
+		},
+		{
+			name:    "generator-only schema declares no datastore",
+			content: "generator client {\n  provider = \"mongodb\"\n}\n",
+			wantNot: "datastore:mongodb",
+		},
+		{
+			name:    "cockroachdb is relational, not postgresql",
+			content: "datasource db {\n  provider = \"cockroachdb\"\n}\n",
+			wantCap: "datastore:relational",
+			wantNot: "datastore:postgresql",
+		},
+		{
+			name:    "env provider is ignored (runtime-resolved)",
+			content: "datasource db {\n  provider = env(\"DB_PROVIDER\")\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantNot: "datastore:postgresql",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			d := New(Options{})
+			content := []byte(tt.content)
+			_, _ = d.Detect(context.Background(), profile.File{Path: "prisma/schema.prisma", Size: int64(len(content)), Content: content})
+			r, err := d.Finish(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			caps := map[string]bool{}
+			for _, o := range r.Observations {
+				if o.Kind == KindCapability {
+					caps[o.Name] = true
+				}
+			}
+			if tt.wantCap != "" && !caps[tt.wantCap] {
+				t.Errorf("want capability %q, got %v", tt.wantCap, caps)
+			}
+			if tt.wantNot != "" && caps[tt.wantNot] {
+				t.Errorf("want no capability %q, got %v", tt.wantNot, caps)
+			}
+		})
+	}
+}
