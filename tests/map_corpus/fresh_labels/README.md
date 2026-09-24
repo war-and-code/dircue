@@ -60,3 +60,11 @@ No repository was cloned after reading any dircue output. Repos were cloned with
 ## Corpus provenance
 
 Labels were written by an independent labeling agent from source files only. dircue was not built, run, or invoked in any form. No dircue map output (JSON or summary) was read at any point. Repository clones were made into the session scratchpad at `$S/pr143/fresh/repos/` and were not shared with any other agent or scoring process before this commit.
+
+## After the freeze
+
+The labels above were committed in `c976461048b949a4e3b29f965d12ea0dabb32cc5` before any #143 map change was run on these repositories. `score_fresh.py --frozen` scores them exactly as frozen; that is the unseen measurement.
+
+A source review of every disagreement followed. Where an oracle file establishes a fact the labels omitted, the label was added under the relationship definitions in `docs/MAP.md`, and each file's `corrections` list records the change and its source line. Examples are the OpenMRS WAR the labeler had noted but could not name, compile-scope AWS S3 and Hibernate dependencies, the six other reactor modules, and SQLAlchemy as a relational ORM. No label was removed because dircue missed it, and none was added without a source citation. The same review found real map errors, which #143 fixed. Scores for both label sets are in `../README.md`.
+
+After those corrections, these repositories have informed development as well. The next independent check needs new, unseen repositories.

@@ -46,9 +46,10 @@ def clone_at_commit(url: str, dest: Path, commit: str) -> None:
         if r.returncode == 0 and r.stdout.strip().startswith(commit[:12]):
             print(f"  already at {commit[:12]}, skipping")
             return
-        print(f"  wrong commit; recloning")
-        import shutil
-        shutil.rmtree(dest)
+        raise SystemExit(
+            f"{dest} exists but is not at {commit[:12]}; "
+            "move it aside or choose another --dest (existing directories are never deleted)"
+        )
 
     print(f"  cloning {url}")
     dest.parent.mkdir(parents=True, exist_ok=True)
