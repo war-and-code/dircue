@@ -319,6 +319,12 @@ func TestAuxiliaryPathRolesAreHintsNotDeletedFacts(t *testing.T) {
 		{"scripts/benchmark/pyproject.toml", "tooling"},
 		{"scripts/benchmarks/Cargo.toml", "tooling"},
 		{"scripts/bench/pyproject.toml", "tooling"},
+		// JVM package paths below a source set are not project layout.
+		{"src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java", ""},
+		{"src/test/java/org/example/app/AppTest.java", "test"},
+		{"examples/web/src/main/kotlin/demo/App.kt", "example"},
+		// Only .NET project files use the name-suffix test rule.
+		{"cmd/latest/latest.go", ""},
 	} {
 		if got := mapPathRole(test.filename); got != test.role {
 			t.Errorf("%s: role %q, want %q", test.filename, got, test.role)
@@ -571,5 +577,18 @@ func TestDockerfileMultipleCoLocatedComponentsEmitsPartialBuildsToEach(t *testin
 	}
 	if buildsEdges != 2 {
 		t.Fatalf("want 2 partial builds edges (one per co-located component), got %d", buildsEdges)
+	}
+}
+
+func TestGoModuleDisplayName(t *testing.T) {
+	for _, test := range []struct{ module, want string }{
+		{"github.com/grafana/loki/v3", "loki"},
+		{"github.com/grafana/loki", "loki"},
+		{"dircue", "dircue"},
+		{"example.com/tools/v2/cmd", "cmd"},
+	} {
+		if got := goModuleDisplayName(test.module); got != test.want {
+			t.Errorf("goModuleDisplayName(%q) = %q, want %q", test.module, got, test.want)
+		}
 	}
 }
