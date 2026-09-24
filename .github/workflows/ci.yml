@@ -80,6 +80,10 @@ jobs:
       - name: Keep network transports out of the linked binary
         run: sh scripts/check-linked-deps.sh
       - name: Verify a clean versioned Go module install
+        # A file:// module proxy needs a drive-letter URL on Windows; the
+        # install path itself is platform-independent and is verified on
+        # Linux and macOS.
+        if: runner.os != 'Windows'
         run: sh scripts/check-clean-install.sh
       - name: Audit Go dependencies for known reachable vulnerabilities
         if: runner.os == 'Linux'
