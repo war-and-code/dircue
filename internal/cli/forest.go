@@ -429,10 +429,7 @@ func writeForestSummary(out io.Writer, doc ForestDocument) error {
 		line("  %-30s %-14s %-9s %-9s %-12s %-5s %-5s %s",
 			"Path", "Kind", "Branch", "Commit", "Date", "Comp", "Lang", "Top languages / Remote host")
 		for _, r := range doc.Roots {
-			branch := r.HEAD
-			if strings.HasPrefix(branch, "refs/heads/") {
-				branch = strings.TrimPrefix(branch, "refs/heads/")
-			}
+			branch := strings.TrimPrefix(r.HEAD, "refs/heads/")
 			if len(branch) > 9 {
 				branch = branch[:8] + "…"
 			}
