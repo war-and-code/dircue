@@ -607,3 +607,153 @@ func TestLocalGitRevisionResolutionAcrossPackedRefsAndAncestry(t *testing.T) {
 		t.Fatalf("bare resolved commit=%q, want %q", bareReport.Discovery.Source.Commit, commits[2])
 	}
 }
+
+// TestGitDetachedHEADRevisionResolution verifies that a repository with a
+// detached HEAD (i.e. HEAD points directly at a commit SHA, not at a branch
+// ref) is opened correctly and the resolved commit matches the detached SHA.
+func TestGitDetachedHEADRevisionResolution(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("Git needed for revision fixture")
+	}
+	root := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", root}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid",
+			"GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid",
+		)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	run("init", "-q")
+	for i, f := range []string{"a.py", "b.go"} {
+		if err := os.WriteFile(filepath.Join(root, f), []byte("# fixture\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		run("add", f)
+		run("commit", "-q", "-m", fmt.Sprintf("commit %d", i+1))
+	}
+	// Detach HEAD at the first commit.
+	first := run("rev-parse", "HEAD^")
+	run("checkout", "-q", "--detach", first)
+
+	report, err := Scan(t.Context(), root, Options{Source: "git", Discovery: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Discovery == nil || report.Discovery.Source.Commit != first {
+		t.Fatalf("detached HEAD resolved commit=%q, want %q", report.Discovery.Source.Commit, first)
+	}
+}
+
+// TestGitRefsRemotesResolution verifies that a remote-tracking ref
+// (refs/remotes/origin/main) is resolved correctly as a revision.
+func TestGitRefsRemotesResolution(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("Git needed for revision fixture")
+	}
+	upstream := t.TempDir()
+	clone := filepath.Join(t.TempDir(), "clone")
+	run := func(dir string, args ...string) string {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid",
+			"GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid",
+		)
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	// Build a minimal upstream with one commit.
+	run(upstream, "init", "-q")
+	if err := os.WriteFile(filepath.Join(upstream, "main.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	run(upstream, "add", "main.go")
+	run(upstream, "commit", "-q", "-m", "initial")
+	head := run(upstream, "rev-parse", "HEAD")
+	// Get the default branch name (varies by git config: "main" vs "master").
+	defaultBranch := run(upstream, "rev-parse", "--abbrev-ref", "HEAD")
+
+	// Clone it so we have refs/remotes/origin/<defaultBranch>.
+	if out, err := exec.Command("git", "clone", "-q", upstream, clone).CombinedOutput(); err != nil {
+		t.Fatalf("git clone: %v: %s", err, out)
+	}
+
+	// Resolve refs/remotes/origin/<defaultBranch> via dircue.
+	remoteRef := "refs/remotes/origin/" + defaultBranch
+	report, err := Scan(t.Context(), clone, Options{Source: "git", Revision: remoteRef, Discovery: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Discovery == nil || report.Discovery.Source.Commit != head {
+		t.Fatalf("refs/remotes resolved commit=%q, want %q", report.Discovery.Source.Commit, head)
+	}
+}
+
+// TestGitSHA256ObjectFormatWarning verifies that a repository initialised with
+// --object-format=sha256 produces the expected warning (in auto source mode)
+// and a clear error (when --source git is requested explicitly), rather than a
+// misleading "object not found" failure.
+func TestGitSHA256ObjectFormatWarning(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("Git needed for sha256 fixture")
+	}
+	// git init --object-format=sha256 requires Git 2.29+.
+	out, err := exec.Command("git", "--version").Output()
+	if err != nil {
+		t.Skip("cannot determine git version")
+	}
+	ver := strings.TrimSpace(string(out))
+	// Parse major.minor from "git version X.Y.Z".
+	parts := strings.Fields(ver)
+	if len(parts) < 3 {
+		t.Skipf("unexpected git version string: %s", ver)
+	}
+	var major, minor int
+	if _, scanErr := fmt.Sscanf(parts[2], "%d.%d", &major, &minor); scanErr != nil || major < 2 || (major == 2 && minor < 29) {
+		t.Skipf("git %s too old for --object-format=sha256", parts[2])
+	}
+
+	root := t.TempDir()
+	cmd := exec.Command("git", "-C", root, "init", "-q", "--object-format=sha256")
+	if initOut, initErr := cmd.CombinedOutput(); initErr != nil {
+		t.Skipf("git init --object-format=sha256 unsupported: %s", initOut)
+	}
+	// Write one file so the directory scan has something.
+	if err := os.WriteFile(filepath.Join(root, "hello.go"), []byte("package main\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Auto mode must fall back gracefully with a warning, not error out.
+	report, err := Scan(t.Context(), root, Options{Source: "auto"})
+	if err != nil {
+		t.Fatalf("auto scan of sha256 repo must not error: %v", err)
+	}
+	var found bool
+	for _, w := range report.Warnings {
+		if w.Code == "git_object_format_unsupported" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected git_object_format_unsupported warning; got warnings=%v", report.Warnings)
+	}
+
+	// Explicit --source git must return a clear error.
+	_, explicitErr := Scan(t.Context(), root, Options{Source: "git"})
+	if explicitErr == nil {
+		t.Fatal("--source git on sha256 repo must error")
+	}
+	if !strings.Contains(explicitErr.Error(), "sha256") {
+		t.Fatalf("error should mention sha256; got: %v", explicitErr)
+	}
+}
