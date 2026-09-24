@@ -26,7 +26,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "planning", "profile"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -192,6 +192,24 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, AnalyzerCoverage: []mapdoc.AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
 		}(),
 		"planning": plan, "profile": base,
+		"stats": map[string]any{
+			"schema_version": "1.0.0",
+			"kind":           "run-stats",
+			"command":        "map",
+			"source_mode":    "directory",
+			"deterministic_costs": map[string]any{
+				"files_enumerated":   float64(10),
+				"files_content_read": float64(8),
+				"bytes_requested":    float64(4096),
+				"limit_hits":         map[string]any{"file_bytes": float64(0), "tree_size": float64(0)},
+			},
+			"measurements": map[string]any{
+				"wall_time_ns":           float64(1_000_000_000),
+				"phases":                 map[string]any{"scan_ns": float64(800_000_000), "build_ns": float64(100_000_000)},
+				"peak_heap_inuse_bytes":  float64(10_000_000),
+				"gc_count":               float64(2),
+			},
+		},
 		"forest": map[string]any{
 			"schema_version": "1.0.0",
 			"kind":           "forest",
