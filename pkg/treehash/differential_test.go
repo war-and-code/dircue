@@ -466,3 +466,31 @@ func TestTextAutoWithCommittedCRLF(t *testing.T) {
 		t.Fatalf("modified tracked text=auto file must be qualified: %+v", got)
 	}
 }
+
+// TestEmptyTreeConstants asserts the compile-time empty-tree SHA values against
+// a live computation. An empty directory must hash to Git's well-known empty
+// tree object IDs. This is a regression fence: if the tree-building or
+// object-format path changes, these constants catch the divergence immediately.
+func TestEmptyTreeConstants(t *testing.T) {
+	for _, tc := range []struct {
+		format    Format
+		wantConst string
+	}{
+		{FormatSHA1, EmptyTreeSHA1},
+		{FormatSHA256, EmptyTreeSHA256},
+	} {
+		t.Run(string(tc.format), func(t *testing.T) {
+			dir := t.TempDir()
+			got := computeDir(t, dir, Options{Format: tc.format})
+			if got.TreeID != tc.wantConst {
+				t.Fatalf("empty tree %s: got %s want %s", tc.format, got.TreeID, tc.wantConst)
+			}
+			if got.Status != StatusComplete {
+				t.Fatalf("empty tree status: got %s want complete", got.Status)
+			}
+			if got.Files != 0 || got.Symlinks != 0 || got.Gitlinks != 0 {
+				t.Fatalf("empty tree should have no entries: %+v", got)
+			}
+		})
+	}
+}

@@ -351,7 +351,7 @@ func compareSourceDocuments(base, head mapdoc.Document) string {
 }
 
 func gitTreeDigest(d *mapdoc.Digest, tree string) bool {
-	if d.Scope != "gitignore_filtered+git_normalized" {
+	if d.Scope != "gitignore_filtered" || d.Normalization != "git_normalized" {
 		return false
 	}
 	switch d.Algorithm {

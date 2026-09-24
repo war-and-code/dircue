@@ -90,7 +90,7 @@ only when comparable snapshot identities match.
 A directory map records a content identity in `source.digest`. By default
 it is the **Git-compatible tree ID**: the tree object ID that `git add -A &&
 git write-tree` would record for the same files in a fresh repository
-(`algorithm: git-sha1`, `scope: gitignore_filtered+git_normalized`). A clean
+(`algorithm: git-sha1`, `scope: gitignore_filtered`, `normalization: git_normalized`). A clean
 checkout of a commit therefore has the same digest as that commit's tree, so a
 directory map can be tied to a Git snapshot, and `map compare` reports a Git
 map and a directory map of identical content as the same source. Without the
@@ -126,7 +126,7 @@ or attributes. The CLI never runs Git and never reads outside the selected root.
 
 Computing the digest reads every in-scope file once more. Control it with
 `--set source.digest=git|raw|off` (`raw` hashes every file and symlink byte for
-byte without ignore rules or normalization, as `all_entries+raw`),
+byte without ignore rules or normalization: `scope` `all_entries`, `normalization` `raw`),
 `--set source.digest_format=sha1|sha256`, and `--set source.digest_bytes=N`
 (default 16 GiB; `0` removes the limit). The digest also honors the inventory
 entry limit. Absent a digest, attached reports and SARIF locations can still be
