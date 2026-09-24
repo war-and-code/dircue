@@ -1,6 +1,10 @@
 # `dircue`
 
-Map what an unfamiliar directory is and how it works, deterministically, offline and without running anything in it.
+Profile source code repos and other directories of computer content.
+
+`dircue map` describes what an unfamiliar directory contains and how it fits
+together. It works deterministically and offline, without running anything in
+the directory.
 
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
 - **components:** projects across 26 ecosystems;
@@ -61,7 +65,7 @@ dircue map locate map.json results.sarif > located.sarif     # which component o
 dircue map --forest /disk                               # nested repositories, dependency trees and the rest
 ```
 
-Attached reports contribute facts and run coverage, never findings or verdicts. How accurate is the map? Per-question precision and recall on blind-labeled repositories the map was not tuned on are in [GOLDEN.md](docs/GOLDEN.md), and Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
+Attached reports contribute facts and run coverage, never findings or verdicts. Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
 
 The classic Linguist-compatible output is unchanged:
 
@@ -75,6 +79,11 @@ Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagno
 ## Install
 
 Releases provide platform archives and Python wheels as GitHub release assets, with a `SHA256SUMS` manifest. An archive and its matching wheels contain identical Go executable bytes. PyPI publication and container images are not part of the release; the `Dockerfile` builds an image locally. While the repository is private, use authenticated `gh release download` to fetch assets; the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads) shows the commands.
+
+The commands below target the prospective `v1.0.0` release. Its remote tag
+and release assets are not available yet. The `go install` command has been
+validated against a local module proxy; fetching the module from GitHub remains
+untested until the tag is pushed and access is available.
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
@@ -111,6 +120,11 @@ Version 0.9 keeps the documented legacy Linguist CLI and JSON as a
 compatibility target. The [`dircue map`](docs/MAP.md) document is the primary
 1.x contract, and the [compatibility policy](docs/COMPATIBILITY.md) lists
 every surface 1.x keeps stable.
+
+Against the published 0.9.0 executable, 227 of 278 compatibility cases produce
+identical stdout and stderr; 51 have output changes, with no exit-status
+changes. Strict raw Linguist output matches for committed trees, ordinary
+directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 
 ## License
 

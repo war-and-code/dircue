@@ -9,7 +9,32 @@ import (
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/mapdoc"
+	git "github.com/war-and-code/dircue/third_party/go-git"
 )
+
+func TestMapRetainsUnbornGitFallbackWarning(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\nfunc main() {}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := git.PlainInit(root, false); err != nil {
+		t.Fatal(err)
+	}
+	out, stderr, err := invoke("map", "--json", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(stderr, "git_no_commits_or_corrupt_gitdir") {
+		t.Fatalf("map stderr omitted Git fallback warning: %q", stderr)
+	}
+	var document mapdoc.Document
+	if err := json.Unmarshal([]byte(out), &document); err != nil {
+		t.Fatal(err)
+	}
+	if document.Source.Mode != "directory" {
+		t.Fatalf("map source = %q, want directory", document.Source.Mode)
+	}
+}
 
 func TestMapOneShotPortableEvidenceAndBudget(t *testing.T) {
 	root := t.TempDir()

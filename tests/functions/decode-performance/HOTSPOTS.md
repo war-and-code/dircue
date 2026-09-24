@@ -64,8 +64,8 @@ are still rejected before it runs. The default path is unchanged.
 - RNG: none.
 - Output proof: compare with the original standalone decoder after a successful
   envelope check; retain mutation/fuzz checks and real CLI output comparisons.
-- Rollback: revert only the two production hunks moving the caller past the
-  redundant precheck; the root agent owns commits.
+- Rollback: revert only the two production hunks that move the caller past the
+  redundant precheck.
 
 No production optimization had been applied when this baseline and proposed
 proof were recorded. Before/after measurements will be reported separately.

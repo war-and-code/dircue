@@ -66,12 +66,12 @@ attribution to this one lever.
   the per-file cap and 1,024-entry global cap. It uses the same native worker on
   both sides. Input sources and commands are reproducible from the harness.
 
-Both timing windows were coordinated to avoid other agent builds/tests. They
-were separate before/after phases, not interleaved A/B runs. The host was not
-isolated from OS activity and had existing swap usage; no tuning or cache
-flushing was performed. Source and executable hashes were checked before and
-after each phase. Full package source snapshots, native inputs, raw benchmark
-logs, sampled CPU/heap profiles and fingerprints are retained.
+The two timing windows were separate before/after phases, not interleaved A/B
+runs. The host was not isolated from OS activity and had existing swap usage;
+no tuning or cache flushing was performed. Source and executable hashes were
+checked before and after each phase. Full package source snapshots, native
+inputs, raw benchmark logs, sampled CPU/heap profiles and fingerprints are
+retained.
 
 Run `python3 tests/functions/decode-performance/verify.py` to verify the retained
 evidence. This is a bounded performance result with explicit compatibility

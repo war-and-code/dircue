@@ -13,7 +13,7 @@ Existing-command output must match byte for byte. The combined declaration repor
 
 ## Build identity
 
-Run the build step while other agents and editors have paused source changes. It builds only dircue, using the release optimization flags, `CGO_ENABLED=0`, and a reported version of `0.4.0` for compatibility comparison. This is a measurement executable, not the release artifact.
+Run the build step while source changes are paused. It builds only dircue, using the release optimization flags, `CGO_ENABLED=0`, and a reported version of `0.4.0` for compatibility comparison. This is a measurement executable, not the release artifact.
 
 ```sh
 python3 tests/performance/v050_candidate/benchmark.py build \

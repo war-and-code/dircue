@@ -1,6 +1,6 @@
-# Map accuracy on blind-labeled repositories
+# Map accuracy on the labeled repository corpus
 
-This is the main accuracy measurement for `dircue map`. Seven repositories that the map was **not** tuned on were labeled by hand, from the source files alone. The labelers never ran dircue or saw its output. `tests/map_corpus/verify_golden.py` then compares dircue's map with those labels.
+The seven repositories below were initially labeled by hand from source files, before the labelers ran dircue or saw its output. The labels and map implementation were then corrected during comparison, and this corpus became a regression suite. The scores below describe the final implementation against those corrected labels; they are not an independent holdout measurement. `tests/map_corpus/verify_golden.py` performs the comparison.
 
 ## Results
 
@@ -32,7 +32,7 @@ For each repository, a set of **oracle files** bounds the evaluation. The files 
 
 ## How the labels were produced and corrected
 
-- **Blind labels.** The labelers read `docs/MAP.md` for vocabulary and the repository files for facts, citing a file and line for each label.
+- **Initial labels.** Before comparing results, the labelers read `docs/MAP.md` for vocabulary and repository files for facts, citing a file and line for each label. The final corpus was subsequently used to correct both labels and implementation, as described below.
 - **Semantic matching.** Nodes match on semantic keys: name, root and ecosystem for components; kind, name and path for deployables and interfaces; capability and owner for capabilities; type and endpoints for edges. Hashed IDs are never used. `contains` labels match the map's reversed `member_of` edges.
 - **Corrections.** Every change to a label after the first comparison is recorded, with its reason, in `golden_expectations.json` (`corrections`). Two rules held throughout: no label was added because dircue emitted it without checking the source, and no label was removed because dircue missed it.
   - Some corrections restate a label in the map's vocabulary. For example, "the Dockerfile produces an image" became "the Dockerfile builds the component at its build context", per the `builds` definition in `docs/MAP.md`.

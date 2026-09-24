@@ -54,4 +54,4 @@ The recorded September 19, 2026 run used an Apple M1 Max with 32 GiB RAM, Go 1.2
 | ASP.NET Core | 2.313 s | 2.327 s | +14 ms | 217.3 MiB |
 | Synthetic 2,048 | 0.539 s | 0.583 s | +44 ms | 67.8 MiB |
 
-The small differences on the real repositories are within the scale of sample variation. The synthetic case isolates a much denser graph and showed an 8.2% median increase. These measurements include the existing inventory and project analysis, not just the graph algorithm.
+The small differences on the real repositories are within the scale of sample variation. The synthetic case isolates a much denser graph and showed an 8.2% median increase. These measurements include inventory and project analysis as well as graph construction.

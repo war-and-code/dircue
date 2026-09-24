@@ -23,8 +23,9 @@ reports N/A — not a score of zero or one.
 
 A kind is marked **`insufficient_labels`** when it has fewer than 30 labels.
 These results are directional only; the confidence intervals are wide.
-The broader, blind-labeled measurement on repositories the map was not
-tuned on is in [GOLDEN.md](GOLDEN.md).
+A larger regression corpus, initially labeled without seeing dircue output,
+is documented in [GOLDEN.md](GOLDEN.md). The map was subsequently improved
+against those labels, so its final score is not a held-out measurement.
 
 ## Per-question accuracy
 

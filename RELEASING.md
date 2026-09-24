@@ -24,14 +24,14 @@ applies this flag for every platform binary it builds.
 
 ## How to cut a release
 
-### Step 1 — Tag the commit
+### Step 1: Tag the commit
 
 ```sh
 git tag -a v1.0.0 -m "Release 1.0.0" <commit-sha>
 git push origin v1.0.0
 ```
 
-### Step 2 — Dispatch the release workflow
+### Step 2: Dispatch the release workflow
 
 Go to **Actions → Prepare draft release → Run workflow** and fill in:
 
@@ -49,9 +49,9 @@ The workflow:
 3. Packages platform archives, wheels, and the native Rust structural worker.
 4. Runs per-platform smoke tests (binary execution, `--version`, map output).
 5. Assembles SHA256SUMS and per-platform provenance.
-6. Creates a **draft** GitHub Release — it is never auto-published.
+6. Creates a **draft** GitHub Release. It is never auto-published.
 
-### Step 3 — Review the draft release
+### Step 3: Review the draft release
 
 Download and inspect the draft assets. Run:
 
@@ -63,7 +63,7 @@ sha256sum --check SHA256SUMS
 ./dircue-linux-amd64 --version
 ```
 
-### Step 4 — Publish
+### Step 4: Publish
 
 When satisfied, publish the draft release through the GitHub UI.
 Publishing is always a deliberate manual step; the workflow never does it.
@@ -82,5 +82,5 @@ Dependency updates must be reviewed manually. The CI policy prohibits
 `schedule:` triggers and automated dependency PRs (Dependabot/Renovate) until
 the project is publicly open and the owner explicitly enables them.
 The Enry and go-git forks require canonical regeneration and provenance
-checks on version bumps — an automated bump that skips that is a correctness
-defect.
+checks on version bumps. An automated bump that skips those checks is a
+correctness defect.
