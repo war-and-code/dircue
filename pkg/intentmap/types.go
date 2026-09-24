@@ -81,8 +81,21 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
 		for _, req := range project.Requirements {
-			for _, capability := range capabilitiesFor(req.Value) {
+			for _, capability := range capabilitiesFor(req.Kind, req.Value) {
 				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(req.State), Basis: "declared_dependency", Path: req.Evidence, Properties: compact(map[string]string{"requirement_kind": req.Kind, "requirement": req.Value, "condition": req.Condition})})
+			}
+		}
+		// Some ecosystems store dependencies as References rather than Requirements
+		// (npm-dependency, go-require). Process them here so they produce capability
+		// observations alongside the other ecosystems.
+		for _, ref := range project.References {
+			switch ref.Kind {
+			case "npm-dependency", "npm-workspace-dependency", "go-require":
+			default:
+				continue
+			}
+			for _, capability := range capabilitiesFor(ref.Kind, ref.Value) {
+				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(ref.State), Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
 			}
 		}
 	}
