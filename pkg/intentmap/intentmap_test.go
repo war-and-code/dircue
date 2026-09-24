@@ -476,3 +476,149 @@ func TestContainmentAttributedObservationSetsProjectAttribution(t *testing.T) {
 	}
 	t.Fatal("no observation found with projectID app/go.mod")
 }
+
+// ── Python import capability inference (#57 / #80) ───────────────────────────
+
+func TestParsePythonImportsBasicImportForm(t *testing.T) {
+	// `import jose` must match the auth:jwt catalog entry for python-jose.
+	observations := parsePythonImports("app/auth.py", []byte("import jose\n"))
+	found := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "auth:jwt" && o.Basis == "imported" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("import jose did not produce auth:jwt; got %+v", observations)
+	}
+}
+
+func TestParsePythonImportsFromForm(t *testing.T) {
+	// `from jose import jwt` must match auth:jwt.
+	observations := parsePythonImports("app/auth.py", []byte("from jose import jwt\n"))
+	found := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "auth:jwt" && o.Basis == "imported" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("from jose import jwt did not produce auth:jwt; got %+v", observations)
+	}
+}
+
+func TestParsePythonImportsPsycopg2(t *testing.T) {
+	// `import psycopg2` must match datastore:postgresql.
+	observations := parsePythonImports("app/db.py", []byte("import psycopg2\n"))
+	found := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "datastore:postgresql" && o.Basis == "imported" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("import psycopg2 did not produce datastore:postgresql; got %+v", observations)
+	}
+}
+
+func TestParsePythonImportsRelativeImportSkipped(t *testing.T) {
+	// `from .models import User` is a relative import; no capability must be inferred.
+	observations := parsePythonImports("app/views.py", []byte("from .models import User\n"))
+	if len(observations) != 0 {
+		t.Fatalf("relative import produced unexpected observations: %+v", observations)
+	}
+}
+
+func TestParsePythonImportsCommentSkipped(t *testing.T) {
+	// Comments must not be parsed as imports.
+	observations := parsePythonImports("app/main.py", []byte("# import psycopg2\n"))
+	if len(observations) != 0 {
+		t.Fatalf("comment produced unexpected observations: %+v", observations)
+	}
+}
+
+func TestParsePythonImportsSubmodule(t *testing.T) {
+	// `from jose.jwt import decode` — only the top-level package jose is used.
+	observations := parsePythonImports("app/auth.py", []byte("from jose.jwt import decode\n"))
+	found := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "auth:jwt" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("from jose.jwt import decode did not produce auth:jwt; got %+v", observations)
+	}
+}
+
+func TestPythonImportCapabilityViaDetect(t *testing.T) {
+	// End-to-end: a .py file with FastAPI-style PostgreSQL and JWT imports must
+	// produce both datastore:postgresql and auth:jwt capability observations.
+	d := New(Options{})
+	content := []byte(`from jose import jwt
+import psycopg2
+
+# DATABASE_URL = "postgres://..."  (not parsed; this is a comment)
+`)
+	_, _ = d.Detect(context.Background(), profile.File{Path: "app/main.py", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	wantCaps := map[string]bool{"datastore:postgresql": false, "auth:jwt": false}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability {
+			wantCaps[o.Name] = true
+		}
+	}
+	for cap, found := range wantCaps {
+		if !found {
+			t.Errorf("missing capability %q in observations: %+v", cap, r.Observations)
+		}
+	}
+}
+
+func TestCatalogPythonJoseEntries(t *testing.T) {
+	// python-jose (PyPI name) and jose (import name) both must map to auth:jwt.
+	for _, coord := range []string{"python-jose", "jose"} {
+		caps := capabilitiesFor(coord)
+		found := false
+		for _, c := range caps {
+			if c == "auth:jwt" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("catalog coordinate %q did not map to auth:jwt; got %v", coord, caps)
+		}
+	}
+}
+
+func TestCatalogPsycopg2Entry(t *testing.T) {
+	// psycopg2 and psycopg2-binary both must map to datastore:postgresql.
+	for _, coord := range []string{"psycopg2", "psycopg2-binary"} {
+		caps := capabilitiesFor(coord)
+		found := false
+		for _, c := range caps {
+			if c == "datastore:postgresql" {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("catalog coordinate %q did not map to datastore:postgresql; got %v", coord, caps)
+		}
+	}
+}
+
+func TestParsePythonImportsIndentedImportSkipped(t *testing.T) {
+	// Indented imports (inside functions, try/except, TYPE_CHECKING guards) must
+	// not produce capability observations.  Flask cli.py line 818 is an example:
+	//   import cryptography  # noqa: F401  — indented inside a function body.
+	content := []byte("def check_runtime():\n    import cryptography  # noqa: F401\n")
+	observations := parsePythonImports("src/flask/cli.py", content)
+	for _, o := range observations {
+		if o.Name == "crypto:library" {
+			t.Fatalf("indented import produced unexpected capability %q at line %d; top-level-only rule violated", o.Name, o.StartLine)
+		}
+	}
+}
