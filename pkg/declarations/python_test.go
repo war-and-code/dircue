@@ -781,3 +781,109 @@ func TestPythonPinnedUVOracleFixtures(t *testing.T) {
 		})
 	}
 }
+
+func TestPythonRequirementsOnlyRootIsRetained(t *testing.T) {
+	// A directory with only requirements.txt (no .py source files, no pyproject.toml)
+	// should be kept as a Python component — it represents a service whose dependency
+	// set is declared here even though the code lives elsewhere.
+	docs, _ := pythonTestInventory(t, map[string]string{
+		"requirements.txt": "flask==3.0.0\nrequests>=2.31\n",
+	})
+	if len(docs) == 0 {
+		t.Fatal("requirements-only root should produce a Python component")
+	}
+	if docs[0].Project == nil {
+		t.Fatal("requirements-only root component should not be dropped")
+	}
+}
+
+func TestPythonRequirementsOnlySubdirIsRetained(t *testing.T) {
+	// Same scenario but in a subdirectory.
+	docs, _ := pythonTestInventory(t, map[string]string{
+		"services/api/requirements.txt": "fastapi==0.110.0\nuvicorn>=0.27\n",
+	})
+	if len(docs) == 0 {
+		t.Fatal("subdirectory requirements-only component should be retained")
+	}
+	found := false
+	for _, d := range docs {
+		if d.Project != nil && strings.Contains(d.Project.Root, "api") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("requirements-only subdirectory component was dropped")
+	}
+}
+
+func TestPythonRequirementsWithSetupPyDropsAuxiliary(t *testing.T) {
+	// When setup.py is also present, the auxiliary requirements.txt is superseded.
+	docs, _ := pythonTestInventory(t, map[string]string{
+		"requirements.txt": "flask==3.0.0\n",
+		"setup.py":         "from setuptools import setup\nsetup(name='myapp')\n",
+	})
+	// There may be a setup.py doc but the requirements.txt auxiliary should be absent.
+	for _, d := range docs {
+		if d.Project != nil {
+			data, ok := d.Data.(*pythonData)
+			if ok && data.auxiliary && strings.HasSuffix(d.Project.ID, "requirements.txt") {
+				t.Fatal("requirements.txt auxiliary should be dropped when setup.py is present")
+			}
+		}
+	}
+}
+
+func TestPythonReqsOnlyRootUnit(t *testing.T) {
+	// Unit test for pythonReqsOnlyRoot helper directly.
+	for _, tc := range []struct {
+		name   string
+		files  map[string]bool
+		root   string
+		expect bool
+	}{
+		{
+			name:   "requirements.txt at repo root",
+			files:  map[string]bool{"requirements.txt": true, "Dockerfile": true},
+			root:   ".",
+			expect: true,
+		},
+		{
+			name:   "requirements.txt in subdir",
+			files:  map[string]bool{"svc/api/requirements.txt": true},
+			root:   "svc/api",
+			expect: true,
+		},
+		{
+			name:   "setup.py blocks requirements.txt",
+			files:  map[string]bool{"requirements.txt": true, "setup.py": true},
+			root:   ".",
+			expect: false,
+		},
+		{
+			name:   "no requirements file",
+			files:  map[string]bool{"main.py": true},
+			root:   ".",
+			expect: false,
+		},
+		{
+			name:   "requirements in subdirectory not at root",
+			files:  map[string]bool{"sub/requirements.txt": true},
+			root:   ".",
+			expect: false,
+		},
+		{
+			name:   "requirements-dev.txt counts",
+			files:  map[string]bool{"requirements-dev.txt": true},
+			root:   ".",
+			expect: true,
+		},
+	} {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			got := pythonReqsOnlyRoot(tc.files, tc.root)
+			if got != tc.expect {
+				t.Fatalf("pythonReqsOnlyRoot(%v, %q) = %v, want %v", tc.files, tc.root, got, tc.expect)
+			}
+		})
+	}
+}
