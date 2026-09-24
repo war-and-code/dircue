@@ -106,6 +106,7 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseGoImports(file.Path, file.Content)
 	case pythonFile:
 		observations = parsePythonImports(file.Path, file.Content)
+		observations = append(observations, parsePythonFlaskApp(file.Path, file.Content)...)
 	case compose:
 		observations = parseComposeYAMLPorts(file.Path, file.Content)
 	case k8s:
