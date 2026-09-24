@@ -29,7 +29,7 @@ provider responsible for an observation.
 | `content` | Language populations and source, test, documentation, generated, configuration, data, binary, archive, certificate, and other content roles. |
 | `component` | Supported projects and workspace members inferred from declarations. |
 | `deployable` | Container, Compose, Kubernetes, Helm, Terraform, serverless, and CI definitions recognized by the built-in observer. |
-| `interface` | Supported declared or syntax-observed interfaces, including protobuf services and attached Noir endpoints. |
+| `interface` | Supported declared or syntax-observed interfaces, including protobuf services, Noir endpoints, Go entry-point binaries, and Dockerfile EXPOSE ports (`interface_kind: declared_port`). |
 | `capability` | Bounded code/configuration observations such as imported services. |
 | `package` | Packages imported from an explicitly attached Syft report. |
 | `tool_run` | Metadata and snapshot binding for an explicitly attached provider report. |
@@ -55,7 +55,8 @@ keys for future producers.
 | Individual content | `role`, `format`, `bytes`; a filename hint alone has partial coverage. |
 | Component | `root`, `ecosystem`, `project_kind`; `language` is present only when attributed, with `language_basis`. Auxiliary paths may carry `role` and `role_basis=path_name`. |
 | Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. |
-| Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. |
+| Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. `owning_component` holds the ID of the declaring component node when determinable. |
+| Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
 | Package | `package_type` from the attached provider report. |
 
 An edge's `declaration_kind` and `state` describe a local declaration when
@@ -161,6 +162,13 @@ entry point, or dependency declaration exists. A filename-only content role is
 also partial until content evidence verifies it. Nodes under common test,
 fixture, example, and vendor paths remain in JSON with a path-derived `role`
 hint; the summary and default route planner leave them out of headlines.
+
+A `uses_capability` edge carries the reason `attributed_by_directory_containment`
+and coverage `partial` when the capability observation's project assignment was
+inferred from directory containment rather than an explicit manifest declaration.
+This distinguishes heuristic attribution from explicit evidence (e.g. a
+`go.mod` dependency entry) and lets consumers calibrate confidence. In either
+case the evidence path is recorded; only the completeness claim differs.
 
 ## Control execution and coverage
 
@@ -397,10 +405,13 @@ deletion. The caller selects the pair; dircue does
 not infer repository identity or rename relationships. A valid comparison exits
 `0` even when changes are present.
 
-`dircue map compare` consumes map documents. The older `dircue compare`
-command consumes aggregate `analyze all` profiles; their input and output
-contracts are different. This split preserves the legacy command contract;
-scripts comparing maps should use `dircue map compare` explicitly.
+`dircue map compare` accepts only map documents (`kind: "map"`). Passing a
+legacy profile document produces a helpful error pointing to `dircue compare`.
+The older `dircue compare` command accepts only aggregate `analyze all` profile
+documents; passing a map document to it produces a helpful error pointing to
+`dircue map compare`. Their input and output contracts are different. This
+split preserves the legacy command contract; scripts comparing maps should use
+`dircue map compare` explicitly.
 
 ## Locate SARIF results in the map
 

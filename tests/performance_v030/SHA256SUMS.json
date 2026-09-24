@@ -8,7 +8,7 @@
   "tests/performance_v030/results.json": "ba39a8f0ec258dc46976f6b07a397f5cd793cbf2a06bc344d1c877beb543bca9",
   "tests/performance_v030/run.py": "605ab686667fac6258fdff80a0820283fc4a15c93cdcabdeb8830a95246d8b71",
   "tests/performance_v030/stress-artifacts/dotnet-graph.json.gz": "dfb6b2ec6b550d60569b6d917ffc7bd56395466721acd25fc9b3f528dd558f6b",
-  "tests/performance_v030/stress-artifacts/talend.json.gz": "2e97170f21ace4c7e07aff1fae8c1f91d403892f8b709e2059a395d6be87e4bc",
+  "tests/performance_v030/stress-artifacts/etl-pipeline.json.gz": "2e97170f21ace4c7e07aff1fae8c1f91d403892f8b709e2059a395d6be87e4bc",
   "tests/performance_v030/stress-artifacts/xml-log.json.gz": "8a24eee55ce9dd783b210582dde164a113a8ded3da47e15d7f879e05f3f99ac7",
   "tests/performance_v030/stress-results.json": "2dc319dd42c7bcf964bc1b610996e352807dce317f9c99c0d9979f230b0b29cd",
   "tests/performance_v030/stress.py": "c22f3927e3b7f135603a51b4150314ce8c4ed7d35a848e0ea589b07f75a3e0ed"

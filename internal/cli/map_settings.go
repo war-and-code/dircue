@@ -42,17 +42,18 @@ type mapSettingsReport struct {
 }
 
 type resolvedMapSettings struct {
-	Workers        int
-	MaxFiles       int
-	MaxFileBytes   int64
-	GitCacheBytes  int64
-	DigestScope    string // "" disables the directory digest
-	DigestFormat   string
-	DigestBytes    int64
-	CPULimit       int
-	MemoryLimit    int64
-	SummarizeTrees bool
-	Report         mapSettingsReport
+	Workers               int
+	MaxFiles              int
+	MaxFileBytes          int64
+	GitCacheBytes         int64
+	DigestScope           string // "" disables the directory digest
+	DigestFormat          string
+	DigestBytes           int64
+	CPULimit              int
+	MemoryLimit           int64
+	SummarizeTrees        bool
+	AttachmentRecordLimit int
+	Report                mapSettingsReport
 }
 
 func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags) {
@@ -71,7 +72,8 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	cpuLimit, memoryLimit := 0, int64(0)
 	digestMode, digestFormat, digestBytes := "git", "sha1", int64(defaultDigestBytes)
 	summarizeTrees := true // default on
-	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited", "source.digest": "default", "source.digest_format": "default", "source.digest_bytes": "default", "content.summarize_trees": "default"}
+	attachmentRecordLimit := defaultAttachmentRecordLimit
+	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited", "source.digest": "default", "source.digest_format": "default", "source.digest_bytes": "default", "content.summarize_trees": "default", "attachment.record_limit": "default"}
 	switch flags.Preset {
 	case "low-memory":
 		workers, origins["workers"] = 2, "preset:low-memory"
@@ -143,8 +145,14 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 				return resolvedMapSettings{}, enumValueError("--set content.summarize_trees", "on or off", value, []string{"on", "off"})
 			}
 			summarizeTrees = value == "on"
+		case "attachment.record_limit":
+			parsed, err := parseMapSettingInt(name, value, 1, 10000000)
+			if err != nil {
+				return resolvedMapSettings{}, err
+			}
+			attachmentRecordLimit = parsed
 		default:
-			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes, source.digest, source.digest_format, source.digest_bytes, content.summarize_trees", diagnosticValue(name))
+			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes, source.digest, source.digest_format, source.digest_bytes, content.summarize_trees, attachment.record_limit", diagnosticValue(name))
 		}
 		origins[name] = "--set"
 	}
@@ -201,6 +209,7 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 			return "off"
 		}(), Unit: "flag", Category: "coverage-affecting", Origin: origins["content.summarize_trees"], Description: "Recognize and summarize environment and build-output trees (node_modules, virtualenvs, Rust target/, .gradle, etc.) rather than walking them; on by default in directory mode. Off disables summarization and counts their contents in the language inventory."},
 		{Name: "classification.prefix_bytes", Value: strconv.FormatInt(scanner.ClassificationBytes, 10), Unit: "bytes", Category: "conformance-locked", Origin: "fixed:linguist-parity", Description: "Fixed classifier input window. Changing this value can change language results and invalidates the current Linguist conformance claim.", Minimum: strconv.FormatInt(scanner.ClassificationBytes, 10), Maximum: strconv.FormatInt(scanner.ClassificationBytes, 10)},
+		{Name: "attachment.record_limit", Value: strconv.Itoa(attachmentRecordLimit), Unit: "records", Category: "coverage-affecting", Origin: origins["attachment.record_limit"], Description: "Maximum combined records (artifacts, relationships, endpoints, results) per attached report before coverage degrades to partial with reason attachment_record_limit_reached. Reports exceeding this limit are still recorded in the coverage ledger; they do not cause map to exit non-zero.", Minimum: "1", Maximum: "10000000"},
 	}
 	digestScope := ""
 	switch digestMode {
@@ -209,7 +218,7 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	case "raw":
 		digestScope = string(treehash.ScopeRaw)
 	}
-	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, DigestScope: digestScope, DigestFormat: digestFormat, DigestBytes: digestBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, SummarizeTrees: summarizeTrees, Report: mapSettingsReport{
+	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, DigestScope: digestScope, DigestFormat: digestFormat, DigestBytes: digestBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, SummarizeTrees: summarizeTrees, AttachmentRecordLimit: attachmentRecordLimit, Report: mapSettingsReport{
 		SchemaVersion: "1.0.0", Kind: "map_settings", Preset: flags.Preset, Settings: settings,
 		Notes: []string{
 			"low-memory tunes worker concurrency and retained Git object cache size while preserving map answers",
@@ -226,6 +235,11 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 // defaultDigestBytes bounds directory hashing so an unexpectedly large input
 // (for example a whole disk) cannot turn one map into an unbounded read.
 const defaultDigestBytes = 16 << 30
+
+// defaultAttachmentRecordLimit is the per-attachment record cap. Attachments
+// with more combined records degrade to partial coverage with a named reason
+// rather than exiting non-zero.
+const defaultAttachmentRecordLimit = 100_000
 
 func parseMemoryLimit(value string) (int64, error) {
 	value = strings.TrimSpace(value)

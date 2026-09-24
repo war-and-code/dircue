@@ -286,10 +286,14 @@ type EnvTreeSummary struct {
 	Bytes int64
 	// Bounded is true when the walk completed within the entry cap.
 	Bounded bool
-	// LowerBound is true when the entry cap was reached (entries is a lower bound).
+	// LowerBound is true when the entry cap was reached or walk errors occurred
+	// (both entries and bytes are lower bounds).
 	LowerBound bool
 	// Reason is set when LowerBound is true, explaining why the walk stopped.
 	Reason string
+	// WalkErrors is the count of directory entries that could not be read.
+	// When non-zero, LowerBound is also true and byte counts are a lower bound.
+	WalkErrors int
 }
 
 const defaultEnvTreeEntryCap = 1_000_000
@@ -304,7 +308,14 @@ func SummarizeEnvTree(root *os.Root, match EnvTreeMatch, cap int64) EnvTreeSumma
 	dirFS := root.FS()
 	_ = fs.WalkDir(dirFS, match.Path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			return nil // ignore errors during env tree counting
+			s.WalkErrors++
+			s.LowerBound = true
+			if s.Reason == "" {
+				s.Reason = "walk_errors"
+			} else if s.Reason != "walk_errors" && s.Reason != "entry_cap_reached_and_walk_errors" {
+				s.Reason = "entry_cap_reached_and_walk_errors"
+			}
+			return nil
 		}
 		if p == match.Path {
 			return nil // skip the root itself

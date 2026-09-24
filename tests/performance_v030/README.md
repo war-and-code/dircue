@@ -19,7 +19,7 @@ With three samples, nearest-rank p95 equals the observed maximum. These are shor
 
 `passed` means execution, language-output equality, and project count invariants passed. It does not impose a performance threshold or hide slower measurements. Compare ratios and individual samples before making release claims.
 
-The existing stress corpus can also be supplied with `--source directory`: its Talend-shaped fixture contains about 2 GiB of synthetic content, its XML log is fully written at 1,100 MiB, and its .NET graph has 2,048 projects. See [the stress fixture documentation](../stress/README.md) for fidelity limits and reproduction. Existing fixture sizes are logical content bytes; profiling throughput is not physical disk throughput because most content only needs a prefix read.
+The existing stress corpus can also be supplied with `--source directory`: its ETL-pipeline-shaped fixture contains about 2 GiB of synthetic content, its XML log is fully written at 1,100 MiB, and its .NET graph has 2,048 projects. See [the stress fixture documentation](../stress/README.md) for fidelity limits and reproduction. Existing fixture sizes are logical content bytes; profiling throughput is not physical disk throughput because most content only needs a prefix read.
 
 ## Recorded checkpoint
 
@@ -37,7 +37,7 @@ The large synthetic fixtures ran separately in a read-only Linux container with 
 
 | Fixture | Verified inventory | Single diagnostic wall time | Peak RSS |
 | --- | --- | ---: | ---: |
-| Talend-shaped | 2 GiB, 8,293 files, one Maven root | 7.60 s | 30.7 MiB |
+| ETL-pipeline-shaped | 2 GiB, 8,293 files, one Maven root | 7.60 s | 30.7 MiB |
 | XML log | 1,100 MiB log classified as data, excluded from language statistics | 0.026 s | 18.8 MiB |
 | .NET graph | 2,048 projects, 4,094 present references, 4,100 files | 0.386 s | 40.5 MiB |
 

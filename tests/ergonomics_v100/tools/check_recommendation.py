@@ -66,8 +66,51 @@ def check(identifier, binary):
                 assert all(not s['command']['executable'] for s in structured['steps'])
         elif identifier == 'R-006':
             out = json.loads(run('capabilities','--cli','--json'))
-            assert out['kind'] == 'dircue-cli-capabilities' and len(out['commands']) == 24
+            assert out['kind'] == 'dircue-cli-capabilities'
             assert {x['code'] for x in out['exit_codes']} == {0,1,141}
+            # Contract: the set of registered command paths must equal this explicit list.
+            # The list includes the map subcommands added in 1.0 (map compare/locate/route/settings).
+            # Update this set when a new top-level or subcommand is deliberately added.
+            EXPECTED_PATHS = {
+                ('dircue',),
+                ('dircue', 'analyze'),
+                ('dircue', 'analyze', 'all'),
+                ('dircue', 'analyze', 'availability'),
+                ('dircue', 'analyze', 'declarations'),
+                ('dircue', 'analyze', 'discovery'),
+                ('dircue', 'analyze', 'ecosystems'),
+                ('dircue', 'analyze', 'environments'),
+                ('dircue', 'analyze', 'explain'),
+                ('dircue', 'analyze', 'focus'),
+                ('dircue', 'analyze', 'formats'),
+                ('dircue', 'analyze', 'frameworks'),
+                ('dircue', 'analyze', 'graph'),
+                ('dircue', 'analyze', 'languages'),
+                ('dircue', 'analyze', 'metrics'),
+                ('dircue', 'analyze', 'packages'),
+                ('dircue', 'analyze', 'projects'),
+                ('dircue', 'analyze', 'registries'),
+                ('dircue', 'analyze', 'rules'),
+                ('dircue', 'analyze', 'structure'),
+                ('dircue', 'capabilities'),
+                ('dircue', 'compare'),
+                ('dircue', 'help'),
+                ('dircue', 'map'),
+                ('dircue', 'map', 'compare'),
+                ('dircue', 'map', 'locate'),
+                ('dircue', 'map', 'route'),
+                ('dircue', 'map', 'settings'),
+                ('dircue', 'plan'),
+            }
+            actual_paths = {tuple(x['path']) for x in out['commands']}
+            assert actual_paths == EXPECTED_PATHS, (
+                'command set mismatch\n'
+                '  unexpected: {}\n'
+                '  missing:    {}'.format(
+                    sorted(actual_paths - EXPECTED_PATHS),
+                    sorted(EXPECTED_PATHS - actual_paths),
+                )
+            )
             plan = next(x for x in out['commands'] if x['path'] == ['dircue','plan'])
             assert '--source' in plan['rejected_inherited_flags']
             assert 'source' not in [x['name'] for x in plan['flags']]
