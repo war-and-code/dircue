@@ -78,7 +78,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	java := javaCandidate(file.Path)
 	compose := isComposeFile(file.Path)
 	k8s := !compose && isK8sManifest(file.Path)
-	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java && !compose && !k8s {
+	contract := contractCandidate(file.Path)
+	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java && !compose && !k8s && !contract {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -92,7 +93,12 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		return nil, nil
 	}
 	var observations []Observation
+	if contract {
+		observations = parseContract(file.Path, file.Content)
+	}
 	switch {
+	case observations != nil:
+		// A declared API contract; no other reader applies.
 	case proto:
 		observations = parseProto(file.Path, file.Content)
 	case goFile:
