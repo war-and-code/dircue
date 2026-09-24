@@ -21,6 +21,7 @@ import (
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	"github.com/go-git/go-git/v5/plumbing/filemode"
+	formatcfg "github.com/go-git/go-git/v5/plumbing/format/config"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/storage/filesystem"
@@ -280,23 +281,28 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (*gitSnapshot, error) {
+// openGitSnapshot opens the git snapshot for the given directory.
+// It returns a non-nil fallbackWarning when --source auto silently switched to
+// directory mode because a .git directory was found but could not be used.
+// The warning message is safe for display (no absolute host paths).
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (snap *gitSnapshot, fallbackWarning *profile.Warning, err error) {
 	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, laneCount, attributeRoot)
 }
 
-func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
+func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, fallbackWarning *profile.Warning, err error) {
 	if opts.Source == "directory" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	repositoryFS, root, metadataPath, err := openLocalGitFilesystem(directory, discover)
 	if errors.Is(err, errGitRepositoryNotFound) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
-		return nil, nil
+		// No .git directory present; directory mode is the expected and silent path.
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("open Git repository: %w", err)
+		return nil, nil, fmt.Errorf("open Git repository: %w", err)
 	}
 	objectCache := cache.Object(cache.NewObjectLRUDefault())
 	if opts.GitObjectCacheBytes > 0 {
@@ -311,7 +317,7 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		ReadMetrics:          opts.GitReadMetrics,
 	}, laneCount)
 	if err != nil {
-		return nil, fmt.Errorf("open bounded Git storage: %w", err)
+		return nil, nil, fmt.Errorf("open bounded Git storage: %w", err)
 	}
 	defer func() {
 		if snapshot == nil {
@@ -325,28 +331,56 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		}
 	}()
 	storage := lanes.primaryStorage
+
+	// Detect SHA-256 object-format repositories.  go-git is compiled without
+	// SHA-256 support (no "sha256" build tag), so it cannot read objects from
+	// these repositories and would produce a misleading "object not found"
+	// error later.  Catch the situation early with a clear message instead.
+	//
+	// Note: config.Config.Extensions.ObjectFormat is NOT populated by
+	// config.Unmarshal in the current go-git fork (unmarshalExtensions is
+	// absent).  We use the raw parsed section instead.
+	if cfg, cfgErr := storage.Config(); cfgErr == nil {
+		if cfg.Raw.Section("extensions").Options.Get("objectformat") == string(formatcfg.SHA256) {
+			if opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
+				w := &profile.Warning{
+					Path:    ".git/config",
+					Code:    "git_object_format_unsupported",
+					Message: "repository uses sha256 object format; git mode not available, using directory scan",
+				}
+				return nil, w, nil
+			}
+			return nil, nil, errors.New("unsupported Git object format sha256: use --source directory")
+		}
+	}
+
 	if _, err := storage.Reference(plumbing.HEAD); err != nil {
 		if errors.Is(err, plumbing.ErrReferenceNotFound) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
-			return nil, nil
+			w := &profile.Warning{
+				Path:    ".git/HEAD",
+				Code:    "git_head_not_found",
+				Message: "HEAD reference not found; git mode not available, using directory scan",
+			}
+			return nil, w, nil
 		}
-		return nil, fmt.Errorf("open Git repository: %w", err)
+		return nil, nil, fmt.Errorf("open Git repository: %w", err)
 	}
 
 	var tree *object.Tree
 	var selectedCommit plumbing.Hash
 	if opts.Tree != "" {
 		if !fullSHA1(opts.Tree) {
-			return nil, errors.New("tree must be a full 40-character hexadecimal Git object ID")
+			return nil, nil, errors.New("tree must be a full 40-character hexadecimal Git object ID")
 		}
 		hash := plumbing.NewHash(opts.Tree)
 		tree, err = object.GetTree(storage, hash)
 		if err != nil {
 			if errors.Is(err, plumbing.ErrObjectNotFound) {
 				if encoded, probeErr := storage.EncodedObject(plumbing.AnyObject, hash); probeErr == nil {
-					return nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, encoded.Type())
+					return nil, nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, encoded.Type())
 				}
 			}
-			return nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
+			return nil, nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
 		}
 	} else {
 		revision := opts.Revision
@@ -356,22 +390,33 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		selectedCommit, err = resolveLocalRevision(storage, revision)
 		if err != nil {
 			if opts.Source == "auto" && opts.Revision == "" && errors.Is(err, plumbing.ErrReferenceNotFound) && isUnbornRepository(storage) {
-				return nil, nil
+				// An unborn repository (no commits yet) or a corrupt gitdir
+				// (e.g. .git/commondir pointing to a path that does not hold
+				// the expected refs) looks identical from git mode's point of
+				// view: HEAD points to a branch that has no objects.  Fall
+				// back to directory scan and emit a warning so the user knows
+				// git mode was not active.
+				w := &profile.Warning{
+					Path:    ".git",
+					Code:    "git_no_commits_or_corrupt_gitdir",
+					Message: "HEAD branch has no commits visible in the reference store (unborn repository or corrupt commondir); using directory scan",
+				}
+				return nil, w, nil
 			}
-			return nil, fmt.Errorf("resolve Git revision %q: %w", revision, err)
+			return nil, nil, fmt.Errorf("resolve Git revision %q: %w", revision, err)
 		}
 		commit, commitErr := object.GetCommit(storage, selectedCommit)
 		if commitErr != nil {
-			return nil, fmt.Errorf("resolve Git commit: %w", commitErr)
+			return nil, nil, fmt.Errorf("resolve Git commit: %w", commitErr)
 		}
 		tree, err = object.GetTree(storage, commit.TreeHash)
 		if err != nil {
-			return nil, fmt.Errorf("read Git tree: %w", err)
+			return nil, nil, fmt.Errorf("read Git tree: %w", err)
 		}
 	}
 	root, err = filepath.Abs(root)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ownedStorages := make([]io.Closer, len(retainedStorages))
 	for i := range retainedStorages {
@@ -380,12 +425,12 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 	snapshot = &gitSnapshot{root: root, tree: tree, storage: storage, commit: selectedCommit, lanes: lanes, storages: ownedStorages, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
 	files, err := openAttributeRoot(metadataPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer files.Close()
 	info, err := files.Lstat("info/attributes")
 	if err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return nil, fmt.Errorf("inspect Git info attributes: %w", err)
+		return nil, nil, fmt.Errorf("inspect Git info attributes: %w", err)
 	}
 	if err == nil {
 		if !info.Mode().IsRegular() || info.Size() > maxAttributesBytes {
@@ -393,10 +438,10 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 		} else {
 			data, tooLarge, err := readBounded(files, "info/attributes", maxAttributesBytes)
 			if err != nil {
-				return nil, fmt.Errorf("read Git info attributes: %w", err)
+				return nil, nil, fmt.Errorf("read Git info attributes: %w", err)
 			}
 			if tooLarge {
-				return nil, fmt.Errorf("Git info attributes exceeds 1 MiB")
+				return nil, nil, fmt.Errorf("Git info attributes exceeds 1 MiB")
 			}
 			var exceeded bool
 			snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBoundedFrom(".gitattributes", ".git/info/attributes", data, maxAttributeRules)
@@ -411,7 +456,7 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 	}
 	snapshot.availability = opts.Availability
 	snapshot.explainPath = opts.ExplainPath
-	return snapshot, nil
+	return snapshot, nil, nil
 }
 
 var errGitRepositoryNotFound = errors.New("Git repository does not exist")
