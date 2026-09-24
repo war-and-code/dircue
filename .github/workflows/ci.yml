@@ -108,21 +108,23 @@ jobs:
       - name: Coverage summary (Linux only)
         if: runner.os == 'Linux'
         run: |
-          go test -coverprofile="$RUNNER_TEMP/coverage.out" ./... -count=1
-          echo '## Per-package test coverage' >> "$GITHUB_STEP_SUMMARY"
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
-          go test -cover ./... -count=1 2>&1 | grep '^ok' >> "$GITHUB_STEP_SUMMARY" || true
-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          go test -coverprofile="$RUNNER_TEMP/coverage.out" ./... -count=1 | tee "$RUNNER_TEMP/cover-run.txt"
+          {
+            echo '## Per-package test coverage'
+            echo '```'
+            grep '^ok\b' "$RUNNER_TEMP/cover-run.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: runner.os == 'Linux'
         with:
           retention-days: 7
           name: coverage-profile
           path: ${{ runner.temp }}/coverage.out
-      - name: Ergonomics regression tests (Linux only; R-006 excluded — fails on current tree)
+      - name: Ergonomics regression tests (Linux only)
         if: runner.os == 'Linux'
         run: |
-          for id in R-001 R-002 R-003 R-004 R-005 R-007 R-008 R-009 R-010 R-011; do
+          for id in R-001 R-002 R-003 R-004 R-005 R-006 R-007 R-008 R-009 R-010 R-011; do
             python3 "tests/ergonomics_v100/audit/regression_tests/${id}__contract.test.py" bin/dircue
           done
       - name: Verify one-shot map golden and metamorphic gates
