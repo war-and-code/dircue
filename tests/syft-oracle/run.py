@@ -287,18 +287,49 @@ class SyftOracleMultiComponent(unittest.TestCase):
                 f"(want {frontend_id!r}, got {owner!r})",
             )
 
-    def test_python_packages_appear_without_requiring_attribution(self) -> None:
-        """requests and certifi must appear as package nodes (attribution optional)."""
+    def test_python_packages_are_attributed_to_backend_component(self) -> None:
+        """requests and certifi must have packaged_in edges to the backend component.
+
+        The backend/ directory contains only requirements.txt (no .py source files).
+        dircue must still detect it as a Python component and attribute the Syft
+        packages located in that directory to it.
+        """
         self._skip_if_missing()
         doc = self._map_with()
-        map_purls = {
-            n["properties"].get("purl", "")
+        # Find the backend component (Python, detected from backend/requirements.txt)
+        comps = {n["id"]: n for n in doc["nodes"] if n["kind"] == "component"}
+        backend_comps = [
+            n for n in comps.values()
+            if any("backend" in p for p in n.get("paths", []))
+        ]
+        self.assertGreater(
+            len(backend_comps), 0,
+            "No backend component detected in multi fixture: "
+            "requirements-only Python directories must be recognised as components",
+        )
+        backend_id = backend_comps[0]["id"]
+        # Verify the Python packages appear as nodes
+        pkg_by_purl = {
+            n["properties"].get("purl", ""): n["id"]
             for n in doc["nodes"]
             if n["kind"] == "package"
         }
         for purl in ("pkg:pypi/requests@2.31.0", "pkg:pypi/certifi@2024.2.2"):
-            self.assertIn(purl, map_purls,
+            self.assertIn(purl, pkg_by_purl,
                           f"Python package {purl!r} must appear as a package node")
+        # Verify the packaged_in edges to the backend component
+        pi_by_from = {}
+        for e in doc["edges"]:
+            if e["type"] == "packaged_in":
+                pi_by_from[e["from"]] = e["to"]
+        for purl in ("pkg:pypi/requests@2.31.0", "pkg:pypi/certifi@2024.2.2"):
+            pkg_id = pkg_by_purl[purl]
+            owner = pi_by_from.get(pkg_id)
+            self.assertEqual(
+                owner, backend_id,
+                f"{purl!r} must be attributed to the backend component "
+                f"(want {backend_id!r}, got {owner!r})",
+            )
 
     def test_packages_coverage_transitions_from_unknown_to_bound(self) -> None:
         """packages coverage must be unknown without Syft, non-unknown with it."""

@@ -30,7 +30,17 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 		if !ok || !data.auxiliary {
 			continue
 		}
-		if pyprojectRoots[d.Project.Root] || !pythonSourceInRoot(files, d.Project.Root) {
+		// Drop auxiliary Python documents that are shadowed by a pyproject.toml in
+		// the same root (the primary manifest wins) or have no Python evidence in
+		// their tree. A requirements.txt with no .py siblings is still kept: it is
+		// the only manifest file in that directory and therefore valid evidence of a
+		// Python dependency set, even when the application code isn't in the tree
+		// (pre-built images, Docker contexts, separate code repos, etc.).
+		if pyprojectRoots[d.Project.Root] {
+			d.Project = nil
+			continue
+		}
+		if !pythonSourceInRoot(files, d.Project.Root) && !pythonReqsOnlyRoot(files, d.Project.Root) {
 			d.Project = nil
 		}
 	}
@@ -256,6 +266,35 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 		}
 
 	}
+}
+
+// pythonReqsOnlyRoot returns true when the selected inventory contains at
+// least one requirements*.txt file directly in root and no competing primary
+// Python manifest (setup.py) at the same level. pyproject.toml is handled
+// before this call by the caller. This supports repos that declare a Python
+// dependency set via requirements.txt only — no source files, no setup.py —
+// such as a service whose code lives elsewhere or is shipped as a pre-built
+// container image.
+func pythonReqsOnlyRoot(files map[string]bool, root string) bool {
+	hasReqs := false
+	rootDir := root
+	if rootDir == "" {
+		rootDir = "."
+	}
+	for filename := range files {
+		dir := path.Dir(filename)
+		if dir != rootDir {
+			continue
+		}
+		base := strings.ToLower(path.Base(filename))
+		if base == "setup.py" {
+			return false // setup.py in same dir takes precedence; drop auxiliary
+		}
+		if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+			hasReqs = true
+		}
+	}
+	return hasReqs
 }
 
 func pythonSourceInRoot(files map[string]bool, root string) bool {

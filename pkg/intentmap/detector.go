@@ -46,6 +46,23 @@ func New(options Options) *Detector {
 
 func (d *Detector) Name() string { return DetectorName }
 
+// javaCandidate returns true for Java/Kotlin source files and Maven/Gradle
+// build files that may contain Spring Boot entry-point declarations.
+func javaCandidate(name string) bool {
+	lower := strings.ToLower(name)
+	base := path.Base(lower)
+	if strings.HasSuffix(lower, ".java") || strings.HasSuffix(lower, ".kt") {
+		return true
+	}
+	if base == "pom.xml" {
+		return true
+	}
+	if base == "build.gradle" || base == "build.gradle.kts" {
+		return true
+	}
+	return false
+}
+
 // Detect receives only scanner-selected bytes, retains bounded observations,
 // and deliberately returns no generic scanner findings.
 func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Finding, error) {
@@ -57,7 +74,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	goFile := strings.HasSuffix(filename, ".go")
 	config := configCandidate(file.Path)
 	dockerfile := isDockerfile(file.Path)
-	if !proto && !goFile && !config && !dockerfile {
+	java := javaCandidate(file.Path)
+	if !proto && !goFile && !config && !dockerfile && !java {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -78,6 +96,16 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseGoImports(file.Path, file.Content)
 	case dockerfile:
 		observations = parseDockerfileExpose(file.Path, file.Content)
+	case java:
+		base := path.Base(strings.ToLower(file.Path))
+		switch {
+		case strings.HasSuffix(base, ".java") || strings.HasSuffix(base, ".kt"):
+			observations = parseJavaSpringBoot(file.Path, file.Content)
+		case base == "pom.xml":
+			observations = parseMavenMainClass(file.Path, file.Content)
+		case base == "build.gradle" || base == "build.gradle.kts":
+			observations = parseGradleMainClass(file.Path, file.Content)
+		}
 	case config:
 		if strings.HasSuffix(filename, ".json") {
 			var depthLimited bool

@@ -32,6 +32,10 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		r.omit("file_limit", int64(len(candidates)-limits.Files), "", "Only the lexically first supported declaration candidates were inspected.")
 		candidates = candidates[:limits.Files]
 	}
+	// helmValuesRefs accumulates image references from values.yaml files keyed
+	// by the directory that contains them. These are used in the post-pass to
+	// enrich Helm chart definitions with image references from co-located values.
+	helmValuesRefs := map[string][]Reference{}
 	var input int64
 	for _, candidate := range candidates {
 		if err := ctx.Err(); err != nil {
@@ -62,6 +66,15 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		input += size
 		r.Coverage.ReadFiles++
 		r.Coverage.InspectedBytes += size
+		// While processing each candidate, also check for Helm values files so
+		// we can enrich Chart.yaml definitions without a second read pass.
+		if strings.ToLower(path.Base(candidate.Path)) == "values.yaml" {
+			refs := parseHelmValuesRefs(candidate.Path, content)
+			if len(refs) > 0 {
+				dir := path.Dir(candidate.Path)
+				helmValuesRefs[dir] = append(helmValuesRefs[dir], refs...)
+			}
+		}
 		defs, recognized, parseErr := parse(candidate.Path, content)
 		if parseErr != nil {
 			var limitErr *yamlDocLimitError
@@ -97,6 +110,31 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 				break
 			}
 			r.Definitions = append(r.Definitions, defs[i])
+		}
+	}
+	// Post-pass: enrich Helm chart definitions with image references from
+	// co-located values.yaml files. Chart.yaml is parsed before values.yaml in
+	// lexicographic order, so the chart definition already exists at this point.
+	if len(helmValuesRefs) > 0 {
+		for i := range r.Definitions {
+			if r.Definitions[i].Provider != "helm" {
+				continue
+			}
+			dir := path.Dir(r.Definitions[i].Path)
+			refs, ok := helmValuesRefs[dir]
+			if !ok || len(refs) == 0 {
+				continue
+			}
+			for _, ref := range refs {
+				if r.Coverage.RetainedReferences >= limits.References {
+					r.omit("reference_limit", 1, r.Definitions[i].Path, "Some Helm image references were omitted at the report limit.")
+					break
+				}
+				r.Definitions[i].References = append(r.Definitions[i].References, ref)
+				r.Coverage.RetainedReferences++
+			}
+			slices.SortFunc(r.Definitions[i].References, compareReference)
+			r.Definitions[i].ID = stableID(r.Definitions[i])
 		}
 	}
 	slices.SortFunc(r.Definitions, func(a, b Definition) int { return strings.Compare(a.ID, b.ID) })

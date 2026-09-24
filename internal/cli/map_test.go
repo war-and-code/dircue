@@ -138,6 +138,18 @@ func TestMapSummaryNamesUnitsAndHidesInternalCoverageCodes(t *testing.T) {
 	}
 }
 
+// TestMapSummaryPrioritizesLinkedDeployablesAndLabelsCountsAsDeclarations
+// verifies two related display rules:
+//
+//  1. Among runnable deployables (container builds, workloads, …) the ones with
+//     the most builds+runs edges come first. Unlinked ones are last.
+//  2. CI workflows (kind "workflow") are collapsed into a "+N CI workflows"
+//     secondary count when other runnable deployables are present, so that a
+//     large CI system doesn't bury the container builds and workloads.
+//  3. Declarations are counted (not runtime instances).
+//
+// It also verifies that when only CI workflows exist (no other runnable
+// deployables), those workflows are shown by name with the link-count order.
 func TestMapSummaryPrioritizesLinkedDeployablesAndLabelsCountsAsDeclarations(t *testing.T) {
 	d := mapdoc.New()
 	d.Status = mapdoc.CoveragePartial
@@ -147,49 +159,125 @@ func TestMapSummaryPrioritizesLinkedDeployablesAndLabelsCountsAsDeclarations(t *
 	otherComponent := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/worker"}, "go")
 	otherComponent.Name = "worker"
 	otherComponent.Properties = map[string]string{"root": "services/worker", "ecosystem": "go"}
-	deployables := []mapdoc.Node{
+
+	// Three container builds with different link counts: multi-linked, run-only,
+	// and unlinked. They should appear in that order, before the CI workflow count.
+	builds := []mapdoc.Node{
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"images/multi/Dockerfile"}, "container_build-multi"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"images/run/Dockerfile"}, "container_build-run"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"images/unlinked/Dockerfile"}, "container_build-unlinked"),
+	}
+	for i := range builds {
+		builds[i].Name = []string{"multi build", "run build", "unlinked build"}[i]
+		builds[i].Properties = map[string]string{"kind": "container_build", "provider": "dockerfile"}
+	}
+
+	// Five CI workflows — two of them linked to components, three unlinked.
+	// They must all be collapsed into "+5 CI workflows" because there are runnable
+	// deployables (the container builds) above.
+	workflows := []mapdoc.Node{
 		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"z-unlinked.yml"}, "workflow-z"),
-		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/build.yml"}, "build"),
-		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/run.yml"}, "run"),
-		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/mixed.yml"}, "mixed"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/build.yml"}, "wf-build"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/run.yml"}, "wf-run"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"linked/mixed.yml"}, "wf-mixed"),
 		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"a-unlinked.yml"}, "workflow-a"),
 	}
-	for i := range deployables {
-		deployables[i].Name = []string{"z-unlinked", "build declaration", "run declaration", "mixed declaration", "a-unlinked"}[i]
-		deployables[i].Properties = map[string]string{"kind": "workflow"}
+	for i := range workflows {
+		workflows[i].Name = []string{"z-unlinked", "build declaration", "run declaration", "mixed declaration", "a-unlinked"}[i]
+		workflows[i].Properties = map[string]string{"kind": "workflow"}
 	}
 	d.Nodes = append(d.Nodes, component, otherComponent)
-	d.Nodes = append(d.Nodes, deployables...)
+	d.Nodes = append(d.Nodes, builds...)
+	d.Nodes = append(d.Nodes, workflows...)
+
+	// multi build: 2 runs + 1 build = 3 total.
+	// run build:   1 run.
+	// unlinked build: 0.
+	// Workflow links exist but don't affect the display because workflows are counted.
 	d.Edges = []mapdoc.Edge{
-		mapdoc.NewEdge(mapdoc.EdgeBuilds, deployables[1].ID, component.ID, "build-api"),
-		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[2].ID, component.ID, "run-api"),
-		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[3].ID, component.ID, "run-api-1"),
-		mapdoc.NewEdge(mapdoc.EdgeRuns, deployables[3].ID, otherComponent.ID, "run-api-2"),
-		mapdoc.NewEdge(mapdoc.EdgeBuilds, deployables[3].ID, component.ID, "build-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, builds[0].ID, component.ID, "multi-run-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, builds[0].ID, otherComponent.ID, "multi-run-worker"),
+		mapdoc.NewEdge(mapdoc.EdgeBuilds, builds[0].ID, component.ID, "multi-build-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, builds[1].ID, component.ID, "run-api"),
+		// Workflow edges exist but workflows are counted, not listed.
+		mapdoc.NewEdge(mapdoc.EdgeBuilds, workflows[1].ID, component.ID, "wf-build-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, workflows[2].ID, component.ID, "wf-run-api"),
+		mapdoc.NewEdge(mapdoc.EdgeRuns, workflows[3].ID, component.ID, "wf-mixed-run-api"),
+		mapdoc.NewEdge(mapdoc.EdgeBuilds, workflows[3].ID, component.ID, "wf-mixed-build-api"),
 	}
 	var output bytes.Buffer
 	if err := writeMapSummary(&output, d); err != nil {
 		t.Fatal(err)
 	}
 	text := output.String()
+
+	// --- CI workflows are collapsed ---
+	if !strings.Contains(text, "+5 CI workflows") {
+		t.Fatalf("CI workflows were not counted as secondary; want '+5 CI workflows':\n%s", text)
+	}
+	// Workflow names must not appear as individual entries.
+	for _, wfName := range []string{"mixed declaration [workflow]", "run declaration [workflow]", "build declaration [workflow]"} {
+		if strings.Contains(text, wfName) {
+			t.Fatalf("workflow appeared by name when other runnable deployables exist: %q:\n%s", wfName, text)
+		}
+	}
+
+	// --- Runnable deployable ordering: most-linked first ---
 	for _, want := range []string{
-		"Relationship declarations: 3 runs, 2 builds",
-		"mixed declaration [workflow] → builds api, runs api",
-		"run declaration [workflow] → runs api",
+		"multi build [container_build] → builds api, runs api",
+		"run build [container_build] → runs api",
+		"unlinked build [container_build]",
 	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("summary missing %q:\n%s", want, text)
 		}
 	}
-	first := strings.Index(text, "mixed declaration [workflow]")
-	second := strings.Index(text, "run declaration [workflow]")
-	third := strings.Index(text, "build declaration [workflow]")
-	unlinked := strings.Index(text, "a-unlinked [workflow]")
-	if first < 0 || second <= first || third <= second || unlinked <= third {
-		t.Fatalf("linked entries were not ranked before unlinked deployables:\n%s", text)
+	posMulti := strings.Index(text, "multi build [container_build]")
+	posRun := strings.Index(text, "run build [container_build]")
+	posUnlinked := strings.Index(text, "unlinked build [container_build]")
+	if posMulti < 0 || posRun <= posMulti || posUnlinked <= posRun {
+		t.Fatalf("runnable deployables not ranked by link count:\n%s", text)
 	}
+
+	// The "+N CI workflows" count must appear in the "Deployables:" header line,
+	// and the named container-build entries follow on the next lines. Verify the
+	// "Deployables:" line carries the count but NOT the individual workflow names.
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasPrefix(line, "Deployables:") {
+			if !strings.Contains(line, "+5 CI workflows") {
+				t.Fatalf("Deployables header line missing '+5 CI workflows':\n%s", line)
+			}
+			break
+		}
+	}
+
+	// No runtime-instance language.
 	if strings.Contains(strings.ToLower(text), "runtime instance") {
 		t.Fatalf("summary implies a runtime count rather than declaration count:\n%s", text)
+	}
+
+	// --- When only CI workflows are present, show them by name ---
+	dWorkflowOnly := mapdoc.New()
+	dWorkflowOnly.Status = mapdoc.CoveragePartial
+	wfOnly := []mapdoc.Node{
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"z-only.yml"}, "wf-only-z"),
+		mapdoc.NewNode(mapdoc.NodeDeployable, []string{"a-only.yml"}, "wf-only-a"),
+	}
+	for i := range wfOnly {
+		wfOnly[i].Name = []string{"z-workflow", "a-workflow"}[i]
+		wfOnly[i].Properties = map[string]string{"kind": "workflow"}
+	}
+	dWorkflowOnly.Nodes = append(dWorkflowOnly.Nodes, wfOnly...)
+	var wfOnlyOut bytes.Buffer
+	if err := writeMapSummary(&wfOnlyOut, dWorkflowOnly); err != nil {
+		t.Fatal(err)
+	}
+	wfOnlyText := wfOnlyOut.String()
+	if strings.Contains(wfOnlyText, "CI workflows") {
+		t.Fatalf("CI-workflow-only repo should show workflows by name, not as a count:\n%s", wfOnlyText)
+	}
+	if !strings.Contains(wfOnlyText, "z-workflow [workflow]") || !strings.Contains(wfOnlyText, "a-workflow [workflow]") {
+		t.Fatalf("CI-workflow-only repo did not list workflow names:\n%s", wfOnlyText)
 	}
 }
 

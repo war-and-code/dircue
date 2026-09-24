@@ -123,7 +123,7 @@ func newMapCommand(opts *options) *cobra.Command {
 				}()
 			}
 			deployObserver := deployables.NewCollector(deployables.Options{})
-			intentObserver := intentmap.New(intentmap.Options{})
+			intentObserver := intentmap.New(intentmap.Options{MaxObservations: settings.IntentObservations})
 			hooks := append(detectors.Default(), deployObserver, intentObserver)
 			report, err := scanner.Scan(cmd.Context(), root, scanner.Options{
 				Source: opts.source, Revision: revision, Tree: opts.tree,
@@ -446,7 +446,13 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	// Deduplicate summary labels: a solution and its only member project often
 	// share the same name. Show each distinct "name [ecosystem]" once.
-	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	// Shallow roots first: the repository's own projects lead, nested ones follow.
+	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int {
+		if da, db := componentDepth(a), componentDepth(b); da != db {
+			return da - db
+		}
+		return strings.Compare(mapNodeLabel(a), mapNodeLabel(b))
+	})
 	seenLabels := map[string]bool{}
 	uniquePrimaryComponents := make([]mapdoc.Node, 0, len(primaryComponents))
 	for _, n := range primaryComponents {
@@ -462,22 +468,56 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	if len(uniquePrimaryComponents) > 4 {
 		line("  (+%d more components)", len(uniquePrimaryComponents)-4)
 	}
-	// Partition deployables: runnable workloads/builds/charts/modules first;
-	// CI workflows and Kubernetes cluster-management objects as secondary counts.
+	// Partition deployables into three buckets:
+	//   1. runnableDeployables: container builds, workloads, Compose/Aspire services,
+	//      Helm charts, Terraform modules, CloudFormation stacks, functions. Shown
+	//      by name, sorted by link count.
+	//   2. ciWorkflows: GitHub Actions / Jenkins / other CI. Shown as "+N CI
+	//      workflows" unless runnableDeployables is empty, in which case they fall
+	//      back to the named list (so a CI-only repo still shows workflow names).
+	//   3. clusterResources: Kubernetes cluster-management objects (ServiceAccounts,
+	//      ConfigMaps, …). Always shown as "+N cluster resources".
 	runnableDeployables := []mapdoc.Node{}
-	secondaryCounts := map[string]int{} // "CI workflows", "cluster resources"
+	ciWorkflows := []mapdoc.Node{}
+	clusterResourceCount := 0
+	auxiliaryDeployableCount := 0
 	for _, n := range deployables {
 		kind := n.Properties["kind"]
 		provider := n.Properties["provider"]
-		if runnableDeployableKind(kind, provider) {
+		if role := n.Properties["role"]; role != "" && role != "primary" {
+			// Devcontainers, examples and test fixtures are not what the
+			// directory deploys; count them instead of listing them.
+			auxiliaryDeployableCount++
+		} else if kind == "workflow" {
+			ciWorkflows = append(ciWorkflows, n)
+		} else if runnableDeployableKind(kind, provider) {
 			runnableDeployables = append(runnableDeployables, n)
 		} else {
-			secondaryCounts["cluster resources"]++
+			clusterResourceCount++
 		}
 	}
+	// If there are no non-CI runnable deployables the CI workflows are the only
+	// named things the user can act on, so display them inline.
+	listedWorkflows := []mapdoc.Node{}
+	countedWorkflows := 0
+	if len(runnableDeployables) == 0 {
+		listedWorkflows = ciWorkflows
+	} else {
+		countedWorkflows = len(ciWorkflows)
+	}
+	secondary := []string{}
+	if countedWorkflows > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d CI workflows", countedWorkflows))
+	}
+	if clusterResourceCount > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d cluster resources", clusterResourceCount))
+	}
+	if auxiliaryDeployableCount > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d tooling, test or example", auxiliaryDeployableCount))
+	}
 	secondarySuffix := ""
-	if n := secondaryCounts["cluster resources"]; n > 0 {
-		secondarySuffix = fmt.Sprintf(" (+%d cluster resources)", n)
+	if len(secondary) > 0 {
+		secondarySuffix = " (" + strings.Join(secondary, ", ") + ")"
 	}
 	line("Deployables: %d%s", len(deployables), secondarySuffix)
 	linked := map[string][]string{}
@@ -493,24 +533,30 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 			linked[e.From] = append(linked[e.From], string(e.Type)+" "+mapNodeLabel(target))
 		}
 	}
-	slices.SortFunc(runnableDeployables, func(a, b mapdoc.Node) int {
-		left, right := linkedDeclarations[a.ID], linkedDeclarations[b.ID]
-		leftTotal, rightTotal := left.runs+left.builds, right.runs+right.builds
-		if leftTotal != rightTotal {
-			return rightTotal - leftTotal
-		}
-		if left.runs != right.runs {
-			return right.runs - left.runs
-		}
-		if left.builds != right.builds {
-			return right.builds - left.builds
-		}
-		if comparison := strings.Compare(mapNodeLabel(a), mapNodeLabel(b)); comparison != 0 {
-			return comparison
-		}
-		return strings.Compare(a.ID, b.ID)
-	})
-	for _, n := range runnableDeployables[:min(4, len(runnableDeployables))] {
+	sortDeployables := func(nodes []mapdoc.Node) {
+		slices.SortFunc(nodes, func(a, b mapdoc.Node) int {
+			left, right := linkedDeclarations[a.ID], linkedDeclarations[b.ID]
+			leftTotal, rightTotal := left.runs+left.builds, right.runs+right.builds
+			if leftTotal != rightTotal {
+				return rightTotal - leftTotal
+			}
+			if left.runs != right.runs {
+				return right.runs - left.runs
+			}
+			if left.builds != right.builds {
+				return right.builds - left.builds
+			}
+			if comparison := strings.Compare(mapNodeLabel(a), mapNodeLabel(b)); comparison != 0 {
+				return comparison
+			}
+			return strings.Compare(a.ID, b.ID)
+		})
+	}
+	sortDeployables(runnableDeployables)
+	sortDeployables(listedWorkflows)
+	// Combine named list: runnable deployables first, then workflows (if shown inline).
+	namedDeployables := append(runnableDeployables, listedWorkflows...)
+	for _, n := range namedDeployables[:min(4, len(namedDeployables))] {
 		links := linked[n.ID]
 		slices.Sort(links)
 		suffix := ""
@@ -519,8 +565,8 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		}
 		line("  %s [%s]%s", mapNodeLabel(n), safeMapLabel(n.Properties["kind"]), suffix)
 	}
-	if len(runnableDeployables) > 4 {
-		line("  (+%d more runnable deployables)", len(runnableDeployables)-4)
+	if len(namedDeployables) > 4 {
+		line("  (+%d more runnable deployables)", len(namedDeployables)-4)
 	}
 	writeMapNames := func(title string, nodes []mapdoc.Node) {
 		names := make([]string, 0, len(nodes))
@@ -556,10 +602,13 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		line("Possible next analyzers: %s", strings.Join(tools[:min(6, len(tools))], ", "))
 	}
 	line("Attached provider runs: %d", len(d.CoverageLedger))
+	// Pre-count specific partial-coverage patterns so uncertain lines can be
+	// specific rather than generic (e.g. "3 Helm charts not rendered").
+	specificCounts := mapSpecificCounts(d.Nodes)
 	var unknown []string
 	for _, q := range d.Coverage {
 		if q.Status != mapdoc.CoverageComplete {
-			unknown = append(unknown, mapCoverageSummary(q, d.Source.Mode))
+			unknown = append(unknown, mapCoverageSummary(q, d.Source.Mode, specificCounts))
 		}
 	}
 	slices.Sort(unknown)
@@ -600,6 +649,16 @@ func safeMapLabel(value string) string {
 	return value
 }
 
+// componentDepth is the number of directories between the repository root
+// and the component root.
+func componentDepth(n mapdoc.Node) int {
+	root := n.Properties["root"]
+	if root == "" || root == "." {
+		return 0
+	}
+	return strings.Count(root, "/") + 1
+}
+
 func mapNodeLabel(n mapdoc.Node) string {
 	name := strings.TrimSpace(n.Name)
 	if name == "" || name == "?" {
@@ -615,7 +674,27 @@ func mapNodeLabel(n mapdoc.Node) string {
 	return safeMapLabel(name)
 }
 
-func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
+// mapCounts holds pre-computed counts of specific partial-coverage patterns
+// so that mapCoverageSummary can produce specific rather than generic messages.
+type mapCounts struct {
+	helmPartial int // NodeDeployable nodes with reason helm_templates_not_rendered
+}
+
+// mapSpecificCounts inspects visible nodes and counts specific partial-coverage
+// patterns that can make "Still uncertain" lines more informative.
+func mapSpecificCounts(nodes []mapdoc.Node) mapCounts {
+	var c mapCounts
+	for _, n := range nodes {
+		if n.Kind == mapdoc.NodeDeployable && n.Coverage.Status == mapdoc.CoveragePartial {
+			if slices.Contains(n.Coverage.Reasons, "helm_templates_not_rendered") {
+				c.helmPartial++
+			}
+		}
+	}
+	return c
+}
+
+func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string, counts mapCounts) string {
 	switch q.Question {
 	case "source_binding":
 		if mode == "directory" {
@@ -627,6 +706,13 @@ func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
 	case "components":
 		return "Components: some project declarations or references may be unresolved"
 	case "deployables":
+		if counts.helmPartial > 0 {
+			noun := "Helm chart"
+			if counts.helmPartial != 1 {
+				noun = "Helm charts"
+			}
+			return fmt.Sprintf("Deployables: %d %s not rendered (templates require evaluation for complete coverage)", counts.helmPartial, noun)
+		}
 		return "Deployables: some build or deployment declarations may be unrecognized"
 	case "interfaces":
 		return "Interfaces: some entry points or contracts may be unrecognized"
@@ -690,10 +776,11 @@ func hasRootDotGit(dir string) bool {
 // runnableDeployableKind returns true for deployable kinds that describe
 // something that runs, builds, or orchestrates: container images,
 // Compose/Serverless/Aspire services, Kubernetes workloads, Helm charts,
-// Terraform modules, and CI workflows. Only Kubernetes generic cluster-management
-// objects (resource kind) return false; those are shown as a secondary count in
-// the summary rather than listed by name, because large monorepos can have
-// hundreds of them and they add little signal to a quick overview.
+// Terraform modules, and CloudFormation stacks. CI workflows (kind "workflow")
+// return false; they are counted separately as "+N CI workflows" and shown by
+// name only when no other runnable deployables are present. Kubernetes
+// cluster-management objects (resource kind) also return false; those are shown
+// as "+N cluster resources".
 func runnableDeployableKind(kind, provider string) bool {
 	switch kind {
 	case "container_build":
@@ -712,9 +799,10 @@ func runnableDeployableKind(kind, provider string) bool {
 		// Kubernetes generic resources are cluster-management objects.
 		return false
 	case "workflow":
-		// CI workflows are always shown by name; link-count sorting puts the ones
-		// that build or run components first.
-		return true
+		// CI workflows are separated from runnable deployables so that large
+		// monorepos with many workflows don't bury the container builds and workloads.
+		// The caller handles workflows in a dedicated ciWorkflows bucket.
+		return false
 	}
 	return true
 }

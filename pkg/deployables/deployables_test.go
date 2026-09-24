@@ -255,6 +255,106 @@ func TestHelmConditionalServiceAccountRemainsQualifiedInfrastructure(t *testing.
 	}
 }
 
+func TestHelmValuesYAMLImageRefsEnrichChartDefinition(t *testing.T) {
+	// A co-located values.yaml that declares image.repository + image.tag
+	// should add image references to the Chart.yaml definition.
+	chart := "apiVersion: v2\nname: my-service\nversion: 1.0.0\n"
+	values := "image:\n  repository: myrepo/my-service\n  tag: \"2.3.4\"\n"
+	r, err := Observe(context.Background(), []Candidate{
+		{Path: "charts/my-service/Chart.yaml", Size: int64(len(chart)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return []byte(chart), int64(len(chart)), nil }},
+		{Path: "charts/my-service/values.yaml", Size: int64(len(values)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) {
+			return []byte(values), int64(len(values)), nil
+		}},
+	}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	def := r.Definitions[0]
+	if def.Provider != "helm" || def.Name != "my-service" {
+		t.Fatalf("unexpected definition: %+v", def)
+	}
+	var imageRef *Reference
+	for i := range def.References {
+		if def.References[i].Kind == "image" {
+			imageRef = &def.References[i]
+			break
+		}
+	}
+	if imageRef == nil {
+		t.Fatalf("no image reference found in %+v", def.References)
+	}
+	if imageRef.Value != "myrepo/my-service:2.3.4" {
+		t.Errorf("image value = %q; want myrepo/my-service:2.3.4", imageRef.Value)
+	}
+	if imageRef.Qualification != "external" {
+		t.Errorf("image qualification = %q; want external", imageRef.Qualification)
+	}
+}
+
+func TestHelmValuesYAMLLatestTagOmitted(t *testing.T) {
+	// "latest" tag is too dynamic to be a useful reference — omit the tag.
+	chart := "apiVersion: v2\nname: my-svc\nversion: 0.1.0\n"
+	values := "image:\n  repository: myorg/my-svc\n  tag: latest\n"
+	r, err := Observe(context.Background(), []Candidate{
+		{Path: "charts/my-svc/Chart.yaml", Size: int64(len(chart)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return []byte(chart), int64(len(chart)), nil }},
+		{Path: "charts/my-svc/values.yaml", Size: int64(len(values)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) {
+			return []byte(values), int64(len(values)), nil
+		}},
+	}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	def := r.Definitions[0]
+	for _, ref := range def.References {
+		if ref.Kind == "image" && ref.Value == "myorg/my-svc:latest" {
+			t.Error("latest tag should not be included in image reference")
+		}
+		if ref.Kind == "image" && ref.Value == "myorg/my-svc" {
+			return // ok: repository without tag
+		}
+	}
+}
+
+func TestHelmValuesYAMLTemplateTagSkipped(t *testing.T) {
+	// A Go-template tag expression in the tag field cannot be resolved statically.
+	chart := "apiVersion: v2\nname: tmpl-svc\nversion: 0.1.0\n"
+	values := "image:\n  repository: myorg/tmpl-svc\n  tag: \"{{ .Chart.AppVersion }}\"\n"
+	r, err := Observe(context.Background(), []Candidate{
+		{Path: "charts/tmpl-svc/Chart.yaml", Size: int64(len(chart)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return []byte(chart), int64(len(chart)), nil }},
+		{Path: "charts/tmpl-svc/values.yaml", Size: int64(len(values)), Read: func(_ context.Context, _ int64) ([]byte, int64, error) {
+			return []byte(values), int64(len(values)), nil
+		}},
+	}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	def := r.Definitions[0]
+	for _, ref := range def.References {
+		if ref.Kind == "image" && strings.Contains(ref.Value, "{{") {
+			t.Errorf("template expression should not appear in image reference: %q", ref.Value)
+		}
+	}
+}
+
+func TestHelmValuesYAMLWithoutCoLocatedChartIsNotAdded(t *testing.T) {
+	// A values.yaml without a co-located Chart.yaml should not produce
+	// any definitions on its own.
+	values := "image:\n  repository: myrepo/standalone\n  tag: \"1.0.0\"\n"
+	r := observeOne(t, "charts/standalone/values.yaml", values)
+	if len(r.Definitions) != 0 {
+		t.Fatalf("lone values.yaml should not produce definitions, got: %+v", r.Definitions)
+	}
+}
+
 func TestSAMCodeURICapturedAsLocalReference(t *testing.T) {
 	body := "service: orders\nResources:\n  Function:\n    Type: AWS::Serverless::Function\n    Properties:\n      CodeUri: src/\n"
 	r := observeOne(t, "template.yaml", body)
@@ -406,5 +506,51 @@ func TestCancellation(t *testing.T) {
 	_, err = c.Detect(ctx, profile.File{})
 	if err != context.Canceled {
 		t.Fatalf("detector got %v", err)
+	}
+}
+
+func TestDockerfileDisplayNameDerivedFromParentDirectory(t *testing.T) {
+	// Verify that parseDockerfile uses the parent directory name rather than
+	// the hard-coded "default" sentinel.
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"Dockerfile", "(root)"},                  // root Dockerfile → "(root)"
+		{"src/api/Dockerfile", "api"},             // service sub-directory
+		{"services/auth/Dockerfile", "auth"},      // deeper path
+		{"src/cartservice/src/Dockerfile", "src"}, // nested src/ uses parent dir
+		{"Dockerfile.prod", "(root)"},             // variant at root
+		{"apps/web/Dockerfile.staging", "web"},    // variant in sub-directory
+	}
+	for _, tc := range cases {
+		got := dockerfileDisplayName(tc.path)
+		if got != tc.want {
+			t.Errorf("dockerfileDisplayName(%q) = %q; want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestDockerfileObservationUsesPathDerivedName(t *testing.T) {
+	// End-to-end: a Dockerfile at "services/api/Dockerfile" should produce a
+	// definition whose Name is "api", not "default".
+	body := "FROM golang:1.26 AS build\nFROM scratch\n"
+	r := observeOne(t, "services/api/Dockerfile", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("expected one definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	if r.Definitions[0].Name != "api" {
+		t.Errorf("Dockerfile name = %q; want %q", r.Definitions[0].Name, "api")
+	}
+}
+
+func TestRootDockerfileObservationUsesRootSentinel(t *testing.T) {
+	body := "FROM node:22\n"
+	r := observeOne(t, "Dockerfile", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("expected one definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	if r.Definitions[0].Name != "(root)" {
+		t.Errorf("root Dockerfile name = %q; want \"(root)\"", r.Definitions[0].Name)
 	}
 }
