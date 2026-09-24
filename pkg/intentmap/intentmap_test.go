@@ -580,8 +580,12 @@ import psycopg2
 
 func TestCatalogPythonJoseEntries(t *testing.T) {
 	// python-jose (PyPI name) and jose (import name) both must map to auth:jwt.
-	for _, coord := range []string{"python-jose", "jose"} {
-		caps := capabilitiesFor(coord)
+	for _, tc := range []struct{ kind, coord string }{
+		{"python-dependency", "python-jose"},
+		{"python-import", "jose"},
+	} {
+		caps := capabilitiesFor(tc.kind, tc.coord)
+		coord := tc.coord
 		found := false
 		for _, c := range caps {
 			if c == "auth:jwt" {
@@ -597,7 +601,7 @@ func TestCatalogPythonJoseEntries(t *testing.T) {
 func TestCatalogPsycopg2Entry(t *testing.T) {
 	// psycopg2 and psycopg2-binary both must map to datastore:postgresql.
 	for _, coord := range []string{"psycopg2", "psycopg2-binary"} {
-		caps := capabilitiesFor(coord)
+		caps := capabilitiesFor("python-dependency", coord)
 		found := false
 		for _, c := range caps {
 			if c == "datastore:postgresql" {
@@ -620,5 +624,26 @@ func TestParsePythonImportsIndentedImportSkipped(t *testing.T) {
 		if o.Name == "crypto:library" {
 			t.Fatalf("indented import produced unexpected capability %q at line %d; top-level-only rule violated", o.Name, o.StartLine)
 		}
+	}
+}
+
+func TestNpmDevDependenciesDoNotBecomeCapabilities(t *testing.T) {
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "package.json", Root: ".", References: []declarations.Reference{
+		{Kind: "npm-dependency", Value: "pg@^8.0.0", State: "declared", Evidence: "package.json", Condition: "dependencies"},
+		{Kind: "npm-dependency", Value: "connect-redis@^8.0.1", State: "declared", Evidence: "package.json", Condition: "devDependencies"},
+	}}})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability {
+			names[o.Name] = true
+		}
+	}
+	if !names["datastore:postgresql"] || names["cache:redis"] {
+		t.Fatalf("capabilities = %v, want datastore:postgresql only", names)
 	}
 }

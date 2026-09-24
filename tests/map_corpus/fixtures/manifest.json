@@ -36,6 +36,11 @@
       "id": "python-capabilities",
       "description": "Python capability inference from imports and declared requirements",
       "expectations": "python-capabilities.json"
+    },
+    {
+      "id": "capabilities-polyglot",
+      "description": "Ecosystem-aware capability matching across npm, Ruby, Maven, NuGet, Go, Cargo, PHP and Python declared dependencies",
+      "expectations": "capabilities-polyglot.json"
     }
   ]
 }
