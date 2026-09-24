@@ -52,6 +52,13 @@ func capabilitiesFor(kind, value string) []string {
 		}
 	}
 
+	// --- Code generation declarations ---
+	// A .NET <Protobuf> item or a Maven protobuf plugin generates protobuf
+	// code; the value names the generator rather than a package.
+	if kind == "code-generation" && strings.Contains(pkg, "protobuf") {
+		add("serialization:protobuf")
+	}
+
 	// --- 2. Prefix matching for path-based ecosystems ---
 	// Applied when the kind is prefix-matched (Go, Maven, npm scopes, etc.)
 	// or when kind is empty/unknown (legacy caller).
@@ -136,8 +143,8 @@ func extractPackageName(kind, lower string) string {
 		if len(parts) >= 2 {
 			lower = parts[0] + ":" + parts[1]
 		}
-	// ruby-gem-dependency, php-dependency,
-	// go-import, python-import: value is already the package name.
+		// ruby-gem-dependency, php-dependency,
+		// go-import, python-import: value is already the package name.
 	}
 	return lower
 }

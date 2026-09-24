@@ -94,6 +94,12 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			default:
 				continue
 			}
+			// Development-only packages (test runners, fixtures, session
+			// stores used in examples) describe how the project is built and
+			// tested, not what the component itself uses.
+			if ref.Condition == "devDependencies" {
+				continue
+			}
 			for _, capability := range capabilitiesFor(ref.Kind, ref.Value) {
 				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(ref.State), Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
 			}
