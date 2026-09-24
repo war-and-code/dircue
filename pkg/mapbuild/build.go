@@ -103,11 +103,19 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 			}
 		}
 		role := mapPathRole(components[i].Paths...)
+		roleBasis := "path_name"
 		if role == "" {
-			role = "primary"
+			// Signal 2: placeholder declared names indicate generated or template
+			// entries that are not primary service or library components.
+			if r := placeholderNameRole(components[i].Name); r != "" {
+				role = r
+				roleBasis = "declared_name"
+			} else {
+				role = "primary"
+			}
 		}
 		components[i].Properties["role"] = role
-		components[i].Properties["role_basis"] = "path_name"
+		components[i].Properties["role_basis"] = roleBasis
 		// For Go modules: prefer the last path segment as display name to avoid
 		// exposing full module paths (e.g. "github.com/grafana/loki" → "loki").
 		// The full module path is preserved in the "go_module" property.
@@ -116,6 +124,31 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 			if lastSeg := path.Base(modulePath); lastSeg != "" && lastSeg != "." && strings.ContainsRune(modulePath, '/') {
 				components[i].Properties["go_module"] = modulePath
 				components[i].Name = lastSeg
+			}
+		}
+	}
+	// Signal 3: repeated sibling templates — when 3 or more primary components
+	// share an identical declared name under the same grandparent directory they
+	// are template instances (test cases, golden fixtures) rather than primary
+	// products. Promote them to fixture.
+	type gpName struct{ gp, name string }
+	siblingCounts := map[gpName]int{}
+	for i := range components {
+		if components[i].Properties["role"] == "primary" {
+			root := components[i].Properties["root"]
+			gp := path.Dir(path.Dir(path.Clean(root)))
+			key := gpName{gp, strings.ToLower(components[i].Name)}
+			siblingCounts[key]++
+		}
+	}
+	for i := range components {
+		if components[i].Properties["role"] == "primary" {
+			root := components[i].Properties["root"]
+			gp := path.Dir(path.Dir(path.Clean(root)))
+			key := gpName{gp, strings.ToLower(components[i].Name)}
+			if siblingCounts[key] >= 3 {
+				components[i].Properties["role"] = "fixture"
+				components[i].Properties["role_basis"] = "repeated_sibling_name"
 			}
 		}
 	}
@@ -338,6 +371,21 @@ func uniqueNodes(nodes []mapdoc.Node) []mapdoc.Node {
 	return out
 }
 
+// placeholderNameRole returns the role for a component whose declared name is a
+// generic placeholder that indicates a template, test case, or generated entry.
+// Returns "" if the name is not a recognised placeholder.
+func placeholderNameRole(name string) string {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "test", "tests":
+		return "test"
+	case "example", "examples", "sample", "samples":
+		return "example"
+	case "fixture", "fixtures", "dummy", "foo", "my-project", "my_project", "demo":
+		return "fixture"
+	}
+	return ""
+}
+
 // mapPathRole is a conservative path-name hint. It marks auxiliary material
 // without discarding any node from the machine-readable map.
 // Returns one of "vendored", "fixture", "test", "example", "docs", "tooling", or
@@ -357,8 +405,8 @@ func mapPathRole(paths ...string) string {
 			// vendored external code
 			case "vendor", "node_modules", "third_party", ".bingo", "bingo":
 				choose("vendored", 6)
-			// test fixtures
-			case "fixtures", "testdata", "__fixtures__":
+			// test fixtures and evaluation truth data
+			case "fixtures", "testdata", "__fixtures__", "truth", "cases", "snapshots", "corpus", "golden":
 				choose("fixture", 5)
 			// examples and demos
 			case "examples", "samples", "demo", "demos":
@@ -370,7 +418,7 @@ func mapPathRole(paths ...string) string {
 			case "docs", "doc", "documentation", "releasing", "translations", "i18n", "locale", "locales":
 				choose("docs", 2)
 			// other tooling
-			case "tools", "tooling", "scripts", "hack", "ci", "infra":
+			case "tools", "tooling", "scripts", "hack", "ci", "infra", "benchmarks", "bench":
 				choose("tooling", 1)
 			default:
 				// Directory segments that end with _test, _tests, test, tests
