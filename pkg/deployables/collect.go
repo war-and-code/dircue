@@ -64,8 +64,15 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		r.Coverage.InspectedBytes += size
 		defs, recognized, parseErr := parse(candidate.Path, content)
 		if parseErr != nil {
-			r.omit("parse_error", 1, candidate.Path, parseErr.Error())
-			continue
+			var limitErr *yamlDocLimitError
+			if errors.As(parseErr, &limitErr) {
+				// Keep definitions parsed before the limit; record a distinct reason.
+				r.omit("yaml_document_limit", 1, candidate.Path, "File has more than 128 YAML documents; only the first 128 were parsed.")
+				// fall through and use partial defs if any were recognized
+			} else {
+				r.omit("parse_error", 1, candidate.Path, parseErr.Error())
+				continue
+			}
 		}
 		if !recognized {
 			continue
@@ -134,6 +141,10 @@ func IsCandidate(name string) bool {
 		return true
 	}
 	if ext == ".yml" || ext == ".yaml" {
+		return true
+	}
+	// .NET Aspire AppHost entry point: Program.cs in an AppHost project directory.
+	if base == "program.cs" && isAppHostDir(path.Dir(name)) {
 		return true
 	}
 	return false
