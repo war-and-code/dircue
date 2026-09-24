@@ -316,11 +316,30 @@ built-in capability data.
 
 ## Capability catalog
 
-The built-in catalog maps package coordinates (npm, PyPI, Go module path,
-Maven group:artifact, NuGet, crate, RubyGem) and import names to capability
-categories. It is the bounded list in `pkg/intentmap/catalog.go`.
+The built-in catalog maps package coordinates and import names to capability
+categories using ecosystem-aware exact matching. Each ecosystem has its own
+lookup table keyed by canonical package name; entries cover the top ~10
+packages per category across npm, PyPI, RubyGems, Maven/Gradle, NuGet, Go,
+Cargo, Composer, and Python import names. The catalog is in
+`pkg/intentmap/catalog.go`.
 
-Current categories:
+**Ecosystem matching rules:**
+
+| Ecosystem | Kind value | Name format | Version stripping |
+| --- | --- | --- | --- |
+| npm | `npm-dependency` | Exact package name | Strip trailing `@version` (`@scope/pkg@ver` → `@scope/pkg`) |
+| PyPI | `python-dependency` | PEP 503 canonical (lowercase, `[-_.]` → `-`) | Strip at `[<>=!~(@ ;` |
+| RubyGems | `ruby-gem-dependency` | Exact gem name | None (already canonical) |
+| Maven | `maven-dependency` | `group:artifact` prefix | Exact `group:artifact` from `group:artifact:version` |
+| Gradle | `gradle-dependency` | `group:artifact` prefix | Same as Maven |
+| NuGet | `package-reference` | Exact package name (case-insensitive) | Strip at `@` |
+| Go modules | `go-require` | Module path prefix | Strip `@version` suffix |
+| Go imports | `go-import` | Import path prefix | Exact match |
+| Cargo | `cargo-dependency` | Exact crate name | Strip space-separated version |
+| Composer | `php-dependency` | `vendor/package` exact | None |
+| Python imports | `python-import` | Exact import name | None |
+
+Current capability categories:
 
 | Category | Description |
 | --- | --- |
@@ -328,10 +347,14 @@ Current categories:
 | `datastore:mysql` | MySQL/MariaDB client libraries |
 | `datastore:mongodb` | MongoDB client libraries |
 | `datastore:elasticsearch` | Elasticsearch / OpenSearch clients |
+| `datastore:relational` | ORM / relational DB frameworks (SQLAlchemy, Hibernate, Doctrine, etc.) |
 | `cache:redis` | Redis client libraries |
 | `messaging:kafka` | Apache Kafka client libraries |
 | `messaging:amqp` | AMQP / RabbitMQ client libraries |
-| `messaging:event-bus` | Higher-level message-bus frameworks (MassTransit, NServiceBus, Azure Service Bus) |
+| `messaging:smtp` | SMTP / email-sending libraries |
+| `messaging:nats` | NATS messaging client libraries |
+| `messaging:event-bus` | Higher-level message-bus frameworks |
+| `storage:object` | Object / blob storage (S3, GCS, Azure Blob) |
 | `net:http-client` | Outbound HTTP client libraries |
 | `auth:oidc` | OpenID Connect / OAuth2 provider clients |
 | `auth:jwt` | JWT signing and verification libraries |
@@ -344,6 +367,7 @@ Current categories:
 | `cloud:aws` | AWS SDK and service client libraries |
 | `cloud:azure` | Azure SDK and service client libraries |
 | `cloud:gcp` | Google Cloud / Firebase client libraries |
+| `search:elasticsearch` | Elasticsearch / OpenSearch full-text search clients |
 
 Evidence levels (stored in the `basis` property of a capability node or
 `uses_capability` edge):
@@ -362,28 +386,24 @@ agreement vs. single-path evidence.
 
 ### Contributing a new catalog entry
 
-The catalog is in `pkg/intentmap/catalog.go`. Each entry is:
-
-```go
-{"category:name", []string{"coordinate-or-prefix", "..."}},
-```
-
-Coordinates are matched case-insensitively against the declared requirement or
-import name using `coordinateMatch`: a coordinate matches when the value starts
-with the coordinate string and the next character (if any) is a valid separator
-(`/`, space, `@`, `>`, `<`, `=`, `!`, `~`, `[`, `;`). The hyphen `-` is not a
-separator, so `psycopg2` does not match `psycopg2-binary`; list them separately.
+The catalog is in `pkg/intentmap/catalog.go`. Entries are per-ecosystem exact
+maps (`npmExact`, `pypiExact`, `rubyExact`, `cargoExact`, `phpExact`,
+`nugetExact`, `pythonImportExact`) or prefix entries for Go module paths and
+Maven/Gradle group coordinates.
 
 To add entries:
 
 1. Pick or propose a category name. Prefer an existing category for the same
    technology, not a new one per library.
-2. Add the coordinate(s) to the catalog, keeping the list sorted by category.
-3. Add a unit test in `pkg/intentmap/intentmap_test.go` that calls `capabilitiesFor`
-   with at least one coordinate and asserts the expected category.
+2. Add the package name to the appropriate ecosystem map, keeping entries
+   sorted by category within each map. For Go module paths and Maven groups,
+   add to the `prefixEntries` slice with a `prefixMatchKind`-compatible kind.
+3. Add or extend the table test in `pkg/intentmap/catalog_test.go`
+   (`TestCatalogEcosystemExactMatching`) with at least one positive and one
+   negative case for the new entry.
 4. Run `go test ./pkg/intentmap/...` and `go test -race ./pkg/intentmap/...`.
-5. If the corpus fixture for the affected technology exists, verify it still
-   passes with `python3 tests/map_corpus/verify.py`.
+5. Run `python3 tests/map_corpus/verify.py --results <dir>` after
+   `python3 tests/map_corpus/run.py` to confirm no fixture regressions.
 
 Catalog entries must be verifiable against public documentation for the
 package or import name. Do not add entries for internal or private packages.
