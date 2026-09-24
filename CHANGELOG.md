@@ -84,7 +84,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 
 ### Compatibility
-- Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Differences include project/declaration additions, removals, or reclassifications. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
+- Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Eighteen cases expose a new warning when an unborn Git repository falls back to directory mode in structured analysis. Eighteen add a Gradle root name from `settings.gradle.kts`. Fifteen reflect declaration changes: wider ecosystem support, Maven names, uv manifest classification, and removal of Go-version and npm developer-task interfaces. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 - `dircue compare` (saved profiles) and `dircue map compare` (maps) reject each other's documents with a pointer to the right command.
 
 ## 0.9.0 (2026-09-22)

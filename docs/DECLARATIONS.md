@@ -9,13 +9,13 @@ dircue analyze all --declarations --discovery --json /checkout
 
 The first command inventories selected regular files and reads supported manifests. It does not classify unrelated file contents, count lines, or start a structural worker. The second adds declaration observations to the usual aggregate profile. Neither command runs a package manager, build script, interpreter, or compiler.
 
-Existing `analyze projects` keeps its earlier output, including filename-based discovery outside .NET and JVM projects. The new `declarations` module has its own report contract and does not change the legacy language-only path.
+`analyze projects` remains available, including filename-based discovery outside .NET and JVM projects. The `declarations` module has its own report contract and does not change the legacy language-only path.
 
 ## Supported declarations
 
 | Ecosystem | Inputs | Observations |
 | --- | --- | --- |
-| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, unambiguous membership-only `workspace:*`/`workspace:^`/`workspace:~` links, script names and binary entrypoints |
+| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, unambiguous membership-only `workspace:*`/`workspace:^`/`workspace:~` links, conventional entry-point scripts (`start`, `serve`) and binary entrypoints |
 | Go | `go.mod`, `go.work` | Module identity, minimum language version, suggested toolchain, require/exclude/replace directives, workspace membership and selected local replacement targets |
 | Python and uv | `pyproject.toml`, `requirements*.txt`, literal `setup.py` | Project and dynamic metadata, Python requirement, build backend, dependency groups and extras, named entrypoints, uv workspace membership and source declarations; bounded auxiliary projects for requirements and literal setup calls |
 | Kbuild/Kconfig | A directory containing both `Kbuild` and `Kconfig` | A project-root marker only; no target or build relationship is inferred |
@@ -40,7 +40,7 @@ Cargo workspace declarations are resolved separately from filesystem nesting. Su
 
 ## Declared interfaces
 
-The `interfaces` array contains named scripts, entrypoints, tools and targets where the manifest provides them. Script bodies are not included. A script named `test` establishes that declaration, not the quality or completeness of a test suite. A Python `module:object` entrypoint does not establish that importing it succeeds. A Cargo build-script candidate does not mean it has run.
+The `interfaces` array contains supported entry-point scripts, tools and targets where the manifest provides them. For npm, only `start` and `serve` scripts are modeled as interfaces; developer tasks such as `test`, `check` and lint scripts are omitted. Script bodies are not included. A Python `module:object` entrypoint does not establish that importing it succeeds. A Cargo build-script candidate does not mean it has run.
 
 The .NET/JVM expansion reuses static declarations. Raw build conditions are represented as present with their expressions withheld, and unsupported path/URL values are withheld. Callers needing the existing detailed project-reader contract can request `analyze projects` separately. No report is a guarantee that every possible secret embedded in arbitrary project metadata has been removed.
 
