@@ -8,7 +8,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - **`dircue map [path]`** writes a portable map document (`schema/map.schema.json`, schema version 1.0.0) for a committed Git tree or an ordinary directory. Redirected output defaults to JSON; a terminal gets a one-screen summary (`--summary`). Inspected content is never executed.
 - **Output.** Nodes (content populations, components, deployables, interfaces, capabilities, packages) and edges (`contains`, `member_of`, `depends_on_local`, `depends_on`, `builds`, `runs`, `exposes`, `declares`, `uses_capability`, `packaged_in`, `analyzed_by`) have stable IDs derived from paths and declared names. Each has evidence (file, span, rule and version) and coverage (`complete`, `partial`, `unknown`, `not_run`, `tool_error`, with named reasons).
 - **What `complete` means.** A question, node or edge says `complete` only when its evidence is exhaustive for its scope. Heuristic attribution, such as a capability credited to a component by directory containment or a Dockerfile shared by several projects, is `partial`, with a named reason. Content problems never abort a map; they degrade coverage.
-- **Components** come from static, bounded manifest parsing across 33 ecosystems:
+- **Components** come from static, bounded parsing of 33 manifest kinds across 26 ecosystems:
   - npm, Go, Cargo and Python (pyproject, uv, `setup.cfg`, requirements-only directories);
   - Maven, Gradle, .NET and Kbuild;
   - Ruby (Bundler, gemspec, Rails application name) and PHP (Composer);
@@ -64,7 +64,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - `--stats-json PATH` writes deterministic cost counters and timings to a separate document, and `--cpuprofile`/`--memprofile` write Go profiles. The map document itself is byte-identical across worker counts, locations, locales and time zones.
 
 ### Git reading
-- The binary no longer links a network stack: go-git's transport client is excluded, and a build contract test enforces it. The binary is about 18% smaller.
+- The binary no longer links a network stack: go-git's transport client is excluded, and a build contract test enforces it. Release binaries are about 11% smaller than 0.9.0, despite the map.
 - Git-mode peak memory on the Linux kernel dropped by about 35%.
 - SHA-256 object-format repositories and corrupt Git directories fall back to directory mode with a warning.
 
