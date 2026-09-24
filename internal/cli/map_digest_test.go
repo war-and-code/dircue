@@ -41,8 +41,11 @@ func TestDirectoryMapCarriesGitCompatibleDigest(t *testing.T) {
 		t.Fatal(err)
 	}
 	doc := mapJSON(t, "--source", "directory", root)
-	if doc.Source.Digest == nil || doc.Source.Digest.Algorithm != "git-sha1" || doc.Source.Digest.Scope != "gitignore_filtered+git_normalized" {
+	if doc.Source.Digest == nil || doc.Source.Digest.Algorithm != "git-sha1" || doc.Source.Digest.Scope != "gitignore_filtered" {
 		t.Fatalf("digest = %+v", doc.Source.Digest)
+	}
+	if doc.Source.Digest.Normalization != "git_normalized" {
+		t.Fatalf("digest normalization: want git_normalized, got %q", doc.Source.Digest.Normalization)
 	}
 	if q := sourceBinding(t, doc); q.Status != mapdoc.CoverageComplete {
 		t.Fatalf("source_binding = %+v", q)
@@ -52,7 +55,7 @@ func TestDirectoryMapCarriesGitCompatibleDigest(t *testing.T) {
 		t.Fatalf("digest off: %+v %+v", off.Source.Digest, q)
 	}
 	raw := mapJSON(t, "--source", "directory", "--set", "source.digest=raw", root)
-	if raw.Source.Digest == nil || raw.Source.Digest.Scope != "all_entries+raw" {
+	if raw.Source.Digest == nil || raw.Source.Digest.Scope != "all_entries" || raw.Source.Digest.Normalization != "raw" {
 		t.Fatalf("raw digest = %+v", raw.Source.Digest)
 	}
 }
