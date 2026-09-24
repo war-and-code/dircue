@@ -319,7 +319,7 @@ func parseGoImports(name string, content []byte) []Observation {
 			line = fset.Position(spec.Pos()).Line
 		}
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
-		for _, capability := range capabilitiesFor(value) {
+		for _, capability := range capabilitiesFor("go-import", value) {
 			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"import": value}})
 		}
 	}
@@ -378,7 +378,7 @@ func parsePythonImports(name string, content []byte) []Observation {
 		if i := strings.IndexByte(pkg, '.'); i > 0 {
 			pkg = pkg[:i]
 		}
-		for _, capability := range capabilitiesFor(pkg) {
+		for _, capability := range capabilitiesFor("python-import", pkg) {
 			out = append(out, Observation{
 				Kind:       KindCapability,
 				Name:       capability,
