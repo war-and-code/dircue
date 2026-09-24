@@ -1,0 +1,65 @@
+{
+  "repo": "aws-mainframe-modernization-carddemo",
+  "source": "https://github.com/aws-samples/aws-mainframe-modernization-carddemo",
+  "commit": "59cc6c2fd7ebd7ef7925cad552a01a4b8b6e4d5e",
+  "oracle_files": [
+    {
+      "path": "app/cbl/CBACT01C.cbl",
+      "sha256": "f8eb6e3a561ff96a1889a8f777a8998850a11dddae221da2c5018067d7b95551"
+    },
+    {
+      "path": "app/cpy/CVACT01Y.cpy",
+      "sha256": "81a08bad15af5664326a6f0af3650f570821c4857ffdec3a6a39f91f07dca728"
+    },
+    {
+      "path": "app/jcl/READACCT.jcl",
+      "sha256": "0965badda9c801df4f86e74755b66325764d8d1a840c615e6552b660f6401f15"
+    },
+    {
+      "path": "README.md",
+      "sha256": "37847e4a59bbfa4be7077b3d0bfe03cc57c08902ac0cbb80a175059c878c2f05"
+    }
+  ],
+  "components": [],
+  "deployables": [],
+  "interfaces": [],
+  "capabilities": [],
+  "edges": [],
+  "coverage": {
+    "components": {
+      "status": "unknown",
+      "why": "The selected source demonstrates COBOL program and copybook files but no package/build manifest that declares a component; the current map's component model does not include COBOL/JCL projects."
+    },
+    "deployables": {
+      "status": "unknown",
+      "why": "COBOL code contains a batch program and the matching JCL invokes it, but the map does not model JCL jobs or compiled mainframe programs as deployables. No deployable labels are asserted from this limited oracle set."
+    },
+    "interfaces": {
+      "status": "unknown",
+      "why": "CBACT01C is a batch COBOL program with file I/O, not an interface kind currently represented by the map. CICS transaction interfaces elsewhere in the repository are outside oracle scope."
+    },
+    "capabilities": {
+      "status": "unknown",
+      "why": "The sampled COBOL source uses indexed/sequential files and a copybook, but the map capability catalog does not model VSAM or COBOL declarations; README technology descriptions were not scored as capability evidence."
+    },
+    "edges": {
+      "status": "unknown",
+      "why": "The JCL source invokes CBACT01C and supplies its batch execution context, but JCL-to-program execution edges are outside the map's current statically modeled relationships."
+    }
+  },
+  "notes": [
+    "The checkout contains 106 tracked .cbl/.cpy files and 55 tracked .jcl files (161 combined), plus BMS and other source assets. The mainframe application also contains BMS and other source assets.",
+    "CBACT01C.cbl identifies itself as a batch COBOL program and declares PROGRAM-ID CBACT01C; it reads indexed and sequential files and includes copybooks.",
+    "app/jcl/READACCT.jcl includes an EXEC PGM=CBACT01C step, providing direct source evidence of the batch invocation relationship.",
+    "CBACT01C.cbl includes CVACT01Y.cpy and CODATECN through COPY statements. This sample establishes COBOL source, copybook, batch-JCL, and file-I/O patterns, but does not claim exhaustive coverage of the full CardDemo application or its optional CICS/DB2/IMS/MQ extensions.",
+    "All scored map categories are empty because the current map vocabulary has no first-class COBOL, copybook, JCL-job, VSAM, or CICS model. These unknown coverage statuses should not be read as evidence that the repository has no components, workloads, interfaces, or capabilities."
+  ],
+  "non_goals": [
+    {
+      "type": "runs",
+      "from": "READACCT (JCL job)",
+      "to": "CBACT01C",
+      "why": "app/jcl/READACCT.jcl step STEP05 has EXEC PGM=CBACT01C; this is an explicit batch invocation, but JCL jobs and COBOL program nodes are outside the current deployable/component model."
+    }
+  ]
+}
