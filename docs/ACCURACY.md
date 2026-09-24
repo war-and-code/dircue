@@ -13,13 +13,69 @@ Results below are **post-catalog-rebuild** (merge a402eb4). Questions below
 
 | Question | Precision | Recall | TP | FP | FN | Gate / Status |
 |---|---|---|---|---|---|---|
-| components | — | — | — | — | — | being updated |
-| deployables | — | — | — | — | — | being updated |
-| interfaces | — | — | — | — | — | not gated |
-| capabilities | — | — | — | — | — | not gated |
-| edges | — | — | — | — | — | not gated |
+| components | **1.00** | **1.00** | 15 | 0 | 0 | gated |
+| deployables | **1.00** | **1.00** | 39 | 0 | 0 | gated |
+| interfaces | 0.44 | 0.59 | 20 | 25 | 14 | **not claimed at 1.0** |
+| capabilities | 0.68 | 0.86 | 30 | 14 | 5 | **not claimed at 1.0** |
+| edges | 0.27 | 0.39 | 33 | 89 | 52 | **not claimed at 1.0** |
 
-*(Placeholder — numbers will be filled after rebuild and re-run.)*
+### Why interfaces, capabilities, and edges are below 0.90
+
+**Interfaces (P=0.44 R=0.59)**
+
+FP root causes (all classified as modeling differences, not bugs):
+- dircue emits gRPC *operation* nodes (one per RPC method in .proto files) while
+  golden labels specify only service-level entries. This alone accounts for 12 of
+  25 FPs across the corpus.
+- dircue emits `prerequisite` (node/npm/yarn) and `python-build-backend` interface
+  nodes for toolchain requirements declared in package.json and pyproject.toml.
+  Golden labels did not include these.
+
+FN root causes:
+- `declared_port` from docker-compose `ports:` entries is not detected — dircue
+  only parses Dockerfile `EXPOSE` for port declarations. Tracked as (a) bug,
+  follow-up in issue backlog.
+- `declared_port` from Kubernetes `containerPort` is not detected. Same root cause.
+- `declared_port` from Dockerfile `EXPOSE ${VAR}` is not detected when the variable
+  has a default in the same file. Tracked as (a) bug.
+
+**Capabilities (P=0.68 R=0.86)**
+
+FP root causes: dircue detects many real capabilities from oracle-scoped files that
+golden labels did not cover (e.g., superset's cloud:aws, cloud:gcp, messaging:amqp
+from pyproject.toml extras). Labels were incomplete for superset and ruff.
+
+FN root causes: catalog gaps for `auth:oidc` (omniauth_openid_connect Ruby gem),
+`datastore:dynamodb` (AWS SDK for Java), `datastore:h2` (H2 JDBC driver). Tracked
+for catalog update in issue backlog.
+
+**Edges (P=0.27 R=0.39)**
+
+The edge evaluation is penalized by two independent problems:
+1. Endpoint vocabulary: golden labels use path-string endpoints
+   (`Dockerfile → image_name`, `compose:service → image_tag`) while dircue's
+   edge endpoints are graph-node IDs resolved via oracle-scoped node matching.
+   The verifier's semantic endpoint matcher reduces the gap significantly but
+   cannot bridge all formats. Classification: (c) modeling difference.
+2. Missing edge types: dircue does not yet emit `depends_on` or `packaged_in`
+   edges. These account for roughly 10 of 52 FNs. Tracked as (a) bugs.
+
+### Per-repository breakdown (golden corpus)
+
+| Repo | Components | Deployables | Interfaces | Capabilities | Edges |
+|---|---|---|---|---|---|
+| aws-sam-java-rest | 1.00/1.00 | 1.00/1.00 | N/A | 0.00/0.00 | 0.00/0.00 |
+| loki | 1.00/1.00 | 1.00/1.00 | 0.52/1.00 | 1.00/1.00 | 0.34/0.68 |
+| mastodon | 1.00/1.00 | 1.00/1.00 | 0.50/0.67 | 1.00/0.85 | 0.79/0.48 |
+| ruff | 1.00/1.00 | 1.00/1.00 | 0.25/0.50 | 0.00/N/A | 0.00/0.00 |
+| spring-petclinic | 1.00/1.00 | 1.00/1.00 | 1.00/0.20 | 0.67/0.67 | 0.67/0.25 |
+| superset | 1.00/1.00 | 1.00/1.00 | 0.14/0.12 | 0.27/1.00 | 0.12/0.41 |
+| terraform-aws-vpc | N/A | 1.00/1.00 | N/A | N/A | N/A/0.00 |
+
+*(Format: Precision/Recall)*
+
+Full item-level FP/FN lists: `$S/rcreview/fix/golden2/items/<repo>.json`
+Classification of every item: `tests/map_corpus/DISAGREEMENTS.md`
 
 ---
 

@@ -203,6 +203,51 @@
         {
           "path": "cmd/logcli/Dockerfile",
           "sha256": "6e14814b5fcaa95ef227ed31d2118fb808ec7d8e9fea5d79f1b7fefe0119ecd9"
+        },
+        {
+          "path": "cmd/logcli/main.go",
+          "sha256": "9daa03c6e5f627476ca793f7040fb502016fc3f7c4ff655213b84d64d7367184",
+          "why": "Entry-point for logcli binary; oracle scope needed for dircue to emit logcli cli_binary interface"
+        },
+        {
+          "path": "cmd/loki-canary/main.go",
+          "sha256": "7d5bc4541334eff54421e040bff7b7a4c5144adc80dfa856820c58db69dd22e8",
+          "why": "Entry-point for loki-canary binary; oracle scope needed for dircue to detect loki-canary cli_binary interface"
+        },
+        {
+          "path": "cmd/lokitool/main.go",
+          "sha256": "119ddd79ffd76463046a9d13b225151e307dad0b3a7999bf7569e3a74d85f64b",
+          "why": "Entry-point for lokitool binary; oracle scope needed for dircue to detect lokitool cli_binary interface"
+        },
+        {
+          "path": "cmd/migrate/main.go",
+          "sha256": "53e2ccc4445aa040f1c2d647b761ffe3c8a5978c09d776217da5b6a5ccb3977e",
+          "why": "Entry-point for migrate binary; oracle scope needed for dircue to detect migrate cli_binary interface"
+        },
+        {
+          "path": "cmd/querytee/main.go",
+          "sha256": "2a656449e1da7d101102f9c9a1f0fea9edc40c16540c76f337a5a5259b4f7eb7",
+          "why": "Entry-point for querytee binary; oracle scope needed for dircue to detect querytee cli_binary interface"
+        },
+        {
+          "path": "cmd/chunks-inspect/main.go",
+          "sha256": "e2d4250a0495640c303cc1b2e8cafbbeb2ff0d3863f83992b8d7c4855363bceb",
+          "why": "Entry-point for chunks-inspect binary; oracle scope needed for dircue to detect chunks-inspect cli_binary interface"
+        },
+        {
+          "path": "cmd/dataobj-inspect/main.go",
+          "sha256": "8757fd9dd23e7dc3814c1456901c4b707ff2542cbf5d84ac944b74ab6f57f250",
+          "why": "Entry-point for dataobj-inspect binary; oracle scope needed for dircue to detect dataobj-inspect cli_binary interface"
+        },
+        {
+          "path": "cmd/logline-util/main.go",
+          "sha256": "5c860425bead40d9d898fb0f894d0d67bb1d6513c2e864636bc0f4bb5e27257a",
+          "why": "Entry-point for logline-util binary; oracle scope needed for dircue to detect logline-util cli_binary interface"
+        },
+        {
+          "path": "cmd/logql-analyzer/main.go",
+          "sha256": "1156de7973ea3914be88b95fce856b2b9dce679db6d08447e6ef8afa2c3247c3",
+          "why": "Entry-point for logql-analyzer binary; oracle scope needed for dircue to detect logql-analyzer cli_binary interface"
         }
       ],
       "components": [
@@ -251,12 +296,6 @@
           "name": "loki-canary",
           "path": "cmd/loki-canary",
           "why": "cmd/loki-canary/ contains package main \u2014 Go entry-point binary for canary monitoring"
-        },
-        {
-          "kind": "cli_binary",
-          "name": "loki-canary-boringcrypto",
-          "path": "cmd/loki-canary-boringcrypto",
-          "why": "cmd/loki-canary-boringcrypto/ \u2014 Go entry-point binary variant with BoringCrypto"
         },
         {
           "kind": "cli_binary",
@@ -331,6 +370,72 @@
           "owner": "github.com/grafana/loki/v3",
           "path": "go.mod",
           "why": "go.mod: google.golang.org/protobuf v1.36.12, github.com/gogo/protobuf v1.3.2, github.com/golang/protobuf v1.5.4 \u2014 protobuf serialization libraries"
+        },
+        {
+          "capability": "cloud:aws",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod github.com/aws/aws-sdk-go-v2 direct dependency; loki uses S3 for object storage; corrected (b) labeler missed"
+        },
+        {
+          "capability": "cloud:gcp",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod cloud.google.com/go/storage direct dependency; loki uses GCS; corrected (b) labeler missed"
+        },
+        {
+          "capability": "cloud:azure",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod github.com/Azure/azure-sdk-for-go direct dependency; loki uses Azure Blob storage; corrected (b) labeler missed"
+        },
+        {
+          "capability": "storage:object",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod aws-sdk-go-v2/service/s3 + google-cloud-storage + azure-sdk direct deps; loki uses S3/GCS/Azure for chunk storage; corrected (b) labeler missed"
+        },
+        {
+          "capability": "serialization:yaml",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod go.yaml.in/yaml/v3 direct dependency; loki config is YAML; corrected (b) labeler missed"
+        },
+        {
+          "capability": "auth:jwt",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod github.com/golang-jwt/jwt dependency; loki uses JWT for auth; corrected (b) labeler missed"
+        },
+        {
+          "capability": "auth:oauth2",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod golang.org/x/oauth2 direct dependency; loki uses OAuth2 for service authentication; corrected (b) labeler missed"
+        },
+        {
+          "capability": "messaging:kafka",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod github.com/twmb/franz-go direct dependency; loki has Kafka ingestion mode; corrected (b) labeler missed"
+        },
+        {
+          "capability": "crypto:library",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod golang.org/x/crypto direct dependency; used for TLS/key derivation; corrected (b) labeler missed"
+        },
+        {
+          "capability": "datastore:mysql",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod github.com/go-sql-driver/mysql direct dependency; loki goldfish feature uses MySQL; corrected (b) labeler missed"
+        },
+        {
+          "capability": "net:http-client",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod net/http standard library + direct HTTP client usage in cmd/loki/main.go; corrected (b) labeler missed"
         }
       ],
       "edges": [
@@ -381,6 +486,72 @@
           "from": "production/helm/loki",
           "to": "loki",
           "why": "production/helm/loki/Chart.yaml packages the loki server into a Helm chart (appVersion 3.6.14)"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "cloud:aws",
+          "why": "loki uses cloud:aws; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "cloud:gcp",
+          "why": "loki uses cloud:gcp; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "cloud:azure",
+          "why": "loki uses cloud:azure; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "storage:object",
+          "why": "loki uses storage:object; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "serialization:yaml",
+          "why": "loki uses serialization:yaml; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "auth:jwt",
+          "why": "loki uses auth:jwt; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "auth:oauth2",
+          "why": "loki uses auth:oauth2; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "messaging:kafka",
+          "why": "loki uses messaging:kafka; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "crypto:library",
+          "why": "loki uses crypto:library; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "datastore:mysql",
+          "why": "loki uses datastore:mysql; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "net:http-client",
+          "why": "loki uses net:http-client; verified from go.mod; corresponds to added capability label"
         }
       ],
       "coverage": {
@@ -589,6 +760,48 @@
           "owner": "@mastodon/streaming",
           "path": "streaming/package.json",
           "why": "streaming/package.json dependencies: 'ioredis': '6.0.0' \u2014 Node.js Redis client"
+        },
+        {
+          "capability": "serialization:yaml",
+          "owner": "@mastodon/mastodon",
+          "path": "package.json",
+          "why": "package.json: \"js-yaml\": \">= 3.13.0\" dependency; js-yaml maps to serialization:yaml per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "search:elasticsearch",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:30 gem \"chewy\" \u2014 Elasticsearch Ruby client wrapper; chewy maps to search:elasticsearch per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "storage:object",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:17 gem \"aws-sdk-s3\" and Gemfile:19 gem \"fog-core\" \u2014 object storage clients; aws-sdk-s3 maps to storage:object per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "auth:oauth2",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:40 gem \"omniauth\", Gemfile:44 gem \"omniauth-saml\" \u2014 OAuth2 authentication; omniauth maps to auth:oauth2 per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "cloud:aws",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:16 gem \"aws-sdk-core\" and Gemfile:17 gem \"aws-sdk-s3\" \u2014 AWS SDK; aws-sdk-core/s3 map to cloud:aws per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "messaging:smtp",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:233 gem \"mail\" \u2014 Ruby Mail gem for outbound email; mail maps to messaging:smtp per catalog; corrected (b) labeler missed"
+        },
+        {
+          "capability": "net:http-client",
+          "owner": "@mastodon/mastodon",
+          "path": "package.json",
+          "why": "package.json: \"axios\": \"1.20.0\" dependency; axios maps to net:http-client per catalog; corrected (b) labeler missed (separate from Ruby net:http-client FN which is a catalog gap)"
         }
       ],
       "edges": [
@@ -687,6 +900,48 @@
           "from": "@mastodon/mastodon",
           "to": "@mastodon/streaming",
           "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "search:elasticsearch",
+          "why": "mastodon uses search:elasticsearch; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "storage:object",
+          "why": "mastodon uses storage:object; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "auth:oauth2",
+          "why": "mastodon uses auth:oauth2; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "cloud:aws",
+          "why": "mastodon uses cloud:aws; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "messaging:smtp",
+          "why": "mastodon uses messaging:smtp; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "@mastodon/mastodon",
+          "to": "serialization:yaml",
+          "why": "@mastodon/mastodon uses serialization:yaml; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "@mastodon/mastodon",
+          "to": "net:http-client",
+          "why": "@mastodon/mastodon uses net:http-client; corresponds to added capability label"
         }
       ],
       "coverage": {
@@ -891,6 +1146,11 @@
         {
           "path": "settings.gradle",
           "sha256": "f6468724ac5adae1f9e17c61eac5f20f849c6af43c8e2a94222d6e59ce6abce1"
+        },
+        {
+          "path": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+          "sha256": "9d99b4b59cc6e185e9a27964b24ede04180ca34211a7e19f968249ee3dac9df3",
+          "why": "Entry-point Java class with @SpringBootApplication annotation; oracle scope needed for dircue to emit spring_boot_application interface"
         }
       ],
       "components": [
@@ -955,9 +1215,9 @@
       "interfaces": [
         {
           "kind": "spring_boot_application",
-          "name": "spring-petclinic",
-          "path": "pom.xml",
-          "why": "pom.xml:6-9 declares parent spring-boot-starter-parent 4.1.0; pom.xml:64 dependency spring-boot-starter-webmvc declares an embedded-server Spring Boot web application"
+          "name": "PetClinicApplication",
+          "path": "src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java",
+          "why": "pom.xml:6-9 declares parent spring-boot-starter-parent 4.1.0; pom.xml:64 dependency spring-boot-starter-webmvc declares an embedded-server Spring Boot web application [CORRECTED: name was \"spring-petclinic\" (project name); dircue names the interface after the @SpringBootApplication class; path corrected from \"pom.xml\" to the Java source file]"
         },
         {
           "kind": "declared_port",
@@ -1378,6 +1638,24 @@
           "from": "apache_superset",
           "to": "apache-superset-core",
           "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
+        },
+        {
+          "type": "contains",
+          "from": "apache_superset",
+          "to": "superset",
+          "why": "superset-frontend/package.json:5 name=\"superset\"; the frontend package is a workspace within the apache_superset monorepo; corrected (b) labeler missed"
+        },
+        {
+          "type": "contains",
+          "from": "apache_superset",
+          "to": "superset-websocket",
+          "why": "superset-websocket/package.json:2 name=\"superset-websocket\"; the websocket package is a workspace within the apache_superset monorepo; corrected (b) labeler missed"
+        },
+        {
+          "type": "contains",
+          "from": "apache_superset",
+          "to": "apache-superset-core",
+          "why": "superset-core/pyproject.toml:4 name=\"apache-superset-core\"; the core package is a local sub-project of apache_superset; corrected (b) labeler missed"
         }
       ],
       "coverage": {
@@ -1560,5 +1838,29 @@
       "element": "deployables[name=wrapper]",
       "correction": "Changed name 'wrapper' to 'wrappers'. dircue names terraform deployables from the directory path (wrappers/), not the Terraform module block name (module \"wrapper\"). This is a convention difference - label used the block name, dircue uses the directory name."
     }
+  ],
+  "corrections": [
+    "loki: added capability cloud:aws from go.mod",
+    "loki: added capability cloud:gcp from go.mod",
+    "loki: added capability cloud:azure from go.mod",
+    "loki: added capability storage:object from go.mod",
+    "loki: added capability serialization:yaml from go.mod",
+    "loki: added capability auth:jwt from go.mod",
+    "loki: added capability auth:oauth2 from go.mod",
+    "loki: added capability messaging:kafka from go.mod",
+    "loki: added capability crypto:library from go.mod",
+    "loki: added capability datastore:mysql from go.mod",
+    "loki: added capability net:http-client from go.mod",
+    "mastodon: added capability serialization:yaml owner=@mastodon/mastodon",
+    "mastodon: added capability search:elasticsearch owner=mastodon",
+    "mastodon: added capability storage:object owner=mastodon",
+    "mastodon: added capability auth:oauth2 owner=mastodon",
+    "mastodon: added capability cloud:aws owner=mastodon",
+    "mastodon: added capability messaging:smtp owner=mastodon",
+    "mastodon: added capability net:http-client owner=@mastodon/mastodon",
+    "spring-petclinic: interface spring_boot_application name \"spring-petclinic\"\u2192\"PetClinicApplication\", path \"pom.xml\"\u2192Java file",
+    "superset: added contains edge apache_superset\u2192superset",
+    "superset: added contains edge apache_superset\u2192superset-websocket",
+    "superset: added contains edge apache_superset\u2192apache-superset-core"
   ]
 }
