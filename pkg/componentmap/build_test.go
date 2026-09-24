@@ -171,3 +171,178 @@ func relationship(t *testing.T, f Fragment, declarationKind string) Relationship
 	t.Fatalf("relationship %q not found", declarationKind)
 	return Relationship{}
 }
+
+func TestMavenReactorSiblingDependency(t *testing.T) {
+	// webapp depends on api — both are modules in the same reactor.
+	// The dependency should resolve to a depends_on_local edge.
+	report := &declarations.Report{
+		Status: "complete",
+		Projects: []declarations.Project{
+			{
+				ID: "pom.xml", Root: ".", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "pom.xml"},
+					{Kind: "maven-artifactId", Value: "parent", State: "declared", Evidence: "pom.xml"},
+				},
+			},
+			{
+				ID: "api/pom.xml", Root: "api", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "api/pom.xml"},
+					{Kind: "maven-artifactId", Value: "api", State: "declared", Evidence: "api/pom.xml"},
+				},
+			},
+			{
+				ID: "webapp/pom.xml", Root: "webapp", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example.web", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-artifactId", Value: "webapp", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-dependency", Value: "org.example:api", State: "declared", Evidence: "webapp/pom.xml"},
+				},
+			},
+		},
+	}
+	f := Build(report)
+	var siblingEdge *Relationship
+	for i := range f.Relationships {
+		r := &f.Relationships[i]
+		if r.DeclarationKind == "maven-sibling-dependency" {
+			siblingEdge = r
+		}
+	}
+	if siblingEdge == nil {
+		t.Fatal("expected depends_on_local maven-sibling-dependency edge, got none")
+	}
+	if siblingEdge.Type != "depends_on_local" {
+		t.Errorf("edge type = %q, want depends_on_local", siblingEdge.Type)
+	}
+	if siblingEdge.From != "webapp/pom.xml" || siblingEdge.To != "api/pom.xml" {
+		t.Errorf("edge from=%q to=%q, want webapp/pom.xml → api/pom.xml", siblingEdge.From, siblingEdge.To)
+	}
+	if siblingEdge.Coverage != "complete" {
+		t.Errorf("edge coverage = %q, want complete", siblingEdge.Coverage)
+	}
+}
+
+func TestMavenReactorSiblingDependencyTestScope(t *testing.T) {
+	// A test-scope dependency on a sibling should produce coverage=partial.
+	report := &declarations.Report{
+		Status: "complete",
+		Projects: []declarations.Project{
+			{
+				ID: "api/pom.xml", Root: "api", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "api/pom.xml"},
+					{Kind: "maven-artifactId", Value: "api", State: "declared", Evidence: "api/pom.xml"},
+				},
+			},
+			{
+				ID: "test/pom.xml", Root: "test", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "test/pom.xml"},
+					{Kind: "maven-artifactId", Value: "test", State: "declared", Evidence: "test/pom.xml"},
+				},
+			},
+			{
+				ID: "webapp/pom.xml", Root: "webapp", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-artifactId", Value: "webapp", State: "declared", Evidence: "webapp/pom.xml"},
+					// test-scope sibling dependency
+					{Kind: "maven-dependency", Value: "org.example:test", State: "conditional", Condition: "test scope", Evidence: "webapp/pom.xml"},
+				},
+			},
+		},
+	}
+	f := Build(report)
+	var siblingEdge *Relationship
+	for i := range f.Relationships {
+		r := &f.Relationships[i]
+		if r.DeclarationKind == "maven-sibling-dependency" {
+			siblingEdge = r
+		}
+	}
+	if siblingEdge == nil {
+		t.Fatal("expected depends_on_local maven-sibling-dependency edge, got none")
+	}
+	if siblingEdge.Coverage != "partial" {
+		t.Errorf("test-scope sibling edge coverage = %q, want partial", siblingEdge.Coverage)
+	}
+}
+
+func TestMavenReactorSiblingDependencyGroupIdInheritance(t *testing.T) {
+	// A module without its own groupId inherits from the parent.
+	report := &declarations.Report{
+		Status: "complete",
+		Projects: []declarations.Project{
+			{
+				ID: "core/pom.xml", Root: "core", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					// No maven-groupId: inherits from parent "org.apache.maven"
+					{Kind: "maven-parent", Value: "org.apache.maven:parent:4.0.0", State: "declared", Evidence: "core/pom.xml"},
+					{Kind: "maven-artifactId", Value: "maven-core", State: "declared", Evidence: "core/pom.xml"},
+				},
+			},
+			{
+				ID: "cli/pom.xml", Root: "cli", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-parent", Value: "org.apache.maven:parent:4.0.0", State: "declared", Evidence: "cli/pom.xml"},
+					{Kind: "maven-artifactId", Value: "maven-cli", State: "declared", Evidence: "cli/pom.xml"},
+					// depends on sibling via inherited groupId
+					{Kind: "maven-dependency", Value: "org.apache.maven:maven-core", State: "declared", Evidence: "cli/pom.xml"},
+				},
+			},
+		},
+	}
+	f := Build(report)
+	var siblingEdge *Relationship
+	for i := range f.Relationships {
+		r := &f.Relationships[i]
+		if r.DeclarationKind == "maven-sibling-dependency" {
+			siblingEdge = r
+		}
+	}
+	if siblingEdge == nil {
+		t.Fatal("expected depends_on_local for groupId-inheriting sibling, got none")
+	}
+	if siblingEdge.From != "cli/pom.xml" || siblingEdge.To != "core/pom.xml" {
+		t.Errorf("edge from=%q to=%q, want cli/pom.xml → core/pom.xml", siblingEdge.From, siblingEdge.To)
+	}
+}
+
+func TestMavenReactorSiblingDependencyAmbiguous(t *testing.T) {
+	// Two components with the same coordinates yield no edge.
+	report := &declarations.Report{
+		Status: "complete",
+		Projects: []declarations.Project{
+			{
+				ID: "a/pom.xml", Root: "a", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "a/pom.xml"},
+					{Kind: "maven-artifactId", Value: "dup", State: "declared", Evidence: "a/pom.xml"},
+				},
+			},
+			{
+				ID: "b/pom.xml", Root: "b", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "b/pom.xml"},
+					{Kind: "maven-artifactId", Value: "dup", State: "declared", Evidence: "b/pom.xml"},
+				},
+			},
+			{
+				ID: "webapp/pom.xml", Root: "webapp", Kind: "maven",
+				Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-artifactId", Value: "webapp", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-dependency", Value: "org.example:dup", State: "declared", Evidence: "webapp/pom.xml"},
+				},
+			},
+		},
+	}
+	f := Build(report)
+	for _, r := range f.Relationships {
+		if r.DeclarationKind == "maven-sibling-dependency" {
+			t.Errorf("expected no sibling edge (ambiguous coordinates), got %+v", r)
+		}
+	}
+}
