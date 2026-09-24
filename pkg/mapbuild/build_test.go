@@ -199,8 +199,8 @@ func TestComposeAndKubernetesImagesMatchNormalizedFullRepository(t *testing.T) {
 }
 
 func TestDuplicateObserverIdentityDoesNotDiscardWholeMap(t *testing.T) {
-	evidence := deployables.Evidence{Field: "provider", Line: 1, Basis: "static-field"}
-	definition := deployables.Definition{Provider: "terraform", Kind: "infrastructure", Name: "provider:aws", Path: "main.tf", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}}
+	evidence := deployables.Evidence{Field: "kind", Value: "Deployment", Line: 1, Basis: "static-field"}
+	definition := deployables.Definition{Provider: "kubernetes", Kind: "workload", Name: "my-deploy", Path: "deploy/deployment.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}}
 	report := &profile.Report{Discovery: &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory"}}}
 	doc, err := Build(report, Options{Deployables: &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition, definition}}})
 	if err != nil {

@@ -344,6 +344,8 @@ func mapPathRole(paths ...string) string {
 				choose("vendored", 4)
 			case "fixtures", "testdata", "__fixtures__":
 				choose("fixture", 3)
+			case ".devcontainer":
+				choose("tooling", 2)
 			case "examples", "samples":
 				choose("example", 2)
 			case "test", "tests", "__tests__":
