@@ -1,0 +1,92 @@
+{
+  "questions": [
+    {
+      "id": "maven-reactor-sibling-dependency",
+      "oracle": {
+        "fixture_evidence": "service-b/pom.xml declares a dependency on com.example:service-a with version ${project.version}; service-a/pom.xml declares groupId=com.example artifactId=service-a; both are co-located in the same scan",
+        "source": "Maven reactor: sibling modules are resolved by groupId:artifactId; version need not be resolved at scan time",
+        "url": "https://maven.apache.org/guides/mini/guide-multiple-modules.html"
+      },
+      "must_include": [
+        {
+          "kind": "edge",
+          "type": "depends_on_local",
+          "from_name": "service-b",
+          "to_name": "service-a",
+          "properties": {
+            "declaration_kind": "maven-sibling-dependency"
+          }
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "edge",
+          "type": "depends_on_local",
+          "from_name": "service-a",
+          "to_name": "service-b"
+        }
+      ],
+      "allowed_unknown": [
+        "transitive Maven dependencies not declared in any POM in scope"
+      ]
+    },
+    {
+      "id": "maven-reactor-sibling-test-scope",
+      "oracle": {
+        "fixture_evidence": "service-c/pom.xml declares com.example:service-a with <scope>test</scope>; test-scope dependencies are conditional on the test lifecycle phase",
+        "source": "Maven dependency scope: test-scoped dependencies are not available at runtime and are excluded from dependent modules",
+        "url": "https://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html#dependency-scope"
+      },
+      "must_include": [
+        {
+          "kind": "edge",
+          "type": "depends_on_local",
+          "from_name": "service-c",
+          "to_name": "service-a",
+          "properties": {
+            "declaration_kind": "maven-sibling-dependency",
+            "state": "conditional"
+          }
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "edge",
+          "type": "depends_on_local",
+          "from_name": "service-c",
+          "to_name": "service-a",
+          "properties": {
+            "state": "unresolved"
+          }
+        }
+      ],
+      "allowed_unknown": [
+        "whether test-scoped sibling is actually exercised in tests"
+      ]
+    },
+    {
+      "id": "prisma-datasource-postgresql",
+      "oracle": {
+        "fixture_evidence": "node-app/prisma/schema.prisma contains datasource db { provider = \"postgresql\" ... }; the url field uses env() which is runtime-resolved and ignored",
+        "source": "Prisma schema reference: datasource provider declares the database engine; env() values are not resolved at scan time",
+        "url": "https://www.prisma.io/docs/orm/prisma-schema/overview/data-sources"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "path": "node-app/prisma/schema.prisma"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "capability",
+          "name": "datastore:mysql"
+        }
+      ],
+      "allowed_unknown": [
+        "actual database host and connection details"
+      ]
+    }
+  ]
+}

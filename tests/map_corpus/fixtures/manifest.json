@@ -51,6 +51,11 @@
       "id": "jvm-dart-declarations",
       "description": "Maven WAR archive naming from direct POM children and same-file properties; pub path dependencies, git subdirectories and dev-only capabilities",
       "expectations": "jvm-dart-declarations.json"
+    },
+    {
+      "id": "jvm-maven-sibling-prisma",
+      "description": "Maven reactor sibling depends_on_local edges (normal and test-scope) plus Prisma datasource provider detection",
+      "expectations": "jvm-maven-sibling-prisma.json"
     }
   ]
 }
