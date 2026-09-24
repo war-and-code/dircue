@@ -47,7 +47,7 @@ func TestDirectoryMapCarriesGitCompatibleDigest(t *testing.T) {
 	if doc.Source.Digest.Normalization != "git_normalized" {
 		t.Fatalf("digest normalization: want git_normalized, got %q", doc.Source.Digest.Normalization)
 	}
-	if q := sourceBinding(t, doc); q.Status != mapdoc.CoverageComplete {
+	if q := sourceBinding(t, doc); q.Status != mapdoc.CoverageComplete && !(runtime.GOOS == "windows" && q.Status == mapdoc.CoveragePartial && len(q.Reasons) == 1 && q.Reasons[0] == "windows_checkout_semantics") {
 		t.Fatalf("source_binding = %+v", q)
 	}
 	off := mapJSON(t, "--source", "directory", "--set", "source.digest=off", root)

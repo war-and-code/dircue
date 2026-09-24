@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -219,6 +220,11 @@ func TestCallerAssertedBindingContractEndToEnd(t *testing.T) {
 
 	// Clause 1: complete directory digest + caller-asserted → caller_asserted
 	t.Run("complete_digest_caller_asserted", func(t *testing.T) {
+		if runtime.GOOS == "windows" {
+			// Windows digests are partial (windows_checkout_semantics), and a
+			// caller assertion requires a complete digest.
+			t.Skip("caller assertion requires a complete digest, which Windows cannot produce")
+		}
 		out, stderr, err := invoke("map", "--source", "directory", "--json",
 			"--attach", "syft-json="+syftPath,
 			"--attach-binding", "caller-asserted",
