@@ -237,3 +237,27 @@ func TestGuideTextAndJSONShareSafeExamples(t *testing.T) {
 		t.Fatalf("missing boundaries: %s", plain)
 	}
 }
+
+// TestGuideListsMapLocate verifies that dircue map locate appears in both
+// --cli and --guide output, satisfying issue #82 acceptance.
+func TestGuideListsMapLocate(t *testing.T) {
+	cli, _, err := invoke("capabilities", "--cli")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(cli, "dircue map locate") {
+		t.Fatalf("map locate missing from --cli output")
+	}
+
+	guide, _, err := invoke("capabilities", "--guide")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(guide, "map locate") {
+		t.Fatalf("map locate missing from --guide output")
+	}
+	// Verify the guide mentions SARIF specifically for locate context.
+	if !strings.Contains(guide, "SARIF") {
+		t.Fatalf("guide does not mention SARIF in locate section")
+	}
+}
