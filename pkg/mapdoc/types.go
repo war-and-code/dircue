@@ -125,10 +125,17 @@ type Source struct {
 // Digest binds a directory snapshot only when the producer actually read the
 // declared scope. A cheap metadata-only map should leave Digest nil and report
 // source_binding as unknown or partial in question coverage.
+//
+// Normalization names the clean-direction transformation applied to file
+// content before hashing: "git_normalized" applies .gitattributes text/eol
+// CRLF→LF conversion; "raw" hashes every byte as-is. The field is optional for
+// backward compatibility and is always set when the algorithm is "git-sha1" or
+// "git-sha256".
 type Digest struct {
-	Algorithm string `json:"algorithm"`
-	Scope     string `json:"scope"`
-	Value     string `json:"value"`
+	Algorithm     string `json:"algorithm"`
+	Scope         string `json:"scope"`
+	Normalization string `json:"normalization,omitempty"`
+	Value         string `json:"value"`
 }
 
 type Coverage struct {

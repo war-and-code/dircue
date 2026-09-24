@@ -90,7 +90,7 @@ only when comparable snapshot identities match.
 A directory map records a content identity in `source.digest`. By default
 it is the **Git-compatible tree ID**: the tree object ID that `git add -A &&
 git write-tree` would record for the same files in a fresh repository
-(`algorithm: git-sha1`, `scope: gitignore_filtered+git_normalized`). A clean
+(`algorithm: git-sha1`, `scope: gitignore_filtered`, `normalization: git_normalized`). A clean
 checkout of a commit therefore has the same digest as that commit's tree, so a
 directory map can be tied to a Git snapshot, and `map compare` reports a Git
 map and a directory map of identical content as the same source. Without the

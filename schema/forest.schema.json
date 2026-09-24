@@ -40,6 +40,7 @@
           "properties": {
             "algorithm": { "$ref": "#/$defs/nonempty" },
             "scope": { "$ref": "#/$defs/nonempty" },
+            "normalization": { "$ref": "#/$defs/nonempty" },
             "value": { "$ref": "#/$defs/nonempty" }
           }
         }

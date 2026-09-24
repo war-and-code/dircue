@@ -37,7 +37,7 @@
     },
     "digest": {
       "type": "object", "additionalProperties": false, "required": ["algorithm", "scope", "value"],
-      "properties": { "algorithm": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "value": { "$ref": "#/$defs/nonempty" } }
+      "properties": { "algorithm": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "normalization": { "$ref": "#/$defs/nonempty" }, "value": { "$ref": "#/$defs/nonempty" } }
     },
     "source": {
       "type": "object", "additionalProperties": false, "required": ["mode"],
