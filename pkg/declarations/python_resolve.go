@@ -181,7 +181,10 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 			continue
 		}
 		slices.SortFunc(group, func(a, b *Document) int {
-			return auxiliaryPriority(a) - auxiliaryPriority(b)
+			if pa, pb := auxiliaryPriority(a), auxiliaryPriority(b); pa != pb {
+				return pa - pb
+			}
+			return strings.Compare(a.Project.ID, b.Project.ID)
 		})
 		winner := group[0]
 		for _, loser := range group[1:] {
