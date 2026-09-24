@@ -36,7 +36,12 @@ var (
 	// Pattern: at the start of a line (^), an identifier ([A-Za-z_][A-Za-z0-9_]*),
 	// optional whitespace, =, optional whitespace, Flask(, then anything.
 	// The Flask( may be preceded by optional type annotation (:...) before the =.
-	flaskAppAssign = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_]*)\s*(?::[^=]*)?\s*=\s*Flask\s*\(`)
+	// The optional annotation must stay on the assignment line; otherwise a
+	// block opener such as "try:" would swallow an indented assignment.
+	flaskAppAssign = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_]*)[ \t]*(?::[^=\n]*)?=[ \t]*(?:flask\.)?Flask[ \t]*\(`)
+	// flaskImport requires the file to import Flask, so an unrelated class
+	// that happens to be named Flask is not reported.
+	flaskImport = regexp.MustCompile(`(?m)^[ \t]*(?:from[ \t]+flask[ \t]+import[ \t]|import[ \t]+flask\b)`)
 )
 
 // parsePythonFlaskApp detects module-level Flask application declarations in
@@ -60,6 +65,9 @@ func parsePythonFlaskApp(filePath string, content []byte) []Observation {
 		return nil
 	}
 
+	if !flaskImport.Match(content) {
+		return nil
+	}
 	m := flaskAppAssign.FindSubmatchIndex(content)
 	if m == nil {
 		return nil
