@@ -267,7 +267,10 @@ func TestDeclaredWorkspaceRelationshipsAndInterfacesAreCompared(t *testing.T) {
 	for _, f := range m.Changes[0].Fields {
 		fields = append(fields, f.Field)
 	}
-	if !reflect.DeepEqual(fields, []string{"interfaces", "references", "requirements"}) {
+	// Developer-task scripts ("test", "build") are not modeled as interfaces,
+	// so adding them does not appear as an interface change. Only references
+	// (workspace membership) and requirements change.
+	if !reflect.DeepEqual(fields, []string{"references", "requirements"}) {
 		t.Fatalf("workspace fields: %v", fields)
 	}
 	data, _ := json.Marshal(m)
