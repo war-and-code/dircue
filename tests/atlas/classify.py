@@ -22,6 +22,48 @@ harness-issue becomes `dircue-bug`.
 from __future__ import annotations
 
 import re
+
+
+def parse_scc_language_registry(output: str) -> set[str]:
+    """Parse `scc --languages` output into its case-insensitive file tokens."""
+    extensions: set[str] = set()
+    for line in output.splitlines():
+        line = line.strip()
+        if " (" not in line or not line.endswith(")"):
+            continue
+        _, tokens = line.rsplit(" (", 1)
+        extensions.update(
+            item.strip().lower()
+            for item in tokens[:-1].split(",")
+            if item.strip()
+        )
+    if not extensions:
+        raise ValueError("scc --languages output contained no file extensions")
+    return extensions
+
+
+def scc_registry_supports_path(path: str, scc_supported_extensions: set[str]) -> bool:
+    """Whether the registry names this basename or one of its suffixes."""
+    basename = path.rsplit("/", 1)[-1].lower()
+    candidates = {basename}
+    for index, char in enumerate(basename):
+        if char == "." and index > 0:
+            suffix = basename[index + 1:]
+            if suffix:
+                candidates.add(suffix)
+    return bool(candidates & scc_supported_extensions)
+
+
+def scc_may_detect_shebang(path: str) -> bool:
+    """Mirror scc 4.1.0 DetectLanguage's filename gate for shebang handling.
+
+    In the pinned scc source, shebang detection is considered only for names
+    without a dot, or a dotfile with exactly one dot. Other dotted names are
+    resolved by the filename/extension registry and never use their shebang.
+    """
+    basename = path.rsplit("/", 1)[-1]
+    dot_count = basename.count(".")
+    return dot_count == 0 or (basename.startswith(".") and dot_count == 1)
 from typing import Any
 
 # ---------------------------------------------------------------------------
@@ -140,8 +182,10 @@ def classify_linguist_top_level_mismatch(
 def classify_skip_dircue_only(
     path: str,
     language: str,
-    scc_extensions_in_repo: set,
+    scc_supported_extensions: set,
     scc_paths_lower: set | None = None,
+    scc_shebang_paths: set | None = None,
+    scc_probe_skipped_paths: set | None = None,
 ) -> str:
     """Classify a file that dircue counted as source but scc did not output.
 
@@ -149,26 +193,27 @@ def classify_skip_dircue_only(
     - scc_skips_dotfiles: basename starts with '.' (scc skips dotfiles even with
       --no-ignore; confirmed empirically for scc 4.1.0)
     - harness_case_collision: the path differs only in case from a path that scc
-      DID output; on macOS's case-insensitive filesystem, tar extraction collapses
-      case-variant pairs (e.g. the Linux kernel's xt_CONNMARK.h / xt_connmark.h)
+      DID output; on macOS's case-insensitive filesystem, index materialization
+      collapses case-variant pairs (e.g. Linux kernel xt_CONNMARK.h / xt_connmark.h)
       so scc only sees one member of each pair — not an scc skip, a harness limit
-    - scc_no_language: the file's extension does not appear anywhere in scc's
-      output for this repo, meaning scc's language registry does not map that
-      extension to any language
-    - unexplained: none of the above evidence applies; the skip requires
-      investigation
+    - scc_no_language: no basename or suffix mapping exists in the pinned scc
+      `--languages` registry, and the file has no shebang that scc 4.1.0 can
+      consider for this filename (see `processor/detector.go:DetectLanguage`).
+    - scc_skips_file: a focused run of the same pinned scc binary also omitted
+      this exact HEAD file when isolated under its original relative path.
+    - unexplained: registry support, a shebang, or another cause could explain
+      the omission; the available evidence is insufficient to classify it.
     """
     basename = path.rsplit("/", 1)[-1]
     if basename.startswith("."):
         return "scc_skips_dotfiles"
     if scc_paths_lower is not None and path.lower() in scc_paths_lower:
         return "harness_case_collision"
-    # Extension: e.g. "foo.bar" -> ".bar"; "Makefile" -> "makefile"
-    if "." in basename:
-        ext = "." + path.rsplit(".", 1)[-1].lower()
-    else:
-        ext = basename.lower()
-    if ext not in scc_extensions_in_repo:
+    if scc_probe_skipped_paths is not None and path in scc_probe_skipped_paths:
+        return "scc_skips_file"
+    if scc_shebang_paths is None or path in scc_shebang_paths:
+        return "unexplained"
+    if not scc_registry_supports_path(path, scc_supported_extensions):
         return "scc_no_language"
     return "unexplained"
 
