@@ -67,6 +67,28 @@ const (
 	ScopeRaw Scope = "all_entries+raw"
 )
 
+// ScopeFilter returns the entry-filter component of s, suitable for the
+// JSON "scope" field of a Digest object (e.g. "gitignore_filtered").
+func (s Scope) ScopeFilter() string {
+	name := string(s)
+	if idx := len(name); idx > 0 {
+		if i := strings.Index(name, "+"); i >= 0 {
+			return name[:i]
+		}
+	}
+	return name
+}
+
+// Normalization returns the normalization component of s, suitable for the
+// JSON "normalization" field of a Digest object (e.g. "git_normalized").
+func (s Scope) Normalization() string {
+	name := string(s)
+	if i := strings.Index(name, "+"); i >= 0 {
+		return name[i+1:]
+	}
+	return ""
+}
+
 // Status qualifies a result.
 type Status string
 
@@ -79,6 +101,15 @@ const (
 	// StatusUnavailable: no tree ID; the scope could not be read completely.
 	StatusUnavailable Status = "unavailable"
 )
+
+// EmptyTreeSHA1 is the SHA-1 object ID of an empty Git tree.
+// It equals the output of `git hash-object -t tree /dev/null` and is a
+// compile-time sentinel for the zero-entry case.
+const EmptyTreeSHA1 = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
+
+// EmptyTreeSHA256 is the SHA-256 object ID of an empty Git tree.
+// It equals the output of `git -c extensions.objectFormat=sha256 hash-object -t tree /dev/null`.
+const EmptyTreeSHA256 = "6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321"
 
 // Stable reason codes.
 const (
