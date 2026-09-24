@@ -70,7 +70,7 @@ captured this bundle. `SHA256SUMS.json` identifies every archived entry;
 separate and are identified by their actual payload provenance and checksums.
 
 RC1 evidence remains historical and unchanged. The public projects and synthetic
-Talend/XML/.NET inputs establish compatibility only for their recorded content.
+ETL-pipeline/XML/.NET inputs establish compatibility only for their recorded content.
 This bundle contains correctness and packaging checks, not the final repeated
 performance matrix. No final-release performance claim should be inferred from
 its diagnostic resource readings.

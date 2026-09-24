@@ -12,8 +12,8 @@
     "-ldflags",
     "-X dircue/internal/cli.Version=0.8.0",
     "-o",
-    "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
-    "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/source/profile_main.go"
+    "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
+    "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/source/profile_main.go"
   ],
   "built_at": "2026-09-21T23:14:39.246718+00:00",
   "runs": [
@@ -21,7 +21,7 @@
       "scenario": "aspnetcore",
       "kind": "cpu",
       "command": [
-        "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
+        "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
         "analyze",
         "all",
         "--projects",
@@ -40,7 +40,7 @@
         "1000000",
         "--rev",
         "7387de91234d3ef751fa50b3d1bfede4130213ff",
-        "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+        "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
       ],
       "iterations": "3",
       "profile_sha256": "962c316094a922d38eb446f052b72f488c9a135a386fa90f1d95b7dc7fe8f270",
@@ -57,7 +57,7 @@
       "scenario": "aspnetcore",
       "kind": "alloc",
       "command": [
-        "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
+        "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
         "analyze",
         "all",
         "--projects",
@@ -76,7 +76,7 @@
         "1000000",
         "--rev",
         "7387de91234d3ef751fa50b3d1bfede4130213ff",
-        "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+        "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
       ],
       "iterations": "3",
       "profile_sha256": "b9bd3f5770cc8903d2e2dcc3f552cad361ce0be79f7a28504b1d2258fa426530",
@@ -93,7 +93,7 @@
       "scenario": "xml-2gib",
       "kind": "cpu",
       "command": [
-        "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
+        "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
         "analyze",
         "all",
         "--projects",
@@ -110,7 +110,7 @@
         "8",
         "--tree-size",
         "1000000",
-        "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+        "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
       ],
       "iterations": "30",
       "profile_sha256": "890afa195014fa3589e67ff2a7a718d0ca4794245bfc5768c492ae797394a272",
@@ -127,7 +127,7 @@
       "scenario": "xml-2gib",
       "kind": "alloc",
       "command": [
-        "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
+        "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/cli-profile",
         "analyze",
         "all",
         "--projects",
@@ -144,7 +144,7 @@
         "8",
         "--tree-size",
         "1000000",
-        "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+        "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
       ],
       "iterations": "30",
       "profile_sha256": "7c6f6ec516a42a6024887474d8896c67ea2b3471f17fb053bdd305a2514fb07e",
