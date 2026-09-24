@@ -69,11 +69,10 @@ func ingestBifrost(data []byte, in Input, limit int, key string) (Result, error)
 	if doc.Results == nil || doc.Truncated == nil {
 		return Result{}, fmt.Errorf("not a Bifrost ordinary CodeQuery result")
 	}
-	if len(doc.Results) > limit {
-		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
-	}
-
 	bindingState, bindingReason := binding(in.Snapshot, reportIdentity{})
+	if len(doc.Results) > limit {
+		return Result{Ledger: []CoverageEntry{{Tool: "bifrost", ReportKind: "bifrost-code-query-json", Scope: ".", Binding: bindingState, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
+	}
 	tool := toolNode("bifrost", "unknown", key, bindingState, bindingReason, nil)
 	covered := make([]string, 0)
 	partialReasons := []string{"selected_structural_query_not_comprehensive"}

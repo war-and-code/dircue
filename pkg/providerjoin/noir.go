@@ -1,7 +1,6 @@
 package providerjoin
 
 import (
-	"fmt"
 	"net/url"
 	"strings"
 
@@ -44,11 +43,11 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 		}
 		doc.Endpoints = endpoints
 	}
-	if len(doc.Endpoints) > limit {
-		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
-	}
 	version := fallbackVersion(doc.Version)
 	b, reason := binding(in.Snapshot, reportIdentity{})
+	if len(doc.Endpoints) > limit {
+		return Result{Ledger: []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
+	}
 	tool := toolNode("noir", version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
 	covered := []string{}

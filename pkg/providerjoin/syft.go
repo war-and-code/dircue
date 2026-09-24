@@ -27,7 +27,12 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 		return Result{}, err
 	}
 	if len(doc.Artifacts)+len(doc.ArtifactRelationships) > limit {
-		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
+		provider := doc.Descriptor.Name
+		if provider == "" {
+			provider = "syft"
+		}
+		b, _ := binding(in.Snapshot, reportIdentity{})
+		return Result{Ledger: []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
 	}
 	provider := doc.Descriptor.Name
 	if provider == "" {
