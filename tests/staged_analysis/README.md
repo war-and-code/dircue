@@ -45,7 +45,7 @@ with other tools.
   an SDK-style `.csproj` plus C# source. The verifier hashes every unique XML inode
   against the deterministic expected payload, checks exact inventory byte
   accounting, and asserts that the mixed project and its source metrics remain
-  present. These repetitive synthetic logs do not reproduce real MOVEit data.
+  present. These repetitive synthetic logs do not reproduce real log-transfer data.
 - Small source: a generated Go module with 200 files and 100 function declarations
   per file. The verifier checks every generated source file's complete bytes.
 - Spring and Roslyn: clean checkouts at the revisions in

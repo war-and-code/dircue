@@ -2401,7 +2401,7 @@
     ]
   },
   "schema_version": "1.3.0",
-  "root": "/Users/gingeleski/Workspace/dircue/.cache/final-v040-audit/composition-fixture",
+  "root": "/home/user/Workspace/dircue/.cache/final-v040-audit/composition-fixture",
   "summary": {
     "scanned_files": 7,
     "analyzed_files": 7,

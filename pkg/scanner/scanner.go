@@ -1063,7 +1063,7 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 	var content []byte
 	var tooLarge bool
 	var err error
-	actualSize := item.size
+	var actualSize int64
 	if item.read != nil {
 		content, actualSize, err = item.read(limit)
 		tooLarge = opts.MaxFileBytes > 0 && actualSize > opts.MaxFileBytes

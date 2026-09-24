@@ -743,10 +743,6 @@ func addProjectEvidence(ctx context.Context, result *Result, selected *ProjectRe
 	return nil
 }
 
-func ancestor(parent, child string) bool {
-	return parent == "." || child == parent || strings.HasPrefix(child, parent+"/")
-}
-
 func relationClass(projectKind, kind string) (string, bool) {
 	switch kind {
 	case "import":

@@ -15,7 +15,7 @@
       "command": [
         "/usr/bin/time",
         "-l",
-        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
+        "/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
         "-test.run",
         "^$",
         "-test.cpu",
@@ -36,7 +36,7 @@
       "command": [
         "/usr/bin/time",
         "-l",
-        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
+        "/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
         "-test.run",
         "^$",
         "-test.cpu",
@@ -57,7 +57,7 @@
       "command": [
         "/usr/bin/time",
         "-l",
-        "/private/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
+        "/tmp/dircue-function-performance-20260919/.cache/function-performance/baseline.test",
         "-test.run",
         "^$",
         "-test.cpu",
@@ -70,9 +70,9 @@
         "-test.count",
         "1",
         "-test.cpuprofile",
-        "/private/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/baseline/cpu.pprof",
+        "/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/baseline/cpu.pprof",
         "-test.memprofile",
-        "/private/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/baseline/heap.pprof"
+        "/tmp/dircue-function-performance-20260919/tests/functions/decode-performance/baseline/heap.pprof"
       ],
       "elapsed_seconds": 6.171853542327881,
       "stdout_sha256": "41a4f39055b2d0eebc53c518dec8f455ff559107d3ef50498537a4b2a1bf8665",

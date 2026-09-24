@@ -227,7 +227,9 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 		return fmt.Errorf("forest residual map: %w", err)
 	}
 
-	// Build env tree list for output.
+	// Build env tree list for output and derive environment_trees coverage.
+	envTreesCovStatus := mapdoc.CoverageComplete
+	envTreesCovReasons := []string{}
 	envTrees := make([]ForestEnvTree, 0, len(discResult.EnvTrees))
 	for _, et := range discResult.EnvTrees {
 		envTrees = append(envTrees, ForestEnvTree{
@@ -242,6 +244,15 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 			LowerBound: et.LowerBound,
 			Reason:     et.Reason,
 		})
+		if et.LowerBound {
+			envTreesCovStatus = mapdoc.CoveragePartial
+			if et.Reason != "" && !containsString(envTreesCovReasons, et.Reason) {
+				envTreesCovReasons = append(envTreesCovReasons, et.Reason)
+			}
+		}
+	}
+	if envTreesCovStatus == mapdoc.CoveragePartial && len(envTreesCovReasons) == 0 {
+		envTreesCovReasons = []string{"entry_cap_reached"}
 	}
 
 	// Assemble forest document.
@@ -300,7 +311,7 @@ func runForest(ctx context.Context, cmd *cobra.Command, inputPath string, summar
 				Reasons: rootsReasons,
 			}},
 			{Question: "residual", Scope: ".", Coverage: residualCoverage},
-			{Question: "environment_trees", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}},
+			{Question: "environment_trees", Scope: ".", Coverage: mapdoc.Coverage{Status: envTreesCovStatus, Reasons: envTreesCovReasons}},
 		},
 		Roots:            forestRoots,
 		EnvironmentTrees: envTrees,

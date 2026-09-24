@@ -4,23 +4,23 @@
     "start": "2026-09-21T23:08:27.050977+00:00",
     "end": "2026-09-21T23:08:48.962599+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.cpuprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/cpu.pprof"
+      "-test.cpuprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/cpu.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/spring-framework",
       "SOURCE": "git",
       "FIXTURE_ID": "spring-framework",
       "RUN_ID": "spring-framework-all-cpu",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -38,30 +38,30 @@
       "tests/performance/v100_preparation/profiles/spring-framework-all-cpu-flat.txt",
       "tests/performance/v100_preparation/profiles/spring-framework-all-cpu-cum.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t1642171533 ns/op\t  31.82 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t456214953 B/op\t 2265306 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/spring-framework-all-cpu-git-16960335.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/spring-framework-all-cpu-git-1637224195.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t1642171533 ns/op\t  31.82 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t456214953 B/op\t 2265306 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/spring-framework-all-cpu-git-16960335.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-cpu/spring-framework-all-cpu-git-1637224195.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
   },
   {
     "id": "spring-framework-all-heap",
     "start": "2026-09-21T23:08:48.963289+00:00",
     "end": "2026-09-21T23:09:10.325926+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.memprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/heap.pprof"
+      "-test.memprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/heap.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/spring-framework",
       "SOURCE": "git",
       "FIXTURE_ID": "spring-framework",
       "RUN_ID": "spring-framework-all-heap",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-spring-framework.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -80,30 +80,30 @@
       "tests/performance/v100_preparation/profiles/spring-framework-all-heap-alloc-cum.txt",
       "tests/performance/v100_preparation/profiles/spring-framework-all-heap-live.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t1610343050 ns/op\t  32.45 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t458243695 B/op\t 2265749 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/spring-framework-all-heap-git-4281058990.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/spring-framework-all-heap-git-2141241242.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t1610343050 ns/op\t  32.45 MB/s\t     11348 files/op\t  52252371 language-B/op\t         0 warnings/op\t458243695 B/op\t 2265749 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/spring-framework-all-heap-git-4281058990.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/spring-framework-all-heap/spring-framework-all-heap-git-2141241242.json; result sha256: 845a938dbc7588b8d88090138e2bb24fa605243e510131ed362d8952fbad502e\nPASS\n"
   },
   {
     "id": "roslyn-all-cpu",
     "start": "2026-09-21T23:09:10.326986+00:00",
     "end": "2026-09-21T23:10:08.991468+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=3x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.cpuprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/cpu.pprof"
+      "-test.cpuprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/cpu.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "SOURCE": "git",
       "FIXTURE_ID": "roslyn",
       "RUN_ID": "roslyn-all-cpu",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -121,30 +121,30 @@
       "tests/performance/v100_preparation/profiles/roslyn-all-cpu-flat.txt",
       "tests/performance/v100_preparation/profiles/roslyn-all-cpu-cum.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       3\t9730500430 ns/op\t  34.23 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2149758098 B/op\t 8942914 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/roslyn-all-cpu-git-279199187.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/roslyn-all-cpu-git-807983509.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       3\t9730500430 ns/op\t  34.23 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2149758098 B/op\t 8942914 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/roslyn-all-cpu-git-279199187.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-cpu/roslyn-all-cpu-git-807983509.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
   },
   {
     "id": "roslyn-all-heap",
     "start": "2026-09-21T23:10:08.992621+00:00",
     "end": "2026-09-21T23:11:06.967618+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=3x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.memprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/heap.pprof"
+      "-test.memprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/heap.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "SOURCE": "git",
       "FIXTURE_ID": "roslyn",
       "RUN_ID": "roslyn-all-heap",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -163,30 +163,30 @@
       "tests/performance/v100_preparation/profiles/roslyn-all-heap-alloc-cum.txt",
       "tests/performance/v100_preparation/profiles/roslyn-all-heap-live.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       3\t9611605208 ns/op\t  34.65 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2163721882 B/op\t 8934677 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/roslyn-all-heap-git-2312876114.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/roslyn-all-heap-git-3099244790.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       3\t9611605208 ns/op\t  34.65 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2163721882 B/op\t 8934677 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/roslyn-all-heap-git-2312876114.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-heap/roslyn-all-heap-git-3099244790.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
   },
   {
     "id": "aspnetcore-all-cpu",
     "start": "2026-09-21T23:11:06.968527+00:00",
     "end": "2026-09-21T23:11:38.211157+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.cpuprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/cpu.pprof"
+      "-test.cpuprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/cpu.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/aspnetcore",
       "SOURCE": "git",
       "FIXTURE_ID": "aspnetcore",
       "RUN_ID": "aspnetcore-all-cpu",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-aspnetcore.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-aspnetcore.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -204,30 +204,30 @@
       "tests/performance/v100_preparation/profiles/aspnetcore-all-cpu-flat.txt",
       "tests/performance/v100_preparation/profiles/aspnetcore-all-cpu-cum.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t2374590529 ns/op\t  28.25 MB/s\t     16517 files/op\t  67083586 language-B/op\t         0 warnings/op\t687508738 B/op\t 3341403 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/aspnetcore-all-cpu-git-4045062346.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/aspnetcore-all-cpu-git-2799886116.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t2374590529 ns/op\t  28.25 MB/s\t     16517 files/op\t  67083586 language-B/op\t         0 warnings/op\t687508738 B/op\t 3341403 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/aspnetcore-all-cpu-git-4045062346.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-cpu/aspnetcore-all-cpu-git-2799886116.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\nPASS\n"
   },
   {
     "id": "aspnetcore-all-heap",
     "start": "2026-09-21T23:11:38.212175+00:00",
     "end": "2026-09-21T23:12:08.933803+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.memprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/heap.pprof"
+      "-test.memprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/heap.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/aspnetcore",
       "SOURCE": "git",
       "FIXTURE_ID": "aspnetcore",
       "RUN_ID": "aspnetcore-all-heap",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-aspnetcore.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-aspnetcore.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -246,30 +246,30 @@
       "tests/performance/v100_preparation/profiles/aspnetcore-all-heap-alloc-cum.txt",
       "tests/performance/v100_preparation/profiles/aspnetcore-all-heap-live.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t2334589783 ns/op\t  28.73 MB/s\t     16517 files/op\t  67083586 language-B/op\t         0 warnings/op\t688197837 B/op\t 3341661 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/aspnetcore-all-heap-git-1910296503.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/aspnetcore-all-heap-git-2254403748.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t2334589783 ns/op\t  28.73 MB/s\t     16517 files/op\t  67083586 language-B/op\t         0 warnings/op\t688197837 B/op\t 3341661 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/aspnetcore-all-heap-git-1910296503.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/aspnetcore-all-heap/aspnetcore-all-heap-git-2254403748.json; result sha256: c4450141f5c0285efdaa94c8a3922c7fcceaf78caed165b0d2dfc41037cdf0c0\nPASS\n"
   },
   {
     "id": "xml-2gib-all-cpu",
     "start": "2026-09-21T23:12:08.934930+00:00",
     "end": "2026-09-21T23:12:09.564490+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.cpuprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/cpu.pprof"
+      "-test.cpuprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/cpu.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
+      "ROOT": "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
       "SOURCE": "directory",
       "FIXTURE_ID": "xml-2gib",
       "RUN_ID": "xml-2gib-all-cpu",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-xml-2gib.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-xml-2gib.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -286,30 +286,30 @@
       "tests/performance/v100_preparation/profiles/xml-2gib-all-cpu-flat.txt",
       "tests/performance/v100_preparation/profiles/xml-2gib-all-cpu-cum.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t  15401367 ns/op\t       128.0 files/op\t         0 language-B/op\t         0 warnings/op\t155274049 B/op\t    6681 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/xml-2gib-all-cpu-directory-573701856.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/xml-2gib-all-cpu-directory-2038795786.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t  15401367 ns/op\t       128.0 files/op\t         0 language-B/op\t         0 warnings/op\t155274049 B/op\t    6681 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/xml-2gib-all-cpu-directory-573701856.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-cpu/xml-2gib-all-cpu-directory-2038795786.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\nPASS\n"
   },
   {
     "id": "xml-2gib-all-heap",
     "start": "2026-09-21T23:12:09.565581+00:00",
     "end": "2026-09-21T23:12:10.118219+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=10x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.memprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/heap.pprof"
+      "-test.memprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/heap.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
+      "ROOT": "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
       "SOURCE": "directory",
       "FIXTURE_ID": "xml-2gib",
       "RUN_ID": "xml-2gib-all-heap",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-xml-2gib.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-xml-2gib.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -327,30 +327,30 @@
       "tests/performance/v100_preparation/profiles/xml-2gib-all-heap-alloc-cum.txt",
       "tests/performance/v100_preparation/profiles/xml-2gib-all-heap-live.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t  16157238 ns/op\t       128.0 files/op\t         0 language-B/op\t         0 warnings/op\t159460981 B/op\t    7436 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/xml-2gib-all-heap-directory-1741573857.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/xml-2gib-all-heap-directory-3782906722.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t      10\t  16157238 ns/op\t       128.0 files/op\t         0 language-B/op\t         0 warnings/op\t159460981 B/op\t    7436 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/xml-2gib-all-heap-directory-1741573857.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/xml-2gib-all-heap/xml-2gib-all-heap-directory-3782906722.json; result sha256: ebe217d55b5dca215501a66205de30dcf89ca757da4dadd5a09d1f8340f08604\nPASS\n"
   },
   {
     "id": "roslyn-all-mutex",
     "start": "2026-09-21T23:12:10.119304+00:00",
     "end": "2026-09-21T23:12:29.858306+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=1x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.mutexprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex/mutex.pprof"
+      "-test.mutexprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex/mutex.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "SOURCE": "git",
       "FIXTURE_ID": "roslyn",
       "RUN_ID": "roslyn-all-mutex",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -367,30 +367,30 @@
     "tables": [
       "tests/performance/v100_preparation/profiles/roslyn-all-mutex-delay.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t9783186500 ns/op\t  34.05 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2165070512 B/op\t 8962199 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex/roslyn-all-mutex-git-1223922681.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t9783186500 ns/op\t  34.05 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2165070512 B/op\t 8962199 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-mutex/roslyn-all-mutex-git-1223922681.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
   },
   {
     "id": "roslyn-all-block",
     "start": "2026-09-21T23:12:29.859306+00:00",
     "end": "2026-09-21T23:12:50.295734+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=1x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.blockprofile=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block/block.pprof"
+      "-test.blockprofile=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block/block.pprof"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "SOURCE": "git",
       "FIXTURE_ID": "roslyn",
       "RUN_ID": "roslyn-all-block",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -407,30 +407,30 @@
     "tables": [
       "tests/performance/v100_preparation/profiles/roslyn-all-block-delay.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t10236344416 ns/op\t  32.54 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2134825336 B/op\t 8960137 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block/roslyn-all-block-git-1427319114.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t10236344416 ns/op\t  32.54 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2134825336 B/op\t 8960137 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-block/roslyn-all-block-git-1427319114.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
   },
   {
     "id": "roslyn-all-trace",
     "start": "2026-09-21T23:12:50.296841+00:00",
     "end": "2026-09-21T23:13:26.416115+00:00",
     "command": [
-      "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
+      "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/scanner.test",
       "-test.run=^$",
       "-test.bench=^BenchmarkProfileScanner$",
       "-test.benchtime=1x",
       "-test.count=1",
       "-test.benchmem",
-      "-test.trace=/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace/trace.out"
+      "-test.trace=/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace/trace.out"
     ],
     "environment": {
-      "ROOT": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "ROOT": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "SOURCE": "git",
       "FIXTURE_ID": "roslyn",
       "RUN_ID": "roslyn-all-trace",
-      "OUTPUT_DIR": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace",
-      "FIXTURE_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
-      "BUILD_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
-      "HOST_RECEIPT": "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
+      "OUTPUT_DIR": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace",
+      "FIXTURE_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/fixture-roslyn.json",
+      "BUILD_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/build-receipt.json",
+      "HOST_RECEIPT": "/home/user/Workspace/dircue/.cache/review080/worktree/tests/performance/v100_preparation/host-receipt.json",
       "WORKERS": "8",
       "INIT": "warm",
       "MODE": "all",
@@ -449,6 +449,6 @@
       "tests/performance/v100_preparation/profiles/roslyn-all-trace-syscall-top.txt",
       "tests/performance/v100_preparation/profiles/roslyn-all-trace-sched-top.txt"
     ],
-    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t10328286209 ns/op\t  32.25 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2179374176 B/op\t 8969551 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace/roslyn-all-trace-git-798985690.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
+    "run_output": "goos: darwin\ngoarch: arm64\npkg: dircue/pkg/scanner\ncpu: Apple M1 Max\nBenchmarkProfileScanner-10    \t       1\t10328286209 ns/op\t  32.25 MB/s\t     35220 files/op\t 333087915 language-B/op\t         0 warnings/op\t2179374176 B/op\t 8969551 allocs/op\n--- BENCH: BenchmarkProfileScanner-10\n    profiling_benchmark_test.go:214: scenario fingerprint: /home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/perf/roslyn-all-trace/roslyn-all-trace-git-798985690.json; result sha256: b68088f4aa4ab9b79598aba326fd5abc4fce5026e0757f53d9ba2617b9870eb7\nPASS\n"
   }
 ]

@@ -26,8 +26,22 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	if err := decodeOne(data, &doc); err != nil {
 		return Result{}, err
 	}
-	if len(doc.Artifacts)+len(doc.ArtifactRelationships) > limit {
-		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
+	// Ingest the first N records in document order; keep what fits within the limit.
+	limitReached := len(doc.Artifacts)+len(doc.ArtifactRelationships) > limit
+	if limitReached {
+		keepArtifacts := limit
+		if keepArtifacts > len(doc.Artifacts) {
+			keepArtifacts = len(doc.Artifacts)
+		}
+		doc.Artifacts = doc.Artifacts[:keepArtifacts]
+		keepRelationships := limit - keepArtifacts
+		if keepRelationships < 0 {
+			keepRelationships = 0
+		}
+		if keepRelationships > len(doc.ArtifactRelationships) {
+			keepRelationships = len(doc.ArtifactRelationships)
+		}
+		doc.ArtifactRelationships = doc.ArtifactRelationships[:keepRelationships]
 	}
 	provider := doc.Descriptor.Name
 	if provider == "" {
@@ -114,7 +128,11 @@ func ingestSyft(data []byte, in Input, limit int, key string) (Result, error) {
 	}
 	covered = compact(covered)
 	reconcileSyftRequirements(&out, in, b, covered, observations)
-	out.Ledger = []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
+	ledgerReason := reason
+	if limitReached {
+		ledgerReason = "attachment_record_limit_reached"
+	}
+	out.Ledger = []CoverageEntry{{Tool: provider, ReportKind: "syft-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: ledgerReason}}
 	return out, nil
 }
 
