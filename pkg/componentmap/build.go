@@ -181,7 +181,7 @@ func relationshipKind(kind string) (typ string, reverse, relevant bool) {
 	switch kind {
 	case "npm-workspace-member", "go-workspace-member", "cargo-workspace-member", "cargo-workspace-path-member", "uv-workspace-member", "solution-member", "module", "gradle-module":
 		return "member_of", true, true
-	case "npm-local-dependency", "npm-workspace-dependency", "go-local-replacement", "cargo-path-dependency", "cargo-workspace-path-dependency", "uv-local-dependency", "project-reference", "parent":
+	case "npm-local-dependency", "npm-workspace-dependency", "go-local-replacement", "cargo-path-dependency", "cargo-workspace-path-dependency", "uv-local-dependency", "project-reference", "parent", "pub-path-dependency":
 		return "depends_on_local", false, true
 	default:
 		return "", false, false
