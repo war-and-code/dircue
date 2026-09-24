@@ -62,7 +62,7 @@ def main():
         baseline_dir = work/'official-enry-baseline'
         baseline_dir.mkdir()
         (baseline_dir/'go.mod').write_text('module official-enry-baseline\n\ngo 1.26.6\n\nrequire github.com/go-enry/go-enry/v2 v2.9.6\n')
-        (baseline_dir/'main.go').write_bytes((HERE/'enry_baseline/main.go').read_bytes())
+        (baseline_dir/'main.go').write_bytes((HERE/'enry_baseline.go.txt').read_bytes())
         baseline = work/'official-enry-probe'
         run(['go', 'build', '-mod=mod', '-trimpath', '-o', baseline, '.'], baseline_dir)
         baseline_module = json.loads(run(['go','list','-m','-json','github.com/go-enry/go-enry/v2'], baseline_dir))
@@ -73,10 +73,11 @@ def main():
         candidates = json.loads(run([probe, samples]))
         token_dir = work/'tokenizer-probe'
         token_dir.mkdir()
-        fork_module = json.loads(run(['go','list','-m','-json','github.com/go-enry/go-enry/v2'], ROOT))
-        fork_directory = fork_module['Dir']
-        (token_dir/'go.mod').write_text('module github.com/go-enry/go-enry/v2/conformance-tokenizer\n\ngo 1.26.6\n\nrequire github.com/go-enry/go-enry/v2 v2.9.6\nreplace github.com/go-enry/go-enry/v2 => '+fork_directory+'\n')
-        (token_dir/'main.go').write_bytes((HERE/'tokenizer_probe.go.txt').read_bytes())
+        # The maintained Enry is embedded in the dircue module. A probe module
+        # path under third_party/go-enry may import its internal tokenizer.
+        embedded = 'github.com/war-and-code/dircue/third_party/go-enry'
+        (token_dir/'go.mod').write_text('module '+embedded+'/conformancetokenizer\n\ngo 1.26.6\n\nrequire github.com/war-and-code/dircue v0.0.0\nreplace github.com/war-and-code/dircue => '+str(ROOT)+'\n')
+        (token_dir/'main.go').write_bytes((HERE/'tokenizer_probe.go.txt').read_bytes().replace(b'github.com/go-enry/go-enry/v2/internal/tokenizer', (embedded+'/internal/tokenizer').encode()))
         token_probe = work/'tokenizer-probe-bin'
         run(['go','build','-mod=mod','-trimpath','-o',token_probe,'.'],token_dir)
         token_results = json.loads(run([token_probe,samples]))
@@ -103,7 +104,7 @@ def main():
         report={'scope':'Exploratory per-file classification, full identical content, all pinned upstream samples; not repository inclusion or universal correctness.',
                 'provenance':{'archive_url':ARCHIVE_URL,'archive_sha256':ARCHIVE_SHA,'upstream_git_ref':GIT_REF,
                               'image_id':run(['docker','image','inspect',args.image,'--format','{{.Id}}']).strip(),
-                              'go_version':run(['go','version']).strip(),'go_enry_module':run(['go','list','-m','github.com/go-enry/go-enry/v2'],ROOT).strip(),
+                              'go_version':run(['go','version']).strip(),'go_enry_module':'github.com/war-and-code/dircue/third_party/go-enry (embedded, see third_party/go-enry/PROVENANCE.json)',
                               'official_enry_module':baseline_module,'official_enry_probe_sha256':hashlib.sha256(baseline.read_bytes()).hexdigest(),
                               'probe_sha256':hashlib.sha256(probe.read_bytes()).hexdigest(),'generator_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest()},
                 'summary':summary,'results':results}
