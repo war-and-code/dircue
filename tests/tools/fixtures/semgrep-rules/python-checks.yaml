@@ -1,0 +1,18 @@
+rules:
+  - id: bare-except
+    patterns:
+      - pattern: |
+          try:
+            ...
+          except:
+            ...
+    message: "Bare except clause catches all exceptions including SystemExit and KeyboardInterrupt"
+    languages: [python]
+    severity: WARNING
+
+  - id: hardcoded-tmp-path
+    pattern: |
+      $VAR = "/tmp/$PATH"
+    message: "Hardcoded /tmp path may cause issues"
+    languages: [python]
+    severity: INFO

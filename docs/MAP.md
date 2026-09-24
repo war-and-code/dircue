@@ -434,6 +434,14 @@ with a producer-supplied digest can pass the corresponding SARIF snapshot
 identity as `--source-digest ALGORITHM:SCOPE:VALUE`. This flag cannot make an
 ordinary undigested directory map immutable after the fact.
 
+A `uriBaseId` is resolved through the report's `originalUriBaseIds`. Some
+tools use a base such as `%SRCROOT%` without declaring it; define it with
+`--uri-base SRCROOT=.` (the map root) or another URI. Declared bases always
+take precedence. An absolute URI does not depend on its base (SARIF 2.1.0
+section 3.4.4), so a base attached to an absolute URI is ignored and
+`--source-uri` applies instead. Nothing is guessed: an undefined base on a
+relative URI stays `unresolvable_uri`.
+
 Inputs are limited to regular files. The saved map limit is 64 MiB. SARIF is
 limited to 64 MiB, 64 runs, 1,000,000 results, and 4,000,000 locations. The
 command supports SARIF 2.1.0 physical locations; logical-only locations and
