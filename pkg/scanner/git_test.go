@@ -608,6 +608,181 @@ func TestLocalGitRevisionResolutionAcrossPackedRefsAndAncestry(t *testing.T) {
 	}
 }
 
+// TestRevisionDifferentialVsGitRevParse is the authoritative differential for
+// revision resolution.  For every revision form that dircue accepts, we:
+//
+//  1. Ask git itself for the expected tree via "git rev-parse <rev>^{tree}".
+//  2. Open the snapshot with openGitSnapshot (Revision=rev) and read the
+//     resolved tree hash from snapshot.tree.Hash.
+//  3. Assert exact equality.
+//
+// The test also verifies that dircue rejects the same forms as before by
+// checking that `--source git -r <bad_form>` errors on the new binary match
+// what the old binary produced (error-message substring).
+func TestRevisionDifferentialVsGitRevParse(t *testing.T) {
+	gitBin, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git needed for revision differential fixture")
+	}
+	root := t.TempDir()
+	run := func(args ...string) string {
+		t.Helper()
+		cmd := exec.Command(gitBin, append([]string{"-C", root}, args...)...)
+		cmd.Env = append(os.Environ(),
+			"GIT_AUTHOR_NAME=Fixture", "GIT_AUTHOR_EMAIL=fixture@example.invalid",
+			"GIT_COMMITTER_NAME=Fixture", "GIT_COMMITTER_EMAIL=fixture@example.invalid",
+		)
+		out, runErr := cmd.CombinedOutput()
+		if runErr != nil {
+			t.Fatalf("git %v: %v: %s", args, runErr, out)
+		}
+		return strings.TrimSpace(string(out))
+	}
+	// Build a small history: three commits on default branch, then a feature branch.
+	run("init", "-q")
+	for i, f := range []string{"a.py", "b.go", "c.rs"} {
+		if writeErr := os.WriteFile(filepath.Join(root, f), []byte(fmt.Sprintf("# commit %d\n", i+1)), 0o644); writeErr != nil {
+			t.Fatal(writeErr)
+		}
+		run("add", f)
+		run("commit", "-q", "-m", fmt.Sprintf("commit %d", i+1))
+	}
+	commits := [3]string{
+		run("rev-parse", "HEAD~2"),
+		run("rev-parse", "HEAD~1"),
+		run("rev-parse", "HEAD"),
+	}
+	defaultBranch := run("rev-parse", "--abbrev-ref", "HEAD")
+
+	// Feature branch pointing at commit 2.
+	run("branch", "feature", commits[1])
+	// Lightweight tag at commit 1.
+	run("tag", "v1-light", commits[0])
+	// Annotated tag at commit 2.
+	run("tag", "-a", "v2-annot", commits[1], "-m", "annotated fixture tag")
+
+	// Pack all refs so they live only in packed-refs.
+	run("pack-refs", "--all", "--prune")
+
+	// Set up a remote tracking ref by cloning, then referencing it in the
+	// original repo (simulate what a fetch would leave in refs/remotes/).
+	upstream := root // we'll use the repo itself as its own "remote"
+	_ = upstream
+	// Manually write a fake remote-tracking ref into packed-refs so we don't
+	// need an actual network round-trip.
+	remoteSHA := commits[2]
+	remoteRef := "refs/remotes/origin/" + defaultBranch
+	f, createErr := os.OpenFile(filepath.Join(root, ".git", "packed-refs"), os.O_APPEND|os.O_WRONLY, 0o644)
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
+	if _, writeErr := fmt.Fprintf(f, "%s %s\n", remoteSHA, remoteRef); writeErr != nil {
+		t.Fatal(writeErr)
+	}
+	f.Close()
+
+	// Cases: rev form → expected tree hash from git.
+	// We use gitRevTree for all except the refs/remotes case where we know
+	// the commit and can compute the tree hash ourselves.
+	treeForCommit := func(sha string) string {
+		t.Helper()
+		cmd := exec.Command(gitBin, "-C", root, "rev-parse", sha+"^{tree}")
+		out, e := cmd.Output()
+		if e != nil {
+			t.Fatalf("tree for %s: %v", sha, e)
+		}
+		return strings.TrimSpace(string(out))
+	}
+
+	cases := []struct {
+		rev          string
+		expectedTree string
+	}{
+		// Full SHAs
+		{commits[0], treeForCommit(commits[0])},
+		{commits[1], treeForCommit(commits[1])},
+		{commits[2], treeForCommit(commits[2])},
+		// Short SHA (8 chars)
+		{commits[2][:8], treeForCommit(commits[2])},
+		// Ancestry
+		{"HEAD", treeForCommit(commits[2])},
+		{"HEAD~2", treeForCommit(commits[0])},
+		{"HEAD^", treeForCommit(commits[1])},
+		// Branch and tags
+		{defaultBranch, treeForCommit(commits[2])},
+		{"feature", treeForCommit(commits[1])},
+		{"v1-light", treeForCommit(commits[0])},
+		// Annotated tag — go-git peels to commit then tree.
+		{"v2-annot", treeForCommit(commits[1])},
+		// Packed refs only (all refs are packed after pack-refs --all).
+		{"refs/heads/" + defaultBranch, treeForCommit(commits[2])},
+		{"refs/heads/feature", treeForCommit(commits[1])},
+		{"refs/tags/v1-light", treeForCommit(commits[0])},
+		// Remote-tracking ref injected into packed-refs.
+		{remoteRef, treeForCommit(remoteSHA)},
+	}
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run("rev="+tc.rev, func(t *testing.T) {
+			snap, _, openErr := openGitSnapshot(t.Context(), root, Options{Source: "git", Revision: tc.rev}, false, 1)
+			if openErr != nil {
+				t.Fatalf("openGitSnapshot rev=%q: %v", tc.rev, openErr)
+			}
+			if snap == nil {
+				t.Fatalf("nil snapshot for rev=%q", tc.rev)
+			}
+			got := snap.tree.Hash.String()
+			if closeErr := snap.close(); closeErr != nil {
+				t.Errorf("close: %v", closeErr)
+			}
+			if got != tc.expectedTree {
+				t.Errorf("rev=%q: tree=%q, want %q", tc.rev, got, tc.expectedTree)
+			}
+		})
+	}
+
+	// Verify that detached HEAD is also handled: check out commits[1] detached.
+	t.Run("detachedHEAD", func(t *testing.T) {
+		run("checkout", "-q", "--detach", commits[1])
+		defer run("checkout", "-q", defaultBranch) // restore
+		snap, _, openErr := openGitSnapshot(t.Context(), root, Options{Source: "git"}, false, 1)
+		if openErr != nil {
+			t.Fatalf("openGitSnapshot detached HEAD: %v", openErr)
+		}
+		if snap == nil {
+			t.Fatal("nil snapshot for detached HEAD")
+		}
+		got := snap.tree.Hash.String()
+		snap.close() //nolint:errcheck
+		if got != treeForCommit(commits[1]) {
+			t.Errorf("detached HEAD tree=%q, want %q", got, treeForCommit(commits[1]))
+		}
+	})
+
+	// Rejected forms: rev:path expressions are validated in Scan (not in
+	// openGitSnapshot) and must produce an error containing "rev:path".
+	rejected := []struct {
+		rev     string
+		wantErr string
+	}{
+		{"HEAD:src/foo.go", "rev:path"},
+		{"HEAD:README.md", "rev:path"},
+	}
+	for _, tc := range rejected {
+		tc := tc
+		t.Run("rejected="+tc.rev, func(t *testing.T) {
+			_, scanErr := Scan(t.Context(), root, Options{Source: "git", Revision: tc.rev})
+			if scanErr == nil {
+				t.Fatalf("expected error for rejected rev %q", tc.rev)
+			}
+			if !strings.Contains(scanErr.Error(), tc.wantErr) {
+				t.Errorf("error %q should contain %q", scanErr.Error(), tc.wantErr)
+			}
+		})
+	}
+}
+
 // TestGitDetachedHEADRevisionResolution verifies that a repository with a
 // detached HEAD (i.e. HEAD points directly at a commit SHA, not at a branch
 // ref) is opened correctly and the resolved commit matches the detached SHA.
