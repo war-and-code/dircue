@@ -131,3 +131,76 @@ python3 tests/atlas/accuracy.py \
 Labels: `tests/map_corpus/public_quality_expectations.json`
 
 Generated: 2026-09-23T19:54:40Z
+
+---
+
+## Golden corpus accuracy (blind labels, issue #75)
+
+Separate from the public corpus above, 7 repositories were labeled blind by
+independent labelers who did not read dircue source. Labels are in
+`tests/map_corpus/golden_expectations.json`. Each repository's evaluation is
+restricted to oracle-scoped nodes — those whose evidence paths overlap the
+`oracle_files` set declared per repo.
+
+Run with `make golden` (requires pinned repo clones; see `tests/map_corpus/golden_expectations.json`).
+
+### Aggregate results (7 repos, 2026-09-24)
+
+| Question | Precision | Recall | TP | FP | FN | Gate threshold |
+|---|---|---|---|---|---|---|
+| components | 1.00 | 1.00 | 15 | 0 | 0 | P≥0.85, R≥0.85 ✓ |
+| deployables | 1.00 | 1.00 | 39 | 0 | 0 | P≥0.80, R≥0.75 ✓ |
+| interfaces | 0.33 | 0.37 | 13 | 26 | 22 | not gated in 1.0 |
+| capabilities | 0.43 | 0.18 | 3 | 4 | 14 | not gated in 1.0 |
+| edges | 0.08 | 0.09 | 6 | 69 | 58 | not gated in 1.0 |
+
+### Per-repo breakdown
+
+| Repo | Question | P | R | TP | FP | FN |
+|---|---|---|---|---|---|---|
+| aws-sam-java-rest | components | 1.00 | 1.00 | 1 | 0 | 0 |
+| aws-sam-java-rest | deployables | 1.00 | 1.00 | 6 | 0 | 0 |
+| aws-sam-java-rest | interfaces | N/A | N/A | 0 | 0 | 0 |
+| aws-sam-java-rest | capabilities | N/A | 0.00 | 0 | 0 | 2 |
+| loki | components | 1.00 | 1.00 | 1 | 0 | 0 |
+| loki | deployables | 1.00 | 1.00 | 3 | 0 | 0 |
+| loki | interfaces | 0.25 | 0.29 | 4 | 12 | 10 |
+| loki | capabilities | N/A | 0.00 | 0 | 0 | 2 |
+| mastodon | components | 1.00 | 1.00 | 3 | 0 | 0 |
+| mastodon | deployables | 1.00 | 1.00 | 7 | 0 | 0 |
+| mastodon | interfaces | 0.55 | 1.00 | 6 | 5 | 0 |
+| mastodon | capabilities | 0.50 | 0.17 | 1 | 1 | 5 |
+| ruff | components | 1.00 | 1.00 | 4 | 0 | 0 |
+| ruff | deployables | 1.00 | 1.00 | 1 | 0 | 0 |
+| ruff | interfaces | 0.40 | 1.00 | 2 | 3 | 0 |
+| ruff | capabilities | N/A | N/A | 0 | 0 | 0 |
+| spring-petclinic | components | 1.00 | 1.00 | 2 | 0 | 0 |
+| spring-petclinic | deployables | 1.00 | 1.00 | 7 | 0 | 0 |
+| spring-petclinic | interfaces | N/A | 0.00 | 0 | 0 | 5 |
+| spring-petclinic | capabilities | N/A | 0.00 | 0 | 0 | 3 |
+| superset | components | 1.00 | 1.00 | 4 | 0 | 0 |
+| superset | deployables | 1.00 | 1.00 | 11 | 0 | 0 |
+| superset | interfaces | 0.14 | 0.12 | 1 | 6 | 7 |
+| superset | capabilities | 0.40 | 0.50 | 2 | 3 | 2 |
+| terraform-aws-vpc | components | N/A | N/A | 0 | 0 | 0 |
+| terraform-aws-vpc | deployables | 1.00 | 1.00 | 4 | 0 | 0 |
+| terraform-aws-vpc | interfaces | N/A | N/A | 0 | 0 | 0 |
+| terraform-aws-vpc | capabilities | N/A | N/A | 0 | 0 | 0 |
+
+### Honesty notes
+
+**Interfaces (not gated):** Low scores are known and documented. The main driver is
+loki's gRPC operation explosion: dircue emits one interface node per RPC method
+(~12 nodes), while the labels covered only the 2 service-level names. This is a
+scope/definition difference (category c), not a bug. Remaining FNs are Spring Boot
+app detection and declared-port coverage gaps; see `$S/rcreview/fix/golden2/DISAGREEMENTS.md`.
+
+**Capabilities (not gated):** Most FNs are catalog gaps — Ruby `pg`/`redis`,
+Maven `mysql-connector-j`/`h2`, DynamoDB SDK, Go `go-redis`/`protobuf`. The
+capability catalog rebuild (issue tracked separately) is expected to recover most
+of these. Current recall of 0.18 reflects the state of the catalog before that work.
+
+**Edges (not gated):** Matching uses endpoint names; many labeler-specified edges
+reference names that resolve differently in dircue (e.g. `docker-compose.yml:web`
+vs service name `web`). Edge accuracy will improve as component and capability
+accuracy improve.

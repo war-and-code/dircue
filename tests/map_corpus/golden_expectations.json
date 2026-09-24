@@ -1,0 +1,1564 @@
+{
+  "labeled_by": "blind",
+  "description": "Ground-truth golden labels for dircue map accuracy (issue #75). Independent blind labelers wrote these labels without running dircue.",
+  "repos": [
+    {
+      "repo": "aws-sam-java-rest",
+      "commit": "e10df9e4cd021746e58ed1b59296bb62e3a4a883",
+      "oracle_files": [
+        {
+          "path": "template.yaml",
+          "sha256": "4e93890a29b6b2d79d882b7ada3c91ae1fee8d308739f2fe6f6c2fd97a964a16"
+        },
+        {
+          "path": "pom.xml",
+          "sha256": "a5bef5059bfa22ad6021eb895dbd4935630e7e75bd750a060b835e62e986f2a2"
+        }
+      ],
+      "components": [
+        {
+          "name": "aws-sam-java-rest",
+          "root": ".",
+          "ecosystem": "maven",
+          "why": "pom.xml:5 declares <artifactId>aws-sam-java-rest</artifactId>, groupId com.amazonaws, version 1.0.0; packaging is jar"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "function",
+          "name": "GetOrderFunction",
+          "path": "template.yaml",
+          "why": "template.yaml:19 declares GetOrderFunction: Type: AWS::Serverless::Function with Handler com.amazonaws.handler.GetOrderHandler::handleRequest, Runtime java8, CodeUri target/aws-sam-java-rest-1.0.0.jar"
+        },
+        {
+          "kind": "function",
+          "name": "GetOrdersFunction",
+          "path": "template.yaml",
+          "why": "template.yaml:34 declares GetOrdersFunction: Type: AWS::Serverless::Function with Handler com.amazonaws.handler.GetOrdersHandler::handleRequest, Runtime java8"
+        },
+        {
+          "kind": "function",
+          "name": "UpdateOrderFunction",
+          "path": "template.yaml",
+          "why": "template.yaml:49 declares UpdateOrderFunction: Type: AWS::Serverless::Function with Handler com.amazonaws.handler.UpdateOrderHandler::handleRequest, Runtime java8"
+        },
+        {
+          "kind": "function",
+          "name": "DeleteOrderFunction",
+          "path": "template.yaml",
+          "why": "template.yaml:64 declares DeleteOrderFunction: Type: AWS::Serverless::Function with Handler com.amazonaws.handler.DeleteOrderHandler::handleRequest, Runtime java8"
+        },
+        {
+          "kind": "function",
+          "name": "CreateOrderFunction",
+          "path": "template.yaml",
+          "why": "template.yaml:79 declares CreateOrderFunction: Type: AWS::Serverless::Function with Handler com.amazonaws.handler.CreateOrderHandler::handleRequest, Runtime java8"
+        },
+        {
+          "kind": "resource",
+          "name": "OrdersTable",
+          "path": "template.yaml",
+          "why": "template.yaml:95 declares OrdersTable: Type: AWS::DynamoDB::Table with TableName=orders_table, hash key orderId (String), BillingMode PAY_PER_REQUEST"
+        }
+      ],
+      "interfaces": [],
+      "capabilities": [
+        {
+          "capability": "datastore:dynamodb",
+          "owner": "aws-sam-java-rest",
+          "path": "pom.xml",
+          "why": "pom.xml:77 declares <artifactId>dynamodb</artifactId> from groupId software.amazon.awssdk version 2.13.39; this is the AWS SDK v2 DynamoDB client. Note: catalog has no 'datastore:dynamodb' coordinate; labeled per brief rule to use the canonical capability name for what the source declares."
+        },
+        {
+          "capability": "net:http-client",
+          "owner": "aws-sam-java-rest",
+          "path": "pom.xml",
+          "note": "ambiguous",
+          "why": "pom.xml:92 declares <artifactId>apache-client</artifactId> from groupId software.amazon.awssdk; this is the Apache HttpClient-backed HTTP transport for the AWS SDK, not a direct application HTTP client call. The catalog coordinate 'httpclient' targets org.apache.httpcomponents:httpclient directly; software.amazon.awssdk:apache-client wraps it. Labeled with note because the HTTP client use is indirect (SDK transport layer, not application-initiated HTTP calls)."
+        }
+      ],
+      "edges": [
+        {
+          "type": "builds",
+          "from": "aws-sam-java-rest",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "pom.xml maven-shade-plugin (maven-shade-plugin:3.1.1) is configured to run in the package phase and produce an uber-jar; pom.xml:3 version=1.0.0 matches the CodeUri filename"
+        },
+        {
+          "type": "runs",
+          "from": "GetOrderFunction",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "template.yaml:22 CodeUri: target/aws-sam-java-rest-1.0.0.jar; the function executes code from the Maven-built JAR"
+        },
+        {
+          "type": "runs",
+          "from": "GetOrdersFunction",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "template.yaml:37 CodeUri: target/aws-sam-java-rest-1.0.0.jar"
+        },
+        {
+          "type": "runs",
+          "from": "UpdateOrderFunction",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "template.yaml:52 CodeUri: target/aws-sam-java-rest-1.0.0.jar"
+        },
+        {
+          "type": "runs",
+          "from": "DeleteOrderFunction",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "template.yaml:67 CodeUri: target/aws-sam-java-rest-1.0.0.jar"
+        },
+        {
+          "type": "runs",
+          "from": "CreateOrderFunction",
+          "to": "aws-sam-java-rest-1.0.0.jar",
+          "why": "template.yaml:82 CodeUri: target/aws-sam-java-rest-1.0.0.jar"
+        },
+        {
+          "type": "uses_capability",
+          "from": "GetOrderFunction",
+          "to": "datastore:dynamodb",
+          "why": "template.yaml:26-27 Policies DynamoDBReadPolicy TableName: !Ref OrdersTable; template.yaml:15 env TABLE_NAME: !Ref OrdersTable"
+        },
+        {
+          "type": "uses_capability",
+          "from": "GetOrdersFunction",
+          "to": "datastore:dynamodb",
+          "why": "template.yaml:41-42 Policies DynamoDBReadPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
+        },
+        {
+          "type": "uses_capability",
+          "from": "UpdateOrderFunction",
+          "to": "datastore:dynamodb",
+          "why": "template.yaml:56-57 Policies DynamoDBCrudPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
+        },
+        {
+          "type": "uses_capability",
+          "from": "DeleteOrderFunction",
+          "to": "datastore:dynamodb",
+          "why": "template.yaml:71-72 Policies DynamoDBCrudPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
+        },
+        {
+          "type": "uses_capability",
+          "from": "CreateOrderFunction",
+          "to": "datastore:dynamodb",
+          "why": "template.yaml:86-87 Policies DynamoDBCrudPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "Single Maven project declared by pom.xml:5 <artifactId>aws-sam-java-rest</artifactId>; no sub-modules or workspace members exist in the repository"
+        },
+        "deployables": {
+          "status": "complete",
+          "why": "template.yaml declares all 5 Lambda functions (GetOrderFunction, GetOrdersFunction, UpdateOrderFunction, DeleteOrderFunction, CreateOrderFunction) and the OrdersTable DynamoDB resource; no other deployable definitions exist in the repository"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "Each Lambda function has an Events.*.Type: Api declaration (HTTP GET/POST/DELETE at /orders and /orders/{order_id}) that constitutes declared HTTP handler interfaces, but the SAM Api event type does not match any of the supported interface kinds in the dircue vocabulary (no CLI binary, declared port, gRPC service, Spring Boot application, or npm start). No ports are EXPOSEd; Lambda execution is event-driven."
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "DynamoDB client (software.amazon.awssdk:dynamodb) confirmed from pom.xml:77; apache-client HTTP transport labeled with ambiguity note; transitive AWS SDK dependencies may introduce other clients not visible in pom.xml first-party dependencies"
+        },
+        "edges": {
+          "status": "complete",
+          "why": "Maven builds the single JAR; all 5 functions reference the same JAR via CodeUri; all 5 functions have explicit DynamoDB IAM policies and TABLE_NAME env var binding. No other inter-component edges are declared in oracle files."
+        }
+      },
+      "notes": [
+        "All five Lambda functions share a single CodeUri (target/aws-sam-java-rest-1.0.0.jar), meaning they are all handler classes within one deployable JAR artifact.",
+        "The SAM Globals section (template.yaml:9-16) sets TABLE_NAME and ENDPOINT_OVERRIDE environment variables for all functions; ENDPOINT_OVERRIDE is empty string in production but used for DynamoDB Local in integration tests (pom.xml:362 docker-maven-plugin).",
+        "template.yaml:2 Transform: AWS::Serverless-2016-10-31 marks this as a SAM template, not a raw CloudFormation template; SAM expands functions with Api events into an implicit AWS::Serverless::Api resource (API Gateway), but this implicit resource is not an explicit declaration.",
+        "pom.xml:121 includes aws-java-sdk-dynamodb (v1 SDK) in test scope only; this is for DynamoDB Local testing convenience (the Item class), not production use.",
+        "The catalog.go has no 'datastore:dynamodb' coordinate entry; labeled per the brief's rule that source declarations take precedence over catalog coverage.",
+        "Runtime java8 is specified; this is Lambda runtime java8 (Amazon Linux 2 with Java 8 Corretto), not literally JDK 1.8."
+      ]
+    },
+    {
+      "repo": "loki",
+      "commit": "9e2f79fa11e44edea2ec8158c34b2f971ec558eb",
+      "oracle_files": [
+        {
+          "path": "go.mod",
+          "sha256": "c4557e3daed369aef23288a3d8ea020568ecb43ecac55859fdc21c1cff049d9c"
+        },
+        {
+          "path": "cmd/loki/main.go",
+          "sha256": "2c98d6c49feb3ee2c47f78ca4cb0f03a1461caf6fdc535395f2080f317201bab"
+        },
+        {
+          "path": "cmd/loki/Dockerfile",
+          "sha256": "92859b9c18e5ffd6920f470f28f8a7363ba0c23e3a9228e92ffc72cb598fcb67"
+        },
+        {
+          "path": "pkg/logproto/logproto.proto",
+          "sha256": "b5b65c85b47b9b5f27ccba8452529dc25763e0ac09d48d830d2b6ff1137818a9"
+        },
+        {
+          "path": "production/helm/loki/Chart.yaml",
+          "sha256": "9caf22ad01272c1bd8ef29c48b23492eccb9fe8b31046d1af4423326df626186"
+        },
+        {
+          "path": "cmd/logcli/Dockerfile",
+          "sha256": "6e14814b5fcaa95ef227ed31d2118fb808ec7d8e9fea5d79f1b7fefe0119ecd9"
+        }
+      ],
+      "components": [
+        {
+          "name": "github.com/grafana/loki/v3",
+          "root": ".",
+          "ecosystem": "gomod",
+          "why": "go.mod:1 module github.com/grafana/loki/v3 \u2014 single Go module covering the entire repo"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "container_build",
+          "name": "loki",
+          "path": "cmd/loki/Dockerfile",
+          "why": "cmd/loki/Dockerfile multi-stage build: go build stage produces cmd/loki/loki binary; final distroless image"
+        },
+        {
+          "kind": "container_build",
+          "name": "logcli",
+          "path": "cmd/logcli/Dockerfile",
+          "why": "cmd/logcli/Dockerfile multi-stage build for the logcli CLI client binary"
+        },
+        {
+          "kind": "helm",
+          "name": "loki",
+          "path": "production/helm/loki",
+          "why": "production/helm/loki/Chart.yaml: apiVersion v2, name 'loki', version 7.4.0, appVersion 3.6.14"
+        }
+      ],
+      "interfaces": [
+        {
+          "kind": "cli_binary",
+          "name": "loki",
+          "path": "cmd/loki/main.go",
+          "why": "cmd/loki/main.go: package main \u2014 Go entry-point binary for the Loki log aggregation server"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "logcli",
+          "path": "cmd/logcli",
+          "why": "cmd/logcli/main.go: package main \u2014 Go entry-point binary for the logcli query CLI tool"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "loki-canary",
+          "path": "cmd/loki-canary",
+          "why": "cmd/loki-canary/ contains package main \u2014 Go entry-point binary for canary monitoring"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "loki-canary-boringcrypto",
+          "path": "cmd/loki-canary-boringcrypto",
+          "why": "cmd/loki-canary-boringcrypto/ \u2014 Go entry-point binary variant with BoringCrypto"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "lokitool",
+          "path": "cmd/lokitool",
+          "why": "cmd/lokitool/ contains package main \u2014 Go entry-point binary for admin operations"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "migrate",
+          "path": "cmd/migrate",
+          "why": "cmd/migrate/ contains package main \u2014 Go entry-point binary for schema migration"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "querytee",
+          "path": "cmd/querytee",
+          "why": "cmd/querytee/ contains package main \u2014 Go entry-point binary for query traffic tee"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "chunks-inspect",
+          "path": "cmd/chunks-inspect",
+          "why": "cmd/chunks-inspect/ contains package main \u2014 Go entry-point binary for chunk inspection"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "dataobj-inspect",
+          "path": "cmd/dataobj-inspect",
+          "why": "cmd/dataobj-inspect/ contains package main \u2014 Go entry-point binary for data object inspection"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "logline-util",
+          "path": "cmd/logline-util",
+          "why": "cmd/logline-util/ contains package main \u2014 Go entry-point binary for log line utilities"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "logql-analyzer",
+          "path": "cmd/logql-analyzer",
+          "why": "cmd/logql-analyzer/ contains package main \u2014 Go entry-point binary for LogQL query analysis"
+        },
+        {
+          "kind": "declared_port",
+          "name": "3100",
+          "path": "cmd/loki/Dockerfile",
+          "why": "cmd/loki/Dockerfile: EXPOSE 3100 \u2014 Loki HTTP/gRPC server port"
+        },
+        {
+          "kind": "grpc_service",
+          "name": "Querier",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: service Querier { rpc Query, QuerySample, Label, Tail, Series, TailersCount, GetChunkIDs, GetStats, GetVolume, GetDetectedFields, GetDetectedLabels }"
+        },
+        {
+          "kind": "grpc_service",
+          "name": "StreamData",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: service StreamData { rpc GetStreamRates }"
+        }
+      ],
+      "capabilities": [
+        {
+          "capability": "cache:redis",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod:76 github.com/redis/go-redis/v9 v9.22.0 \u2014 Go Redis client library"
+        },
+        {
+          "capability": "serialization:protobuf",
+          "owner": "github.com/grafana/loki/v3",
+          "path": "go.mod",
+          "why": "go.mod: google.golang.org/protobuf v1.36.12, github.com/gogo/protobuf v1.3.2, github.com/golang/protobuf v1.5.4 \u2014 protobuf serialization libraries"
+        }
+      ],
+      "edges": [
+        {
+          "type": "builds",
+          "from": "cmd/loki/Dockerfile",
+          "to": "loki binary",
+          "why": "cmd/loki/Dockerfile build stage: COPY . /src/loki; make loki; produces /usr/bin/loki in final image"
+        },
+        {
+          "type": "builds",
+          "from": "cmd/logcli/Dockerfile",
+          "to": "logcli binary",
+          "why": "cmd/logcli/Dockerfile build stage produces logcli binary"
+        },
+        {
+          "type": "declares",
+          "from": "pkg/logproto/logproto.proto",
+          "to": "Querier gRPC service",
+          "why": "pkg/logproto/logproto.proto: service Querier definition"
+        },
+        {
+          "type": "declares",
+          "from": "pkg/logproto/logproto.proto",
+          "to": "StreamData gRPC service",
+          "why": "pkg/logproto/logproto.proto: service StreamData definition"
+        },
+        {
+          "type": "packaged_in",
+          "from": "loki binary",
+          "to": "cmd/loki/Dockerfile image",
+          "why": "cmd/loki/Dockerfile COPY --from=build /src/loki/cmd/loki/loki /usr/bin/loki"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "cache:redis",
+          "why": "go.mod github.com/redis/go-redis/v9 direct dependency"
+        },
+        {
+          "type": "uses_capability",
+          "from": "github.com/grafana/loki/v3",
+          "to": "serialization:protobuf",
+          "why": "go.mod google.golang.org/protobuf and gogo/protobuf direct dependencies; logproto.proto declares services"
+        },
+        {
+          "type": "contains",
+          "from": "production/helm/loki",
+          "to": "loki",
+          "why": "production/helm/loki/Chart.yaml packages the loki server into a Helm chart (appVersion 3.6.14)"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "go.mod declares a single module for the entire repo; all cmd/ binaries belong to it; the operator sub-directory has its own go.mod but that is outside oracle files"
+        },
+        "deployables": {
+          "status": "partial",
+          "why": "Main loki and logcli Dockerfiles are oracle files; Helm chart covered; but other cmd/ Dockerfiles (loki-canary, lokitool, etc.), the production/docker compose, and operator Dockerfile are not oracle files"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "All 11 cmd/ entry-point binaries listed; EXPOSE 3100 from loki Dockerfile; Querier and StreamData gRPC services from logproto.proto; but other .proto files (indexgateway.proto, push.proto, ingester-rf1.proto, etc.) are not oracle files and declare additional gRPC services"
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "Redis and protobuf capabilities declared in go.mod are labeled; but gomemcache (Memcached), object-storage clients (S3/GCS/Azure/MinIO/Aliyun/Baidu), and MySQL driver have no matching catalog capability names and are not labeled"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Build and package edges for oracle Dockerfiles are complete; gRPC declaration edges for logproto.proto are complete; but Helm chart deployment topology (what Kubernetes resources it creates) is not labeled"
+        }
+      },
+      "notes": [
+        "go.mod:47 github.com/grafana/gomemcache is a Memcached client; no memcached capability name in catalog \u2014 not labeled.",
+        "go.mod declares multiple object-storage clients: aws-sdk-go-v2/service/s3 (S3), cloud.google.com/go/storage (GCS), azure-sdk-for-go/sdk/storage/azblob (Azure Blob), minio-go/v7 (MinIO), aliyun-oss-go-sdk (Alibaba OSS), bce-sdk-go (Baidu Cloud) \u2014 catalog has no object-storage capability name; not labeled.",
+        "go.mod:114 github.com/go-sql-driver/mysql \u2014 MySQL client; catalog has no datastore:mysql capability name; not labeled.",
+        "production/helm/loki/Chart.yaml has three sub-chart dependencies (minio, grafana-agent-operator, rollout-operator); these are Helm dependency edges not labeled here as they are chart-to-chart relationships.",
+        "operator/ sub-directory has its own go.mod (operator/go.mod), making it a separate Go module; it is not an oracle file and its component is not labeled.",
+        "pkg/logproto/logproto.proto imports pkg/push/push.proto which declares service Pusher; and pkg/logproto/indexgateway.proto declares service IndexGateway; those are not oracle files.",
+        "cmd/loki/Dockerfile uses 'distroless/static:nonroot' as final base image; the golang build stage copies the whole repo (COPY . /src/loki).",
+        "The single go.mod module covers all cmd/ binaries; there is no per-binary component boundary declared."
+      ]
+    },
+    {
+      "repo": "mastodon",
+      "commit": "2b0e8b47fa7909637c822e90ce386491a711ee89",
+      "oracle_files": [
+        {
+          "path": "Gemfile",
+          "sha256": "6e4094c8499e2b4c29508d6d76b14f4c6005336ed1627111052e01b6582cadb7"
+        },
+        {
+          "path": "Dockerfile",
+          "sha256": "07d8e7df87386d673b3069dc9de9886c2f75ee1b8ac1f14df9b9d66bdb053503"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "223e80fa6447798d045cbefa8e310e0219392c581ad261b5cb814ee3eac44801"
+        },
+        {
+          "path": "streaming/package.json",
+          "sha256": "fb24e6afa382905681adf004c3163186ebe77627f53d038e35e94bdd1da834fe"
+        },
+        {
+          "path": "streaming/Dockerfile",
+          "sha256": "63f0d23aaa16e15b978c9712c0c57afcabf4c2adf04c73df4ba63179a5e1631c"
+        },
+        {
+          "path": "package.json",
+          "sha256": "0ffcdef5d77a292da4b5a9d56a33d8f478c6f356b58d94b2ac6e1bf50a66f304"
+        }
+      ],
+      "components": [
+        {
+          "name": "mastodon",
+          "root": ".",
+          "ecosystem": "bundler",
+          "why": "Gemfile:1 declares Ruby source and gem dependencies for the main Rails application"
+        },
+        {
+          "name": "@mastodon/mastodon",
+          "root": ".",
+          "ecosystem": "npm",
+          "why": "package.json:2 declares name @mastodon/mastodon; yarn workspace root also covers the streaming workspace"
+        },
+        {
+          "name": "@mastodon/streaming",
+          "root": "streaming",
+          "ecosystem": "npm",
+          "why": "streaming/package.json:2 declares name @mastodon/streaming as an independent Node.js package"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "container_build",
+          "name": "mastodon",
+          "path": "Dockerfile",
+          "why": "Dockerfile:1 multi-stage Docker build for the production Rails + Puma server image"
+        },
+        {
+          "kind": "container_build",
+          "name": "streaming",
+          "path": "streaming/Dockerfile",
+          "why": "streaming/Dockerfile:1 separate single-stage Docker build for the Node.js streaming server image",
+          "corrections": [
+            {
+              "file": "streaming/Dockerfile",
+              "reason": "streaming/Dockerfile has no FROM or image name declaration; dircue uses the directory name 'streaming'. The image name 'mastodon-streaming' comes from docker-compose.yml's image: field, not the Dockerfile. Corrected to 'streaming' to match dircue's naming."
+            }
+          ]
+        },
+        {
+          "kind": "service",
+          "name": "web",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'web' runs bundle exec puma; uses ghcr.io/mastodon/mastodon:v4.7.2 image"
+        },
+        {
+          "kind": "service",
+          "name": "streaming",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'streaming' runs node ./streaming/index.js; uses ghcr.io/mastodon/mastodon-streaming:v4.7.2 image"
+        },
+        {
+          "kind": "service",
+          "name": "sidekiq",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'sidekiq' runs bundle exec sidekiq; uses mastodon image"
+        },
+        {
+          "kind": "service",
+          "name": "db",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'db' uses postgres:14-alpine image"
+        },
+        {
+          "kind": "service",
+          "name": "redis",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'redis' uses redis:7-alpine image"
+        }
+      ],
+      "interfaces": [
+        {
+          "kind": "declared_port",
+          "name": "3000",
+          "path": "Dockerfile",
+          "why": "Dockerfile last line: EXPOSE 3000 \u2014 Puma HTTP port"
+        },
+        {
+          "kind": "declared_port",
+          "name": "4000",
+          "path": "streaming/Dockerfile",
+          "why": "streaming/Dockerfile:109 EXPOSE 4000 \u2014 Node.js streaming server HTTP/WebSocket port"
+        },
+        {
+          "kind": "declared_port",
+          "name": "3000",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml web service ports: '127.0.0.1:3000:3000'"
+        },
+        {
+          "kind": "declared_port",
+          "name": "4000",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml streaming service ports: '127.0.0.1:4000:4000'"
+        },
+        {
+          "kind": "npm_start",
+          "name": "streaming server",
+          "path": "streaming/package.json",
+          "why": "streaming/package.json scripts.start: 'node ./index.js'"
+        },
+        {
+          "kind": "npm_start",
+          "name": "streaming server (root alias)",
+          "path": "package.json",
+          "why": "package.json:27 scripts.start: 'node ./streaming/index.js' \u2014 workspace root alias to streaming server"
+        }
+      ],
+      "capabilities": [
+        {
+          "capability": "datastore:postgresql",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:13 gem 'pg', '~> 1.5' \u2014 Ruby PostgreSQL client library"
+        },
+        {
+          "capability": "cache:redis",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:53 gem 'redis', '~> 5' and gem 'hiredis-client' \u2014 Redis client libraries; also used by sidekiq"
+        },
+        {
+          "capability": "auth:oidc",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile:38 gem 'omniauth_openid_connect', '~> 0.8.0' \u2014 OpenID Connect authentication library"
+        },
+        {
+          "capability": "net:http-client",
+          "owner": "mastodon",
+          "path": "Gemfile",
+          "why": "Gemfile: gem 'http', '~> 5.3.0' (Ruby HTTP client) and gem 'net-http', '~> 0.9.0' (standard HTTP client)"
+        },
+        {
+          "capability": "datastore:postgresql",
+          "owner": "@mastodon/streaming",
+          "path": "streaming/package.json",
+          "why": "streaming/package.json dependencies: 'pg': '8.23.0' \u2014 Node.js PostgreSQL client"
+        },
+        {
+          "capability": "cache:redis",
+          "owner": "@mastodon/streaming",
+          "path": "streaming/package.json",
+          "why": "streaming/package.json dependencies: 'ioredis': '6.0.0' \u2014 Node.js Redis client"
+        }
+      ],
+      "edges": [
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "mastodon image",
+          "why": "Dockerfile produces the mastodon Rails+Puma image consumed by web and sidekiq services"
+        },
+        {
+          "type": "builds",
+          "from": "streaming/Dockerfile",
+          "to": "mastodon-streaming image",
+          "why": "streaming/Dockerfile produces the streaming server image consumed by the streaming service"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:web",
+          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
+          "why": "docker-compose.yml web service image: ghcr.io/mastodon/mastodon:v4.7.2"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:streaming",
+          "to": "mastodon-streaming image (ghcr.io/mastodon/mastodon-streaming:v4.7.2)",
+          "why": "docker-compose.yml streaming service image: ghcr.io/mastodon/mastodon-streaming:v4.7.2"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:sidekiq",
+          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
+          "why": "docker-compose.yml sidekiq service reuses the same mastodon image"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:web",
+          "to": "docker-compose.yml:db",
+          "why": "docker-compose.yml web service depends_on: db"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:web",
+          "to": "docker-compose.yml:redis",
+          "why": "docker-compose.yml web service depends_on: redis"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:streaming",
+          "to": "docker-compose.yml:db",
+          "why": "docker-compose.yml streaming service depends_on: db"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:streaming",
+          "to": "docker-compose.yml:redis",
+          "why": "docker-compose.yml streaming service depends_on: redis"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:sidekiq",
+          "to": "docker-compose.yml:db",
+          "why": "docker-compose.yml sidekiq service depends_on: db"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:sidekiq",
+          "to": "docker-compose.yml:redis",
+          "why": "docker-compose.yml sidekiq service depends_on: redis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "datastore:postgresql",
+          "why": "Gemfile pg gem; docker-compose db service provides the datastore"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "cache:redis",
+          "why": "Gemfile redis+hiredis-client gems; docker-compose redis service provides the cache"
+        },
+        {
+          "type": "uses_capability",
+          "from": "@mastodon/streaming",
+          "to": "datastore:postgresql",
+          "why": "streaming/package.json pg dependency"
+        },
+        {
+          "type": "uses_capability",
+          "from": "@mastodon/streaming",
+          "to": "cache:redis",
+          "why": "streaming/package.json ioredis dependency"
+        },
+        {
+          "type": "contains",
+          "from": "@mastodon/mastodon",
+          "to": "@mastodon/streaming",
+          "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "All three declared project manifests (Gemfile, root package.json, streaming/package.json) are oracle files; no additional manifests exist at root level"
+        },
+        "deployables": {
+          "status": "complete",
+          "why": "Both Dockerfiles and all five Compose services (web, streaming, sidekiq, db, redis) are present in oracle files"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "Ports declared in Dockerfiles and Compose are covered; npm start scripts are covered; but REST/WebSocket API route definitions live in application source, not in oracle files"
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "Primary datastore, cache, auth, and HTTP-client dependencies are declared in Gemfile and streaming/package.json; but optional/secondary deps (SMTP via 'mail' gem, S3 via aws-sdk-s3, Elasticsearch via chewy, OAuth2 provider via doorkeeper, WebAuthn via webauthn) are not labeled because catalog has no matching capability names"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Compose depends_on and image run relationships are complete; capability-use edges are complete for oracle-file deps; but inter-service runtime communication edges (e.g. web calling streaming) are not statically declared in these files"
+        }
+      },
+      "notes": [
+        "Mastodon Gemfile declares 'chewy' gem (Elasticsearch search client) but catalog has no elasticsearch capability name; not labeled as capability.",
+        "Mastodon Gemfile declares 'aws-sdk-s3' (S3 object storage client) but catalog has no object-storage capability name; not labeled.",
+        "Mastodon Gemfile declares 'mail' gem (SMTP email client) but catalog has no smtp capability name; not labeled.",
+        "Mastodon Gemfile declares 'doorkeeper' gem (OAuth2 provider) and 'omniauth-saml' (SAML auth) but catalog has no oauth2-provider or saml capability name; only auth:oidc labeled for omniauth_openid_connect.",
+        "docker-compose.yml has Elasticsearch service commented out; it is not labeled as a deployable because it is not active.",
+        "The 'sidekiq' Celery-equivalent uses Redis as its queue backend; this is covered by the cache:redis capability label on the mastodon component.",
+        "streaming/Dockerfile is in streaming/ subdirectory and builds a separate image from the root Dockerfile.",
+        "Dockerfile EXPOSE 3000 is for Puma HTTP; streaming/Dockerfile EXPOSE 4000 is for the Node.js HTTP+WebSocket server."
+      ]
+    },
+    {
+      "repo": "ruff",
+      "commit": "ea544ce22a7db999b26cd66be76b88d27b9170b5",
+      "oracle_files": [
+        {
+          "path": "Cargo.toml",
+          "sha256": "4f4f7666071639cd43462064a73bf26b01870ae2b244149a27d08dfc4c6dfa44"
+        },
+        {
+          "path": "pyproject.toml",
+          "sha256": "4de6b5d3e73a7b4d06448d760e8a5694adeb6c544350529fed73b71e3cc24f3a"
+        },
+        {
+          "path": "Dockerfile",
+          "sha256": "2c017f1c2e06b8aeaa42015755e2134f20b6973c0630bf963b56f32f4092c981"
+        },
+        {
+          "path": "playground/package.json",
+          "sha256": "7d819b2bdbacbb95ff30b4be77ea217cccda9d5d76f4841ab6b7d0c12e35b20d"
+        },
+        {
+          "path": "crates/ruff/Cargo.toml",
+          "sha256": "0b30dfd9de62562a574ebd1f3c95bb587ae628ae2ff1b498948bed7d427e7c1b"
+        }
+      ],
+      "components": [
+        {
+          "name": "(root)",
+          "root": ".",
+          "ecosystem": "cargo",
+          "why": "Cargo.toml:1 declares [workspace] with members=[\"crates/*\"] and resolver=2; this is the Cargo workspace root"
+        },
+        {
+          "name": "ruff",
+          "root": ".",
+          "ecosystem": "pypi",
+          "why": "pyproject.toml:5-6 declares [project] name=\"ruff\" version=\"0.16.8\"; build-backend is maturin (pyproject.toml:2)"
+        },
+        {
+          "name": "playground",
+          "root": "playground",
+          "ecosystem": "npm",
+          "why": "playground/package.json:2 declares \"name\": \"playground\"; package.json:30-34 declares workspaces: [\"ty\", \"ruff\", \"shared\"]"
+        },
+        {
+          "name": "ruff",
+          "root": "crates/ruff",
+          "ecosystem": "cargo",
+          "why": "crates/ruff/Cargo.toml:2 declares name = \"ruff\" version = \"0.16.8\" as a Cargo package"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "container_build",
+          "name": "ruff",
+          "path": "Dockerfile",
+          "why": "Dockerfile:1-29 is a two-stage Docker build (ubuntu build stage, scratch final stage) that produces a ruff binary image; ENTRYPOINT is [\"/ruff\"]"
+        }
+      ],
+      "interfaces": [
+        {
+          "kind": "cli_binary",
+          "name": "ruff",
+          "path": "crates/ruff",
+          "why": "crates/ruff/Cargo.toml:13 declares default-run = \"ruff\"; crates/ruff/src/main.rs exists, making this crate a Rust binary (implicit [[bin]] from src/main.rs)"
+        },
+        {
+          "kind": "cli_binary",
+          "name": "ruff",
+          "path": "pyproject.toml",
+          "why": "pyproject.toml:47-50 [tool.maturin] sets bindings = \"bin\" and module-name = \"ruff\"; maturin bin bindings expose the compiled Rust binary as the \"ruff\" command when the Python package is installed"
+        }
+      ],
+      "capabilities": [],
+      "edges": [
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "ruff (container image)",
+          "why": "Dockerfile:26 RUN cargo zigbuild --bin ruff; the scratch-based final image contains only the ruff binary at /ruff"
+        },
+        {
+          "type": "builds",
+          "from": "pyproject.toml",
+          "to": "ruff (Rust crate)",
+          "why": "pyproject.toml:49 manifest-path = \"crates/ruff/Cargo.toml\" directs maturin to build the ruff Rust crate as the Python package's binary"
+        },
+        {
+          "type": "contains",
+          "from": "playground",
+          "to": "ty-playground",
+          "why": "playground/package.json:30 workspaces includes \"ty\"; the ty sub-workspace declares name=\"ty-playground\""
+        },
+        {
+          "type": "contains",
+          "from": "playground",
+          "to": "ruff-playground",
+          "why": "playground/package.json:31 workspaces includes \"ruff\"; the ruff sub-workspace declares name=\"ruff-playground\""
+        },
+        {
+          "type": "contains",
+          "from": "playground",
+          "to": "shared",
+          "why": "playground/package.json:32 workspaces includes \"shared\""
+        },
+        {
+          "type": "packaged_in",
+          "from": "ruff (Rust crate)",
+          "to": "ruff (pypi)",
+          "why": "pyproject.toml:2 build-backend = \"maturin\" packages the Rust binary into the Python distribution"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "partial",
+          "why": "Cargo.toml:2 members=[\"crates/*\"] implies 35+ Cargo crates (ruff, ty, ruff_linter, ruff_server, ruff_wasm, etc.); only the ruff crate, the Python pypi package, and the playground npm workspace are in oracle files"
+        },
+        "deployables": {
+          "status": "partial",
+          "why": "Dockerfile container_build is captured; playground sub-packages (ruff-playground, ty-playground) build npm artifacts not covered by oracle files; dist-workspace.toml may declare additional release targets not in oracle files"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "ruff CLI binary captured (Rust and Python); ty CLI binary at crates/ty/src/main.rs is not in oracle files; playground sub-packages have npm start interfaces not covered"
+        },
+        "capabilities": {
+          "status": "complete",
+          "why": "ruff is a standalone Python linter/formatter CLI; no external service dependencies (datastores, queues, caches, HTTP clients) appear in any of the five oracle files"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Build and containment edges from oracle files are captured; cross-crate local dependency edges within the Cargo workspace are not covered by oracle files"
+        }
+      },
+      "notes": [
+        "The Cargo workspace uses a glob members=[\"crates/*\"] so individual crate components can only be exhaustively labeled by reading each crates/*/Cargo.toml; 35 crates are present.",
+        "The ty crate (crates/ty/src/main.rs exists, making it a second Rust CLI binary) is referenced in Cargo.toml workspace.dependencies:45 but its interface is not labeled here because crates/ty/Cargo.toml is not an oracle file.",
+        "pyproject.toml bindings=\"bin\" is maturin-specific; there is no [project.scripts] entry, but maturin bin mode installs the Rust binary directly as the ruff command.",
+        "The fuzz/ subdirectory contains a separate Cargo.toml (fuzz/Cargo.toml) not covered by the workspace glob; it is a fuzzing harness, not a production deployable.",
+        "playground/package.json does not have an npm start script; the start scripts exist in the sub-workspace package.json files (playground/ruff/package.json, playground/ty/package.json) which are not oracle files."
+      ]
+    },
+    {
+      "repo": "spring-petclinic",
+      "commit": "818c4136ea971c21674525f9053de0d9c7ad8cfe",
+      "oracle_files": [
+        {
+          "path": "pom.xml",
+          "sha256": "7e61df0a43d538a5404e8130a55b8085541ec8e841fcf39f81bb6d3d81dcd2f4"
+        },
+        {
+          "path": "build.gradle",
+          "sha256": "e69845805301a92db8877b0f73a3705cf9131b4f548b1b270929c15b3f113afe"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "59e0a7d8a893bc73608ed0472910b85217e0832d10c06a6810f96b88d4970ebf"
+        },
+        {
+          "path": "k8s/petclinic.yml",
+          "sha256": "4068a7432bc61b2b3769d5e905e7ce37a79c7d73b4bc6e43199a1423bf3394bb"
+        },
+        {
+          "path": "k8s/db.yml",
+          "sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
+        },
+        {
+          "path": "settings.gradle",
+          "sha256": "f6468724ac5adae1f9e17c61eac5f20f849c6af43c8e2a94222d6e59ce6abce1"
+        }
+      ],
+      "components": [
+        {
+          "name": "spring-petclinic",
+          "root": ".",
+          "ecosystem": "maven",
+          "why": "pom.xml:12 declares <artifactId>spring-petclinic</artifactId>, groupId org.springframework.samples, version 4.0.0-SNAPSHOT; parent is spring-boot-starter-parent 4.1.0 (pom.xml:7)"
+        },
+        {
+          "name": "spring-petclinic",
+          "root": ".",
+          "ecosystem": "gradle",
+          "note": "dual-build: same project declared via both pom.xml and build.gradle",
+          "why": "build.gradle:9 group = 'org.springframework.samples', version = '4.0.0-SNAPSHOT'; settings.gradle rootProject.name = 'spring-petclinic'; both build files declare the identical artifact"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "service",
+          "name": "mysql",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml:2 declares mysql service with image: mysql:9.7, ports: 3306:3306, environment MYSQL_DATABASE=petclinic"
+        },
+        {
+          "kind": "service",
+          "name": "postgres",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml:14 declares postgres service with image: postgres:18.4, ports: 5432:5432, environment POSTGRES_DB=petclinic"
+        },
+        {
+          "kind": "service",
+          "name": "petclinic",
+          "path": "k8s/petclinic.yml",
+          "why": "k8s/petclinic.yml:2-12 declares apiVersion: v1 kind: Service metadata.name: petclinic with type: NodePort, port 80 targeting 8080"
+        },
+        {
+          "kind": "workload",
+          "name": "petclinic",
+          "path": "k8s/petclinic.yml",
+          "why": "k8s/petclinic.yml:15-64 declares apiVersion: apps/v1 kind: Deployment metadata.name: petclinic with image: dsyer/petclinic, SPRING_PROFILES_ACTIVE=postgres"
+        },
+        {
+          "kind": "service",
+          "name": "demo-db",
+          "path": "k8s/db.yml",
+          "why": "k8s/db.yml:16-25 declares apiVersion: v1 kind: Service metadata.name: demo-db, port 5432"
+        },
+        {
+          "kind": "workload",
+          "name": "demo-db",
+          "path": "k8s/db.yml",
+          "why": "k8s/db.yml:27-73 declares apiVersion: apps/v1 kind: Deployment metadata.name: demo-db with image: postgres:18.4, ports: containerPort 5432"
+        },
+        {
+          "kind": "resource",
+          "name": "demo-db",
+          "path": "k8s/db.yml",
+          "why": "k8s/db.yml:1-14 declares apiVersion: v1 kind: Secret metadata.name: demo-db type: servicebinding.io/postgresql with host, port, database, username, password stringData"
+        }
+      ],
+      "interfaces": [
+        {
+          "kind": "spring_boot_application",
+          "name": "spring-petclinic",
+          "path": "pom.xml",
+          "why": "pom.xml:6-9 declares parent spring-boot-starter-parent 4.1.0; pom.xml:64 dependency spring-boot-starter-webmvc declares an embedded-server Spring Boot web application"
+        },
+        {
+          "kind": "declared_port",
+          "name": "http",
+          "path": "k8s/petclinic.yml",
+          "why": "k8s/petclinic.yml:45-46 ports[0]: name: http containerPort: 8080 in the petclinic Deployment container spec"
+        },
+        {
+          "kind": "declared_port",
+          "name": "postgresql",
+          "path": "k8s/db.yml",
+          "why": "k8s/db.yml:63-64 ports[0]: containerPort: 5432 name: postgresql in the demo-db Deployment container spec"
+        },
+        {
+          "kind": "declared_port",
+          "name": "3306",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml:4-5 ports: - \"3306:3306\" for the mysql Compose service"
+        },
+        {
+          "kind": "declared_port",
+          "name": "5432",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml:16-17 ports: - \"5432:5432\" for the postgres Compose service"
+        }
+      ],
+      "capabilities": [
+        {
+          "capability": "datastore:postgresql",
+          "owner": "spring-petclinic",
+          "path": "pom.xml",
+          "why": "pom.xml:92-94 declares <groupId>org.postgresql</groupId> <artifactId>postgresql</artifactId> scope runtime; catalog coordinate 'postgresql' matches this dependency"
+        },
+        {
+          "capability": "datastore:mysql",
+          "owner": "spring-petclinic",
+          "path": "pom.xml",
+          "why": "pom.xml:88-90 declares <groupId>com.mysql</groupId> <artifactId>mysql-connector-j</artifactId> scope runtime; this is the MySQL JDBC driver. Note: catalog has no 'datastore:mysql' coordinate; labeled per brief rule."
+        },
+        {
+          "capability": "datastore:h2",
+          "owner": "spring-petclinic",
+          "path": "pom.xml",
+          "note": "dev/test embedded database",
+          "why": "pom.xml:77-79 declares <groupId>com.h2database</groupId> <artifactId>h2</artifactId> scope runtime; H2 is an embedded SQL database used for development/test profiles. Note: catalog has no 'datastore:h2' coordinate; labeled per brief rule."
+        }
+      ],
+      "edges": [
+        {
+          "type": "uses_capability",
+          "from": "spring-petclinic",
+          "to": "datastore:postgresql",
+          "why": "pom.xml:92-94 org.postgresql:postgresql runtime dependency declares PostgreSQL connectivity"
+        },
+        {
+          "type": "uses_capability",
+          "from": "spring-petclinic",
+          "to": "datastore:mysql",
+          "why": "pom.xml:88-90 com.mysql:mysql-connector-j runtime dependency declares MySQL connectivity"
+        },
+        {
+          "type": "uses_capability",
+          "from": "spring-petclinic",
+          "to": "datastore:h2",
+          "why": "pom.xml:77-79 com.h2database:h2 runtime dependency declares embedded H2 database connectivity"
+        },
+        {
+          "type": "runs",
+          "from": "petclinic (k8s Deployment)",
+          "to": "dsyer/petclinic",
+          "why": "k8s/petclinic.yml:33 image: dsyer/petclinic; the petclinic workload runs this container image"
+        },
+        {
+          "type": "runs",
+          "from": "demo-db (k8s Deployment)",
+          "to": "postgres:18.4",
+          "why": "k8s/db.yml:44 image: postgres:18.4; the demo-db workload runs the official PostgreSQL 18.4 image"
+        },
+        {
+          "type": "runs",
+          "from": "mysql (compose service)",
+          "to": "mysql:9.7",
+          "why": "docker-compose.yml:3 image: mysql:9.7; the mysql Compose service runs MySQL 9.7"
+        },
+        {
+          "type": "runs",
+          "from": "postgres (compose service)",
+          "to": "postgres:18.4",
+          "why": "docker-compose.yml:15 image: postgres:18.4; the postgres Compose service runs PostgreSQL 18.4"
+        },
+        {
+          "type": "uses_capability",
+          "from": "petclinic (k8s Deployment)",
+          "to": "datastore:postgresql",
+          "note": "configuration-derived",
+          "why": "k8s/petclinic.yml:35-36 env SPRING_PROFILES_ACTIVE=postgres activates the PostgreSQL Spring profile; k8s/petclinic.yml:56-58 mounts the demo-db Secret as /bindings/secret (servicebinding.io/postgresql type)"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "Single Spring Boot application with dual build declaration (Maven pom.xml and Gradle build.gradle); settings.gradle confirms single-module project with no sub-modules; no workspace members"
+        },
+        "deployables": {
+          "status": "partial",
+          "why": "Compose services (mysql, postgres) and k8s workloads/services/secret covered; .devcontainer/Dockerfile exists but is not an oracle file (it is a development container, not a production deployable); no Dockerfile for the petclinic application itself is present in the repository"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "Spring Boot application declaration and declared ports from k8s and Compose captured; actual HTTP routes/controllers within the Spring MVC application are in Java source files not covered by oracle files; the devcontainer Dockerfile EXPOSEs no ports"
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "PostgreSQL, MySQL, and H2 confirmed from pom.xml runtime dependencies; spring-boot-starter-cache + javax.cache:cache-api + caffeine (build.gradle line ~29) indicate JCache/Caffeine local caching but no catalog capability applies; spring-boot-starter-data-jpa implies JPA/Hibernate ORM but this is not a catalog capability"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Capability uses and container image run edges captured; the build chain from pom.xml/build.gradle to the dsyer/petclinic container image is not declared in oracle files (no Dockerfile or CI build pipeline in oracle scope)"
+        }
+      },
+      "notes": [
+        "This project has dual build system support: pom.xml (Maven, spring-boot-starter-parent 4.1.0) and build.gradle (Gradle, id 'org.springframework.boot' version '4.1.0') declare the same artifact spring-petclinic 4.0.0-SNAPSHOT.",
+        "build.gradle declares the same capability dependencies as pom.xml (runtimeOnly 'org.postgresql:postgresql', runtimeOnly 'com.mysql:mysql-connector-j', runtimeOnly 'com.h2database:h2'); capabilities are labeled once with pom.xml as the primary source.",
+        "k8s/db.yml declares a Secret of type servicebinding.io/postgresql providing database credentials at /bindings/secret; k8s/petclinic.yml mounts this secret volume, establishing an implicit PostgreSQL capability use from the k8s configuration.",
+        "docker-compose.yml is described in pom.xml test scope as spring-boot-docker-compose (pom.xml), suggesting Spring Boot can use docker-compose for local test infrastructure; the Compose file is likely used for both local development and test environment.",
+        "The .devcontainer/Dockerfile (not an oracle file) is a VS Code / Gitpod development container image based on mcr.microsoft.com/vscode/devcontainers/java:0-17-bullseye; it is not a production container_build deployable.",
+        "spring-boot-starter-restclient appears in pom.xml test scope only; this does not constitute a production net:http-client capability declaration.",
+        "datastore:h2 is runtime scope in pom.xml; H2 is used when no MySQL or PostgreSQL profile is active (the default dev profile). It is a real runtime dependency though not used in production k8s environments.",
+        "The k8s/petclinic.yml Deployment uses liveness probe at /livez and readiness probe at /readyz, consistent with Spring Boot Actuator 3.x probe configuration."
+      ]
+    },
+    {
+      "repo": "superset",
+      "commit": "8141d666d6decade7de8406a0cc40c705289517d",
+      "oracle_files": [
+        {
+          "path": "pyproject.toml",
+          "sha256": "2c2ad1b0382b11422bcc6b5bf5dfd665bbaea7877b9e91de7aa027ad6ea2fe7c"
+        },
+        {
+          "path": "Dockerfile",
+          "sha256": "5396ab6f71f5992296007547a4d663e91464bd7f7b3883206d40abe3767ddc5c"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "85a14d5876481e81cc5faa81a7fd002a336d7b90be38262b9c3bf44dc42af96e"
+        },
+        {
+          "path": "superset-frontend/package.json",
+          "sha256": "9562c198e2a7455efa57c984d7cb2824b7c0dc67d7c4b54a823ea52ef7aafcaf"
+        },
+        {
+          "path": "superset-websocket/package.json",
+          "sha256": "ff07f02606a443f6aec2cc70b4c2b5cf9671c5881850c66463edb820da116e71"
+        },
+        {
+          "path": "superset-core/pyproject.toml",
+          "sha256": "93dea7aeaf91bccae15451c8a29c59e62f9eb139d82c5035fb7bbf410c68349a"
+        }
+      ],
+      "components": [
+        {
+          "name": "apache_superset",
+          "root": ".",
+          "ecosystem": "pyproject",
+          "why": "pyproject.toml:25 [project] name = 'apache_superset' \u2014 main Python package for the Superset web application"
+        },
+        {
+          "name": "apache-superset-core",
+          "root": "superset-core",
+          "ecosystem": "pyproject",
+          "why": "superset-core/pyproject.toml:18 [project] name = 'apache-superset-core' \u2014 core Python library for extensions and integrations"
+        },
+        {
+          "name": "superset",
+          "root": "superset-frontend",
+          "ecosystem": "npm",
+          "why": "superset-frontend/package.json:2 name: 'superset' \u2014 TypeScript/React frontend application"
+        },
+        {
+          "name": "superset-websocket",
+          "root": "superset-websocket",
+          "ecosystem": "npm",
+          "why": "superset-websocket/package.json:2 name: 'superset-websocket' \u2014 Node.js WebSocket server for async query results"
+        }
+      ],
+      "deployables": [
+        {
+          "kind": "container_build",
+          "name": "superset",
+          "path": "Dockerfile",
+          "why": "Dockerfile: multi-stage build (superset-node-ci, superset-node, python-common, dev, superset, lean, ci, ws targets); primary production target is 'superset' with EXPOSE ${SUPERSET_PORT} and CMD run-server.sh"
+        },
+        {
+          "kind": "service",
+          "name": "nginx",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'nginx' uses nginx:latest image; ports ${NGINX_PORT:-80}:80"
+        },
+        {
+          "kind": "service",
+          "name": "redis",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'redis' uses redis:7 image; ports ${REDIS_PORT:-6379}:6379"
+        },
+        {
+          "kind": "service",
+          "name": "db",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'db' uses postgres:17 image; ports ${DATABASE_PORT:-5432}:5432"
+        },
+        {
+          "kind": "service",
+          "name": "superset",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset' builds from Dockerfile (target dev); ports ${SUPERSET_PORT:-8088}:8088"
+        },
+        {
+          "kind": "service",
+          "name": "superset-websocket",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-websocket' builds from ./superset-websocket; ports ${WEBSOCKET_PORT:-8080}:8080"
+        },
+        {
+          "kind": "service",
+          "name": "superset-init",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-init' builds from Dockerfile; runs initialization (db migrations, admin user creation)"
+        },
+        {
+          "kind": "service",
+          "name": "superset-node",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-node' builds from Dockerfile target superset-node; runs webpack dev server on port ${NODE_PORT:-9000}:9000"
+        },
+        {
+          "kind": "service",
+          "name": "superset-worker",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-worker' builds from Dockerfile; runs Celery worker (docker-bootstrap.sh worker)"
+        },
+        {
+          "kind": "service",
+          "name": "superset-worker-beat",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-worker-beat' builds from Dockerfile; runs Celery beat scheduler (docker-bootstrap.sh beat)"
+        },
+        {
+          "kind": "service",
+          "name": "superset-tests-worker",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml service 'superset-tests-worker' with profiles: [optional]; Celery worker for test runs"
+        }
+      ],
+      "interfaces": [
+        {
+          "kind": "declared_port",
+          "name": "8088",
+          "path": "Dockerfile",
+          "why": "Dockerfile:248 EXPOSE ${SUPERSET_PORT}; Dockerfile:182 ARG SUPERSET_PORT='8088' \u2014 default Superset HTTP port"
+        },
+        {
+          "kind": "declared_port",
+          "name": "80",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml nginx service ports: ${NGINX_PORT:-80}:80"
+        },
+        {
+          "kind": "declared_port",
+          "name": "8088",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml superset service ports: ${SUPERSET_PORT:-8088}:8088"
+        },
+        {
+          "kind": "declared_port",
+          "name": "8080",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml superset-websocket service ports: ${WEBSOCKET_PORT:-8080}:8080"
+        },
+        {
+          "kind": "declared_port",
+          "name": "6379",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml redis service ports: ${REDIS_PORT:-6379}:6379"
+        },
+        {
+          "kind": "declared_port",
+          "name": "5432",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml db service ports: ${DATABASE_PORT:-5432}:5432"
+        },
+        {
+          "kind": "declared_port",
+          "name": "9000",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml superset-node service ports: 127.0.0.1:${NODE_PORT:-9000}:9000 \u2014 webpack dev server"
+        },
+        {
+          "kind": "npm_start",
+          "name": "superset-websocket server",
+          "path": "superset-websocket/package.json",
+          "why": "superset-websocket/package.json scripts.start: 'node dist/index.cjs start'"
+        }
+      ],
+      "capabilities": [
+        {
+          "capability": "cache:redis",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "why": "pyproject.toml:106 'redis>=5.0.0, <9.0' direct dependency \u2014 Python Redis client"
+        },
+        {
+          "capability": "cache:redis",
+          "owner": "superset-websocket",
+          "path": "superset-websocket/package.json",
+          "why": "superset-websocket/package.json dependencies: 'ioredis': '^6.0.0' \u2014 Node.js Redis client"
+        },
+        {
+          "capability": "auth:jwt",
+          "owner": "superset-websocket",
+          "path": "superset-websocket/package.json",
+          "why": "superset-websocket/package.json dependencies: 'jsonwebtoken': '^9.0.3' \u2014 JWT library matching catalog coordinate 'jsonwebtoken'"
+        },
+        {
+          "capability": "auth:jwt",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "why": "pyproject.toml:line PyJWT>=2.14.0 direct dependency declares JWT auth capability; labeler missed this initially",
+          "corrections": [
+            {
+              "file": "pyproject.toml",
+              "reason": "pyproject.toml declares PyJWT>=2.14.0 as a direct dependency. The labeler labeled auth:jwt only for superset-websocket but missed apache_superset's PyJWT dependency."
+            }
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "superset image (multiple targets: dev, superset, lean, ci, ws)",
+          "why": "Dockerfile multi-stage build produces images for all superset Python targets"
+        },
+        {
+          "type": "builds",
+          "from": "superset-websocket/Dockerfile",
+          "to": "superset-websocket image",
+          "why": "superset-websocket/Dockerfile produces Node.js WebSocket server image"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset service build: target dev from Dockerfile"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-websocket",
+          "to": "superset-websocket/Dockerfile",
+          "why": "docker-compose.yml superset-websocket service build: ./superset-websocket"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset-worker service uses the same common-build from Dockerfile"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker-beat",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset-worker-beat service uses the same common-build from Dockerfile"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset",
+          "to": "docker-compose.yml:superset-init",
+          "why": "docker-compose.yml superset service depends_on: superset-init (condition: service_completed_successfully)"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-websocket",
+          "to": "docker-compose.yml:redis",
+          "why": "docker-compose.yml superset-websocket service depends_on: redis"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-worker",
+          "to": "docker-compose.yml:superset-init",
+          "why": "docker-compose.yml superset-worker depends_on: superset-init"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-worker-beat",
+          "to": "docker-compose.yml:superset-worker",
+          "why": "docker-compose.yml superset-worker-beat depends_on: superset-worker"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "cache:redis",
+          "why": "pyproject.toml redis>=5.0.0 direct dep; compose redis service provides the store"
+        },
+        {
+          "type": "uses_capability",
+          "from": "superset-websocket",
+          "to": "cache:redis",
+          "why": "superset-websocket/package.json ioredis dependency; compose redis service provides the store"
+        },
+        {
+          "type": "uses_capability",
+          "from": "superset-websocket",
+          "to": "auth:jwt",
+          "why": "superset-websocket/package.json jsonwebtoken dependency"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "apache_superset",
+          "to": "apache-superset-core",
+          "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "All four declared manifests (pyproject.toml, superset-core/pyproject.toml, superset-frontend/package.json, superset-websocket/package.json) are oracle files; no additional package manifests at root"
+        },
+        "deployables": {
+          "status": "complete",
+          "why": "Main Dockerfile and superset-websocket/Dockerfile are oracle files; all 10 Compose services are in oracle docker-compose.yml"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "Declared ports from Dockerfile and Compose are complete; npm start script covered; but Flask REST API route definitions live in application source code, not in oracle files"
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "Redis and JWT capabilities are declared explicitly in oracle deps; but PostgreSQL (SQLAlchemy+psycopg2 indirect), Celery task queue, and optional extras (elasticsearch-dbapi, boto3/S3) are not labeled because psycopg2 is only in a cockroachdb extra and catalog lacks celery/elasticsearch/S3 entries"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Compose build, run, and depends_on edges are complete; local package dependency edge (apache_superset \u2192 apache-superset-core) is labeled; but runtime service-to-service call edges (e.g. superset \u2192 superset-websocket) are not statically declared in oracle files"
+        }
+      },
+      "notes": [
+        "pyproject.toml:113 sqlalchemy>=2.0.52 declared as direct dep; pyproject.toml optional extras include psycopg2-binary (cockroachdb extra only); catalog coordinate 'psycopg' would match datastore:postgresql but psycopg is not a direct dependency \u2014 not labeled; note that the Compose db service is postgres:17.",
+        "pyproject.toml:46 celery>=5.6.3 is a direct dependency; celery is a distributed task queue but catalog has no messaging:celery entry \u2014 not labeled; superset-worker and superset-worker-beat services depend on it.",
+        "pyproject.toml optional extra 'elasticsearch' includes elasticsearch-dbapi; catalog has no elasticsearch capability \u2014 not labeled.",
+        "pyproject.toml optional extra 'excel-export' includes boto3 (S3 client); catalog has no object-storage capability \u2014 not labeled.",
+        "superset-websocket/Dockerfile has no EXPOSE instruction; port 8080 is implicit from config.example.json and Compose ports mapping.",
+        "Dockerfile EXPOSE ${SUPERSET_PORT} at line 248 is in the 'superset' target only; the ARG default SUPERSET_PORT='8088' is at line 182.",
+        "superset-core/pyproject.toml declares apache-superset-core as a sub-package; apache_superset pyproject.toml declares it as a direct dependency with no version pin.",
+        "docker-compose.yml superset-tests-worker service uses profiles: [optional] and network_mode: host; it is still labeled as a deployable because it is statically declared in the compose file."
+      ]
+    },
+    {
+      "repo": "terraform-aws-vpc",
+      "commit": "b3abd6df2ecf052451a361ed55b8f06f8742a795",
+      "oracle_files": [
+        {
+          "path": "versions.tf",
+          "sha256": "943226434b15cc3ca29d1639b0274f40396339a05c0ad2e4b860ff54abffcdce"
+        },
+        {
+          "path": "main.tf",
+          "sha256": "6a483e4221a1af60247b0e7c6f86a76df25b3c94bb47d35d5948e8cbd8dcf352"
+        },
+        {
+          "path": "wrappers/main.tf",
+          "sha256": "5c385e0e3a338e95bbd03ac49683e6be989cfaf9c40618f359d6266d2d456b7d"
+        },
+        {
+          "path": "modules/vpc-endpoints/versions.tf",
+          "sha256": "943226434b15cc3ca29d1639b0274f40396339a05c0ad2e4b860ff54abffcdce"
+        },
+        {
+          "path": "modules/flow-log/versions.tf",
+          "sha256": "c61e60fe7af58c30c3d69830a1b5dce1073b8badceee5bf26d48f13a3cb2e4af"
+        },
+        {
+          "path": "modules/vpc-endpoints/main.tf",
+          "sha256": "8614fd370a344c2146699b1528932507148218452b750179f2c2501b9092ab61"
+        },
+        {
+          "path": "modules/flow-log/main.tf",
+          "sha256": "4a41551aaf41e644b3d3880c6e2952f08386a68aa84be5b7ddd55e8e5233d195"
+        }
+      ],
+      "components": [],
+      "deployables": [
+        {
+          "kind": "terraform_module",
+          "name": "(root)",
+          "path": ".",
+          "why": "versions.tf:1-16 establishes the root directory as a Terraform module with AWS provider >= 6.28; main.tf defines aws_vpc, subnets, routing, and NAT gateway resources"
+        },
+        {
+          "kind": "terraform_module",
+          "name": "wrappers",
+          "path": "wrappers",
+          "why": "wrappers/main.tf:1 declares a wrapper module that calls the root module (source = \"../\") with for_each over a variables map [name corrected: dircue uses directory name \"wrappers\", not Terraform block name \"wrapper\"]"
+        },
+        {
+          "kind": "terraform_module",
+          "name": "vpc-endpoints",
+          "path": "modules/vpc-endpoints",
+          "why": "modules/vpc-endpoints/versions.tf establishes modules/vpc-endpoints/ as a Terraform module with AWS provider >= 6.28"
+        },
+        {
+          "kind": "terraform_module",
+          "name": "flow-log",
+          "path": "modules/flow-log",
+          "why": "modules/flow-log/versions.tf establishes modules/flow-log/ as a Terraform module with AWS provider >= 1.5.7 and AWS >= 6.28"
+        }
+      ],
+      "interfaces": [],
+      "capabilities": [],
+      "edges": [
+        {
+          "type": "depends_on_local",
+          "from": "wrappers",
+          "to": "(root)",
+          "why": "wrappers/main.tf:2 source = \"../\" references the parent directory (the root module) as the module source"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "partial",
+          "why": "Oracle files cover root module plus 3 sub-directories; wrappers/vpc-endpoints/, wrappers/flow-log/, and all examples/* directories contain .tf files but are not in oracle files"
+        },
+        "deployables": {
+          "status": "partial",
+          "why": "Same scope as components; at least 6 additional .tf directories (wrappers/vpc-endpoints, wrappers/flow-log, examples/complete, examples/simple, examples/outpost, examples/ipv6) are not covered"
+        },
+        "interfaces": {
+          "status": "unknown",
+          "why": "Terraform modules declare no CLI binaries, EXPOSE ports, gRPC services, or Spring Boot applications; no supported interface kind applies to infrastructure-as-code module declarations"
+        },
+        "capabilities": {
+          "status": "unknown",
+          "why": "This is a networking infrastructure module; it provisions AWS VPC resources but declares no application-level service dependencies (datastores, caches, queues, HTTP clients) that map to the capability catalog"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "The wrapper-to-root dependency edge is captured; modules/vpc-endpoints and modules/flow-log are not called by any oracle file, so their call-site edges are unknown"
+        }
+      },
+      "notes": [
+        "The root module and modules/vpc-endpoints/versions.tf have identical SHA-256 hashes, meaning their versions.tf files are byte-for-byte identical.",
+        "modules/flow-log/versions.tf has a higher required_version (>= 1.5.7) than the root module (>= 1.0); this is notable for compatibility labeling.",
+        "wrappers/vpc-endpoints/ and wrappers/flow-log/ are additional wrapper modules not in oracle files; they follow the same pattern as wrappers/main.tf.",
+        "Terraform modules do not expose application-layer interfaces (no ports, no CLI) in the dircue vocabulary; interface and capability coverage is structurally unknown for any pure Terraform module repository.",
+        "The root module's main.tf creates AWS VPC, public/private/database/elasticache/redshift/intra subnets, internet gateway, NAT gateway, and route tables; these are AWS infrastructure resources, not dircue deployable sub-items.",
+        "The provider_meta 'aws' user_agent identifies the module as github.com/terraform-aws-modules/terraform-aws-vpc in both root and sub-modules."
+      ]
+    }
+  ],
+  "label_corrections": [
+    {
+      "repo": "mastodon",
+      "kind": "deployable",
+      "change": "name mastodon-streaming \u2192 streaming"
+    },
+    {
+      "repo": "spring-petclinic",
+      "reason": "settings.gradle:1 declares rootProject.name = 'spring-petclinic'; this is the canonical gradle project name. Added to oracle_files so the gradle component name can be verified correctly."
+    },
+    {
+      "repo": "superset",
+      "reason": "superset-websocket/Dockerfile is not in oracle_files; the label claimed a container_build from a non-oracle file. Removed. The service 'superset-websocket' in docker-compose.yml is still labeled."
+    },
+    {
+      "repo": "superset",
+      "kind": "capability",
+      "change": "add auth:jwt for apache_superset (labeler miss)"
+    },
+    {
+      "repo": "terraform-aws-vpc",
+      "category": "b",
+      "caused_by": "c",
+      "element": "components",
+      "correction": "Removed all 4 terraform components. dircue puts Terraform modules into kind=deployable/infrastructure, not kind=component. MAP.md explicitly lists Terraform under deployables. Having them in components is a label error caused by the category-(c) schema difference.",
+      "affected_labels": [
+        "(root)",
+        "wrapper",
+        "vpc-endpoints",
+        "flow-log"
+      ]
+    },
+    {
+      "repo": "terraform-aws-vpc",
+      "category": "b",
+      "element": "deployables.oracle_files",
+      "correction": "Added modules/vpc-endpoints/main.tf and modules/flow-log/main.tf to oracle_files. dircue derives deployable evidence from resource blocks in main.tf, not versions.tf. The labeler chose versions.tf as oracle files assuming they would be the evidence source, but dircue uses main.tf."
+    },
+    {
+      "repo": "terraform-aws-vpc",
+      "category": "b",
+      "caused_by": "c",
+      "element": "deployables[name=wrapper]",
+      "correction": "Changed name 'wrapper' to 'wrappers'. dircue names terraform deployables from the directory path (wrappers/), not the Terraform module block name (module \"wrapper\"). This is a convention difference - label used the block name, dircue uses the directory name."
+    }
+  ]
+}
