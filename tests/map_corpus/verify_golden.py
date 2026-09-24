@@ -312,6 +312,10 @@ def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
         return True
 
     if kind == "component":
+        # Module-path normalisation applies to Go components only: an npm
+        # scoped name such as "@mastodon/mastodon" is not a module path.
+        if node.get("properties", {}).get("ecosystem") != "go":
+            return False
         # Go module: endpoint may be the full module path ("github.com/grafana/loki/v3")
         # while the node stores the base name ("loki")
         if "/" in endpoint_str:
@@ -355,12 +359,9 @@ def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
             colon_idx = endpoint_str.index(":")
             file_part = endpoint_str[:colon_idx]
             service_name = endpoint_str[colon_idx + 1:]
-            if normalize(service_name) == norm_name:
-                return True
-            # Validate the file part matches the node's evidence file
-            if normalize(service_name) == norm_name and any(
-                file_part in ev_p for ev_p in all_paths
-            ):
+            # The service must be declared in the named file: a Dockerfile
+            # deployable that shares the service's name is a different node.
+            if normalize(service_name) == norm_name and file_part in all_paths:
                 return True
 
     elif kind == "interface":
@@ -412,10 +413,15 @@ def match_edge(label: dict, edge: dict, id_to_node: dict[str, dict]) -> bool:
     node_matches_endpoint, which uses the same semantic keys as the per-kind
     node matchers (component/deployable/interface/capability).
     """
-    if label.get("type") != edge.get("type"):
-        return False
+    edge_type = edge.get("type")
     from_node = id_to_node.get(edge.get("from", ""), {})
     to_node = id_to_node.get(edge.get("to", ""), {})
+    # Alias (naming only): a label "parent contains child" is the same fact as
+    # dircue's "child member_of parent".
+    if label.get("type") == "contains" and edge_type == "member_of":
+        edge_type, from_node, to_node = "contains", to_node, from_node
+    if label.get("type") != edge_type:
+        return False
     label_from = label.get("from", "")
     label_to = label.get("to", "")
     return (node_matches_endpoint(from_node, label_from) and
@@ -603,14 +609,18 @@ def score_capabilities(label_entry: dict, map_doc: dict, oracle: set[str]) -> Qu
                     norm_lbo = normalize(lbo)
                     if any(norm_lbo == normalize(o) for o in os):
                         return True
-                    # Go-module: "github.com/org/repo/v3" ↔ "repo"
-                    if "/" in lbo:
+                    # Go-module: "github.com/org/repo/v3" ↔ "repo". Only a
+                    # module path (first element contains a dot) qualifies;
+                    # npm scoped names such as "@scope/name" do not.
+                    def _is_go_path(v: str) -> bool:
+                        return "/" in v and "." in v.split("/", 1)[0] and not v.startswith("@")
+                    if _is_go_path(lbo):
                         short = normalize(_go_module_base(lbo))
                         if any(short == normalize(o) for o in os):
                             return True
                     # Reverse: owner stored as full path, label is short name
                     for o in os:
-                        if "/" in o and normalize(_go_module_base(o)) == norm_lbo:
+                        if _is_go_path(o) and normalize(_go_module_base(o)) == norm_lbo:
                             return True
                     return False
                 if not _owner_match(lb_owner, owners):
@@ -631,17 +641,21 @@ def score_capabilities(label_entry: dict, map_doc: dict, oracle: set[str]) -> Qu
     return r
 
 
+EVALUATED_EDGE_TYPES = ("builds", "runs", "depends_on", "uses_capability", "contains")
+
+
 def score_edges(label_entry: dict, map_doc: dict, oracle: set[str]) -> QuestionResult:
     r = QuestionResult("edges")
     labels = label_entry.get("edges", [])
     scoped = oracle_edges(map_doc, oracle)
     id_to_node = {n["id"]: n for n in map_doc.get("nodes", [])}
 
-    # For precision: only penalise FP edges whose type appears in the label
-    # set.  Fine-grained workspace edges (member_of, declares,
-    # depends_on_local for every crate in a workspace) cannot be exhaustively
-    # hand-labeled and would inflate FP beyond what is meaningful.
-    labeled_edge_types: set[str] = {lb.get("type", "") for lb in labels}
+    # For precision, every edge of an evaluated type within oracle scope
+    # counts, whether or not the labels mention that type. declares and
+    # depends_on_local are evaluated only where a repository labels them,
+    # because per-member workspace edges are not exhaustively labeled.
+    labeled_edge_types: set[str] = set(EVALUATED_EDGE_TYPES) | (
+        {lb.get("type", "") for lb in labels} & {"declares", "depends_on_local"})
 
     matched_edges: set[int] = set()
     for lb in labels:
@@ -656,7 +670,8 @@ def score_edges(label_entry: dict, map_doc: dict, oracle: set[str]) -> QuestionR
             r.fn += 1
             r.fn_items.append(f"type={lb.get('type')} from={lb.get('from')} to={lb.get('to')}")
     for i, e in enumerate(scoped):
-        if i not in matched_edges and e.get("type") in labeled_edge_types:
+        etype = "contains" if e.get("type") == "member_of" else e.get("type")
+        if i not in matched_edges and etype in labeled_edge_types:
             fn = id_to_node.get(e.get("from", ""), {})
             tn = id_to_node.get(e.get("to", ""), {})
             r.fp += 1
@@ -680,6 +695,10 @@ def score_coverage(label_entry: dict, map_doc: dict) -> QuestionResult:
     for q, dq in question_map.items():
         if q not in label_cov:
             continue
+        if dq not in map_cov and q not in map_cov:
+            # The map has no coverage question of this name (labels may add
+            # one, such as "edges"); there is nothing to compare.
+            continue
         label_status = label_cov[q].get("status", "unknown")
         dircue_status = map_cov.get(dq, map_cov.get(q, "not_run"))
         # Treat "complete" as the strict bound: if label says complete but
@@ -688,15 +707,15 @@ def score_coverage(label_entry: dict, map_doc: dict) -> QuestionResult:
         if label_status == dircue_status:
             r.tp += 1
             r.tp_items.append(f"question={q} status={label_status}")
-        elif label_status == "complete" and dircue_status != "complete":
+        elif dircue_status == "complete":
+            # dircue claims completeness the labeler could not establish:
+            # an overclaim, the failure dircue's coverage contract forbids.
             r.fp += 1
-            r.fp_items.append(
-                f"question={q}: label=complete but dircue={dircue_status}"
-            )
+            r.fp_items.append(f"question={q}: dircue=complete but label={label_status} (overclaim)")
         else:
-            # Partial/unknown disagreements: note but don't penalise as FP
-            r.tp += 1  # partial agreement
-            r.tp_items.append(f"question={q} label={label_status} dircue={dircue_status} (partial)")
+            # dircue is more conservative than the label: recorded, not a pass.
+            r.fn += 1
+            r.fn_items.append(f"question={q}: label={label_status} but dircue={dircue_status} (conservative)")
     return r
 
 
@@ -762,9 +781,9 @@ def total_pr(results: list[RepoResult]) -> dict[str, dict]:
 GATE_THRESHOLDS: dict[str, dict[str, float]] = {
     # Questions we claim at 1.0. Both precision and recall must meet the bar.
     # A question not listed here is not claimed at 1.0 per issue #75's rule.
-    "components":  {"precision": 0.85, "recall": 0.85},
-    "deployables": {"precision": 0.80, "recall": 0.75},
-    # Issue #75 final gate: P≥0.90 AND R≥0.80 for typed evidence nodes/edges.
+    # Issue #75: precision >= 0.90 and recall >= 0.80 for every question.
+    "components":  {"precision": 0.90, "recall": 0.80},
+    "deployables": {"precision": 0.90, "recall": 0.80},
     "interfaces":  {"precision": 0.90, "recall": 0.80},
     "capabilities":{"precision": 0.90, "recall": 0.80},
     "edges":       {"precision": 0.90, "recall": 0.80},

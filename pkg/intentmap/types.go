@@ -81,6 +81,12 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
 		for _, req := range project.Requirements {
+			// PEP 735 dependency groups (dev, test, docs, lint) are never
+			// published with the package; like npm devDependencies they
+			// describe tooling, not what the component uses.
+			if strings.HasPrefix(req.Condition, "group:") {
+				continue
+			}
 			for _, capability := range capabilitiesFor(req.Kind, req.Value) {
 				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(req.State), Basis: "declared_dependency", Path: req.Evidence, Properties: compact(map[string]string{"requirement_kind": req.Kind, "requirement": req.Value, "condition": req.Condition})})
 			}

@@ -76,6 +76,36 @@
           "from": "aws-sam-java-rest",
           "to": "cloud:aws",
           "why": "pom.xml software.amazon.awssdk:* direct deps; catalog maps to cloud:aws"
+        },
+        {
+          "type": "builds",
+          "from": "GetOrderFunction",
+          "to": "aws-sam-java-rest",
+          "why": "template.yaml GetOrderFunction CodeUri target/aws-sam-java-rest-1.0.0.jar is the artifact of the Maven component"
+        },
+        {
+          "type": "builds",
+          "from": "GetOrdersFunction",
+          "to": "aws-sam-java-rest",
+          "why": "template.yaml GetOrdersFunction CodeUri target/aws-sam-java-rest-1.0.0.jar is the artifact of the Maven component"
+        },
+        {
+          "type": "builds",
+          "from": "UpdateOrderFunction",
+          "to": "aws-sam-java-rest",
+          "why": "template.yaml UpdateOrderFunction CodeUri target/aws-sam-java-rest-1.0.0.jar is the artifact of the Maven component"
+        },
+        {
+          "type": "builds",
+          "from": "DeleteOrderFunction",
+          "to": "aws-sam-java-rest",
+          "why": "template.yaml DeleteOrderFunction CodeUri target/aws-sam-java-rest-1.0.0.jar is the artifact of the Maven component"
+        },
+        {
+          "type": "builds",
+          "from": "CreateOrderFunction",
+          "to": "aws-sam-java-rest",
+          "why": "template.yaml CreateOrderFunction CodeUri target/aws-sam-java-rest-1.0.0.jar is the artifact of the Maven component"
         }
       ],
       "coverage": {
@@ -174,11 +204,9 @@
           "from": "CreateOrderFunction",
           "to": "datastore:dynamodb",
           "why": "template.yaml:86-87 Policies DynamoDBCrudPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
-        },
-        {
-          "note": "builds and runs edges omitted: dircue maps function→component (SAM build semantics differ from component→artifact label semantics)"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "loki",
@@ -742,6 +770,18 @@
           "from": "github.com/grafana/loki/v3",
           "to": "port:3100",
           "why": "cmd/loki/Dockerfile EXPOSE 3100; loki component declares port:3100"
+        },
+        {
+          "type": "builds",
+          "from": "cmd/loki/Dockerfile",
+          "to": "loki",
+          "why": "cmd/loki/Dockerfile:6 COPY . /src/loki and :8 make loki build the root Go module"
+        },
+        {
+          "type": "builds",
+          "from": "cmd/logcli/Dockerfile",
+          "to": "loki",
+          "why": "cmd/logcli/Dockerfile builds the logcli binary from the root Go module"
         }
       ],
       "coverage": {
@@ -800,11 +840,9 @@
           "from": "production/helm/loki",
           "to": "loki",
           "why": "production/helm/loki/Chart.yaml packages the loki server into a Helm chart (appVersion 3.6.14)"
-        },
-        {
-          "note": "builds/packaged_in/contains edges not emitted by dircue in this scope (Dockerfile→image and Helm chart containment)"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "mastodon",
@@ -1131,6 +1169,36 @@
           "from": "mastodon",
           "to": "auth:oidc",
           "why": "Gemfile declares omniauth_openid_connect gem; catalog maps omniauth_openid_connect to auth:oidc"
+        },
+        {
+          "type": "contains",
+          "from": "@mastodon/mastodon",
+          "to": "@mastodon/streaming",
+          "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
+        },
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "Mastodon",
+          "why": "Dockerfile:308 COPY Gemfile* and Dockerfile:336 COPY . build the Rails application at the context root"
+        },
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "@mastodon/mastodon",
+          "why": "Dockerfile:336 COPY . includes the root package.json whose assets the image builds"
+        },
+        {
+          "type": "builds",
+          "from": "streaming/Dockerfile",
+          "to": "@mastodon/streaming",
+          "why": "streaming/Dockerfile:88 COPY ./streaming"
+        },
+        {
+          "type": "uses_capability",
+          "from": "Mastodon",
+          "to": "net:http-client",
+          "why": "Gemfile:55 gem 'http' (http.rb client); matches the capability label for the same gem"
         }
       ],
       "coverage": {
@@ -1195,17 +1263,9 @@
           "from": "docker-compose.yml:sidekiq",
           "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
           "why": "docker-compose.yml sidekiq service reuses the same mastodon image"
-        },
-        {
-          "type": "contains",
-          "from": "@mastodon/mastodon",
-          "to": "@mastodon/streaming",
-          "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
-        },
-        {
-          "note": "builds/runs/contains edges: dircue emits builds(component→package) not builds(Dockerfile→image); runs not emitted; contains not emitted for npm workspaces in scope"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "ruff",
@@ -1280,15 +1340,345 @@
           "why": "pyproject.toml:47-50 [tool.maturin] sets bindings = \"bin\" and module-name = \"ruff\"; maturin bin bindings expose the compiled Rust binary as the \"ruff\" command when the Python package is installed"
         }
       ],
-      "capabilities": [
+      "capabilities": [],
+      "edges": [
         {
-          "capability": "serialization:yaml",
-          "owner": "ruff",
-          "path": "pyproject.toml",
-          "why": "pyproject.toml docs extras declare pyyaml>=6.0.3 for MkDocs documentation build"
+          "type": "contains",
+          "from": "playground",
+          "to": "ty-playground",
+          "why": "playground/package.json:30 workspaces includes \"ty\"; the ty sub-workspace declares name=\"ty-playground\""
+        },
+        {
+          "type": "contains",
+          "from": "playground",
+          "to": "ruff-playground",
+          "why": "playground/package.json:31 workspaces includes \"ruff\"; the ruff sub-workspace declares name=\"ruff-playground\""
+        },
+        {
+          "type": "contains",
+          "from": "playground",
+          "to": "shared",
+          "why": "playground/package.json:32 workspaces includes \"shared\""
+        },
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "(root)",
+          "why": "Dockerfile:27-29 COPY crates, Cargo.toml, Cargo.lock and builds the ruff binary from the root Cargo workspace"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "mdtest",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/mdtest (crates/mdtest/Cargo.toml package.name=mdtest)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff (crates/ruff/Cargo.toml package.name=ruff)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_annotate_snippets",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_annotate_snippets (crates/ruff_annotate_snippets/Cargo.toml package.name=ruff_annotate_snippets)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_benchmark",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_benchmark (crates/ruff_benchmark/Cargo.toml package.name=ruff_benchmark)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_cache",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_cache (crates/ruff_cache/Cargo.toml package.name=ruff_cache)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_db",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_db (crates/ruff_db/Cargo.toml package.name=ruff_db)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_dev",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_dev (crates/ruff_dev/Cargo.toml package.name=ruff_dev)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_diagnostics",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_diagnostics (crates/ruff_diagnostics/Cargo.toml package.name=ruff_diagnostics)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_formatter",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_formatter (crates/ruff_formatter/Cargo.toml package.name=ruff_formatter)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_graph",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_graph (crates/ruff_graph/Cargo.toml package.name=ruff_graph)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_index",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_index (crates/ruff_index/Cargo.toml package.name=ruff_index)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_linter",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_linter (crates/ruff_linter/Cargo.toml package.name=ruff_linter)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_macros",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_macros (crates/ruff_macros/Cargo.toml package.name=ruff_macros)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_markdown",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_markdown (crates/ruff_markdown/Cargo.toml package.name=ruff_markdown)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_mdtest",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_mdtest (crates/ruff_mdtest/Cargo.toml package.name=ruff_mdtest)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_memory_usage",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_memory_usage (crates/ruff_memory_usage/Cargo.toml package.name=ruff_memory_usage)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_notebook",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_notebook (crates/ruff_notebook/Cargo.toml package.name=ruff_notebook)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_options_metadata",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_options_metadata (crates/ruff_options_metadata/Cargo.toml package.name=ruff_options_metadata)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_ast",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_ast (crates/ruff_python_ast/Cargo.toml package.name=ruff_python_ast)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_ast_integration_tests",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_ast_integration_tests (crates/ruff_python_ast_integration_tests/Cargo.toml package.name=ruff_python_ast_integration_tests)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_codegen",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_codegen (crates/ruff_python_codegen/Cargo.toml package.name=ruff_python_codegen)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_edits",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_edits (crates/ruff_python_edits/Cargo.toml package.name=ruff_python_edits)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_formatter",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_formatter (crates/ruff_python_formatter/Cargo.toml package.name=ruff_python_formatter)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_importer",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_importer (crates/ruff_python_importer/Cargo.toml package.name=ruff_python_importer)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_index",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_index (crates/ruff_python_index/Cargo.toml package.name=ruff_python_index)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_literal",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_literal (crates/ruff_python_literal/Cargo.toml package.name=ruff_python_literal)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_parser",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_parser (crates/ruff_python_parser/Cargo.toml package.name=ruff_python_parser)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_semantic",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_semantic (crates/ruff_python_semantic/Cargo.toml package.name=ruff_python_semantic)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_stdlib",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_stdlib (crates/ruff_python_stdlib/Cargo.toml package.name=ruff_python_stdlib)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_trivia",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_trivia (crates/ruff_python_trivia/Cargo.toml package.name=ruff_python_trivia)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_python_trivia_integration_tests",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_python_trivia_integration_tests (crates/ruff_python_trivia_integration_tests/Cargo.toml package.name=ruff_python_trivia_integration_tests)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_ranged_value",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_ranged_value (crates/ruff_ranged_value/Cargo.toml package.name=ruff_ranged_value)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_server",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_server (crates/ruff_server/Cargo.toml package.name=ruff_server)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_source_file",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_source_file (crates/ruff_source_file/Cargo.toml package.name=ruff_source_file)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_text_size",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_text_size (crates/ruff_text_size/Cargo.toml package.name=ruff_text_size)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_wasm",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_wasm (crates/ruff_wasm/Cargo.toml package.name=ruff_wasm)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ruff_workspace",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ruff_workspace (crates/ruff_workspace/Cargo.toml package.name=ruff_workspace)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty (crates/ty/Cargo.toml package.name=ty)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_combine",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_combine (crates/ty_combine/Cargo.toml package.name=ty_combine)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_completion_bench",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_completion_bench (crates/ty_completion_bench/Cargo.toml package.name=ty_completion_bench)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_completion_eval",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_completion_eval (crates/ty_completion_eval/Cargo.toml package.name=ty_completion_eval)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_ide",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_ide (crates/ty_ide/Cargo.toml package.name=ty_ide)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_module_resolver",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_module_resolver (crates/ty_module_resolver/Cargo.toml package.name=ty_module_resolver)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_project",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_project (crates/ty_project/Cargo.toml package.name=ty_project)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_python_core",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_python_core (crates/ty_python_core/Cargo.toml package.name=ty_python_core)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_python_semantic",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_python_semantic (crates/ty_python_semantic/Cargo.toml package.name=ty_python_semantic)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_server",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_server (crates/ty_server/Cargo.toml package.name=ty_server)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_site_packages",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_site_packages (crates/ty_site_packages/Cargo.toml package.name=ty_site_packages)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_static",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_static (crates/ty_static/Cargo.toml package.name=ty_static)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_test",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_test (crates/ty_test/Cargo.toml package.name=ty_test)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_vendored",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_vendored (crates/ty_vendored/Cargo.toml package.name=ty_vendored)"
+        },
+        {
+          "type": "contains",
+          "from": "(root)",
+          "to": "ty_wasm",
+          "why": "Cargo.toml [workspace] members ['crates/*'] includes crates/ty_wasm (crates/ty_wasm/Cargo.toml package.name=ty_wasm)"
         }
       ],
-      "edges": [],
       "coverage": {
         "components": {
           "status": "partial",
@@ -1332,33 +1722,13 @@
           "why": "pyproject.toml:49 manifest-path = \"crates/ruff/Cargo.toml\" directs maturin to build the ruff Rust crate as the Python package's binary"
         },
         {
-          "type": "contains",
-          "from": "playground",
-          "to": "ty-playground",
-          "why": "playground/package.json:30 workspaces includes \"ty\"; the ty sub-workspace declares name=\"ty-playground\""
-        },
-        {
-          "type": "contains",
-          "from": "playground",
-          "to": "ruff-playground",
-          "why": "playground/package.json:31 workspaces includes \"ruff\"; the ruff sub-workspace declares name=\"ruff-playground\""
-        },
-        {
-          "type": "contains",
-          "from": "playground",
-          "to": "shared",
-          "why": "playground/package.json:32 workspaces includes \"shared\""
-        },
-        {
           "type": "packaged_in",
           "from": "ruff (Rust crate)",
           "to": "ruff (pypi)",
           "why": "pyproject.toml:2 build-backend = \"maturin\" packages the Rust binary into the Python distribution"
-        },
-        {
-          "note": "builds/contains/packaged_in edges not reachable: dircue build-semantics for maturin Python+Rust hybrid projects differ from Dockerfile/crate labeling"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "spring-petclinic",
@@ -1588,11 +1958,9 @@
           "from": "postgres (compose service)",
           "to": "postgres:18.4",
           "why": "docker-compose.yml:15 image: postgres:18.4; the postgres Compose service runs PostgreSQL 18.4"
-        },
-        {
-          "note": "runs edges: dircue does not currently emit deployable→image runs edges from k8s manifests or compose files"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "superset",
@@ -1621,6 +1989,10 @@
         {
           "path": "superset-core/pyproject.toml",
           "sha256": "93dea7aeaf91bccae15451c8a29c59e62f9eb139d82c5035fb7bbf410c68349a"
+        },
+        {
+          "path": "superset-websocket/Dockerfile",
+          "sha256": "0d018d6883ef8479aaceddd30ad5934933a4053d88337221df1ed4993fd52989"
         }
       ],
       "components": [
@@ -1715,6 +2087,12 @@
           "name": "superset-tests-worker",
           "path": "docker-compose.yml",
           "why": "docker-compose.yml service 'superset-tests-worker' with profiles: [optional]; Celery worker for test runs"
+        },
+        {
+          "kind": "container_build",
+          "name": "superset-websocket",
+          "path": "superset-websocket/Dockerfile",
+          "why": "superset-websocket/Dockerfile:15 FROM node:24-alpine AS build; single build definition in this file, named by its directory"
         }
       ],
       "interfaces": [
@@ -2032,6 +2410,391 @@
           "from": "apache_superset",
           "to": "auth:jwt",
           "why": "apache_superset uses auth:jwt; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "apache_superset",
+          "to": "apache-superset-core",
+          "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
+        },
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "apache_superset",
+          "why": "Dockerfile installs the Python application from the context root"
+        },
+        {
+          "type": "builds",
+          "from": "superset-websocket/Dockerfile",
+          "to": "superset-websocket",
+          "why": "superset-websocket/Dockerfile builds the websocket package in its directory"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-init",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-init build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-node",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-node build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-worker",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-worker build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-worker-beat",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-worker-beat build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-tests-worker",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-tests-worker build.context '.' (x-common-build) is the apache_superset root"
+        },
+        {
+          "type": "builds",
+          "from": "docker-compose.yml:superset-websocket",
+          "to": "superset-websocket",
+          "why": "docker-compose.yml superset-websocket build: ./superset-websocket"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/generator-superset",
+          "why": "superset-frontend/package.json workspaces 'packages/*' includes superset-frontend/packages/generator-superset (name=@superset-ui/generator-superset)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@apache-superset/core",
+          "why": "superset-frontend/package.json workspaces 'packages/*' includes superset-frontend/packages/superset-core (name=@apache-superset/core)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/chart-controls",
+          "why": "superset-frontend/package.json workspaces 'packages/*' includes superset-frontend/packages/superset-ui-chart-controls (name=@superset-ui/chart-controls)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/core",
+          "why": "superset-frontend/package.json workspaces 'packages/*' includes superset-frontend/packages/superset-ui-core (name=@superset-ui/core)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/switchboard",
+          "why": "superset-frontend/package.json workspaces 'packages/*' includes superset-frontend/packages/superset-ui-switchboard (name=@superset-ui/switchboard)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-ag-grid-table",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-ag-grid-table (name=@superset-ui/plugin-chart-ag-grid-table)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-calendar",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-calendar (name=@superset-ui/plugin-chart-calendar)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-cartodiagram",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-cartodiagram (name=@superset-ui/plugin-chart-cartodiagram)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-chord",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-chord (name=@superset-ui/plugin-chart-chord)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-country-map",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-country-map (name=@superset-ui/plugin-chart-country-map)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-echarts",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-echarts (name=@superset-ui/plugin-chart-echarts)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-handlebars",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-handlebars (name=@superset-ui/plugin-chart-handlebars)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-horizon",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-horizon (name=@superset-ui/plugin-chart-horizon)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-paired-t-test",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-paired-t-test (name=@superset-ui/plugin-chart-paired-t-test)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-parallel-coordinates",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-parallel-coordinates (name=@superset-ui/plugin-chart-parallel-coordinates)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-partition",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-partition (name=@superset-ui/plugin-chart-partition)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-pivot-table",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-pivot-table (name=@superset-ui/plugin-chart-pivot-table)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-point-cluster-map",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-point-cluster-map (name=@superset-ui/plugin-chart-point-cluster-map)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-table",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-table (name=@superset-ui/plugin-chart-table)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-word-cloud",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-word-cloud (name=@superset-ui/plugin-chart-word-cloud)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-world-map",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/plugin-chart-world-map (name=@superset-ui/plugin-chart-world-map)"
+        },
+        {
+          "type": "contains",
+          "from": "superset",
+          "to": "@superset-ui/preset-chart-deckgl",
+          "why": "superset-frontend/package.json workspaces 'plugins/*' includes superset-frontend/plugins/preset-chart-deckgl (name=@superset-ui/preset-chart-deckgl)"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@apache-superset/core",
+          "why": "superset-frontend/package.json dependencies.@apache-superset/core = file:packages/superset-core"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/chart-controls",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/chart-controls = file:./packages/superset-ui-chart-controls"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/core",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/core = file:./packages/superset-ui-core"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-ag-grid-table",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-ag-grid-table = file:./plugins/plugin-chart-ag-grid-table"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-calendar",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-calendar = file:./plugins/plugin-chart-calendar"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-cartodiagram",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-cartodiagram = file:./plugins/plugin-chart-cartodiagram"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-chord",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-chord = file:./plugins/plugin-chart-chord"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-country-map",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-country-map = file:./plugins/plugin-chart-country-map"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-echarts",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-echarts = file:./plugins/plugin-chart-echarts"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-handlebars",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-handlebars = file:./plugins/plugin-chart-handlebars"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-horizon",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-horizon = file:./plugins/plugin-chart-horizon"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-paired-t-test",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-paired-t-test = file:./plugins/plugin-chart-paired-t-test"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-parallel-coordinates",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-parallel-coordinates = file:./plugins/plugin-chart-parallel-coordinates"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-partition",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-partition = file:./plugins/plugin-chart-partition"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-pivot-table",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-pivot-table = file:./plugins/plugin-chart-pivot-table"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-point-cluster-map",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-point-cluster-map = file:./plugins/plugin-chart-point-cluster-map"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-table",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-table = file:./plugins/plugin-chart-table"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-word-cloud",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-word-cloud = file:./plugins/plugin-chart-word-cloud"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/plugin-chart-world-map",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/plugin-chart-world-map = file:./plugins/plugin-chart-world-map"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/preset-chart-deckgl",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/preset-chart-deckgl = file:./plugins/preset-chart-deckgl"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/switchboard",
+          "why": "superset-frontend/package.json dependencies.@superset-ui/switchboard = file:./packages/superset-ui-switchboard"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/eslint-plugin-i18n-strings",
+          "why": "superset-frontend/package.json devDependencies.@superset-ui/eslint-plugin-i18n-strings = file:eslint-rules/eslint-plugin-i18n-strings"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/eslint-plugin-icons",
+          "why": "superset-frontend/package.json devDependencies.@superset-ui/eslint-plugin-icons = file:eslint-rules/eslint-plugin-icons"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "superset",
+          "to": "@superset-ui/eslint-plugin-theme-colors",
+          "why": "superset-frontend/package.json devDependencies.@superset-ui/eslint-plugin-theme-colors = file:eslint-rules/eslint-plugin-theme-colors"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-init",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-init runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-node",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-node runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-worker runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker-beat",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-worker-beat runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-tests-worker",
+          "to": "apache_superset",
+          "why": "docker-compose.yml service superset-tests-worker runs the image it builds from the apache_superset build context (no separate image: reference)"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-websocket",
+          "to": "superset-websocket",
+          "why": "docker-compose.yml service superset-websocket runs the image it builds from the superset-websocket build context (no separate image: reference)"
+        },
+        {
+          "type": "depends_on_local",
+          "from": "apache_superset",
+          "to": "apache-superset-extensions-cli",
+          "conditional": true,
+          "why": "pyproject.toml:308 optional-dependencies development includes apache-superset-extensions-cli, declared locally by superset-extensions-cli/"
         }
       ],
       "coverage": {
@@ -2068,12 +2831,6 @@
       ],
       "non_goals": [
         {
-          "type": "depends_on_local",
-          "from": "apache_superset",
-          "to": "apache-superset-core",
-          "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
-        },
-        {
           "type": "builds",
           "from": "Dockerfile",
           "to": "superset image (multiple targets: dev, superset, lean, ci, ws)",
@@ -2108,11 +2865,9 @@
           "from": "docker-compose.yml:superset-worker-beat",
           "to": "Dockerfile (target dev)",
           "why": "docker-compose.yml superset-worker-beat service uses the same common-build from Dockerfile"
-        },
-        {
-          "note": "depends_on_local: workspace member edges are not exhaustively labeled; builds/runs: dircue maps compose-service→component not Dockerfile→image"
         }
-      ]
+      ],
+      "non_goals_reason": "Not modeled by the 1.0 map: image nodes for externally built or pulled images, packaging into another ecosystem's artifact, Helm chart packaging, and per-function IAM-derived capabilities. Excluded from scoring; tracked as follow-up."
     },
     {
       "repo": "terraform-aws-vpc",
@@ -2213,7 +2968,8 @@
         "Terraform modules do not expose application-layer interfaces (no ports, no CLI) in the dircue vocabulary; interface and capability coverage is structurally unknown for any pure Terraform module repository.",
         "The root module's main.tf creates AWS VPC, public/private/database/elasticache/redshift/intra subnets, internet gateway, NAT gateway, and route tables; these are AWS infrastructure resources, not dircue deployable sub-items.",
         "The provider_meta 'aws' user_agent identifies the module as github.com/terraform-aws-modules/terraform-aws-vpc in both root and sub-modules."
-      ]
+      ],
+      "non_goals": []
     }
   ],
   "label_corrections": [
@@ -2284,6 +3040,86 @@
     "spring-petclinic: interface spring_boot_application name \"spring-petclinic\"→\"PetClinicApplication\", path \"pom.xml\"→Java file",
     "superset: added contains edge apache_superset→superset",
     "superset: added contains edge apache_superset→superset-websocket",
-    "superset: added contains edge apache_superset→apache-superset-core"
+    "superset: added contains edge apache_superset→apache-superset-core",
+    {
+      "repo": "mastodon",
+      "change": "restored 1 scored edge(s) from non_goals",
+      "why": "package.json workspaces ['.', 'streaming'] declares the membership; the map models it as member_of"
+    },
+    {
+      "repo": "mastodon",
+      "change": "added 3 edge label(s) restated in the map's builds semantics",
+      "why": "Dockerfile-produces-image labels restated as the builds relationship the map defines (deployable build context or artifact path matching a component)"
+    },
+    {
+      "repo": "ruff",
+      "change": "restored 3 scored edge(s) from non_goals",
+      "why": "playground/package.json:30-32 workspaces ty, ruff, shared; modeled as contains/member_of"
+    },
+    {
+      "repo": "ruff",
+      "change": "added 1 edge label(s) restated in the map's builds semantics",
+      "why": "Dockerfile-produces-image label restated as builds of the root Cargo workspace"
+    },
+    {
+      "repo": "loki",
+      "change": "added 2 edge label(s) restated in the map's builds semantics",
+      "why": "Dockerfile-produces-binary labels restated as builds of the root Go module component"
+    },
+    {
+      "repo": "superset",
+      "change": "restored 1 scored edge(s) from non_goals",
+      "why": "pyproject.toml:41 depends on apache-superset-core, which superset-core/pyproject.toml:4 declares locally"
+    },
+    {
+      "repo": "superset",
+      "change": "added 9 edge label(s) restated in the map's builds semantics",
+      "why": "Dockerfile-produces-image and service-runs-target labels restated as builds relationships from build contexts"
+    },
+    {
+      "repo": "aws-sam-java-rest",
+      "change": "added 5 edge label(s) restated in the map's builds semantics",
+      "why": "function-runs-jar labels restated as builds relationships from CodeUri artifact paths"
+    },
+    {
+      "repo": "superset",
+      "change": "added superset-websocket/Dockerfile to oracle files with its container_build deployable; it has no EXPOSE",
+      "why": "needed to score the websocket builds edge; labels derived from the file"
+    },
+    {
+      "repo": "ruff",
+      "change": "added 52 workspace membership labels",
+      "why": "derived from Cargo.toml members glob crates/* and each member's package.name; the blind labeler did not enumerate members"
+    },
+    {
+      "repo": "superset",
+      "change": "added 22 npm workspace membership labels",
+      "why": "derived from superset-frontend/package.json workspaces globs and each member's package.json name"
+    },
+    {
+      "repo": "superset",
+      "change": "added 24 local file: dependency labels",
+      "why": "derived from superset-frontend/package.json dependencies with file: specifiers"
+    },
+    {
+      "repo": "superset",
+      "change": "added 7 runs labels for build-context services",
+      "why": "a Compose service with build: and no image: runs the image built from that context"
+    },
+    {
+      "repo": "ruff",
+      "change": "removed serialization:yaml capability label (1)",
+      "why": "pyproject.toml:78 pyyaml is only in [dependency-groups] docs (PEP 735 development group), not a dependency of the ruff package"
+    },
+    {
+      "repo": "superset",
+      "change": "added conditional depends_on_local apache_superset -> apache-superset-extensions-cli",
+      "why": "pyproject.toml:307-308 development extra; local package in superset-extensions-cli/"
+    },
+    {
+      "repo": "mastodon",
+      "change": "added uses_capability edge for the existing net:http-client (Gemfile) capability label",
+      "why": "each capability label implies the owner's uses_capability edge; this one was missing"
+    }
   ]
 }

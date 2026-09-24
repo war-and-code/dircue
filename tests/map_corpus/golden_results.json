@@ -63,13 +63,18 @@
         },
         {
           "question": "edges",
-          "tp": 1,
+          "tp": 6,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
           "recall": 1.0,
           "tp_items": [
-            "type=uses_capability from=aws-sam-java-rest to=cloud:aws"
+            "type=uses_capability from=aws-sam-java-rest to=cloud:aws",
+            "type=builds from=GetOrderFunction to=aws-sam-java-rest",
+            "type=builds from=GetOrdersFunction to=aws-sam-java-rest",
+            "type=builds from=UpdateOrderFunction to=aws-sam-java-rest",
+            "type=builds from=DeleteOrderFunction to=aws-sam-java-rest",
+            "type=builds from=CreateOrderFunction to=aws-sam-java-rest"
           ],
           "fp_items": [],
           "fn_items": []
@@ -77,20 +82,19 @@
         {
           "question": "coverage",
           "tp": 2,
-          "fp": 3,
-          "fn": 0,
-          "precision": 0.4,
-          "recall": 1.0,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
           "tp_items": [
             "question=interfaces status=partial",
             "question=capabilities status=partial"
           ],
-          "fp_items": [
-            "question=components: label=complete but dircue=partial",
-            "question=deployables: label=complete but dircue=partial",
-            "question=edges: label=complete but dircue=not_run"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)",
+            "question=deployables: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -192,9 +196,9 @@
           "question": "edges",
           "tp": 38,
           "fp": 0,
-          "fn": 0,
+          "fn": 2,
           "precision": 1.0,
-          "recall": 1.0,
+          "recall": 0.95,
           "tp_items": [
             "type=declares from=github.com/grafana/loki/v3 to=Querier gRPC service",
             "type=declares from=github.com/grafana/loki/v3 to=StreamData gRPC service",
@@ -236,25 +240,27 @@
             "type=declares from=github.com/grafana/loki/v3 to=port:3100"
           ],
           "fp_items": [],
-          "fn_items": []
+          "fn_items": [
+            "type=builds from=cmd/loki/Dockerfile to=loki",
+            "type=builds from=cmd/logcli/Dockerfile to=loki"
+          ]
         },
         {
           "question": "coverage",
-          "tp": 4,
-          "fp": 1,
-          "fn": 0,
-          "precision": 0.8,
-          "recall": 1.0,
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
           "tp_items": [
             "question=deployables status=partial",
             "question=interfaces status=partial",
-            "question=capabilities status=partial",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=capabilities status=partial"
           ],
-          "fp_items": [
-            "question=components: label=complete but dircue=partial"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -316,11 +322,11 @@
         },
         {
           "question": "capabilities",
-          "tp": 12,
+          "tp": 13,
           "fp": 0,
-          "fn": 1,
+          "fn": 0,
           "precision": 1.0,
-          "recall": 0.9231,
+          "recall": 1.0,
           "tp_items": [
             "capability=datastore:postgresql owner=mastodon",
             "capability=cache:redis owner=mastodon",
@@ -333,16 +339,15 @@
             "capability=storage:object owner=mastodon",
             "capability=auth:oauth2 owner=mastodon",
             "capability=cloud:aws owner=mastodon",
-            "capability=messaging:smtp owner=mastodon"
+            "capability=messaging:smtp owner=mastodon",
+            "capability=net:http-client owner=@mastodon/mastodon"
           ],
           "fp_items": [],
-          "fn_items": [
-            "capability=net:http-client owner=@mastodon/mastodon path=package.json"
-          ]
+          "fn_items": []
         },
         {
           "question": "edges",
-          "tp": 18,
+          "tp": 23,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
@@ -365,28 +370,32 @@
             "type=uses_capability from=mastodon to=messaging:smtp",
             "type=uses_capability from=@mastodon/mastodon to=serialization:yaml",
             "type=uses_capability from=@mastodon/mastodon to=net:http-client",
-            "type=uses_capability from=mastodon to=auth:oidc"
+            "type=uses_capability from=mastodon to=auth:oidc",
+            "type=contains from=@mastodon/mastodon to=@mastodon/streaming",
+            "type=builds from=Dockerfile to=Mastodon",
+            "type=builds from=Dockerfile to=@mastodon/mastodon",
+            "type=builds from=streaming/Dockerfile to=@mastodon/streaming",
+            "type=uses_capability from=Mastodon to=net:http-client"
           ],
           "fp_items": [],
           "fn_items": []
         },
         {
           "question": "coverage",
-          "tp": 3,
-          "fp": 2,
-          "fn": 0,
-          "precision": 0.6,
-          "recall": 1.0,
+          "tp": 2,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
           "tp_items": [
             "question=interfaces status=partial",
-            "question=capabilities status=partial",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=capabilities status=partial"
           ],
-          "fp_items": [
-            "question=components: label=complete but dircue=partial",
-            "question=deployables: label=complete but dircue=partial"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)",
+            "question=deployables: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -440,19 +449,6 @@
         },
         {
           "question": "capabilities",
-          "tp": 1,
-          "fp": 0,
-          "fn": 0,
-          "precision": 1.0,
-          "recall": 1.0,
-          "tp_items": [
-            "capability=serialization:yaml owner=ruff"
-          ],
-          "fp_items": [],
-          "fn_items": []
-        },
-        {
-          "question": "edges",
           "tp": 0,
           "fp": 0,
           "fn": 0,
@@ -463,22 +459,91 @@
           "fn_items": []
         },
         {
-          "question": "coverage",
-          "tp": 4,
+          "question": "edges",
+          "tp": 56,
           "fp": 1,
           "fn": 0,
-          "precision": 0.8,
+          "precision": 0.9825,
           "recall": 1.0,
+          "tp_items": [
+            "type=contains from=playground to=ty-playground",
+            "type=contains from=playground to=ruff-playground",
+            "type=contains from=playground to=shared",
+            "type=builds from=Dockerfile to=(root)",
+            "type=contains from=(root) to=mdtest",
+            "type=contains from=(root) to=ruff",
+            "type=contains from=(root) to=ruff_annotate_snippets",
+            "type=contains from=(root) to=ruff_benchmark",
+            "type=contains from=(root) to=ruff_cache",
+            "type=contains from=(root) to=ruff_db",
+            "type=contains from=(root) to=ruff_dev",
+            "type=contains from=(root) to=ruff_diagnostics",
+            "type=contains from=(root) to=ruff_formatter",
+            "type=contains from=(root) to=ruff_graph",
+            "type=contains from=(root) to=ruff_index",
+            "type=contains from=(root) to=ruff_linter",
+            "type=contains from=(root) to=ruff_macros",
+            "type=contains from=(root) to=ruff_markdown",
+            "type=contains from=(root) to=ruff_mdtest",
+            "type=contains from=(root) to=ruff_memory_usage",
+            "type=contains from=(root) to=ruff_notebook",
+            "type=contains from=(root) to=ruff_options_metadata",
+            "type=contains from=(root) to=ruff_python_ast",
+            "type=contains from=(root) to=ruff_python_ast_integration_tests",
+            "type=contains from=(root) to=ruff_python_codegen",
+            "type=contains from=(root) to=ruff_python_edits",
+            "type=contains from=(root) to=ruff_python_formatter",
+            "type=contains from=(root) to=ruff_python_importer",
+            "type=contains from=(root) to=ruff_python_index",
+            "type=contains from=(root) to=ruff_python_literal",
+            "type=contains from=(root) to=ruff_python_parser",
+            "type=contains from=(root) to=ruff_python_semantic",
+            "type=contains from=(root) to=ruff_python_stdlib",
+            "type=contains from=(root) to=ruff_python_trivia",
+            "type=contains from=(root) to=ruff_python_trivia_integration_tests",
+            "type=contains from=(root) to=ruff_ranged_value",
+            "type=contains from=(root) to=ruff_server",
+            "type=contains from=(root) to=ruff_source_file",
+            "type=contains from=(root) to=ruff_text_size",
+            "type=contains from=(root) to=ruff_wasm",
+            "type=contains from=(root) to=ruff_workspace",
+            "type=contains from=(root) to=ty",
+            "type=contains from=(root) to=ty_combine",
+            "type=contains from=(root) to=ty_completion_bench",
+            "type=contains from=(root) to=ty_completion_eval",
+            "type=contains from=(root) to=ty_ide",
+            "type=contains from=(root) to=ty_module_resolver",
+            "type=contains from=(root) to=ty_project",
+            "type=contains from=(root) to=ty_python_core",
+            "type=contains from=(root) to=ty_python_semantic",
+            "type=contains from=(root) to=ty_server",
+            "type=contains from=(root) to=ty_site_packages",
+            "type=contains from=(root) to=ty_static",
+            "type=contains from=(root) to=ty_test",
+            "type=contains from=(root) to=ty_vendored",
+            "type=contains from=(root) to=ty_wasm"
+          ],
+          "fp_items": [
+            "type=builds from=(root) to=ruff"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "coverage",
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
           "tp_items": [
             "question=components status=partial",
             "question=deployables status=partial",
-            "question=interfaces status=partial",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=interfaces status=partial"
           ],
-          "fp_items": [
-            "question=capabilities: label=complete but dircue=partial"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=capabilities: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -570,21 +635,20 @@
         },
         {
           "question": "coverage",
-          "tp": 4,
-          "fp": 1,
-          "fn": 0,
-          "precision": 0.8,
-          "recall": 1.0,
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
           "tp_items": [
             "question=deployables status=partial",
             "question=interfaces status=partial",
-            "question=capabilities status=partial",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=capabilities status=partial"
           ],
-          "fp_items": [
-            "question=components: label=complete but dircue=partial"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -610,7 +674,7 @@
         },
         {
           "question": "deployables",
-          "tp": 11,
+          "tp": 12,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
@@ -626,7 +690,8 @@
             "kind=service name=superset-node",
             "kind=service name=superset-worker",
             "kind=service name=superset-worker-beat",
-            "kind=service name=superset-tests-worker"
+            "kind=service name=superset-tests-worker",
+            "kind=container_build name=superset-websocket"
           ],
           "fp_items": [],
           "fn_items": []
@@ -681,7 +746,7 @@
         },
         {
           "question": "edges",
-          "tp": 25,
+          "tp": 89,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
@@ -711,28 +776,91 @@
             "type=uses_capability from=apache_superset to=messaging:amqp",
             "type=uses_capability from=apache_superset to=datastore:relational",
             "type=uses_capability from=apache-superset-core to=datastore:relational",
-            "type=uses_capability from=apache_superset to=auth:jwt"
+            "type=uses_capability from=apache_superset to=auth:jwt",
+            "type=depends_on_local from=apache_superset to=apache-superset-core",
+            "type=builds from=Dockerfile to=apache_superset",
+            "type=builds from=superset-websocket/Dockerfile to=superset-websocket",
+            "type=builds from=docker-compose.yml:superset to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-init to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-node to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-worker to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-worker-beat to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-tests-worker to=apache_superset",
+            "type=builds from=docker-compose.yml:superset-websocket to=superset-websocket",
+            "type=contains from=superset to=@superset-ui/generator-superset",
+            "type=contains from=superset to=@apache-superset/core",
+            "type=contains from=superset to=@superset-ui/chart-controls",
+            "type=contains from=superset to=@superset-ui/core",
+            "type=contains from=superset to=@superset-ui/switchboard",
+            "type=contains from=superset to=@superset-ui/plugin-chart-ag-grid-table",
+            "type=contains from=superset to=@superset-ui/plugin-chart-calendar",
+            "type=contains from=superset to=@superset-ui/plugin-chart-cartodiagram",
+            "type=contains from=superset to=@superset-ui/plugin-chart-chord",
+            "type=contains from=superset to=@superset-ui/plugin-chart-country-map",
+            "type=contains from=superset to=@superset-ui/plugin-chart-echarts",
+            "type=contains from=superset to=@superset-ui/plugin-chart-handlebars",
+            "type=contains from=superset to=@superset-ui/plugin-chart-horizon",
+            "type=contains from=superset to=@superset-ui/plugin-chart-paired-t-test",
+            "type=contains from=superset to=@superset-ui/plugin-chart-parallel-coordinates",
+            "type=contains from=superset to=@superset-ui/plugin-chart-partition",
+            "type=contains from=superset to=@superset-ui/plugin-chart-pivot-table",
+            "type=contains from=superset to=@superset-ui/plugin-chart-point-cluster-map",
+            "type=contains from=superset to=@superset-ui/plugin-chart-table",
+            "type=contains from=superset to=@superset-ui/plugin-chart-word-cloud",
+            "type=contains from=superset to=@superset-ui/plugin-chart-world-map",
+            "type=contains from=superset to=@superset-ui/preset-chart-deckgl",
+            "type=depends_on_local from=superset to=@apache-superset/core",
+            "type=depends_on_local from=superset to=@superset-ui/chart-controls",
+            "type=depends_on_local from=superset to=@superset-ui/core",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-ag-grid-table",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-calendar",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-cartodiagram",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-chord",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-country-map",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-echarts",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-handlebars",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-horizon",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-paired-t-test",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-parallel-coordinates",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-partition",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-pivot-table",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-point-cluster-map",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-table",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-word-cloud",
+            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-world-map",
+            "type=depends_on_local from=superset to=@superset-ui/preset-chart-deckgl",
+            "type=depends_on_local from=superset to=@superset-ui/switchboard",
+            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-i18n-strings",
+            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-icons",
+            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-theme-colors",
+            "type=runs from=docker-compose.yml:superset to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-init to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-node to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-worker to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-worker-beat to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-tests-worker to=apache_superset",
+            "type=runs from=docker-compose.yml:superset-websocket to=superset-websocket",
+            "type=depends_on_local from=apache_superset to=apache-superset-extensions-cli"
           ],
           "fp_items": [],
           "fn_items": []
         },
         {
           "question": "coverage",
-          "tp": 3,
-          "fp": 2,
-          "fn": 0,
-          "precision": 0.6,
-          "recall": 1.0,
+          "tp": 2,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
           "tp_items": [
             "question=interfaces status=partial",
-            "question=capabilities status=partial",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=capabilities status=partial"
           ],
-          "fp_items": [
-            "question=components: label=complete but dircue=partial",
-            "question=deployables: label=complete but dircue=partial"
-          ],
-          "fn_items": []
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)",
+            "question=deployables: label=complete but dircue=partial (conservative)"
+          ]
         }
       ]
     },
@@ -804,20 +932,20 @@
         },
         {
           "question": "coverage",
-          "tp": 5,
+          "tp": 2,
           "fp": 0,
-          "fn": 0,
+          "fn": 2,
           "precision": 1.0,
-          "recall": 1.0,
+          "recall": 0.5,
           "tp_items": [
             "question=components status=partial",
-            "question=deployables status=partial",
-            "question=interfaces label=unknown dircue=partial (partial)",
-            "question=capabilities label=unknown dircue=partial (partial)",
-            "question=edges label=partial dircue=not_run (partial)"
+            "question=deployables status=partial"
           ],
           "fp_items": [],
-          "fn_items": []
+          "fn_items": [
+            "question=interfaces: label=unknown but dircue=partial (conservative)",
+            "question=capabilities: label=unknown but dircue=partial (conservative)"
+          ]
         }
       ]
     }
@@ -831,7 +959,7 @@
       "recall": 1.0
     },
     "deployables": {
-      "tp": 39,
+      "tp": 40,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
@@ -847,33 +975,33 @@
     "capabilities": {
       "tp": 45,
       "fp": 0,
-      "fn": 1,
+      "fn": 0,
       "precision": 1.0,
-      "recall": 0.9783
+      "recall": 1.0
     },
     "edges": {
-      "tp": 85,
-      "fp": 0,
-      "fn": 2,
-      "precision": 1.0,
-      "recall": 0.977
+      "tp": 215,
+      "fp": 1,
+      "fn": 4,
+      "precision": 0.9954,
+      "recall": 0.9817
     },
     "coverage": {
-      "tp": 25,
-      "fp": 10,
-      "fn": 0,
-      "precision": 0.7143,
-      "recall": 1.0
+      "tp": 17,
+      "fp": 0,
+      "fn": 11,
+      "precision": 1.0,
+      "recall": 0.6071
     }
   },
   "gates": {
     "components": {
-      "precision": 0.85,
-      "recall": 0.85
+      "precision": 0.9,
+      "recall": 0.8
     },
     "deployables": {
-      "precision": 0.8,
-      "recall": 0.75
+      "precision": 0.9,
+      "recall": 0.8
     },
     "interfaces": {
       "precision": 0.9,

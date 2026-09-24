@@ -2207,6 +2207,36 @@
             "requirement_kind": "maven-dependency",
             "state": "declared"
           }
+        },
+        {
+          "kind": "interface",
+          "name": "http",
+          "paths": [
+            "k8s/petclinic.yml"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "port": "8080",
+            "port_name": "http",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "postgresql",
+          "paths": [
+            "k8s/db.yml"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "port": "5432",
+            "port_name": "postgresql",
+            "state": "declared"
+          }
         }
       ],
       "expected_edges": [
@@ -2461,69 +2491,15 @@
           "properties": {
             "ecosystem": "npm",
             "project_kind": "npm",
-            "root": ".",
-            "version": "5.1.0",
             "role": "primary",
-            "role_basis": "path_name"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "node",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "condition": "engine range declaration",
-            "interface_kind": "prerequisite",
-            "observation_kind": "interface",
-            "state": "declared",
-            "target": ">= 18",
-            "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
+            "role_basis": "path_name",
+            "root": ".",
+            "runtime_requirements": "node >= 18",
+            "version": "5.1.0"
           }
         }
       ],
-      "expected_edges": [
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "node",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "condition": "engine range declaration",
-              "interface_kind": "prerequisite",
-              "observation_kind": "interface",
-              "state": "declared",
-              "target": ">= 18",
-              "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        }
-      ],
+      "expected_edges": [],
       "expected_coverage": [
         {
           "question": "analyzer_coverage",
@@ -2583,38 +2559,6 @@
       ],
       "expected_nodes": [
         {
-          "kind": "capability",
-          "name": "crypto:library",
-          "paths": [
-            "pyproject.toml"
-          ],
-          "properties": {
-            "basis": "declared_dependency",
-            "condition": "group:typing",
-            "observation_kind": "capability",
-            "requirement": "cryptography",
-            "requirement_kind": "python-dependency",
-            "state": "conditional",
-            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
-            "evidence_path_count": "1"
-          }
-        },
-        {
-          "kind": "component",
-          "name": "Flask",
-          "paths": [
-            "pyproject.toml"
-          ],
-          "properties": {
-            "ecosystem": "python-uv",
-            "project_kind": "python-uv",
-            "root": ".",
-            "version": "3.1.2",
-            "role": "primary",
-            "role_basis": "path_name"
-          }
-        },
-        {
           "kind": "interface",
           "name": "flask",
           "paths": [
@@ -2630,18 +2574,19 @@
           }
         },
         {
-          "kind": "interface",
-          "name": "flit_core.buildapi",
+          "kind": "component",
+          "name": "Flask",
           "paths": [
             "pyproject.toml"
           ],
           "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "python-build-backend",
-            "observation_kind": "interface",
-            "state": "declared",
-            "target": "flit_core.buildapi",
-            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
+            "build_backend": "flit_core.buildapi",
+            "ecosystem": "python-uv",
+            "project_kind": "python-uv",
+            "role": "primary",
+            "role_basis": "path_name",
+            "root": ".",
+            "version": "3.1.2"
           }
         }
       ],
@@ -2655,12 +2600,13 @@
               "pyproject.toml"
             ],
             "properties": {
+              "build_backend": "flit_core.buildapi",
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
-              "root": ".",
-              "version": "3.1.2",
               "role": "primary",
-              "role_basis": "path_name"
+              "role_basis": "path_name",
+              "root": ".",
+              "version": "3.1.2"
             }
           },
           "to": {
@@ -2673,85 +2619,9 @@
               "basis": "declared_manifest",
               "interface_kind": "python-console-script",
               "observation_kind": "interface",
-              "state": "declared",
-              "target": "flask.cli:main",
-              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "pyproject.toml"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "Flask",
-            "paths": [
-              "pyproject.toml"
-            ],
-            "properties": {
-              "ecosystem": "python-uv",
-              "project_kind": "python-uv",
-              "root": ".",
-              "version": "3.1.2",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "flit_core.buildapi",
-            "paths": [
-              "pyproject.toml"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "python-build-backend",
-              "observation_kind": "interface",
-              "state": "declared",
-              "target": "flit_core.buildapi",
-              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "pyproject.toml"
-          ]
-        },
-        {
-          "type": "uses_capability",
-          "from": {
-            "kind": "component",
-            "name": "Flask",
-            "paths": [
-              "pyproject.toml"
-            ],
-            "properties": {
-              "ecosystem": "python-uv",
-              "project_kind": "python-uv",
-              "root": ".",
-              "version": "3.1.2",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "capability",
-            "name": "crypto:library",
-            "paths": [
-              "pyproject.toml"
-            ],
-            "properties": {
-              "basis": "declared_dependency",
-              "condition": "group:typing",
-              "observation_kind": "capability",
-              "requirement": "cryptography",
-              "requirement_kind": "python-dependency",
-              "state": "conditional",
               "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
-              "evidence_path_count": "1"
+              "state": "declared",
+              "target": "flask.cli:main"
             }
           },
           "properties": {},

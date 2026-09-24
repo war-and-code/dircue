@@ -408,10 +408,10 @@ func parseComposeYAMLPorts(name string, content []byte) []Observation {
 		stateLong   = 3 // inside a long-form port map entry
 	)
 	state := stateNone
-	blockIndent := -1    // indent of the block header
-	itemIndent := -1     // indent of the first list item
-	longTarget := ""     // accumulated target: value for long-form entries
-	longTargetLine := 0  // line number of the target: key
+	blockIndent := -1   // indent of the block header
+	itemIndent := -1    // indent of the first list item
+	longTarget := ""    // accumulated target: value for long-form entries
+	longTargetLine := 0 // line number of the target: key
 	longPublishedSet := false
 
 	emitPort := func(port string, line int) {
