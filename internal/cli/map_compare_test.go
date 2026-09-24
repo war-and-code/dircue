@@ -89,3 +89,38 @@ func TestMapCompareRejectsScanFlagsAndNonMapInput(t *testing.T) {
 		t.Fatalf("invalid map accepted: %v", err)
 	}
 }
+
+// TestMapCompareRejectsProfileDocument verifies that dircue map compare returns
+// a helpful error when given a legacy profile document and points to dircue compare.
+func TestMapCompareRejectsProfileDocument(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main\nfunc main() {}\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Build a legacy profile document.
+	profileOut, _, err := invoke("analyze", "all", "--json", "--source", "directory", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	profileFile := filepath.Join(root, "profile.json")
+	if err := os.WriteFile(profileFile, []byte(profileOut), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Also need a valid map to form the argument pair.
+	mapOut, _, err := invoke("map", "--source", "directory", "--json", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapFile := filepath.Join(root, "map.json")
+	if err := os.WriteFile(mapFile, []byte(mapOut), 0600); err != nil {
+		t.Fatal(err)
+	}
+	// Passing a profile as either argument should produce a helpful error.
+	_, stderr, err := invoke("map", "compare", profileFile, mapFile)
+	if err == nil {
+		t.Fatal("expected error when passing profile document to map compare")
+	}
+	if !strings.Contains(err.Error()+stderr, "dircue compare") {
+		t.Fatalf("error should mention 'dircue compare'; got err=%v stderr=%q", err, stderr)
+	}
+}

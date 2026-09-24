@@ -156,7 +156,7 @@ func newMapCommand(opts *options) *cobra.Command {
 			if attachBinding != "" && attachBinding != "caller-asserted" {
 				return fmt.Errorf("--attach-binding supports only caller-asserted")
 			}
-			doc, err = joinMapAttachments(cmd, doc, attachments, attachBinding == "caller-asserted")
+			doc, err = joinMapAttachments(cmd, doc, attachments, attachBinding == "caller-asserted", settings)
 			if err != nil {
 				return err
 			}

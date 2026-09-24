@@ -1,5 +1,5 @@
 {
-  "binary": "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/package-import-bench/bench",
+  "binary": "/home/user/Workspace/dircue/.cache/next-sprint/package-import-bench/bench",
   "sha256": "bdf3989f6d5bc8e4aacffc900af4774f94ef6d9e3699912dc26d5286b99da32b",
   "source_receipt": "tests/packageevidence/results/import-performance.json",
   "production_hashes_verified": true

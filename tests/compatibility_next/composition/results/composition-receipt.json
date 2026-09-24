@@ -38,7 +38,7 @@
       "--structure",
       "--files",
       "--structural-worker",
-      "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/dircue-worker-functions"
+      "/home/user/Workspace/dircue/.cache/next-sprint/dircue-worker-functions"
     ],
     [
       "--functions",
@@ -46,9 +46,9 @@
       "--discovery",
       "--registries",
       "--rules-file",
-      "/Users/gingeleski/Workspace/dircue/.cache/final-v040-audit/composition-policy.json",
+      "/home/user/Workspace/dircue/.cache/final-v040-audit/composition-policy.json",
       "--syft-report",
-      "/Users/gingeleski/Workspace/dircue/tests/packageevidence/fixtures/syft-1.52.0.json",
+      "/home/user/Workspace/dircue/tests/packageevidence/fixtures/syft-1.52.0.json",
       "--syft-root",
       "/"
     ]

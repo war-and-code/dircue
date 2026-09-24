@@ -286,7 +286,7 @@ func TestGoInterfacesSurviveFullCapabilityHeap(t *testing.T) {
 	d := New(Options{MaxObservations: 8})
 	// Fill the heap with capability-producing imports.
 	for i := 0; i < 20; i++ {
-		src := fmt.Sprintf("package p\nimport \"github.com/jackc/pgx/v5\"\n")
+		src := "package p\nimport \"github.com/jackc/pgx/v5\"\n"
 		path := fmt.Sprintf("svc/%02d.go", i)
 		_, _ = d.Detect(context.Background(), profile.File{Path: path, Size: int64(len(src)), Content: []byte(src)})
 	}

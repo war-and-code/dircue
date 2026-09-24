@@ -1,6 +1,9 @@
 package treehash
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 // FuzzWildmatch checks that pattern matching terminates without panicking for
 // any pattern and path, and is deterministic. Differential correctness against
@@ -17,8 +20,21 @@ func FuzzWildmatch(f *testing.F) {
 		if len(pattern) > 256 || len(text) > 1024 {
 			return
 		}
-		if wildmatch(pattern, text, pathname) != wildmatch(pattern, text, pathname) {
+		// Call twice with identical arguments: result must be the same.
+		first := wildmatch(pattern, text, pathname)
+		second := wildmatch(pattern, text, pathname)
+		if first != second {
 			t.Fatal("wildmatch is not deterministic")
+		}
+		// When the text contains no slash, pathname mode cannot change the result
+		// because the pathname restriction only affects how '/' is handled.
+		if !strings.Contains(text, "/") {
+			nopath := wildmatch(pattern, text, false)
+			withpath := wildmatch(pattern, text, true)
+			if nopath != withpath {
+				t.Fatalf("pathname mode changed result for slash-free text %q with pattern %q: false=%v true=%v",
+					text, pattern, nopath, withpath)
+			}
 		}
 	})
 }
