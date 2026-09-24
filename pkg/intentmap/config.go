@@ -291,8 +291,8 @@ func configEntryKey(s string) bool {
 	switch u {
 	case "PORT", "HTTP_PORT", "HTTPS_PORT",
 		"LISTEN_ADDR", "LISTEN_PORT",
-		"SERVER.PORT",                                                              // Spring application.yml / application.properties
-		"ASPNETCORE_URLS", "ASPNETCORE_HTTP_PORTS", "ASPNETCORE_HTTPS_PORTS":      // ASP.NET Core
+		"SERVER.PORT",                                                        // Spring application.yml / application.properties
+		"ASPNETCORE_URLS", "ASPNETCORE_HTTP_PORTS", "ASPNETCORE_HTTPS_PORTS": // ASP.NET Core
 		return true
 	}
 	// KESTREL:ENDPOINTS:*:URL and similar ASP.NET Core hierarchy forms.
