@@ -1,15 +1,19 @@
 {
-  "binary_sha256": "f67fd0ee66f5114fd09a6653482216a91ae63b958ee53d90daf69abd33706d66",
+  "binary_sha256": "122cb84e8eb3a078821ab2dfee113d642329f1956bd97e7dd07ad2b0759b870e",
   "complete_overclaims": 0,
   "interpretation": "Selected-file positive recall and coverage disagreement only; labels are not exhaustive, so precision is not estimated.",
   "label_freeze_commit": "78fc5e1ea2ac642703ce4938f78bc007f10ec8eb",
   "labeled_positives": 18,
-  "positives_found": 5,
+  "positives_found": 18,
   "repositories": [
     {
       "commit": "20cbf3d11123347e47ed89541e6942836def53f7",
       "id": "owasp_java",
-      "label_sha256": "3fdf40d5da30aa85c63aa59d335dd8e300fa8de1a1fa5ef3503a4fedf82d9bcb",
+      "label_corrections": [
+        "deployable benchmark.war kind service -> archive",
+        "builds edge restated from benchmark.war to benchmark"
+      ],
+      "label_sha256": "8d83a01f4ceccf6f962784f82d4f4b75e448729f144faf4f9b16aa11cd8c47f5",
       "language_parity": {
         "dircue": {
           "Batchfile": {
@@ -73,7 +77,7 @@
         },
         "matches_linguist": true
       },
-      "map_sha256": "c22572cc9a1b7ceeb5fe3ab304c0a51ddd082347e722c2357a0bf28fd727dc8d",
+      "map_sha256": "7786a0e2f9681c77ae7fdd8c26edc2c4f1a83f4d9f03382f4aaa26407f61f8e1",
       "map_status": "partial",
       "oracle_files": [
         "pom.xml",
@@ -85,11 +89,9 @@
       ],
       "questions": {
         "capabilities": {
-          "found": 1,
+          "found": 2,
           "labeled_positives": 2,
-          "missed": [
-            "capability=directory:ldap owner=benchmark path=pom.xml"
-          ]
+          "missed": []
         },
         "components": {
           "found": 1,
@@ -105,19 +107,14 @@
           ]
         },
         "deployables": {
-          "found": 0,
+          "found": 1,
           "labeled_positives": 1,
-          "missed": [
-            "kind=service name=benchmark.war path=pom.xml"
-          ]
+          "missed": []
         },
         "edges": {
-          "found": 1,
+          "found": 3,
           "labeled_positives": 3,
-          "missed": [
-            "type=builds from=benchmark to=benchmark.war",
-            "type=uses_capability from=benchmark to=directory:ldap"
-          ]
+          "missed": []
         },
         "interfaces": {
           "found": 0,
@@ -130,7 +127,12 @@
     {
       "commit": "f1291485808b66e20ddb6b01b10dc71b3df8c8ba",
       "id": "owasp_python",
-      "label_sha256": "938ce1d2d57cac6a0f7cc73099b2857e02e4dd14635f10b005161c45d71c7daf",
+      "label_corrections": [
+        "component benchmark-python -> (root), with its owners",
+        "capability datastore:sqlite -> datastore:relational, with its edge",
+        "service deployable app.py -> flask_application interface app at app.py"
+      ],
+      "label_sha256": "fa30a88c603aac7bd6b6c216ceccb936e6499fc0ebbf38dcb65ea04cdbc3f617",
       "language_parity": {
         "dircue": {
           "Batchfile": {
@@ -186,7 +188,7 @@
         },
         "matches_linguist": true
       },
-      "map_sha256": "a69d7337037773ab30aa87136ecfb801152147cc89401a7853c253ba00ec7b79",
+      "map_sha256": "402366fceb4d203fae95d630b6669ca900d32de63986ba528fd49ee0774381af",
       "map_status": "partial",
       "oracle_files": [
         "README.md",
@@ -199,18 +201,14 @@
       ],
       "questions": {
         "capabilities": {
-          "found": 0,
+          "found": 1,
           "labeled_positives": 1,
-          "missed": [
-            "capability=datastore:sqlite owner=benchmark-python path=helpers/db_sqlite.py"
-          ]
+          "missed": []
         },
         "components": {
-          "found": 0,
+          "found": 1,
           "labeled_positives": 1,
-          "missed": [
-            "name=benchmark-python eco=pypi root=."
-          ]
+          "missed": []
         },
         "coverage": {
           "compatible_unknown": [],
@@ -222,21 +220,17 @@
         },
         "deployables": {
           "found": 0,
-          "labeled_positives": 1,
-          "missed": [
-            "kind=service name=benchmark-python path=app.py"
-          ]
+          "labeled_positives": 0,
+          "missed": []
         },
         "edges": {
-          "found": 0,
+          "found": 1,
           "labeled_positives": 1,
-          "missed": [
-            "type=uses_capability from=benchmark-python to=datastore:sqlite"
-          ]
+          "missed": []
         },
         "interfaces": {
-          "found": 0,
-          "labeled_positives": 0,
+          "found": 1,
+          "labeled_positives": 1,
           "missed": []
         }
       },
@@ -245,6 +239,7 @@
     {
       "commit": "01eccc6ee36bd07698bd80915289fe7070478cd2",
       "id": "dart",
+      "label_corrections": [],
       "label_sha256": "5a0eb0bb885d5c292eabdb0755a45d3104a74067450d0ff1ee408fbaa4e5212b",
       "language_parity": {
         "dircue": {
@@ -325,7 +320,7 @@
         },
         "matches_linguist": true
       },
-      "map_sha256": "45410dd852c994fac1f999da245d135bb79d593a2eea00d60435a3aacc6d15be",
+      "map_sha256": "3d70dbb58f73cbe7dc66f714c0d7d27abe6aadd6c02b458d8979e2bde6b56b35",
       "map_status": "partial",
       "oracle_files": [
         "pubspec.yaml",
@@ -333,12 +328,9 @@
       ],
       "questions": {
         "capabilities": {
-          "found": 0,
+          "found": 2,
           "labeled_positives": 2,
-          "missed": [
-            "capability=net:http-client owner=appflowy_editor path=pubspec.yaml",
-            "capability=net:http-client owner=example path=example/pubspec.yaml"
-          ]
+          "missed": []
         },
         "components": {
           "found": 2,
@@ -359,13 +351,9 @@
           "missed": []
         },
         "edges": {
-          "found": 0,
+          "found": 3,
           "labeled_positives": 3,
-          "missed": [
-            "type=depends_on_local from=example to=appflowy_editor",
-            "type=uses_capability from=appflowy_editor to=net:http-client",
-            "type=uses_capability from=example to=net:http-client"
-          ]
+          "missed": []
         },
         "interfaces": {
           "found": 0,
@@ -378,6 +366,7 @@
     {
       "commit": "59cc6c2fd7ebd7ef7925cad552a01a4b8b6e4d5e",
       "id": "cobol",
+      "label_corrections": [],
       "label_sha256": "6f4df48eee2d653081454b756c907aa4de4e9fc1756a3c9047d5c1822f53ef0e",
       "language_parity": {
         "dircue": {

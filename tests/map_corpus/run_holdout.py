@@ -21,9 +21,12 @@ import verify_golden
 LABEL_DIR = Path(__file__).resolve().parent / "holdout_labels"
 LABEL_FREEZE_COMMIT = "78fc5e1ea2ac642703ce4938f78bc007f10ec8eb"
 IDS = ("owasp_java", "owasp_python", "dart", "cobol")
-# The first run against the frozen labels found these positives. Keep that
-# floor while allowing later map implementations to improve it.
-MIN_FOUND = {"owasp_java": 3, "owasp_python": 0, "dart": 2, "cobol": 0}
+# The first run against the frozen labels found 3, 0, 2 and 0 positives.
+# After the #143 map work and the recorded label corrections every labeled
+# positive is found; keep that floor so a lost fact fails the run. These four
+# repositories now shape development, so they are regression checks, not an
+# unseen estimate (see fresh_labels/ for that).
+MIN_FOUND = {"owasp_java": 7, "owasp_python": 4, "dart": 7, "cobol": 0}
 EXPECTED_POSITIVES = 18
 
 
@@ -118,6 +121,7 @@ def evaluate(name: str, source: Path, binary: Path, linguist_image: str | None) 
         "repository": label["source"],
         "commit": label["commit"],
         "label_sha256": digest(label_bytes),
+        "label_corrections": [item["change"] for item in label.get("corrections", [])],
         "oracle_files": [item["path"] for item in label["oracle_files"]],
         "map_sha256": digest(raw_map),
         "map_status": map_doc.get("status"),
