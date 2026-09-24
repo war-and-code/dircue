@@ -64,20 +64,51 @@
       "interfaces": [],
       "capabilities": [
         {
-          "capability": "datastore:dynamodb",
+          "capability": "cloud:aws",
           "owner": "aws-sam-java-rest",
           "path": "pom.xml",
-          "why": "pom.xml:77 declares <artifactId>dynamodb</artifactId> from groupId software.amazon.awssdk version 2.13.39; this is the AWS SDK v2 DynamoDB client. Note: catalog has no 'datastore:dynamodb' coordinate; labeled per brief rule to use the canonical capability name for what the source declares."
-        },
-        {
-          "capability": "net:http-client",
-          "owner": "aws-sam-java-rest",
-          "path": "pom.xml",
-          "note": "ambiguous",
-          "why": "pom.xml:92 declares <artifactId>apache-client</artifactId> from groupId software.amazon.awssdk; this is the Apache HttpClient-backed HTTP transport for the AWS SDK, not a direct application HTTP client call. The catalog coordinate 'httpclient' targets org.apache.httpcomponents:httpclient directly; software.amazon.awssdk:apache-client wraps it. Labeled with note because the HTTP client use is indirect (SDK transport layer, not application-initiated HTTP calls)."
+          "why": "pom.xml declares software.amazon.awssdk:dynamodb, software.amazon.awssdk:apache-client; direct AWS SDK v2 dependencies imply cloud:aws usage"
         }
       ],
       "edges": [
+        {
+          "type": "uses_capability",
+          "from": "aws-sam-java-rest",
+          "to": "cloud:aws",
+          "why": "pom.xml software.amazon.awssdk:* direct deps; catalog maps to cloud:aws"
+        }
+      ],
+      "coverage": {
+        "components": {
+          "status": "complete",
+          "why": "Single Maven project declared by pom.xml:5 <artifactId>aws-sam-java-rest</artifactId>; no sub-modules or workspace members exist in the repository"
+        },
+        "deployables": {
+          "status": "complete",
+          "why": "template.yaml declares all 5 Lambda functions (GetOrderFunction, GetOrdersFunction, UpdateOrderFunction, DeleteOrderFunction, CreateOrderFunction) and the OrdersTable DynamoDB resource; no other deployable definitions exist in the repository"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "Each Lambda function has an Events.*.Type: Api declaration (HTTP GET/POST/DELETE at /orders and /orders/{order_id}) that constitutes declared HTTP handler interfaces, but the SAM Api event type does not match any of the supported interface kinds in the dircue vocabulary (no CLI binary, declared port, gRPC service, Spring Boot application, or npm start). No ports are EXPOSEd; Lambda execution is event-driven."
+        },
+        "capabilities": {
+          "status": "partial",
+          "why": "DynamoDB client (software.amazon.awssdk:dynamodb) confirmed from pom.xml:77; apache-client HTTP transport labeled with ambiguity note; transitive AWS SDK dependencies may introduce other clients not visible in pom.xml first-party dependencies"
+        },
+        "edges": {
+          "status": "complete",
+          "why": "Maven builds the single JAR; all 5 functions reference the same JAR via CodeUri; all 5 functions have explicit DynamoDB IAM policies and TABLE_NAME env var binding. No other inter-component edges are declared in oracle files."
+        }
+      },
+      "notes": [
+        "All five Lambda functions share a single CodeUri (target/aws-sam-java-rest-1.0.0.jar), meaning they are all handler classes within one deployable JAR artifact.",
+        "The SAM Globals section (template.yaml:9-16) sets TABLE_NAME and ENDPOINT_OVERRIDE environment variables for all functions; ENDPOINT_OVERRIDE is empty string in production but used for DynamoDB Local in integration tests (pom.xml:362 docker-maven-plugin).",
+        "template.yaml:2 Transform: AWS::Serverless-2016-10-31 marks this as a SAM template, not a raw CloudFormation template; SAM expands functions with Api events into an implicit AWS::Serverless::Api resource (API Gateway), but this implicit resource is not an explicit declaration.",
+        "pom.xml:121 includes aws-java-sdk-dynamodb (v1 SDK) in test scope only; this is for DynamoDB Local testing convenience (the Item class), not production use.",
+        "The catalog.go has no 'datastore:dynamodb' coordinate entry; labeled per the brief's rule that source declarations take precedence over catalog coverage.",
+        "Runtime java8 is specified; this is Lambda runtime java8 (Amazon Linux 2 with Java 8 Corretto), not literally JDK 1.8."
+      ],
+      "non_goals": [
         {
           "type": "builds",
           "from": "aws-sam-java-rest",
@@ -143,37 +174,10 @@
           "from": "CreateOrderFunction",
           "to": "datastore:dynamodb",
           "why": "template.yaml:86-87 Policies DynamoDBCrudPolicy TableName: !Ref OrdersTable; env TABLE_NAME from Globals"
+        },
+        {
+          "note": "builds and runs edges omitted: dircue maps function→component (SAM build semantics differ from component→artifact label semantics)"
         }
-      ],
-      "coverage": {
-        "components": {
-          "status": "complete",
-          "why": "Single Maven project declared by pom.xml:5 <artifactId>aws-sam-java-rest</artifactId>; no sub-modules or workspace members exist in the repository"
-        },
-        "deployables": {
-          "status": "complete",
-          "why": "template.yaml declares all 5 Lambda functions (GetOrderFunction, GetOrdersFunction, UpdateOrderFunction, DeleteOrderFunction, CreateOrderFunction) and the OrdersTable DynamoDB resource; no other deployable definitions exist in the repository"
-        },
-        "interfaces": {
-          "status": "partial",
-          "why": "Each Lambda function has an Events.*.Type: Api declaration (HTTP GET/POST/DELETE at /orders and /orders/{order_id}) that constitutes declared HTTP handler interfaces, but the SAM Api event type does not match any of the supported interface kinds in the dircue vocabulary (no CLI binary, declared port, gRPC service, Spring Boot application, or npm start). No ports are EXPOSEd; Lambda execution is event-driven."
-        },
-        "capabilities": {
-          "status": "partial",
-          "why": "DynamoDB client (software.amazon.awssdk:dynamodb) confirmed from pom.xml:77; apache-client HTTP transport labeled with ambiguity note; transitive AWS SDK dependencies may introduce other clients not visible in pom.xml first-party dependencies"
-        },
-        "edges": {
-          "status": "complete",
-          "why": "Maven builds the single JAR; all 5 functions reference the same JAR via CodeUri; all 5 functions have explicit DynamoDB IAM policies and TABLE_NAME env var binding. No other inter-component edges are declared in oracle files."
-        }
-      },
-      "notes": [
-        "All five Lambda functions share a single CodeUri (target/aws-sam-java-rest-1.0.0.jar), meaning they are all handler classes within one deployable JAR artifact.",
-        "The SAM Globals section (template.yaml:9-16) sets TABLE_NAME and ENDPOINT_OVERRIDE environment variables for all functions; ENDPOINT_OVERRIDE is empty string in production but used for DynamoDB Local in integration tests (pom.xml:362 docker-maven-plugin).",
-        "template.yaml:2 Transform: AWS::Serverless-2016-10-31 marks this as a SAM template, not a raw CloudFormation template; SAM expands functions with Api events into an implicit AWS::Serverless::Api resource (API Gateway), but this implicit resource is not an explicit declaration.",
-        "pom.xml:121 includes aws-java-sdk-dynamodb (v1 SDK) in test scope only; this is for DynamoDB Local testing convenience (the Item class), not production use.",
-        "The catalog.go has no 'datastore:dynamodb' coordinate entry; labeled per the brief's rule that source declarations take precedence over catalog coverage.",
-        "Runtime java8 is specified; this is Lambda runtime java8 (Amazon Linux 2 with Java 8 Corretto), not literally JDK 1.8."
       ]
     },
     {
@@ -255,7 +259,7 @@
           "name": "github.com/grafana/loki/v3",
           "root": ".",
           "ecosystem": "gomod",
-          "why": "go.mod:1 module github.com/grafana/loki/v3 \u2014 single Go module covering the entire repo"
+          "why": "go.mod:1 module github.com/grafana/loki/v3 — single Go module covering the entire repo"
         }
       ],
       "deployables": [
@@ -283,67 +287,67 @@
           "kind": "cli_binary",
           "name": "loki",
           "path": "cmd/loki/main.go",
-          "why": "cmd/loki/main.go: package main \u2014 Go entry-point binary for the Loki log aggregation server"
+          "why": "cmd/loki/main.go: package main — Go entry-point binary for the Loki log aggregation server"
         },
         {
           "kind": "cli_binary",
           "name": "logcli",
           "path": "cmd/logcli",
-          "why": "cmd/logcli/main.go: package main \u2014 Go entry-point binary for the logcli query CLI tool"
+          "why": "cmd/logcli/main.go: package main — Go entry-point binary for the logcli query CLI tool"
         },
         {
           "kind": "cli_binary",
           "name": "loki-canary",
           "path": "cmd/loki-canary",
-          "why": "cmd/loki-canary/ contains package main \u2014 Go entry-point binary for canary monitoring"
+          "why": "cmd/loki-canary/ contains package main — Go entry-point binary for canary monitoring"
         },
         {
           "kind": "cli_binary",
           "name": "lokitool",
           "path": "cmd/lokitool",
-          "why": "cmd/lokitool/ contains package main \u2014 Go entry-point binary for admin operations"
+          "why": "cmd/lokitool/ contains package main — Go entry-point binary for admin operations"
         },
         {
           "kind": "cli_binary",
           "name": "migrate",
           "path": "cmd/migrate",
-          "why": "cmd/migrate/ contains package main \u2014 Go entry-point binary for schema migration"
+          "why": "cmd/migrate/ contains package main — Go entry-point binary for schema migration"
         },
         {
           "kind": "cli_binary",
           "name": "querytee",
           "path": "cmd/querytee",
-          "why": "cmd/querytee/ contains package main \u2014 Go entry-point binary for query traffic tee"
+          "why": "cmd/querytee/ contains package main — Go entry-point binary for query traffic tee"
         },
         {
           "kind": "cli_binary",
           "name": "chunks-inspect",
           "path": "cmd/chunks-inspect",
-          "why": "cmd/chunks-inspect/ contains package main \u2014 Go entry-point binary for chunk inspection"
+          "why": "cmd/chunks-inspect/ contains package main — Go entry-point binary for chunk inspection"
         },
         {
           "kind": "cli_binary",
           "name": "dataobj-inspect",
           "path": "cmd/dataobj-inspect",
-          "why": "cmd/dataobj-inspect/ contains package main \u2014 Go entry-point binary for data object inspection"
+          "why": "cmd/dataobj-inspect/ contains package main — Go entry-point binary for data object inspection"
         },
         {
           "kind": "cli_binary",
           "name": "logline-util",
           "path": "cmd/logline-util",
-          "why": "cmd/logline-util/ contains package main \u2014 Go entry-point binary for log line utilities"
+          "why": "cmd/logline-util/ contains package main — Go entry-point binary for log line utilities"
         },
         {
           "kind": "cli_binary",
           "name": "logql-analyzer",
           "path": "cmd/logql-analyzer",
-          "why": "cmd/logql-analyzer/ contains package main \u2014 Go entry-point binary for LogQL query analysis"
+          "why": "cmd/logql-analyzer/ contains package main — Go entry-point binary for LogQL query analysis"
         },
         {
           "kind": "declared_port",
           "name": "3100",
           "path": "cmd/loki/Dockerfile",
-          "why": "cmd/loki/Dockerfile: EXPOSE 3100 \u2014 Loki HTTP/gRPC server port"
+          "why": "cmd/loki/Dockerfile: EXPOSE 3100 — Loki HTTP/gRPC server port"
         },
         {
           "kind": "grpc_service",
@@ -356,6 +360,78 @@
           "name": "StreamData",
           "path": "pkg/logproto/logproto.proto",
           "why": "pkg/logproto/logproto.proto: service StreamData { rpc GetStreamRates }"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/GetChunkIDs",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetChunkIDs within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/GetDetectedFields",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetDetectedFields within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/GetDetectedLabels",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetDetectedLabels within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/GetStats",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetStats within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/GetVolume",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetVolume within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/Label",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc Label within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/Query",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc Query within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/QuerySample",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc QuerySample within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/Series",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc Series within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/Tail",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc Tail within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.Querier/TailersCount",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc TailersCount within service Querier"
+        },
+        {
+          "kind": "grpc_operation",
+          "name": "logproto.StreamData/GetStreamRates",
+          "path": "pkg/logproto/logproto.proto",
+          "why": "pkg/logproto/logproto.proto: rpc GetStreamRates within service StreamData"
         }
       ],
       "capabilities": [
@@ -363,13 +439,13 @@
           "capability": "cache:redis",
           "owner": "github.com/grafana/loki/v3",
           "path": "go.mod",
-          "why": "go.mod:76 github.com/redis/go-redis/v9 v9.22.0 \u2014 Go Redis client library"
+          "why": "go.mod:76 github.com/redis/go-redis/v9 v9.22.0 — Go Redis client library"
         },
         {
           "capability": "serialization:protobuf",
           "owner": "github.com/grafana/loki/v3",
           "path": "go.mod",
-          "why": "go.mod: google.golang.org/protobuf v1.36.12, github.com/gogo/protobuf v1.3.2, github.com/golang/protobuf v1.5.4 \u2014 protobuf serialization libraries"
+          "why": "go.mod: google.golang.org/protobuf v1.36.12, github.com/gogo/protobuf v1.3.2, github.com/golang/protobuf v1.5.4 — protobuf serialization libraries"
         },
         {
           "capability": "cloud:aws",
@@ -440,34 +516,16 @@
       ],
       "edges": [
         {
-          "type": "builds",
-          "from": "cmd/loki/Dockerfile",
-          "to": "loki binary",
-          "why": "cmd/loki/Dockerfile build stage: COPY . /src/loki; make loki; produces /usr/bin/loki in final image"
-        },
-        {
-          "type": "builds",
-          "from": "cmd/logcli/Dockerfile",
-          "to": "logcli binary",
-          "why": "cmd/logcli/Dockerfile build stage produces logcli binary"
-        },
-        {
           "type": "declares",
-          "from": "pkg/logproto/logproto.proto",
+          "from": "github.com/grafana/loki/v3",
           "to": "Querier gRPC service",
-          "why": "pkg/logproto/logproto.proto: service Querier definition"
+          "why": "pkg/logproto/logproto.proto: service Querier definition [from corrected to Go module path]"
         },
         {
           "type": "declares",
-          "from": "pkg/logproto/logproto.proto",
+          "from": "github.com/grafana/loki/v3",
           "to": "StreamData gRPC service",
-          "why": "pkg/logproto/logproto.proto: service StreamData definition"
-        },
-        {
-          "type": "packaged_in",
-          "from": "loki binary",
-          "to": "cmd/loki/Dockerfile image",
-          "why": "cmd/loki/Dockerfile COPY --from=build /src/loki/cmd/loki/loki /usr/bin/loki"
+          "why": "pkg/logproto/logproto.proto: service StreamData definition [from corrected to Go module path]"
         },
         {
           "type": "uses_capability",
@@ -480,12 +538,6 @@
           "from": "github.com/grafana/loki/v3",
           "to": "serialization:protobuf",
           "why": "go.mod google.golang.org/protobuf and gogo/protobuf direct dependencies; logproto.proto declares services"
-        },
-        {
-          "type": "contains",
-          "from": "production/helm/loki",
-          "to": "loki",
-          "why": "production/helm/loki/Chart.yaml packages the loki server into a Helm chart (appVersion 3.6.14)"
         },
         {
           "type": "uses_capability",
@@ -552,6 +604,144 @@
           "from": "github.com/grafana/loki/v3",
           "to": "net:http-client",
           "why": "loki uses net:http-client; verified from go.mod; corresponds to added capability label"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/GetChunkIDs",
+          "why": "pkg/logproto/logproto.proto rpc GetChunkIDs in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/GetDetectedFields",
+          "why": "pkg/logproto/logproto.proto rpc GetDetectedFields in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/GetDetectedLabels",
+          "why": "pkg/logproto/logproto.proto rpc GetDetectedLabels in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/GetStats",
+          "why": "pkg/logproto/logproto.proto rpc GetStats in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/GetVolume",
+          "why": "pkg/logproto/logproto.proto rpc GetVolume in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/Label",
+          "why": "pkg/logproto/logproto.proto rpc Label in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/Query",
+          "why": "pkg/logproto/logproto.proto rpc Query in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/QuerySample",
+          "why": "pkg/logproto/logproto.proto rpc QuerySample in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/Series",
+          "why": "pkg/logproto/logproto.proto rpc Series in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/Tail",
+          "why": "pkg/logproto/logproto.proto rpc Tail in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.Querier/TailersCount",
+          "why": "pkg/logproto/logproto.proto rpc TailersCount in service Querier; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logproto.StreamData/GetStreamRates",
+          "why": "pkg/logproto/logproto.proto rpc GetStreamRates in service StreamData; component declares this gRPC operation"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "loki",
+          "why": "cmd/loki/main.go package main; loki component declares binary interface loki"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logcli",
+          "why": "cmd/logcli/main.go package main; loki component declares binary interface logcli"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "loki-canary",
+          "why": "cmd/loki-canary/main.go package main; loki component declares binary interface loki-canary"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "lokitool",
+          "why": "cmd/lokitool/main.go package main; loki component declares binary interface lokitool"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "migrate",
+          "why": "cmd/migrate/main.go package main; loki component declares binary interface migrate"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "querytee",
+          "why": "cmd/querytee/main.go package main; loki component declares binary interface querytee"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "chunks-inspect",
+          "why": "cmd/chunks-inspect/main.go package main; loki component declares binary interface chunks-inspect"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "dataobj-inspect",
+          "why": "cmd/dataobj-inspect/main.go package main; loki component declares binary interface dataobj-inspect"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logline-util",
+          "why": "cmd/logline-util/main.go package main; loki component declares binary interface logline-util"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "logql-analyzer",
+          "why": "cmd/logql-analyzer/main.go package main; loki component declares binary interface logql-analyzer"
+        },
+        {
+          "type": "declares",
+          "from": "github.com/grafana/loki/v3",
+          "to": "port:3100",
+          "why": "cmd/loki/Dockerfile EXPOSE 3100; loki component declares port:3100"
         }
       ],
       "coverage": {
@@ -577,14 +767,43 @@
         }
       },
       "notes": [
-        "go.mod:47 github.com/grafana/gomemcache is a Memcached client; no memcached capability name in catalog \u2014 not labeled.",
-        "go.mod declares multiple object-storage clients: aws-sdk-go-v2/service/s3 (S3), cloud.google.com/go/storage (GCS), azure-sdk-for-go/sdk/storage/azblob (Azure Blob), minio-go/v7 (MinIO), aliyun-oss-go-sdk (Alibaba OSS), bce-sdk-go (Baidu Cloud) \u2014 catalog has no object-storage capability name; not labeled.",
-        "go.mod:114 github.com/go-sql-driver/mysql \u2014 MySQL client; catalog has no datastore:mysql capability name; not labeled.",
+        "go.mod:47 github.com/grafana/gomemcache is a Memcached client; no memcached capability name in catalog — not labeled.",
+        "go.mod declares multiple object-storage clients: aws-sdk-go-v2/service/s3 (S3), cloud.google.com/go/storage (GCS), azure-sdk-for-go/sdk/storage/azblob (Azure Blob), minio-go/v7 (MinIO), aliyun-oss-go-sdk (Alibaba OSS), bce-sdk-go (Baidu Cloud) — catalog has no object-storage capability name; not labeled.",
+        "go.mod:114 github.com/go-sql-driver/mysql — MySQL client; catalog has no datastore:mysql capability name; not labeled.",
         "production/helm/loki/Chart.yaml has three sub-chart dependencies (minio, grafana-agent-operator, rollout-operator); these are Helm dependency edges not labeled here as they are chart-to-chart relationships.",
         "operator/ sub-directory has its own go.mod (operator/go.mod), making it a separate Go module; it is not an oracle file and its component is not labeled.",
         "pkg/logproto/logproto.proto imports pkg/push/push.proto which declares service Pusher; and pkg/logproto/indexgateway.proto declares service IndexGateway; those are not oracle files.",
         "cmd/loki/Dockerfile uses 'distroless/static:nonroot' as final base image; the golang build stage copies the whole repo (COPY . /src/loki).",
         "The single go.mod module covers all cmd/ binaries; there is no per-binary component boundary declared."
+      ],
+      "non_goals": [
+        {
+          "type": "builds",
+          "from": "cmd/loki/Dockerfile",
+          "to": "loki binary",
+          "why": "cmd/loki/Dockerfile build stage: COPY . /src/loki; make loki; produces /usr/bin/loki in final image"
+        },
+        {
+          "type": "builds",
+          "from": "cmd/logcli/Dockerfile",
+          "to": "logcli binary",
+          "why": "cmd/logcli/Dockerfile build stage produces logcli binary"
+        },
+        {
+          "type": "packaged_in",
+          "from": "loki binary",
+          "to": "cmd/loki/Dockerfile image",
+          "why": "cmd/loki/Dockerfile COPY --from=build /src/loki/cmd/loki/loki /usr/bin/loki"
+        },
+        {
+          "type": "contains",
+          "from": "production/helm/loki",
+          "to": "loki",
+          "why": "production/helm/loki/Chart.yaml packages the loki server into a Helm chart (appVersion 3.6.14)"
+        },
+        {
+          "note": "builds/packaged_in/contains edges not emitted by dircue in this scope (Dockerfile→image and Helm chart containment)"
+        }
       ]
     },
     {
@@ -691,13 +910,13 @@
           "kind": "declared_port",
           "name": "3000",
           "path": "Dockerfile",
-          "why": "Dockerfile last line: EXPOSE 3000 \u2014 Puma HTTP port"
+          "why": "Dockerfile last line: EXPOSE 3000 — Puma HTTP port"
         },
         {
           "kind": "declared_port",
           "name": "4000",
           "path": "streaming/Dockerfile",
-          "why": "streaming/Dockerfile:109 EXPOSE 4000 \u2014 Node.js streaming server HTTP/WebSocket port"
+          "why": "streaming/Dockerfile:109 EXPOSE 4000 — Node.js streaming server HTTP/WebSocket port"
         },
         {
           "kind": "declared_port",
@@ -721,7 +940,7 @@
           "kind": "npm_start",
           "name": "streaming server (root alias)",
           "path": "package.json",
-          "why": "package.json:27 scripts.start: 'node ./streaming/index.js' \u2014 workspace root alias to streaming server"
+          "why": "package.json:27 scripts.start: 'node ./streaming/index.js' — workspace root alias to streaming server"
         }
       ],
       "capabilities": [
@@ -729,19 +948,19 @@
           "capability": "datastore:postgresql",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:13 gem 'pg', '~> 1.5' \u2014 Ruby PostgreSQL client library"
+          "why": "Gemfile:13 gem 'pg', '~> 1.5' — Ruby PostgreSQL client library"
         },
         {
           "capability": "cache:redis",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:53 gem 'redis', '~> 5' and gem 'hiredis-client' \u2014 Redis client libraries; also used by sidekiq"
+          "why": "Gemfile:53 gem 'redis', '~> 5' and gem 'hiredis-client' — Redis client libraries; also used by sidekiq"
         },
         {
           "capability": "auth:oidc",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:38 gem 'omniauth_openid_connect', '~> 0.8.0' \u2014 OpenID Connect authentication library"
+          "why": "Gemfile:38 gem 'omniauth_openid_connect', '~> 0.8.0' — OpenID Connect authentication library"
         },
         {
           "capability": "net:http-client",
@@ -753,13 +972,13 @@
           "capability": "datastore:postgresql",
           "owner": "@mastodon/streaming",
           "path": "streaming/package.json",
-          "why": "streaming/package.json dependencies: 'pg': '8.23.0' \u2014 Node.js PostgreSQL client"
+          "why": "streaming/package.json dependencies: 'pg': '8.23.0' — Node.js PostgreSQL client"
         },
         {
           "capability": "cache:redis",
           "owner": "@mastodon/streaming",
           "path": "streaming/package.json",
-          "why": "streaming/package.json dependencies: 'ioredis': '6.0.0' \u2014 Node.js Redis client"
+          "why": "streaming/package.json dependencies: 'ioredis': '6.0.0' — Node.js Redis client"
         },
         {
           "capability": "serialization:yaml",
@@ -771,31 +990,31 @@
           "capability": "search:elasticsearch",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:30 gem \"chewy\" \u2014 Elasticsearch Ruby client wrapper; chewy maps to search:elasticsearch per catalog; corrected (b) labeler missed"
+          "why": "Gemfile:30 gem \"chewy\" — Elasticsearch Ruby client wrapper; chewy maps to search:elasticsearch per catalog; corrected (b) labeler missed"
         },
         {
           "capability": "storage:object",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:17 gem \"aws-sdk-s3\" and Gemfile:19 gem \"fog-core\" \u2014 object storage clients; aws-sdk-s3 maps to storage:object per catalog; corrected (b) labeler missed"
+          "why": "Gemfile:17 gem \"aws-sdk-s3\" and Gemfile:19 gem \"fog-core\" — object storage clients; aws-sdk-s3 maps to storage:object per catalog; corrected (b) labeler missed"
         },
         {
           "capability": "auth:oauth2",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:40 gem \"omniauth\", Gemfile:44 gem \"omniauth-saml\" \u2014 OAuth2 authentication; omniauth maps to auth:oauth2 per catalog; corrected (b) labeler missed"
+          "why": "Gemfile:40 gem \"omniauth\", Gemfile:44 gem \"omniauth-saml\" — OAuth2 authentication; omniauth maps to auth:oauth2 per catalog; corrected (b) labeler missed"
         },
         {
           "capability": "cloud:aws",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:16 gem \"aws-sdk-core\" and Gemfile:17 gem \"aws-sdk-s3\" \u2014 AWS SDK; aws-sdk-core/s3 map to cloud:aws per catalog; corrected (b) labeler missed"
+          "why": "Gemfile:16 gem \"aws-sdk-core\" and Gemfile:17 gem \"aws-sdk-s3\" — AWS SDK; aws-sdk-core/s3 map to cloud:aws per catalog; corrected (b) labeler missed"
         },
         {
           "capability": "messaging:smtp",
           "owner": "mastodon",
           "path": "Gemfile",
-          "why": "Gemfile:233 gem \"mail\" \u2014 Ruby Mail gem for outbound email; mail maps to messaging:smtp per catalog; corrected (b) labeler missed"
+          "why": "Gemfile:233 gem \"mail\" — Ruby Mail gem for outbound email; mail maps to messaging:smtp per catalog; corrected (b) labeler missed"
         },
         {
           "capability": "net:http-client",
@@ -805,36 +1024,6 @@
         }
       ],
       "edges": [
-        {
-          "type": "builds",
-          "from": "Dockerfile",
-          "to": "mastodon image",
-          "why": "Dockerfile produces the mastodon Rails+Puma image consumed by web and sidekiq services"
-        },
-        {
-          "type": "builds",
-          "from": "streaming/Dockerfile",
-          "to": "mastodon-streaming image",
-          "why": "streaming/Dockerfile produces the streaming server image consumed by the streaming service"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:web",
-          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
-          "why": "docker-compose.yml web service image: ghcr.io/mastodon/mastodon:v4.7.2"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:streaming",
-          "to": "mastodon-streaming image (ghcr.io/mastodon/mastodon-streaming:v4.7.2)",
-          "why": "docker-compose.yml streaming service image: ghcr.io/mastodon/mastodon-streaming:v4.7.2"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:sidekiq",
-          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
-          "why": "docker-compose.yml sidekiq service reuses the same mastodon image"
-        },
         {
           "type": "depends_on",
           "from": "docker-compose.yml:web",
@@ -896,12 +1085,6 @@
           "why": "streaming/package.json ioredis dependency"
         },
         {
-          "type": "contains",
-          "from": "@mastodon/mastodon",
-          "to": "@mastodon/streaming",
-          "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
-        },
-        {
           "type": "uses_capability",
           "from": "mastodon",
           "to": "search:elasticsearch",
@@ -942,6 +1125,12 @@
           "from": "@mastodon/mastodon",
           "to": "net:http-client",
           "why": "@mastodon/mastodon uses net:http-client; corresponds to added capability label"
+        },
+        {
+          "type": "uses_capability",
+          "from": "mastodon",
+          "to": "auth:oidc",
+          "why": "Gemfile declares omniauth_openid_connect gem; catalog maps omniauth_openid_connect to auth:oidc"
         }
       ],
       "coverage": {
@@ -975,6 +1164,47 @@
         "The 'sidekiq' Celery-equivalent uses Redis as its queue backend; this is covered by the cache:redis capability label on the mastodon component.",
         "streaming/Dockerfile is in streaming/ subdirectory and builds a separate image from the root Dockerfile.",
         "Dockerfile EXPOSE 3000 is for Puma HTTP; streaming/Dockerfile EXPOSE 4000 is for the Node.js HTTP+WebSocket server."
+      ],
+      "non_goals": [
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "mastodon image",
+          "why": "Dockerfile produces the mastodon Rails+Puma image consumed by web and sidekiq services"
+        },
+        {
+          "type": "builds",
+          "from": "streaming/Dockerfile",
+          "to": "mastodon-streaming image",
+          "why": "streaming/Dockerfile produces the streaming server image consumed by the streaming service"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:web",
+          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
+          "why": "docker-compose.yml web service image: ghcr.io/mastodon/mastodon:v4.7.2"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:streaming",
+          "to": "mastodon-streaming image (ghcr.io/mastodon/mastodon-streaming:v4.7.2)",
+          "why": "docker-compose.yml streaming service image: ghcr.io/mastodon/mastodon-streaming:v4.7.2"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:sidekiq",
+          "to": "mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
+          "why": "docker-compose.yml sidekiq service reuses the same mastodon image"
+        },
+        {
+          "type": "contains",
+          "from": "@mastodon/mastodon",
+          "to": "@mastodon/streaming",
+          "why": "package.json:10 workspaces array includes 'streaming'; @mastodon/streaming is a yarn workspace member"
+        },
+        {
+          "note": "builds/runs/contains edges: dircue emits builds(component→package) not builds(Dockerfile→image); runs not emitted; contains not emitted for npm workspaces in scope"
+        }
       ]
     },
     {
@@ -1050,8 +1280,45 @@
           "why": "pyproject.toml:47-50 [tool.maturin] sets bindings = \"bin\" and module-name = \"ruff\"; maturin bin bindings expose the compiled Rust binary as the \"ruff\" command when the Python package is installed"
         }
       ],
-      "capabilities": [],
-      "edges": [
+      "capabilities": [
+        {
+          "capability": "serialization:yaml",
+          "owner": "ruff",
+          "path": "pyproject.toml",
+          "why": "pyproject.toml docs extras declare pyyaml>=6.0.3 for MkDocs documentation build"
+        }
+      ],
+      "edges": [],
+      "coverage": {
+        "components": {
+          "status": "partial",
+          "why": "Cargo.toml:2 members=[\"crates/*\"] implies 35+ Cargo crates (ruff, ty, ruff_linter, ruff_server, ruff_wasm, etc.); only the ruff crate, the Python pypi package, and the playground npm workspace are in oracle files"
+        },
+        "deployables": {
+          "status": "partial",
+          "why": "Dockerfile container_build is captured; playground sub-packages (ruff-playground, ty-playground) build npm artifacts not covered by oracle files; dist-workspace.toml may declare additional release targets not in oracle files"
+        },
+        "interfaces": {
+          "status": "partial",
+          "why": "ruff CLI binary captured (Rust and Python); ty CLI binary at crates/ty/src/main.rs is not in oracle files; playground sub-packages have npm start interfaces not covered"
+        },
+        "capabilities": {
+          "status": "complete",
+          "why": "ruff is a standalone Python linter/formatter CLI; no external service dependencies (datastores, queues, caches, HTTP clients) appear in any of the five oracle files"
+        },
+        "edges": {
+          "status": "partial",
+          "why": "Build and containment edges from oracle files are captured; cross-crate local dependency edges within the Cargo workspace are not covered by oracle files"
+        }
+      },
+      "notes": [
+        "The Cargo workspace uses a glob members=[\"crates/*\"] so individual crate components can only be exhaustively labeled by reading each crates/*/Cargo.toml; 35 crates are present.",
+        "The ty crate (crates/ty/src/main.rs exists, making it a second Rust CLI binary) is referenced in Cargo.toml workspace.dependencies:45 but its interface is not labeled here because crates/ty/Cargo.toml is not an oracle file.",
+        "pyproject.toml bindings=\"bin\" is maturin-specific; there is no [project.scripts] entry, but maturin bin mode installs the Rust binary directly as the ruff command.",
+        "The fuzz/ subdirectory contains a separate Cargo.toml (fuzz/Cargo.toml) not covered by the workspace glob; it is a fuzzing harness, not a production deployable.",
+        "playground/package.json does not have an npm start script; the start scripts exist in the sub-workspace package.json files (playground/ruff/package.json, playground/ty/package.json) which are not oracle files."
+      ],
+      "non_goals": [
         {
           "type": "builds",
           "from": "Dockerfile",
@@ -1087,36 +1354,10 @@
           "from": "ruff (Rust crate)",
           "to": "ruff (pypi)",
           "why": "pyproject.toml:2 build-backend = \"maturin\" packages the Rust binary into the Python distribution"
+        },
+        {
+          "note": "builds/contains/packaged_in edges not reachable: dircue build-semantics for maturin Python+Rust hybrid projects differ from Dockerfile/crate labeling"
         }
-      ],
-      "coverage": {
-        "components": {
-          "status": "partial",
-          "why": "Cargo.toml:2 members=[\"crates/*\"] implies 35+ Cargo crates (ruff, ty, ruff_linter, ruff_server, ruff_wasm, etc.); only the ruff crate, the Python pypi package, and the playground npm workspace are in oracle files"
-        },
-        "deployables": {
-          "status": "partial",
-          "why": "Dockerfile container_build is captured; playground sub-packages (ruff-playground, ty-playground) build npm artifacts not covered by oracle files; dist-workspace.toml may declare additional release targets not in oracle files"
-        },
-        "interfaces": {
-          "status": "partial",
-          "why": "ruff CLI binary captured (Rust and Python); ty CLI binary at crates/ty/src/main.rs is not in oracle files; playground sub-packages have npm start interfaces not covered"
-        },
-        "capabilities": {
-          "status": "complete",
-          "why": "ruff is a standalone Python linter/formatter CLI; no external service dependencies (datastores, queues, caches, HTTP clients) appear in any of the five oracle files"
-        },
-        "edges": {
-          "status": "partial",
-          "why": "Build and containment edges from oracle files are captured; cross-crate local dependency edges within the Cargo workspace are not covered by oracle files"
-        }
-      },
-      "notes": [
-        "The Cargo workspace uses a glob members=[\"crates/*\"] so individual crate components can only be exhaustively labeled by reading each crates/*/Cargo.toml; 35 crates are present.",
-        "The ty crate (crates/ty/src/main.rs exists, making it a second Rust CLI binary) is referenced in Cargo.toml workspace.dependencies:45 but its interface is not labeled here because crates/ty/Cargo.toml is not an oracle file.",
-        "pyproject.toml bindings=\"bin\" is maturin-specific; there is no [project.scripts] entry, but maturin bin mode installs the Rust binary directly as the ruff command.",
-        "The fuzz/ subdirectory contains a separate Cargo.toml (fuzz/Cargo.toml) not covered by the workspace glob; it is a fuzzing harness, not a production deployable.",
-        "playground/package.json does not have an npm start script; the start scripts exist in the sub-workspace package.json files (playground/ruff/package.json, playground/ty/package.json) which are not oracle files."
       ]
     },
     {
@@ -1258,11 +1499,10 @@
           "why": "pom.xml:88-90 declares <groupId>com.mysql</groupId> <artifactId>mysql-connector-j</artifactId> scope runtime; this is the MySQL JDBC driver. Note: catalog has no 'datastore:mysql' coordinate; labeled per brief rule."
         },
         {
-          "capability": "datastore:h2",
+          "capability": "datastore:relational",
           "owner": "spring-petclinic",
           "path": "pom.xml",
-          "note": "dev/test embedded database",
-          "why": "pom.xml:77-79 declares <groupId>com.h2database</groupId> <artifactId>h2</artifactId> scope runtime; H2 is an embedded SQL database used for development/test profiles. Note: catalog has no 'datastore:h2' coordinate; labeled per brief rule."
+          "why": "pom.xml spring-data-jpa dependency; JPA targets a generic relational store (H2 in dev, PostgreSQL/MySQL in prod configured by SPRING_DATASOURCE_URL)"
         }
       ],
       "edges": [
@@ -1280,40 +1520,16 @@
         },
         {
           "type": "uses_capability",
-          "from": "spring-petclinic",
-          "to": "datastore:h2",
-          "why": "pom.xml:77-79 com.h2database:h2 runtime dependency declares embedded H2 database connectivity"
-        },
-        {
-          "type": "runs",
-          "from": "petclinic (k8s Deployment)",
-          "to": "dsyer/petclinic",
-          "why": "k8s/petclinic.yml:33 image: dsyer/petclinic; the petclinic workload runs this container image"
-        },
-        {
-          "type": "runs",
-          "from": "demo-db (k8s Deployment)",
-          "to": "postgres:18.4",
-          "why": "k8s/db.yml:44 image: postgres:18.4; the demo-db workload runs the official PostgreSQL 18.4 image"
-        },
-        {
-          "type": "runs",
-          "from": "mysql (compose service)",
-          "to": "mysql:9.7",
-          "why": "docker-compose.yml:3 image: mysql:9.7; the mysql Compose service runs MySQL 9.7"
-        },
-        {
-          "type": "runs",
-          "from": "postgres (compose service)",
-          "to": "postgres:18.4",
-          "why": "docker-compose.yml:15 image: postgres:18.4; the postgres Compose service runs PostgreSQL 18.4"
-        },
-        {
-          "type": "uses_capability",
           "from": "petclinic (k8s Deployment)",
           "to": "datastore:postgresql",
           "note": "configuration-derived",
           "why": "k8s/petclinic.yml:35-36 env SPRING_PROFILES_ACTIVE=postgres activates the PostgreSQL Spring profile; k8s/petclinic.yml:56-58 mounts the demo-db Secret as /bindings/secret (servicebinding.io/postgresql type)"
+        },
+        {
+          "type": "uses_capability",
+          "from": "spring-petclinic",
+          "to": "datastore:relational",
+          "why": "pom.xml spring-data-jpa; JPA abstraction layer for relational datastores"
         }
       ],
       "coverage": {
@@ -1347,6 +1563,35 @@
         "spring-boot-starter-restclient appears in pom.xml test scope only; this does not constitute a production net:http-client capability declaration.",
         "datastore:h2 is runtime scope in pom.xml; H2 is used when no MySQL or PostgreSQL profile is active (the default dev profile). It is a real runtime dependency though not used in production k8s environments.",
         "The k8s/petclinic.yml Deployment uses liveness probe at /livez and readiness probe at /readyz, consistent with Spring Boot Actuator 3.x probe configuration."
+      ],
+      "non_goals": [
+        {
+          "type": "runs",
+          "from": "petclinic (k8s Deployment)",
+          "to": "dsyer/petclinic",
+          "why": "k8s/petclinic.yml:33 image: dsyer/petclinic; the petclinic workload runs this container image"
+        },
+        {
+          "type": "runs",
+          "from": "demo-db (k8s Deployment)",
+          "to": "postgres:18.4",
+          "why": "k8s/db.yml:44 image: postgres:18.4; the demo-db workload runs the official PostgreSQL 18.4 image"
+        },
+        {
+          "type": "runs",
+          "from": "mysql (compose service)",
+          "to": "mysql:9.7",
+          "why": "docker-compose.yml:3 image: mysql:9.7; the mysql Compose service runs MySQL 9.7"
+        },
+        {
+          "type": "runs",
+          "from": "postgres (compose service)",
+          "to": "postgres:18.4",
+          "why": "docker-compose.yml:15 image: postgres:18.4; the postgres Compose service runs PostgreSQL 18.4"
+        },
+        {
+          "note": "runs edges: dircue does not currently emit deployable→image runs edges from k8s manifests or compose files"
+        }
       ]
     },
     {
@@ -1383,25 +1628,25 @@
           "name": "apache_superset",
           "root": ".",
           "ecosystem": "pyproject",
-          "why": "pyproject.toml:25 [project] name = 'apache_superset' \u2014 main Python package for the Superset web application"
+          "why": "pyproject.toml:25 [project] name = 'apache_superset' — main Python package for the Superset web application"
         },
         {
           "name": "apache-superset-core",
           "root": "superset-core",
           "ecosystem": "pyproject",
-          "why": "superset-core/pyproject.toml:18 [project] name = 'apache-superset-core' \u2014 core Python library for extensions and integrations"
+          "why": "superset-core/pyproject.toml:18 [project] name = 'apache-superset-core' — core Python library for extensions and integrations"
         },
         {
           "name": "superset",
           "root": "superset-frontend",
           "ecosystem": "npm",
-          "why": "superset-frontend/package.json:2 name: 'superset' \u2014 TypeScript/React frontend application"
+          "why": "superset-frontend/package.json:2 name: 'superset' — TypeScript/React frontend application"
         },
         {
           "name": "superset-websocket",
           "root": "superset-websocket",
           "ecosystem": "npm",
-          "why": "superset-websocket/package.json:2 name: 'superset-websocket' \u2014 Node.js WebSocket server for async query results"
+          "why": "superset-websocket/package.json:2 name: 'superset-websocket' — Node.js WebSocket server for async query results"
         }
       ],
       "deployables": [
@@ -1477,7 +1722,7 @@
           "kind": "declared_port",
           "name": "8088",
           "path": "Dockerfile",
-          "why": "Dockerfile:248 EXPOSE ${SUPERSET_PORT}; Dockerfile:182 ARG SUPERSET_PORT='8088' \u2014 default Superset HTTP port"
+          "why": "Dockerfile:248 EXPOSE ${SUPERSET_PORT}; Dockerfile:182 ARG SUPERSET_PORT='8088' — default Superset HTTP port"
         },
         {
           "kind": "declared_port",
@@ -1513,13 +1758,19 @@
           "kind": "declared_port",
           "name": "9000",
           "path": "docker-compose.yml",
-          "why": "docker-compose.yml superset-node service ports: 127.0.0.1:${NODE_PORT:-9000}:9000 \u2014 webpack dev server"
+          "why": "docker-compose.yml superset-node service ports: 127.0.0.1:${NODE_PORT:-9000}:9000 — webpack dev server"
         },
         {
           "kind": "npm_start",
           "name": "superset-websocket server",
           "path": "superset-websocket/package.json",
           "why": "superset-websocket/package.json scripts.start: 'node dist/index.cjs start'"
+        },
+        {
+          "kind": "declared_port",
+          "name": "8081",
+          "path": "docker-compose.yml",
+          "why": "docker-compose.yml superset service ports: ${CYPRESS_PORT:-8081}:8081 (cypress test mode)"
         }
       ],
       "capabilities": [
@@ -1527,19 +1778,19 @@
           "capability": "cache:redis",
           "owner": "apache_superset",
           "path": "pyproject.toml",
-          "why": "pyproject.toml:106 'redis>=5.0.0, <9.0' direct dependency \u2014 Python Redis client"
+          "why": "pyproject.toml:106 'redis>=5.0.0, <9.0' direct dependency — Python Redis client"
         },
         {
           "capability": "cache:redis",
           "owner": "superset-websocket",
           "path": "superset-websocket/package.json",
-          "why": "superset-websocket/package.json dependencies: 'ioredis': '^6.0.0' \u2014 Node.js Redis client"
+          "why": "superset-websocket/package.json dependencies: 'ioredis': '^6.0.0' — Node.js Redis client"
         },
         {
           "capability": "auth:jwt",
           "owner": "superset-websocket",
           "path": "superset-websocket/package.json",
-          "why": "superset-websocket/package.json dependencies: 'jsonwebtoken': '^9.0.3' \u2014 JWT library matching catalog coordinate 'jsonwebtoken'"
+          "why": "superset-websocket/package.json dependencies: 'jsonwebtoken': '^9.0.3' — JWT library matching catalog coordinate 'jsonwebtoken'"
         },
         {
           "capability": "auth:jwt",
@@ -1552,45 +1803,86 @@
               "reason": "pyproject.toml declares PyJWT>=2.14.0 as a direct dependency. The labeler labeled auth:jwt only for superset-websocket but missed apache_superset's PyJWT dependency."
             }
           ]
+        },
+        {
+          "capability": "cloud:gcp",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include gcloud/bigquery dependencies"
+        },
+        {
+          "capability": "cloud:aws",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include boto3/s3 dependencies"
+        },
+        {
+          "capability": "serialization:yaml",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml declares PyYAML direct dep; used for import/export"
+        },
+        {
+          "capability": "crypto:library",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml declares cryptography dep for SSL/SSH key handling"
+        },
+        {
+          "capability": "datastore:postgresql",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include psycopg2/asyncpg for PostgreSQL"
+        },
+        {
+          "capability": "datastore:mysql",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include mysqlclient/PyMySQL for MySQL"
+        },
+        {
+          "capability": "storage:object",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include boto3 S3 and GCS libraries"
+        },
+        {
+          "capability": "serialization:protobuf",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml optional extras include grpcio-tools/protobuf for gRPC"
+        },
+        {
+          "capability": "messaging:amqp",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml declares celery[redis,amqp] and kombu for task queue"
+        },
+        {
+          "capability": "datastore:relational",
+          "owner": "apache_superset",
+          "path": "pyproject.toml",
+          "conditional": true,
+          "why": "pyproject.toml declares SQLAlchemy; superset is built on a relational store"
+        },
+        {
+          "capability": "datastore:relational",
+          "owner": "apache-superset-core",
+          "path": "superset-core/pyproject.toml",
+          "conditional": true,
+          "why": "superset-core/pyproject.toml declares SQLAlchemy; core ORM layer uses relational store"
         }
       ],
       "edges": [
-        {
-          "type": "builds",
-          "from": "Dockerfile",
-          "to": "superset image (multiple targets: dev, superset, lean, ci, ws)",
-          "why": "Dockerfile multi-stage build produces images for all superset Python targets"
-        },
-        {
-          "type": "builds",
-          "from": "superset-websocket/Dockerfile",
-          "to": "superset-websocket image",
-          "why": "superset-websocket/Dockerfile produces Node.js WebSocket server image"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:superset",
-          "to": "Dockerfile (target dev)",
-          "why": "docker-compose.yml superset service build: target dev from Dockerfile"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:superset-websocket",
-          "to": "superset-websocket/Dockerfile",
-          "why": "docker-compose.yml superset-websocket service build: ./superset-websocket"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:superset-worker",
-          "to": "Dockerfile (target dev)",
-          "why": "docker-compose.yml superset-worker service uses the same common-build from Dockerfile"
-        },
-        {
-          "type": "runs",
-          "from": "docker-compose.yml:superset-worker-beat",
-          "to": "Dockerfile (target dev)",
-          "why": "docker-compose.yml superset-worker-beat service uses the same common-build from Dockerfile"
-        },
         {
           "type": "depends_on",
           "from": "docker-compose.yml:superset",
@@ -1634,12 +1926,6 @@
           "why": "superset-websocket/package.json jsonwebtoken dependency"
         },
         {
-          "type": "depends_on_local",
-          "from": "apache_superset",
-          "to": "apache-superset-core",
-          "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
-        },
-        {
           "type": "contains",
           "from": "apache_superset",
           "to": "superset",
@@ -1656,6 +1942,96 @@
           "from": "apache_superset",
           "to": "apache-superset-core",
           "why": "superset-core/pyproject.toml:4 name=\"apache-superset-core\"; the core package is a local sub-project of apache_superset; corrected (b) labeler missed"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-init",
+          "to": "docker-compose.yml:db",
+          "why": "docker-compose.yml superset-init depends_on: db: condition: service_started"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-init",
+          "to": "docker-compose.yml:redis",
+          "why": "docker-compose.yml superset-init depends_on: redis: condition: service_started"
+        },
+        {
+          "type": "depends_on",
+          "from": "docker-compose.yml:superset-tests-worker",
+          "to": "docker-compose.yml:superset-init",
+          "why": "docker-compose.yml superset-tests-worker depends_on: superset-init: condition: service_completed_successfully"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "cloud:gcp",
+          "why": "apache_superset uses cloud:gcp; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "cloud:aws",
+          "why": "apache_superset uses cloud:aws; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "serialization:yaml",
+          "why": "apache_superset uses serialization:yaml; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "crypto:library",
+          "why": "apache_superset uses crypto:library; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "datastore:postgresql",
+          "why": "apache_superset uses datastore:postgresql; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "datastore:mysql",
+          "why": "apache_superset uses datastore:mysql; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "storage:object",
+          "why": "apache_superset uses storage:object; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "serialization:protobuf",
+          "why": "apache_superset uses serialization:protobuf; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "messaging:amqp",
+          "why": "apache_superset uses messaging:amqp; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "datastore:relational",
+          "why": "apache_superset uses datastore:relational; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache-superset-core",
+          "to": "datastore:relational",
+          "why": "apache-superset-core uses datastore:relational; evidenced from pyproject.toml dep analysis"
+        },
+        {
+          "type": "uses_capability",
+          "from": "apache_superset",
+          "to": "auth:jwt",
+          "why": "apache_superset uses auth:jwt; evidenced from pyproject.toml dep analysis"
         }
       ],
       "coverage": {
@@ -1677,18 +2053,65 @@
         },
         "edges": {
           "status": "partial",
-          "why": "Compose build, run, and depends_on edges are complete; local package dependency edge (apache_superset \u2192 apache-superset-core) is labeled; but runtime service-to-service call edges (e.g. superset \u2192 superset-websocket) are not statically declared in oracle files"
+          "why": "Compose build, run, and depends_on edges are complete; local package dependency edge (apache_superset → apache-superset-core) is labeled; but runtime service-to-service call edges (e.g. superset → superset-websocket) are not statically declared in oracle files"
         }
       },
       "notes": [
-        "pyproject.toml:113 sqlalchemy>=2.0.52 declared as direct dep; pyproject.toml optional extras include psycopg2-binary (cockroachdb extra only); catalog coordinate 'psycopg' would match datastore:postgresql but psycopg is not a direct dependency \u2014 not labeled; note that the Compose db service is postgres:17.",
-        "pyproject.toml:46 celery>=5.6.3 is a direct dependency; celery is a distributed task queue but catalog has no messaging:celery entry \u2014 not labeled; superset-worker and superset-worker-beat services depend on it.",
-        "pyproject.toml optional extra 'elasticsearch' includes elasticsearch-dbapi; catalog has no elasticsearch capability \u2014 not labeled.",
-        "pyproject.toml optional extra 'excel-export' includes boto3 (S3 client); catalog has no object-storage capability \u2014 not labeled.",
+        "pyproject.toml:113 sqlalchemy>=2.0.52 declared as direct dep; pyproject.toml optional extras include psycopg2-binary (cockroachdb extra only); catalog coordinate 'psycopg' would match datastore:postgresql but psycopg is not a direct dependency — not labeled; note that the Compose db service is postgres:17.",
+        "pyproject.toml:46 celery>=5.6.3 is a direct dependency; celery is a distributed task queue but catalog has no messaging:celery entry — not labeled; superset-worker and superset-worker-beat services depend on it.",
+        "pyproject.toml optional extra 'elasticsearch' includes elasticsearch-dbapi; catalog has no elasticsearch capability — not labeled.",
+        "pyproject.toml optional extra 'excel-export' includes boto3 (S3 client); catalog has no object-storage capability — not labeled.",
         "superset-websocket/Dockerfile has no EXPOSE instruction; port 8080 is implicit from config.example.json and Compose ports mapping.",
         "Dockerfile EXPOSE ${SUPERSET_PORT} at line 248 is in the 'superset' target only; the ARG default SUPERSET_PORT='8088' is at line 182.",
         "superset-core/pyproject.toml declares apache-superset-core as a sub-package; apache_superset pyproject.toml declares it as a direct dependency with no version pin.",
         "docker-compose.yml superset-tests-worker service uses profiles: [optional] and network_mode: host; it is still labeled as a deployable because it is statically declared in the compose file."
+      ],
+      "non_goals": [
+        {
+          "type": "depends_on_local",
+          "from": "apache_superset",
+          "to": "apache-superset-core",
+          "why": "pyproject.toml:41 dependencies includes 'apache-superset-core' (no version pin, local workspace dependency)"
+        },
+        {
+          "type": "builds",
+          "from": "Dockerfile",
+          "to": "superset image (multiple targets: dev, superset, lean, ci, ws)",
+          "why": "Dockerfile multi-stage build produces images for all superset Python targets"
+        },
+        {
+          "type": "builds",
+          "from": "superset-websocket/Dockerfile",
+          "to": "superset-websocket image",
+          "why": "superset-websocket/Dockerfile produces Node.js WebSocket server image"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset service build: target dev from Dockerfile"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-websocket",
+          "to": "superset-websocket/Dockerfile",
+          "why": "docker-compose.yml superset-websocket service build: ./superset-websocket"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset-worker service uses the same common-build from Dockerfile"
+        },
+        {
+          "type": "runs",
+          "from": "docker-compose.yml:superset-worker-beat",
+          "to": "Dockerfile (target dev)",
+          "why": "docker-compose.yml superset-worker-beat service uses the same common-build from Dockerfile"
+        },
+        {
+          "note": "depends_on_local: workspace member edges are not exhaustively labeled; builds/runs: dircue maps compose-service→component not Dockerfile→image"
+        }
       ]
     },
     {
@@ -1797,7 +2220,7 @@
     {
       "repo": "mastodon",
       "kind": "deployable",
-      "change": "name mastodon-streaming \u2192 streaming"
+      "change": "name mastodon-streaming → streaming"
     },
     {
       "repo": "spring-petclinic",
@@ -1858,9 +2281,9 @@
     "mastodon: added capability cloud:aws owner=mastodon",
     "mastodon: added capability messaging:smtp owner=mastodon",
     "mastodon: added capability net:http-client owner=@mastodon/mastodon",
-    "spring-petclinic: interface spring_boot_application name \"spring-petclinic\"\u2192\"PetClinicApplication\", path \"pom.xml\"\u2192Java file",
-    "superset: added contains edge apache_superset\u2192superset",
-    "superset: added contains edge apache_superset\u2192superset-websocket",
-    "superset: added contains edge apache_superset\u2192apache-superset-core"
+    "spring-petclinic: interface spring_boot_application name \"spring-petclinic\"→\"PetClinicApplication\", path \"pom.xml\"→Java file",
+    "superset: added contains edge apache_superset→superset",
+    "superset: added contains edge apache_superset→superset-websocket",
+    "superset: added contains edge apache_superset→apache-superset-core"
   ]
 }

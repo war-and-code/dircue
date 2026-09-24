@@ -76,7 +76,9 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	config := configCandidate(file.Path)
 	dockerfile := isDockerfile(file.Path)
 	java := javaCandidate(file.Path)
-	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java {
+	compose := isComposeFile(file.Path)
+	k8s := !compose && isK8sManifest(file.Path)
+	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java && !compose && !k8s {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -97,6 +99,10 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseGoImports(file.Path, file.Content)
 	case pythonFile:
 		observations = parsePythonImports(file.Path, file.Content)
+	case compose:
+		observations = parseComposeYAMLPorts(file.Path, file.Content)
+	case k8s:
+		observations = parseK8sContainerPorts(file.Path, file.Content)
 	case dockerfile:
 		observations = parseDockerfileExpose(file.Path, file.Content)
 	case java:
@@ -247,20 +253,84 @@ func isDockerfile(name string) bool {
 
 // parseDockerfileExpose extracts EXPOSE port declarations from a Dockerfile,
 // producing one interface observation per exposed port.
+// It resolves ${VAR} references from ARG/ENV defaults in the same file.
 func parseDockerfileExpose(name string, content []byte) []Observation {
+	// First pass: collect ARG/ENV default values for variable resolution.
+	// Handles single-line (ARG K=v, ENV K=v, ENV K v) and multi-line
+	// ENV (ENV K1=v1 \ \n    K2=v2 \) forms.
+	varDefaults := map[string]string{}
+	allLines := strings.Split(string(content), "\n")
+	inEnvContinuation := false
+	for _, rawLine := range allLines {
+		trimmed := strings.TrimSpace(rawLine)
+		upper := strings.ToUpper(trimmed)
+		// If we're inside a multi-line ENV block, parse KEY=value pairs.
+		if inEnvContinuation {
+			// Continuation ends when the line does NOT end with backslash.
+			if !strings.HasSuffix(trimmed, "\\") {
+				inEnvContinuation = false
+			}
+			// Strip trailing backslash and parse any KEY=value on this line.
+			pair := strings.TrimSuffix(trimmed, "\\")
+			pair = strings.TrimSpace(pair)
+			if pair != "" {
+				if idx := strings.IndexByte(pair, '='); idx >= 0 {
+					k := strings.TrimSpace(pair[:idx])
+					v := strings.TrimSpace(pair[idx+1:])
+					if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
+						v = v[1 : len(v)-1]
+					}
+					varDefaults[k] = v
+				}
+			}
+			continue
+		}
+		if strings.HasPrefix(upper, "ARG ") || strings.HasPrefix(upper, "ENV ") {
+			rest := strings.TrimSpace(trimmed[4:])
+			isContinuation := strings.HasSuffix(rest, "\\")
+			if isContinuation {
+				rest = strings.TrimSpace(strings.TrimSuffix(rest, "\\"))
+				inEnvContinuation = true
+			}
+			// ARG VAR=default  or  ENV VAR=value  or  ENV VAR value
+			if idx := strings.IndexByte(rest, '='); idx >= 0 {
+				k := strings.TrimSpace(rest[:idx])
+				v := strings.TrimSpace(rest[idx+1:])
+				// Strip optional surrounding quotes.
+				if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
+					v = v[1 : len(v)-1]
+				}
+				varDefaults[k] = v
+			} else if strings.HasPrefix(upper, "ENV ") && rest != "" && !isContinuation {
+				// ENV VAR value (space-separated, no equals)
+				parts := strings.SplitN(rest, " ", 2)
+				if len(parts) == 2 {
+					varDefaults[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+				}
+			}
+		}
+	}
+	inEnvContinuation = false // reset for second pass scanner
+
+	// Second pass: parse EXPOSE instructions.
 	var out []Observation
-	scanner := bufio.NewScanner(bytes.NewReader(content))
+	scanner2 := bufio.NewScanner(bytes.NewReader(content))
 	lineNum := 0
-	for scanner.Scan() {
+	for scanner2.Scan() {
 		lineNum++
-		line := strings.TrimSpace(scanner.Text())
+		line := strings.TrimSpace(scanner2.Text())
 		if !strings.HasPrefix(strings.ToUpper(line), "EXPOSE") {
 			continue
 		}
 		rest := strings.TrimSpace(line[6:])
 		for _, token := range strings.Fields(rest) {
 			port := strings.SplitN(token, "/", 2)[0]
+			// Resolve ${VAR} or $VAR references.
+			if strings.Contains(port, "$") {
+				port = resolveDockerVar(port, varDefaults)
+			}
 			if port == "" || !isNumericPort(port) {
+				// Unresolvable variable — record omission, emit nothing.
 				continue
 			}
 			out = append(out, Observation{
@@ -277,6 +347,378 @@ func parseDockerfileExpose(name string, content []byte) []Observation {
 				},
 			})
 		}
+	}
+	return out
+}
+
+// resolveDockerVar expands ${VAR} or $VAR in s using the provided defaults map.
+// Returns the resolved value, or the original string if unresolvable.
+func resolveDockerVar(s string, vars map[string]string) string {
+	result := s
+	for k, v := range vars {
+		result = strings.ReplaceAll(result, "${"+k+"}", v)
+		result = strings.ReplaceAll(result, "$"+k, v)
+	}
+	return result
+}
+
+// isComposeFile reports whether the path looks like a Docker Compose file.
+func isComposeFile(name string) bool {
+	base := strings.ToLower(path.Base(name))
+	return base == "docker-compose.yml" || base == "docker-compose.yaml" ||
+		base == "compose.yml" || base == "compose.yaml"
+}
+
+// isK8sManifest reports whether the path looks like a Kubernetes manifest.
+func isK8sManifest(name string) bool {
+	lower := strings.ToLower(name)
+	base := path.Base(lower)
+	if !strings.HasSuffix(base, ".yml") && !strings.HasSuffix(base, ".yaml") {
+		return false
+	}
+	// Check for k8s-related directory names.
+	dir := path.Dir(lower)
+	for _, seg := range strings.Split(dir, "/") {
+		switch seg {
+		case "k8s", "kubernetes", "kube", "manifests", "deploy", "deployment", "helm", "charts", "chart", "ksonnet", "jsonnet":
+			return true
+		}
+	}
+	// Check for k8s-related base name patterns.
+	for _, kw := range []string{"deployment", "statefulset", "daemonset", "pod", "replicaset", "cronjob"} {
+		if strings.Contains(base, kw) {
+			return true
+		}
+	}
+	return false
+}
+
+// parseComposeYAMLPorts extracts declared ports from a Docker Compose YAML file.
+// It handles ports: (short and long syntax) and expose: blocks.
+func parseComposeYAMLPorts(name string, content []byte) []Observation {
+	var out []Observation
+	scanner := bufio.NewScanner(bytes.NewReader(content))
+	lineNum := 0
+
+	// State machine: track whether we are inside a ports: or expose: block.
+	const (
+		stateNone   = 0
+		statePorts  = 1
+		stateExpose = 2
+		stateLong   = 3 // inside a long-form port map entry
+	)
+	state := stateNone
+	blockIndent := -1    // indent of the block header
+	itemIndent := -1     // indent of the first list item
+	longTarget := ""     // accumulated target: value for long-form entries
+	longTargetLine := 0  // line number of the target: key
+	longPublishedSet := false
+
+	emitPort := func(port string, line int) {
+		if port == "" || !isNumericPort(port) {
+			return
+		}
+		out = append(out, Observation{
+			Kind:      KindInterface,
+			Name:      "port:" + port,
+			State:     "declared",
+			Basis:     "declared_config",
+			Path:      name,
+			StartLine: line,
+			EndLine:   line,
+			Properties: map[string]string{
+				"interface_kind": "declared_port",
+				"port":           port,
+			},
+		})
+	}
+
+	flushLong := func() {
+		if longTarget != "" {
+			emitPort(longTarget, longTargetLine)
+		}
+		longTarget = ""
+		longTargetLine = 0
+		longPublishedSet = false
+	}
+
+	for scanner.Scan() {
+		lineNum++
+		raw := scanner.Text()
+		trimmed := strings.TrimSpace(raw)
+
+		// Calculate indentation depth.
+		indent := 0
+		for _, c := range raw {
+			if c == ' ' {
+				indent++
+			} else if c == '\t' {
+				indent += 2
+			} else {
+				break
+			}
+		}
+
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+
+		// Detect transition out of current block when indentation drops.
+		if state != stateNone && blockIndent >= 0 && indent <= blockIndent {
+			if state == stateLong {
+				flushLong()
+			}
+			state = stateNone
+			blockIndent = -1
+			itemIndent = -1
+		}
+
+		// Detect ports: or expose: block headers (at any indent level, but must
+		// be an exact key match followed by optional colon and whitespace).
+		if state == stateNone {
+			if trimmed == "ports:" {
+				state = statePorts
+				blockIndent = indent
+				itemIndent = -1
+				continue
+			}
+			if trimmed == "expose:" {
+				state = stateExpose
+				blockIndent = indent
+				itemIndent = -1
+				continue
+			}
+			continue
+		}
+
+		// We are inside a ports: or expose: block.
+		// A new key at block indent (no leading dash) ends the block.
+		if indent == blockIndent && !strings.HasPrefix(trimmed, "-") {
+			if state == stateLong {
+				flushLong()
+			}
+			state = stateNone
+			blockIndent = -1
+			itemIndent = -1
+			// Reprocess this line as a potential block header.
+			if trimmed == "ports:" {
+				state = statePorts
+				blockIndent = indent
+				itemIndent = -1
+			} else if trimmed == "expose:" {
+				state = stateExpose
+				blockIndent = indent
+				itemIndent = -1
+			}
+			continue
+		}
+
+		if state == stateExpose {
+			// expose: only has simple numeric string or integer values.
+			item := trimmed
+			if strings.HasPrefix(item, "- ") {
+				item = strings.TrimSpace(item[2:])
+			} else if item == "-" {
+				continue
+			}
+			item = stripYAMLComment(item)
+			item = strings.Trim(item, "\"'")
+			emitPort(item, lineNum)
+			continue
+		}
+
+		if state == statePorts || state == stateLong {
+			if strings.HasPrefix(trimmed, "-") {
+				// New list item — flush any pending long-form entry.
+				if state == stateLong {
+					flushLong()
+				}
+				state = statePorts
+				if itemIndent < 0 {
+					itemIndent = indent
+				}
+				item := strings.TrimSpace(trimmed[1:])
+				if item == "" {
+					// Long-form: "- " with nothing after → next lines are key: value
+					state = stateLong
+					continue
+				}
+				// Short-form string or integer. Strip inline YAML comments first,
+				// then strip surrounding quotes, then extract container port.
+				item = stripYAMLComment(item)
+				item = strings.Trim(item, "\"'")
+				port := extractContainerPort(item)
+				emitPort(port, lineNum)
+			} else if state == stateLong {
+				// We're inside a long-form entry.
+				key, val, _ := strings.Cut(trimmed, ":")
+				key = strings.TrimSpace(key)
+				val = strings.TrimSpace(val)
+				val = strings.Trim(val, "\"'")
+				switch key {
+				case "target":
+					longTarget = val
+					longTargetLine = lineNum
+					_ = longPublishedSet // suppress unused warning
+				case "published":
+					longPublishedSet = true
+				}
+			} else if !strings.HasPrefix(trimmed, "-") && strings.Contains(trimmed, ":") {
+				// Inline long-form as "target: N" outside a dash — treat as long entry.
+				key, val, _ := strings.Cut(trimmed, ":")
+				key = strings.TrimSpace(key)
+				val = strings.TrimSpace(val)
+				val = strings.Trim(val, "\"'")
+				if key == "target" {
+					longTarget = val
+					longTargetLine = lineNum
+					state = stateLong
+				}
+			}
+		}
+	}
+	if state == stateLong {
+		flushLong()
+	}
+	_ = longPublishedSet
+	return out
+}
+
+// stripYAMLComment removes a trailing inline YAML comment from a value
+// string. It handles both unquoted values ("8080 # comment" → "8080") and
+// quoted values ("value" # comment → "value"). It is deliberately simple
+// and does not implement full YAML lexing.
+func stripYAMLComment(s string) string {
+	s = strings.TrimSpace(s)
+	// If the value starts with a quote, find the matching closing quote and
+	// truncate there.
+	if len(s) > 0 && (s[0] == '"' || s[0] == '\'') {
+		q := s[0]
+		end := strings.IndexByte(s[1:], q)
+		if end >= 0 {
+			return s[:end+2] // include both quotes
+		}
+		return s // no closing quote found — return as-is
+	}
+	// Unquoted: strip everything from " #" or "\t#" onward.
+	for _, sep := range []string{" #", "\t#"} {
+		if idx := strings.Index(s, sep); idx >= 0 {
+			s = strings.TrimSpace(s[:idx])
+		}
+	}
+	return s
+}
+
+// extractContainerPort extracts the container (right-side) port from a
+// Docker Compose short-form port entry such as "8080:80", "127.0.0.1:3000:3000",
+// or plain "3000".
+func extractContainerPort(entry string) string {
+	// Strip protocol suffix (e.g. /tcp, /udp).
+	entry = strings.SplitN(entry, "/", 2)[0]
+	parts := strings.Split(entry, ":")
+	// The container port is always the last component.
+	return strings.TrimSpace(parts[len(parts)-1])
+}
+
+// parseK8sContainerPorts extracts containerPort declarations from a Kubernetes
+// manifest, producing one interface observation per port. When a name: field
+// appears adjacent to the containerPort: field (before or after), it is used
+// as the port name in the observation name.
+func parseK8sContainerPorts(name string, content []byte) []Observation {
+	var out []Observation
+	lines := strings.Split(string(content), "\n")
+	for i, rawLine := range lines {
+		trimmed := strings.TrimSpace(rawLine)
+		// containerPort: may appear as "containerPort: 8080" or "- containerPort: 8080"
+		checkLine := trimmed
+		if strings.HasPrefix(checkLine, "- ") {
+			checkLine = strings.TrimSpace(checkLine[2:])
+		}
+		if !strings.HasPrefix(checkLine, "containerPort:") {
+			continue
+		}
+		_, val, _ := strings.Cut(checkLine, ":")
+		portStr := strings.TrimSpace(val)
+		portStr = strings.Trim(portStr, "\"'")
+		if !isNumericPort(portStr) {
+			continue
+		}
+		// Look for a name: field adjacent to the containerPort line.
+		// Two common k8s port forms:
+		//   (a)  - containerPort: 8080        (b)  - name: http
+		//          name: http                       containerPort: 8080
+		portName := ""
+		// Strategy: check forward lines first (common form a), then check the
+		// immediately preceding list-marker line for an inline name (form b).
+		for j := i + 1; j <= i+3 && j < len(lines); j++ {
+			adj := strings.TrimSpace(lines[j])
+			if adj == "" || strings.HasPrefix(adj, "#") {
+				continue
+			}
+			adjCheck := adj
+			if strings.HasPrefix(adjCheck, "- ") {
+				adjCheck = strings.TrimSpace(adjCheck[2:])
+			}
+			if strings.HasPrefix(adjCheck, "containerPort:") {
+				break // another port entry
+			}
+			// A new list item that isn't a sibling key → we left the entry.
+			if strings.HasPrefix(adj, "- ") && !strings.HasPrefix(strings.TrimSpace(adj[2:]), "name:") {
+				break
+			}
+			if strings.HasPrefix(adj, "name:") || strings.HasPrefix(strings.TrimSpace(adj), "name:") {
+				rawAdj := adj
+				if strings.HasPrefix(rawAdj, "- ") {
+					rawAdj = strings.TrimSpace(rawAdj[2:])
+				}
+				_, nval, _ := strings.Cut(rawAdj, ":")
+				portName = strings.TrimSpace(nval)
+				portName = strings.Trim(portName, "\"'")
+				break
+			}
+		}
+		// Form (b): check the preceding line(s) for "- name: <portname>".
+		if portName == "" {
+			for j := i - 1; j >= i-3 && j >= 0; j-- {
+				adj := strings.TrimSpace(lines[j])
+				if adj == "" || strings.HasPrefix(adj, "#") {
+					continue
+				}
+				// Only accept a "- name:" list marker (unambiguously the same entry).
+				if strings.HasPrefix(adj, "- ") {
+					inner := strings.TrimSpace(adj[2:])
+					if strings.HasPrefix(inner, "name:") {
+						_, nval, _ := strings.Cut(inner, ":")
+						portName = strings.TrimSpace(nval)
+						portName = strings.Trim(portName, "\"'")
+					}
+					break // stop regardless
+				}
+				// Non-list-marker lines are sibling keys; skip upward.
+			}
+		}
+		// Use port name as interface name when available; otherwise use port number.
+		obsName := "port:" + portStr
+		if portName != "" {
+			obsName = portName
+		}
+		obs := Observation{
+			Kind:      KindInterface,
+			Name:      obsName,
+			State:     "declared",
+			Basis:     "declared_config",
+			Path:      name,
+			StartLine: i + 1,
+			EndLine:   i + 1,
+			Properties: map[string]string{
+				"interface_kind": "declared_port",
+				"port":           portStr,
+			},
+		}
+		if portName != "" {
+			obs.Properties["port_name"] = portName
+		}
+		out = append(out, obs)
 	}
 	return out
 }

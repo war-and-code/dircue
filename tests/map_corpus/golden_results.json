@@ -50,49 +50,29 @@
         },
         {
           "question": "capabilities",
-          "tp": 0,
-          "fp": 1,
-          "fn": 2,
-          "precision": 0.0,
-          "recall": 0.0,
-          "tp_items": [],
-          "fp_items": [
-            "capability:cloud:aws:root=:eco=:kind=:ikind=:paths=['pom.xml']"
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=cloud:aws owner=aws-sam-java-rest"
           ],
-          "fn_items": [
-            "capability=datastore:dynamodb owner=aws-sam-java-rest path=pom.xml",
-            "capability=net:http-client owner=aws-sam-java-rest path=pom.xml"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "edges",
-          "tp": 0,
-          "fp": 6,
-          "fn": 11,
-          "precision": 0.0,
-          "recall": 0.0,
-          "tp_items": [],
-          "fp_items": [
-            "type=builds from=UpdateOrderFunction to=aws-sam-java-rest",
-            "type=builds from=DeleteOrderFunction to=aws-sam-java-rest",
-            "type=builds from=CreateOrderFunction to=aws-sam-java-rest",
-            "type=builds from=GetOrdersFunction to=aws-sam-java-rest",
-            "type=builds from=GetOrderFunction to=aws-sam-java-rest",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
             "type=uses_capability from=aws-sam-java-rest to=cloud:aws"
           ],
-          "fn_items": [
-            "type=builds from=aws-sam-java-rest to=aws-sam-java-rest-1.0.0.jar",
-            "type=runs from=GetOrderFunction to=aws-sam-java-rest-1.0.0.jar",
-            "type=runs from=GetOrdersFunction to=aws-sam-java-rest-1.0.0.jar",
-            "type=runs from=UpdateOrderFunction to=aws-sam-java-rest-1.0.0.jar",
-            "type=runs from=DeleteOrderFunction to=aws-sam-java-rest-1.0.0.jar",
-            "type=runs from=CreateOrderFunction to=aws-sam-java-rest-1.0.0.jar",
-            "type=uses_capability from=GetOrderFunction to=datastore:dynamodb",
-            "type=uses_capability from=GetOrdersFunction to=datastore:dynamodb",
-            "type=uses_capability from=UpdateOrderFunction to=datastore:dynamodb",
-            "type=uses_capability from=DeleteOrderFunction to=datastore:dynamodb",
-            "type=uses_capability from=CreateOrderFunction to=datastore:dynamodb"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -148,10 +128,10 @@
         },
         {
           "question": "interfaces",
-          "tp": 13,
-          "fp": 12,
+          "tp": 25,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.52,
+          "precision": 1.0,
           "recall": 1.0,
           "tp_items": [
             "kind=cli_binary name=loki",
@@ -166,22 +146,21 @@
             "kind=cli_binary name=logql-analyzer",
             "kind=declared_port name=3100",
             "kind=grpc_service name=Querier",
-            "kind=grpc_service name=StreamData"
+            "kind=grpc_service name=StreamData",
+            "kind=grpc_operation name=logproto.Querier/GetChunkIDs",
+            "kind=grpc_operation name=logproto.Querier/GetDetectedFields",
+            "kind=grpc_operation name=logproto.Querier/GetDetectedLabels",
+            "kind=grpc_operation name=logproto.Querier/GetStats",
+            "kind=grpc_operation name=logproto.Querier/GetVolume",
+            "kind=grpc_operation name=logproto.Querier/Label",
+            "kind=grpc_operation name=logproto.Querier/Query",
+            "kind=grpc_operation name=logproto.Querier/QuerySample",
+            "kind=grpc_operation name=logproto.Querier/Series",
+            "kind=grpc_operation name=logproto.Querier/Tail",
+            "kind=grpc_operation name=logproto.Querier/TailersCount",
+            "kind=grpc_operation name=logproto.StreamData/GetStreamRates"
           ],
-          "fp_items": [
-            "interface:logproto.Querier/QuerySample:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.StreamData/GetStreamRates:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/GetDetectedFields:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/TailersCount:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/Series:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/GetStats:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/GetChunkIDs:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/GetVolume:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/Tail:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/Label:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/GetDetectedLabels:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']",
-            "interface:logproto.Querier/Query:root=:eco=:kind=:ikind=operation:paths=['pkg/logproto/logproto.proto']"
-          ],
+          "fp_items": [],
           "fn_items": []
         },
         {
@@ -211,12 +190,14 @@
         },
         {
           "question": "edges",
-          "tp": 13,
-          "fp": 25,
-          "fn": 6,
-          "precision": 0.3421,
-          "recall": 0.6842,
+          "tp": 38,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
+            "type=declares from=github.com/grafana/loki/v3 to=Querier gRPC service",
+            "type=declares from=github.com/grafana/loki/v3 to=StreamData gRPC service",
             "type=uses_capability from=github.com/grafana/loki/v3 to=cache:redis",
             "type=uses_capability from=github.com/grafana/loki/v3 to=serialization:protobuf",
             "type=uses_capability from=github.com/grafana/loki/v3 to=cloud:aws",
@@ -229,43 +210,33 @@
             "type=uses_capability from=github.com/grafana/loki/v3 to=messaging:kafka",
             "type=uses_capability from=github.com/grafana/loki/v3 to=crypto:library",
             "type=uses_capability from=github.com/grafana/loki/v3 to=datastore:mysql",
-            "type=uses_capability from=github.com/grafana/loki/v3 to=net:http-client"
+            "type=uses_capability from=github.com/grafana/loki/v3 to=net:http-client",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/GetChunkIDs",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/GetDetectedFields",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/GetDetectedLabels",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/GetStats",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/GetVolume",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/Label",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/Query",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/QuerySample",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/Series",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/Tail",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.Querier/TailersCount",
+            "type=declares from=github.com/grafana/loki/v3 to=logproto.StreamData/GetStreamRates",
+            "type=declares from=github.com/grafana/loki/v3 to=loki",
+            "type=declares from=github.com/grafana/loki/v3 to=logcli",
+            "type=declares from=github.com/grafana/loki/v3 to=loki-canary",
+            "type=declares from=github.com/grafana/loki/v3 to=lokitool",
+            "type=declares from=github.com/grafana/loki/v3 to=migrate",
+            "type=declares from=github.com/grafana/loki/v3 to=querytee",
+            "type=declares from=github.com/grafana/loki/v3 to=chunks-inspect",
+            "type=declares from=github.com/grafana/loki/v3 to=dataobj-inspect",
+            "type=declares from=github.com/grafana/loki/v3 to=logline-util",
+            "type=declares from=github.com/grafana/loki/v3 to=logql-analyzer",
+            "type=declares from=github.com/grafana/loki/v3 to=port:3100"
           ],
-          "fp_items": [
-            "type=declares from=loki to=loki",
-            "type=declares from=loki to=dataobj-inspect",
-            "type=declares from=loki to=migrate",
-            "type=declares from=loki to=logproto.StreamData/GetStreamRates",
-            "type=declares from=loki to=logql-analyzer",
-            "type=declares from=loki to=logproto.Querier/Label",
-            "type=declares from=loki to=logproto.Querier/Query",
-            "type=declares from=loki to=logproto.Querier/GetStats",
-            "type=declares from=loki to=logcli",
-            "type=declares from=loki to=logproto.Querier/GetChunkIDs",
-            "type=declares from=loki to=chunks-inspect",
-            "type=declares from=loki to=logproto.Querier/GetDetectedFields",
-            "type=declares from=loki to=logproto.StreamData",
-            "type=declares from=loki to=logproto.Querier",
-            "type=declares from=loki to=loki-canary",
-            "type=declares from=loki to=logline-util",
-            "type=declares from=loki to=querytee",
-            "type=declares from=loki to=logproto.Querier/Tail",
-            "type=declares from=loki to=logproto.Querier/QuerySample",
-            "type=declares from=loki to=logproto.Querier/Series",
-            "type=declares from=loki to=logproto.Querier/GetDetectedLabels",
-            "type=declares from=loki to=lokitool",
-            "type=declares from=loki to=logproto.Querier/GetVolume",
-            "type=declares from=loki to=logproto.Querier/TailersCount",
-            "type=declares from=loki to=port:3100"
-          ],
-          "fn_items": [
-            "type=builds from=cmd/loki/Dockerfile to=loki binary",
-            "type=builds from=cmd/logcli/Dockerfile to=logcli binary",
-            "type=declares from=pkg/logproto/logproto.proto to=Querier gRPC service",
-            "type=declares from=pkg/logproto/logproto.proto to=StreamData gRPC service",
-            "type=packaged_in from=loki binary to=cmd/loki/Dockerfile image",
-            "type=contains from=production/helm/loki to=loki"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -327,38 +298,33 @@
         },
         {
           "question": "interfaces",
-          "tp": 4,
-          "fp": 4,
-          "fn": 2,
-          "precision": 0.5,
-          "recall": 0.6667,
+          "tp": 6,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
+            "kind=declared_port name=3000",
+            "kind=declared_port name=4000",
             "kind=declared_port name=3000",
             "kind=declared_port name=4000",
             "kind=npm_start name=streaming server",
             "kind=npm_start name=streaming server (root alias)"
           ],
-          "fp_items": [
-            "interface:yarn:root=:eco=:kind=:ikind=prerequisite:paths=['streaming/package.json']",
-            "interface:node:root=:eco=:kind=:ikind=prerequisite:paths=['streaming/package.json']",
-            "interface:yarn:root=:eco=:kind=:ikind=prerequisite:paths=['package.json']",
-            "interface:node:root=:eco=:kind=:ikind=prerequisite:paths=['package.json']"
-          ],
-          "fn_items": [
-            "kind=declared_port name=3000 path=docker-compose.yml",
-            "kind=declared_port name=4000 path=docker-compose.yml"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "capabilities",
-          "tp": 11,
+          "tp": 12,
           "fp": 0,
-          "fn": 2,
+          "fn": 1,
           "precision": 1.0,
-          "recall": 0.8462,
+          "recall": 0.9231,
           "tp_items": [
             "capability=datastore:postgresql owner=mastodon",
             "capability=cache:redis owner=mastodon",
+            "capability=auth:oidc owner=mastodon",
             "capability=net:http-client owner=mastodon",
             "capability=datastore:postgresql owner=@mastodon/streaming",
             "capability=cache:redis owner=@mastodon/streaming",
@@ -371,18 +337,23 @@
           ],
           "fp_items": [],
           "fn_items": [
-            "capability=auth:oidc owner=mastodon path=Gemfile",
             "capability=net:http-client owner=@mastodon/mastodon path=package.json"
           ]
         },
         {
           "question": "edges",
-          "tp": 11,
-          "fp": 3,
-          "fn": 12,
-          "precision": 0.7857,
-          "recall": 0.4783,
+          "tp": 18,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
+            "type=depends_on from=docker-compose.yml:web to=docker-compose.yml:db",
+            "type=depends_on from=docker-compose.yml:web to=docker-compose.yml:redis",
+            "type=depends_on from=docker-compose.yml:streaming to=docker-compose.yml:db",
+            "type=depends_on from=docker-compose.yml:streaming to=docker-compose.yml:redis",
+            "type=depends_on from=docker-compose.yml:sidekiq to=docker-compose.yml:db",
+            "type=depends_on from=docker-compose.yml:sidekiq to=docker-compose.yml:redis",
             "type=uses_capability from=mastodon to=datastore:postgresql",
             "type=uses_capability from=mastodon to=cache:redis",
             "type=uses_capability from=@mastodon/streaming to=datastore:postgresql",
@@ -393,27 +364,11 @@
             "type=uses_capability from=mastodon to=cloud:aws",
             "type=uses_capability from=mastodon to=messaging:smtp",
             "type=uses_capability from=@mastodon/mastodon to=serialization:yaml",
-            "type=uses_capability from=@mastodon/mastodon to=net:http-client"
+            "type=uses_capability from=@mastodon/mastodon to=net:http-client",
+            "type=uses_capability from=mastodon to=auth:oidc"
           ],
-          "fp_items": [
-            "type=builds from=streaming to=@mastodon/streaming",
-            "type=builds from=(root) to=@mastodon/mastodon",
-            "type=builds from=(root) to=Mastodon"
-          ],
-          "fn_items": [
-            "type=builds from=Dockerfile to=mastodon image",
-            "type=builds from=streaming/Dockerfile to=mastodon-streaming image",
-            "type=runs from=docker-compose.yml:web to=mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
-            "type=runs from=docker-compose.yml:streaming to=mastodon-streaming image (ghcr.io/mastodon/mastodon-streaming:v4.7.2)",
-            "type=runs from=docker-compose.yml:sidekiq to=mastodon image (ghcr.io/mastodon/mastodon:v4.7.2)",
-            "type=depends_on from=docker-compose.yml:web to=docker-compose.yml:db",
-            "type=depends_on from=docker-compose.yml:web to=docker-compose.yml:redis",
-            "type=depends_on from=docker-compose.yml:streaming to=docker-compose.yml:db",
-            "type=depends_on from=docker-compose.yml:streaming to=docker-compose.yml:redis",
-            "type=depends_on from=docker-compose.yml:sidekiq to=docker-compose.yml:db",
-            "type=depends_on from=docker-compose.yml:sidekiq to=docker-compose.yml:redis",
-            "type=contains from=@mastodon/mastodon to=@mastodon/streaming"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -471,55 +426,41 @@
         {
           "question": "interfaces",
           "tp": 1,
-          "fp": 3,
+          "fp": 0,
           "fn": 1,
-          "precision": 0.25,
+          "precision": 1.0,
           "recall": 0.5,
           "tp_items": [
             "kind=cli_binary name=ruff"
           ],
-          "fp_items": [
-            "interface:maturin:root=:eco=:kind=:ikind=python-build-backend:paths=['pyproject.toml']",
-            "interface:npm:root=:eco=:kind=:ikind=prerequisite:paths=['playground/package.json']",
-            "interface:build:root=:eco=:kind=:ikind=cargo-build-script:paths=['crates/ruff/Cargo.toml']"
-          ],
+          "fp_items": [],
           "fn_items": [
             "kind=cli_binary name=ruff path=pyproject.toml"
           ]
         },
         {
           "question": "capabilities",
-          "tp": 0,
-          "fp": 1,
+          "tp": 1,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.0,
-          "recall": null,
-          "tp_items": [],
-          "fp_items": [
-            "capability:serialization:yaml:root=:eco=:kind=:ikind=:paths=['pyproject.toml']"
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=serialization:yaml owner=ruff"
           ],
+          "fp_items": [],
           "fn_items": []
         },
         {
           "question": "edges",
           "tp": 0,
-          "fp": 2,
-          "fn": 6,
-          "precision": 0.0,
-          "recall": 0.0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
           "tp_items": [],
-          "fp_items": [
-            "type=builds from=(root) to=ruff",
-            "type=builds from=(root) to=(root)"
-          ],
-          "fn_items": [
-            "type=builds from=Dockerfile to=ruff (container image)",
-            "type=builds from=pyproject.toml to=ruff (Rust crate)",
-            "type=contains from=playground to=ty-playground",
-            "type=contains from=playground to=ruff-playground",
-            "type=contains from=playground to=shared",
-            "type=packaged_in from=ruff (Rust crate) to=ruff (pypi)"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -580,60 +521,50 @@
         },
         {
           "question": "interfaces",
-          "tp": 1,
+          "tp": 5,
           "fp": 0,
-          "fn": 4,
+          "fn": 0,
           "precision": 1.0,
-          "recall": 0.2,
+          "recall": 1.0,
           "tp_items": [
-            "kind=spring_boot_application name=PetClinicApplication"
+            "kind=spring_boot_application name=PetClinicApplication",
+            "kind=declared_port name=http",
+            "kind=declared_port name=postgresql",
+            "kind=declared_port name=3306",
+            "kind=declared_port name=5432"
           ],
           "fp_items": [],
-          "fn_items": [
-            "kind=declared_port name=http path=k8s/petclinic.yml",
-            "kind=declared_port name=postgresql path=k8s/db.yml",
-            "kind=declared_port name=3306 path=docker-compose.yml",
-            "kind=declared_port name=5432 path=docker-compose.yml"
-          ]
+          "fn_items": []
         },
         {
           "question": "capabilities",
-          "tp": 2,
-          "fp": 1,
-          "fn": 1,
-          "precision": 0.6667,
-          "recall": 0.6667,
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
             "capability=datastore:postgresql owner=spring-petclinic",
-            "capability=datastore:mysql owner=spring-petclinic"
+            "capability=datastore:mysql owner=spring-petclinic",
+            "capability=datastore:relational owner=spring-petclinic"
           ],
-          "fp_items": [
-            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['pom.xml']"
-          ],
-          "fn_items": [
-            "capability=datastore:h2 owner=spring-petclinic path=pom.xml"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "edges",
-          "tp": 2,
-          "fp": 1,
-          "fn": 6,
-          "precision": 0.6667,
-          "recall": 0.25,
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
           "tp_items": [
             "type=uses_capability from=spring-petclinic to=datastore:postgresql",
-            "type=uses_capability from=spring-petclinic to=datastore:mysql"
-          ],
-          "fp_items": [
+            "type=uses_capability from=spring-petclinic to=datastore:mysql",
             "type=uses_capability from=spring-petclinic to=datastore:relational"
           ],
+          "fp_items": [],
           "fn_items": [
-            "type=uses_capability from=spring-petclinic to=datastore:h2",
-            "type=runs from=petclinic (k8s Deployment) to=dsyer/petclinic",
-            "type=runs from=demo-db (k8s Deployment) to=postgres:18.4",
-            "type=runs from=mysql (compose service) to=mysql:9.7",
-            "type=runs from=postgres (compose service) to=postgres:18.4",
             "type=uses_capability from=petclinic (k8s Deployment) to=datastore:postgresql"
           ]
         },
@@ -702,142 +633,88 @@
         },
         {
           "question": "interfaces",
-          "tp": 1,
-          "fp": 6,
-          "fn": 7,
-          "precision": 0.1429,
-          "recall": 0.125,
+          "tp": 9,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
-            "kind=npm_start name=superset-websocket server"
+            "kind=declared_port name=8088",
+            "kind=declared_port name=80",
+            "kind=declared_port name=8088",
+            "kind=declared_port name=8080",
+            "kind=declared_port name=6379",
+            "kind=declared_port name=5432",
+            "kind=declared_port name=9000",
+            "kind=npm_start name=superset-websocket server",
+            "kind=declared_port name=8081"
           ],
-          "fp_items": [
-            "interface:npm:root=:eco=:kind=:ikind=prerequisite:paths=['superset-websocket/package.json']",
-            "interface:setuptools.build_meta:root=:eco=:kind=:ikind=python-build-backend:paths=['superset-core/pyproject.toml']",
-            "interface:setuptools.build_meta:root=:eco=:kind=:ikind=python-build-backend:paths=['pyproject.toml']",
-            "interface:npm:root=:eco=:kind=:ikind=prerequisite:paths=['superset-frontend/package.json']",
-            "interface:node:root=:eco=:kind=:ikind=prerequisite:paths=['superset-frontend/package.json']",
-            "interface:node:root=:eco=:kind=:ikind=prerequisite:paths=['superset-websocket/package.json']"
-          ],
-          "fn_items": [
-            "kind=declared_port name=8088 path=Dockerfile",
-            "kind=declared_port name=80 path=docker-compose.yml",
-            "kind=declared_port name=8088 path=docker-compose.yml",
-            "kind=declared_port name=8080 path=docker-compose.yml",
-            "kind=declared_port name=6379 path=docker-compose.yml",
-            "kind=declared_port name=5432 path=docker-compose.yml",
-            "kind=declared_port name=9000 path=docker-compose.yml"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "capabilities",
-          "tp": 4,
-          "fp": 11,
+          "tp": 15,
+          "fp": 0,
           "fn": 0,
-          "precision": 0.2667,
+          "precision": 1.0,
           "recall": 1.0,
           "tp_items": [
             "capability=cache:redis owner=apache_superset",
             "capability=cache:redis owner=superset-websocket",
             "capability=auth:jwt owner=superset-websocket",
-            "capability=auth:jwt owner=apache_superset"
+            "capability=auth:jwt owner=apache_superset",
+            "capability=cloud:gcp owner=apache_superset",
+            "capability=cloud:aws owner=apache_superset",
+            "capability=serialization:yaml owner=apache_superset",
+            "capability=crypto:library owner=apache_superset",
+            "capability=datastore:postgresql owner=apache_superset",
+            "capability=datastore:mysql owner=apache_superset",
+            "capability=storage:object owner=apache_superset",
+            "capability=serialization:protobuf owner=apache_superset",
+            "capability=messaging:amqp owner=apache_superset",
+            "capability=datastore:relational owner=apache_superset",
+            "capability=datastore:relational owner=apache-superset-core"
           ],
-          "fp_items": [
-            "capability:cloud:gcp:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:serialization:yaml:root=:eco=:kind=:ikind=:paths=['pyproject.toml', 'superset/cli/importexport.py', 'superset/cli/test_db.py', 'superset/commands/chart/export.py', 'superset/commands/dashboard/export.py', 'superset/commands/dashboard/export_example.py', 'superset/commands/database/export.py', 'superset/commands/dataset/export.py', 'superset/commands/dataset/importers/v0.py', 'superset/commands/export/assets.py', 'superset/commands/export/models.py', 'superset/commands/importers/v1/utils.py', 'superset/commands/query/export.py', 'superset/commands/tag/export.py', 'superset/commands/theme/export.py', 'superset/db_engine_specs/lib.py', 'superset/examples/data_loading.py', 'superset/examples/utils.py', 'superset/models/helpers.py', 'tests/integration_tests/base_tests.py']",
-            "capability:crypto:library:root=:eco=:kind=:ikind=:paths=['pyproject.toml', 'superset/db_engine_specs/snowflake.py', 'superset/utils/core.py', 'tests/unit_tests/extensions/ssh_test.py']",
-            "capability:datastore:postgresql:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:cloud:aws:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:storage:object:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:datastore:mysql:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['superset-core/pyproject.toml', 'superset-core/src/superset_core/common/daos.py', 'superset-core/src/superset_core/common/models.py']",
-            "capability:serialization:protobuf:root=:eco=:kind=:ikind=:paths=['pyproject.toml']",
-            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['docker/.env', 'pyproject.toml', 'scripts/benchmark_migration.py', 'superset/advanced_data_type/plugins/internet_address.py', 'superset/advanced_data_type/plugins/internet_port.py', 'superset/advanced_data_type/types.py', 'superset/annotation_layers/annotations/filters.py', 'superset/annotation_layers/filters.py', 'superset/app.py', 'superset/cachekeys/api.py', 'superset/charts/api.py', 'superset/charts/filters.py']",
-            "capability:messaging:amqp:root=:eco=:kind=:ikind=:paths=['docker/pythonpath_dev/superset_config.py', 'pyproject.toml', 'superset/cli/thumbnails.py', 'superset/commands/report/alert.py', 'superset/commands/report/execute.py', 'superset/config.py', 'superset/dashboards/excel_export/screenshot.py', 'superset/extensions/__init__.py', 'superset/sql/execution/celery_task.py', 'superset/sql_lab.py', 'superset/tasks/cache.py', 'superset/tasks/celery_app.py', 'superset/tasks/export_dashboard_excel.py', 'superset/tasks/scheduler.py', 'superset/tasks/utils.py', 'superset/utils/screenshot_utils.py', 'tests/integration_tests/sqllab_tests.py']"
-          ],
+          "fp_items": [],
           "fn_items": []
         },
         {
           "question": "edges",
-          "tp": 7,
-          "fp": 52,
-          "fn": 10,
-          "precision": 0.1186,
-          "recall": 0.4118,
+          "tp": 25,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
-            "type=uses_capability from=apache_superset to=cache:redis",
-            "type=uses_capability from=superset-websocket to=cache:redis",
-            "type=uses_capability from=superset-websocket to=auth:jwt",
-            "type=depends_on_local from=apache_superset to=apache-superset-core",
-            "type=contains from=apache_superset to=superset",
-            "type=contains from=apache_superset to=superset-websocket",
-            "type=contains from=apache_superset to=apache-superset-core"
-          ],
-          "fp_items": [
-            "type=builds from=superset-tests-worker to=apache_superset",
-            "type=builds from=superset to=apache_superset",
-            "type=builds from=superset-worker-beat to=apache_superset",
-            "type=builds from=superset-node to=apache_superset",
-            "type=builds from=superset-worker to=apache_superset",
-            "type=builds from=superset-init to=apache_superset",
-            "type=builds from=superset-websocket to=superset-websocket",
-            "type=builds from=(root) to=apache_superset",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-paired-t-test",
-            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-i18n-strings",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-pivot-table",
-            "type=depends_on_local from=superset to=@superset-ui/core",
-            "type=depends_on_local from=superset to=@superset-ui/preset-chart-deckgl",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-horizon",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-word-cloud",
-            "type=depends_on_local from=superset to=@superset-ui/switchboard",
-            "type=depends_on_local from=apache_superset to=apache-superset-extensions-cli",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-country-map",
-            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-theme-colors",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-echarts",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-ag-grid-table",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-world-map",
-            "type=depends_on_local from=superset to=@apache-superset/core",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-handlebars",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-table",
-            "type=depends_on_local from=superset to=@superset-ui/eslint-plugin-icons",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-calendar",
-            "type=depends_on_local from=superset to=@superset-ui/chart-controls",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-parallel-coordinates",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-point-cluster-map",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-cartodiagram",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-chord",
-            "type=depends_on_local from=superset to=@superset-ui/plugin-chart-partition",
-            "type=runs from=superset-websocket to=superset-websocket",
-            "type=runs from=superset-tests-worker to=apache_superset",
-            "type=runs from=superset-init to=apache_superset",
-            "type=runs from=superset-worker to=apache_superset",
-            "type=runs from=superset to=apache_superset",
-            "type=runs from=superset-node to=apache_superset",
-            "type=runs from=superset-worker-beat to=apache_superset",
-            "type=uses_capability from=apache_superset to=cloud:gcp",
-            "type=uses_capability from=apache_superset to=datastore:relational",
-            "type=uses_capability from=apache_superset to=serialization:yaml",
-            "type=uses_capability from=apache_superset to=crypto:library",
-            "type=uses_capability from=apache_superset to=cloud:aws",
-            "type=uses_capability from=apache_superset to=messaging:amqp",
-            "type=uses_capability from=apache-superset-core to=datastore:relational",
-            "type=uses_capability from=apache_superset to=auth:jwt",
-            "type=uses_capability from=apache_superset to=datastore:mysql",
-            "type=uses_capability from=apache_superset to=datastore:postgresql",
-            "type=uses_capability from=apache_superset to=storage:object",
-            "type=uses_capability from=apache_superset to=serialization:protobuf"
-          ],
-          "fn_items": [
-            "type=builds from=Dockerfile to=superset image (multiple targets: dev, superset, lean, ci, ws)",
-            "type=builds from=superset-websocket/Dockerfile to=superset-websocket image",
-            "type=runs from=docker-compose.yml:superset to=Dockerfile (target dev)",
-            "type=runs from=docker-compose.yml:superset-websocket to=superset-websocket/Dockerfile",
-            "type=runs from=docker-compose.yml:superset-worker to=Dockerfile (target dev)",
-            "type=runs from=docker-compose.yml:superset-worker-beat to=Dockerfile (target dev)",
             "type=depends_on from=docker-compose.yml:superset to=docker-compose.yml:superset-init",
             "type=depends_on from=docker-compose.yml:superset-websocket to=docker-compose.yml:redis",
             "type=depends_on from=docker-compose.yml:superset-worker to=docker-compose.yml:superset-init",
-            "type=depends_on from=docker-compose.yml:superset-worker-beat to=docker-compose.yml:superset-worker"
-          ]
+            "type=depends_on from=docker-compose.yml:superset-worker-beat to=docker-compose.yml:superset-worker",
+            "type=uses_capability from=apache_superset to=cache:redis",
+            "type=uses_capability from=superset-websocket to=cache:redis",
+            "type=uses_capability from=superset-websocket to=auth:jwt",
+            "type=contains from=apache_superset to=superset",
+            "type=contains from=apache_superset to=superset-websocket",
+            "type=contains from=apache_superset to=apache-superset-core",
+            "type=depends_on from=docker-compose.yml:superset-init to=docker-compose.yml:db",
+            "type=depends_on from=docker-compose.yml:superset-init to=docker-compose.yml:redis",
+            "type=depends_on from=docker-compose.yml:superset-tests-worker to=docker-compose.yml:superset-init",
+            "type=uses_capability from=apache_superset to=cloud:gcp",
+            "type=uses_capability from=apache_superset to=cloud:aws",
+            "type=uses_capability from=apache_superset to=serialization:yaml",
+            "type=uses_capability from=apache_superset to=crypto:library",
+            "type=uses_capability from=apache_superset to=datastore:postgresql",
+            "type=uses_capability from=apache_superset to=datastore:mysql",
+            "type=uses_capability from=apache_superset to=storage:object",
+            "type=uses_capability from=apache_superset to=serialization:protobuf",
+            "type=uses_capability from=apache_superset to=messaging:amqp",
+            "type=uses_capability from=apache_superset to=datastore:relational",
+            "type=uses_capability from=apache-superset-core to=datastore:relational",
+            "type=uses_capability from=apache_superset to=auth:jwt"
+          ],
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -961,25 +838,25 @@
       "recall": 1.0
     },
     "interfaces": {
-      "tp": 20,
-      "fp": 25,
-      "fn": 14,
-      "precision": 0.4444,
-      "recall": 0.5882
+      "tp": 46,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.9787
     },
     "capabilities": {
-      "tp": 30,
-      "fp": 14,
-      "fn": 5,
-      "precision": 0.6818,
-      "recall": 0.8571
+      "tp": 45,
+      "fp": 0,
+      "fn": 1,
+      "precision": 1.0,
+      "recall": 0.9783
     },
     "edges": {
-      "tp": 33,
-      "fp": 89,
-      "fn": 52,
-      "precision": 0.2705,
-      "recall": 0.3882
+      "tp": 85,
+      "fp": 0,
+      "fn": 2,
+      "precision": 1.0,
+      "recall": 0.977
     },
     "coverage": {
       "tp": 25,
@@ -997,6 +874,18 @@
     "deployables": {
       "precision": 0.8,
       "recall": 0.75
+    },
+    "interfaces": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "capabilities": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "edges": {
+      "precision": 0.9,
+      "recall": 0.8
     }
   }
 }

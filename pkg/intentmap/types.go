@@ -101,7 +101,14 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 				continue
 			}
 			for _, capability := range capabilitiesFor(ref.Kind, ref.Value) {
-				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(ref.State), Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
+				state := declarationState(ref.State)
+				// Optional and peer dependencies are conditional: the package may
+				// or may not be installed, so capabilities derived from them are
+				// conditional too.
+				if ref.Condition == "optionalDependencies" || ref.Condition == "peerDependencies" {
+					state = "conditional"
+				}
+				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: state, Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
 			}
 		}
 	}
