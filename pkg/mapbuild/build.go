@@ -102,9 +102,21 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 				components[i].Name = root
 			}
 		}
-		if role := mapPathRole(components[i].Paths...); role != "" {
-			components[i].Properties["role"] = role
-			components[i].Properties["role_basis"] = "path_name"
+		role := mapPathRole(components[i].Paths...)
+		if role == "" {
+			role = "primary"
+		}
+		components[i].Properties["role"] = role
+		components[i].Properties["role_basis"] = "path_name"
+		// For Go modules: prefer the last path segment as display name to avoid
+		// exposing full module paths (e.g. "github.com/grafana/loki" → "loki").
+		// The full module path is preserved in the "go_module" property.
+		if components[i].Properties["ecosystem"] == "go" && components[i].Name != "" {
+			modulePath := components[i].Name
+			if lastSeg := path.Base(modulePath); lastSeg != "" && lastSeg != "." && strings.ContainsRune(modulePath, '/') {
+				components[i].Properties["go_module"] = modulePath
+				components[i].Name = lastSeg
+			}
 		}
 	}
 	if len(r.Languages) == 1 {
@@ -328,6 +340,8 @@ func uniqueNodes(nodes []mapdoc.Node) []mapdoc.Node {
 
 // mapPathRole is a conservative path-name hint. It marks auxiliary material
 // without discarding any node from the machine-readable map.
+// Returns one of "vendored", "fixture", "test", "example", "docs", "tooling", or
+// "" (no role inferred — the caller may assign "primary").
 func mapPathRole(paths ...string) string {
 	role, priority := "", 0
 	choose := func(candidate string, rank int) {
@@ -340,19 +354,52 @@ func mapPathRole(paths ...string) string {
 		segments := strings.Split(lower, "/")
 		for _, segment := range segments {
 			switch segment {
-			case "vendor", "node_modules", "third_party":
-				choose("vendored", 4)
+			// vendored external code
+			case "vendor", "node_modules", "third_party", ".bingo", "bingo":
+				choose("vendored", 6)
+			// test fixtures
 			case "fixtures", "testdata", "__fixtures__":
-				choose("fixture", 3)
-			case "examples", "samples":
-				choose("example", 2)
-			case "test", "tests", "__tests__":
-				choose("test", 1)
+				choose("fixture", 5)
+			// examples and demos
+			case "examples", "samples", "demo", "demos":
+				choose("example", 4)
+			// test code
+			case "test", "tests", "__tests__", "spec", "specs":
+				choose("test", 3)
+			// docs/release tooling
+			case "docs", "doc", "documentation", "releasing", "translations", "i18n", "locale", "locales":
+				choose("docs", 2)
+			// other tooling
+			case "tools", "tooling", "scripts", "hack", "ci", "infra":
+				choose("tooling", 1)
+			default:
+				// Directory segments that end with _test, _tests, test, tests
+				// identify test modules or crates (e.g. ruff_mdtest, ty_test).
+				if strings.HasSuffix(segment, "_test") || strings.HasSuffix(segment, "_tests") ||
+					strings.HasSuffix(segment, "-test") || strings.HasSuffix(segment, "-tests") {
+					choose("test", 3)
+				}
 			}
 		}
 		base := path.Base(lower)
-		if strings.Contains(base, ".tests.") || strings.HasSuffix(base, "test.csproj") || strings.HasSuffix(base, "tests.csproj") || strings.HasSuffix(base, "test.vbproj") || strings.HasSuffix(base, "tests.vbproj") {
-			choose("test", 1)
+		// .NET test projects by conventional suffixes
+		if strings.Contains(base, ".tests.") || strings.HasSuffix(base, "test.csproj") || strings.HasSuffix(base, "tests.csproj") ||
+			strings.HasSuffix(base, "test.vbproj") || strings.HasSuffix(base, "tests.vbproj") ||
+			strings.HasSuffix(base, "test.fsproj") || strings.HasSuffix(base, "tests.fsproj") ||
+			strings.HasSuffix(base, ".unittests.csproj") || strings.HasSuffix(base, ".functionaltests.csproj") ||
+			strings.HasSuffix(base, ".integrationtests.csproj") {
+			choose("test", 3)
+		}
+		// project names ending in Tests/UnitTests/FunctionalTests (without extension)
+		nameNoExt := strings.TrimSuffix(base, path.Ext(base))
+		if strings.HasSuffix(nameNoExt, "tests") || strings.HasSuffix(nameNoExt, "test") ||
+			strings.HasSuffix(nameNoExt, "unittests") || strings.HasSuffix(nameNoExt, "functionaltests") ||
+			strings.HasSuffix(nameNoExt, "integrationtests") {
+			choose("test", 3)
+		}
+		// .bingo directory as tooling
+		if strings.Contains(lower, "/.bingo/") {
+			choose("tooling", 1)
 		}
 	}
 	return role
