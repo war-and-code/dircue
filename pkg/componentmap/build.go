@@ -151,7 +151,26 @@ func packageRequirementKind(kind string) bool {
 
 func componentKind(kind string) bool {
 	switch kind {
-	case "npm", "go", "go-workspace", "cargo", "cargo-workspace", "python", "python-uv", "python-workspace", "kbuild-kconfig", "maven", "gradle", "solution", "dotnet":
+	case "npm", "go", "go-workspace", "cargo", "cargo-workspace",
+		"python", "python-uv", "python-workspace",
+		"kbuild-kconfig", "maven", "gradle", "solution", "dotnet",
+		// New ecosystems
+		"ruby-bundler", "ruby-gem",
+		"php-composer",
+		"swift-package",
+		"dart-pub",
+		"elixir-mix",
+		"erlang-rebar",
+		"scala-sbt",
+		"haskell-cabal", "haskell-stack",
+		"cmake", "meson", "autoconf",
+		"deno",
+		"bazel-module", "bazel-workspace",
+		"zig-build",
+		"julia-project",
+		"r-package",
+		"clojure-deps", "clojure-leiningen",
+		"perl-cpanfile", "perl-extutils":
 		return true
 	default:
 		return false
@@ -203,6 +222,42 @@ func ecosystem(kind string) string {
 		return "gradle"
 	case kind == "solution" || kind == "dotnet":
 		return "dotnet"
+	case strings.HasPrefix(kind, "ruby-"):
+		return "ruby"
+	case kind == "php-composer":
+		return "php"
+	case kind == "swift-package":
+		return "swift"
+	case kind == "dart-pub":
+		return "dart"
+	case kind == "elixir-mix":
+		return "elixir"
+	case kind == "erlang-rebar":
+		return "erlang"
+	case kind == "scala-sbt":
+		return "scala"
+	case strings.HasPrefix(kind, "haskell-"):
+		return "haskell"
+	case kind == "cmake":
+		return "cmake"
+	case kind == "meson":
+		return "meson"
+	case kind == "autoconf":
+		return "autoconf"
+	case kind == "deno":
+		return "deno"
+	case strings.HasPrefix(kind, "bazel-"):
+		return "bazel"
+	case kind == "zig-build":
+		return "zig"
+	case kind == "julia-project":
+		return "julia"
+	case kind == "r-package":
+		return "r"
+	case strings.HasPrefix(kind, "clojure-"):
+		return "clojure"
+	case strings.HasPrefix(kind, "perl-"):
+		return "perl"
 	default:
 		return "unknown"
 	}

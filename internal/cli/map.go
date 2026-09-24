@@ -231,6 +231,9 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	languages := []languageSummary{}
 	visibleIDs := map[string]bool{}
+	// auxComponentRoleCounts counts component nodes that are auxiliary (already
+	// excluded by auxiliaryMapNode) by their role, for the summary suffix.
+	auxComponentRoleCounts := map[string]int{}
 	for _, n := range d.Nodes {
 		if !auxiliaryMapNode(n) {
 			visibleIDs[n.ID] = true
@@ -239,6 +242,12 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		case mapdoc.NodeComponent:
 			if !auxiliaryMapNode(n) {
 				components = append(components, n)
+			} else {
+				role := n.Properties["role"]
+				if role == "" {
+					role = "other"
+				}
+				auxComponentRoleCounts[role]++
 			}
 		case mapdoc.NodeDeployable:
 			if !auxiliaryMapNode(n) {
@@ -311,8 +320,21 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	line("Content populations: %d   Relationships: %d   Packages: %d", populations, visibleRelationships, packages)
 	line("Relationship declarations: %d runs, %d builds", declarationCounts[mapdoc.EdgeRuns], declarationCounts[mapdoc.EdgeBuilds])
-	ecosystems := map[string]int{}
+	// Segregate components by role: primary components headline the summary;
+	// test/fixture/example/vendored/docs/tooling are counted separately.
+	primaryComponents := make([]mapdoc.Node, 0, len(components))
+	auxRoleCounts := map[string]int{}
 	for _, n := range components {
+		role := n.Properties["role"]
+		switch role {
+		case "test", "fixture", "example", "vendored", "docs", "tooling":
+			auxRoleCounts[role]++
+		default:
+			primaryComponents = append(primaryComponents, n)
+		}
+	}
+	ecosystems := map[string]int{}
+	for _, n := range primaryComponents {
 		ecosystem := n.Properties["ecosystem"]
 		if ecosystem == "" {
 			ecosystem = "other"
@@ -328,13 +350,46 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	for _, name := range ecosystemNames {
 		byEcosystem = append(byEcosystem, fmt.Sprintf("%s %d", safeMapLabel(name), ecosystems[name]))
 	}
-	line("Components: %d (%s)", len(components), strings.Join(byEcosystem, ", "))
-	slices.SortFunc(components, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
-	for _, n := range components[:min(4, len(components))] {
+	// Merge roles from both sources (aux nodes from auxiliaryMapNode, and
+	// role-classified primary-excluded nodes from our loop above).
+	for role, count := range auxComponentRoleCounts {
+		auxRoleCounts[role] += count
+	}
+	auxSuffix := ""
+	if len(auxRoleCounts) > 0 {
+		auxRoleNames := make([]string, 0, len(auxRoleCounts))
+		for r := range auxRoleCounts {
+			auxRoleNames = append(auxRoleNames, r)
+		}
+		slices.Sort(auxRoleNames)
+		auxParts := make([]string, 0, len(auxRoleNames))
+		for _, r := range auxRoleNames {
+			auxParts = append(auxParts, fmt.Sprintf("%d %s", auxRoleCounts[r], r))
+		}
+		auxSuffix = fmt.Sprintf(" (+%s)", strings.Join(auxParts, ", "))
+	}
+	if len(byEcosystem) > 0 {
+		line("Components: %d (%s)%s", len(primaryComponents), strings.Join(byEcosystem, ", "), auxSuffix)
+	} else {
+		line("Components: %d%s", len(primaryComponents), auxSuffix)
+	}
+	// Deduplicate summary labels: a solution and its only member project often
+	// share the same name. Show each distinct "name [ecosystem]" once.
+	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	seenLabels := map[string]bool{}
+	uniquePrimaryComponents := make([]mapdoc.Node, 0, len(primaryComponents))
+	for _, n := range primaryComponents {
+		lbl := fmt.Sprintf("%s\x00%s", mapNodeLabel(n), n.Properties["ecosystem"])
+		if !seenLabels[lbl] {
+			seenLabels[lbl] = true
+			uniquePrimaryComponents = append(uniquePrimaryComponents, n)
+		}
+	}
+	for _, n := range uniquePrimaryComponents[:min(4, len(uniquePrimaryComponents))] {
 		line("  %s [%s]", mapNodeLabel(n), safeMapLabel(n.Properties["ecosystem"]))
 	}
-	if len(components) > 4 {
-		line("  (+%d more components)", len(components)-4)
+	if len(uniquePrimaryComponents) > 4 {
+		line("  (+%d more components)", len(uniquePrimaryComponents)-4)
 	}
 	line("Deployables: %d", len(deployables))
 	linked := map[string][]string{}
@@ -460,13 +515,14 @@ func safeMapLabel(value string) string {
 func mapNodeLabel(n mapdoc.Node) string {
 	name := strings.TrimSpace(n.Name)
 	if name == "" || name == "?" {
-		name = n.Properties["root"]
-		if name == "" || name == "." {
-			if len(n.Paths) > 0 {
-				name = n.Paths[0]
-			}
+		root := n.Properties["root"]
+		if root == "" || root == "." {
+			// The node is at the repository root; a manifest filename is
+			// not a useful display name. Use the stable placeholder "(root)".
+			name = "(root)"
+		} else {
+			name = path.Base(root)
 		}
-		name = strings.TrimSuffix(path.Base(name), path.Ext(name))
 	}
 	return safeMapLabel(name)
 }
