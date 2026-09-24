@@ -21,7 +21,7 @@ PROFILES = {
                    "asset_bytes": 2*MIB, "log_bytes": 1100*MIB+1, "projects": 2048,
                    "reference_depth": 256, "directory_depth": 24, "count_files": 100000, "history_commits": 64},
 }
-SCENARIOS = ["talend", "xml-log", "dotnet-graph", "boundaries", "tree-count"]
+SCENARIOS = ["etl-pipeline", "xml-log", "dotnet-graph", "boundaries", "tree-count"]
 GIT_ENV = {**os.environ, "GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull,
            "GIT_AUTHOR_NAME": "dircue fixture", "GIT_AUTHOR_EMAIL": "fixture@example.invalid",
            "GIT_COMMITTER_NAME": "dircue fixture", "GIT_COMMITTER_EMAIL": "fixture@example.invalid",
@@ -72,7 +72,7 @@ class Writer:
             header, footer = b'<?xml version="1.0" encoding="UTF-8"?>\n<synthetic-records>\n', b'</synthetic-records>\n'
         elif kind == "java":
             klass = target.stem
-            header = f'package synthetic.jobs;\n// Synthetic generated job; not produced by Talend.\npublic class {klass} {{\n static final String[] DATA = {{\n'.encode()
+            header = f'package synthetic.jobs;\n// Synthetic generated job; not produced by an ETL pipeline tool.\npublic class {klass} {{\n static final String[] DATA = {{\n'.encode()
             footer = b' };\n}\n'
         elif kind == "csharp":
             header = b"namespace Synthetic;\npublic class HistoryData {\n static readonly string[] Data = {\n"
@@ -154,7 +154,7 @@ def generate(args):
         raise ValueError("output must be absent or empty; existing fixtures are never overwritten")
     root.mkdir(parents=True, exist_ok=True)
     estimates = {
-        "talend": config["jobs"] * sum(config[k] for k in ["item_bytes", "java_bytes", "properties_bytes", "context_bytes"]) + config["assets"]*config["asset_bytes"],
+        "etl-pipeline": config["jobs"] * sum(config[k] for k in ["item_bytes", "java_bytes", "properties_bytes", "context_bytes"]) + config["assets"]*config["asset_bytes"],
         "xml-log": config["log_bytes"], "dotnet-graph": config["projects"]*8192,
         "boundaries": 5*MIB, "tree-count": config["count_files"]*8192,
     }
@@ -169,14 +169,14 @@ def generate(args):
                 "python_version": __import__("sys").version,
                 "disk_free_before": free, "fixtures": [],
                 "method": "Sequential real writes, no sparse files; deterministic path-seeded PRNG records. Flat views hardlink identical payloads; attributes copied. Allocated bytes per view double-count shared inodes; unique allocation reported separately.",
-                "fidelity": "Synthetic sizes, formats and layout only. Not an actual Talend export, compilable application or MoveIT sample."}
+                "fidelity": "Synthetic sizes, formats and layout only. Not an actual ETL-pipeline export, compilable application or log-transfer sample."}
     for scenario in selected:
         repo = root / scenario / "git"
         repo.mkdir(parents=True)
         writer = Writer(repo)
         variants = []
         expectations = []
-        if scenario == "talend":
+        if scenario == "etl-pipeline":
             writer.write(".gitattributes", b"src/generated/** linguist-generated=true\n*.javajet linguist-language=Java\n")
             writer.write("pom.xml", b'<project><modelVersion>4.0.0</modelVersion><groupId>synthetic</groupId><artifactId>jobs</artifactId><version>1</version></project>\n')
             writer.write("src/main/java/Application.java", b'package synthetic;\npublic class Application { public static void main(String[] args) { System.out.println("synthetic"); } }\n')
@@ -239,7 +239,7 @@ def generate(args):
         elif scenario == "tree-count":
             for index in range(config["count_files"]):
                 writer.write(f"src/bucket{index//1000:03d}/f{index:06d}.go", f"package p // {index}\n".encode())
-        if scenario == "talend":
+        if scenario == "etl-pipeline":
             excluded_head = commit(repo, "exclude synthetic generated Java")
             excluded_files = dict(writer.files)
             materialize_flat(repo, root / scenario / "flat-generated-excluded", excluded_files)
@@ -276,9 +276,9 @@ def generate(args):
                        "pack_files": [{"name": path.name, "bytes": path.stat().st_size,
                                         "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
                                        for path in sorted((repo / ".git/objects/pack").iterdir())]}
-        flat_name = {"xml-log": "flat-detectable", "talend": "flat-generated-included"}.get(scenario, "flat")
+        flat_name = {"xml-log": "flat-detectable", "etl-pipeline": "flat-generated-included"}.get(scenario, "flat")
         materialize_flat(repo, root / scenario / flat_name, writer.files)
-        variants.append({"name": {"xml-log": "detectable", "talend": "generated-included"}.get(scenario, "default"),
+        variants.append({"name": {"xml-log": "detectable", "etl-pipeline": "generated-included"}.get(scenario, "default"),
                          "revision": head, "flat": f"{scenario}/{flat_name}",
                          "files": list(writer.files.values()), "assertions": expectations})
         for variant in variants:
