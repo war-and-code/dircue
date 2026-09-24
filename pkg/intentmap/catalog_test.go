@@ -351,3 +351,12 @@ func TestCapabilitiesForCodeGeneration(t *testing.T) {
 		}
 	}
 }
+
+func TestCapabilitiesForRubyHTTPClients(t *testing.T) {
+	for _, gem := range []string{"http", "excon", "faraday"} {
+		got := capabilitiesFor("ruby-gem-dependency", gem)
+		if len(got) != 1 || got[0] != "net:http-client" {
+			t.Errorf("capabilitiesFor(ruby-gem-dependency, %q) = %v, want [net:http-client]", gem, got)
+		}
+	}
+}

@@ -23,6 +23,7 @@ const (
 	EdgeContains       EdgeType = "contains"
 	EdgeMemberOf       EdgeType = "member_of"
 	EdgeDependsOnLocal EdgeType = "depends_on_local"
+	EdgeDependsOn      EdgeType = "depends_on"
 	EdgeBuilds         EdgeType = "builds"
 	EdgeRuns           EdgeType = "runs"
 	EdgeExposes        EdgeType = "exposes"
