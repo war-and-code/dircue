@@ -64,6 +64,7 @@ INTERFACE_KIND_ALIASES: dict[str, set[str]] = {
                                "cargo-default-run"},      # Rust [[bin]] via default-run
     "npm_start":              {"script"},                 # npm scripts.start → dircue script
     "grpc_service":           {"service"},                # protobuf service block → dircue service
+    "grpc_operation":         {"operation"},              # per-RPC method → dircue operation
     "declared_port":          {"declared_port"},          # EXPOSE / ports / containerPort; same
     "spring_boot_application":{"spring_boot_application"}, # @SpringBootApplication; same
 }
@@ -763,7 +764,10 @@ GATE_THRESHOLDS: dict[str, dict[str, float]] = {
     # A question not listed here is not claimed at 1.0 per issue #75's rule.
     "components":  {"precision": 0.85, "recall": 0.85},
     "deployables": {"precision": 0.80, "recall": 0.75},
-    # interfaces, capabilities, edges are NOT claimed at 1.0 yet.
+    # Issue #75 final gate: P≥0.90 AND R≥0.80 for typed evidence nodes/edges.
+    "interfaces":  {"precision": 0.90, "recall": 0.80},
+    "capabilities":{"precision": 0.90, "recall": 0.80},
+    "edges":       {"precision": 0.90, "recall": 0.80},
     # coverage is informational only.
 }
 

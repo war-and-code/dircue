@@ -185,7 +185,7 @@ func Validate(d Document) error {
 		}
 	}
 	for _, e := range d.Edges {
-		if !slices.Contains([]EdgeType{EdgeContains, EdgeMemberOf, EdgeDependsOnLocal, EdgeBuilds, EdgeRuns, EdgeExposes, EdgeDeclares, EdgeUsesCapability, EdgePackagedIn, EdgeAnalyzedBy}, e.Type) {
+		if !slices.Contains([]EdgeType{EdgeContains, EdgeMemberOf, EdgeDependsOnLocal, EdgeDependsOn, EdgeBuilds, EdgeRuns, EdgeExposes, EdgeDeclares, EdgeUsesCapability, EdgePackagedIn, EdgeAnalyzedBy}, e.Type) {
 			return fail("edge %q has invalid type %q", e.ID, e.Type)
 		}
 		if !ids[e.From] || !ids[e.To] {
