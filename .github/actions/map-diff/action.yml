@@ -51,7 +51,7 @@ inputs:
 
   github-token:
     description: >
-      ${{ secrets.GITHUB_TOKEN }} or a PAT used when post-comment is "true".
+      The workflow's GITHUB_TOKEN secret, or a personal access token, used when post-comment is "true".
       Must have `pull-requests: write`. Never used for any other purpose.
     required: false
     default: ''
