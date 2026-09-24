@@ -580,8 +580,12 @@ import psycopg2
 
 func TestCatalogPythonJoseEntries(t *testing.T) {
 	// python-jose (PyPI name) and jose (import name) both must map to auth:jwt.
-	for _, coord := range []string{"python-jose", "jose"} {
-		caps := capabilitiesFor(coord)
+	for _, tc := range []struct{ kind, coord string }{
+		{"python-dependency", "python-jose"},
+		{"python-import", "jose"},
+	} {
+		caps := capabilitiesFor(tc.kind, tc.coord)
+		coord := tc.coord
 		found := false
 		for _, c := range caps {
 			if c == "auth:jwt" {
@@ -597,7 +601,7 @@ func TestCatalogPythonJoseEntries(t *testing.T) {
 func TestCatalogPsycopg2Entry(t *testing.T) {
 	// psycopg2 and psycopg2-binary both must map to datastore:postgresql.
 	for _, coord := range []string{"psycopg2", "psycopg2-binary"} {
-		caps := capabilitiesFor(coord)
+		caps := capabilitiesFor("python-dependency", coord)
 		found := false
 		for _, c := range caps {
 			if c == "datastore:postgresql" {
