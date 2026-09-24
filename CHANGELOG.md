@@ -1,97 +1,91 @@
 # Changelog
 
-## 1.0.0 (candidate; unreleased)
+## 1.0.0 (unreleased)
 
-- Add `dircue map`, a bounded one-pass directory map with a standalone 1.0.0
-  schema. The map records selected-source identity, question-by-question
-  coverage, stable nodes and edges, evidence provenance, and supported content,
-  language, component, deployable, interface, capability, and relationship
-  observations. Redirected output defaults to JSON; terminals receive a compact
-  summary. Inspected content is not executed.
-- Preserve committed-tree and ordinary-directory operation. Git maps carry the
-  exact selected tree. Directory maps carry a Git-compatible tree ID computed
-  without running Git: a clean checkout has the same ID as its commit's tree,
-  so directory and Git maps of identical content compare as the same source.
-  Ignore rules, `.gitattributes` line-ending normalization, the checkout index,
-  executable bits, symlinks, and nested repositories are applied as Git does;
-  conversions dircue cannot reproduce (filter drivers, `ident`,
-  `working-tree-encoding`) qualify source binding as partial instead of being
-  guessed. `--set source.digest=git|raw|off` controls it. Inventory and
-  observer bounds return qualified coverage rather than silently presenting
-  bounded evidence as complete.
-- Treat hostile filesystem entries explicitly: FIFOs, sockets, devices,
-  symlink loops, and escaping symlinks are skipped with warnings, and an
-  unreadable directory under `--on-error continue` is reported as
-  `permission_denied` with partial content coverage instead of aborting the
-  map.
-- Add inspectable `balanced`, `fast`, `low-memory`, and `thorough` map presets
-  plus typed `--set` overrides for workers, inventory entries, and per-file
-  content bytes. `map settings` reports effective values, origins, and whether
-  a control is performance-only or coverage-affecting. Presets do not claim
-  hard CPU or memory enforcement.
-- Add static declaration mapping for npm, Go, Python/uv, Cargo, Maven, Gradle,
-  and .NET project populations, including supported workspace membership and
-  local relationships. Add bounded recognition of container, Compose,
-  Kubernetes, Helm, Terraform, serverless, and CI definitions plus supported
-  code/configuration interface and capability observations. Documentation does
-  not become evidence for non-documentation claims.
-- Add repeatable `map --attach KIND=PATH` ingestion for saved Syft JSON, SARIF
-  2.1.0, Noir JSON, and Bifrost CodeQuery JSON reports. Imported package, run, endpoint, relationship,
-  coverage, and source-binding evidence remains attributable to its provider;
-  the typed provider-run ledger records only files and run state disclosed by the
-  report. Dircue never invokes the
-  provider. SARIF findings and verdicts remain outside the map attachment
-  contract.
-- Add conservative component-language-analyzer accounting with versioned,
-  sourced capability descriptors and explicit blind-spot reasons. Missing runs,
-  unsupported languages or frameworks, unmet prerequisites, tool errors, and
-  unknown coverage stay distinct. Empty reports and provider file lists never
-  become claims of complete analysis.
-- Add `dircue map route` for deterministic, non-executable follow-up plans.
-  Plans expose scope, prerequisites, and report kinds. Reviewed recipes carry
-  argv placeholders; other tools retain an explicit unmet invocation
-  prerequisite. Routing does not probe installed tools, download dependencies,
-  or execute commands.
-- Add `dircue map compare` for offline node/edge comparison by stable identity.
-  Material source changes, provider observations, evidence, and provider-run
-  coverage changes remain distinct. Provider-only nodes and edges do not alter
-  source material-change counts; incomplete or incomparable provider coverage
-  produces indeterminate removals instead of deletion claims. This is
-  separate from the existing aggregate-profile `dircue compare` command.
-- Add environment and build-output tree summarization for directory maps.
-  Recognized patterns — `node_modules/`, Python virtualenvs, `__pycache__`,
-  CACHEDIR.TAG directories (Rust `target/`), Gradle `build/` and `.gradle/`,
-  `.terraform/`, `.tox/`, `.nox/`, Python cache dirs, and CocoaPods `Pods/` —
-  are counted rather than scanned entry-by-entry and recorded as summarized
-  nodes with role, ecosystem, entry count, and byte total. `vendor/`,
-  `third_party/`, `dist/`, and plain `build/` dirs without Gradle markers are
-  never summarized. `--set content.summarize_trees=off` disables it.
-- Add `dircue map --forest PATH` for multi-root directory trees. A forest
-  document covers every discovered Git root (worktree, bare, submodule),
-  recognized environment trees, and a residual directory-mode map of all
-  remaining content. Discovery is metadata-only and bounded at 1,000 roots;
-  it never descends into `.git` directories or summarized env trees. Remote
-  URLs are stripped of credentials before output — HTTPS user-info and
-  SCP-style user prefixes are removed. Roots whose HEAD cannot be resolved
-  receive `identity_status: unknown`. `--summary` prints a one-screen table
-  of roots, environment trees, residual totals, and unknowns. The forest
-  document schema is bundled and exportable via
-  `dircue capabilities --schema forest --json`.
-- Add `dircue map locate` to annotate SARIF physical locations with owning map
-  components, deployables, interfaces, and content roles while retaining
-  unknown SARIF fields. URI confinement, snapshot binding, regular-file checks,
-  and explicit input/run/result/location bounds qualify resolution. Symbolic
-  Git revisions such as `HEAD` cannot manufacture a match or mismatch against a
-  provider's resolved commit hash.
-- Add a compact hand-written map corpus covering non-source content, polyglot
-  deployables, declaration intent, misleading declarations, and documentation
-  boundaries, plus deterministic and metamorphic checks. This corpus establishes
-  focused contract behavior; it is not equivalent to broad real-repository
-  validation.
-- Keep the legacy Linguist-compatible entry point and existing `analyze`
-  commands available. The candidate remains subject to adversarial review,
-  compatibility validation, multi-platform CI, packaging checks, and an explicit
-  release decision before 1.0.0 is published.
+dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence and a per-question coverage status. The Linguist-compatible commands and outputs from 0.9 remain available and unchanged.
+
+### The map
+- **`dircue map [path]`** writes a portable map document (`schema/map.schema.json`, schema version 1.0.0) for a committed Git tree or an ordinary directory. Redirected output defaults to JSON; a terminal gets a one-screen summary (`--summary`). Inspected content is never executed.
+- **Output.** Nodes (content populations, components, deployables, interfaces, capabilities, packages) and edges (`contains`, `member_of`, `depends_on_local`, `depends_on`, `builds`, `runs`, `exposes`, `declares`, `uses_capability`, `packaged_in`, `analyzed_by`) have stable IDs derived from paths and declared names. Each has evidence (file, span, rule and version) and coverage (`complete`, `partial`, `unknown`, `not_run`, `tool_error`, with named reasons).
+- **What `complete` means.** A question, node or edge says `complete` only when its evidence is exhaustive for its scope. Heuristic attribution, such as a capability credited to a component by directory containment or a Dockerfile shared by several projects, is `partial`, with a named reason. Content problems never abort a map; they degrade coverage.
+- **Components** come from static, bounded parsing of 33 manifest kinds across 26 ecosystems:
+  - npm, Go, Cargo and Python (pyproject, uv, `setup.cfg`, requirements-only directories);
+  - Maven, Gradle, .NET and Kbuild;
+  - Ruby (Bundler, gemspec, Rails application name) and PHP (Composer);
+  - Swift, Dart, Elixir, Erlang, Scala (sbt) and Haskell;
+  - CMake, Meson and Autoconf;
+  - Deno, Bazel, Zig, Julia, R, Clojure and Perl.
+
+  Each component has a `role`: `primary`, `test`, `fixture`, `example`, `vendored`, `docs` or `tooling`. The summary leads with primary components.
+- **Deployables:**
+  - Dockerfiles (named by directory);
+  - Compose services;
+  - Kubernetes objects, one per kind, name and namespace, with every declaring manifest as evidence;
+  - Helm charts, one per chart, with static `values.yaml` images;
+  - Terraform modules, one per directory;
+  - SAM and Serverless functions, .NET Aspire app hosts, and CI workflows.
+- **How things build and run.** `builds` and `runs` edges come from static declarations:
+  - Dockerfile co-location;
+  - Skaffold artifacts and exact image references;
+  - SAM `CodeUri`;
+  - Aspire `AddProject<>()`;
+  - GitHub Actions working directories.
+- **Interfaces:**
+  - Go `package main` binaries;
+  - Rust, npm and Python entry points;
+  - Spring Boot applications and Maven/Gradle main classes;
+  - declared ports (`EXPOSE`, including `ARG`/`ENV` defaults; Compose `ports`/`expose`; Kubernetes `containerPort`; application listener keys);
+  - gRPC services and operations;
+  - OpenAPI and Swagger documents and their operations;
+  - AsyncAPI documents and GraphQL schemas.
+
+  Runtime prerequisites (npm `engines`, `requires-python`) and build backends are recorded as component properties (`runtime_requirements`, `build_backend`, `build_script`), not as interfaces.
+- **Capabilities** (datastores, caches, messaging, search, object storage, auth, HTTP clients, cloud SDKs and more) come from an ecosystem-aware catalog of the most common packages per ecosystem, from declared configuration keys and connection strings, and from top-level Go and Python imports. There is one capability node per owning component. Optional dependencies (extras, optional and peer dependencies) are `conditional`. Development-only ones (npm `devDependencies`, PEP 735 dependency groups) are excluded.
+
+### Source identity, forests and hostile filesystems
+- Directory maps carry a **Git-compatible tree ID** computed without Git. A clean checkout has the same ID as its commit's tree, so `map compare` recognizes the same source across Git and directory maps. Control it with `--set source.digest=git|raw|off`.
+- **`map --forest`** discovers nested, bare and submodule Git roots, summarizes dependency and build-output trees (`node_modules`, virtualenvs, `target/`, …), and accounts for every remaining file. Remote credentials are redacted.
+- FIFOs, sockets, devices, symlink loops, escaping symlinks and unreadable directories are skipped with warnings and `partial` coverage, never followed or fatal.
+
+### Joining deeper tools, without importing findings
+- **`map --attach KIND=PATH`** joins saved Syft, SARIF 2.1.0, OWASP Noir and Bifrost reports:
+  - Only facts and run coverage are imported: packages, endpoints, covered files and run state. Findings and verdicts never are.
+  - SARIF revision provenance binds a report to the selected commit. `--attach-binding caller-asserted` records an explicit caller assertion for fully digested directories.
+  - Per-attachment record limits degrade coverage instead of failing.
+- **`map route`** writes inert follow-up plans. **`map compare`** compares maps by stable identity; `--format markdown` gives a readable pull-request summary, and `.github/actions/map-diff` is a reusable action. **`map locate`** annotates SARIF locations with map ownership, with `--source-uri` and `--uri-base` for tools that emit container paths or undeclared bases.
+
+### Control and measurement
+- **Presets:**
+  - `balanced` (the default);
+  - `low-memory` (fewer workers, a smaller Git object cache, a lower per-file cap; about 60% less peak memory on the Linux kernel);
+  - `thorough` (larger inventory and observation budgets).
+
+  Every setting is typed and visible with `map settings`, and each is labeled performance-only or coverage-affecting.
+- `--stats-json PATH` writes deterministic cost counters and timings to a separate document, and `--cpuprofile`/`--memprofile` write Go profiles. The map document itself is byte-identical across worker counts, locations, locales and time zones.
+
+### Git reading
+- The binary no longer links a network stack: go-git's transport client is excluded, and a build contract test enforces it. Release binaries are about 11% smaller than 0.9.0, despite the map.
+- Git-mode peak memory on the Linux kernel dropped by about 35%.
+- SHA-256 object-format repositories and corrupt Git directories fall back to directory mode with a warning.
+
+### Distribution
+- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so `go install github.com/war-and-code/dircue@v1.0.0` works without `replace` directives.
+- Release archives for Linux, macOS and Windows (amd64 and arm64 where supported) come with `SHA256SUMS` and matching Python wheels. See `RELEASING.md`.
+
+### Evidence
+- **Linguist parity.** Across the 38-repository atlas, dircue matches Linguist 9.7.0 exactly on all 355 language totals. Against scc 4.1.0, 261,081 of 262,575 shared per-file counters are identical. Every remaining difference is a file where dircue follows its Linguist language to a different scc grammar, recorded per file (`tests/atlas/results/1.0.0`).
+- **Map accuracy** is measured per question against blind, hand-written labels for seven repositories the map was not tuned on (`docs/GOLDEN.md`). Every question meets the gate of precision ≥ 0.90 and recall ≥ 0.80:
+  - components, deployables and capabilities: 1.00 / 1.00;
+  - interfaces: 1.00 / 0.98;
+  - relationships: 1.00 / 0.98.
+
+  The map never claimed `complete` where the labels did not.
+- **Oracles.** Real, pinned Syft, OWASP Noir, ruff, Semgrep and golangci-lint runs check attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
+- **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
+
+### Compatibility
+- Legacy stdout, stderr and exit codes are byte-identical to 0.9.0, with two additive changes: `analyze discovery --json` records the selected `commit`, and `analyze environments` recognizes more toolchains.
+- `dircue compare` (saved profiles) and `dircue map compare` (maps) reject each other's documents with a pointer to the right command.
 
 ## 0.9.0 (2026-09-22)
 
