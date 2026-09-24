@@ -733,6 +733,8 @@ var pypiExact = map[string][]string{
 	"mysql-connector-python": {"datastore:mysql"},
 	"cx-oracle":              {"datastore:relational"},
 	"pyodbc":                 {"datastore:relational"},
+	// SQLite — stdlib wrapper / async wrapper; matches vocabulary of npm sqlite3 and ruby sqlite3
+	"aiosqlite": {"datastore:relational"},
 	// ORM / query builder (multi-DB)
 	"sqlalchemy":   {"datastore:relational"},
 	"alembic":      {"datastore:relational"},
@@ -825,6 +827,9 @@ var pythonImportExact = map[string][]string{
 	"peewee":     {"datastore:relational"},
 	"django":     {"datastore:relational"},
 	"tortoise":   {"datastore:relational"},
+	// SQLite stdlib driver and async wrapper; matches vocabulary of npm sqlite3 and ruby sqlite3
+	"sqlite3":   {"datastore:relational"},
+	"aiosqlite": {"datastore:relational"},
 	// Cache / Redis
 	"redis":    {"cache:redis"},
 	"aioredis": {"cache:redis"},

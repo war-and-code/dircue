@@ -1,0 +1,46 @@
+{
+  "questions": [
+    {
+      "id": "flask-app-module-level-assignment",
+      "oracle": {
+        "fixture_evidence": "app.py contains a module-level 'app = Flask(__name__)' assignment",
+        "source": "Flask documentation: the WSGI application object is constructed at module level",
+        "url": "https://flask.palletsprojects.com/en/stable/quickstart/#a-minimal-application"
+      },
+      "must_include": [
+        {
+          "kind": "interface",
+          "name": "app",
+          "path": "app.py",
+          "properties": {
+            "interface_kind": "flask_application",
+            "basis": "code_syntax"
+          }
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "launch command and server process binding"
+      ]
+    },
+    {
+      "id": "sqlite3-import-capability",
+      "oracle": {
+        "fixture_evidence": "app.py contains a top-level 'import sqlite3' statement",
+        "source": "Python stdlib sqlite3 module; maps to datastore:relational per catalog vocabulary",
+        "url": "https://docs.python.org/3/library/sqlite3.html"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "datastore:relational",
+          "path": "app.py"
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "whether sqlite3 connection is opened at runtime"
+      ]
+    }
+  ]
+}

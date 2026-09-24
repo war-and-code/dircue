@@ -41,6 +41,11 @@
       "id": "capabilities-polyglot",
       "description": "Ecosystem-aware capability matching across npm, Ruby, Maven, NuGet, Go, Cargo, PHP and Python declared dependencies",
       "expectations": "capabilities-polyglot.json"
+    },
+    {
+      "id": "flask-entry-point",
+      "description": "Flask application object detected from module-level assignment; sqlite3 import mapped to datastore:relational",
+      "expectations": "flask-entry-point.json"
     }
   ]
 }
