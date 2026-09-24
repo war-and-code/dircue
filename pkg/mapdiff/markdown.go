@@ -61,17 +61,16 @@ func WriteMarkdown(out io.Writer, report Report) error {
 		if c.Entity == "edge" {
 			return 5
 		}
-		// node entity: bucket by ID prefix convention (kind prefix of stable ID).
-		switch {
-		case strings.HasPrefix(c.ID, "component:"):
+		switch c.Kind {
+		case "component":
 			return 0
-		case strings.HasPrefix(c.ID, "deployable:"):
+		case "deployable":
 			return 1
-		case strings.HasPrefix(c.ID, "interface:"):
+		case "interface":
 			return 2
-		case strings.HasPrefix(c.ID, "capability:"):
+		case "capability":
 			return 3
-		case strings.HasPrefix(c.ID, "package:"):
+		case "package":
 			return 4
 		default:
 			return 6
@@ -99,10 +98,12 @@ func WriteMarkdown(out io.Writer, report Report) error {
 			if icon == "" {
 				icon = "?"
 			}
-			name := c.ID
-			// Trim the kind prefix for readability.
-			if i := strings.Index(name, ":"); i >= 0 {
-				name = name[i+1:]
+			name := c.Label
+			if name == "" {
+				name = c.ID
+			}
+			if b.label == "Other" && c.Kind != "" {
+				name = c.Kind + ": " + name
 			}
 			certainty := ""
 			if c.Certainty == "indeterminate" || c.Certainty == "incomplete_coverage" {
