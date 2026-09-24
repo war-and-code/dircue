@@ -1,65 +1,74 @@
 # `dircue`
 
-Profile source code repos and other directories of computer content.
+Map what an unfamiliar directory is and how it works, deterministically, offline and without running anything in it.
 
-Dircue identifies languages, maps content, components, deployables, interfaces,
-and relationships, and describes unfamiliar directories with explicit evidence
-and coverage. Its Go binary works with committed Git trees or ordinary files.
-Profiling is offline and does not run project build scripts. Optional structural
-analysis invokes a worker explicitly selected by the caller.
+`dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
+- **components:** projects across 33 ecosystems;
+- **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
+- **interfaces:** binaries, ports, gRPC and OpenAPI;
+- **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
+- **relationships:** what builds, runs, depends on and contains what.
 
-The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md). What's new in 0.9.0 is in the [CHANGELOG](CHANGELOG.md).
+Every fact carries its evidence (file, line, rule), and every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
+
+The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) says what 1.0 freezes. What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 
 ## Quick example
 
-For a small checkout containing two Go source files and a module declaration:
+The summary for [GoogleCloudPlatform/microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo):
+
+```text
+$ dircue map --summary .
+Directory map: partial (git source)
+Languages: Go 28.9%, Python 27.9%, HTML 10.0%, C# 8.1%, Shell 6.6%, Dockerfile 4.6% (+4 more)
+Content populations: 5   Relationships: 187   Packages: 0
+Relationship declarations: 12 runs, 13 builds
+Components: 13 (dotnet 2, go 4, gradle 1, npm 2, python 4) (+1 test)
+  cartservice [dotnet]
+  checkoutservice [go]
+  emailservice [python]
+  frontend [go]
+  (+8 more components)
+Deployables: 99 (+9 CI workflows, +49 cluster resources)
+  adservice [workload] → runs hipstershop
+  cartservice [workload] → runs cartservice
+  checkoutservice [workload] → runs checkoutservice
+  currencyservice [workload] → runs grpc-currency-service
+  (+37 more runnable deployables)
+Interfaces: checkoutservice, frontend, grpc.health.v1.Health, grpc.health.v1.Health/Check (+33 more)
+Capabilities: ai:llm-sdk, auth:oauth2, cache:redis, cloud:gcp (+7 more)
+Possible next analyzers: bca, bifrost, scc, syft
+Attached provider runs: 0
+Still uncertain:
+  Analyzer coverage: no analyzer report attached
+  Capabilities: some service dependencies may be unrecognized
+  Components: some project declarations or references may be unresolved
+  Deployables: 1 Helm chart not rendered (templates require evaluation for complete coverage)
+  Interfaces: some entry points or contracts may be unrecognized
+  Packages: no complete package inventory is established
+  (+1 more questions)
+Use --json for evidence and full coverage details.
+```
+
+Common next steps:
+
+```sh
+dircue map --json . > map.json                          # the full evidence graph (schema/map.schema.json)
+dircue map --attach syft-json=sbom.json --json . > map.json   # join saved Syft, SARIF, Noir or Bifrost reports
+dircue map route --json map.json                        # inert follow-up plans for deeper analyzers
+dircue map compare --format markdown base.json head.json   # what changed between two maps
+dircue map locate map.json results.sarif > located.sarif     # which component owns each SARIF location
+dircue map --forest /disk                               # nested repositories, dependency trees and the rest
+```
+
+Attached reports contribute facts and run coverage, never findings or verdicts. How accurate is the map? Per-question precision and recall on blind-labeled repositories the map was not tuned on are in [GOLDEN.md](docs/GOLDEN.md), and Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
+
+The classic Linguist-compatible output is unchanged:
 
 ```sh
 $ dircue --json .
 {"Go":{"size":77,"percentage":"100.00"}}
-
-$ dircue --breakdown .
-100.00% 77         Go
-
-Go:
-  cmd/main.go
-  internal/lib.go
-
-$ dircue analyze all --json . > profile.json
-$ head -n 12 profile.json
-{
-  "schema_version": "1.0.0",
-  "root": "/path/to/checkout",
-  "summary": {
-    "scanned_files": 3,
-    "analyzed_files": 3,
-    "skipped_files": 0,
-    "language_bytes": 77
-  },
-  "languages": [
-    {
 ```
-
-For the candidate 1.0 directory-map workflow:
-
-```sh
-dircue map --summary .
-dircue map --json . > map.json
-dircue map settings --preset low-memory --json
-dircue map settings --cpu-limit 2 --memory-limit 512MiB --json
-dircue map route --json map.json > routes.json
-```
-
-Map JSON also includes conservative analyzer coverage accounting. It separates
-tools that were not run, do not support an observed language, lacked a known
-prerequisite, reported an error, or did not disclose enough information to
-establish coverage. Empty reports are never treated as proof that nothing was
-found or that analysis was complete.
-
-The map is a portable node-and-edge document with stable identities, source
-evidence, and question-by-question coverage. See the [directory-map
-guide](docs/MAP.md) for its schema, source semantics, provider attachments,
-saved-map comparison, and SARIF location workflow.
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
 
