@@ -4,6 +4,7 @@ package intentmap
 
 import (
 	"path"
+	"strings"
 
 	"dircue/pkg/declarations"
 )
@@ -73,7 +74,7 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 		// main.go sits at the project root, the binary name comes from
 		// the module path rather than the directory name (which is not
 		// portable across different checkout paths).
-		if name := path.Base(project.Name); project.Name != "" && name != "" && name != "." {
+		if name := moduleBaseName(project.Name); project.Name != "" && name != "" && name != "." {
 			d.projectNames[project.ID] = name
 		}
 		for _, v := range project.Interfaces {
@@ -85,4 +86,14 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			}
 		}
 	}
+}
+
+// moduleBaseName returns the last element of a module or package name,
+// skipping a trailing Go major-version element such as /v3.
+func moduleBaseName(name string) string {
+	base := path.Base(name)
+	if dir := path.Dir(name); dir != "." && len(base) > 1 && base[0] == 'v' && strings.Trim(base[1:], "0123456789") == "" {
+		return path.Base(dir)
+	}
+	return base
 }

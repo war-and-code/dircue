@@ -446,7 +446,13 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	// Deduplicate summary labels: a solution and its only member project often
 	// share the same name. Show each distinct "name [ecosystem]" once.
-	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int { return strings.Compare(mapNodeLabel(a), mapNodeLabel(b)) })
+	// Shallow roots first: the repository's own projects lead, nested ones follow.
+	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int {
+		if da, db := componentDepth(a), componentDepth(b); da != db {
+			return da - db
+		}
+		return strings.Compare(mapNodeLabel(a), mapNodeLabel(b))
+	})
 	seenLabels := map[string]bool{}
 	uniquePrimaryComponents := make([]mapdoc.Node, 0, len(primaryComponents))
 	for _, n := range primaryComponents {
@@ -474,10 +480,15 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	runnableDeployables := []mapdoc.Node{}
 	ciWorkflows := []mapdoc.Node{}
 	clusterResourceCount := 0
+	auxiliaryDeployableCount := 0
 	for _, n := range deployables {
 		kind := n.Properties["kind"]
 		provider := n.Properties["provider"]
-		if kind == "workflow" {
+		if role := n.Properties["role"]; role != "" && role != "primary" {
+			// Devcontainers, examples and test fixtures are not what the
+			// directory deploys; count them instead of listing them.
+			auxiliaryDeployableCount++
+		} else if kind == "workflow" {
 			ciWorkflows = append(ciWorkflows, n)
 		} else if runnableDeployableKind(kind, provider) {
 			runnableDeployables = append(runnableDeployables, n)
@@ -494,13 +505,19 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	} else {
 		countedWorkflows = len(ciWorkflows)
 	}
+	secondary := []string{}
+	if countedWorkflows > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d CI workflows", countedWorkflows))
+	}
+	if clusterResourceCount > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d cluster resources", clusterResourceCount))
+	}
+	if auxiliaryDeployableCount > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d tooling, test or example", auxiliaryDeployableCount))
+	}
 	secondarySuffix := ""
-	if clusterResourceCount > 0 && countedWorkflows > 0 {
-		secondarySuffix = fmt.Sprintf(" (+%d CI workflows, +%d cluster resources)", countedWorkflows, clusterResourceCount)
-	} else if countedWorkflows > 0 {
-		secondarySuffix = fmt.Sprintf(" (+%d CI workflows)", countedWorkflows)
-	} else if clusterResourceCount > 0 {
-		secondarySuffix = fmt.Sprintf(" (+%d cluster resources)", clusterResourceCount)
+	if len(secondary) > 0 {
+		secondarySuffix = " (" + strings.Join(secondary, ", ") + ")"
 	}
 	line("Deployables: %d%s", len(deployables), secondarySuffix)
 	linked := map[string][]string{}
@@ -630,6 +647,16 @@ func safeMapLabel(value string) string {
 		value = string(runes[:96]) + "…"
 	}
 	return value
+}
+
+// componentDepth is the number of directories between the repository root
+// and the component root.
+func componentDepth(n mapdoc.Node) int {
+	root := n.Properties["root"]
+	if root == "" || root == "." {
+		return 0
+	}
+	return strings.Count(root, "/") + 1
 }
 
 func mapNodeLabel(n mapdoc.Node) string {

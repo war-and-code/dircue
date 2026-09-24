@@ -4,6 +4,7 @@ package mapbuild
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -150,7 +151,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 		// The full module path is preserved in the "go_module" property.
 		if components[i].Properties["ecosystem"] == "go" && components[i].Name != "" {
 			modulePath := components[i].Name
-			if lastSeg := path.Base(modulePath); lastSeg != "" && lastSeg != "." && strings.ContainsRune(modulePath, '/') {
+			if lastSeg := goModuleDisplayName(modulePath); lastSeg != "" && strings.ContainsRune(modulePath, '/') {
 				components[i].Properties["go_module"] = modulePath
 				components[i].Name = lastSeg
 			}
@@ -420,6 +421,27 @@ func placeholderNameRole(name string) string {
 // without discarding any node from the machine-readable map.
 // Returns one of "vendored", "fixture", "test", "example", "docs", "tooling", or
 // "" (no role inferred — the caller may assign "primary").
+// goModuleDisplayName returns the last meaningful element of a Go module
+// path. A trailing major-version element (github.com/grafana/loki/v3) names
+// the version, not the module, so the element before it is used.
+func goModuleDisplayName(modulePath string) string {
+	parts := strings.Split(strings.Trim(modulePath, "/"), "/")
+	last := len(parts) - 1
+	if last > 0 && goMajorVersion.MatchString(parts[last]) {
+		last--
+	}
+	if last < 0 || parts[last] == "" || parts[last] == "." {
+		return ""
+	}
+	return parts[last]
+}
+
+var goMajorVersion = regexp.MustCompile(`^v[0-9]+$`)
+
+var jvmSourceLanguage = map[string]bool{"java": true, "kotlin": true, "scala": true, "groovy": true, "resources": true}
+
+var dotnetProjectExtension = map[string]bool{".csproj": true, ".vbproj": true, ".fsproj": true}
+
 func mapPathRole(paths ...string) string {
 	role, priority := "", 0
 	choose := func(candidate string, rank int) {
@@ -430,7 +452,17 @@ func mapPathRole(paths ...string) string {
 	for _, filename := range paths {
 		lower := strings.ToLower(strings.ReplaceAll(filename, "\\", "/"))
 		segments := strings.Split(lower, "/")
-		for _, segment := range segments {
+		for i, segment := range segments {
+			// Below a JVM source set (src/main/java, src/test/kotlin, ...) the
+			// remaining segments are package names such as
+			// org/springframework/samples, not project layout. The source set
+			// itself decides: test source sets are tests, others are not.
+			if segment == "src" && i+2 < len(segments) && jvmSourceLanguage[segments[i+2]] {
+				if strings.Contains(segments[i+1], "test") {
+					choose("test", 3)
+				}
+				break
+			}
 			switch segment {
 			// vendored external code
 			case "vendor", "node_modules", "third_party", ".bingo", "bingo":
@@ -468,8 +500,12 @@ func mapPathRole(paths ...string) string {
 			strings.HasSuffix(base, ".integrationtests.csproj") {
 			choose("test", 3)
 		}
-		// project names ending in Tests/UnitTests/FunctionalTests (without extension)
+		// .NET project names ending in Tests/UnitTests/FunctionalTests. Other
+		// files are excluded so names such as latest.go stay unclassified.
 		nameNoExt := strings.TrimSuffix(base, path.Ext(base))
+		if !dotnetProjectExtension[path.Ext(base)] {
+			nameNoExt = ""
+		}
 		if strings.HasSuffix(nameNoExt, "tests") || strings.HasSuffix(nameNoExt, "test") ||
 			strings.HasSuffix(nameNoExt, "unittests") || strings.HasSuffix(nameNoExt, "functionaltests") ||
 			strings.HasSuffix(nameNoExt, "integrationtests") {
