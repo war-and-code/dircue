@@ -719,7 +719,7 @@
         },
         {
           "question": "capabilities",
-          "tp": 15,
+          "tp": 16,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
@@ -739,14 +739,15 @@
             "capability=serialization:protobuf owner=apache_superset",
             "capability=messaging:amqp owner=apache_superset",
             "capability=datastore:relational owner=apache_superset",
-            "capability=datastore:relational owner=apache-superset-core"
+            "capability=datastore:relational owner=apache-superset-core",
+            "capability=directory:ldap owner=apache_superset"
           ],
           "fp_items": [],
           "fn_items": []
         },
         {
           "question": "edges",
-          "tp": 89,
+          "tp": 90,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
@@ -840,7 +841,8 @@
             "type=runs from=docker-compose.yml:superset-worker-beat to=apache_superset",
             "type=runs from=docker-compose.yml:superset-tests-worker to=apache_superset",
             "type=runs from=docker-compose.yml:superset-websocket to=superset-websocket",
-            "type=depends_on_local from=apache_superset to=apache-superset-extensions-cli"
+            "type=depends_on_local from=apache_superset to=apache-superset-extensions-cli",
+            "type=uses_capability from=apache_superset to=directory:ldap"
           ],
           "fp_items": [],
           "fn_items": []
@@ -973,18 +975,18 @@
       "recall": 0.9787
     },
     "capabilities": {
-      "tp": 45,
+      "tp": 46,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
       "recall": 1.0
     },
     "edges": {
-      "tp": 215,
+      "tp": 216,
       "fp": 1,
       "fn": 4,
       "precision": 0.9954,
-      "recall": 0.9817
+      "recall": 0.9818
     },
     "coverage": {
       "tp": 17,
