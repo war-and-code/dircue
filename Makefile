@@ -5,7 +5,7 @@ WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -107,6 +107,20 @@ accuracy-cards: build ## Generate accuracy cards into docs/ACCURACY.md and inter
 	  --corpus-root "$(ATLAS_CACHE)" \
 	  --output docs/ACCURACY.md \
 	  --data internal/atlas/accuracy_data.json
+
+# Run the golden map-corpus gate (blind-labeled ground truth, issue #75).
+# Requires pinned repo clones. See tests/map_corpus/golden_expectations.json
+# for the repo list, commit pins, and oracle-file SHA-256s.
+# Fetch repos with: python3 tests/map_corpus/fetch_golden.py --dest .cache/golden-repos
+# Not added to per-PR CI; run manually or via workflow_dispatch.
+GOLDEN_REPOS ?= .cache/golden-repos
+golden: build ## Run golden map-corpus gate (needs pinned repo clones in GOLDEN_REPOS)
+	@echo "==> Running golden gate (repos: $(GOLDEN_REPOS))"
+	@python3 tests/map_corpus/verify_golden.py \
+	  --labels tests/map_corpus/golden_expectations.json \
+	  --binary bin/dircue \
+	  --repos "$(GOLDEN_REPOS)" \
+	  --output tests/map_corpus/golden_results.json
 
 # ---------------------------------------------------------------------------
 # Issue #84: Syft oracle (independent package-coverage oracle)

@@ -647,3 +647,24 @@ func TestNpmDevDependenciesDoNotBecomeCapabilities(t *testing.T) {
 		t.Fatalf("capabilities = %v, want datastore:postgresql only", names)
 	}
 }
+
+func TestPythonDependencyGroupsDoNotBecomeCapabilities(t *testing.T) {
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "pyproject.toml", Root: ".", Requirements: []declarations.Requirement{
+		{Kind: "python-dependency", Value: "psycopg>=3", State: "declared", Evidence: "pyproject.toml"},
+		{Kind: "python-dependency", Value: "pyyaml>=6", State: "conditional", Evidence: "pyproject.toml", Condition: "group:docs"},
+	}}})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability {
+			names[o.Name] = true
+		}
+	}
+	if !names["datastore:postgresql"] || names["serialization:yaml"] {
+		t.Fatalf("capabilities = %v, want datastore:postgresql only", names)
+	}
+}

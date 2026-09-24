@@ -23,7 +23,8 @@ reports N/A — not a score of zero or one.
 
 A kind is marked **`insufficient_labels`** when it has fewer than 30 labels.
 These results are directional only; the confidence intervals are wide.
-Broader hand-labeling is tracked in issue #75.
+The broader, blind-labeled measurement on repositories the map was not
+tuned on is in [GOLDEN.md](GOLDEN.md).
 
 ## Per-question accuracy
 
@@ -31,7 +32,7 @@ Evaluated repositories: 8
 
 | Question (kind) | Labels | 95% CI lower | Precision | Recall | Repos | Sufficiency |
 |-----------------|--------|--------------|-----------|--------|-------|-------------|
-| capability | 11 | 0.74 | 1.000 | 1.000 | 3 | **insufficient_labels** |
+| capability | 13 | 0.77 | 1.000 | 1.000 | 3 | **insufficient_labels** |
 | component | 7 | 0.65 | 1.000 | 1.000 | 5 | **insufficient_labels** |
 | content | 4 | 0.51 | 1.000 | 1.000 | 1 | **insufficient_labels** |
 | deployable | 17 | 0.82 | 1.000 | 1.000 | 4 | **insufficient_labels** |
@@ -61,10 +62,10 @@ Evaluated repositories: 8
 
 | Kind | Precision | Recall | TP | FP | FN | Labels |
 |------|-----------|--------|----|----|----|----|
-| capability | N/A | N/A | 0 | 0 | 0 | 0 |
+| capability | 1.000 | 1.000 | 3 | 0 | 0 | 3 |
 | component | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 | deployable | 1.000 | 1.000 | 5 | 0 | 0 | 5 |
-| interface | N/A | N/A | 0 | 0 | 0 | 0 |
+| interface | 1.000 | 1.000 | 2 | 0 | 0 | 2 |
 
 ### terraform-alias (21b3edcecfb8)
 
@@ -82,16 +83,16 @@ Evaluated repositories: 8
 | capability | N/A | N/A | 0 | 0 | 0 | 0 |
 | component | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 | deployable | N/A | N/A | 0 | 0 | 0 | 0 |
-| interface | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
+| interface | N/A | N/A | 0 | 0 | 0 | 0 |
 
 ### flask (2c1b30d0503c)
 
 | Kind | Precision | Recall | TP | FP | FN | Labels |
 |------|-----------|--------|----|----|----|----|
-| capability | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
+| capability | N/A | N/A | 0 | 0 | 0 | 0 |
 | component | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 | deployable | N/A | N/A | 0 | 0 | 0 | 0 |
-| interface | 1.000 | 1.000 | 2 | 0 | 0 | 2 |
+| interface | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 
 ### helm-examples (4888ba8fb818)
 
@@ -130,4 +131,4 @@ python3 tests/atlas/accuracy.py \
 
 Labels: `tests/map_corpus/public_quality_expectations.json`
 
-Generated: 2026-09-24T06:17:28Z
+Generated: 2026-09-24T08:19:25Z
