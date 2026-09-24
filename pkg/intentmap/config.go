@@ -274,27 +274,37 @@ func safeConfigValue(s string) bool {
 	return safeConfigKey(s)
 }
 
-// prismaProviderRe matches a Prisma datasource provider assignment.
-// provider = env(...) forms are excluded because the actual provider string is
-// not statically determinable from the file — it is resolved at runtime.
-var prismaProviderRe = regexp.MustCompile(`(?m)^\s*provider\s*=\s*"(\w+)"`)
+// prismaDatasourceRe finds a datasource block; prismaProviderRe reads its
+// provider. Generator blocks also have a provider field, so the search is
+// confined to the datasource block. provider = env(...) forms are not matched:
+// the provider is then chosen at runtime.
+var (
+	prismaDatasourceRe = regexp.MustCompile(`(?m)^\s*datasource\s+\w+\s*\{`)
+	prismaProviderRe   = regexp.MustCompile(`(?m)^\s*provider\s*=\s*"(\w+)"`)
+)
 
 // parsePrismaSchema extracts a datastore capability from a Prisma schema file
-// by reading the datasource block's provider field.
-// The parser is bounded to one file, one provider assignment.
-// provider = env(...) forms are excluded: the actual provider is not
-// statically determinable.
+// by reading the datasource block's provider field. Prisma allows one
+// datasource per schema.
 func parsePrismaSchema(name string, content []byte) []Observation {
-	m := prismaProviderRe.FindSubmatchIndex(content)
+	start := prismaDatasourceRe.FindIndex(content)
+	if start == nil {
+		return nil
+	}
+	block := content[start[1]:]
+	if end := bytes.IndexByte(block, '}'); end >= 0 {
+		block = block[:end]
+	}
+	m := prismaProviderRe.FindSubmatchIndex(block)
 	if m == nil {
 		return nil
 	}
-	provider := strings.ToLower(string(content[m[2]:m[3]]))
+	provider := strings.ToLower(string(block[m[2]:m[3]]))
 	capability := prismaProviderCapability(provider)
 	if capability == "" {
 		return nil
 	}
-	lineNum := 1 + bytes.Count(content[:m[0]], []byte("\n"))
+	lineNum := 1 + bytes.Count(content[:start[1]+m[0]], []byte("\n"))
 	return []Observation{{Kind: KindCapability, Name: capability, State: "declared", Basis: "declared_config", Path: name, StartLine: lineNum, EndLine: lineNum, Properties: map[string]string{"provider": provider}}}
 }
 
@@ -302,13 +312,13 @@ func parsePrismaSchema(name string, content []byte) []Observation {
 // capability ID. Unknown providers return "".
 func prismaProviderCapability(provider string) string {
 	switch provider {
-	case "postgresql", "cockroachdb":
+	case "postgresql":
 		return "datastore:postgresql"
 	case "mysql", "mariadb":
 		return "datastore:mysql"
 	case "mongodb":
 		return "datastore:mongodb"
-	case "sqlite", "sqlserver":
+	case "sqlite", "sqlserver", "cockroachdb":
 		return "datastore:relational"
 	}
 	return ""

@@ -674,10 +674,10 @@ func TestPythonDependencyGroupsDoNotBecomeCapabilities(t *testing.T) {
 // capability (N-01/N-02).
 func TestPrismaSchemaProviderEmitsSpecificDatastoreCapability(t *testing.T) {
 	for _, tt := range []struct {
-		name     string
-		content  string
-		wantCap  string
-		wantNot  string
+		name    string
+		content string
+		wantCap string
+		wantNot string
 	}{
 		{
 			name:    "postgresql provider",
@@ -699,6 +699,22 @@ func TestPrismaSchemaProviderEmitsSpecificDatastoreCapability(t *testing.T) {
 			name:    "sqlite provider maps to relational",
 			content: "datasource db {\n  provider = \"sqlite\"\n  url      = \"file:./dev.db\"\n}\n",
 			wantCap: "datastore:relational",
+		},
+		{
+			name:    "generator provider before the datasource is not read",
+			content: "generator client {\n  provider = \"go\"\n}\n\ndatasource db {\n  provider = \"mysql\"\n  url      = env(\"DATABASE_URL\")\n}\n",
+			wantCap: "datastore:mysql",
+		},
+		{
+			name:    "generator-only schema declares no datastore",
+			content: "generator client {\n  provider = \"mongodb\"\n}\n",
+			wantNot: "datastore:mongodb",
+		},
+		{
+			name:    "cockroachdb is relational, not postgresql",
+			content: "datasource db {\n  provider = \"cockroachdb\"\n}\n",
+			wantCap: "datastore:relational",
+			wantNot: "datastore:postgresql",
 		},
 		{
 			name:    "env provider is ignored (runtime-resolved)",
