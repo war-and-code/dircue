@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string, callerAsserted bool) (mapdoc.Document, error) {
+func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string, callerAsserted bool, settings resolvedMapSettings) (mapdoc.Document, error) {
 	if len(specs) == 0 {
 		return doc, nil
 	}
@@ -24,7 +24,7 @@ func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string,
 	}
 	input := providerInput(doc)
 	input.Snapshot.CallerAsserted = callerAsserted
-	result, err := providerjoin.Join(cmd.Context(), input, attachments, providerjoin.Options{})
+	result, err := providerjoin.Join(cmd.Context(), input, attachments, providerjoin.Options{MaxRecords: settings.AttachmentRecordLimit})
 	if err != nil {
 		return mapdoc.Document{}, err
 	}

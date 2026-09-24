@@ -19,7 +19,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 11 {
+	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 12 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -43,6 +43,9 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	}
 	if got := byName["classification.prefix_bytes"]; got.Value != "131072" || got.Category != "conformance-locked" || got.Origin != "fixed:linguist-parity" {
 		t.Fatalf("classifier window = %+v", got)
+	}
+	if got := byName["attachment.record_limit"]; got.Value != "100000" || got.Category != "coverage-affecting" || got.Origin != "default" {
+		t.Fatalf("attachment.record_limit = %+v", got)
 	}
 	if !strings.Contains(strings.Join(report.Notes, " "), "not an RSS guarantee") {
 		t.Fatalf("resource qualification missing: %+v", report.Notes)

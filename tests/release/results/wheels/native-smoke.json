@@ -126,7 +126,7 @@
       ],
       "exit_code": 0,
       "stdout": "",
-      "stderr": "Resolved 1 package in 0.77ms\nInstalled 1 package in 2ms\n + dircue==0.1.0 (from file:///Users/gingeleski/Workspace/auragaze/dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl)\nInstalled 1 executable: dircue\nwarning: `<temporary>/toolbin` is not on your PATH. To use installed tools, run `export PATH=\"<temporary>/toolbin:$PATH\"` or `uv tool update-shell`.\n"
+      "stderr": "Resolved 1 package in 0.77ms\nInstalled 1 package in 2ms\n + dircue==0.1.0 (from file:///home/user/Workspace/auragaze/dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl)\nInstalled 1 executable: dircue\nwarning: `<temporary>/toolbin` is not on your PATH. To use installed tools, run `export PATH=\"<temporary>/toolbin:$PATH\"` or `uv tool update-shell`.\n"
     },
     {
       "command": [
@@ -183,7 +183,7 @@
         "<repository>/dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl"
       ],
       "exit_code": 0,
-      "stdout": "Processing /Users/gingeleski/Workspace/auragaze/dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl\nInstalling collected packages: dircue\nSuccessfully installed dircue-0.1.0\n",
+      "stdout": "Processing /home/user/Workspace/auragaze/dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl\nInstalling collected packages: dircue\nSuccessfully installed dircue-0.1.0\n",
       "stderr": ""
     },
     {

@@ -28,7 +28,7 @@ Rules cannot disable language analysis, change `.gitattributes`, execute command
   "schema_version": "1.0.0",
   "rules": [
     {
-      "id": "talend-job-candidate",
+      "id": "etl-job-candidate",
       "match": {
         "path_prefixes": ["process/"],
         "extensions": [".item"]

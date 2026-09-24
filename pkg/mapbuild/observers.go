@@ -21,14 +21,6 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: name, Scope: ".", Coverage: coverage})
 }
 
-func observerCoverage(value string, fallback string) mapdoc.Coverage {
-	result := mapdoc.Coverage{Status: status(value)}
-	if result.Status != mapdoc.CoverageComplete {
-		result.Reasons = []string{fallback}
-	}
-	return result
-}
-
 func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}

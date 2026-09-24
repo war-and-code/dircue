@@ -219,7 +219,9 @@ func iterations(def int) int {
 	return def
 }
 
-func TestComputeMatchesGitOnRandomTrees(t *testing.T) {
+// TestDifferential is the canonical name for the differential oracle test.
+// Run with: DIRCUE_TREEHASH_ITERATIONS=1500 go test ./pkg/treehash -run Differential -count=1 -v
+func TestDifferential(t *testing.T) {
 	git := gitAvailable(t)
 	for _, format := range []Format{FormatSHA1, FormatSHA256} {
 		for i := 0; i < iterations(40); i++ {
