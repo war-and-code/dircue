@@ -1,6 +1,6 @@
 {
   "schema": "dircue-public-map-quality-0.1",
-  "metric_scope": "Exact precision and recall over each entry\u2019s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
+  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
   "repositories": [
     {
       "id": "microservices-demo",
@@ -62,7 +62,9 @@
             "observation_kind": "capability",
             "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
             "requirement_kind": "package-reference",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -76,7 +78,9 @@
             "observation_kind": "capability",
             "requirement": "Npgsql@10.0.3",
             "requirement_kind": "package-reference",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -90,7 +94,9 @@
             "observation_kind": "capability",
             "requirement": "requests==2.32.5",
             "requirement_kind": "python-dependency",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -104,7 +110,9 @@
             "observation_kind": "capability",
             "requirement": "Protobuf",
             "requirement_kind": "code-generation",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -118,7 +126,9 @@
             "observation_kind": "capability",
             "requirement": "protobuf==6.33.5",
             "requirement_kind": "python-dependency",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -285,7 +295,8 @@
             "interface_kind": "service",
             "observation_kind": "interface",
             "protocol": "protobuf",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -300,7 +311,8 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -315,7 +327,8 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -330,7 +343,38 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "port:7070",
+          "paths": [
+            "src/cartservice/src/Dockerfile"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "port": "7070",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "port:8080",
+          "paths": [
+            "src/emailservice/Dockerfile"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "port": "8080",
+            "state": "declared"
           }
         }
       ],
@@ -480,7 +524,8 @@
               "interface_kind": "service",
               "observation_kind": "interface",
               "protocol": "protobuf",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -520,7 +565,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -560,7 +606,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -600,7 +647,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -712,7 +760,9 @@
               "observation_kind": "capability",
               "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
               "requirement_kind": "package-reference",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -751,7 +801,9 @@
               "observation_kind": "capability",
               "requirement": "Npgsql@10.0.3",
               "requirement_kind": "package-reference",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -790,7 +842,9 @@
               "observation_kind": "capability",
               "requirement": "Protobuf",
               "requirement_kind": "code-generation",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -826,7 +880,9 @@
               "observation_kind": "capability",
               "requirement": "requests==2.32.5",
               "requirement_kind": "python-dependency",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -862,12 +918,93 @@
               "observation_kind": "capability",
               "requirement": "protobuf==6.33.5",
               "requirement_kind": "python-dependency",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
           "evidence_paths": [
             "src/emailservice/requirements.txt"
+          ]
+        },
+        {
+          "record": "edge",
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "port:7070",
+            "paths": [
+              "src/cartservice/src/Dockerfile"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "interface_kind": "declared_port",
+              "observation_kind": "interface",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "port": "7070",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/Dockerfile"
+          ]
+        },
+        {
+          "record": "edge",
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/emailservice"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "port:8080",
+            "paths": [
+              "src/emailservice/Dockerfile"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "interface_kind": "declared_port",
+              "observation_kind": "interface",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "port": "8080",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/Dockerfile"
           ]
         }
       ],
@@ -1007,7 +1144,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:EventBus",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1021,7 +1160,9 @@
             "observation_kind": "capability",
             "requirement": "Protobuf",
             "requirement_kind": "code-generation",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1034,7 +1175,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:Redis",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1047,7 +1190,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1060,7 +1205,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:EventBus",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "3"
           }
         },
         {
@@ -1637,7 +1784,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:EventBus",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "3"
             }
           },
           "properties": {},
@@ -1675,7 +1824,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:Redis",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1713,7 +1864,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:EventBus",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1751,7 +1904,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1790,7 +1945,9 @@
               "observation_kind": "capability",
               "requirement": "Protobuf",
               "requirement_kind": "code-generation",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -2202,71 +2359,6 @@
         },
         {
           "kind": "interface",
-          "name": "test-tap",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "lint",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test-ci",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test-cov",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
           "name": "node",
           "paths": [
             "package.json"
@@ -2277,46 +2369,12 @@
             "interface_kind": "prerequisite",
             "observation_kind": "interface",
             "state": "declared",
-            "target": ">= 18"
+            "target": ">= 18",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
           }
         }
       ],
       "expected_edges": [
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
         {
           "type": "declares",
           "from": {
@@ -2346,147 +2404,8 @@
               "interface_kind": "prerequisite",
               "observation_kind": "interface",
               "state": "declared",
-              "target": ">= 18"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-ci",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "lint",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-cov",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-tap",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
+              "target": ">= 18",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
             }
           },
           "properties": {},
@@ -2565,7 +2484,9 @@
             "observation_kind": "capability",
             "requirement": "cryptography",
             "requirement_kind": "python-dependency",
-            "state": "conditional"
+            "state": "conditional",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -2594,7 +2515,8 @@
             "interface_kind": "python-console-script",
             "observation_kind": "interface",
             "state": "declared",
-            "target": "flask.cli:main"
+            "target": "flask.cli:main",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
           }
         },
         {
@@ -2608,7 +2530,8 @@
             "interface_kind": "python-build-backend",
             "observation_kind": "interface",
             "state": "declared",
-            "target": "flit_core.buildapi"
+            "target": "flit_core.buildapi",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
           }
         }
       ],
@@ -2641,7 +2564,8 @@
               "interface_kind": "python-console-script",
               "observation_kind": "interface",
               "state": "declared",
-              "target": "flask.cli:main"
+              "target": "flask.cli:main",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
             }
           },
           "properties": {},
@@ -2677,7 +2601,8 @@
               "interface_kind": "python-build-backend",
               "observation_kind": "interface",
               "state": "declared",
-              "target": "flit_core.buildapi"
+              "target": "flit_core.buildapi",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
             }
           },
           "properties": {},
@@ -2714,7 +2639,9 @@
               "observation_kind": "capability",
               "requirement": "cryptography",
               "requirement_kind": "python-dependency",
-              "state": "conditional"
+              "state": "conditional",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
