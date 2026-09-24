@@ -9,8 +9,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"dircue/pkg/scanner"
-	enry "github.com/go-enry/go-enry/v2"
+	"github.com/war-and-code/dircue/pkg/scanner"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 )
 
 // JSON keys retain the original evidence format across the project rename.

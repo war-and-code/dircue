@@ -16,8 +16,8 @@ package mapbuild
 import (
 	"path"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 // addWorkflowComponentEdges adds partial builds edges between github-actions

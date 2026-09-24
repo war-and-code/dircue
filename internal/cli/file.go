@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"dircue/pkg/scanner"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
 
 //go:embed mimedata/ext_mime.db

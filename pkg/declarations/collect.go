@@ -12,7 +12,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 const MaxInventoryPaths = 200000

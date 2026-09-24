@@ -24,6 +24,36 @@ def digest(content):
 
 
 class ManifestTests(unittest.TestCase):
+    def test_rewrites_only_enry_import_paths_and_keeps_attribution(self):
+        source = (b'package enry // import "github.com/go-enry/go-enry/v2"\n'
+                  b'import "github.com/go-enry/go-enry/v2/data"\n'
+                  b'import (\n\t"github.com/go-enry/go-enry/v2/internal/tokenizer"\n)\n'
+                  b'// github.com/go-enry/go-enry/v2 appears in this attribution.\n')
+        actual = UPDATE.rewrite_import_paths(source)
+        self.assertIn(b'package enry // import "github.com/war-and-code/dircue/third_party/go-enry"', actual)
+        self.assertIn(b'import "github.com/war-and-code/dircue/third_party/go-enry/data"', actual)
+        self.assertIn(b'"github.com/war-and-code/dircue/third_party/go-enry/internal/tokenizer"', actual)
+        self.assertIn(b'// github.com/go-enry/go-enry/v2 appears in this attribution.', actual)
+
+    def test_embedded_test_manifest_preserves_upstream_module_files(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            (root/'upstream.go.mod').write_text(
+                f'module {UPDATE.ENRY}\n\ngo 1.24.0\n')
+            (root/'upstream.go.sum').write_text('example.test/module v1.0.0 h1:abc=\n')
+            UPDATE.prepare_embedded_module(root)
+            # The temporary test module uses the root module's Go version;
+            # the retained upstream manifest itself is left untouched.
+            self.assertEqual((root/'go.mod').read_text(),
+                             f'module {UPDATE.RUNTIME_MODULE}\n\ngo {UPDATE.GO_VERSION.removeprefix("go")}\n')
+            self.assertEqual((root/'upstream.go.mod').read_text(),
+                             f'module {UPDATE.ENRY}\n\ngo 1.24.0\n')
+            self.assertEqual((root/'go.sum').read_text(),
+                             (root/'upstream.go.sum').read_text())
+            UPDATE.remove_embedded_module(root)
+            self.assertFalse((root/'go.mod').exists())
+            self.assertFalse((root/'go.sum').exists())
+
     def test_accepts_normalized_relative_paths_and_hashes(self):
         value = {'data/generated.go': 'a' * 64}
         self.assertEqual(UPDATE.validate_manifest(value), value)

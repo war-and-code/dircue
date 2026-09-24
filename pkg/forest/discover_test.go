@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/forest"
+	"github.com/war-and-code/dircue/pkg/forest"
 )
 
 // gitAvailable returns true when git is in PATH.

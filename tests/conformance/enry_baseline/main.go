@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	enry "github.com/go-enry/go-enry/v2"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 	"io/fs"
 	"os"
 	"path/filepath"

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"unicode"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 type syftPackageObservation struct {

@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const (
@@ -356,8 +356,10 @@ func coverageFor(r Result) []mapdoc.QuestionCoverage {
 	for _, x := range r.Ledger {
 		if x.ReportKind == "syft-json" {
 			hasSyft = true
-			packageStatus = mapdoc.CoverageComplete
-			packageReasons = nil
+			// Syft's emitted package list is a bounded catalog snapshot; the
+			// report does not establish that every relevant cataloger ran.
+			packageStatus = mapdoc.CoveragePartial
+			packageReasons = []string{"syft_cataloger_scope_not_proven_exhaustive"}
 		}
 		if x.Binding != BindingVerified {
 			analyzerReasons = append(analyzerReasons, x.Reason)

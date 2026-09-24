@@ -34,10 +34,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Install gremlins
         run: |
           GOBIN="$RUNNER_TEMP/gremlins" CGO_ENABLED=0 \

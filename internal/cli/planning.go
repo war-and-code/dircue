@@ -10,12 +10,12 @@ import (
 	"strings"
 	"unicode"
 
-	"dircue/internal/atlas"
-	"dircue/pkg/capabilities"
-	"dircue/pkg/planning"
-	"dircue/pkg/reportdiff"
-	"dircue/schema"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/internal/atlas"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func newCapabilitiesCommand(opts *options) *cobra.Command {

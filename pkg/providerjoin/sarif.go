@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 type sarifDocument struct {

@@ -13,8 +13,8 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/internal/jsontext"
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/internal/jsontext"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 const semanticsReference = "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json (last updated 2026-03-09; accessed 2026-09-21)"

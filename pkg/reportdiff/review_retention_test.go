@@ -1,8 +1,8 @@
 package reportdiff
 
 import (
-	"dircue/pkg/profile"
 	"fmt"
+	"github.com/war-and-code/dircue/pkg/profile"
 	"testing"
 )
 

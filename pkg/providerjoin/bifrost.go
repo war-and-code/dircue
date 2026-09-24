@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 // bifrostCodeQueryReport is the ordinary CodeQuery response documented by

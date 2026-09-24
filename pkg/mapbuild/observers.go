@@ -7,9 +7,9 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/intentmap"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/intentmap"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {

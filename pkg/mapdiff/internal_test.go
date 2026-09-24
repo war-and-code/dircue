@@ -3,7 +3,7 @@ package mapdiff
 import (
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func TestCompatibleProducersIgnoresRulesThatFiredOnOneSide(t *testing.T) {

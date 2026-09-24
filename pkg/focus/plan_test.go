@@ -8,7 +8,7 @@ import (
 	"slices"
 	"testing"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func project(id, kind, name string, parsed bool, refs ...declarations.Reference) ProjectRecord {

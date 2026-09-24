@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // Collector is a concurrent scanner detector. It retains the lexically first

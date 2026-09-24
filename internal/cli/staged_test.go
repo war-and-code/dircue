@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 func stagedFixture(t *testing.T, files map[string]string) string {

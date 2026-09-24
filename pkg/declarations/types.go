@@ -1,7 +1,7 @@
 // Package declarations reads project manifests without evaluating repository code.
 package declarations
 
-import "dircue/pkg/projects"
+import "github.com/war-and-code/dircue/pkg/projects"
 
 const (
 	MaxManifestBytes           = projects.MaxManifestBytes

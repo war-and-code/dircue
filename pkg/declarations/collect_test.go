@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 func candidateFor(name, content string) *Candidate {

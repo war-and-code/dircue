@@ -10,12 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"dircue/internal/cli"
-	"dircue/pkg/reportdiff"
-	"dircue/schema"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/schema"
 
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 func targetedCLIReport(t *testing.T, args ...string) map[string]any {

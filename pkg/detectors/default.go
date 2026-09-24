@@ -14,7 +14,7 @@ import (
 	"sort"
 	"strings"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // Default returns independent, concurrency-safe hooks. These hooks neither read

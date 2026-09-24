@@ -172,7 +172,7 @@ def load_release(directory):
             or provenance.get('head_and_clean_state_verified_after_build') is not True):
         raise ValueError('release provenance does not identify the reviewed clean static Go build')
     flags = ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags',
-             '-s -w -X dircue/internal/cli.Version=' + provenance['version']]
+             '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=' + provenance['version']]
     if provenance.get('build_flags') != flags:
         raise ValueError('release version or build flags do not match provenance')
     sums = {}

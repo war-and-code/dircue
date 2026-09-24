@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/internal/cli"
-	private "dircue/schema"
 	upstream "github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/internal/cli"
+	private "github.com/war-and-code/dircue/schema"
 )
 
 func parityOracle(t *testing.T) *upstream.Schema {

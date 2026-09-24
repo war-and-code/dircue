@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/providerjoin"
-	"dircue/pkg/sariflocate"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/providerjoin"
+	"github.com/war-and-code/dircue/pkg/sariflocate"
 )
 
 func TestMapAttachmentAndRouting(t *testing.T) {

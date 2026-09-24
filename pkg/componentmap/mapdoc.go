@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 var componentRule = &mapdoc.Producer{ID: "dircue/component-declarations", Version: "1.0.0"}

@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/go-git/go-git/v5/internal/pathutil"
-	format "github.com/go-git/go-git/v5/plumbing/format/config"
+	"github.com/war-and-code/dircue/third_party/go-git/internal/pathutil"
+	format "github.com/war-and-code/dircue/third_party/go-git/plumbing/format/config"
 )
 
 var (

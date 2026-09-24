@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 const ownershipRule = "nearest-project-manifest-directory-v1"

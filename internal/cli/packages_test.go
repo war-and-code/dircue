@@ -12,9 +12,9 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/profile"
-	"github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 func TestImportPackagesCLI(t *testing.T) {

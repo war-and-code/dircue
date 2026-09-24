@@ -4,11 +4,11 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/discovery"
-	"dircue/pkg/intentmap"
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/intentmap"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {

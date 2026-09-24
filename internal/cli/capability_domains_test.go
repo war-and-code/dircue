@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/schema"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func TestCLIContractPublishesFiniteCommandScopedFlagValues(t *testing.T) {

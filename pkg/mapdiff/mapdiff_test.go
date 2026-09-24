@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdiff"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdiff"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func testDocument(tree string, component mapdoc.Node, status mapdoc.CoverageStatus) mapdoc.Document {

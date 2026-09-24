@@ -14,7 +14,7 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const PropertyName = "dircue.map"

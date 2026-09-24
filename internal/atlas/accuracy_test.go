@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"dircue/internal/atlas"
+	"github.com/war-and-code/dircue/internal/atlas"
 )
 
 func TestLoadReturnsValidCards(t *testing.T) {
