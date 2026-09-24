@@ -62,6 +62,12 @@
       "owner": "@api/source",
       "path": "package.json",
       "why": "package.json dependencies: axios ^1.0.0 is declared as a production dependency; axios is the de facto JavaScript HTTP client library."
+    },
+    {
+      "capability": "datastore:relational",
+      "owner": "@api/source",
+      "path": "package.json",
+      "why": "package.json declares @prisma/client, and src/prisma/schema.prisma configures a postgresql datasource, so this ORM client is relational here"
     }
   ],
   "edges": [
@@ -88,6 +94,12 @@
       "from": "@api/source",
       "to": "net:http-client",
       "why": "package.json production dependency axios."
+    },
+    {
+      "type": "uses_capability",
+      "from": "@api/source",
+      "to": "datastore:relational",
+      "why": "follows from the Prisma client capability label"
     }
   ],
   "coverage": {
@@ -125,5 +137,12 @@
     "upstream": "https://github.com/gothinkster/node-express-realworld-example-app",
     "revision_source": "git clone --depth=1 then git rev-parse HEAD",
     "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
-  }
+  },
+  "corrections": [
+    {
+      "change": "added datastore:relational from @prisma/client with its edge",
+      "after_first_comparison": true,
+      "why": "the labeler left the npm dependency unlabeled as ambiguous across Prisma providers; the oracle schema.prisma fixes the provider as PostgreSQL, which is relational"
+    }
+  ]
 }

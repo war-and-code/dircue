@@ -53,6 +53,12 @@
       "owner": "(root)",
       "path": "requirements/prod.txt",
       "why": "requirements/prod.txt declares Flask-JWT-Extended and PyJWT; conduit/app.py line ~10 imports JWTManager from flask_jwt_extended and registers it as a Flask extension."
+    },
+    {
+      "capability": "datastore:relational",
+      "owner": "(root)",
+      "path": "requirements/prod.txt",
+      "why": "requirements/prod.txt:4 SQLAlchemy==1.1.9 and Pipfile:8 sqlalchemy; a relational ORM, labeled the same way as SQLAlchemy in the golden superset labels"
     }
   ],
   "edges": [
@@ -67,6 +73,12 @@
       "from": "(root)",
       "to": "auth:jwt",
       "why": "requirements/prod.txt Flask-JWT-Extended and PyJWT dependencies; JWT auth is registered in conduit/app.py."
+    },
+    {
+      "type": "uses_capability",
+      "from": "(root)",
+      "to": "datastore:relational",
+      "why": "follows from the SQLAlchemy capability label"
     }
   ],
   "coverage": {
@@ -104,5 +116,12 @@
     "upstream": "https://github.com/gothinkster/flask-realworld-example-app",
     "revision_source": "git clone --depth=1 then git rev-parse HEAD",
     "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
-  }
+  },
+  "corrections": [
+    {
+      "change": "added datastore:relational from SQLAlchemy with its edge",
+      "after_first_comparison": true,
+      "why": "requirements/prod.txt:4 and Pipfile:8; golden labels treat SQLAlchemy as datastore:relational alongside the specific database driver"
+    }
+  ]
 }
