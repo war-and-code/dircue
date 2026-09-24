@@ -46,8 +46,8 @@ The XML and Go fixtures reuse the deterministic generator in
 [the staged-analysis harness](../staged_analysis/README.md). Both XML cases
 contain 128 fully written XML files of exactly 16 MiB, totaling
 2,147,483,648 bytes. Full SHA-256 checks establish their content; they are not
-sparse or NUL-filled substitutes. They are synthetic data, not a sample of
-MOVEit output. The mixed case's small `App.csproj` remains present in discovery
+sparse or NUL-filled substitutes. They are synthetic data, not samples from any specific
+vendor output. The mixed case's small `App.csproj` remains present in discovery
 beside the XML. The Go fixture's `go.mod` remains present too. Filename evidence
 does not prove either manifest's validity or identify the XML as logging data.
 

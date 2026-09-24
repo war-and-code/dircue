@@ -278,7 +278,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if !info.IsDir() {
 		return nil, errors.New("scan root must be a directory")
 	}
-	snapshot, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
+	snapshot, gitFallbackWarning, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
 	if err != nil {
 		return nil, err
 	}
@@ -591,6 +591,12 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	// If git source fell back to directory mode under --source auto, record the
+	// reason as a report warning so that the CLI can surface it on stderr and
+	// it appears in the JSON warnings array for programmatic consumers.
+	if gitFallbackWarning != nil {
+		report.Warnings = append(report.Warnings, *gitFallbackWarning)
+	}
 	var formatCollector *formats.Collector
 	if opts.Formats {
 		source, tree := "directory", ""
@@ -1063,7 +1069,7 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 	var content []byte
 	var tooLarge bool
 	var err error
-	actualSize := item.size
+	var actualSize int64
 	if item.read != nil {
 		content, actualSize, err = item.read(limit)
 		tooLarge = opts.MaxFileBytes > 0 && actualSize > opts.MaxFileBytes

@@ -121,7 +121,7 @@ func ParseRailsApp(name string, content []byte) *Document {
 		return nil
 	}
 	sub := railsModuleNameRE.FindSubmatch(content)
-	if sub == nil || len(sub) < 2 {
+	if len(sub) < 2 {
 		return nil
 	}
 	appName := string(sub[1])

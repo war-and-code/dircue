@@ -201,3 +201,25 @@ func TestCompareAcceptsRealAggregateOptInReports(t *testing.T) {
 		}
 	}
 }
+
+// TestCompareRejectsMapDocument verifies that dircue compare returns a helpful
+// error when given a map document (kind: "map") and points to dircue map compare.
+func TestCompareRejectsMapDocument(t *testing.T) {
+	root := t.TempDir()
+	// Build a minimal valid map document.
+	mapOut, _, err := invoke("map", "--source", "directory", "--json", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapFile := filepath.Join(root, "map.json")
+	if err := os.WriteFile(mapFile, []byte(mapOut), 0600); err != nil {
+		t.Fatal(err)
+	}
+	_, stderr, err := invoke("compare", mapFile, mapFile)
+	if err == nil {
+		t.Fatal("expected error when passing map document to compare")
+	}
+	if !strings.Contains(err.Error()+stderr, "map compare") {
+		t.Fatalf("error should mention 'map compare'; got err=%v stderr=%q", err, stderr)
+	}
+}

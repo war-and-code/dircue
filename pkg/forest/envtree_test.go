@@ -268,3 +268,45 @@ func TestSummarizeEnvTree_Cap(t *testing.T) {
 		t.Error("want a non-empty reason")
 	}
 }
+
+// TestSummarizeEnvTree_WalkErrors verifies that walk errors set LowerBound and
+// WalkErrors, without setting Bounded to false (which is reserved for the cap).
+func TestSummarizeEnvTree_WalkErrors(t *testing.T) {
+	if os.Getuid() == 0 {
+		t.Skip("root can read everything; permission test meaningless")
+	}
+	dir := t.TempDir()
+	nm := filepath.Join(dir, "node_modules")
+	if err := os.MkdirAll(nm, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	locked := filepath.Join(nm, "secret_pkg")
+	if err := os.MkdirAll(locked, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	// Write a file the test runner cannot read.
+	if err := os.WriteFile(filepath.Join(locked, "index.js"), []byte("x"), 0o000); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(locked, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Chmod(locked, 0o755)
+
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer root.Close()
+	match := &forest.EnvTreeMatch{Path: "node_modules", Kind: forest.KindNodeModules, Ecosystem: "npm", Marker: "node_modules", Basis: "filename_hint"}
+	summary := forest.SummarizeEnvTree(root, *match, 0)
+	if summary.WalkErrors == 0 {
+		t.Error("want WalkErrors > 0 for unreadable directory")
+	}
+	if !summary.LowerBound {
+		t.Error("want lower_bound=true when walk errors occurred")
+	}
+	if summary.Reason == "" {
+		t.Error("want non-empty reason when walk errors occurred")
+	}
+}

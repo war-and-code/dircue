@@ -76,8 +76,8 @@
   },
   "cases": [
     {
-      "name": "talend-generated-excluded",
-      "fixture": "talend",
+      "name": "etl-pipeline-generated-excluded",
+      "fixture": "etl-pipeline",
       "revision": "4c9b899145d835de415daeaf56783f8033373d96",
       "logical_source_bytes": 2147484103,
       "source_files": 8293,
@@ -96,7 +96,7 @@
           "--breakdown",
           "--rev",
           "4c9b899145d835de415daeaf56783f8033373d96",
-          "/stress/acceptance-final/talend/git"
+          "/stress/acceptance-final/etl-pipeline/git"
         ],
         "auragaze_git": [
           "/candidate/auragaze",
@@ -104,13 +104,13 @@
           "--breakdown",
           "--rev",
           "4c9b899145d835de415daeaf56783f8033373d96",
-          "/stress/acceptance-final/talend/git"
+          "/stress/acceptance-final/etl-pipeline/git"
         ],
         "auragaze_flat": [
           "/candidate/auragaze",
           "--json",
           "--breakdown",
-          "/stress/acceptance-final/talend/flat-generated-excluded"
+          "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
         ]
       },
       "results": {
@@ -119,7 +119,7 @@
           "stderr": "",
           "seconds": 30.17950001400004,
           "max_rss_kib": 71896,
-          "artifact": "talend-generated-excluded-linguist_git.json",
+          "artifact": "etl-pipeline-generated-excluded-linguist_git.json",
           "sha256": "dc2d6932fd831a827c65eb1ebee93a13d0b78410cb8c1f5b62e53994246cbc0d"
         },
         "auragaze_git": {
@@ -127,7 +127,7 @@
           "stderr": "",
           "seconds": 10.33473733799974,
           "max_rss_kib": 168480,
-          "artifact": "talend-generated-excluded-auragaze_git.json",
+          "artifact": "etl-pipeline-generated-excluded-auragaze_git.json",
           "sha256": "39533cfb09ce54c3a68fcb88d450574af09b6f15ea8139acf299eb28816d276c"
         },
         "auragaze_flat": {
@@ -135,7 +135,7 @@
           "stderr": "",
           "seconds": 2.8118661680000514,
           "max_rss_kib": 34816,
-          "artifact": "talend-generated-excluded-auragaze_flat.json",
+          "artifact": "etl-pipeline-generated-excluded-auragaze_flat.json",
           "sha256": "568ff2f335a2ea948d48e67ae3274885e5d165f550d05d6e58d0c1453a57f05b"
         }
       },
@@ -144,13 +144,13 @@
       "counted_files": 3,
       "extended": {
         "git": {
-          "artifact": "talend-generated-excluded-all-git.json",
+          "artifact": "etl-pipeline-generated-excluded-all-git.json",
           "ecosystem_findings": 1,
           "layout_findings": 1,
           "warnings": []
         },
         "flat": {
-          "artifact": "talend-generated-excluded-all-flat.json",
+          "artifact": "etl-pipeline-generated-excluded-all-flat.json",
           "ecosystem_findings": 1,
           "layout_findings": 1,
           "warnings": []
@@ -617,8 +617,8 @@
       "flat_median_ratio_to_git_reference": 10.551213906217212
     },
     {
-      "name": "talend-generated-included",
-      "fixture": "talend",
+      "name": "etl-pipeline-generated-included",
+      "fixture": "etl-pipeline",
       "revision": "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
       "logical_source_bytes": 2147484104,
       "source_files": 8293,
@@ -637,7 +637,7 @@
           "--breakdown",
           "--rev",
           "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-          "/stress/acceptance-final/talend/git"
+          "/stress/acceptance-final/etl-pipeline/git"
         ],
         "auragaze_git": [
           "/candidate/auragaze",
@@ -645,13 +645,13 @@
           "--breakdown",
           "--rev",
           "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-          "/stress/acceptance-final/talend/git"
+          "/stress/acceptance-final/etl-pipeline/git"
         ],
         "auragaze_flat": [
           "/candidate/auragaze",
           "--json",
           "--breakdown",
-          "/stress/acceptance-final/talend/flat-generated-included"
+          "/stress/acceptance-final/etl-pipeline/flat-generated-included"
         ]
       },
       "results": {
@@ -660,7 +660,7 @@
           "stderr": "",
           "seconds": 41.85642997800005,
           "max_rss_kib": 90424,
-          "artifact": "talend-generated-included-linguist_git.json",
+          "artifact": "etl-pipeline-generated-included-linguist_git.json",
           "sha256": "12b7c6c4e0b1f2c4b7dea54a03e59f48dc30619bce2a8d1bade670ce1ed51504"
         },
         "auragaze_git": {
@@ -668,7 +668,7 @@
           "stderr": "",
           "seconds": 9.519531504000042,
           "max_rss_kib": 169024,
-          "artifact": "talend-generated-included-auragaze_git.json",
+          "artifact": "etl-pipeline-generated-included-auragaze_git.json",
           "sha256": "a1ed814f1f31ef11ec36b2293a5abdde6ac1261a06e7ea2fc181b611791f4e03"
         },
         "auragaze_flat": {
@@ -676,7 +676,7 @@
           "stderr": "",
           "seconds": 2.8839638760000526,
           "max_rss_kib": 35536,
-          "artifact": "talend-generated-included-auragaze_flat.json",
+          "artifact": "etl-pipeline-generated-included-auragaze_flat.json",
           "sha256": "0e0bd0ff5f5127c2ce452c4ba19f90bf030016975564ba9968afadfe2371e340"
         }
       },
@@ -685,13 +685,13 @@
       "counted_files": 2051,
       "extended": {
         "git": {
-          "artifact": "talend-generated-included-all-git.json",
+          "artifact": "etl-pipeline-generated-included-all-git.json",
           "ecosystem_findings": 1,
           "layout_findings": 1,
           "warnings": []
         },
         "flat": {
-          "artifact": "talend-generated-included-all-flat.json",
+          "artifact": "etl-pipeline-generated-included-all-flat.json",
           "ecosystem_findings": 1,
           "layout_findings": 1,
           "warnings": []
@@ -5420,8 +5420,8 @@
       "flat_median_ratio_to_git_reference": 10.35669229929237
     },
     {
-      "name": "talend-packed-generated-excluded",
-      "fixture": "talend-packed",
+      "name": "etl-pipeline-packed-generated-excluded",
+      "fixture": "etl-pipeline-packed",
       "revision": "4c9b899145d835de415daeaf56783f8033373d96",
       "logical_source_bytes": 2147484103,
       "source_files": 8293,
@@ -5433,7 +5433,7 @@
       },
       "packed_history": null,
       "packed_backend": {
-        "source_fixture": "talend",
+        "source_fixture": "etl-pipeline",
         "delta_window": 0,
         "delta_depth": 0,
         "standalone_fsck_passed": true,
@@ -5459,7 +5459,7 @@
           "--breakdown",
           "--rev",
           "4c9b899145d835de415daeaf56783f8033373d96",
-          "/stress/acceptance-final/talend-packed/git"
+          "/stress/acceptance-final/etl-pipeline-packed/git"
         ],
         "auragaze_git": [
           "/candidate/auragaze",
@@ -5467,13 +5467,13 @@
           "--breakdown",
           "--rev",
           "4c9b899145d835de415daeaf56783f8033373d96",
-          "/stress/acceptance-final/talend-packed/git"
+          "/stress/acceptance-final/etl-pipeline-packed/git"
         ],
         "auragaze_flat": [
           "/candidate/auragaze",
           "--json",
           "--breakdown",
-          "/stress/acceptance-final/talend/flat-generated-excluded"
+          "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
         ]
       },
       "results": {
@@ -5482,7 +5482,7 @@
           "stderr": "",
           "seconds": 30.51420555599998,
           "max_rss_kib": 889420,
-          "artifact": "talend-packed-generated-excluded-linguist_git.json",
+          "artifact": "etl-pipeline-packed-generated-excluded-linguist_git.json",
           "sha256": "facc0c4db6edc8a026764bc4dfabd2c6bf43b5608d77af27615e5caae3256672"
         },
         "auragaze_git": {
@@ -5490,7 +5490,7 @@
           "stderr": "",
           "seconds": 8.717635046000396,
           "max_rss_kib": 168864,
-          "artifact": "talend-packed-generated-excluded-auragaze_git.json",
+          "artifact": "etl-pipeline-packed-generated-excluded-auragaze_git.json",
           "sha256": "cbbd2c5a00cc5a0124cb7251a8c8b9eb9710d4cc6a8abbed7431704a7548c8b9"
         },
         "auragaze_flat": {
@@ -5498,7 +5498,7 @@
           "stderr": "",
           "seconds": 2.776822335000361,
           "max_rss_kib": 34652,
-          "artifact": "talend-packed-generated-excluded-auragaze_flat.json",
+          "artifact": "etl-pipeline-packed-generated-excluded-auragaze_flat.json",
           "sha256": "4684eecbe065fb78025de693b5cdf0e6c5135df1a434286ca81ff624ff64fefb"
         }
       },
@@ -5966,8 +5966,8 @@
       "flat_median_ratio_to_git_reference": 10.752640497307905
     },
     {
-      "name": "talend-packed-generated-included",
-      "fixture": "talend-packed",
+      "name": "etl-pipeline-packed-generated-included",
+      "fixture": "etl-pipeline-packed",
       "revision": "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
       "logical_source_bytes": 2147484104,
       "source_files": 8293,
@@ -5979,7 +5979,7 @@
       },
       "packed_history": null,
       "packed_backend": {
-        "source_fixture": "talend",
+        "source_fixture": "etl-pipeline",
         "delta_window": 0,
         "delta_depth": 0,
         "standalone_fsck_passed": true,
@@ -6005,7 +6005,7 @@
           "--breakdown",
           "--rev",
           "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-          "/stress/acceptance-final/talend-packed/git"
+          "/stress/acceptance-final/etl-pipeline-packed/git"
         ],
         "auragaze_git": [
           "/candidate/auragaze",
@@ -6013,13 +6013,13 @@
           "--breakdown",
           "--rev",
           "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-          "/stress/acceptance-final/talend-packed/git"
+          "/stress/acceptance-final/etl-pipeline-packed/git"
         ],
         "auragaze_flat": [
           "/candidate/auragaze",
           "--json",
           "--breakdown",
-          "/stress/acceptance-final/talend/flat-generated-included"
+          "/stress/acceptance-final/etl-pipeline/flat-generated-included"
         ]
       },
       "results": {
@@ -6028,7 +6028,7 @@
           "stderr": "",
           "seconds": 43.98293714399915,
           "max_rss_kib": 1365432,
-          "artifact": "talend-packed-generated-included-linguist_git.json",
+          "artifact": "etl-pipeline-packed-generated-included-linguist_git.json",
           "sha256": "f88771bba89408aad0e9c5363100694968ac29e336cdbfc930d028730bc5ddfe"
         },
         "auragaze_git": {
@@ -6036,7 +6036,7 @@
           "stderr": "",
           "seconds": 7.905558712000129,
           "max_rss_kib": 169752,
-          "artifact": "talend-packed-generated-included-auragaze_git.json",
+          "artifact": "etl-pipeline-packed-generated-included-auragaze_git.json",
           "sha256": "c621184968962d9f767a76dafc35a4aa39cf15c36ffab507ea370303aaeb19e3"
         },
         "auragaze_flat": {
@@ -6044,7 +6044,7 @@
           "stderr": "",
           "seconds": 2.7998007089991006,
           "max_rss_kib": 33220,
-          "artifact": "talend-packed-generated-included-auragaze_flat.json",
+          "artifact": "etl-pipeline-packed-generated-included-auragaze_flat.json",
           "sha256": "c56fb46e1df5e9babdf878613c700bf3f26a809914b25d2011b66e81ffaa9389"
         }
       },

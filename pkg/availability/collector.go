@@ -65,10 +65,6 @@ func (v referenceValue) evidenceKey() string {
 	return v.Target + "\x00" + v.Project + "\x00" + v.Kind + "\x00" + v.Evidence
 }
 
-type lfsValue struct{ LFSObservation }
-
-func (v lfsValue) evidenceKey() string { return v.Path + "\x00" + v.Kind }
-
 type diagnosticValue struct{ Diagnostic }
 
 func (v diagnosticValue) evidenceKey() string { return v.Path + "\x00" + v.Code + "\x00" + v.Message }

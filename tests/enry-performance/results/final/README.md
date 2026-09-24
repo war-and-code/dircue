@@ -32,8 +32,8 @@ The CLI matrix covers all 11 pinned public repositories and 14 stress variants. 
 | public-spring-framework | 561.00 / 576.65 | 11.00× / faster / different | 3.18× / faster / different | 3.19× / faster / different |
 | public-roslyn | 1698.15 / 1918.74 | 12.52× / faster / different | 3.67× / faster / different | 3.60× / faster / different |
 | public-aspnetcore | 655.60 / 683.49 | 9.88× / faster / different | 3.10× / faster / different | 3.00× / faster / different |
-| stress-talend-generated-excluded | 2763.30 / 2902.02 | 2.61× / faster / different | 2.08× / faster / different | 2.51× / faster / different |
-| stress-talend-generated-included | 2759.88 / 2871.95 | 2.64× / faster / different | 2.12× / faster / different | 2.52× / faster / different |
+| stress-etl-pipeline-generated-excluded | 2763.30 / 2902.02 | 2.61× / faster / different | 2.08× / faster / different | 2.51× / faster / different |
+| stress-etl-pipeline-generated-included | 2759.88 / 2871.95 | 2.64× / faster / different | 2.12× / faster / different | 2.52× / faster / different |
 | stress-xml-log-default | 17.69 / 19.13 | 1.09× / inconclusive / same | 1.31× / faster / same | 1.31× / faster / same |
 | stress-xml-log-detectable | 17.58 / 18.76 | 1.10× / inconclusive / different | 1.32× / faster / different | 1.32× / faster / different |
 | stress-dotnet-graph-default | 150.21 / 156.60 | 8.25× / faster / same | 2.17× / faster / same | 2.10× / faster / same |
@@ -42,8 +42,8 @@ The CLI matrix covers all 11 pinned public repositories and 14 stress variants. 
 | stress-tree-count-default-limit99999 | Unmeasured cutoff/empty work | Advisory | Advisory | Advisory |
 | stress-tree-count-default-limit100000 | Unmeasured cutoff/empty work | Advisory | Advisory | Advisory |
 | stress-tree-count-default-limit100001 | 1538.77 / 1587.06 | 8.82× / faster / same | 2.89× / faster / same | 2.89× / faster / same |
-| stress-talend-packed-generated-excluded | 2779.96 / 2870.00 | 2.63× / faster / different | 2.07× / faster / different | 2.50× / faster / different |
-| stress-talend-packed-generated-included | 2779.01 / 2899.75 | 2.63× / faster / different | 2.13× / faster / different | 2.56× / faster / different |
+| stress-etl-pipeline-packed-generated-excluded | 2779.96 / 2870.00 | 2.63× / faster / different | 2.07× / faster / different | 2.50× / faster / different |
+| stress-etl-pipeline-packed-generated-included | 2779.01 / 2899.75 | 2.63× / faster / different | 2.13× / faster / different | 2.56× / faster / different |
 | stress-xml-log-packed-default | 18.14 / 21.83 | 1.10× / faster / same | 1.32× / faster / same | 1.33× / faster / same |
 | stress-xml-log-packed-detectable | 17.72 / 19.54 | 1.09× / inconclusive / different | 1.32× / faster / different | 1.32× / faster / different |
 
@@ -62,19 +62,19 @@ All 22 nonadvisory cells retain at least 20 balanced rounds, three warmups, and 
 | public-spring-framework | 42.5 / 52.3 / 52.7 / 49.5 | 0.002 / 0.006 / 0.008 / 0.014 |
 | public-roslyn | 57.3 / 66.8 / 63.9 / 69.4 | 0.028 / 0.019 / 0.018 / 0.050 |
 | public-aspnetcore | 43.3 / 53.0 / 51.8 / 49.2 | 0.016 / 0.021 / 0.026 / 0.019 |
-| stress-talend-generated-excluded | 59.0 / 75.6 / 46.8 / 38.5 | 0.050 / 0.069 / 0.013 / 0.028 |
-| stress-talend-generated-included | 58.9 / 70.4 / 46.9 / 40.6 | 0.072 / 0.046 / 0.004 / 0.021 |
+| stress-etl-pipeline-generated-excluded | 59.0 / 75.6 / 46.8 / 38.5 | 0.050 / 0.069 / 0.013 / 0.028 |
+| stress-etl-pipeline-generated-included | 58.9 / 70.4 / 46.9 / 40.6 | 0.072 / 0.046 / 0.004 / 0.021 |
 | stress-xml-log-default | 23.3 / 27.5 / 27.6 / 18.8 | 0.035 / 0.053 / 0.063 / 0.051 |
 | stress-xml-log-detectable | 23.4 / 27.5 / 27.6 / 18.7 | 0.035 / 0.043 / 0.062 / 0.038 |
 | stress-dotnet-graph-default | 37.9 / 42.1 / 36.5 / 29.9 | 0.020 / 0.042 / 0.017 / 0.022 |
 | stress-boundaries-default | 32.1 / 36.4 / 30.7 / 20.6 | 0.490 / 0.418 / 0.053 / 0.054 |
 | stress-tree-count-default-limit100001 | 68.0 / 78.1 / 79.5 / 44.7 | 0.006 / 0.011 / 0.008 / 0.014 |
-| stress-talend-packed-generated-excluded | 57.6 / 70.5 / 46.9 / 44.1 | 0.056 / 0.055 / 0.005 / 0.020 |
-| stress-talend-packed-generated-included | 57.6 / 69.9 / 46.9 / 41.1 | 0.022 / 0.047 / 0.011 / 0.027 |
+| stress-etl-pipeline-packed-generated-excluded | 57.6 / 70.5 / 46.9 / 44.1 | 0.056 / 0.055 / 0.005 / 0.020 |
+| stress-etl-pipeline-packed-generated-included | 57.6 / 69.9 / 46.9 / 41.1 | 0.022 / 0.047 / 0.011 / 0.027 |
 | stress-xml-log-packed-default | 23.3 / 27.6 / 27.5 / 18.6 | 0.094 / 0.124 / 0.104 / 0.145 |
 | stress-xml-log-packed-detectable | 23.3 / 27.5 / 27.6 / 18.7 | 0.046 / 0.039 / 0.043 / 0.051 |
 
-RSS is the entire child process; CPU, observed maxima, allocation deltas and empirical p95 remain in the audit. TypeScript uses 32.5% more peak RSS than refreshed Enry and 35.5% more than its 128 KiB variant; smaller peak-only losses also occur for ripgrep, jq and Roslyn. These memory costs remain part of the result. Higher RSS and variability are not hidden by a faster median. Twenty samples do not characterize extreme-tail latency; this single window does not demonstrate three-window stability. Docker virtualization, warm/uncontrolled caches and uncontrolled governor/turbo/SMT are explicit waivers. Synthetic Talend shapes are not verified Talend exports.
+RSS is the entire child process; CPU, observed maxima, allocation deltas and empirical p95 remain in the audit. TypeScript uses 32.5% more peak RSS than refreshed Enry and 35.5% more than its 128 KiB variant; smaller peak-only losses also occur for ripgrep, jq and Roslyn. These memory costs remain part of the result. Higher RSS and variability are not hidden by a faster median. Twenty samples do not characterize extreme-tail latency; this single window does not demonstrate three-window stability. Docker virtualization, warm/uncontrolled caches and uncontrolled governor/turbo/SMT are explicit waivers. Synthetic ETL-pipeline shapes are not verified ETL-pipeline exports.
 
 The release binary is `d4c1011d3d615f303cd8d60760c0eeb8d3f234fda74ac2dfd77aa75e4e8ae637`. Its original build receipt identifies `f13f06841a49f4c862319feb88bc2a7549cee06b`; a preserved 79-file equality binding identifies packaging-only descendant `e2f9ae7035e087062afe55c8335e3f43569a1d8c`. The binary was reused, not represented as a new build. All three official baseline binaries and the shared driver match the prior experiment byte-for-byte. Historical RC1 results remain unchanged.
 

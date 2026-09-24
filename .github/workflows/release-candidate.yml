@@ -98,6 +98,10 @@ jobs:
       - name: Check Go core
         if: matrix.platform == 'linux-amd64'
         run: |
+          # TODO(#96): When the module path changes from 'dircue' to
+          # 'github.com/war-and-code/dircue', update the -ldflags -X path in
+          # scripts/release.py from '-X dircue/internal/cli.Version=...' to
+          # '-X github.com/war-and-code/dircue/internal/cli.Version=...'.
           go vet ./...
           go test -race ./...
       - name: Install pinned native Rust toolchain

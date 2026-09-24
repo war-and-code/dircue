@@ -22,7 +22,7 @@
   "smt_governor_turbo": "not applicable or not exposed by this macOS Apple Silicon host; unchanged",
   "tools": {
     "go": "/opt/homebrew/bin/go",
-    "python3": "/Users/gingeleski/.pyenv/versions/3.12.7/bin/python3",
+    "python3": "/home/user/.pyenv/versions/3.12.7/bin/python3",
     "hyperfine": {
       "unavailable": ""
     },

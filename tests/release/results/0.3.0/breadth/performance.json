@@ -3,11 +3,11 @@
   "started_at_utc": "2026-09-17T13:03:41.255862+00:00",
   "binaries": {
     "baseline": {
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+      "path": "/home/user/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
       "sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059"
     },
     "candidate": {
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+      "path": "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
       "sha256": "ff0d723411657a61dc4385c84fc011c1392ce7696066fc13f1c663b1c3967ade"
     }
   },
@@ -52,31 +52,31 @@
   "projects": [
     {
       "name": "spring-framework",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/spring-framework",
       "source": "git",
       "commands": {
         "baseline": [
-          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "/home/user/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ],
         "candidate": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "analyze",
           "projects",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ]
       },
       "language_match": true,
@@ -271,31 +271,31 @@
     },
     {
       "name": "roslyn",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "source": "git",
       "commands": {
         "baseline": [
-          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "/home/user/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ],
         "candidate": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "analyze",
           "projects",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ]
       },
       "language_match": true,
@@ -490,31 +490,31 @@
     },
     {
       "name": "aspnetcore",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/aspnetcore",
       "source": "git",
       "commands": {
         "baseline": [
-          "/Users/gingeleski/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
+          "/home/user/Workspace/dircue/.cache/publish-v020/downloaded-dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "candidate": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/dircue",
+          "/home/user/Workspace/dircue/.cache/v030-breadth/dircue",
           "analyze",
           "projects",
           "--json",
           "--source",
           "git",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ]
       },
       "language_match": true,

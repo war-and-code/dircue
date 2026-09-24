@@ -75,8 +75,8 @@ func Validate(d Document) error {
 		if err := validatePath(run.Scope); err != nil {
 			return fail("coverage ledger scope: %v", err)
 		}
-		if run.Binding != "verified" && run.Binding != "mismatch" && run.Binding != "unknown" {
-			return fail("coverage ledger has invalid binding %q", run.Binding)
+		if run.Binding != "verified" && run.Binding != "mismatch" && run.Binding != "unknown" && run.Binding != "caller_asserted" {
+			return fail("coverage ledger has invalid binding %q; valid values: verified, mismatch, unknown, caller_asserted", run.Binding)
 		}
 		for _, filename := range run.CoveredFiles {
 			if err := validatePath(filename); err != nil {
