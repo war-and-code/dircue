@@ -1,6 +1,6 @@
 {
   "schema": "dircue-public-map-quality-0.1",
-  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
+  "metric_scope": "Exact precision and recall over each entry\u2019s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
   "repositories": [
     {
       "id": "microservices-demo",
@@ -205,7 +205,7 @@
         },
         {
           "kind": "deployable",
-          "name": "default",
+          "name": "emailservice",
           "paths": [
             "src/emailservice/Dockerfile"
           ],
@@ -217,7 +217,7 @@
         },
         {
           "kind": "deployable",
-          "name": "default",
+          "name": "src",
           "paths": [
             "src/cartservice/src/Dockerfile"
           ],
@@ -391,7 +391,7 @@
           "type": "builds",
           "from": {
             "kind": "deployable",
-            "name": "default",
+            "name": "src",
             "paths": [
               "src/cartservice/src/Dockerfile"
             ],
@@ -428,7 +428,7 @@
           "type": "builds",
           "from": {
             "kind": "deployable",
-            "name": "default",
+            "name": "emailservice",
             "paths": [
               "src/emailservice/Dockerfile"
             ],
@@ -2222,7 +2222,7 @@
       "expected_nodes": [
         {
           "kind": "deployable",
-          "name": "main.tf",
+          "name": "(root)",
           "paths": [
             "."
           ],
