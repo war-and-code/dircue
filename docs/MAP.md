@@ -397,10 +397,13 @@ deletion. The caller selects the pair; dircue does
 not infer repository identity or rename relationships. A valid comparison exits
 `0` even when changes are present.
 
-`dircue map compare` consumes map documents. The older `dircue compare`
-command consumes aggregate `analyze all` profiles; their input and output
-contracts are different. This split preserves the legacy command contract;
-scripts comparing maps should use `dircue map compare` explicitly.
+`dircue map compare` accepts only map documents (`kind: "map"`). Passing a
+legacy profile document produces a helpful error pointing to `dircue compare`.
+The older `dircue compare` command accepts only aggregate `analyze all` profile
+documents; passing a map document to it produces a helpful error pointing to
+`dircue map compare`. Their input and output contracts are different. This
+split preserves the legacy command contract; scripts comparing maps should use
+`dircue map compare` explicitly.
 
 ## Locate SARIF results in the map
 
