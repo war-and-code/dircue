@@ -47,6 +47,11 @@ func New(options Options) *Detector {
 
 func (d *Detector) Name() string { return DetectorName }
 
+// prismaCandidate returns true for Prisma schema files.
+func prismaCandidate(name string) bool {
+	return path.Base(strings.ToLower(name)) == "schema.prisma"
+}
+
 // javaCandidate returns true for Java/Kotlin source files and Maven/Gradle
 // build files that may contain Spring Boot entry-point declarations.
 func javaCandidate(name string) bool {
@@ -75,12 +80,13 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	goFile := strings.HasSuffix(filename, ".go")
 	pythonFile := strings.HasSuffix(filename, ".py")
 	config := configCandidate(file.Path)
+	prisma := prismaCandidate(file.Path)
 	dockerfile := isDockerfile(file.Path)
 	java := javaCandidate(file.Path)
 	compose := isComposeFile(file.Path)
 	k8s := !compose && isK8sManifest(file.Path)
 	contract := contractCandidate(file.Path)
-	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java && !compose && !k8s && !contract {
+	if !proto && !goFile && !pythonFile && !config && !prisma && !dockerfile && !java && !compose && !k8s && !contract {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -123,6 +129,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		case base == "build.gradle" || base == "build.gradle.kts":
 			observations = parseGradleMainClass(file.Path, file.Content)
 		}
+	case prisma:
+		observations = parsePrismaSchema(file.Path, file.Content)
 	case config:
 		if strings.HasSuffix(filename, ".json") {
 			var depthLimited bool
