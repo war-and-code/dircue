@@ -286,34 +286,139 @@ def match_capability(label: dict, node: dict) -> bool:
     return node_cap in allowed or node_cap == label_cap
 
 
+def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
+    """Check if a label edge endpoint string could refer to the given dircue node.
+
+    Uses the same semantic keys as the per-kind node matchers so that an edge
+    endpoint resolves correctly regardless of how dircue names the node:
+    - component: name equality; Go-module base-name normalisation
+    - deployable: name equality; path/evidence-path equality; path-prefix dir match;
+                  compose "file:service" format; "<path> image" suffix
+    - interface: name equality; "<name> binary" / "<name> gRPC service" suffixes;
+                 declared-port "port:N" / "N" normalisation; grpc short name
+    - capability: exact name (e.g. "datastore:dynamodb"); alias resolution
+    """
+    kind = node.get("kind", "")
+    name = node.get("name", "")
+    norm_ep = normalize(endpoint_str)
+    norm_name = normalize(name)
+
+    if not norm_ep or not kind:
+        return False
+
+    # Direct name match works for all kinds
+    if norm_ep == norm_name:
+        return True
+
+    if kind == "component":
+        # Go module: endpoint may be the full module path ("github.com/grafana/loki/v3")
+        # while the node stores the base name ("loki")
+        if "/" in endpoint_str:
+            if normalize(_go_module_base(endpoint_str)) == norm_name:
+                return True
+        # Reverse: node has the full module path, endpoint is the short base name
+        if "/" in name:
+            if norm_ep == normalize(_go_module_base(name)):
+                return True
+
+    elif kind == "deployable":
+        p = node.get("properties", {})
+        node_paths = set(node.get("paths", []))
+        node_ev_paths = {ev.get("path", "") for ev in node.get("evidence", [])}
+        all_paths = node_paths | node_ev_paths
+
+        # Path match: endpoint is a file path that appears in this node's paths/evidence
+        if endpoint_str in all_paths:
+            return True
+        # "<path> image" suffix: strip " image" and check path or name
+        if norm_ep.endswith(" image"):
+            ep_base = endpoint_str[:-6].strip()
+            if ep_base in all_paths or normalize(ep_base) == norm_name:
+                return True
+        # "(description)" suffix in parentheses: e.g. "ruff (container image)"
+        # strip the parenthetical and match against the name or path
+        if "(" in endpoint_str:
+            ep_bare = normalize(endpoint_str[:endpoint_str.index("(")].strip())
+            if ep_bare == norm_name:
+                return True
+            if ep_bare and ep_bare in all_paths:
+                return True
+        # Directory prefix: endpoint is a directory prefix of a path in this node
+        ep_clean = endpoint_str.rstrip("/")
+        for np in all_paths:
+            if np.startswith(ep_clean + "/"):
+                return True
+        # Compose service "file:service" format, e.g. "docker-compose.yml:web"
+        # The part after the colon is the service name
+        if ":" in endpoint_str and not endpoint_str.startswith("data"):
+            colon_idx = endpoint_str.index(":")
+            file_part = endpoint_str[:colon_idx]
+            service_name = endpoint_str[colon_idx + 1:]
+            if normalize(service_name) == norm_name:
+                return True
+            # Validate the file part matches the node's evidence file
+            if normalize(service_name) == norm_name and any(
+                file_part in ev_p for ev_p in all_paths
+            ):
+                return True
+
+    elif kind == "interface":
+        p = node.get("properties", {})
+        ikind = p.get("interface_kind", "")
+
+        # "<name> binary": strip " binary" suffix and match node name with binary kind
+        if norm_ep.endswith(" binary") and ikind in ("binary", "cargo-default-run"):
+            if normalize(endpoint_str[:-7].strip()) == norm_name:
+                return True
+
+        # "<name> gRPC service": strip suffix and match; handle "pkg.ServiceName" format
+        if "grpc service" in norm_ep and ikind == "service":
+            service_name = norm_ep.replace(" grpc service", "").strip()
+            node_short = norm_name.split(".")[-1] if "." in norm_name else norm_name
+            if service_name == node_short or service_name == norm_name:
+                return True
+        # For grpc services: endpoint may just be the short service name
+        if ikind == "service":
+            node_short = norm_name.split(".")[-1] if "." in norm_name else norm_name
+            if norm_ep == node_short:
+                return True
+
+        # Declared port: "port:3100", "3100", "http" (named port)
+        if ikind == "declared_port":
+            def _extract_port(s: str) -> str:
+                return s.lower().replace("port:", "").strip()
+            if _extract_port(endpoint_str) == _extract_port(name):
+                return True
+
+        # npm_start: match "start" script
+        if ikind == "script" and norm_name == "start":
+            if norm_ep in ("start", "npm start", "start server"):
+                return True
+
+    elif kind == "capability":
+        # Capabilities: exact name or alias
+        allowed = resolve_kind(endpoint_str, CAPABILITY_ALIASES)
+        if name in allowed or name == endpoint_str:
+            return True
+
+    return False
+
+
 def match_edge(label: dict, edge: dict, id_to_node: dict[str, dict]) -> bool:
-    """Return True iff a label edge matches a dircue edge."""
-    # Edge type match (exact)
+    """Return True iff a label edge matches a dircue edge.
+
+    Edge type must match exactly.  Both endpoints are resolved via
+    node_matches_endpoint, which uses the same semantic keys as the per-kind
+    node matchers (component/deployable/interface/capability).
+    """
     if label.get("type") != edge.get("type"):
         return False
     from_node = id_to_node.get(edge.get("from", ""), {})
     to_node = id_to_node.get(edge.get("to", ""), {})
-    # Extract endpoint names from label (may include "file:name" format)
     label_from = label.get("from", "")
     label_to = label.get("to", "")
-
-    def endpoint_matches(label_ep: str, node: dict) -> bool:
-        """Check if a label endpoint description matches a dircue node."""
-        node_name = normalize(node.get("name", ""))
-        # Direct name match
-        if normalize(label_ep) == node_name:
-            return True
-        # "file:name" format — extract the name after the colon
-        if ":" in label_ep:
-            parts = label_ep.split(":", 1)
-            if normalize(parts[1]) == node_name:
-                return True
-        # Partial match: label endpoint contains the node name
-        if node_name and node_name in normalize(label_ep):
-            return True
-        return False
-
-    return endpoint_matches(label_from, from_node) and endpoint_matches(label_to, to_node)
+    return (node_matches_endpoint(from_node, label_from) and
+            node_matches_endpoint(to_node, label_to))
 
 
 # ---------------------------------------------------------------------------
@@ -382,7 +487,10 @@ def score_components(label_entry: dict, map_doc: dict, oracle: set[str]) -> Ques
     scoped = [n for n in oracle_nodes(map_doc, oracle) if n.get("kind") == "component"]
     matched_nodes: set[int] = set()
     for lb in labels:
-        found = next((i for i, n in enumerate(scoped) if match_component(lb, n)), None)
+        found = next(
+            (i for i, n in enumerate(scoped) if i not in matched_nodes and match_component(lb, n)),
+            None,
+        )
         if found is not None:
             r.tp += 1
             r.tp_items.append(f"name={lb.get('name')} eco={lb.get('ecosystem')}")
@@ -403,7 +511,10 @@ def score_deployables(label_entry: dict, map_doc: dict, oracle: set[str]) -> Que
     scoped = [n for n in oracle_nodes(map_doc, oracle) if n.get("kind") == "deployable"]
     matched_nodes: set[int] = set()
     for lb in labels:
-        found = next((i for i, n in enumerate(scoped) if match_deployable(lb, n)), None)
+        found = next(
+            (i for i, n in enumerate(scoped) if i not in matched_nodes and match_deployable(lb, n)),
+            None,
+        )
         if found is not None:
             r.tp += 1
             r.tp_items.append(f"kind={lb.get('kind')} name={lb.get('name')}")
@@ -424,7 +535,10 @@ def score_interfaces(label_entry: dict, map_doc: dict, oracle: set[str]) -> Ques
     scoped = [n for n in oracle_nodes(map_doc, oracle) if n.get("kind") == "interface"]
     matched_nodes: set[int] = set()
     for lb in labels:
-        found = next((i for i, n in enumerate(scoped) if match_interface(lb, n)), None)
+        found = next(
+            (i for i, n in enumerate(scoped) if i not in matched_nodes and match_interface(lb, n)),
+            None,
+        )
         if found is not None:
             r.tp += 1
             r.tp_items.append(f"kind={lb.get('kind')} name={lb.get('name')}")
@@ -474,12 +588,31 @@ def score_capabilities(label_entry: dict, map_doc: dict, oracle: set[str]) -> Qu
         lb_owner = lb.get("owner", "")
         found = None
         for i, n in enumerate(scoped_caps):
+            if i in matched_caps:  # skip nodes already matched by a previous label
+                continue
             if not match_capability(lb, n):
                 continue
             # Check owner if specified
             if lb_owner:
                 owners = cap_owners.get(n.get("name", ""), set())
-                if not any(normalize(lb_owner) == normalize(o) for o in owners):
+                # Normalised label owner: try exact match first, then Go-module
+                # base-name match (label may use the full module path while dircue
+                # stores the short name derived via moduleBaseName).
+                def _owner_match(lbo: str, os: set[str]) -> bool:
+                    norm_lbo = normalize(lbo)
+                    if any(norm_lbo == normalize(o) for o in os):
+                        return True
+                    # Go-module: "github.com/org/repo/v3" ↔ "repo"
+                    if "/" in lbo:
+                        short = normalize(_go_module_base(lbo))
+                        if any(short == normalize(o) for o in os):
+                            return True
+                    # Reverse: owner stored as full path, label is short name
+                    for o in os:
+                        if "/" in o and normalize(_go_module_base(o)) == norm_lbo:
+                            return True
+                    return False
+                if not _owner_match(lb_owner, owners):
                     continue
             found = i
             break
