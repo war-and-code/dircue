@@ -2,7 +2,11 @@
 // source imports, and neutral capability evidence without executing content.
 package intentmap
 
-import "dircue/pkg/declarations"
+import (
+	"path"
+
+	"dircue/pkg/declarations"
+)
 
 const (
 	DetectorName           = "dircue-intent-map"
@@ -65,6 +69,13 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 	defer d.mu.Unlock()
 	for _, project := range projects {
 		d.projects[project.ID] = project.Root
+		// Store the module/package name base for Go binary naming. When
+		// main.go sits at the project root, the binary name comes from
+		// the module path rather than the directory name (which is not
+		// portable across different checkout paths).
+		if name := path.Base(project.Name); project.Name != "" && name != "" && name != "." {
+			d.projectNames[project.ID] = name
+		}
 		for _, v := range project.Interfaces {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}

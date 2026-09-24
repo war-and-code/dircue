@@ -285,7 +285,18 @@ func safeConfigKey(s string) bool {
 }
 func configEntryKey(s string) bool {
 	u := strings.ToUpper(s)
-	return u == "PORT" || u == "SERVER.PORT" || u == "ASPNETCORE_URLS" || strings.HasSuffix(u, ":URLS") || strings.HasSuffix(u, ".PORT")
+	// Match only keys that declare the application's own listener address or
+	// port. Datastore connection ports (DB_PORT, test.replica.port, etc.) must
+	// never match — they are capability evidence, not interface declarations.
+	switch u {
+	case "PORT", "HTTP_PORT", "HTTPS_PORT",
+		"LISTEN_ADDR", "LISTEN_PORT",
+		"SERVER.PORT",                                                              // Spring application.yml / application.properties
+		"ASPNETCORE_URLS", "ASPNETCORE_HTTP_PORTS", "ASPNETCORE_HTTPS_PORTS":      // ASP.NET Core
+		return true
+	}
+	// KESTREL:ENDPOINTS:*:URL and similar ASP.NET Core hierarchy forms.
+	return strings.HasSuffix(u, ":URL") && strings.HasPrefix(u, "KESTREL:")
 }
 func configCapability(s string) (string, bool) {
 	u := strings.ToUpper(s)
