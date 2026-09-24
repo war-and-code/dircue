@@ -28,7 +28,7 @@ provider responsible for an observation.
 | --- | --- |
 | `content` | Language populations and source, test, documentation, generated, configuration, data, binary, archive, certificate, and other content roles. |
 | `component` | Supported projects and workspace members inferred from declarations. |
-| `deployable` | Container, Compose, Kubernetes, Helm, Terraform, serverless, and CI definitions recognized by the built-in observer. |
+| `deployable` | Container, Compose, Kubernetes, Helm, Terraform, serverless, CI definitions, and Maven WAR/EAR archives recognized by the built-in observer. Maven `<packaging>war</packaging>` or `<packaging>ear</packaging>` in a pom.xml emits a deployable node of kind `archive` with provider `maven` and a `format` property (`war` or `ear`). The artifact name uses `<finalName>` when declared, or `${artifactId}-${version}.war` (Maven default) otherwise; coverage is `qualified` when static property expressions cannot be resolved. A `builds` edge connects the archive node to the co-located Maven component. |
 | `interface` | Supported declared or syntax-observed interfaces: protobuf services and their RPC operations; OpenAPI and Swagger documents (`interface_kind: api_document`, named by `info.title`) and their `METHOD /path` operations (`interface_kind: operation`, at most 500 per document, with `operations_omitted` beyond that); AsyncAPI documents and GraphQL schemas (`api_document`); Noir endpoints; Go, Rust, npm and Python entry points; Spring Boot applications and main classes; and declared ports from Dockerfile `EXPOSE`, Compose `ports`/`expose` and Kubernetes `containerPort` (`interface_kind: declared_port`). |
 | `capability` | Bounded code/configuration observations such as imported services. |
 | `package` | Packages imported from an explicitly attached Syft report. |
@@ -54,7 +54,7 @@ keys for future producers.
 | Content population | `role`, `scope=inventory_population`, `files`, `bytes`; language populations also have `language` and `percentage`. |
 | Individual content | `role`, `format`, `bytes`; a filename hint alone has partial coverage. |
 | Component | `root`, `ecosystem`, `project_kind`; `language` is present only when attributed, with `language_basis`. Auxiliary paths may carry `role` and `role_basis=path_name`. Toolchain declarations that are not interface endpoints — npm `engines`, Python `requires-python`, Rust toolchain, build backends, and build scripts — are stored as component properties: `runtime_requirements` (semicolon-separated list), `build_backend`, and `build_script`. |
-| Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. |
+| Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. Archive deployables (Maven WAR/EAR) also carry `format` (`war` or `ear`). |
 | Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. `owning_component` holds the ID of the declaring component node when determinable. |
 | Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
 | Package | `package_type` from the attached provider report. |
@@ -321,7 +321,7 @@ The built-in catalog maps package coordinates and import names to capability
 categories using ecosystem-aware exact matching. Each ecosystem has its own
 lookup table keyed by canonical package name; entries cover the top ~10
 packages per category across npm, PyPI, RubyGems, Maven/Gradle, NuGet, Go,
-Cargo, Composer, and Python import names. The catalog is in
+Cargo, Composer, Dart/pub, and Python import names. The catalog is in
 `pkg/intentmap/catalog.go`.
 
 **Ecosystem matching rules:**
@@ -338,6 +338,7 @@ Cargo, Composer, and Python import names. The catalog is in
 | Go imports | `go-import` | Import path prefix | Exact match |
 | Cargo | `cargo-dependency` | Exact crate name | Strip space-separated version |
 | Composer | `php-dependency` | `vendor/package` exact | None |
+| Dart/pub | `dart-dependency` | Exact package name | None |
 | Python imports | `python-import` | Exact import name | None |
 
 Current capability categories:
@@ -368,6 +369,7 @@ Current capability categories:
 | `cloud:azure` | Azure SDK and service client libraries |
 | `cloud:gcp` | Google Cloud / Firebase client libraries |
 | `search:elasticsearch` | Elasticsearch / OpenSearch full-text search clients |
+| `directory:ldap` | LDAP client libraries and embedded LDAP server libraries (Spring LDAP, UnboundID LDAP SDK, Apache Directory Server, python-ldap, ldap3, ldapjs) |
 
 Evidence levels (stored in the `basis` property of a capability node or
 `uses_capability` edge):

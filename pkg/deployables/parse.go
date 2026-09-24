@@ -36,6 +36,8 @@ func parse(name string, content []byte) ([]Definition, bool, error) {
 		return parseJenkins(content)
 	case base == "program.cs" && isAppHostDir(path.Dir(name)):
 		return parseAspireAppHost(name, content)
+	case base == "pom.xml":
+		return parsePomXML(name, content)
 	default:
 		return parseYAML(name, content)
 	}
@@ -284,6 +286,108 @@ func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error)
 	}
 	if len(d.References) == 0 {
 		return nil, false, nil
+	}
+	return []Definition{d}, true, nil
+}
+
+// mavenPackagingRE extracts the top-level (non-profile) <packaging> value from
+// a pom.xml. It matches the first bare (unindented or shallowly indented)
+// <packaging>…</packaging> element, which in a well-formed POM is the project
+// packaging and not a plugin-configuration value.
+var (
+	mavenPackagingRE = regexp.MustCompile(`(?m)^[ \t]{0,4}<packaging>\s*([a-zA-Z0-9_-]+)\s*</packaging>`)
+	mavenArtifactRE  = regexp.MustCompile(`(?m)^[ \t]{0,4}<artifactId>\s*([A-Za-z0-9_.\-]+)\s*</artifactId>`)
+	mavenVersionRE   = regexp.MustCompile(`(?m)^[ \t]{0,4}<version>\s*([^<\s]+)\s*</version>`)
+	mavenFinalNameRE = regexp.MustCompile(`(?m)^[ \t]{0,8}<finalName>\s*([^<\s]+)\s*</finalName>`)
+)
+
+// parsePomXML detects Maven WAR and EAR packaging declarations and emits a
+// single archive deployable per pom.xml that declares one of those types. EJB
+// and other non-runnable packaging types are not modeled as deployables because
+// they are library artifacts, not independently deployable units.
+//
+// The artifact name follows Maven's default convention:
+//
+//	${finalName}.war  if <finalName> is declared in the top-level <build>
+//	${artifactId}-${version}.war  otherwise (Maven's default)
+//
+// Property expressions that cannot be resolved statically (e.g. ${project.version})
+// produce a "qualified" coverage with a named reason.
+func parsePomXML(name string, content []byte) ([]Definition, bool, error) {
+	if bytes.IndexByte(content, 0) >= 0 {
+		return nil, false, errors.New("pom.xml contains binary data")
+	}
+	pkgMatch := mavenPackagingRE.FindSubmatch(content)
+	if pkgMatch == nil {
+		return nil, false, nil
+	}
+	packaging := strings.ToLower(string(pkgMatch[1]))
+	if packaging != "war" && packaging != "ear" {
+		return nil, false, nil
+	}
+	pkgLine := lineOf(content, "<packaging>")
+
+	// Artifact name resolution.
+	artifactID := ""
+	if m := mavenArtifactRE.FindSubmatch(content); m != nil {
+		artifactID = string(m[1])
+	}
+	version := ""
+	if m := mavenVersionRE.FindSubmatch(content); m != nil {
+		version = string(m[1])
+	}
+	finalName := ""
+	if m := mavenFinalNameRE.FindSubmatch(content); m != nil {
+		finalName = string(m[1])
+	}
+
+	coverage := "complete"
+	artifactName := ""
+	switch {
+	case finalName != "":
+		if strings.Contains(finalName, "${") {
+			// Unresolved property expression — retain partial.
+			artifactName = finalName + "." + packaging
+			coverage = "qualified"
+		} else {
+			artifactName = finalName + "." + packaging
+		}
+	case artifactID != "" && version != "":
+		if strings.Contains(artifactID, "${") || strings.Contains(version, "${") {
+			artifactName = artifactID + "-" + version + "." + packaging
+			coverage = "qualified"
+		} else {
+			artifactName = artifactID + "-" + version + "." + packaging
+		}
+	case artifactID != "":
+		// No version: partial — version resolution is required for a complete
+		// artifact name but may come from a parent POM.
+		artifactName = artifactID + "." + packaging
+		coverage = "qualified"
+	default:
+		// Cannot produce a stable name without an artifactId.
+		return nil, false, nil
+	}
+
+	evidence := []Evidence{{Field: "packaging", Value: packaging, Line: pkgLine, Basis: "maven-pom-field"}}
+	if artifactID != "" {
+		evidence = append(evidence, Evidence{Field: "artifactId", Value: bounded(artifactID), Line: lineOf(content, "<artifactId>"), Basis: "maven-pom-field"})
+	}
+	if finalName != "" {
+		evidence = append(evidence, Evidence{Field: "finalName", Value: bounded(finalName), Line: lineOf(content, "<finalName>"), Basis: "maven-pom-field"})
+	}
+	if version != "" {
+		evidence = append(evidence, Evidence{Field: "version", Value: bounded(version), Line: lineOf(content, "<version>"), Basis: "maven-pom-field"})
+	}
+
+	d := Definition{
+		Kind:       "archive",
+		Provider:   "maven",
+		Name:       bounded(artifactName),
+		Format:     packaging,
+		Coverage:   coverage,
+		Evidence:   evidence,
+		References: []Reference{},
 	}
 	return []Definition{d}, true, nil
 }
