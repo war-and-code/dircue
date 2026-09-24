@@ -351,12 +351,7 @@ func compareSourceDocuments(base, head mapdoc.Document) string {
 }
 
 func gitTreeDigest(d *mapdoc.Digest, tree string) bool {
-	// Accept both the split form (scope="gitignore_filtered", normalization="git_normalized")
-	// and the legacy combined form (scope="gitignore_filtered+git_normalized") for
-	// documents produced before the Normalization field was added.
-	gitNorm := (d.Scope == "gitignore_filtered" && d.Normalization == "git_normalized") ||
-		d.Scope == "gitignore_filtered+git_normalized"
-	if !gitNorm {
+	if d.Scope != "gitignore_filtered" || d.Normalization != "git_normalized" {
 		return false
 	}
 	switch d.Algorithm {
