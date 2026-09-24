@@ -296,6 +296,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 		resolve(docs, c.files)
 	}
 	resolveLegacy(docs, c.files)
+	resolveGradleNames(docs)
 	totalBytes := 0
 	for _, d := range docs {
 		for _, diagnostic := range d.Diagnostics {
@@ -528,6 +529,14 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 			}
 		}
 	}
+	if strings.HasPrefix(path.Base(name), "settings.gradle") {
+		for _, requirement := range d.Project.Requirements {
+			if requirement.Kind == "gradle-root-name" && requirement.Condition == "" && mavenArtifactName.MatchString(requirement.Value) {
+				d.Project.Name = requirement.Value
+				break
+			}
+		}
+	}
 	if len(legacy.Diagnostics) > 0 {
 		d.Parsed = false
 	}
@@ -579,6 +588,29 @@ func resolveLegacy(docs []*Document, files map[string]bool) {
 					r.State = "resolved"
 				}
 			}
+		}
+	}
+}
+
+// resolveGradleNames propagates rootProject.name from settings.gradle documents
+// to gradle build.gradle projects at the same root that have no name yet.
+func resolveGradleNames(docs []*Document) {
+	settingsNames := map[string]string{}
+	for _, d := range docs {
+		if d.Project == nil || d.Project.Name == "" {
+			continue
+		}
+		if !strings.HasPrefix(path.Base(d.Project.ID), "settings.gradle") {
+			continue
+		}
+		settingsNames[d.Project.Root] = d.Project.Name
+	}
+	for _, d := range docs {
+		if d.Project == nil || d.Project.Kind != "gradle" || d.Project.Name != "" {
+			continue
+		}
+		if name, ok := settingsNames[d.Project.Root]; ok {
+			d.Project.Name = name
 		}
 	}
 }
