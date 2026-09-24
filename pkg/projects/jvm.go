@@ -718,6 +718,11 @@ func jvmParseGradle(name string, content []byte, d *Document) {
 				}
 			}
 		}
+		if depth == 0 && strings.HasPrefix(path.Base(name), "settings.gradle") {
+			if rootName, valid := jvmRootProjectName(row); valid && !budget.exceeded {
+				budget.requirement(Requirement{Kind: "gradle-root-name", Value: rootName, State: "declared", Evidence: name})
+			}
+		}
 		if depth == 0 {
 			if id, target, valid := jvmProjectDir(row); valid {
 				id = ":" + strings.TrimPrefix(id, ":")
@@ -790,6 +795,29 @@ func jvmParseGradle(name string, content []byte, d *Document) {
 	if p != nil {
 		jvmGradleToolchains(name, tokens, p, budget)
 	}
+}
+
+// jvmRootProjectName recognizes rootProject.name = "name" or rootProject.name = 'name'.
+func jvmRootProjectName(row []jvmToken) (string, bool) {
+	if len(row) != 5 {
+		return "", false
+	}
+	if row[0].literal || row[0].value != "rootProject" {
+		return "", false
+	}
+	if row[1].literal || row[1].value != "." {
+		return "", false
+	}
+	if row[2].literal || row[2].value != "name" {
+		return "", false
+	}
+	if row[3].literal || row[3].value != "=" {
+		return "", false
+	}
+	if !row[4].literal || row[4].value == "" || row[4].value == "<dynamic>" {
+		return "", false
+	}
+	return row[4].value, true
 }
 
 // jvmProjectDir recognizes the literal form project(":id").projectDir = file("dir").

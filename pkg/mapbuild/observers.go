@@ -55,6 +55,15 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	}
 	composeImages := map[string][]imageOwner{}
 	skaffoldImages := map[string][]imageOwner{}
+	// composeServiceByID tracks compose service node IDs keyed by service name
+	// so that depends_on references can be resolved after all nodes are added.
+	composeServiceByID := map[string]string{}
+	type composeDep struct {
+		fromID   string
+		toName   string
+		evidence mapdoc.Evidence
+	}
+	var composeDeps []composeDep
 	seenDeployables := map[string]int{}
 	seenEdges := map[string]bool{}
 	for _, edge := range d.Edges {
@@ -122,8 +131,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			name     string
 			evidence mapdoc.Evidence
 		}
+		if def.Provider == "compose" && def.Kind == "service" {
+			composeServiceByID[def.Name] = n.ID
+		}
 		for _, ref := range def.References {
 			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
+			if ref.Kind == "service_dependency" && ref.Qualification == "local" {
+				composeDeps = append(composeDeps, composeDep{fromID: n.ID, toName: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
+			}
 			if (ref.Kind == "build_context" || ref.Kind == "code_uri") && ref.Qualification == "local" {
 				resolved := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
 				owners := componentsByRoot[resolved]
@@ -204,6 +219,23 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		d.Nodes = append(d.Nodes, n)
 	}
+	// Emit depends_on edges for compose service dependencies declared via depends_on.
+	// Both sides must be known compose service deployable nodes.
+	for _, dep := range composeDeps {
+		toID, ok := composeServiceByID[dep.toName]
+		if !ok {
+			continue
+		}
+		e := mapdoc.NewEdge(mapdoc.EdgeDependsOn, dep.fromID, toID, "compose-depends_on:"+dep.toName)
+		if seenEdges[e.ID] {
+			continue
+		}
+		seenEdges[e.ID] = true
+		e.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		e.Evidence = []mapdoc.Evidence{dep.evidence}
+		d.Edges = append(d.Edges, e)
+	}
+
 	for _, use := range imageUsers {
 		imageName := normalizedImageRepository(use.image)
 		owners := composeImages[imageName]
@@ -518,9 +550,12 @@ type capGroup struct {
 }
 
 func (g *capGroup) worstState(state string) {
-	// partial < declared < observed (worst = partial)
+	// partial < conditional < declared < observed (worst = partial)
 	if state == "partial" || state == "unresolved" {
 		g.state = "partial"
+	} else if g.state == "conditional" && (state == "declared" || state == "observed") {
+		// An unconditional declaration supersedes a conditional one.
+		g.state = state
 	}
 }
 
@@ -607,6 +642,8 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		if g.state == "partial" || g.state == "unresolved" {
 			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"observation_" + g.state}}
+		} else if g.state == "conditional" {
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"optional_dependency"}}
 		}
 		n.Evidence = slices.Clone(g.evidence)
 		if g.projectID != "" {
@@ -628,13 +665,74 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		d.Nodes = append(d.Nodes, n)
 	}
 
+	// ── Prerequisite / build-backend / build-script recording ─────────────
+	// These are toolchain declarations, not interface endpoints. Record them
+	// as structured properties on the owning component node rather than
+	// emitting them as separate interface nodes.
+	//
+	// Aggregate by (kind, projectID) so multiple engines (node + yarn) for the
+	// same component are joined as a semicolon-separated runtime_requirements
+	// string on the component's Properties.
+	componentNodeIdx := map[string]int{} // component ID → index in d.Nodes
+	for i, n := range d.Nodes {
+		if n.Kind == mapdoc.NodeComponent {
+			componentNodeIdx[n.ID] = i
+		}
+	}
+	runtimeReqs := map[string][]string{} // ownerID → ["node >= 18", "yarn ^4.0.0", ...]
+	for _, o := range r.Observations {
+		if o.Kind != intentmap.KindInterface {
+			continue
+		}
+		ikind := o.Properties["interface_kind"]
+		if ikind != "prerequisite" && ikind != "python-build-backend" && ikind != "cargo-build-script" {
+			continue
+		}
+		ownerID := componentsByManifest[o.ProjectID]
+		if ownerID == "" {
+			continue
+		}
+		switch ikind {
+		case "prerequisite":
+			entry := o.Name
+			// The target is the declared range as written (">= 18",
+			// "^4.0.0"); it is recorded verbatim after the tool name.
+			if t := o.Properties["target"]; t != "" {
+				entry += " " + t
+			}
+			runtimeReqs[ownerID] = append(runtimeReqs[ownerID], entry)
+		case "python-build-backend":
+			if idx, ok := componentNodeIdx[ownerID]; ok {
+				d.Nodes[idx].Properties["build_backend"] = o.Name
+			}
+		case "cargo-build-script":
+			if idx, ok := componentNodeIdx[ownerID]; ok {
+				d.Nodes[idx].Properties["build_script"] = o.Name
+			}
+		}
+	}
+	for ownerID, reqs := range runtimeReqs {
+		if idx, ok := componentNodeIdx[ownerID]; ok {
+			slices.Sort(reqs)
+			d.Nodes[idx].Properties["runtime_requirements"] = strings.Join(reqs, "; ")
+		}
+	}
+
 	// ── Interface observations ─────────────────────────────────────────────
 	// One node per (path, interface name, project). Interfaces are inherently
 	// distinct (different ports, different binaries, different proto services).
+	// Toolchain kinds (prerequisite, python-build-backend, cargo-build-script)
+	// are handled above as component properties and are excluded here.
 	seen := map[string]bool{}
 	for _, o := range r.Observations {
 		if o.Kind != intentmap.KindInterface && o.Kind != intentmap.KindConfig {
 			continue
+		}
+		if o.Kind == intentmap.KindInterface {
+			ikind := o.Properties["interface_kind"]
+			if ikind == "prerequisite" || ikind == "python-build-backend" || ikind == "cargo-build-script" {
+				continue
+			}
 		}
 		kind := mapdoc.NodeInterface
 		key := string(o.Kind) + ":" + o.Path + ":" + o.Name + ":" + o.ProjectID

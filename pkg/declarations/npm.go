@@ -236,6 +236,11 @@ func npmWorkspacePatterns(d *Document, data *npmDeclarationData, object map[stri
 		}
 		negations := len(pattern) - len(strings.TrimLeft(pattern, "!"))
 		pattern = strings.TrimPrefix(pattern[negations:], "./")
+		if pattern == "." || pattern == "" {
+			// The workspace root may list itself (npm and Yarn accept "."); it
+			// adds no member beyond the root package.
+			continue
+		}
 		if _, err := MatchPattern(pattern, "candidate"); err != nil {
 			data.usable = false
 			AddDiagnostic(d, "unsupported-npm-workspace-pattern", "Workspace patterns must use the supported bounded path glob syntax.")
