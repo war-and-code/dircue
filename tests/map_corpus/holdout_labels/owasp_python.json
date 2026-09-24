@@ -26,6 +26,10 @@
     {
       "path": "testcode/BenchmarkTest00018.py",
       "sha256": "0824020070e1fc59fde522330035fb40fd672a1eb5ec2b2d80f6ca9f5097be03"
+    },
+    {
+      "path": "testcode/BenchmarkTest00099.py",
+      "sha256": "70a1ae553181b4ea78e6dec87c0c7ca73fdf1a9babbfeec062ea3465a8e64f8c"
     }
   ],
   "components": [
@@ -58,7 +62,7 @@
       "type": "uses_capability",
       "from": "benchmark-python",
       "to": "datastore:sqlite",
-      "why": "The benchmark support helper opens its checked-in SQLite database; benchmark test modules are dynamically imported by app.py and may use this helper."
+      "why": "app.py dynamically imports benchmark modules; testcode/BenchmarkTest00099.py imports helpers.db_sqlite and calls get_connection() for its route."
     }
   ],
   "coverage": {

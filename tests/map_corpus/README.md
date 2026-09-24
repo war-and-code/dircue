@@ -133,6 +133,80 @@ python3 tests/map_corpus/fetch_public.py \
 Fetching the full corpus can consume substantial disk space, so the helper has
 no `--all` mode. The verification gate itself never accesses the network.
 
+## Source-first holdouts
+
+Four additional pinned repositories test code bases outside the original eight
+golden-label projects: [OWASP BenchmarkJava](https://github.com/OWASP-Benchmark/BenchmarkJava),
+[OWASP BenchmarkPython](https://github.com/OWASP-Benchmark/BenchmarkPython),
+[AppFlowy editor](https://github.com/AppFlowy-IO/appflowy-editor) for Dart, and
+[AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo)
+for COBOL/JCL. Their labels in `holdout_labels/` were written from source and
+committed in `78fc5e1ea2ac642703ce4938f78bc007f10ec8eb` before dircue was
+run on the checkouts. A subsequent source-only review added three hashed
+supporting files and corrected the Java HSQLDB explanation and Python SQLite
+edge citation; it did not add or remove any scored positive fact. The original
+commit remains available to audit that sequence. Each current label pins the
+upstream commit and the SHA-256 of
+every cited source file. The labels assert selected positive map facts and
+coverage expectations; they are **not exhaustive**, so they cannot support a
+whole-repository precision estimate.
+
+The holdout runner checks the upstream commits and file digests, runs the map,
+and reports every labeled fact found or missed. It fails on a newly lost
+baseline fact or an unsupported `complete` coverage claim. Optionally, it
+compares legacy JSON against a local Linguist 9.7.0 container with networking
+disabled. It does not clone repositories or download container images:
+
+```sh
+python3 tests/map_corpus/run_holdout.py \
+  --binary ./dircue \
+  --repo owasp_java=/path/to/BenchmarkJava \
+  --repo owasp_python=/path/to/BenchmarkPython \
+  --repo dart=/path/to/appflowy-editor \
+  --repo cobol=/path/to/aws-mainframe-modernization-carddemo \
+  --linguist-image dircue-linguist:9.7.0 \
+  --output .cache/map-holdouts.json
+```
+
+The source-first run found 5 of 18 labeled positives and made no `complete`
+coverage overclaims. The largest gaps were the Python Flask application and
+SQLite capability, the Java WAR build link, and Dart HTTP-client and local-path
+dependency relationships. The four legacy JSON outputs matched Linguist
+exactly. `holdout_results.json` preserves the per-question result and hashes
+from the reviewed run, including the misses. Both receipts were made with a
+`go build -trimpath -buildvcs=false` binary from the map candidate code at
+`d9909b5772a5c46d0f6fab0066d9216d4aedc32f`; the source-first label
+commit added no Go changes. Neither the source-first labels nor
+this diagnostic run changes the existing eight-repository precision/recall
+denominator. COBOL/JCL has no positive map-graph label yet; its current value
+is a language-parity and conservative-coverage probe, not proof of project
+relationship support.
+
+Two additional opt-in checks use bounded source slices from public projects
+with a checked-in binary referenced by a build declaration. The
+[zdh_web Maven POM](https://github.com/zhaoyachao/zdh_web/blob/1e420dcb3ec748011958a34e1d317ad58830c636/pom.xml#L1073-L1079)
+references a local JAR through `systemPath`; the
+[pyRevit project file](https://github.com/pyrevitlabs/pyRevit/blob/6294cf9c477130eadd73b9d156784f7a5553b4cd/dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj#L8)
+references a checked-in DLL through `HintPath`. `unmanaged_binary_slice.py`
+fetches only each cited project file and binary from pinned commits, limits
+response sizes, verifies the binary digests and declared references, and
+deletes the files after the run. It does not vendor binaries or make a claim
+about the complete source repositories:
+
+```sh
+python3 tests/map_corpus/unmanaged_binary_slice.py --binary ./dircue \
+  > .cache/unmanaged-binary-slices.json
+```
+
+The documented run recognized the JAR as archive content and the DLL as binary
+content. No package identity was inferred from those roles alone; package
+coverage stayed `unknown` without a provider report. This is an inventory
+smoke check, not a substitute for an SBOM tool or a test of whether a Syft
+report would identify either binary. It requires network access when invoked
+and is not part of ordinary CI. `unmanaged_binary_results.json` is the
+portable receipt, with the candidate binary hash and both upstream
+commits; no downloaded binary bytes are checked into this repository.
+
 ## On-demand resource and compatibility evidence
 
 The resource harness records wall time, user and system CPU, peak RSS, output
