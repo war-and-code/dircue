@@ -279,6 +279,18 @@
       "from": "openmrs-test-suite",
       "to": "openmrs",
       "why": "pom.xml:54-61 <module>test-suite</module>; test-suite/pom.xml declares artifactId openmrs-test-suite"
+    },
+    {
+      "type": "depends_on_local",
+      "from": "openmrs-api",
+      "to": "openmrs-test",
+      "why": "api/pom.xml:26-31 depends on the reactor sibling org.openmrs.test:openmrs-test (test scope); test/pom.xml:19-20 declares those coordinates"
+    },
+    {
+      "type": "depends_on_local",
+      "from": "openmrs-webapp",
+      "to": "openmrs-web",
+      "why": "webapp/pom.xml:31-32 depends on the reactor sibling org.openmrs.web:openmrs-web; web/pom.xml declares those coordinates"
     }
   ],
   "coverage": {
@@ -331,6 +343,11 @@
       "change": "added compose builds/runs edges, structural contains, parent depends_on_local and the six other module member_of edges",
       "after_first_comparison": true,
       "why": "each follows from an oracle file under the relationship definitions in docs/MAP.md:69-73; the other modules' names come from their own pom.xml artifactId"
+    },
+    {
+      "change": "added the two other reactor-sibling depends_on_local edges",
+      "after_first_comparison": true,
+      "why": "the labeler labeled webapp -> api but not these two sibling dependencies declared in the same oracle files"
     }
   ]
 }
