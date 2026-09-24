@@ -91,6 +91,11 @@ func IsManifest(name string) bool {
 	// Ruby
 	case "Gemfile":
 		return true
+	case "application.rb":
+		// Only the conventional Rails config/application.rb carries an app name.
+		lower := strings.ToLower(strings.ReplaceAll(name, "\\", "/"))
+		return lower == "config/application.rb" || strings.HasSuffix(lower, "/config/application.rb")
+
 	// PHP
 	case "composer.json":
 		return true
@@ -422,6 +427,8 @@ func Parse(name string, content []byte) *Document {
 	// Ruby
 	case "Gemfile":
 		return ParseRuby(name, content)
+	case "application.rb":
+		return ParseRailsApp(name, content)
 	// PHP
 	case "composer.json":
 		return ParsePHP(name, content)

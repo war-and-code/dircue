@@ -85,21 +85,50 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 
 	fragment := componentmap.Build(r.Declarations)
 	components, relationships := componentmap.MapFacts(fragment)
+	// Build a lookup from app-root → name extracted from config/application.rb
+	// so that unnamed Ruby components at the same root can use the app name.
+	railsAppNames := map[string]string{}
+	if r.Declarations != nil {
+		for _, p := range r.Declarations.Projects {
+			if p.Kind == "ruby-rails-app" && p.Name != "" {
+				// p.ID is "…/config/application.rb"; app root is two levels up.
+				appRoot := path.Dir(path.Dir(p.ID))
+				if appRoot == "" {
+					appRoot = "."
+				}
+				railsAppNames[appRoot] = p.Name
+			}
+		}
+	}
 	for i := range components {
 		if strings.TrimSpace(components[i].Name) == "" {
 			root := components[i].Properties["root"]
-			if root == "" || root == "." {
-				for _, candidate := range components[i].Paths {
-					if candidate != "." {
-						root = strings.TrimSuffix(path.Base(candidate), path.Ext(candidate))
-						break
+			if root == "" {
+				root = "."
+			}
+			if root == "." {
+				// At the repository root: use the Rails app module name if
+				// available for Ruby components, otherwise use the stable
+				// label "(root)". Never expose the host directory name.
+				if components[i].Properties["ecosystem"] == "ruby" {
+					if railsName, ok := railsAppNames["."]; ok {
+						components[i].Name = railsName
 					}
 				}
+				if components[i].Name == "" {
+					components[i].Name = "(root)"
+				}
 			} else {
-				root = path.Base(root)
-			}
-			if root != "" && root != "." {
-				components[i].Name = root
+				// Nested root: check for a Rails app name at this root, then
+				// fall back to the last path segment of the root directory.
+				if components[i].Properties["ecosystem"] == "ruby" {
+					if railsName, ok := railsAppNames[path.Clean(root)]; ok {
+						components[i].Name = railsName
+					}
+				}
+				if components[i].Name == "" {
+					components[i].Name = path.Base(root)
+				}
 			}
 		}
 		role := mapPathRole(components[i].Paths...)

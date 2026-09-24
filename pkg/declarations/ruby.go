@@ -102,3 +102,33 @@ func rubyNameOK(s string) bool {
 	}
 	return true
 }
+
+// railsModuleNameRE matches the first top-level module declaration in
+// config/application.rb, e.g. "module Mastodon". The name must start with an
+// uppercase letter and contain only alphanumeric characters.
+var railsModuleNameRE = regexp.MustCompile(`(?m)^\s*module\s+([A-Z][A-Za-z0-9]+)\s*(?:#.*)?$`)
+
+// ParseRailsApp reads config/application.rb to extract the Rails application
+// module name. It never executes Ruby code and returns nil if no name is found.
+// The resulting document uses kind "ruby-rails-app" and is not itself a
+// component; it exists only to carry the name hint for the co-located Gemfile.
+func ParseRailsApp(name string, content []byte) *Document {
+	if len(content) > 64*1024 { // generous limit for a config file
+		return nil
+	}
+	m := railsModuleNameRE.Find(content)
+	if m == nil {
+		return nil
+	}
+	sub := railsModuleNameRE.FindSubmatch(content)
+	if sub == nil || len(sub) < 2 {
+		return nil
+	}
+	appName := string(sub[1])
+	if len(appName) > 128 {
+		return nil
+	}
+	d := NewDocument(name, "ruby-rails-app")
+	d.Project.Name = appName
+	return d
+}
