@@ -86,7 +86,7 @@ func IsManifest(name string) bool {
 	}
 	base := path.Base(name)
 	switch base {
-	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml", "setup.py", "setup.cfg", "Kbuild", "Kconfig":
+	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml", "setup.py", "setup.cfg", "Pipfile", "Kbuild", "Kconfig":
 		return true
 	// Ruby
 	case "Gemfile":
@@ -143,6 +143,11 @@ func IsManifest(name string) bool {
 		return true
 	}
 	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+		return true
+	}
+	// Any .txt file directly inside a requirements/ directory (e.g. requirements/prod.txt).
+	// Bounded to one directory level; these are include targets, not standalone components.
+	if strings.HasSuffix(base, ".txt") && path.Base(path.Dir(name)) == "requirements" {
 		return true
 	}
 	if strings.HasSuffix(base, ".gemspec") {
@@ -421,6 +426,8 @@ func Parse(name string, content []byte) *Document {
 		return ParsePython(name, content)
 	case "setup.cfg":
 		return ParsePythonSetupCfg(name, content)
+	case "Pipfile":
+		return ParsePipfile(name, content)
 	case "Cargo.toml":
 		return ParseCargo(name, content)
 	case "Kbuild", "Kconfig":
@@ -477,6 +484,9 @@ func Parse(name string, content []byte) *Document {
 		return ParsePerl(name, content)
 	}
 	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+		return ParsePython(name, content)
+	}
+	if strings.HasSuffix(base, ".txt") && path.Base(path.Dir(name)) == "requirements" {
 		return ParsePython(name, content)
 	}
 	if strings.HasSuffix(base, ".gemspec") {

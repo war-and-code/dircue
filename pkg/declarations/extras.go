@@ -199,15 +199,28 @@ func zigNameOK(s string) bool {
 	return s != "" && len(s) <= MaxStringBytes
 }
 
-// ParsePythonSetupCfg reads setup.cfg and extracts [metadata] name.
+// setupCfgProjectSectionRE matches any [metadata] or [options] section header, which
+// are the markers for a setuptools project declaration. A setup.cfg with only tool
+// sections ([flake8], [mypy], [isort], etc.) is not a project declaration.
+var setupCfgProjectSectionRE = regexp.MustCompile(`(?m)^\[(metadata|options)\]`)
+
+// ParsePythonSetupCfg reads setup.cfg. If the file contains only tool-configuration
+// sections (no [metadata] or [options]), nil is returned so that no spurious Python
+// component is created. When project sections are present the name is extracted and
+// the document participates in the normal auxiliary-doc deduplication.
 func ParsePythonSetupCfg(name string, content []byte) *Document {
-	d := NewDocument(name, "python")
 	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
+		d := newPythonAuxDocument(name, "setup-cfg-static-v1")
 		d.Parsed = false
 		AddDiagnostic(d, "invalid-python-setup-cfg", "setup.cfg exceeds the byte limit or is not valid UTF-8.")
 		return d
 	}
-	AddRequirement(d, Requirement{Kind: "declaration-semantics", Value: "setup-cfg-static-v1", State: "declared", Evidence: name})
+	// A tool-configuration-only setup.cfg ([flake8], [mypy], [isort], etc.) is not a
+	// Python project declaration; returning nil prevents a spurious (root) component.
+	if !setupCfgProjectSectionRE.Match(content) {
+		return nil
+	}
+	d := newPythonAuxDocument(name, "setup-cfg-static-v1")
 	if m := setupCfgNameRE.FindSubmatch(content); m != nil {
 		n := strings.TrimSpace(string(m[1]))
 		if pythonNamePattern.MatchString(n) {

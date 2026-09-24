@@ -56,6 +56,11 @@
       "id": "jvm-maven-sibling-prisma",
       "description": "Maven reactor sibling depends_on_local edges (normal and test-scope) plus Prisma datasource provider detection",
       "expectations": "jvm-maven-sibling-prisma.json"
+    },
+    {
+      "id": "python-manifest-extras",
+      "description": "Pipfile runtime and dev packages; -r include resolution; tool-only setup.cfg does not create a component; Pipfile+requirements.txt deduplication",
+      "expectations": "python-manifest-extras.json"
     }
   ]
 }
