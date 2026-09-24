@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
 
 	"dircue/pkg/mapdiff"
 	"dircue/pkg/mapdoc"
@@ -15,7 +14,6 @@ const maxMapComparisonBytes = 64 << 20
 
 func newMapCompareCommand(opts *options) *cobra.Command {
 	var format string
-	var exitCode bool
 	command := &cobra.Command{
 		Use:   "compare <base-map.json> <head-map.json>",
 		Short: "Compare two saved directory maps",
@@ -24,7 +22,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			"  text     Plain text summary (default when stdout is a terminal).\n" +
 			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
 			"--json supersedes --format and writes the full comparison document.\n\n" +
-			"--exit-code causes the command to exit 1 when material changes are present. The default is exit 0 regardless of changes; only I/O or usage errors produce a non-zero exit.",
+			"A valid comparison exits 0 regardless of whether changes are present; only I/O or usage errors produce a non-zero exit.",
 		Example: "  dircue map --json old-checkout > before.json\n  dircue map --json new-checkout > after.json\n  dircue map compare --json before.json after.json\n  dircue map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
@@ -52,26 +50,15 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 				return err
 			}
 			if opts.json {
-				if err := json.NewEncoder(cmd.OutOrStdout()).Encode(report); err != nil {
-					return err
-				}
-			} else if format == "markdown" {
-				if err := mapdiff.WriteMarkdown(cmd.OutOrStdout(), report); err != nil {
-					return err
-				}
-			} else {
-				if err := writeMapComparison(cmd.OutOrStdout(), report); err != nil {
-					return err
-				}
+				return json.NewEncoder(cmd.OutOrStdout()).Encode(report)
 			}
-			if exitCode && report.Counts.Material > 0 {
-				os.Exit(1)
+			if format == "markdown" {
+				return mapdiff.WriteMarkdown(cmd.OutOrStdout(), report)
 			}
-			return nil
+			return writeMapComparison(cmd.OutOrStdout(), report)
 		},
 	}
 	command.Flags().StringVar(&format, "format", "text", "Output format: text (default) or markdown")
-	command.Flags().BoolVar(&exitCode, "exit-code", false, "Exit 1 when material changes are present (default exit is always 0 for a successful comparison)")
 	setSavedReportHelp(command)
 	return command
 }

@@ -152,13 +152,13 @@ func TestMapCompareMarkdownUnchanged(t *testing.T) {
 	}
 }
 
-func TestMapCompareExitCodeDefault(t *testing.T) {
-	// Without --exit-code, even a changed comparison exits 0.
+func TestMapCompareChangedExitsZero(t *testing.T) {
+	// A changed comparison always exits 0; only I/O or usage errors are non-zero.
 	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("before", "aaa", true))
 	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("after", "bbb", true))
 	_, stderr, err := invoke("map", "compare", base, head)
 	if err != nil || stderr != "" {
-		t.Fatalf("expected exit 0 without --exit-code: stderr=%q err=%v", stderr, err)
+		t.Fatalf("expected exit 0 for changed comparison: stderr=%q err=%v", stderr, err)
 	}
 }
 

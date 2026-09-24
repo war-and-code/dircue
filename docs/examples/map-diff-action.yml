@@ -10,8 +10,7 @@
 #
 # dircue never contacts the network and never executes repository content.
 # The summary discloses indeterminate removals and partial coverage rather than
-# dropping them. Noise controls (suppressing test-fixture-only changes) are not
-# yet implemented; see https://github.com/war-and-code/dircue/issues/10.
+# dropping them.
 
 name: Architecture diff
 
@@ -34,7 +33,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Fetch enough history for the merge-base calculation.
+          # Fetch full history so the merge-base calculation succeeds.
           fetch-depth: 0
 
       - name: dircue map diff
@@ -45,3 +44,4 @@ jobs:
           post-comment: 'true'     # Remove or set to 'false' to skip the PR comment.
           github-token: ${{ secrets.GITHUB_TOKEN }}
           # extra-map-flags: "--attach syft-report.json"  # Uncomment to attach a Syft SBOM.
+          # dircue-binary: /path/to/dircue  # Skip download; use a local binary instead.

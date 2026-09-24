@@ -10,23 +10,33 @@ inputs:
     description: >
       dircue release tag to download, e.g. "v1.0.0". Defaults to "latest",
       which resolves to the most recent GitHub release. Pin a version for
-      reproducible runs.
+      reproducible runs. Ignored when dircue-binary is set.
     required: false
     default: latest
+
+  dircue-binary:
+    description: >
+      Path to a pre-built dircue binary. When set, the download and checksum
+      steps are skipped entirely and this binary is used directly. Useful for
+      CI self-tests and air-gapped environments.
+    required: false
+    default: ''
 
   base-ref:
     description: >
       Git ref to treat as the comparison base. Defaults to the merge-base of
-      the PR head with the target branch. Pass an explicit SHA or ref to
+      the PR head with the target branch. Pass an explicit SHA or branch ref to
       override.
     required: false
     default: ''
 
   source-mode:
     description: >
-      Source mode passed to `dircue map`. One of "auto" (default, uses the
-      committed Git tree) or "directory" (maps the working tree including
-      uncommitted changes).
+      Source mode passed to `dircue map`. One of "auto" (default, reads the
+      committed Git tree without touching the working tree) or "directory"
+      (maps the working tree, including uncommitted changes). The caller must
+      use actions/checkout with fetch-depth: 0 in both modes so that
+      merge-base calculation succeeds.
     required: false
     default: auto
 
@@ -34,22 +44,23 @@ inputs:
     description: >
       Set to "true" to post the summary as a pull-request comment. The caller's
       workflow must supply `github-token` and grant `pull-requests: write`.
+      Subsequent runs update the same comment rather than creating a new one.
       Defaults to "false".
     required: false
     default: 'false'
 
   github-token:
     description: >
-      Personal access token or ${{ secrets.GITHUB_TOKEN }} used when
-      post-comment is "true". Must have `pull-requests: write`. Never used for
-      any other purpose.
+      ${{ secrets.GITHUB_TOKEN }} or a PAT used when post-comment is "true".
+      Must have `pull-requests: write`. Never used for any other purpose.
     required: false
     default: ''
 
   extra-map-flags:
     description: >
-      Additional flags forwarded verbatim to `dircue map`, e.g.
-      "--attach syft-report.json". Leave empty for the default map.
+      Additional flags forwarded to `dircue map`, e.g.
+      "--attach syft-report.json". Flags are split on whitespace; quoting
+      within the value is not preserved. Leave empty for the default map.
     required: false
     default: ''
 
@@ -64,7 +75,9 @@ outputs:
     description: Path to the saved map-compare JSON file.
     value: ${{ steps.compare.outputs.path }}
   status:
-    description: Comparison status from dircue map compare (changed, unchanged, indeterminate).
+    description: >
+      Comparison status from dircue map compare: "changed", "unchanged", or
+      "indeterminate".
     value: ${{ steps.compare.outputs.status }}
 
 runs:
@@ -73,133 +86,204 @@ runs:
     # ── 1. Resolve the dircue release to download ──────────────────────────
     - name: Resolve dircue version
       id: resolve-version
+      if: inputs.dircue-binary == ''
       shell: bash
+      env:
+        DIRCUE_VERSION: ${{ inputs.dircue-version }}
       run: |
         set -euo pipefail
-        version="${{ inputs.dircue-version }}"
+        version="$DIRCUE_VERSION"
         if [ "$version" = "latest" ]; then
           version="$(curl -fsSL --retry 3 \
             https://api.github.com/repos/war-and-code/dircue/releases/latest \
-            | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": "\(.*\)".*/\1/')"
+            | grep '"tag_name"' | head -1 \
+            | sed 's/.*"tag_name": "\(.*\)".*/\1/')"
         fi
-        echo "version=$version" >> "$GITHUB_OUTPUT"
+        printf 'version=%s\n' "$version" >> "$GITHUB_OUTPUT"
 
-    # ── 2. Install dircue ───────────────────────────────────────────────────
+    # ── 2. Download and verify dircue ───────────────────────────────────────
+    # Asset names omit the leading "v" (e.g. dircue_1.0.0_linux_amd64.tar.gz).
+    # The checksum is a single SHA256SUMS file covering all assets in the release.
     - name: Install dircue
       id: install
+      if: inputs.dircue-binary == ''
       shell: bash
+      env:
+        DIRCUE_VERSION: ${{ steps.resolve-version.outputs.version }}
       run: |
         set -euo pipefail
-        version="${{ steps.resolve-version.outputs.version }}"
+        version="$DIRCUE_VERSION"
+        # Strip the leading "v" for the asset filename.
+        ver="${version#v}"
         os="$(uname -s | tr '[:upper:]' '[:lower:]')"
         arch="$(uname -m)"
         case "$arch" in
-          x86_64)  arch="amd64" ;;
-          aarch64) arch="arm64" ;;
-          arm64)   arch="arm64" ;;
-          *)       echo "Unsupported architecture: $arch" >&2; exit 1 ;;
+          x86_64)        arch="amd64" ;;
+          aarch64|arm64) arch="arm64" ;;
+          *) printf 'unsupported architecture: %s\n' "$arch" >&2; exit 1 ;;
         esac
-        asset="dircue_${version}_${os}_${arch}.tar.gz"
-        url="https://github.com/war-and-code/dircue/releases/download/${version}/${asset}"
+        if [ "$os" = "windows_nt" ] || [ "$os" = "windows" ]; then
+          asset="dircue_${ver}_windows_${arch}.zip"
+        else
+          asset="dircue_${ver}_${os}_${arch}.tar.gz"
+        fi
+        base_url="https://github.com/war-and-code/dircue/releases/download/${version}"
         dest="${RUNNER_TEMP}/dircue-install"
         mkdir -p "$dest"
-        curl -fsSL --retry 3 -o "${dest}/${asset}" "$url"
-        # Verify the checksum published alongside the release.
-        checksum_url="${url%.tar.gz}.sha256"
-        curl -fsSL --retry 3 -o "${dest}/checksum.txt" "$checksum_url"
-        cd "$dest"
-        sha256sum -c checksum.txt
-        tar -xzf "$asset" -C "$dest"
-        chmod +x "${dest}/dircue"
-        echo "${dest}" >> "$GITHUB_PATH"
-        echo "bin=${dest}/dircue" >> "$GITHUB_OUTPUT"
+        curl -fsSL --retry 3 -o "${dest}/${asset}" "${base_url}/${asset}"
+        # Download the single SHA256SUMS file and extract the line for our asset.
+        curl -fsSL --retry 3 -o "${dest}/SHA256SUMS" "${base_url}/SHA256SUMS"
+        # Verify only our asset; fail fast if the line is missing.
+        grep "^[0-9a-f]\{64\}  ${asset}$" "${dest}/SHA256SUMS" > "${dest}/check.txt"
+        ( cd "$dest" && sha256sum --check --ignore-missing "${dest}/check.txt" )
+        # The binary lives at dircue inside the tarball (no subdirectory prefix).
+        if [ "$os" = "windows_nt" ] || [ "$os" = "windows" ]; then
+          unzip -q "${dest}/${asset}" dircue.exe -d "$dest"
+          bin="${dest}/dircue.exe"
+        else
+          tar -xzf "${dest}/${asset}" -C "$dest" dircue
+          bin="${dest}/dircue"
+        fi
+        chmod +x "$bin"
+        printf '%s\n' "$dest" >> "$GITHUB_PATH"
+        printf 'bin=%s\n' "$bin" >> "$GITHUB_OUTPUT"
+
+    # ── 2b. Use a pre-built binary (skips download) ─────────────────────────
+    - name: Use pre-built dircue binary
+      id: use-binary
+      if: inputs.dircue-binary != ''
+      shell: bash
+      env:
+        DIRCUE_BINARY: ${{ inputs.dircue-binary }}
+      run: |
+        set -euo pipefail
+        bin="$(realpath "$DIRCUE_BINARY")"
+        chmod +x "$bin"
+        printf '%s\n' "$(dirname "$bin")" >> "$GITHUB_PATH"
+        printf 'bin=%s\n' "$bin" >> "$GITHUB_OUTPUT"
 
     # ── 3. Determine base ref ──────────────────────────────────────────────
     - name: Resolve base ref
       id: base-ref
       shell: bash
+      env:
+        INPUT_BASE_REF: ${{ inputs.base-ref }}
+        GITHUB_BASE_REF_ENV: ${{ github.base_ref }}
+        PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
       run: |
         set -euo pipefail
-        base="${{ inputs.base-ref }}"
+        base="$INPUT_BASE_REF"
         if [ -z "$base" ]; then
-          # Use the merge base of the PR head and the target branch.
-          base="$(git merge-base HEAD "origin/${{ github.base_ref }}" 2>/dev/null || true)"
+          # Prefer the merge-base; fall back to the PR base SHA.
+          base="$(git merge-base HEAD "origin/${GITHUB_BASE_REF_ENV}" 2>/dev/null || true)"
           if [ -z "$base" ]; then
-            base="${{ github.event.pull_request.base.sha }}"
+            base="$PR_BASE_SHA"
           fi
         fi
-        echo "ref=$base" >> "$GITHUB_OUTPUT"
+        printf 'ref=%s\n' "$base" >> "$GITHUB_OUTPUT"
 
-    # ── 4. Map the base checkout ───────────────────────────────────────────
+    # ── 4. Map the base ref ────────────────────────────────────────────────
+    # git/auto: dircue map --rev reads the committed tree at BASE_REF with no
+    # working-tree changes. directory: a detached git worktree is created at
+    # BASE_REF, mapped, and removed. Neither path uses git checkout.
+    # The caller must use actions/checkout with fetch-depth: 0.
     - name: Map base
       id: map-base
       shell: bash
+      env:
+        BASE_REF: ${{ steps.base-ref.outputs.ref }}
+        SOURCE_MODE: ${{ inputs.source-mode }}
+        EXTRA_FLAGS: ${{ inputs.extra-map-flags }}
       run: |
         set -euo pipefail
         out="${RUNNER_TEMP}/dircue-map-base.json"
-        git checkout --detach "${{ steps.base-ref.outputs.ref }}" -- 2>/dev/null || \
-          git checkout "${{ steps.base-ref.outputs.ref }}" 2>/dev/null
-        # shellcheck disable=SC2086
-        dircue map --source "${{ inputs.source-mode }}" --json ${{ inputs.extra-map-flags }} . > "$out"
-        git checkout - 2>/dev/null || true
-        echo "path=$out" >> "$GITHUB_OUTPUT"
+        extra_flags=()
+        if [ -n "$EXTRA_FLAGS" ]; then
+          read -ra extra_flags <<< "$EXTRA_FLAGS"
+        fi
+        if [ "$SOURCE_MODE" = "directory" ]; then
+          wt="${RUNNER_TEMP}/dircue-base-wt"
+          git worktree add --detach "$wt" "$BASE_REF"
+          dircue map --source directory --json "${extra_flags[@]}" "$wt" > "$out"
+          git worktree remove --force "$wt"
+        else
+          dircue map --source "$SOURCE_MODE" --rev "$BASE_REF" --json "${extra_flags[@]}" . > "$out"
+        fi
+        printf 'path=%s\n' "$out" >> "$GITHUB_OUTPUT"
 
-    # ── 5. Map the head checkout ───────────────────────────────────────────
+    # ── 5. Map the head ───────────────────────────────────────────────────
     - name: Map head
       id: map-head
       shell: bash
+      env:
+        SOURCE_MODE: ${{ inputs.source-mode }}
+        EXTRA_FLAGS: ${{ inputs.extra-map-flags }}
       run: |
         set -euo pipefail
         out="${RUNNER_TEMP}/dircue-map-head.json"
-        # shellcheck disable=SC2086
-        dircue map --source "${{ inputs.source-mode }}" --json ${{ inputs.extra-map-flags }} . > "$out"
-        echo "path=$out" >> "$GITHUB_OUTPUT"
+        extra_flags=()
+        if [ -n "$EXTRA_FLAGS" ]; then
+          read -ra extra_flags <<< "$EXTRA_FLAGS"
+        fi
+        dircue map --source "$SOURCE_MODE" --json "${extra_flags[@]}" . > "$out"
+        printf 'path=%s\n' "$out" >> "$GITHUB_OUTPUT"
 
     # ── 6. Compare ────────────────────────────────────────────────────────
     - name: Compare maps
       id: compare
       shell: bash
+      env:
+        BASE_MAP: ${{ steps.map-base.outputs.path }}
+        HEAD_MAP: ${{ steps.map-head.outputs.path }}
       run: |
         set -euo pipefail
         out="${RUNNER_TEMP}/dircue-map-compare.json"
-        dircue map compare --json \
-          "${{ steps.map-base.outputs.path }}" \
-          "${{ steps.map-head.outputs.path }}" > "$out"
+        dircue map compare --json "$BASE_MAP" "$HEAD_MAP" > "$out"
         status="$(jq -r '.status' "$out")"
-        echo "path=$out" >> "$GITHUB_OUTPUT"
-        echo "status=$status" >> "$GITHUB_OUTPUT"
+        printf 'path=%s\n' "$out" >> "$GITHUB_OUTPUT"
+        printf 'status=%s\n' "$status" >> "$GITHUB_OUTPUT"
 
-    # ── 7. Render summary ─────────────────────────────────────────────────
+    # ── 7. Render step summary ────────────────────────────────────────────
     - name: Render step summary
       shell: bash
+      env:
+        BASE_MAP: ${{ steps.map-base.outputs.path }}
+        HEAD_MAP: ${{ steps.map-head.outputs.path }}
       run: |
         set -euo pipefail
-        dircue map compare --format markdown \
-          "${{ steps.map-base.outputs.path }}" \
-          "${{ steps.map-head.outputs.path }}" >> "$GITHUB_STEP_SUMMARY"
+        dircue map compare --format markdown "$BASE_MAP" "$HEAD_MAP" >> "$GITHUB_STEP_SUMMARY"
 
     # ── 8. Optional PR comment ────────────────────────────────────────────
+    # The comment is identified by the hidden <!-- dircue-map-diff --> marker
+    # in the first line. Only a comment authored by github-actions[bot] that
+    # contains this marker is updated; all other comments are left untouched.
     - name: Post PR comment
       if: inputs.post-comment == 'true' && github.event_name == 'pull_request'
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.github-token }}
+        BASE_MAP: ${{ steps.map-base.outputs.path }}
+        HEAD_MAP: ${{ steps.map-head.outputs.path }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+        GH_REPO: ${{ github.repository }}
       run: |
         set -euo pipefail
-        # Render the summary into a temporary file so the gh CLI can post it.
         summary_file="${RUNNER_TEMP}/dircue-map-diff-comment.md"
-        dircue map compare --format markdown \
-          "${{ steps.map-base.outputs.path }}" \
-          "${{ steps.map-head.outputs.path }}" > "$summary_file"
-        pr_number="${{ github.event.pull_request.number }}"
-        repo="${{ github.repository }}"
-        # Look for an existing comment from a prior run on this PR to update.
-        existing_id="$(gh api "repos/${repo}/issues/${pr_number}/comments" \
-          --jq '.[] | select(.body | startswith("## Architecture diff:")) | .id' \
+        # Prepend the hidden marker so we can find and update this comment later.
+        {
+          printf '<!-- dircue-map-diff -->\n'
+          dircue map compare --format markdown "$BASE_MAP" "$HEAD_MAP"
+        } > "$summary_file"
+        # Find an existing comment from github-actions[bot] with our marker.
+        existing_id="$(gh api "repos/${GH_REPO}/issues/${PR_NUMBER}/comments" \
+          --jq '.[] | select(
+            .user.login == "github-actions[bot]" and
+            (.body | contains("<!-- dircue-map-diff -->"))
+          ) | .id' \
           | head -1 || true)"
         if [ -n "$existing_id" ]; then
-          gh api "repos/${repo}/issues/comments/${existing_id}" \
+          gh api "repos/${GH_REPO}/issues/comments/${existing_id}" \
             -X PATCH -f body="$(cat "$summary_file")"
         else
-          gh pr comment "$pr_number" --repo "$repo" --body-file "$summary_file"
+          gh pr comment "$PR_NUMBER" --repo "$GH_REPO" --body-file "$summary_file"
         fi
