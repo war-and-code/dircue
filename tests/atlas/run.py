@@ -292,52 +292,41 @@ def compare_linguist(
 # scc differential
 # ---------------------------------------------------------------------------
 
-def run_scc_on_repo(scc_path: Path, repo_path: Path) -> tuple[list[dict], float, int]:
-    """Run scc on a temporary checkout of the verified HEAD index."""
-    with tempfile.TemporaryDirectory(prefix="atlas-scc-") as tmpdir:
-        tmp = Path(tmpdir)
-        extract_dir = tmp / "repo"
-        extract_dir.mkdir()
-        # `git archive` applies export-ignore/export-subst and can differ from
-        # dircue's committed-tree scan. Worktree differences are permitted
-        # because case-colliding paths can disappear on case-insensitive hosts.
-        # This preserves indexed paths and avoids archive attributes; Git
-        # checkout filters can still transform file contents during materialization.
-        materialize_head_tree(repo_path, extract_dir)
-
-        cmd = [
-            str(scc_path), "--no-config", "--no-cocomo", "--no-gitignore",
-            "--no-ignore", "--no-scc-ignore", "--by-file", "--format", "json",
-            str(extract_dir),
-        ]
-        result, wall_s, rss = run_timed(cmd, text=True)
-        if result.returncode != 0 and not result.stdout.strip():
-            raise RuntimeError(
-                f"scc exited {result.returncode}: {result.stderr[:500]}"
-            )
-        data = json.loads(result.stdout)
-        # Flatten: scc returns [{Language:.., Files:[{Filename:.., Location:.., Lines:..}]}, ...]
-        # Use Location (full path) to get the relative path; fall back to Filename
-        files = []
-        for group in data:
-            for f in group.get("Files", []):
-                location = f.get("Location") or f.get("Filename", "")
-                try:
-                    rel = Path(location).relative_to(extract_dir)
-                except ValueError:
-                    # Filename may be a basename; try prefixing with extract_dir
-                    rel = Path(f.get("Filename", location))
-                files.append({
-                    "path": str(rel),
-                    "language": group["Name"],
-                    "lines": f.get("Lines", 0),
-                    "code": f.get("Code", 0),
-                    "comment": f.get("Comment", 0),
-                    "blank": f.get("Blank", 0),
-                    "complexity": f.get("Complexity", 0),
-                    "bytes": f.get("Bytes", 0),
-                })
-        return files, wall_s, rss
+def run_scc_on_checkout(scc_path: Path, checkout_dir: Path) -> tuple[list[dict], float, int]:
+    """Run scc on an already-materialized checkout directory."""
+    cmd = [
+        str(scc_path), "--no-config", "--no-cocomo", "--no-gitignore",
+        "--no-ignore", "--no-scc-ignore", "--by-file", "--format", "json",
+        str(checkout_dir),
+    ]
+    result, wall_s, rss = run_timed(cmd, text=True)
+    if result.returncode != 0 and not result.stdout.strip():
+        raise RuntimeError(
+            f"scc exited {result.returncode}: {result.stderr[:500]}"
+        )
+    data = json.loads(result.stdout)
+    # Flatten: scc returns [{Language:.., Files:[{Filename:.., Location:.., Lines:..}]}, ...]
+    # Use Location (full path) to get the relative path; fall back to Filename
+    files = []
+    for group in data:
+        for f in group.get("Files", []):
+            location = f.get("Location") or f.get("Filename", "")
+            try:
+                rel = Path(location).relative_to(checkout_dir)
+            except ValueError:
+                # Filename may be a basename; try prefixing with checkout_dir
+                rel = Path(f.get("Filename", location))
+            files.append({
+                "path": str(rel),
+                "language": group["Name"],
+                "lines": f.get("Lines", 0),
+                "code": f.get("Code", 0),
+                "comment": f.get("Comment", 0),
+                "blank": f.get("Blank", 0),
+                "complexity": f.get("Complexity", 0),
+                "bytes": f.get("Bytes", 0),
+            })
+    return files, wall_s, rss
 
 
 def probe_scc_skipped_paths(scc_path: Path, repo_path: Path, paths: set[str]) -> set[str]:
@@ -374,7 +363,7 @@ def probe_scc_skipped_paths(scc_path: Path, repo_path: Path, paths: set[str]) ->
 
 
 def run_dircue_metrics(binary: str, repo_path: Path) -> tuple[dict, float, int]:
-    """Run dircue analyze metrics --files --json on the repo.
+    """Run dircue analyze metrics --files --json on the repo (git-object source).
 
     Returns the inner 'metrics' object (which contains 'files', 'totals', etc.),
     wall time, and RSS.
@@ -388,6 +377,29 @@ def run_dircue_metrics(binary: str, repo_path: Path) -> tuple[dict, float, int]:
         )
     data = json.loads(result.stdout)
     schema = data.get("schema_version")
+    # Accept both the outer profile schema (1.1.0) and the direct metrics schema
+    metrics = data.get("metrics", data)
+    assert metrics.get("engine") or metrics.get("files") is not None, \
+        f"unexpected metrics shape: {list(metrics.keys())[:5]}"
+    return metrics, wall_s, rss
+
+
+def run_dircue_metrics_checkout(binary: str, checkout_dir: Path) -> tuple[dict, float, int]:
+    """Run dircue analyze metrics --files --json on a materialized checkout directory.
+
+    Both dircue and scc read from the same checkout so bytes and other
+    filesystem-sensitive counts (e.g. line-ending conversions from
+    .gitattributes text=auto) are identical for both tools.
+    Returns the inner 'metrics' object, wall time, and RSS.
+    """
+    cmd = [binary, "analyze", "metrics", "--files", "--json",
+           "--source", "directory", str(checkout_dir)]
+    result, wall_s, rss = run_timed(cmd, text=True)
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"dircue metrics exited {result.returncode}: {result.stderr[:500]}"
+        )
+    data = json.loads(result.stdout)
     # Accept both the outer profile schema (1.1.0) and the direct metrics schema
     metrics = data.get("metrics", data)
     assert metrics.get("engine") or metrics.get("files") is not None, \
@@ -546,11 +558,15 @@ def compare_scc(
                 scc_row,
                 known_diffs,
                 mismatch_fields=field_names,
+                dircue_grammar=dircue_row.get("grammar", ""),
+                scc_language=scc_row.get("language", ""),
             )
             mismatched += 1
             mismatches.append({
                 "path": path,
                 "category": category,
+                "dircue_grammar": dircue_row.get("grammar", ""),
+                "scc_language": scc_row.get("language", ""),
                 "fields": mismatch_fields,
             })
 
@@ -897,8 +913,16 @@ def main():
             print(f"  scc...", flush=True, end=" ")
             sys.stdout.flush()
             try:
-                scc_files, wall_oracle, rss_oracle = run_scc_on_repo(scc_binary, repo_path)
-                dircue_metrics, wall_dircue, rss_dircue = run_dircue_metrics(binary, repo_path)
+                # Materialize HEAD once; both scc and dircue read the same checkout.
+                # This ensures bytes and other filesystem-sensitive fields
+                # (e.g. line endings from .gitattributes text=auto) are identical
+                # for both tools, eliminating harness-induced byte differences.
+                with tempfile.TemporaryDirectory(prefix="atlas-scc-") as _tmpdir:
+                    _checkout = Path(_tmpdir) / "repo"
+                    _checkout.mkdir()
+                    materialize_head_tree(repo_path, _checkout)
+                    scc_files, wall_oracle, rss_oracle = run_scc_on_checkout(scc_binary, _checkout)
+                    dircue_metrics, wall_dircue, rss_dircue = run_dircue_metrics_checkout(binary, _checkout)
                 comparison = compare_scc(
                     dircue_metrics,
                     scc_files,
@@ -953,7 +977,7 @@ def main():
     # Determine exit code
     uncategorized = [
         m for r in results for m in r.get("comparison", {}).get("mismatches", [])
-        if m.get("category") not in ("known-upstream-diff", "dircue-bug", "harness-issue")
+        if m.get("category") not in ("known-upstream-diff", "dircue-bug", "harness-issue", "grammar_selection_differs")
     ]
     total_unexplained_skips = sum(
         r.get("comparison", {}).get("unexplained_count", 0)

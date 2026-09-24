@@ -3,17 +3,23 @@
 Every per-file disagreement between dircue and an oracle gets one of these
 categories:
 
-    matched                  No discrepancy.
-    dircue-bug               dircue produces a different result not covered by any
-                             known upstream difference.
-    known-upstream-diff      The disagreement is in the documented list of upstream
-                             differences between dircue and the oracle (e.g. raw-string
-                             comment counting in scc 4.1.0, or a Linguist strategy that
-                             differs from Enry).
-    harness-issue            The harness produced unreliable oracle output (e.g.
-                             the container reported a gem-version mismatch, or scc
-                             could not read a file).
-    oracle-version-mismatch  The oracle version does not match the pinned version; abort.
+    matched                   No discrepancy.
+    grammar_selection_differs dircue and scc used different scc grammars for the same
+                              file. dircue selects a grammar via its Linguist language
+                              name (from enry); scc selects via filename/extension.
+                              Counter differences are the expected consequence of the
+                              grammar difference, not a counting bug. See issue #12 for
+                              the --selection flag that would align grammar selection.
+    dircue-bug                dircue produces a different result not covered by any
+                              known upstream difference (same grammar, counts differ).
+    known-upstream-diff       The disagreement is in the documented list of upstream
+                              differences between dircue and the oracle (e.g. raw-string
+                              comment counting in scc 4.1.0, or a Linguist strategy that
+                              differs from Enry).
+    harness-issue             The harness produced unreliable oracle output (e.g.
+                              the container reported a gem-version mismatch, or scc
+                              could not read a file).
+    oracle-version-mismatch   The oracle version does not match the pinned version; abort.
 
 A mismatch row that cannot be classified into any known-upstream-diff or
 harness-issue becomes `dircue-bug`.
@@ -105,18 +111,34 @@ def classify_scc_mismatch(
     scc_counts: dict[str, Any],
     known_diffs: list[dict],
     mismatch_fields: list[str] | None = None,
+    dircue_grammar: str = "",
+    scc_language: str = "",
 ) -> str:
     """Classify a per-file scc counter mismatch.
 
     Returns one of the category strings defined in the module docstring.
     mismatch_fields is the list of field names that differ (e.g. ["complexity"]).
+    dircue_grammar is the scc grammar name dircue selected for this file
+        (from dircue's per-file 'grammar' field in metrics JSON output).
+    scc_language is the language name scc used for this file
+        (from scc's per-file 'Language' field in --by-file JSON output).
+    When dircue_grammar and scc_language are both present and differ, the file
+    is classified as grammar_selection_differs: the two tools chose different
+    grammars, so counter differences are an expected consequence of that choice.
+    dircue selects the scc grammar from its Linguist language name; scc selects
+    by filename/extension registry. See issue #12 for alignment work.
     """
+    # Per-file grammar attribution: if the two tools used different grammars,
+    # the counter difference is caused by grammar selection, not a counting bug.
+    if dircue_grammar and scc_language and dircue_grammar != scc_language:
+        return "grammar_selection_differs"
+
     # Determine file extension
     ext = ""
     if "." in path:
         ext = "." + path.rsplit(".", 1)[-1].lower()
 
-    # Check known-differences manifest first
+    # Check known-differences manifest (specific per-file same-grammar differences)
     for diff in known_diffs:
         if diff.get("tool") not in ("scc", None):
             continue

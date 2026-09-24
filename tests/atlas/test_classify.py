@@ -101,6 +101,69 @@ class TestClassifySccMismatch(unittest.TestCase):
         )
         self.assertEqual(cat, "dircue-bug")
 
+    def test_different_grammars_is_grammar_selection_differs(self):
+        # dircue used TypeScript grammar; scc used JavaScript grammar
+        cat = classify_scc_mismatch(
+            "src/app.js",
+            {"complexity": 5},
+            {"Complexity": 3, "language": "JavaScript"},
+            [],
+            dircue_grammar="TypeScript",
+            scc_language="JavaScript",
+        )
+        self.assertEqual(cat, "grammar_selection_differs")
+
+    def test_different_grammars_beats_known_diff_manifest(self):
+        # Even if a known-diff entry exists for this path, grammar_selection_differs
+        # takes priority since the grammar difference fully explains the mismatch.
+        diffs = [{"tool": "scc", "file": "src/app.js", "category": "known-upstream-diff",
+                  "root_cause": "some reason"}]
+        cat = classify_scc_mismatch(
+            "src/app.js",
+            {"complexity": 5},
+            {"Complexity": 3},
+            diffs,
+            dircue_grammar="TypeScript",
+            scc_language="JavaScript",
+        )
+        self.assertEqual(cat, "grammar_selection_differs")
+
+    def test_same_grammar_falls_through_to_bug(self):
+        # Same grammar, no known diff → dircue-bug
+        cat = classify_scc_mismatch(
+            "src/app.ts",
+            {"complexity": 5},
+            {"Complexity": 3},
+            [],
+            dircue_grammar="TypeScript",
+            scc_language="TypeScript",
+        )
+        self.assertEqual(cat, "dircue-bug")
+
+    def test_missing_grammar_field_falls_through(self):
+        # One or both grammar fields missing → no grammar_selection_differs
+        cat = classify_scc_mismatch(
+            "src/app.ts",
+            {"complexity": 5},
+            {"Complexity": 3},
+            [],
+            dircue_grammar="",
+            scc_language="TypeScript",
+        )
+        self.assertEqual(cat, "dircue-bug")
+
+    def test_qt_translation_source_vs_typescript(self):
+        # scc misidentifies .ts as Qt Translation Source → grammar_selection_differs
+        cat = classify_scc_mismatch(
+            "packages/next/src/build/webpack/loaders/metadata/resolve-route-data.ts",
+            {"code": 80, "comment": 5},
+            {"Code": 0, "Comment": 0},
+            [],
+            dircue_grammar="TypeScript",
+            scc_language="Qt Translation Source",
+        )
+        self.assertEqual(cat, "grammar_selection_differs")
+
 
 class TestClassifyLinguistMismatch(unittest.TestCase):
     def test_without_known_diff_is_bug(self):
