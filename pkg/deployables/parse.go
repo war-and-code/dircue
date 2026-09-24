@@ -778,14 +778,6 @@ func lineOf(content []byte, needle string) int {
 	}
 	return 1 + bytes.Count(content[:i], []byte("\n"))
 }
-func literalField(content []byte, key string) string {
-	re := regexp.MustCompile(`(?m)^[ \t]*` + regexp.QuoteMeta(key) + `:[ \t]*([^#\s{][^\r\n#]*)[ \t]*(?:#.*)?$`)
-	m := re.FindSubmatch(content)
-	if m == nil {
-		return ""
-	}
-	return bounded(strings.TrimSpace(string(m[1])))
-}
 func tooDeep(content []byte, maxDepth int) bool {
 	for _, line := range strings.Split(string(content), "\n") {
 		spaces := len(line) - len(strings.TrimLeft(line, " "))
