@@ -195,3 +195,35 @@ jobs:
           retention-days: 7
           name: metrics-conformance
           path: .cache/metrics-differential.json
+
+  map-diff-dogfood:
+    # Self-test: exercise the map-diff action against this repository using the
+    # binary built from the PR branch. No release download; no PR comment.
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history is required for merge-base calculation inside the action.
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - name: Build dircue
+        run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+      - name: dircue map diff (self-test)
+        uses: ./.github/actions/map-diff
+        with:
+          dircue-binary: bin/dircue
+          source-mode: auto
+          post-comment: 'false'
