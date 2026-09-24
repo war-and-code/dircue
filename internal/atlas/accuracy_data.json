@@ -1,46 +1,46 @@
 {
   "schema_version": "dircue-accuracy-cards-0.2",
-  "generated_at_utc": "2026-09-23T19:54:40Z",
+  "generated_at_utc": "2026-09-24T06:17:28Z",
   "evaluated_repos": 8,
   "label_source": "tests/map_corpus/public_quality_expectations.json",
   "scope_note": "Scores cover nodes evidenced by oracle_files paths only. Nodes outside those paths are not in the evaluated universe. Precision and recall are not computable for kinds with zero labels. Kinds with fewer than 30 labels are marked insufficient_labels; results are directional. Broader hand-labeling is tracked in issue #75.",
   "overall": {
     "capability": {
-      "tp": 8,
+      "tp": 11,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
       "recall": 1.0,
       "precision_ci_95": [
-        0.6756,
+        0.7412,
         1.0
       ],
       "recall_ci_95": [
-        0.6756,
+        0.7412,
         1.0
       ],
-      "ci_lower": 0.6756,
+      "ci_lower": 0.7412,
       "sufficiency": "insufficient_labels",
-      "label_count": 8,
+      "label_count": 11,
       "repo_count": 3
     },
     "component": {
-      "tp": 6,
+      "tp": 7,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
       "recall": 1.0,
       "precision_ci_95": [
-        0.6097,
+        0.6457,
         1.0
       ],
       "recall_ci_95": [
-        0.6097,
+        0.6457,
         1.0
       ],
-      "ci_lower": 0.6097,
+      "ci_lower": 0.6457,
       "sufficiency": "insufficient_labels",
-      "label_count": 6,
+      "label_count": 7,
       "repo_count": 5
     },
     "content": {
@@ -63,42 +63,42 @@
       "repo_count": 1
     },
     "deployable": {
-      "tp": 18,
+      "tp": 17,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
       "recall": 1.0,
       "precision_ci_95": [
-        0.8241,
+        0.8157,
         1.0
       ],
       "recall_ci_95": [
-        0.8241,
+        0.8157,
         1.0
       ],
-      "ci_lower": 0.8241,
+      "ci_lower": 0.8157,
       "sufficiency": "insufficient_labels",
-      "label_count": 18,
+      "label_count": 17,
       "repo_count": 4
     },
     "interface": {
-      "tp": 8,
+      "tp": 9,
       "fp": 0,
       "fn": 0,
       "precision": 1.0,
       "recall": 1.0,
       "precision_ci_95": [
-        0.6756,
+        0.7008,
         1.0
       ],
       "recall_ci_95": [
-        0.6756,
+        0.7008,
         1.0
       ],
-      "ci_lower": 0.6756,
+      "ci_lower": 0.7008,
       "sufficiency": "insufficient_labels",
-      "label_count": 8,
-      "repo_count": 2
+      "label_count": 9,
+      "repo_count": 3
     }
   },
   "per_repo": [
@@ -107,6 +107,25 @@
       "commit": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
       "scores": {
         "capability": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "precision_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "recall_ci_95": [
+            0.5655,
+            1.0
+          ],
+          "ci_lower": 0.5655,
+          "sufficiency": "insufficient_labels",
+          "label_count": 5,
+          "note": null
+        },
+        "component": {
           "tp": 2,
           "fp": 0,
           "fn": 0,
@@ -125,26 +144,26 @@
           "label_count": 2,
           "note": null
         },
-        "component": {
-          "tp": 1,
+        "deployable": {
+          "tp": 10,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
           "recall": 1.0,
           "precision_ci_95": [
-            0.2065,
+            0.7225,
             1.0
           ],
           "recall_ci_95": [
-            0.2065,
+            0.7225,
             1.0
           ],
-          "ci_lower": 0.2065,
+          "ci_lower": 0.7225,
           "sufficiency": "insufficient_labels",
-          "label_count": 1,
+          "label_count": 10,
           "note": null
         },
-        "deployable": {
+        "interface": {
           "tp": 6,
           "fp": 0,
           "fn": 0,
@@ -162,19 +181,6 @@
           "sufficiency": "insufficient_labels",
           "label_count": 6,
           "note": null
-        },
-        "interface": {
-          "tp": 0,
-          "fp": 0,
-          "fn": 0,
-          "precision": null,
-          "recall": null,
-          "precision_ci_95": null,
-          "recall_ci_95": null,
-          "ci_lower": null,
-          "sufficiency": "insufficient_labels",
-          "label_count": 0,
-          "note": "no labels for this kind in this repo; precision and recall not computed"
         }
       },
       "note": null
@@ -352,22 +358,22 @@
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
         "deployable": {
-          "tp": 6,
+          "tp": 1,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
           "recall": 1.0,
           "precision_ci_95": [
-            0.6097,
+            0.2065,
             1.0
           ],
           "recall_ci_95": [
-            0.6097,
+            0.2065,
             1.0
           ],
-          "ci_lower": 0.6097,
+          "ci_lower": 0.2065,
           "sufficiency": "insufficient_labels",
-          "label_count": 6,
+          "label_count": 1,
           "note": null
         },
         "interface": {
@@ -436,22 +442,22 @@
           "note": "no labels for this kind in this repo; precision and recall not computed"
         },
         "interface": {
-          "tp": 6,
+          "tp": 1,
           "fp": 0,
           "fn": 0,
           "precision": 1.0,
           "recall": 1.0,
           "precision_ci_95": [
-            0.6097,
+            0.2065,
             1.0
           ],
           "recall_ci_95": [
-            0.6097,
+            0.2065,
             1.0
           ],
-          "ci_lower": 0.6097,
+          "ci_lower": 0.2065,
           "sufficiency": "insufficient_labels",
-          "label_count": 6,
+          "label_count": 1,
           "note": null
         }
       },
