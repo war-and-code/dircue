@@ -1,0 +1,9 @@
+{
+  "name": "express-fixture",
+  "version": "1.0.0",
+  "description": "Minimal Express fixture for dircue tool oracle testing",
+  "main": "src/index.js",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
