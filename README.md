@@ -3,7 +3,7 @@
 Map what an unfamiliar directory is and how it works, deterministically, offline and without running anything in it.
 
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
-- **components:** projects across 33 ecosystems;
+- **components:** projects across 26 ecosystems;
 - **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
 - **interfaces:** binaries, ports, gRPC and OpenAPI;
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
