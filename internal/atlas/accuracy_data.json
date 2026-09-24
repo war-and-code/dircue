@@ -1,6 +1,6 @@
 {
   "schema_version": "dircue-accuracy-cards-0.2",
-  "generated_at_utc": "2026-09-24T05:48:00Z",
+  "generated_at_utc": "2026-09-24T06:17:28Z",
   "evaluated_repos": 8,
   "label_source": "tests/map_corpus/public_quality_expectations.json",
   "scope_note": "Scores cover nodes evidenced by oracle_files paths only. Nodes outside those paths are not in the evaluated universe. Precision and recall are not computable for kinds with zero labels. Kinds with fewer than 30 labels are marked insufficient_labels; results are directional. Broader hand-labeling is tracked in issue #75.",
