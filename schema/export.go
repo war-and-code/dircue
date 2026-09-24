@@ -31,6 +31,9 @@ var planningJSON []byte
 //go:embed map.schema.json
 var mapJSON []byte
 
+//go:embed map-compare.schema.json
+var mapCompareJSON []byte
+
 //go:embed cli-capabilities.schema.json
 var cliCapabilitiesJSON []byte
 
@@ -63,6 +66,7 @@ var exportResources = map[string][]byte{
 	"guide":            guideJSON,
 	"languages":        languagesJSON,
 	"map":              mapJSON,
+	"map-compare":      mapCompareJSON,
 	"planning":         planningJSON,
 	"profile":          profileJSON,
 	"stats":            statsJSON,

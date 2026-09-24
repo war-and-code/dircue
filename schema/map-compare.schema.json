@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dircue.invalid/schema/map-compare.schema.json",
+  "title": "dircue map comparison document",
+  "description": "Output of 'dircue map compare --json'. Compares two dircue map documents by stable node and edge IDs without re-reading either source tree.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "kind", "status", "source_binding", "observer_compatibility",
+    "base", "head", "counts", "changes",
+    "provider_status", "provider_changes",
+    "coverage_changes", "coverage_ledger_status", "coverage_ledger_changes",
+    "caveats"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "map_comparison"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["changed", "unchanged"],
+      "description": "Whether any material changes were found between base and head."
+    },
+    "source_binding": {
+      "type": "string",
+      "enum": ["same", "different", "unknown"],
+      "description": "Whether both maps were produced from the same source binding (commit, digest, or neither)."
+    },
+    "observer_compatibility": {
+      "type": "string",
+      "enum": ["same", "different", "unknown"],
+      "description": "Whether both maps were produced by the same dircue version."
+    },
+    "base": {
+      "$ref": "#/$defs/source"
+    },
+    "head": {
+      "$ref": "#/$defs/source"
+    },
+    "counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["added", "removed", "changed", "unchanged", "material", "indeterminate_removal"],
+      "properties": {
+        "added": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entities present in head but not base."
+        },
+        "removed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entities present in base but not head."
+        },
+        "changed": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entities present in both maps but with changed fields."
+        },
+        "unchanged": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of entities present in both maps with no field changes."
+        },
+        "material": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of changes classified as material (source-content driven, not coverage-driven)."
+        },
+        "indeterminate_removal": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of removals that could not be confirmed as real because head coverage is incomplete."
+        }
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      },
+      "description": "Per-entity changes ordered by entity type then ID."
+    },
+    "provider_status": {
+      "type": "string",
+      "enum": ["same", "different", "unknown"],
+      "description": "Whether the set of attached tool-run providers is the same in both maps."
+    },
+    "provider_changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/change"
+      },
+      "description": "Changes to provider tool-run nodes specifically."
+    },
+    "coverage_changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/coverage_change"
+      },
+      "description": "Per-question coverage status changes between base and head."
+    },
+    "coverage_ledger_status": {
+      "type": "string",
+      "enum": ["same", "different", "unknown"],
+      "description": "Whether the coverage ledger (attached provider report coverage) is the same in both maps."
+    },
+    "coverage_ledger_changes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/ledger_change"
+      },
+      "description": "Per-tool, per-scope coverage ledger changes."
+    },
+    "caveats": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Human-readable caveats about the comparison result, such as incomplete coverage preventing confirmed removals."
+    }
+  },
+  "$defs": {
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "type": "string",
+          "description": "Source mode: git or directory."
+        },
+        "revision": {
+          "type": "string",
+          "description": "Git revision reference (e.g. HEAD, branch name)."
+        },
+        "commit": {
+          "type": "string",
+          "description": "Resolved Git commit hash."
+        },
+        "tree": {
+          "type": "string",
+          "description": "Git tree hash for the resolved commit."
+        },
+        "digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["algorithm", "scope", "value"],
+          "properties": {
+            "algorithm": {
+              "type": "string"
+            },
+            "scope": {
+              "type": "string"
+            },
+            "value": {
+              "type": "string"
+            },
+            "normalization": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity", "id", "status", "fields", "material", "certainty"],
+      "properties": {
+        "entity": {
+          "type": "string",
+          "enum": ["node", "edge"],
+          "description": "Whether this change is on a node or an edge."
+        },
+        "id": {
+          "type": "string",
+          "description": "Stable entity ID."
+        },
+        "kind": {
+          "type": "string",
+          "description": "Node kind or edge type (omitted for unchanged entities where kind is implicit)."
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the entity."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["added", "removed", "changed"],
+          "description": "How this entity changed between base and head."
+        },
+        "fields": {
+          "type": ["array", "null"],
+          "items": {
+            "type": "string"
+          },
+          "description": "Which fields changed (null when status is added or removed)."
+        },
+        "material": {
+          "type": "boolean",
+          "description": "Whether this change is material (driven by source-content, not coverage state)."
+        },
+        "certainty": {
+          "type": "string",
+          "enum": ["confirmed", "observed", "indeterminate"],
+          "description": "How certain the comparison is: confirmed means both sides have complete coverage, observed means the change is real but confirmation is limited, indeterminate means coverage state prevents confirmation."
+        },
+        "reason": {
+          "type": "string",
+          "description": "Human-readable reason when certainty is indeterminate."
+        }
+      }
+    },
+    "coverage_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "scope", "base", "head"],
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "The coverage question identifier."
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scope (path) to which this coverage question applies."
+        },
+        "base": {
+          "$ref": "#/$defs/coverage_view"
+        },
+        "head": {
+          "$ref": "#/$defs/coverage_view"
+        }
+      }
+    },
+    "coverage_view": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["present", "reasons"],
+      "properties": {
+        "present": {
+          "type": "boolean",
+          "description": "Whether the coverage entry is present in this map."
+        },
+        "status": {
+          "type": "string",
+          "description": "Coverage status: complete, partial, or unknown (omitted when not present)."
+        },
+        "reasons": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Coverage reason strings."
+        }
+      }
+    },
+    "ledger_change": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["tool", "report_kind", "scope", "status", "fields"],
+      "properties": {
+        "tool": {
+          "type": "string",
+          "description": "The tool name from the coverage ledger entry."
+        },
+        "report_kind": {
+          "type": "string",
+          "description": "The report kind emitted by the tool."
+        },
+        "scope": {
+          "type": "string",
+          "description": "The scope to which this ledger entry applies."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["added", "removed", "changed"],
+          "description": "How this ledger entry changed."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Which fields changed (empty when status is added or removed)."
+        }
+      }
+    }
+  }
+}
