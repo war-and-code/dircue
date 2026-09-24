@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestDiscoveryAndGraphCLI(t *testing.T) {

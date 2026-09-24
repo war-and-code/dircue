@@ -7,8 +7,8 @@ import (
 	"slices"
 	"strings"
 
-	enry "github.com/go-enry/go-enry/v2"
-	"github.com/go-enry/go-enry/v2/data"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
+	"github.com/war-and-code/dircue/third_party/go-enry/data"
 )
 
 const RuleVersion = "1.0.0"

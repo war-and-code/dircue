@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"time"
 
-	"dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
 )
 
 func main() {

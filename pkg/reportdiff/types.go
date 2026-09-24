@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 const (

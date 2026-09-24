@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func sourceBinding(t *testing.T, doc mapdoc.Document) mapdoc.QuestionCoverage {

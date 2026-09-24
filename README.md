@@ -76,10 +76,13 @@ tar -xzf dircue_0.9.0_linux_amd64.tar.gz
 mkdir -p "$HOME/.local/bin"
 install -m 755 dircue "$HOME/.local/bin/dircue"
 
-# Go toolchain: build from a clone. `go install dircue@version` is not supported,
-# because go.mod carries replace directives for the maintained Enry and go-git forks.
-git clone --branch v0.9.0 --depth 1 https://github.com/war-and-code/dircue.git
+# After the repository is public and a version tag exists, verify this clean-cache install:
+go install github.com/war-and-code/dircue@v1.0.0
+
+# While the repository is private, use authenticated GitHub access to clone/build:
+gh repo clone war-and-code/dircue dircue
 cd dircue
+git checkout v0.9.0
 make build VERSION=0.9.0
 mkdir -p "$HOME/.local/bin"
 install -m 755 bin/dircue "$HOME/.local/bin/dircue"

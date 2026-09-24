@@ -12,12 +12,12 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"dircue/internal/jsontext"
-	"dircue/pkg/environments"
-	"dircue/pkg/explain"
-	"dircue/pkg/focus"
-	"dircue/pkg/profile"
-	"dircue/schema"
+	"github.com/war-and-code/dircue/internal/jsontext"
+	"github.com/war-and-code/dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/schema"
 )
 
 // Numeric tokens remain exact json.Number values. These bounds prevent the

@@ -170,7 +170,7 @@ def main():
                     replacements.append({'module':replacement['Old']['Path'], 'path':new['Path']})
             packaged = temporary/'archives'
             packaged.mkdir()
-            flags = ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags', f'-s -w -X dircue/internal/cli.Version={args.version}']
+            flags = ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags', f'-s -w -X github.com/war-and-code/dircue/internal/cli.Version={args.version}']
             for target in targets:
                 target_os, architecture = target.split('/')
                 name = f'dircue_{args.version}_{target_os}_{architecture}'

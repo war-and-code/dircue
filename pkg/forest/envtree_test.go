@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/pkg/forest"
+	"github.com/war-and-code/dircue/pkg/forest"
 )
 
 // makeRoot creates a temp dir, populates it with the given tree, and returns

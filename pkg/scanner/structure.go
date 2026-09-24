@@ -2,10 +2,10 @@ package scanner
 
 import (
 	"context"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
 	"errors"
 	"fmt"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 	"math"
 	"os"
 	"slices"

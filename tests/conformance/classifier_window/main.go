@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"os"
 
-	enry "github.com/go-enry/go-enry/v2"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 )
 
 func main() {

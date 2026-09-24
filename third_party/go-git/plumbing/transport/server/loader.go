@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/storer"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/transport"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
 
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"

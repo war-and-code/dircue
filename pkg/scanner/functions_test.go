@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func functionFile(path string, count int) structure.File {

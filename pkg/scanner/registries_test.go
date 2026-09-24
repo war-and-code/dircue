@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/registries"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 const registryNPM = "registry=https://registry.npmjs.org/\n"

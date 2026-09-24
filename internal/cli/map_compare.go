@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"dircue/pkg/mapdiff"
-	"dircue/pkg/mapdoc"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/mapdiff"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const maxMapComparisonBytes = 64 << 20

@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/formats"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func contentProfile(t *testing.T, paths ...string) profile.Report {

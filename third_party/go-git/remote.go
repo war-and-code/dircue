@@ -10,28 +10,22 @@ import (
 
 	"github.com/go-git/go-billy/v5/osfs"
 
-	"github.com/go-git/go-git/v5/config"
-	"github.com/go-git/go-git/v5/internal/url"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/format/packfile"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/sideband"
-	"github.com/go-git/go-git/v5/plumbing/revlist"
-	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/go-git/go-git/v5/plumbing/transport"
-	// dircue: transport/client intentionally omitted.  That import pulls in
-	// transport/http, transport/ssh and their dependencies (net/http,
-	// crypto/tls, golang.org/x/crypto/ssh), none of which dircue or scc ever
-	// invoke at runtime.  newClient below returns an error instead.  Network
-	// operations (Fetch, Push, Clone) are therefore unavailable in this build,
-	// which is intentional: dircue reads only local on-disk repositories.
-	"github.com/go-git/go-git/v5/storage"
-	"github.com/go-git/go-git/v5/storage/filesystem"
-	"github.com/go-git/go-git/v5/storage/memory"
-	"github.com/go-git/go-git/v5/utils/ioutil"
+	"github.com/war-and-code/dircue/third_party/go-git/config"
+	"github.com/war-and-code/dircue/third_party/go-git/internal/url"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/packfile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/protocol/packp"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/protocol/packp/capability"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/protocol/packp/sideband"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/revlist"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/storer"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/transport"
+	"github.com/war-and-code/dircue/third_party/go-git/storage"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/memory"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/ioutil"
 )
 
 var (
@@ -566,11 +560,10 @@ func newClient(url string, insecure bool, clientCert, clientKey, caBundle []byte
 	ep.CaBundle = caBundle
 	ep.Proxy = proxyOpts
 
-	// dircue: transport/client is not imported in this build (see import block
-	// comment above).  Network fetch/push/clone are not needed by dircue or scc,
-	// which only open local on-disk repositories.  Return a clear error rather
-	// than a transport-specific one so callers see what happened.
-	return nil, ep, errors.New("dircue: network transport not compiled in; this go-git fork excludes transport/client to remove net/http and crypto/tls from the binary")
+	// dircue reads only local repositories, so the transport client (and with
+	// it net/http, crypto/tls and the SSH stack) is not linked. Fetch, push and
+	// clone report this instead of contacting a remote.
+	return nil, ep, errors.New("network transport is not available in this build")
 }
 
 func (r *Remote) fetchPack(ctx context.Context, o *FetchOptions, s transport.UploadPackSession,

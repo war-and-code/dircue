@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/go-enry/go-enry/v2/internal/tokenizer"
+	"github.com/war-and-code/dircue/third_party/go-enry/internal/tokenizer"
 )
 
 type wireTestEntry struct {

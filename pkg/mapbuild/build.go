@@ -9,14 +9,14 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/componentmap"
-	"dircue/pkg/coverageledger"
-	"dircue/pkg/deployables"
-	"dircue/pkg/discovery"
-	"dircue/pkg/formats"
-	"dircue/pkg/intentmap"
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/componentmap"
+	"github.com/war-and-code/dircue/pkg/coverageledger"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/intentmap"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 const ruleVersion = "1.0.0"

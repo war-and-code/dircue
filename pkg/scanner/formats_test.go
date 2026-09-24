@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/formats"
 )
 
 func formatsOptions() Options {

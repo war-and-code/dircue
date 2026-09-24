@@ -10,7 +10,7 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const SchemaVersion = "1.0.0"

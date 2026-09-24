@@ -9,8 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestProtoServicesAreDeclaredWithoutPromotingRoutes(t *testing.T) {

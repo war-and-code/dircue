@@ -33,10 +33,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
             prototypes/structural/driver/go.mod
       - name: Install the pinned Rust toolchain
         run: rustup toolchain install 1.94.0 --profile minimal

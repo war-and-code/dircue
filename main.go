@@ -8,7 +8,7 @@ import (
 	"runtime/debug"
 	"syscall"
 
-	"dircue/internal/cli"
+	"github.com/war-and-code/dircue/internal/cli"
 )
 
 func main() {

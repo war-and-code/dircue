@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/capabilities"
 )
 
 func TestDircueDescriptorIsSmallDeterministicRegistry(t *testing.T) {

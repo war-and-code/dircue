@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"testing"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func benchmarkInput(b *testing.B, changed bool) []byte {

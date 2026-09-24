@@ -1,6 +1,6 @@
 package data
 
-import "github.com/go-enry/go-enry/v2/regex"
+import "github.com/war-and-code/dircue/third_party/go-enry/regex"
 
 // TestMatchers is hand made collection of regexp used by the function `enry.IsTest`
 // to identify test files in different languages.

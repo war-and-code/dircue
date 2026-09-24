@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/packageevidence"
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
-	"dircue/pkg/registries"
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 func emptyProfile() profile.Report {

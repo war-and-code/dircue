@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 // TestCatalogEcosystemExactMatching verifies that the ecosystem-aware catalog

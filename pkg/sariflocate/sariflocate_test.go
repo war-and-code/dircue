@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/sariflocate"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/sariflocate"
 )
 
 func fixtureMap(t *testing.T) mapdoc.Document {

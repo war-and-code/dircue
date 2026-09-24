@@ -1,10 +1,10 @@
 # Maintained dependencies
 
-Dircue keeps local module replacements for Enry and go-git. Their checked-in patches and provenance identify the changes from upstream. The scc dependency is unmodified; its counting interface, pinned version, and update steps are documented in [the scc integration guide](../docs/SCC_UPSTREAM.md).
+Dircue embeds pinned Enry and go-git source snapshots under its root Go module. Their imports are rewritten to the local package paths, so consumers do not need Go `replace` directives. The original module manifests are retained as `upstream.go.mod` and `upstream.go.sum`; provenance records source checksums and narrowly scoped path rewrites. The scc processor is also embedded; its pinned version and integration are documented in [the scc integration guide](../docs/SCC_UPSTREAM.md).
 
 ## Pinned Enry data refresh
 
-Dircue uses the public Enry API through a local module replacement of `github.com/go-enry/go-enry/v2`. The source fork under `go-enry/` starts from official Enry v2.9.6. Its language data comes from that version's unmodified generator run against Linguist 9.7.0, and its classifier follows the pinned Ruby reference. The fork preserves Enry's Go detection interface without mutating its exported data maps at runtime.
+Dircue uses the public Enry API from `third_party/go-enry/`, embedded from official Enry v2.9.6. Its language data comes from that version's unmodified generator run against Linguist 9.7.0, and its classifier follows the pinned Ruby reference. The package preserves Enry's Go detection interface without mutating its exported data maps at runtime.
 
 Regenerate with:
 
@@ -17,7 +17,7 @@ python3 third_party/update_enry.py
 
 The output contains runtime Go source/data, regression tests, source licenses, and machine-readable provenance. It omits the unused Bayesian frequency table. A synthetic `.git/HEAD` records the exact upstream Git object during generation; the runtime has no Git checkout dependency. The updater never executes sample or application code.
 
-`go-enry/PROVENANCE.json` pins both upstream sources and hashes every derived source file. `patches/enry-linguist-9.7.patch` contains the project changes and must apply cleanly during every regeneration. The project-owned `auragaze_compat_test.go` is included in the patch and regenerated with a manifest hash.
+`go-enry/PROVENANCE.json` pins both upstream sources, hashes the downloaded upstream module tree, and hashes every embedded output file. The retained upstream manifests are byte-identical to the downloaded module manifests. `patches/enry-linguist-9.7.patch` contains project changes; only imports of Enry's own module are rewritten to the embedded package path. The project-owned compatibility test is included in the patch and output manifest.
 
 The updater checks existing output for unmanaged files. It removes obsolete files only when the preceding manifest owns them and their bytes remain unchanged. Before replacing the output directory, it validates and tests the staged tree, rechecks for intervening edits, and creates a backup for rollback. The next invocation checks for an interrupted replacement; ambiguous states require inspection. `GENERATOR_WARNINGS.txt` retains unsupported upstream regex diagnostics for review.
 
@@ -38,11 +38,11 @@ The generator warning file lists the remaining unsupported upstream expressions.
 
 The scanner's binary preflight independently follows [Charlock Holmes 0.7.9's raw-byte policy](https://github.com/brianmario/charlock_holmes/blob/v0.7.9/ext/charlock_holmes/encoding_detector.c), the version pinned in the Ruby reference image: PostScript and Unicode BOM exceptions, specific binary magic signatures, and a maximum 1 MiB NUL probe over the supplied data. Repository callers supply only the LazyBlob 128 KiB prefix. Its [MIT notice](CHARLOCK_LICENSE) is retained; Charlock and ICU are not runtime dependencies. Language and generated-code strategies receive the original bytes, matching Linguist rather than implicitly transcoding source.
 
-Enry is **Apache-2.0**, preserved verbatim in `go-enry/LICENSE`. Linguist's generated data is derived from its **MIT**-licensed source; that notice is preserved in `go-enry/LINGUIST_LICENSE`. Project-specific changes are identified here and in the patch; this fork is not an upstream Enry release. The production build remains pure Go with `CGO_ENABLED=0`; optional Enry `oniguruma`/`flex` build modes are outside the supported Dircue build configuration.
+Enry is **Apache-2.0**, preserved verbatim in `go-enry/LICENSE`. Linguist's generated data is derived from its **MIT**-licensed source; that notice is preserved in `go-enry/LINGUIST_LICENSE`. Project-specific changes are identified in the patch and provenance; this is an embedded snapshot, not an upstream Enry release. The production build remains pure Go with `CGO_ENABLED=0`; optional Enry `oniguruma`/`flex` build modes are outside the supported Dircue build configuration.
 
 ## go-git reader backports
 
-The local replacement under `go-git/` starts from go-git v5.19.2. It backports a
+The embedded package under `go-git/` starts from go-git v5.19.2. It backports a
 correction for [upstream issue #2378](https://github.com/go-git/go-git/issues/2378):
 the streaming delta reader could reconstruct incorrect bytes after a backward
 copy followed by a forward copy, without returning an error. The correction
@@ -59,6 +59,12 @@ regressions cover valid ownership transfer and cleanup after malformed input.
 A bounded packfile cache also closes a newly opened packfile when eviction of
 the previous entry fails; the original eviction error remains authoritative.
 
+The snapshot does not link go-git's transport client. dircue reads only local
+repositories, so `remote.go` no longer imports `plumbing/transport/client`, and
+fetch, push and clone report that no network transport is available. This keeps
+`net/http`, `crypto/tls` and the SSH stack out of the binary;
+`scripts/check-linked-deps.sh` and `internal/buildcontract` enforce it.
+
 [`patches/go-git-reader-delta.patch`](patches/go-git-reader-delta.patch) records the
 runtime changes and regression tests. The snapshot retains upstream production
 Go sources, module files, and license, plus standalone delta and file-lifecycle tests; upstream
@@ -74,8 +80,10 @@ python3 third_party/update_go_git.py --output .cache/go-git-regenerated
 ```
 
 The updater uses Go's module/checksum system to retrieve the pinned release and
-applies the recorded patch. This fork preserves go-git's Apache-2.0 license; it
+applies the recorded patch and checks the embedded package in a temporary module
+manifest derived from upstream's retained manifest. This snapshot preserves go-git's Apache-2.0 license; it
 is not an upstream release. When a released go-git version contains these fixes,
-review whether the local replacement can be removed. Repeat packed-object
+review whether the embedded snapshot can be refreshed or the upstream fixes can
+replace it. Repeat packed-object
 regressions, Git-versus-directory comparisons, and language profiling benchmarks
 before adopting that update.

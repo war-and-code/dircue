@@ -12,7 +12,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"dircue/internal/jsontext"
+	"github.com/war-and-code/dircue/internal/jsontext"
 )
 
 func extension(name string) string {

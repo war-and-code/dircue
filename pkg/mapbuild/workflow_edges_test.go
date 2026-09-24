@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/deployables"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/deployables"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 // workflowEdgesDoc builds a minimal map document with two components and one

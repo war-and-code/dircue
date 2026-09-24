@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/explain"
 )
 
 func traceSource() explain.Source {

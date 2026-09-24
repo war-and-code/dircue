@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/internal/cli"
+	"github.com/war-and-code/dircue/internal/cli"
 )
 
 // TestForestOutputValidatesAgainstSchema validates a real forest document,

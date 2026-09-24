@@ -8,9 +8,9 @@ import (
 	"strings"
 
 	"github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5/internal/path_util"
-	"github.com/go-git/go-git/v5/plumbing/format/config"
-	gioutil "github.com/go-git/go-git/v5/utils/ioutil"
+	"github.com/war-and-code/dircue/third_party/go-git/internal/path_util"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/config"
+	gioutil "github.com/war-and-code/dircue/third_party/go-git/utils/ioutil"
 )
 
 const (

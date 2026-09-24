@@ -16,10 +16,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Build candidate
         run: go build -trimpath -o bin/dircue .
         env:

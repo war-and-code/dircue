@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/availability"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/pkg/availability"
 )
 
 func availabilitySchemaValue(t *testing.T) map[string]any {

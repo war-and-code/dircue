@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/boyter/scc/v4/processor"
+	"github.com/war-and-code/dircue/pkg/codemetrics/internal/sccprocessor"
 )
 
 // Independent processes keep upstream globals isolated: eager construction and

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func evidence(path string) mapdoc.Evidence {

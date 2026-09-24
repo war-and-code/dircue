@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/detectors"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/detectors"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // This harness only reads externally prepared fixtures. It is disabled unless

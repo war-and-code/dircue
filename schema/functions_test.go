@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func functionSchemaReport() *profile.Report {
