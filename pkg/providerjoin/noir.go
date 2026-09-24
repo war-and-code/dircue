@@ -45,8 +45,10 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 	}
 	version := fallbackVersion(doc.Version)
 	b, reason := binding(in.Snapshot, reportIdentity{})
-	if len(doc.Endpoints) > limit {
-		return Result{Ledger: []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
+	// Ingest the first N endpoints in document order; keep what fits within the limit.
+	limitReached := len(doc.Endpoints) > limit
+	if limitReached {
+		doc.Endpoints = doc.Endpoints[:limit]
 	}
 	tool := toolNode("noir", version, key, b, reason, nil)
 	out := Result{Nodes: []mapdoc.Node{tool}}
@@ -127,7 +129,11 @@ func ingestNoir(data []byte, in Input, limit int, key string) (Result, error) {
 		}
 	}
 	covered = compact(covered)
-	out.Ledger = []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: reason}}
+	ledgerReason := reason
+	if limitReached {
+		ledgerReason = "attachment_record_limit_reached"
+	}
+	out.Ledger = []CoverageEntry{{Tool: "noir", ReportKind: "noir-json", Scope: ".", Binding: b, Ran: true, CoveredFiles: covered, State: coverageState(covered), Reason: ledgerReason}}
 	return out, nil
 }
 

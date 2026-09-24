@@ -24,7 +24,8 @@ type sarifDocument struct {
 			ToolExecutionNotifications []any `json:"toolExecutionNotifications"`
 		} `json:"invocations"`
 		VersionControlProvenance []struct {
-			RevisionID string `json:"revisionId"`
+			RevisionID    string `json:"revisionId"`
+			RepositoryURI string `json:"repositoryUri"`
 		} `json:"versionControlProvenance"`
 		// Results are intentionally absent: findings are outside dircue's contract.
 	} `json:"runs"`
@@ -38,9 +39,10 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 	if doc.Version != "2.1.0" {
 		return Result{}, fmt.Errorf("unsupported SARIF version %q", doc.Version)
 	}
-	if len(doc.Runs) > limit {
-		b, _ := binding(in.Snapshot, reportIdentity{})
-		return Result{Ledger: []CoverageEntry{{Tool: "sarif", ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
+	// Ingest the first N runs in document order; truncate to keep what fits.
+	docLimitReached := len(doc.Runs) > limit
+	if docLimitReached {
+		doc.Runs = doc.Runs[:limit]
 	}
 	var out Result
 	for i, run := range doc.Runs {
@@ -48,12 +50,28 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 		if tool == "" {
 			tool = "sarif"
 		}
-		if len(run.Artifacts)+len(run.Invocations) > limit {
-			b, _ := bindingSARIF(in.Snapshot, run.VersionControlProvenance)
-			out.Ledger = append(out.Ledger, CoverageEntry{Tool: tool, ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"})
-			continue
+		// Ingest the first N artifacts/invocations within this run in document order.
+		runLimitReached := len(run.Artifacts)+len(run.Invocations) > limit
+		if runLimitReached {
+			keepArtifacts := limit
+			if keepArtifacts > len(run.Artifacts) {
+				keepArtifacts = len(run.Artifacts)
+			}
+			doc.Runs[i].Artifacts = doc.Runs[i].Artifacts[:keepArtifacts]
+			keepInvocations := limit - keepArtifacts
+			if keepInvocations < 0 {
+				keepInvocations = 0
+			}
+			if keepInvocations > len(run.Invocations) {
+				keepInvocations = len(run.Invocations)
+			}
+			doc.Runs[i].Invocations = doc.Runs[i].Invocations[:keepInvocations]
+			run = doc.Runs[i]
 		}
 		b, reason := bindingSARIF(in.Snapshot, run.VersionControlProvenance)
+		if runLimitReached {
+			reason = "attachment_record_limit_reached"
+		}
 		covered := []string{}
 		for _, a := range run.Artifacts {
 			decoded, decodeErr := url.PathUnescape(a.Location.URI)
@@ -93,28 +111,58 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 }
 
 func bindingSARIF(snapshot Snapshot, provenance []struct {
-	RevisionID string `json:"revisionId"`
+	RevisionID    string `json:"revisionId"`
+	RepositoryURI string `json:"repositoryUri"`
 }) (Binding, string) {
-	var revisions []string
+	// Collect non-empty revision IDs so we can fall back when the snapshot has no commit.
+	var firstRevision string
 	for _, source := range provenance {
-		if revision := strings.TrimSpace(source.RevisionID); revision != "" {
-			revisions = append(revisions, revision)
+		if rev := strings.TrimSpace(source.RevisionID); rev != "" {
+			firstRevision = rev
+			break
 		}
 	}
-	if len(revisions) == 0 {
+	if firstRevision == "" {
 		return binding(snapshot, reportIdentity{})
 	}
 	if snapshot.Commit == "" {
-		return binding(snapshot, reportIdentity{Commit: revisions[0]})
+		return binding(snapshot, reportIdentity{Commit: firstRevision})
 	}
-	// Verified if ANY revision matches the snapshot commit;
-	// Mismatch only when none match (all are mismatches).
-	for _, revision := range revisions {
-		if state, _ := binding(snapshot, reportIdentity{Commit: revision}); state == BindingVerified {
-			return BindingVerified, ""
+
+	// Per-repository semantics: entries for other repositories are ignored.
+	// "Same repository" means identical normalized repositoryUri, or both empty.
+	normalizeURI := func(uri string) string {
+		return strings.TrimRight(strings.ToLower(strings.TrimSpace(uri)), "/")
+	}
+
+	// Find the focal repository: the normalized URI that has at least one entry
+	// whose revisionId matches the snapshot commit.
+	focalURI := ""
+	focalFound := false
+	for _, source := range provenance {
+		if strings.EqualFold(strings.TrimSpace(source.RevisionID), snapshot.Commit) {
+			focalURI = normalizeURI(source.RepositoryURI)
+			focalFound = true
+			break
 		}
 	}
-	return binding(snapshot, reportIdentity{Commit: revisions[0]})
+
+	if !focalFound {
+		// No entry in any repository matches the snapshot commit.
+		return BindingMismatch, "report_commit_mismatch"
+	}
+
+	// Check for conflicts: another entry in the same (focal) repository with a
+	// different revisionId. If any conflict exists the binding cannot be verified.
+	for _, source := range provenance {
+		if normalizeURI(source.RepositoryURI) == focalURI {
+			if !strings.EqualFold(strings.TrimSpace(source.RevisionID), snapshot.Commit) {
+				return BindingUnknown, "vcp_same_repository_revision_conflict"
+			}
+		}
+	}
+
+	return BindingVerified, ""
 }
 
 func ownersForPaths(nodes []mapdoc.Node, paths []string) []string {

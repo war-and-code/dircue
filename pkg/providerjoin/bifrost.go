@@ -70,8 +70,10 @@ func ingestBifrost(data []byte, in Input, limit int, key string) (Result, error)
 		return Result{}, fmt.Errorf("not a Bifrost ordinary CodeQuery result")
 	}
 	bindingState, bindingReason := binding(in.Snapshot, reportIdentity{})
-	if len(doc.Results) > limit {
-		return Result{Ledger: []CoverageEntry{{Tool: "bifrost", ReportKind: "bifrost-code-query-json", Scope: ".", Binding: bindingState, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
+	// Ingest the first N results in document order; keep what fits within the limit.
+	limitReached := len(doc.Results) > limit
+	if limitReached {
+		doc.Results = doc.Results[:limit]
 	}
 	tool := toolNode("bifrost", "unknown", key, bindingState, bindingReason, nil)
 	covered := make([]string, 0)
@@ -142,9 +144,13 @@ func ingestBifrost(data []byte, in Input, limit int, key string) (Result, error)
 	if *doc.Truncated || len(doc.Diagnostics) > 0 {
 		state = "partial_query_reported"
 	}
+	ledgerReason := bindingReason
+	if limitReached {
+		ledgerReason = "attachment_record_limit_reached"
+	}
 	return Result{
 		Nodes:  []mapdoc.Node{tool},
-		Ledger: []CoverageEntry{{Tool: "bifrost", ReportKind: "bifrost-code-query-json", Scope: ".", Binding: bindingState, Ran: true, CoveredFiles: covered, State: state, Reason: bindingReason}},
+		Ledger: []CoverageEntry{{Tool: "bifrost", ReportKind: "bifrost-code-query-json", Scope: ".", Binding: bindingState, Ran: true, CoveredFiles: covered, State: state, Reason: ledgerReason}},
 	}, nil
 }
 

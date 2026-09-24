@@ -80,26 +80,41 @@ func TestSyftWithoutStandardSourceIdentityStaysUnknown(t *testing.T) {
 	}
 }
 
-// TestSARIFMultiRepoVCPBinding verifies that SARIF multi-repository
-// versionControlProvenance binding uses ANY-match semantics: Verified when at
-// least one revisionId matches the snapshot commit, Mismatch only when all
-// entries are mismatches.
+// TestSARIFMultiRepoVCPBinding verifies that SARIF versionControlProvenance
+// binding respects same-repository semantics:
+//   - verified: a focal repo entry matches AND no same-repo entry differs
+//   - mismatch: no entry for the focal repo matches (all differ)
+//   - unknown: a same-repo conflict exists (one matches, another differs)
+//
+// Entries for other repositories are ignored.
 func TestSARIFMultiRepoVCPBinding(t *testing.T) {
-	t.Run("one_matching_entry_binds_verified", func(t *testing.T) {
-		// Snapshot commit matches the first entry; second does not. Result is Verified.
-		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"cafebabe"},{"revisionId":"deadbeef"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
-		r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+	t.Run("verified_different_repos_focal_matches", func(t *testing.T) {
+		// repo-A matches cafebabe; repo-B has a different revision but is a separate repo → verified.
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},` +
+			`"versionControlProvenance":[` +
+			`{"repositoryUri":"https://github.com/example/app","revisionId":"cafebabe"},` +
+			`{"repositoryUri":"https://github.com/example/other","revisionId":"deadbeef"}` +
+			`],"artifacts":[{"location":{"uri":"main.go"}}]}]}`
+		r, err := providerjoin.Join(context.Background(),
+			providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}},
+			[]providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}},
+			providerjoin.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
 		if len(r.Ledger) < 1 || r.Ledger[0].Binding != providerjoin.BindingVerified {
-			t.Fatalf("expected BindingVerified, got ledger=%+v", r.Ledger)
+			t.Fatalf("expected BindingVerified (different-repo entry ignored), got ledger=%+v", r.Ledger)
 		}
 	})
-	t.Run("all_entries_mismatch_binds_mismatch", func(t *testing.T) {
-		// Snapshot commit matches neither entry; result is Mismatch.
-		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"deadbeef"},{"revisionId":"deaddead"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
-		r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+	t.Run("mismatch_all_focal_repo_entries_differ", func(t *testing.T) {
+		// All entries for the focal repo (empty URI) differ from the snapshot commit → mismatch.
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},` +
+			`"versionControlProvenance":[{"revisionId":"deadbeef"},{"revisionId":"beefdead"}],` +
+			`"artifacts":[{"location":{"uri":"package.json"}}]}]}`
+		r, err := providerjoin.Join(context.Background(),
+			providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}},
+			[]providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}},
+			providerjoin.Options{})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -110,16 +125,40 @@ func TestSARIFMultiRepoVCPBinding(t *testing.T) {
 			if n.Coverage.Status == mapdoc.CoverageComplete {
 				t.Fatalf("mismatched node has complete coverage: %+v", n)
 			}
-			for _, f := range n.Facts {
-				if f.Coverage.Status == mapdoc.CoverageComplete {
-					t.Fatalf("mismatched fact has complete coverage: %+v", f)
-				}
-			}
 		}
-		for _, e := range r.Edges {
-			if e.Coverage.Status == mapdoc.CoverageComplete {
-				t.Fatalf("mismatched edge has complete coverage: %+v", e)
-			}
+	})
+	t.Run("unknown_same_repo_revision_conflict", func(t *testing.T) {
+		// Same repo (empty URI) has one entry matching the commit and one differing → unknown (conflict).
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},` +
+			`"versionControlProvenance":[{"revisionId":"cafebabe"},{"revisionId":"deadbeef"}],` +
+			`"artifacts":[{"location":{"uri":"main.go"}}]}]}`
+		r, err := providerjoin.Join(context.Background(),
+			providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}},
+			[]providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}},
+			providerjoin.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(r.Ledger) < 1 || r.Ledger[0].Binding != providerjoin.BindingUnknown {
+			t.Fatalf("expected BindingUnknown (same-repo conflict), got ledger=%+v", r.Ledger)
+		}
+	})
+	t.Run("verified_named_repo_all_entries_match", func(t *testing.T) {
+		// Named repo, all entries match the snapshot commit → verified.
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},` +
+			`"versionControlProvenance":[` +
+			`{"repositoryUri":"https://github.com/example/app","revisionId":"cafebabe"},` +
+			`{"repositoryUri":"https://github.com/example/app","revisionId":"cafebabe"}` +
+			`],"artifacts":[{"location":{"uri":"main.go"}}]}]}`
+		r, err := providerjoin.Join(context.Background(),
+			providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}},
+			[]providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}},
+			providerjoin.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(r.Ledger) < 1 || r.Ledger[0].Binding != providerjoin.BindingVerified {
+			t.Fatalf("expected BindingVerified (named repo, all match), got ledger=%+v", r.Ledger)
 		}
 	})
 }
@@ -376,6 +415,7 @@ func TestBifrostRequiresOrdinaryEnvelopeAndQualifiesIncompleteResults(t *testing
 			t.Fatalf("missing %q in %q", required, reasons)
 		}
 	}
+	// Record-limit: 2 results but MaxRecords=1 → first result (a.py) kept, second dropped.
 	two := `{"results":[{"result_type":"file","path":"a.py"},{"result_type":"file","path":"b.py"}],"truncated":false}`
 	r2, err2 := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, two)}}, providerjoin.Options{MaxRecords: 1})
 	if err2 != nil {
@@ -383,6 +423,10 @@ func TestBifrostRequiresOrdinaryEnvelopeAndQualifiesIncompleteResults(t *testing
 	}
 	if len(r2.Ledger) < 1 || r2.Ledger[0].Reason != "attachment_record_limit_reached" {
 		t.Fatalf("expected attachment_record_limit_reached ledger entry, got %+v", r2.Ledger)
+	}
+	// Exactly one covered file must be retained (a.py, the first result in document order).
+	if len(r2.Ledger[0].CoveredFiles) != 1 || r2.Ledger[0].CoveredFiles[0] != "a.py" {
+		t.Fatalf("expected CoveredFiles=[a.py], got %v", r2.Ledger[0].CoveredFiles)
 	}
 }
 
@@ -674,9 +718,9 @@ func TestBOMToleranceSARIF(t *testing.T) {
 	}
 }
 
-// TestAttachmentRecordLimitDegrades verifies that an attachment exceeding the
-// record limit produces a partial ledger entry with reason
-// attachment_record_limit_reached rather than causing map to exit non-zero.
+// TestAttachmentRecordLimitDegrades verifies that a syft attachment exceeding the
+// record limit ingests the first N records in document order, marks coverage
+// partial with reason attachment_record_limit_reached, and does not exit non-zero.
 func TestAttachmentRecordLimitDegrades(t *testing.T) {
 	// Build a syft document with 3 artifacts but MaxRecords=2.
 	body := `{"descriptor":{"name":"syft","version":"1.0"},"artifacts":[` +
@@ -698,21 +742,43 @@ func TestAttachmentRecordLimitDegrades(t *testing.T) {
 	if entry.Reason != "attachment_record_limit_reached" {
 		t.Fatalf("expected reason=attachment_record_limit_reached, got reason=%q state=%q", entry.Reason, entry.State)
 	}
-	if entry.State != "tool_error" {
-		t.Fatalf("expected state=tool_error, got %q", entry.State)
-	}
-	// No package nodes should be emitted when the limit is exceeded.
+	// First 2 of 3 package nodes should be emitted (document order: a, b).
+	pkgNames := []string{}
 	for _, n := range r.Nodes {
 		if n.Kind == "package" {
-			t.Fatalf("package node should not be emitted on limit: %+v", n)
+			pkgNames = append(pkgNames, n.Name)
 		}
+	}
+	if len(pkgNames) != 2 {
+		t.Fatalf("expected exactly 2 package nodes (first 2 of 3), got %d: %v", len(pkgNames), pkgNames)
+	}
+	// Coverage for packages and analyzer_coverage must be partial.
+	var pkgCov, analyzerCov *mapdoc.Coverage
+	for _, qc := range r.Coverage {
+		qc := qc
+		switch qc.Question {
+		case "packages":
+			pkgCov = &qc.Coverage
+		case "analyzer_coverage":
+			analyzerCov = &qc.Coverage
+		}
+	}
+	if pkgCov == nil || pkgCov.Status != mapdoc.CoveragePartial {
+		t.Fatalf("packages question must be partial when record limit reached, got %+v", pkgCov)
+	}
+	if analyzerCov == nil || analyzerCov.Status != mapdoc.CoveragePartial {
+		t.Fatalf("analyzer_coverage question must be partial when record limit reached, got %+v", analyzerCov)
+	}
+	if !strings.Contains(strings.Join(pkgCov.Reasons, ","), "attachment_record_limit_reached") {
+		t.Fatalf("packages partial reasons must include attachment_record_limit_reached, got %v", pkgCov.Reasons)
 	}
 }
 
-// TestAttachmentRecordLimitSARIF verifies limit-exceeded degradation for SARIF.
+// TestAttachmentRecordLimitSARIF verifies that a SARIF attachment exceeding the
+// run-level record limit ingests the first N artifacts in document order and marks
+// coverage partial with reason attachment_record_limit_reached.
 func TestAttachmentRecordLimitSARIF(t *testing.T) {
-	// Build a SARIF with 3 artifacts but MaxRecords=1 (run limit: runs > 1 is checked first,
-	// or artifacts+invocations within a run).
+	// 1 run with 2 artifacts but MaxRecords=1: first artifact kept, second dropped.
 	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"scanner"}},"artifacts":[` +
 		`{"location":{"uri":"a.go"}},{"location":{"uri":"b.go"}}` +
 		`]}]}`
@@ -729,5 +795,20 @@ func TestAttachmentRecordLimitSARIF(t *testing.T) {
 	entry := r.Ledger[0]
 	if entry.Reason != "attachment_record_limit_reached" {
 		t.Fatalf("expected reason=attachment_record_limit_reached, got reason=%q state=%q", entry.Reason, entry.State)
+	}
+	// Exactly one covered file (a.go, the first artifact) must be retained.
+	if len(entry.CoveredFiles) != 1 || entry.CoveredFiles[0] != "a.go" {
+		t.Fatalf("expected CoveredFiles=[a.go], got %v", entry.CoveredFiles)
+	}
+	// analyzer_coverage must be partial with the limit reason.
+	var analyzerCov *mapdoc.Coverage
+	for _, qc := range r.Coverage {
+		qc := qc
+		if qc.Question == "analyzer_coverage" {
+			analyzerCov = &qc.Coverage
+		}
+	}
+	if analyzerCov == nil || analyzerCov.Status != mapdoc.CoveragePartial {
+		t.Fatalf("analyzer_coverage must be partial when record limit reached, got %+v", analyzerCov)
 	}
 }
