@@ -21,15 +21,20 @@ const (
 )
 
 type Observation struct {
-	Kind       Kind              `json:"kind"`
-	Name       string            `json:"name"`
-	ProjectID  string            `json:"project_id,omitempty"`
-	State      string            `json:"state"`
-	Basis      string            `json:"basis"`
-	Path       string            `json:"path"`
-	StartLine  int               `json:"start_line,omitempty"`
-	EndLine    int               `json:"end_line,omitempty"`
-	Properties map[string]string `json:"properties,omitempty"`
+	Kind      Kind   `json:"kind"`
+	Name      string `json:"name"`
+	ProjectID string `json:"project_id,omitempty"`
+	// ProjectAttribution is "directory_containment" when ProjectID was assigned
+	// by path-containment heuristic in Finish rather than by the source
+	// observation. An empty value means the ProjectID was explicitly set by the
+	// source (e.g. a declared requirement in a manifest).
+	ProjectAttribution string            `json:"project_attribution,omitempty"`
+	State              string            `json:"state"`
+	Basis              string            `json:"basis"`
+	Path               string            `json:"path"`
+	StartLine          int               `json:"start_line,omitempty"`
+	EndLine            int               `json:"end_line,omitempty"`
+	Properties         map[string]string `json:"properties,omitempty"`
 }
 
 type Coverage struct {
