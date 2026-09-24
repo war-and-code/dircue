@@ -126,7 +126,7 @@ or attributes. The CLI never runs Git and never reads outside the selected root.
 
 Computing the digest reads every in-scope file once more. Control it with
 `--set source.digest=git|raw|off` (`raw` hashes every file and symlink byte for
-byte without ignore rules or normalization, as `all_entries+raw`),
+byte without ignore rules or normalization: `scope` `all_entries`, `normalization` `raw`),
 `--set source.digest_format=sha1|sha256`, and `--set source.digest_bytes=N`
 (default 16 GiB; `0` removes the limit). The digest also honors the inventory
 entry limit. Absent a digest, attached reports and SARIF locations can still be
