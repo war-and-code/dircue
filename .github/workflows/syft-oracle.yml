@@ -1,0 +1,131 @@
+name: Syft Oracle
+
+# Independent oracle that validates the packages coverage binding produced by
+# dircue map --attach syft-json=<report>.
+#
+# make syft-oracle   — run against the committed reports (offline).
+# This workflow      — regenerate reports with the pinned Syft image, diff them
+#                      against the committed ones, then run the oracle on the
+#                      freshly generated reports.
+#
+# Syft image: anchore/syft@sha256:500e2d872ac019436926e8322b4fc1f39441d94d21f6f4046c6ff29b30e8cb02 (v1.52.0)
+on:
+  workflow_dispatch:
+    inputs:
+      regenerate:
+        description: >
+          'true' (default) regenerates Syft reports from the pinned image and
+          runs the oracle on the fresh reports. 'false' skips Docker and runs
+          the oracle against the committed reports only.
+        required: false
+        default: 'true'
+
+permissions:
+  contents: read
+
+env:
+  SYFT_IMAGE: "anchore/syft@sha256:500e2d872ac019436926e8322b4fc1f39441d94d21f6f4046c6ff29b30e8cb02"
+
+jobs:
+  syft-oracle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Build dircue
+        run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+
+      - name: Pull pinned Syft image
+        if: inputs.regenerate == 'true'
+        run: docker pull "$SYFT_IMAGE"
+
+      - name: Regenerate Syft reports (network-isolated)
+        if: inputs.regenerate == 'true'
+        run: |
+          docker run --rm --network none \
+            -v "$PWD/tests/syft-oracle/fixtures/go-single:/src:ro" \
+            "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+            > tests/syft-oracle/fixtures/go-single.syft.fresh.json
+          docker run --rm --network none \
+            -v "$PWD/tests/syft-oracle/fixtures/multi:/src:ro" \
+            "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+            > tests/syft-oracle/fixtures/multi.syft.fresh.json
+
+      - name: Diff fresh reports against committed ones
+        if: inputs.regenerate == 'true'
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys
+
+          def load(path):
+              with open(path) as f:
+                  return json.load(f)
+
+          def report_drift(name, committed_path, fresh_path):
+              committed = load(committed_path)
+              fresh = load(fresh_path)
+              # Compare artifact sets by purl (ignore Syft-generated IDs and timestamps).
+              committed_purls = sorted(a.get("purl","") for a in committed.get("artifacts",[]))
+              fresh_purls = sorted(a.get("purl","") for a in fresh.get("artifacts",[]))
+              drifted = False
+              if committed_purls != fresh_purls:
+                  print(f"DRIFT in {name} artifacts:")
+                  print(f"  committed purls: {committed_purls}")
+                  print(f"  fresh purls:     {fresh_purls}")
+                  drifted = True
+              # Compare schema version (Syft version drift would show here).
+              if committed["schema"]["version"] != fresh["schema"]["version"]:
+                  print(f"DRIFT in {name} schema version: "
+                        f"{committed['schema']['version']!r} -> {fresh['schema']['version']!r}")
+                  drifted = True
+              if not drifted:
+                  print(f"OK: {name} — artifact set and schema version unchanged")
+              return drifted
+
+          drifted = False
+          drifted |= report_drift(
+              "go-single",
+              "tests/syft-oracle/fixtures/go-single.syft.json",
+              "tests/syft-oracle/fixtures/go-single.syft.fresh.json",
+          )
+          drifted |= report_drift(
+              "multi",
+              "tests/syft-oracle/fixtures/multi.syft.json",
+              "tests/syft-oracle/fixtures/multi.syft.fresh.json",
+          )
+          if drifted:
+              print("\nReport drift detected — regenerate and commit the updated reports.")
+              sys.exit(1)
+          PYEOF
+
+      - name: Run Syft oracle against fresh reports
+        if: inputs.regenerate == 'true'
+        run: |
+          python3 tests/syft-oracle/run.py --binary bin/dircue \
+            --go-report   tests/syft-oracle/fixtures/go-single.syft.fresh.json \
+            --multi-report tests/syft-oracle/fixtures/multi.syft.fresh.json
+
+      - name: Run Syft oracle against committed reports
+        run: python3 tests/syft-oracle/run.py --binary bin/dircue
+
+      - name: Upload oracle artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: syft-oracle-results
+          retention-days: 7
+          path: |
+            tests/syft-oracle/fixtures/*.syft.fresh.json

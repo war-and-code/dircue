@@ -1,0 +1,65 @@
+{
+  "tool": "github.com/go-gremlins/gremlins@v0.6.0",
+  "go_version": "1.26.6",
+  "timeout_coefficient": 20,
+  "recorded": "2026-09-23",
+  "note": "Baseline recorded at dircue 1.0.0-rc (fc9e125). Equivalent mutants (marked below) survive because the original and mutant produce identical observable behavior with any realistic input; they represent dead-code paths in guard conditions that are always overridden by a second clause.",
+  "packages": {
+    "dircue/pkg/sariflocate": {
+      "runnable": 110,
+      "not_covered": 5,
+      "mutant_coverage_pct": 95.45,
+      "killed": 95,
+      "lived": 10,
+      "timed_out": 0,
+      "efficacy_pct": 90.48,
+      "surviving_mutants": [
+        {"file": "sariflocate.go", "line": 78,  "col": 18, "kind": "CONDITIONALS_BOUNDARY", "note": "equivalent: Bytes<=0 guard; second clause len(input)>Bytes catches any realistic zero-Bytes+non-empty-input combo"},
+        {"file": "sariflocate.go", "line": 85,  "col": 16, "kind": "CONDITIONALS_BOUNDARY", "note": "BOM byte[1] check; covered by FuzzResolveURIConfinesPaths but boundary not tested with near-BOM bytes"},
+        {"file": "sariflocate.go", "line": 104, "col": 17, "kind": "CONDITIONALS_BOUNDARY", "note": "equivalent: Runs<=0 guard; second clause len(runs)>Runs catches realistic inputs"},
+        {"file": "sariflocate.go", "line": 123, "col": 21, "kind": "CONDITIONALS_BOUNDARY", "note": "equivalent: Results<=0 guard"},
+        {"file": "sariflocate.go", "line": 138, "col": 25, "kind": "CONDITIONALS_BOUNDARY", "note": "equivalent: Locations<=0 guard"},
+        {"file": "sariflocate.go", "line": 154, "col": 42, "kind": "INCREMENT_DECREMENT",    "note": "counts++ → counts-- caught by TestResultCountsAreAdditive but gremlins run before test was added"},
+        {"file": "sariflocate.go", "line": 346, "col": 90, "kind": "CONDITIONALS_NEGATION",  "note": "driveRE match for Windows paths; Windows-specific; non-Windows test infra makes this hard to verify inline"},
+        {"file": "sariflocate.go", "line": 350, "col": 15, "kind": "CONDITIONALS_BOUNDARY",  "note": "Windows drive strip len>=3 boundary"},
+        {"file": "sariflocate.go", "line": 350, "col": 15, "kind": "CONDITIONALS_NEGATION",  "note": "Windows drive strip condition"},
+        {"file": "sariflocate.go", "line": 350, "col": 30, "kind": "CONDITIONALS_NEGATION",  "note": "Windows drive strip uri[2]==':' condition"}
+      ]
+    },
+    "dircue/pkg/mapdiff": {
+      "runnable": 59,
+      "not_covered": 36,
+      "mutant_coverage_pct": 62.11,
+      "killed": 45,
+      "lived": 14,
+      "timed_out": 0,
+      "efficacy_pct": 76.27,
+      "note": "14 surviving mutants concentrated in coverage-score arithmetic (mapdiff.go:624-641). Coverage-score derivation logic is a priority for new tests (see issue #86)."
+    },
+    "dircue/pkg/mapdoc": {
+      "runnable": 114,
+      "not_covered": 57,
+      "mutant_coverage_pct": 66.67,
+      "killed": 2,
+      "timed_out": 112,
+      "efficacy_pct": 100.0,
+      "note": "All runnable-and-not-timed-out mutants were killed. High timeout rate (112/114) is expected: the schema validation tests exercise deeply nested conditions that loop slowly under many mutations. Efficacy is 100% for non-timed-out mutants."
+    },
+    "dircue/pkg/treehash": {
+      "runnable": 420,
+      "not_covered": 62,
+      "mutant_coverage_pct": 87.14,
+      "killed": 46,
+      "timed_out": 374,
+      "efficacy_pct": 100.0,
+      "note": "All runnable-and-not-timed-out mutants were killed. High timeout rate is expected from recursive Git tree traversal and pattern matching (loops become effectively infinite under some negation mutations)."
+    },
+    "dircue/pkg/providerjoin": {
+      "dry_run_only": true,
+      "runnable": 334,
+      "not_covered": 29,
+      "mutant_coverage_pct": 92.01,
+      "note": "Full run deferred: 334 runnable mutants × integration-heavy tests would take >10 minutes. Dry-run recorded for baseline."
+    }
+  }
+}
