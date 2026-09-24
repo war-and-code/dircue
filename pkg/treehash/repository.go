@@ -9,8 +9,8 @@ import (
 	"path"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/format/index"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/filemode"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/index"
 )
 
 const (

@@ -1,8 +1,6 @@
-// Modified for dircue; see PROVENANCE.json in this maintained fork.
-
 module github.com/go-enry/go-enry/v2
 
-go 1.26.6
+go 1.14
 
 require (
 	github.com/go-enry/go-oniguruma v1.2.1

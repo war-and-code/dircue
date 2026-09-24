@@ -4,7 +4,7 @@ package filesystem
 
 import (
 	billy "github.com/go-git/go-billy/v5"
-	"github.com/go-git/go-git/v5/plumbing/format/packfile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/packfile"
 )
 
 type metricFileKind uint8

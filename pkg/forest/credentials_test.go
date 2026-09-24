@@ -3,7 +3,7 @@ package forest_test
 import (
 	"testing"
 
-	"dircue/pkg/forest"
+	"github.com/war-and-code/dircue/pkg/forest"
 )
 
 func TestStripCredentials(t *testing.T) {

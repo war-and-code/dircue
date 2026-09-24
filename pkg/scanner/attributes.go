@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/explain"
-	"dircue/pkg/profile"
-	enry "github.com/go-enry/go-enry/v2"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/profile"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 )
 
 const maxAttributesBytes int64 = 1 << 20

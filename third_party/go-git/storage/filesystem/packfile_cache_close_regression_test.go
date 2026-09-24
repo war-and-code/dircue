@@ -7,9 +7,9 @@ import (
 	"testing"
 
 	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/format/idxfile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/idxfile"
 )
 
 // Cache construction does not parse object contents. Empty files isolate the

@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/internal/cli"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
-	"dircue/schema"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func TestFormatsSchemaBoundary(t *testing.T) {

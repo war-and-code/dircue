@@ -2,7 +2,7 @@ package scanner
 
 import (
 	"context"
-	"dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/formats"
 	"os"
 )
 

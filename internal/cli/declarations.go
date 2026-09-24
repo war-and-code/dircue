@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func writeProjectDeclarations(out io.Writer, r *declarations.Report) error {

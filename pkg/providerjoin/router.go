@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 // Descriptors are versioned dircue data. They describe routing and expected

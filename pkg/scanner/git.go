@@ -14,18 +14,18 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/profile"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	formatcfg "github.com/go-git/go-git/v5/plumbing/format/config"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/go-git/go-git/v5/storage/filesystem"
-	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/filemode"
+	formatcfg "github.com/war-and-code/dircue/third_party/go-git/plumbing/format/config"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/storer"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem/dotgit"
 )
 
 type gitSnapshot struct {

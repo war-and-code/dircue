@@ -23,10 +23,10 @@ import (
 	"strconv"
 	"strings"
 
-	giturl "github.com/go-git/go-git/v5/internal/url"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp"
-	"github.com/go-git/go-git/v5/plumbing/protocol/packp/capability"
+	giturl "github.com/war-and-code/dircue/third_party/go-git/internal/url"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/protocol/packp"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/protocol/packp/capability"
 )
 
 var (

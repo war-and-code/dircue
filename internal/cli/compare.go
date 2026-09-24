@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/reportdiff"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func newCompareCommand(opts *options) *cobra.Command {

@@ -7,8 +7,8 @@ import (
 	"runtime"
 	"time"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/scanner"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
 
 // statsDoc is the JSON document written to --stats-json PATH.

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func metricsFiles(t *testing.T, report *profile.Report) map[string]profile.FileMetrics {

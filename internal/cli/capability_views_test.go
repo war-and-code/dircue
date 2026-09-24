@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/schema"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func TestCapabilityDefaultDescriptorBytesRemainUnchanged(t *testing.T) {

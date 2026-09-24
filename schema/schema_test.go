@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/internal/cli"
+	"github.com/war-and-code/dircue/internal/cli"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )

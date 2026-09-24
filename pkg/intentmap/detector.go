@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 type Detector struct {

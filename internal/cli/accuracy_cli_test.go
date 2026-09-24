@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/internal/atlas"
+	"github.com/war-and-code/dircue/internal/atlas"
 )
 
 // TestCapabilitiesAccuracyPlainText checks the plain-text output of

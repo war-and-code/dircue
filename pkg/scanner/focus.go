@@ -8,9 +8,9 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/focus"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // focusAccumulator retains the selected-source jobs needed by the only initial

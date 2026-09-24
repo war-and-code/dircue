@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func TestFunctionFlagsRequireExplicitStructuralAnalysis(t *testing.T) {

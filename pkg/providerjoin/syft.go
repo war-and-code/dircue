@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 type syftReport struct {

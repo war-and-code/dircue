@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/go-git/go-git/v5/config"
-	cfgformat "github.com/go-git/go-git/v5/plumbing/format/config"
-	"github.com/go-git/go-git/v5/storage"
+	"github.com/war-and-code/dircue/third_party/go-git/config"
+	cfgformat "github.com/war-and-code/dircue/third_party/go-git/plumbing/format/config"
+	"github.com/war-and-code/dircue/third_party/go-git/storage"
 )
 
 var (

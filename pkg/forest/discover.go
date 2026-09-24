@@ -12,12 +12,12 @@ import (
 	"strings"
 
 	"github.com/go-git/go-billy/v5/osfs"
-	"github.com/go-git/go-git/v5/plumbing"
-	gogitcache "github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	gogitfs "github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	gogitcache "github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	gogitfs "github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
 
-	"dircue/pkg/treehash"
+	"github.com/war-and-code/dircue/pkg/treehash"
 )
 
 // RootKind describes the kind of a discovered root.

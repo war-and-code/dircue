@@ -39,14 +39,15 @@ func TestNoNetworkDeps(t *testing.T) {
 	}
 
 	forbidden := []string{
-		// go-git transport sub-packages (each imports crypto/tls or x/crypto/ssh)
-		"github.com/go-git/go-git/v5/plumbing/transport/client",
-		"github.com/go-git/go-git/v5/plumbing/transport/http",
-		"github.com/go-git/go-git/v5/plumbing/transport/ssh",
-		"github.com/go-git/go-git/v5/plumbing/transport/git",
-		"github.com/go-git/go-git/v5/plumbing/transport/file",
-		"github.com/go-git/go-git/v5/plumbing/transport/server",
-		"github.com/go-git/go-git/v5/plumbing/transport/internal/common",
+		// go-git transport sub-packages (each imports crypto/tls or x/crypto/ssh),
+		// under the embedded fork's import path or upstream's.
+		"/plumbing/transport/client",
+		"/plumbing/transport/http",
+		"/plumbing/transport/ssh",
+		"/plumbing/transport/git",
+		"/plumbing/transport/file",
+		"/plumbing/transport/server",
+		"/plumbing/transport/internal/common",
 		// Standard-library network packages
 		"net/http",
 		"crypto/tls",
@@ -63,7 +64,8 @@ func TestNoNetworkDeps(t *testing.T) {
 	var violations []string
 	for _, pkg := range forbidden {
 		for _, dep := range strings.Split(deps, "\n") {
-			if strings.TrimSpace(dep) == pkg {
+			dep = strings.TrimSpace(dep)
+			if dep == pkg || (strings.HasPrefix(pkg, "/") && strings.HasSuffix(dep, pkg)) {
 				violations = append(violations, dep)
 				break
 			}
@@ -77,7 +79,7 @@ func TestNoNetworkDeps(t *testing.T) {
 // moduleRoot returns the module root directory by querying "go list -m".
 func moduleRoot(t *testing.T) string {
 	t.Helper()
-	out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}", "dircue").Output()
+	out, err := exec.Command("go", "list", "-m", "-f", "{{.Dir}}").Output()
 	if err != nil {
 		// Fallback: this file lives at internal/buildcontract/, two levels
 		// below the module root.

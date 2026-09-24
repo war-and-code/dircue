@@ -12,17 +12,17 @@ import (
 	"strings"
 	"time"
 
-	"dircue/pkg/detectors"
-	"dircue/pkg/focus"
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
-	"dircue/pkg/scanner"
-	"dircue/pkg/structure"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/detectors"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/scanner"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
-// Version may be set by release builds with -ldflags "-X dircue/internal/cli.Version=...".
-var Version = "1.0.0-dev"
+// Version may be set by release builds with -ldflags "-X github.com/war-and-code/dircue/internal/cli.Version=...".
+var Version = defaultVersion
 
 type options struct {
 	environments           bool
@@ -79,7 +79,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Short:         "Profile source code repos and other directories of computer content",
 		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
 		Example:       "  dircue --json /checkout\n  dircue analyze discovery --source directory --json /content\n  dircue analyze all --declarations --json /checkout\n  dircue capabilities --cli --json",
-		Version:       Version,
+		Version:       effectiveVersion(),
 		Args:          pathArgs,
 		SilenceErrors: true,
 		SilenceUsage:  true,

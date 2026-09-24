@@ -13,9 +13,9 @@ import (
 	"strings"
 	"unicode/utf16"
 
-	enry "github.com/go-enry/go-enry/v2"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/filemode"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 // DetectLanguage uses Enry's default strategy sequence and reports the stage

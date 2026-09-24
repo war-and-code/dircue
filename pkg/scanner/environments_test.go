@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"testing"
 
-	"dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/environments"
 )
 
 func writeEnvironmentFixture(t *testing.T, root string, files map[string]string) {

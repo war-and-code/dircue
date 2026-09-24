@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdiff"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdiff"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func mapComparisonFixture(name, tree string, complete bool) mapdoc.Document {

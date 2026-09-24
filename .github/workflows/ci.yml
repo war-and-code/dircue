@@ -72,14 +72,15 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - run: go vet ./...
+      - name: Keep network transports out of the linked binary
+        run: sh scripts/check-linked-deps.sh
+      - name: Verify a clean versioned Go module install
+        run: sh scripts/check-clean-install.sh
       - name: Audit Go dependencies for known reachable vulnerabilities
         if: runner.os == 'Linux'
         run: |
@@ -87,9 +88,6 @@ jobs:
           "$RUNNER_TEMP/govulncheck/govulncheck" ./...
       - run: go test -race ./...
       - run: go test ./...
-        working-directory: third_party/go-enry
-      - run: go test -race . ./plumbing/format/packfile ./storage/filesystem ./storage/filesystem/dotgit
-        working-directory: third_party/go-git
       - run: go build -trimpath -o bin/ .
         env:
           CGO_ENABLED: '0'
@@ -104,8 +102,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           GOBIN="$RUNNER_TEMP/staticcheck" CGO_ENABLED=0 go install honnef.co/go/tools/cmd/staticcheck@v0.6.0
-          # Exclude internal/jsonschema (modified vendored code) from analysis.
-          go list ./... | grep -v 'dircue/internal/jsonschema' | xargs "$RUNNER_TEMP/staticcheck/staticcheck"
+          # Exclude embedded upstream code: the jsonschema snapshot, third_party
+          # forks and the vendored scc processor.
+          go list ./... | grep -v -E 'dircue/internal/jsonschema|/third_party/|/internal/sccprocessor' | xargs "$RUNNER_TEMP/staticcheck/staticcheck"
       - name: Coverage summary (Linux only)
         if: runner.os == 'Linux'
         run: |
@@ -155,10 +154,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - run: make conformance
       - run: make samples
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -179,10 +175,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - run: go build -trimpath -o bin/dircue .
         env:
           CGO_ENABLED: '0'
@@ -216,10 +209,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Build head and base
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -251,10 +241,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Build dircue
         run: go build -trimpath -o bin/dircue .
         env:

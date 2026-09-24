@@ -10,8 +10,8 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/codemetrics"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/codemetrics"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 const DefaultMetricsMaxFileBytes int64 = 16 * 1024 * 1024

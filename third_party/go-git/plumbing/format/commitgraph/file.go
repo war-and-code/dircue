@@ -8,9 +8,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/hash"
-	"github.com/go-git/go-git/v5/utils/binary"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/hash"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/binary"
 )
 
 // Deprecated: This package uses the wrong types for Generation and Index in CommitData.

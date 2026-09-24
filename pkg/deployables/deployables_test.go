@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestObserveStaticDeclarationKindsAndQualifications(t *testing.T) {

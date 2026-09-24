@@ -3,8 +3,8 @@ package coverageledger_test
 import (
 	"testing"
 
-	"dircue/pkg/coverageledger"
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/coverageledger"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func component(language string) mapdoc.Node {

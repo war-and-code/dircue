@@ -45,10 +45,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Build dircue
         run: CGO_ENABLED=0 go build -trimpath -o bin/dircue .
       - name: Collect repeated timing runs

@@ -5,11 +5,11 @@ import (
 	"io"
 	"strings"
 
-	"dircue/pkg/explain"
-	"dircue/pkg/profile"
-	"dircue/pkg/reportdiff"
-	"dircue/pkg/scanner"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
 
 func newExplainCommand(opts *options) *cobra.Command {

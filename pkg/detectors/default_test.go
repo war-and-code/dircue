@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func detectFile(t *testing.T, name, content string) []profile.Finding {

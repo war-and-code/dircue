@@ -5,7 +5,7 @@ import (
 	"io"
 	"slices"
 
-	"dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/registries"
 )
 
 func writeRegistries(out io.Writer, r *registries.Report) error {

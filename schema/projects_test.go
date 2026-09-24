@@ -4,17 +4,17 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
-	"dircue/internal/cli"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func projectFixture(t *testing.T) string {

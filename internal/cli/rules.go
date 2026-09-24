@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	"dircue/pkg/rules"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 func loadRules(cmd *cobra.Command, opts *options, mode string) (*rules.Program, error) {

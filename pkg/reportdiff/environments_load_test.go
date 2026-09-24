@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/environments"
 )
 
 func environmentProfileJSON(t *testing.T) []byte {

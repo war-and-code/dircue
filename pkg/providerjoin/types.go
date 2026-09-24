@@ -6,7 +6,7 @@ package providerjoin
 import (
 	"context"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const Version = "1.0.0"

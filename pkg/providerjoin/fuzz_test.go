@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func FuzzProviderIngressDeterministicAndPortable(f *testing.F) {

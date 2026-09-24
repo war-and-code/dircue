@@ -16,16 +16,11 @@ This document describes how a maintainer cuts a versioned release.
 The version string is injected at build time via Go ldflags:
 
 ```
--X dircue/internal/cli.Version=<version>
+-X github.com/war-and-code/dircue/internal/cli.Version=<version>
 ```
 
-The variable lives at `internal/cli/cli.go:25` (`var Version = "1.0.0-dev"`).
-`scripts/release.py` applies this flag for every platform binary it builds.
-
-> **TODO (#96):** When the module path changes from `dircue` to
-> `github.com/war-and-code/dircue`, the ldflags path must be updated to
-> `-X github.com/war-and-code/dircue/internal/cli.Version=<version>` in
-> `scripts/release.py`.
+The variable is `Version` in `internal/cli/cli.go`. `scripts/release.py`
+applies this flag for every platform binary it builds.
 
 ## How to cut a release
 
