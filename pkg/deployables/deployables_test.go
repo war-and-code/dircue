@@ -712,7 +712,7 @@ func TestMavenWARIgnoresParentCoordinatesAtAnyIndentation(t *testing.T) {
 }
 
 func TestMavenWARResolvesLocalProperties(t *testing.T) {
-	body := `<?xml version="1.0" encoding="ISO-8859-1"?>
+	body := `<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0">
   <artifactId>web</artifactId>
   <version>2.1</version>
@@ -744,5 +744,19 @@ func TestMavenWARProfilePackagingIsIgnored(t *testing.T) {
 	r := observeOne(t, "pom.xml", body)
 	if len(r.Definitions) != 0 {
 		t.Errorf("profile-level packaging must not create a deployable, got %+v", r.Definitions)
+	}
+}
+
+func TestMavenWARUnsupportedEncodingMatchesComponentParser(t *testing.T) {
+	body := `<?xml version="1.0" encoding="ISO-8859-1"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <artifactId>web</artifactId>
+  <version>1.0</version>
+  <packaging>war</packaging>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 0 {
+		t.Errorf("an encoding the Maven component parser rejects must not yield an archive, got %+v", r.Definitions)
 	}
 }

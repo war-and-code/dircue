@@ -333,9 +333,14 @@ func parsePomXML(name string, content []byte) ([]Definition, bool, error) {
 	var pom mavenPOM
 	decoder := xml.NewDecoder(bytes.NewReader(content))
 	decoder.Strict = true
-	// POMs commonly declare ISO-8859-1; the fields read here are ASCII in
-	// practice, so bytes pass through unchanged instead of failing the parse.
-	decoder.CharsetReader = func(_ string, input io.Reader) (io.Reader, error) { return input, nil }
+	// Accept the same encodings as the Maven component parser, so a POM never
+	// yields an archive without the component that builds it.
+	decoder.CharsetReader = func(label string, input io.Reader) (io.Reader, error) {
+		if strings.EqualFold(label, "utf-8") || strings.EqualFold(label, "utf-16") {
+			return input, nil
+		}
+		return nil, errors.New("unsupported XML encoding")
+	}
 	if err := decoder.Decode(&pom); err != nil {
 		// Not a parseable Maven project; the component observer reports
 		// malformed manifests, so this observer stays silent.

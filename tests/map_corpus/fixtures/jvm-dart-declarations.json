@@ -1,0 +1,94 @@
+{
+  "questions": [
+    {
+      "id": "maven-war-archive",
+      "oracle": {
+        "fixture_evidence": "portal/pom.xml declares <packaging>war</packaging> and <finalName>${app.name}</finalName>, with app.name=portal-web in the same file's <properties>",
+        "source": "Maven POM reference: build finalName names the packaged artifact; packaging selects war",
+        "url": "https://maven.apache.org/pom.html#the-basebuild-element-set"
+      },
+      "must_include": [
+        {
+          "kind": "deployable",
+          "name": "portal-web.war",
+          "path": "portal/pom.xml",
+          "properties": {
+            "kind": "archive",
+            "provider": "maven",
+            "format": "war"
+          }
+        },
+        {
+          "kind": "edge",
+          "type": "builds",
+          "from_kind": "deployable",
+          "from_name": "portal-web.war",
+          "to_kind": "component",
+          "to_name": "portal"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "deployable",
+          "name": "platform-parent-3.1.war"
+        },
+        {
+          "kind": "deployable",
+          "name": "helper-9.0.war"
+        }
+      ],
+      "allowed_unknown": [
+        "servlet container and runtime launch"
+      ]
+    },
+    {
+      "id": "pub-path-dependency",
+      "oracle": {
+        "fixture_evidence": "mobile/pubspec.yaml declares ui_kit with path: ../ui_kit; shared is a git dependency whose path: names a directory inside the remote repository",
+        "source": "Dart pub dependency sources: path and git",
+        "url": "https://dart.dev/tools/pub/dependencies"
+      },
+      "must_include": [
+        {
+          "kind": "edge",
+          "type": "depends_on_local",
+          "from_name": "mobile_app",
+          "to_name": "ui_kit"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "component",
+          "name": "shared"
+        }
+      ],
+      "allowed_unknown": [
+        "remote git dependency contents"
+      ]
+    },
+    {
+      "id": "pub-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "mobile/pubspec.yaml declares http under dependencies and sqflite only under dev_dependencies",
+        "source": "Dart pub: dev_dependencies are not available to depending packages at runtime",
+        "url": "https://dart.dev/tools/pub/dependencies#dev-dependencies"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "net:http-client",
+          "path": "mobile/pubspec.yaml"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "capability",
+          "name": "datastore:relational"
+        }
+      ],
+      "allowed_unknown": [
+        "whether the client is used at runtime"
+      ]
+    }
+  ]
+}
