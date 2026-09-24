@@ -84,6 +84,18 @@
       "from": "open_meteo_api",
       "to": "net:http-client",
       "why": "open_meteo_api/pubspec.yaml: http: ^1.0.0 is a direct dependency; the package is a Dart API client that issues HTTP requests to the Open-Meteo weather API."
+    },
+    {
+      "type": "contains",
+      "from": "flutter_weather",
+      "to": "weather_repository",
+      "why": "examples/flutter_weather/packages/weather_repository/pubspec.yaml is nested under the flutter_weather component directory (docs/MAP.md:69)"
+    },
+    {
+      "type": "contains",
+      "from": "flutter_weather",
+      "to": "open_meteo_api",
+      "why": "examples/flutter_weather/packages/open_meteo_api/pubspec.yaml is nested under the flutter_weather component directory (docs/MAP.md:69)"
     }
   ],
   "coverage": {
@@ -120,5 +132,12 @@
     "upstream": "https://github.com/felangel/bloc",
     "revision_source": "git clone --depth=1 then git rev-parse HEAD",
     "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
-  }
+  },
+  "corrections": [
+    {
+      "change": "added structural contains edges for the two nested packages",
+      "after_first_comparison": true,
+      "why": "docs/MAP.md:69 defines contains by directory containment; the labeler wrote only the path: dependency edges"
+    }
+  ]
 }

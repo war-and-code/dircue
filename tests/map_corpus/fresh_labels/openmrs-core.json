@@ -62,6 +62,12 @@
       "name": "api",
       "path": "docker-compose.yml",
       "why": "docker-compose.yml defines a service named 'api' with build context '.' (the repository root), ports 8080:8080, and depends_on 'db'; it runs the openmrs application container."
+    },
+    {
+      "kind": "archive",
+      "name": "openmrs.war",
+      "path": "webapp/pom.xml",
+      "why": "webapp/pom.xml:21 <packaging>war</packaging>; <finalName>${webapp.name}</finalName> at :47 with webapp.name=openmrs in the same file (the labeler's own note)."
     }
   ],
   "interfaces": [
@@ -96,6 +102,31 @@
       "owner": "openmrs-api",
       "path": "api/pom.xml",
       "why": "api/pom.xml line 156: dependency org.hibernate.search:hibernate-search-backend-elasticsearch declares Hibernate Search's Elasticsearch backend, establishing an Elasticsearch datastore capability."
+    },
+    {
+      "capability": "storage:object",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml:292-294 software.amazon.awssdk:s3, compile scope (no <scope>)"
+    },
+    {
+      "capability": "cloud:aws",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml:292-294 software.amazon.awssdk:s3, compile scope"
+    },
+    {
+      "capability": "datastore:relational",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml:135-138 org.hibernate.orm:hibernate-core, compile scope"
+    },
+    {
+      "capability": "datastore:relational",
+      "owner": "openmrs-webapp",
+      "path": "webapp/pom.xml",
+      "why": "webapp/pom.xml:181-196 com.h2database:h2 inside the h2 and install-h2 profiles (conditional)",
+      "conditional": true
     }
   ],
   "edges": [
@@ -146,6 +177,108 @@
       "from": "openmrs-api",
       "to": "search:elasticsearch",
       "why": "api/pom.xml dependency on hibernate-search-backend-elasticsearch (line 156)."
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "storage:object",
+      "why": "api/pom.xml:292-294 software.amazon.awssdk:s3, compile scope (no <scope>)"
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "cloud:aws",
+      "why": "api/pom.xml:292-294 software.amazon.awssdk:s3, compile scope"
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "datastore:relational",
+      "why": "api/pom.xml:135-138 org.hibernate.orm:hibernate-core, compile scope"
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-webapp",
+      "to": "datastore:relational",
+      "why": "webapp/pom.xml:181-196 com.h2database:h2 inside the h2 and install-h2 profiles (conditional)"
+    },
+    {
+      "type": "builds",
+      "from": "openmrs.war",
+      "to": "openmrs-webapp",
+      "why": "webapp/pom.xml:21 packages this module as openmrs.war (docs/MAP.md archive deployable)"
+    },
+    {
+      "type": "builds",
+      "from": "api",
+      "to": "openmrs",
+      "why": "docker-compose.yml:28,33 service api build context '.', the root openmrs component (docs/MAP.md builds)"
+    },
+    {
+      "type": "runs",
+      "from": "api",
+      "to": "openmrs",
+      "why": "docker-compose.yml:28-33 service api runs the image it builds from context '.' (same convention as the golden superset label)"
+    },
+    {
+      "type": "contains",
+      "from": "openmrs",
+      "to": "openmrs-api",
+      "why": "api/pom.xml is nested under the root component directory (docs/MAP.md:69 structural containment)"
+    },
+    {
+      "type": "contains",
+      "from": "openmrs",
+      "to": "openmrs-webapp",
+      "why": "webapp/pom.xml is nested under the root component directory (docs/MAP.md:69)"
+    },
+    {
+      "type": "depends_on_local",
+      "from": "openmrs-api",
+      "to": "openmrs",
+      "why": "api/pom.xml <parent> org.openmrs:openmrs with the default ../pom.xml relative path (docs/MAP.md:71 local path reference)"
+    },
+    {
+      "type": "depends_on_local",
+      "from": "openmrs-webapp",
+      "to": "openmrs",
+      "why": "webapp/pom.xml:13-17 <parent> org.openmrs:openmrs with the default ../pom.xml relative path"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-bom",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>bom</module>; bom/pom.xml declares artifactId openmrs-bom"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-tools",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>tools</module>; tools/pom.xml declares artifactId openmrs-tools"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-test",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>test</module>; test/pom.xml declares artifactId openmrs-test"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-web",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>web</module>; web/pom.xml declares artifactId openmrs-web"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-liquibase",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>liquibase</module>; liquibase/pom.xml declares artifactId openmrs-liquibase"
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-test-suite",
+      "to": "openmrs",
+      "why": "pom.xml:54-61 <module>test-suite</module>; test-suite/pom.xml declares artifactId openmrs-test-suite"
     }
   ],
   "coverage": {
@@ -182,5 +315,22 @@
     "upstream": "https://github.com/OpenMRS/openmrs-core",
     "revision_source": "git clone --depth=1 then git rev-parse HEAD",
     "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
-  }
+  },
+  "corrections": [
+    {
+      "change": "added the openmrs.war archive deployable and its builds edge",
+      "after_first_comparison": true,
+      "why": "webapp/pom.xml:21 and :47; the labeler recorded the WAR in notes but the vocabulary had no archive kind when labeling"
+    },
+    {
+      "change": "added storage:object, cloud:aws and datastore:relational capabilities with their edges",
+      "after_first_comparison": true,
+      "why": "compile-scope software.amazon.awssdk:s3 (api/pom.xml:292-294) and hibernate-core (:135-138); profile-only H2 in webapp/pom.xml:181-196 as conditional. The labeler had noted these were not exhaustively mapped."
+    },
+    {
+      "change": "added compose builds/runs edges, structural contains, parent depends_on_local and the six other module member_of edges",
+      "after_first_comparison": true,
+      "why": "each follows from an oracle file under the relationship definitions in docs/MAP.md:69-73; the other modules' names come from their own pom.xml artifactId"
+    }
+  ]
 }
