@@ -1,0 +1,14 @@
+[package]
+name = "catalog-fixture"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio-postgres = "0.7"
+redis = { version = "0.24", features = ["tokio-comp"] }
+rdkafka = "0.36"
+lapin = "2.3"
+aws-sdk-s3 = "1.8"
+jsonwebtoken = "9.2"
+reqwest = { version = "0.11", features = ["json"] }
+lettre = "0.11"
