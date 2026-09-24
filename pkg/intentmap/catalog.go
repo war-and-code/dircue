@@ -338,6 +338,13 @@ var prefixEntries = []prefixEntry{
 	{"org.springframework.boot:spring-boot-starter-mail", "messaging:smtp"},
 	{"com.sun.mail:jakarta.mail", "messaging:smtp"},
 	{"org.simplejavamail:simple-java-mail", "messaging:smtp"},
+	// Directory / LDAP — client libraries and embedded LDAP servers
+	{"org.springframework.ldap", "directory:ldap"},
+	{"org.springframework.boot:spring-boot-starter-data-ldap", "directory:ldap"},
+	{"com.unboundid:unboundid-ldapsdk", "directory:ldap"},
+	{"org.apache.directory.server", "directory:ldap"},
+	{"org.apache.directory.client", "directory:ldap"},
+	{"com.novell.ldap:jldap", "directory:ldap"},
 
 	// npm scoped prefixes — coordinateMatch with separator "/".
 	// Use the scope without trailing slash: "@aws-sdk" matches "@aws-sdk/client-s3"
@@ -364,6 +371,8 @@ var exactByKind = map[string]map[string][]string{
 	"python-dependency":          pypiExact,
 	"python-build-requirement":   pypiExact,
 	"python-import":              pythonImportExact,
+	// Dart / pub
+	"dart-dependency": pubExact,
 }
 
 // npmExact: npm package name (exact, lowercased) → capabilities.
@@ -447,6 +456,9 @@ var npmExact = map[string][]string{
 	"@bufbuild/protobuf": {"serialization:protobuf"},
 	"js-yaml":            {"serialization:yaml"},
 	"yaml":               {"serialization:yaml"},
+	// Directory / LDAP
+	"ldapjs": {"directory:ldap"},
+	"ldapts": {"directory:ldap"},
 }
 
 // rubyExact: gem name (exact, lowercased) → capabilities.
@@ -700,6 +712,10 @@ var nugetExact = map[string][]string{
 	// AI
 	"azure.ai.openai":          {"ai:llm-sdk"},
 	"microsoft.semantickernel": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"novell.directory.ldap":              {"directory:ldap"},
+	"system.directoryservices.protocols": {"directory:ldap"},
+	"system.directoryservices.ldap":      {"directory:ldap"},
 }
 
 // pypiExact: PyPI canonical name (lowercased, PEP 503 normalized) → capabilities.
@@ -788,6 +804,9 @@ var pypiExact = map[string][]string{
 	"anthropic":       {"ai:llm-sdk"},
 	"langchain":       {"ai:llm-sdk"},
 	"huggingface-hub": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"ldap3":       {"directory:ldap"},
+	"python-ldap": {"directory:ldap"},
 }
 
 // pythonImportExact: Python top-level import name (exact, lowercased) → capabilities.
@@ -847,4 +866,45 @@ var pythonImportExact = map[string][]string{
 	"openai":    {"ai:llm-sdk"},
 	"anthropic": {"ai:llm-sdk"},
 	"langchain": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"ldap3": {"directory:ldap"},
+	"ldap":  {"directory:ldap"},
+}
+
+// pubExact: Dart pub package name (exact, lowercased) → capabilities.
+// Only well-known, unambiguous packages are listed. Packages with multiple
+// possible roles or primarily used for testing are omitted.
+// dev_dependencies are filtered by the capability engine and do not reach here.
+var pubExact = map[string][]string{
+	// HTTP clients — the Dart `http` package is the canonical HTTP client.
+	"http":    {"net:http-client"},
+	"dio":     {"net:http-client"},
+	"chopper": {"net:http-client"},
+	// SQLite / relational (embedded)
+	"sqflite":            {"datastore:relational"},
+	"drift":              {"datastore:relational"},
+	"sqlite3":            {"datastore:relational"},
+	"sqflite_common_ffi": {"datastore:relational"},
+	// PostgreSQL
+	"postgres": {"datastore:postgresql"},
+	// MongoDB
+	"mongo_dart": {"datastore:mongodb"},
+	// Redis
+	"redis_dart": {"cache:redis"},
+	// Firebase (GCP)
+	"firebase_core":      {"cloud:gcp"},
+	"firebase_auth":      {"cloud:gcp", "auth:oauth2"},
+	"firebase_database":  {"cloud:gcp", "datastore:mongodb"},
+	"firebase_firestore": {"cloud:gcp"},
+	"cloud_firestore":    {"cloud:gcp"},
+	"firebase_storage":   {"cloud:gcp", "storage:object"},
+	// Serialization
+	"protobuf": {"serialization:protobuf"},
+	"grpc":     {"serialization:protobuf"},
+	// Auth
+	"jwt_decode": {"auth:jwt"},
+	// AI / LLM
+	"langchain_dart":       {"ai:llm-sdk"},
+	"google_generative_ai": {"ai:llm-sdk"},
+	"openai_dart":          {"ai:llm-sdk"},
 }
