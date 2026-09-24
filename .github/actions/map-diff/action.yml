@@ -116,6 +116,9 @@ runs:
         # Strip the leading "v" for the asset filename.
         ver="${version#v}"
         os="$(uname -s | tr '[:upper:]' '[:lower:]')"
+        case "$os" in
+          mingw*|msys*|cygwin*) os="windows" ;;
+        esac
         arch="$(uname -m)"
         case "$arch" in
           x86_64)        arch="amd64" ;;
@@ -204,10 +207,10 @@ runs:
         if [ "$SOURCE_MODE" = "directory" ]; then
           wt="${RUNNER_TEMP}/dircue-base-wt"
           git worktree add --detach "$wt" "$BASE_REF"
-          dircue map --source directory --json "${extra_flags[@]}" "$wt" > "$out"
+          dircue map --source directory --json ${extra_flags[@]+"${extra_flags[@]}"} "$wt" > "$out"
           git worktree remove --force "$wt"
         else
-          dircue map --source "$SOURCE_MODE" --rev "$BASE_REF" --json "${extra_flags[@]}" . > "$out"
+          dircue map --source "$SOURCE_MODE" --rev "$BASE_REF" --json ${extra_flags[@]+"${extra_flags[@]}"} . > "$out"
         fi
         printf 'path=%s\n' "$out" >> "$GITHUB_OUTPUT"
 
@@ -225,7 +228,7 @@ runs:
         if [ -n "$EXTRA_FLAGS" ]; then
           read -ra extra_flags <<< "$EXTRA_FLAGS"
         fi
-        dircue map --source "$SOURCE_MODE" --json "${extra_flags[@]}" . > "$out"
+        dircue map --source "$SOURCE_MODE" --json ${extra_flags[@]+"${extra_flags[@]}"} . > "$out"
         printf 'path=%s\n' "$out" >> "$GITHUB_OUTPUT"
 
     # ── 6. Compare ────────────────────────────────────────────────────────
