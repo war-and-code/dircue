@@ -1961,74 +1961,14 @@
       "expected_nodes": [
         {
           "kind": "deployable",
-          "name": "resource:aws_iam_role.assume_role",
+          "name": "main.tf",
           "paths": [
-            "main.tf"
+            "."
           ],
           "properties": {
             "kind": "infrastructure",
             "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
-          }
-        },
-        {
-          "kind": "deployable",
-          "name": "data:aws_caller_identity.source",
-          "paths": [
-            "main.tf"
-          ],
-          "properties": {
-            "kind": "infrastructure",
-            "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
-          }
-        },
-        {
-          "kind": "deployable",
-          "name": "data:aws_iam_policy_document.assume_role",
-          "paths": [
-            "main.tf"
-          ],
-          "properties": {
-            "kind": "infrastructure",
-            "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
-          }
-        },
-        {
-          "kind": "deployable",
-          "name": "provider:aws.alias=destination",
-          "paths": [
-            "main.tf"
-          ],
-          "properties": {
-            "kind": "infrastructure",
-            "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
-          }
-        },
-        {
-          "kind": "deployable",
-          "name": "provider:aws.alias=source",
-          "paths": [
-            "main.tf"
-          ],
-          "properties": {
-            "kind": "infrastructure",
-            "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
-          }
-        },
-        {
-          "kind": "deployable",
-          "name": "data:aws_iam_policy.ec2",
-          "paths": [
-            "main.tf"
-          ],
-          "properties": {
-            "kind": "infrastructure",
-            "provider": "terraform",
-            "source_sha256": "e0ef3e23dd50177535e4d4e5c1cd46a23e2bbd56492cd20a391fb9063b38d0b5"
+            "source_sha256": ""
           }
         }
       ],
@@ -2659,22 +2599,22 @@
       ],
       "oracle_files": [
         {
-          "path": "charts/hello-world/templates/deployment.yaml",
-          "sha256": "71b04aee8f995c0b8bdf2d8d8e3f98908cf71d519fd0612408b506161149987e",
-          "url": "https://github.com/helm/examples/blob/4888ba8fb8180dd0c36d1e84c1fcafc6efd81532/charts/hello-world/templates/deployment.yaml"
+          "path": "charts/hello-world/Chart.yaml",
+          "sha256": "8eaedd1c25b81691506d622ab462b164b79a6354a0dc1d208cab35aacaca404e",
+          "url": "https://github.com/helm/examples/blob/4888ba8fb8180dd0c36d1e84c1fcafc6efd81532/charts/hello-world/Chart.yaml"
         }
       ],
       "expected_nodes": [
         {
           "kind": "deployable",
-          "name": "Deployment",
+          "name": "hello-world",
           "paths": [
-            "charts/hello-world/templates/deployment.yaml"
+            "charts/hello-world/Chart.yaml"
           ],
           "properties": {
-            "kind": "workload",
-            "provider": "helm-template",
-            "source_sha256": "71b04aee8f995c0b8bdf2d8d8e3f98908cf71d519fd0612408b506161149987e"
+            "kind": "infrastructure",
+            "provider": "helm",
+            "source_sha256": "8eaedd1c25b81691506d622ab462b164b79a6354a0dc1d208cab35aacaca404e"
           }
         }
       ],
