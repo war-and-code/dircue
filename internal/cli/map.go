@@ -515,13 +515,14 @@ func safeMapLabel(value string) string {
 func mapNodeLabel(n mapdoc.Node) string {
 	name := strings.TrimSpace(n.Name)
 	if name == "" || name == "?" {
-		name = n.Properties["root"]
-		if name == "" || name == "." {
-			if len(n.Paths) > 0 {
-				name = n.Paths[0]
-			}
+		root := n.Properties["root"]
+		if root == "" || root == "." {
+			// The node is at the repository root; a manifest filename is
+			// not a useful display name. Use the stable placeholder "(root)".
+			name = "(root)"
+		} else {
+			name = path.Base(root)
 		}
-		name = strings.TrimSuffix(path.Base(name), path.Ext(name))
 	}
 	return safeMapLabel(name)
 }
