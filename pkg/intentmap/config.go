@@ -1,8 +1,10 @@
 package intentmap
 
 import (
+	"bytes"
 	"encoding/json"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 )
@@ -270,6 +272,46 @@ func safeConfigValue(s string) bool {
 	}
 	_ = lower
 	return safeConfigKey(s)
+}
+
+// prismaProviderRe matches a Prisma datasource provider assignment.
+// provider = env(...) forms are excluded because the actual provider string is
+// not statically determinable from the file — it is resolved at runtime.
+var prismaProviderRe = regexp.MustCompile(`(?m)^\s*provider\s*=\s*"(\w+)"`)
+
+// parsePrismaSchema extracts a datastore capability from a Prisma schema file
+// by reading the datasource block's provider field.
+// The parser is bounded to one file, one provider assignment.
+// provider = env(...) forms are excluded: the actual provider is not
+// statically determinable.
+func parsePrismaSchema(name string, content []byte) []Observation {
+	m := prismaProviderRe.FindSubmatchIndex(content)
+	if m == nil {
+		return nil
+	}
+	provider := strings.ToLower(string(content[m[2]:m[3]]))
+	capability := prismaProviderCapability(provider)
+	if capability == "" {
+		return nil
+	}
+	lineNum := 1 + bytes.Count(content[:m[0]], []byte("\n"))
+	return []Observation{{Kind: KindCapability, Name: capability, State: "declared", Basis: "declared_config", Path: name, StartLine: lineNum, EndLine: lineNum, Properties: map[string]string{"provider": provider}}}
+}
+
+// prismaProviderCapability maps a Prisma datasource provider name to a
+// capability ID. Unknown providers return "".
+func prismaProviderCapability(provider string) string {
+	switch provider {
+	case "postgresql", "cockroachdb":
+		return "datastore:postgresql"
+	case "mysql", "mariadb":
+		return "datastore:mysql"
+	case "mongodb":
+		return "datastore:mongodb"
+	case "sqlite", "sqlserver":
+		return "datastore:relational"
+	}
+	return ""
 }
 
 func safeConfigKey(s string) bool {
