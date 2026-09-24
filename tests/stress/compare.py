@@ -230,7 +230,7 @@ def main():
                         item["error"] = "candidate language JSON differs; inspect retained outputs"
                     # Modern detector observations are exercised at scale without treating
                     # their heuristic results as a dependency graph or vulnerability claim.
-                    if item["match"] and limit is None and fixture["name"] in ("talend", "dotnet-graph"):
+                    if item["match"] and limit is None and fixture["name"] in ("etl-pipeline", "dotnet-graph"):
                         item["extended"] = {}
                         for source, path, extra in [("git", git_path, ["--rev", variant["revision"]]), ("flat", flat_path, [])]:
                             extended = run([str(args.candidate), "analyze", "all", "--json", "--breakdown", *extra, path], args.timeout)
@@ -243,7 +243,7 @@ def main():
                             expected_languages = {language: {"size": details["size"], "files": details["files"]} for language, details in expected.items()}
                             if actual_languages != expected_languages:
                                 raise AssertionError("analyze all languages differ from Ruby oracle")
-                            ecosystem = "maven" if fixture["name"] == "talend" else "nuget"
+                            ecosystem = "maven" if fixture["name"] == "etl-pipeline" else "nuget"
                             if not any(finding["name"] == ecosystem for finding in data["ecosystems"]):
                                 raise AssertionError(f"expected {ecosystem} observation missing")
                             item["extended"][source] = {"artifact": artifact.name,
