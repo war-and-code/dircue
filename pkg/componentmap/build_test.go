@@ -225,7 +225,8 @@ func TestMavenReactorSiblingDependency(t *testing.T) {
 }
 
 func TestMavenReactorSiblingDependencyTestScope(t *testing.T) {
-	// A test-scope dependency on a sibling should produce coverage=partial.
+	// A conditional sibling dependency (for example from a Maven profile)
+	// should produce coverage=partial.
 	report := &declarations.Report{
 		Status: "complete",
 		Projects: []declarations.Project{

@@ -410,18 +410,7 @@ func jvmMavenSection(name string, n *jvmNode, condition string, props map[string
 		if version := dep.value("version"); version != "" {
 			value += ":" + version
 		}
-		// Carry non-compile scopes as conditions so callers can apply
-		// test/dev conventions. "test" and "provided" scope dependencies
-		// are build-time only and are not packaged with the artifact at runtime.
-		depCondition := condition
-		if scope := dep.value("scope"); scope == "test" || scope == "provided" {
-			if depCondition == "" {
-				depCondition = scope + " scope"
-			} else {
-				depCondition = depCondition + "; " + scope + " scope"
-			}
-		}
-		budget.requirement(jvmRequirement("maven-dependency", value, name, depCondition, props))
+		budget.requirement(jvmRequirement("maven-dependency", value, name, condition, props))
 	}
 	for _, plugin := range n.child("build").child("plugins").list("plugin") {
 		if budget.exceeded {

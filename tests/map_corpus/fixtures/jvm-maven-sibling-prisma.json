@@ -33,8 +33,8 @@
     {
       "id": "maven-reactor-sibling-test-scope",
       "oracle": {
-        "fixture_evidence": "service-c/pom.xml declares com.example:service-a with <scope>test</scope>; test-scope dependencies are conditional on the test lifecycle phase",
-        "source": "Maven dependency scope: test-scoped dependencies are not available at runtime and are excluded from dependent modules",
+        "fixture_evidence": "service-c/pom.xml declares com.example:service-a with <scope>test</scope>; the manifest states a reference to the sibling module whatever its scope (docs/MAP.md depends_on_local)",
+        "source": "Maven reactor: a dependency on a module in the same build resolves to that module; scope selects the classpath, not whether the reference exists",
         "url": "https://maven.apache.org/guides/introduction/introduction-to-dependency-mechanism.html#dependency-scope"
       },
       "must_include": [
@@ -44,8 +44,7 @@
           "from_name": "service-c",
           "to_name": "service-a",
           "properties": {
-            "declaration_kind": "maven-sibling-dependency",
-            "state": "conditional"
+            "declaration_kind": "maven-sibling-dependency"
           }
         }
       ],
@@ -61,7 +60,7 @@
         }
       ],
       "allowed_unknown": [
-        "whether test-scoped sibling is actually exercised in tests"
+        "dependency scope, which the frozen project report does not yet carry as a condition"
       ]
     },
     {
