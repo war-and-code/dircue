@@ -71,7 +71,7 @@ type Reference struct {
 // provisioned resource, running service, effective permission, or network exposure.
 type Definition struct {
 	ID           string      `json:"id"`
-	Kind         string      `json:"kind"` // container_build, service, workload, infrastructure, workflow, resource
+	Kind         string      `json:"kind"` // container_build, service, workload, infrastructure, workflow, resource, archive
 	Provider     string      `json:"provider"`
 	Name         string      `json:"name"`
 	Path         string      `json:"path"`
@@ -79,6 +79,9 @@ type Definition struct {
 	Coverage     string      `json:"coverage"` // complete or qualified
 	Evidence     []Evidence  `json:"evidence"`
 	References   []Reference `json:"references"`
+	// Format is the packaging format for archive deployables (e.g. "war", "ear").
+	// Empty for all other kinds.
+	Format string `json:"format,omitempty"`
 	// K8sKind holds the raw Kubernetes kind string (e.g. "Deployment") for
 	// same-object deduplication across files. Empty for non-Kubernetes providers.
 	K8sKind string `json:"k8s_kind,omitempty"`

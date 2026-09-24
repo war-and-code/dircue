@@ -554,3 +554,142 @@ func TestRootDockerfileObservationUsesRootSentinel(t *testing.T) {
 		t.Errorf("root Dockerfile name = %q; want \"(root)\"", r.Definitions[0].Name)
 	}
 }
+
+// Maven WAR/EAR packaging tests.
+
+func TestMavenWARWithFinalName(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <groupId>org.owasp</groupId>
+    <artifactId>benchmark</artifactId>
+    <version>1.2</version>
+    <packaging>war</packaging>
+    <build>
+        <finalName>benchmark</finalName>
+    </build>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	d := r.Definitions[0]
+	if d.Kind != "archive" || d.Provider != "maven" {
+		t.Errorf("kind=%q provider=%q; want archive/maven", d.Kind, d.Provider)
+	}
+	if d.Format != "war" {
+		t.Errorf("format=%q; want war", d.Format)
+	}
+	if d.Name != "benchmark.war" {
+		t.Errorf("name=%q; want benchmark.war", d.Name)
+	}
+	if d.Coverage != "complete" {
+		t.Errorf("coverage=%q; want complete", d.Coverage)
+	}
+	// Evidence must include packaging and finalName.
+	fields := map[string]bool{}
+	for _, ev := range d.Evidence {
+		fields[ev.Field] = true
+	}
+	for _, want := range []string{"packaging", "finalName"} {
+		if !fields[want] {
+			t.Errorf("missing evidence field %q", want)
+		}
+	}
+}
+
+func TestMavenWARDefaultName(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <groupId>com.example</groupId>
+    <artifactId>myapp</artifactId>
+    <version>2.0.0</version>
+    <packaging>war</packaging>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	d := r.Definitions[0]
+	if d.Name != "myapp-2.0.0.war" {
+		t.Errorf("name=%q; want myapp-2.0.0.war", d.Name)
+	}
+}
+
+func TestMavenEAR(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>enterprise-app</artifactId>
+    <version>1.0</version>
+    <packaging>ear</packaging>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	d := r.Definitions[0]
+	if d.Kind != "archive" || !strings.HasSuffix(d.Name, ".ear") {
+		t.Errorf("kind=%q name=%q; want archive/*ear", d.Kind, d.Name)
+	}
+	if d.Format != "ear" {
+		t.Errorf("format=%q; want ear", d.Format)
+	}
+}
+
+func TestMavenJARIsNotDeployable(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>lib</artifactId>
+    <version>1.0</version>
+    <packaging>jar</packaging>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 0 {
+		t.Errorf("jar packaging should produce no deployable, got %d definitions", len(r.Definitions))
+	}
+}
+
+func TestMavenWARNoPackagingElementIsNotDeployable(t *testing.T) {
+	// default Maven packaging is jar, so no <packaging> means no deployable.
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>lib</artifactId>
+    <version>1.0</version>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 0 {
+		t.Errorf("no packaging element should produce no deployable, got %d definitions", len(r.Definitions))
+	}
+}
+
+func TestMavenWARUnresolvedPropertyIsPartial(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>myapp</artifactId>
+    <version>${revision}</version>
+    <packaging>war</packaging>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	d := r.Definitions[0]
+	if d.Coverage != "qualified" {
+		t.Errorf("coverage=%q; want qualified for unresolved property", d.Coverage)
+	}
+}
+
+func TestMavenWARNestedInSubdirectory(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <artifactId>webapp</artifactId>
+    <version>1.0</version>
+    <packaging>war</packaging>
+</project>
+`
+	r := observeOne(t, "modules/webapp/pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	if r.Definitions[0].Name != "webapp-1.0.war" {
+		t.Errorf("name=%q; want webapp-1.0.war", r.Definitions[0].Name)
+	}
+}
