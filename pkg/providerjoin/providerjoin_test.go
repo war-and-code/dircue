@@ -80,30 +80,48 @@ func TestSyftWithoutStandardSourceIdentityStaysUnknown(t *testing.T) {
 	}
 }
 
-func TestSARIFWrongCommitFactsAndEdgesAreNeverComplete(t *testing.T) {
-	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"cafebabe"},{"revisionId":"deadbeef"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
-	r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(r.Nodes) < 1 || r.Ledger[0].Binding != providerjoin.BindingMismatch {
-		t.Fatalf("ledger/nodes = %+v / %d", r.Ledger, len(r.Nodes))
-	}
-	for _, n := range r.Nodes {
-		if n.Coverage.Status == mapdoc.CoverageComplete {
-			t.Fatalf("mismatched node has complete coverage: %+v", n)
+// TestSARIFMultiRepoVCPBinding verifies that SARIF multi-repository
+// versionControlProvenance binding uses ANY-match semantics: Verified when at
+// least one revisionId matches the snapshot commit, Mismatch only when all
+// entries are mismatches.
+func TestSARIFMultiRepoVCPBinding(t *testing.T) {
+	t.Run("one_matching_entry_binds_verified", func(t *testing.T) {
+		// Snapshot commit matches the first entry; second does not. Result is Verified.
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"cafebabe"},{"revisionId":"deadbeef"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
+		r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+		if err != nil {
+			t.Fatal(err)
 		}
-		for _, f := range n.Facts {
-			if f.Coverage.Status == mapdoc.CoverageComplete {
-				t.Fatalf("mismatched fact has complete coverage: %+v", f)
+		if len(r.Ledger) < 1 || r.Ledger[0].Binding != providerjoin.BindingVerified {
+			t.Fatalf("expected BindingVerified, got ledger=%+v", r.Ledger)
+		}
+	})
+	t.Run("all_entries_mismatch_binds_mismatch", func(t *testing.T) {
+		// Snapshot commit matches neither entry; result is Mismatch.
+		body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"lint","version":"1"}},"versionControlProvenance":[{"revisionId":"deadbeef"},{"revisionId":"deaddead"}],"artifacts":[{"location":{"uri":"package.json"}}]}]}`
+		r, err := providerjoin.Join(context.Background(), providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "git", Commit: "cafebabe"}}, []providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}}, providerjoin.Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(r.Ledger) < 1 || r.Ledger[0].Binding != providerjoin.BindingMismatch {
+			t.Fatalf("expected BindingMismatch, got ledger=%+v", r.Ledger)
+		}
+		for _, n := range r.Nodes {
+			if n.Coverage.Status == mapdoc.CoverageComplete {
+				t.Fatalf("mismatched node has complete coverage: %+v", n)
+			}
+			for _, f := range n.Facts {
+				if f.Coverage.Status == mapdoc.CoverageComplete {
+					t.Fatalf("mismatched fact has complete coverage: %+v", f)
+				}
 			}
 		}
-	}
-	for _, e := range r.Edges {
-		if e.Coverage.Status == mapdoc.CoverageComplete {
-			t.Fatalf("mismatched edge has complete coverage: %+v", e)
+		for _, e := range r.Edges {
+			if e.Coverage.Status == mapdoc.CoverageComplete {
+				t.Fatalf("mismatched edge has complete coverage: %+v", e)
+			}
 		}
-	}
+	})
 }
 
 func TestSARIFStandardRevisionProvenanceAndEncodedPath(t *testing.T) {
@@ -359,8 +377,12 @@ func TestBifrostRequiresOrdinaryEnvelopeAndQualifiesIncompleteResults(t *testing
 		}
 	}
 	two := `{"results":[{"result_type":"file","path":"a.py"},{"result_type":"file","path":"b.py"}],"truncated":false}`
-	if _, err := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, two)}}, providerjoin.Options{MaxRecords: 1}); err == nil {
-		t.Fatal("accepted Bifrost report above the record bound")
+	r2, err2 := providerjoin.Join(context.Background(), providerjoin.Input{}, []providerjoin.Attachment{{Kind: "bifrost-json", Path: attachment(t, two)}}, providerjoin.Options{MaxRecords: 1})
+	if err2 != nil {
+		t.Fatalf("record limit must not cause error: %v", err2)
+	}
+	if len(r2.Ledger) < 1 || r2.Ledger[0].Reason != "attachment_record_limit_reached" {
+		t.Fatalf("expected attachment_record_limit_reached ledger entry, got %+v", r2.Ledger)
 	}
 }
 
@@ -606,5 +628,106 @@ func TestSyftRequirementComparisonUsesPinnedV152Fixture(t *testing.T) {
 	}
 	if !found {
 		t.Fatalf("pinned Syft v1.52.0 package did not reconcile: %+v", r.Nodes)
+	}
+}
+
+// attachmentWithBOM writes a file with a leading UTF-8 byte-order mark.
+func attachmentWithBOM(t *testing.T, body string) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "report-bom.json")
+	bom := []byte{0xEF, 0xBB, 0xBF}
+	if err := os.WriteFile(p, append(bom, []byte(body)...), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+
+// TestBOMToleranceSyft verifies that a syft-json file with a leading UTF-8
+// BOM is decoded successfully. Windows-native tools commonly emit BOMs.
+func TestBOMToleranceSyft(t *testing.T) {
+	body := `{"descriptor":{"name":"syft","version":"1.0"},"artifacts":[]}`
+	r, err := providerjoin.Join(context.Background(),
+		providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}},
+		[]providerjoin.Attachment{{Kind: "syft-json", Path: attachmentWithBOM(t, body)}},
+		providerjoin.Options{})
+	if err != nil {
+		t.Fatalf("BOM-prefixed syft attachment failed: %v", err)
+	}
+	if len(r.Ledger) < 1 {
+		t.Fatal("expected a ledger entry")
+	}
+}
+
+// TestBOMToleranceSARIF verifies that a SARIF file with a leading UTF-8 BOM
+// is decoded successfully.
+func TestBOMToleranceSARIF(t *testing.T) {
+	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"scanner"}},"artifacts":[]}]}`
+	r, err := providerjoin.Join(context.Background(),
+		providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}},
+		[]providerjoin.Attachment{{Kind: "sarif", Path: attachmentWithBOM(t, body)}},
+		providerjoin.Options{})
+	if err != nil {
+		t.Fatalf("BOM-prefixed SARIF attachment failed: %v", err)
+	}
+	if len(r.Ledger) < 1 {
+		t.Fatal("expected a ledger entry")
+	}
+}
+
+// TestAttachmentRecordLimitDegrades verifies that an attachment exceeding the
+// record limit produces a partial ledger entry with reason
+// attachment_record_limit_reached rather than causing map to exit non-zero.
+func TestAttachmentRecordLimitDegrades(t *testing.T) {
+	// Build a syft document with 3 artifacts but MaxRecords=2.
+	body := `{"descriptor":{"name":"syft","version":"1.0"},"artifacts":[` +
+		`{"id":"a","name":"pkg-a","version":"1","type":"go-module","purl":"pkg:golang/a@1"},` +
+		`{"id":"b","name":"pkg-b","version":"1","type":"go-module","purl":"pkg:golang/b@1"},` +
+		`{"id":"c","name":"pkg-c","version":"1","type":"go-module","purl":"pkg:golang/c@1"}` +
+		`]}`
+	r, err := providerjoin.Join(context.Background(),
+		providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}},
+		[]providerjoin.Attachment{{Kind: "syft-json", Path: attachment(t, body)}},
+		providerjoin.Options{MaxRecords: 2})
+	if err != nil {
+		t.Fatalf("record limit should not cause error, got: %v", err)
+	}
+	if len(r.Ledger) < 1 {
+		t.Fatal("expected a ledger entry even on limit")
+	}
+	entry := r.Ledger[0]
+	if entry.Reason != "attachment_record_limit_reached" {
+		t.Fatalf("expected reason=attachment_record_limit_reached, got reason=%q state=%q", entry.Reason, entry.State)
+	}
+	if entry.State != "tool_error" {
+		t.Fatalf("expected state=tool_error, got %q", entry.State)
+	}
+	// No package nodes should be emitted when the limit is exceeded.
+	for _, n := range r.Nodes {
+		if n.Kind == "package" {
+			t.Fatalf("package node should not be emitted on limit: %+v", n)
+		}
+	}
+}
+
+// TestAttachmentRecordLimitSARIF verifies limit-exceeded degradation for SARIF.
+func TestAttachmentRecordLimitSARIF(t *testing.T) {
+	// Build a SARIF with 3 artifacts but MaxRecords=1 (run limit: runs > 1 is checked first,
+	// or artifacts+invocations within a run).
+	body := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"scanner"}},"artifacts":[` +
+		`{"location":{"uri":"a.go"}},{"location":{"uri":"b.go"}}` +
+		`]}]}`
+	r, err := providerjoin.Join(context.Background(),
+		providerjoin.Input{Snapshot: providerjoin.Snapshot{Mode: "directory"}},
+		[]providerjoin.Attachment{{Kind: "sarif", Path: attachment(t, body)}},
+		providerjoin.Options{MaxRecords: 1})
+	if err != nil {
+		t.Fatalf("record limit should not cause error, got: %v", err)
+	}
+	if len(r.Ledger) < 1 {
+		t.Fatal("expected a ledger entry even on limit")
+	}
+	entry := r.Ledger[0]
+	if entry.Reason != "attachment_record_limit_reached" {
+		t.Fatalf("expected reason=attachment_record_limit_reached, got reason=%q state=%q", entry.Reason, entry.State)
 	}
 }

@@ -39,16 +39,19 @@ func ingestSARIF(data []byte, in Input, limit int, key string) (Result, error) {
 		return Result{}, fmt.Errorf("unsupported SARIF version %q", doc.Version)
 	}
 	if len(doc.Runs) > limit {
-		return Result{}, fmt.Errorf("report exceeds %d-record limit", limit)
+		b, _ := binding(in.Snapshot, reportIdentity{})
+		return Result{Ledger: []CoverageEntry{{Tool: "sarif", ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"}}}, nil
 	}
 	var out Result
 	for i, run := range doc.Runs {
-		if len(run.Artifacts)+len(run.Invocations) > limit {
-			return Result{}, fmt.Errorf("SARIF run exceeds %d-record limit", limit)
-		}
 		tool, version := run.Tool.Driver.Name, fallbackVersion(run.Tool.Driver.Version)
 		if tool == "" {
 			tool = "sarif"
+		}
+		if len(run.Artifacts)+len(run.Invocations) > limit {
+			b, _ := bindingSARIF(in.Snapshot, run.VersionControlProvenance)
+			out.Ledger = append(out.Ledger, CoverageEntry{Tool: tool, ReportKind: "sarif", Scope: ".", Binding: b, Ran: true, State: "tool_error", Reason: "attachment_record_limit_reached"})
+			continue
 		}
 		b, reason := bindingSARIF(in.Snapshot, run.VersionControlProvenance)
 		covered := []string{}
@@ -104,16 +107,14 @@ func bindingSARIF(snapshot Snapshot, provenance []struct {
 	if snapshot.Commit == "" {
 		return binding(snapshot, reportIdentity{Commit: revisions[0]})
 	}
+	// Verified if ANY revision matches the snapshot commit;
+	// Mismatch only when none match (all are mismatches).
 	for _, revision := range revisions {
-		state, reason := binding(snapshot, reportIdentity{Commit: revision})
-		if state == BindingMismatch {
-			return state, reason
-		}
-		if state != BindingVerified {
-			return state, reason
+		if state, _ := binding(snapshot, reportIdentity{Commit: revision}); state == BindingVerified {
+			return BindingVerified, ""
 		}
 	}
-	return BindingVerified, ""
+	return binding(snapshot, reportIdentity{Commit: revisions[0]})
 }
 
 func ownersForPaths(nodes []mapdoc.Node, paths []string) []string {
