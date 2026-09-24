@@ -277,13 +277,20 @@ func npmWorkspacePatterns(d *Document, data *npmDeclarationData, object map[stri
 
 func npmInterfaces(d *Document, object map[string]any) {
 	if scripts, ok := npmObjectField(d, object, "scripts"); ok {
+		// Only conventional entry-point scripts (start, serve) are modeled as
+		// interfaces. Developer tasks (build, test, lint, format, …) are not
+		// application entry points; emitting them inflates interface counts
+		// with noise. The raw command text is never retained regardless.
+		entryPointScripts := map[string]bool{"start": true, "serve": true}
 		for _, name := range npmKeys(scripts) {
 			_, isString := scripts[name].(string)
 			if !isString || name == "" || len(name) > 256 || strings.IndexFunc(name, unicode.IsControl) >= 0 {
 				AddDiagnostic(d, "invalid-npm-script", "A script must have a bounded name and a string command; command text is never retained.")
 				continue
 			}
-			AddInterface(d, Interface{Kind: "script", Name: name, State: "declared", Evidence: d.Project.ID})
+			if entryPointScripts[name] {
+				AddInterface(d, Interface{Kind: "script", Name: name, State: "declared", Evidence: d.Project.ID})
+			}
 		}
 	}
 	if bins, ok := object["bin"]; ok {

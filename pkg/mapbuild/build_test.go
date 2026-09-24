@@ -1,10 +1,12 @@
 package mapbuild
 
 import (
+	"strings"
 	"testing"
 
 	"dircue/pkg/deployables"
 	"dircue/pkg/discovery"
+	"dircue/pkg/intentmap"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/profile"
 )
@@ -346,4 +348,177 @@ func TestPlaceholderNameRole(t *testing.T) {
 			t.Errorf("placeholderNameRole(%q) = %q, want %q", test.name, got, test.want)
 		}
 	}
+}
+
+// ── P0: Attribution honesty (ACC-F01 regression) ─────────────────────────────
+
+func TestContainmentAttributionProducesPartialEdge(t *testing.T) {
+	// Regression for P0/ACC-F01: an edge from a component to a capability whose
+	// projectID was assigned by directory-containment must be partial with reason
+	// "attributed_by_directory_containment", not complete.
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "app"}
+	doc.Nodes = append(doc.Nodes, component)
+
+	obs := intentmap.Observation{
+		Kind:               intentmap.KindCapability,
+		Name:               "cache:redis",
+		ProjectID:          "app/go.mod",
+		ProjectAttribution: "directory_containment",
+		State:              "observed",
+		Basis:              "declared_config",
+		Path:               "app/.env.production.sample",
+	}
+	report := &intentmap.Report{
+		Coverage:     intentmap.Coverage{Status: "complete"},
+		Observations: []intentmap.Observation{obs},
+	}
+	addIntent(&doc, report)
+
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeUsesCapability {
+			continue
+		}
+		if edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Errorf("containment-attributed edge coverage = %q, want partial", edge.Coverage.Status)
+		}
+		found := false
+		for _, reason := range edge.Coverage.Reasons {
+			if reason == "attributed_by_directory_containment" {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("edge coverage reasons = %v, want attributed_by_directory_containment", edge.Coverage.Reasons)
+		}
+		return
+	}
+	t.Fatal("no uses_capability edge was created")
+}
+
+func TestExplicitlyDeclaredCapabilityEdgeIsNotDowngraded(t *testing.T) {
+	// A capability declared explicitly in a manifest (ProjectAttribution empty)
+	// must produce a complete edge — not partial.
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "app"}
+	doc.Nodes = append(doc.Nodes, component)
+
+	obs := intentmap.Observation{
+		Kind:      intentmap.KindCapability,
+		Name:      "cache:redis",
+		ProjectID: "app/go.mod",
+		// ProjectAttribution is intentionally empty: declared by manifest
+		State: "declared",
+		Basis: "declared_dependency",
+		Path:  "app/go.mod",
+	}
+	report := &intentmap.Report{
+		Coverage:     intentmap.Coverage{Status: "complete"},
+		Observations: []intentmap.Observation{obs},
+	}
+	addIntent(&doc, report)
+
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeUsesCapability {
+			continue
+		}
+		if edge.Coverage.Status != mapdoc.CoverageComplete {
+			t.Errorf("explicitly declared capability edge coverage = %q, want complete; reasons: %v", edge.Coverage.Status, edge.Coverage.Reasons)
+		}
+		for _, reason := range edge.Coverage.Reasons {
+			if strings.Contains(reason, "containment") {
+				t.Errorf("explicit edge carries containment reason unexpectedly: %v", edge.Coverage.Reasons)
+			}
+		}
+		return
+	}
+	t.Fatal("no uses_capability edge was created")
+}
+
+// ── F-12: Capability granularity ─────────────────────────────────────────────
+
+func TestCapabilityGranularityOneNodePerComponent(t *testing.T) {
+	// Regression for F-12: multiple capability observations for the same
+	// (name, projectID) must produce exactly one capability node with aggregated
+	// evidence, not one node per file path.
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"svc", "svc/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "svc"}
+	doc.Nodes = append(doc.Nodes, component)
+
+	// 5 observations for the same capability from 5 different source files.
+	var obs []intentmap.Observation
+	for i := 0; i < 5; i++ {
+		obs = append(obs, intentmap.Observation{
+			Kind:      intentmap.KindCapability,
+			Name:      "datastore:postgresql",
+			ProjectID: "svc/go.mod",
+			State:     "observed",
+			Basis:     "imported",
+			Path:      "svc/internal/" + string(rune('a'+i)) + ".go",
+		})
+	}
+	report := &intentmap.Report{
+		Coverage:     intentmap.Coverage{Status: "complete"},
+		Observations: obs,
+	}
+	addIntent(&doc, report)
+
+	capNodes := 0
+	for _, n := range doc.Nodes {
+		if n.Kind == mapdoc.NodeCapability && n.Name == "datastore:postgresql" {
+			capNodes++
+			count := n.Properties["evidence_path_count"]
+			if count != "5" {
+				t.Errorf("evidence_path_count = %q, want 5", count)
+			}
+			if len(n.Evidence) != 5 {
+				t.Errorf("evidence entries = %d, want 5", len(n.Evidence))
+			}
+		}
+	}
+	if capNodes != 1 {
+		t.Errorf("capability nodes = %d, want 1 (one per component, not one per file)", capNodes)
+	}
+}
+
+func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
+	// Ensure that when total observations exceed maxCapabilityEvidencePaths,
+	// the node still stores only maxCapabilityEvidencePaths evidence entries
+	// but evidence_path_count reflects the real total.
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"svc", "svc/go.mod"}, "go")
+	component.Properties = map[string]string{"root": "svc"}
+	doc.Nodes = append(doc.Nodes, component)
+
+	total := maxCapabilityEvidencePaths + 10
+	var obs []intentmap.Observation
+	for i := 0; i < total; i++ {
+		obs = append(obs, intentmap.Observation{
+			Kind:      intentmap.KindCapability,
+			Name:      "cache:redis",
+			ProjectID: "svc/go.mod",
+			State:     "observed",
+			Basis:     "imported",
+			Path:      "svc/pkg/f" + string(rune('a'+i%26)) + ".go",
+		})
+	}
+	report := &intentmap.Report{
+		Coverage:     intentmap.Coverage{Status: "complete"},
+		Observations: obs,
+	}
+	addIntent(&doc, report)
+
+	for _, n := range doc.Nodes {
+		if n.Kind == mapdoc.NodeCapability && n.Name == "cache:redis" {
+			if len(n.Evidence) > maxCapabilityEvidencePaths {
+				t.Errorf("evidence entries = %d, must not exceed maxCapabilityEvidencePaths=%d", len(n.Evidence), maxCapabilityEvidencePaths)
+			}
+			return
+		}
+	}
+	t.Fatal("no cache:redis capability node created")
 }
