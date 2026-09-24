@@ -29,7 +29,7 @@ provider responsible for an observation.
 | `content` | Language populations and source, test, documentation, generated, configuration, data, binary, archive, certificate, and other content roles. |
 | `component` | Supported projects and workspace members inferred from declarations. |
 | `deployable` | Container, Compose, Kubernetes, Helm, Terraform, serverless, and CI definitions recognized by the built-in observer. |
-| `interface` | Supported declared or syntax-observed interfaces, including protobuf services, Noir endpoints, Go entry-point binaries, and Dockerfile EXPOSE ports (`interface_kind: declared_port`). |
+| `interface` | Supported declared or syntax-observed interfaces: protobuf services and their RPC operations; OpenAPI and Swagger documents (`interface_kind: api_document`, named by `info.title`) and their `METHOD /path` operations (`interface_kind: operation`, at most 500 per document, with `operations_omitted` beyond that); AsyncAPI documents and GraphQL schemas (`api_document`); Noir endpoints; Go, Rust, npm and Python entry points; Spring Boot applications and main classes; and declared ports from Dockerfile `EXPOSE`, Compose `ports`/`expose` and Kubernetes `containerPort` (`interface_kind: declared_port`). |
 | `capability` | Bounded code/configuration observations such as imported services. |
 | `package` | Packages imported from an explicitly attached Syft report. |
 | `tool_run` | Metadata and snapshot binding for an explicitly attached provider report. |
