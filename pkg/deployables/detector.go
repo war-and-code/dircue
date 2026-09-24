@@ -3,6 +3,7 @@ package deployables
 import (
 	"context"
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"slices"
 	"strings"
@@ -109,8 +110,14 @@ func (c *Collector) Finish() *Report {
 		out.Coverage.InspectedBytes += int64(len(file.content))
 		defs, recognized, err := parse(file.path, file.content)
 		if err != nil {
-			out.omit("parse_error", 1, file.path, err.Error())
-			continue
+			var limitErr *yamlDocLimitError
+			if errors.As(err, &limitErr) {
+				out.omit("yaml_document_limit", 1, file.path, "File has more than 128 YAML documents; only the first 128 were parsed.")
+				// fall through and use partial defs
+			} else {
+				out.omit("parse_error", 1, file.path, err.Error())
+				continue
+			}
 		}
 		if !recognized {
 			continue
