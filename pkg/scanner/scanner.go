@@ -82,6 +82,9 @@ type Options struct {
 	DeclarationsOnly bool
 	Structure        *structure.Client
 	StructureFiles   bool
+	// RunCounters collects deterministic cost counters for external reporting.
+	// They are never written to a deterministic scan report.
+	RunCounters *RunCounters
 	// GitReadMetrics enables internal, opt-in Git work counters. Counters do
 	// not enter deterministic reports and may vary with scheduling/cache state.
 	GitReadMetrics *GitReadMetrics
@@ -1086,6 +1089,11 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 			setLanguageTraceDecision(trace, "unavailable", "read_error", "", "", "")
 		}
 		return value, recoverable(err)
+	}
+	// Content was successfully fetched; record it in the deterministic counters.
+	if opts.RunCounters != nil {
+		opts.RunCounters.FilesContentRead.Add(1)
+		opts.RunCounters.BytesRequested.Add(actualSize)
 	}
 	if trace != nil {
 		trace.Extent.FileBytes = actualSize

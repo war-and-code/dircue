@@ -1,0 +1,160 @@
+name: Stable-hardware performance run
+
+on:
+  workflow_dispatch:
+    inputs:
+      fixture:
+        description: >
+          Fixture path relative to the repository root, e.g.
+          tests/map_corpus/fixtures/polyglot-deployable. The fixture must be a
+          plain directory (--source directory is used).
+        required: false
+        default: tests/map_corpus/fixtures/polyglot-deployable
+      source_mode:
+        description: "Source mode: directory or git (default: directory)"
+        required: false
+        default: directory
+      workers:
+        description: "Worker count for map (default: 0 = auto)"
+        required: false
+        default: "0"
+      runs:
+        description: "Number of repeated timed runs (default: 5)"
+        required: false
+        default: "5"
+      notes:
+        description: "Free-text notes to embed in the results artifact (e.g. hardware description)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    # Intended for a self-hosted stable-hardware runner. When no self-hosted
+    # runner is registered with the label 'stable-perf', the job falls back to
+    # ubuntu-latest automatically by GitHub's runner matching rules. Results
+    # from hosted runners include significant noise and must not be committed
+    # as authoritative baselines. Set the label to a dedicated quiet machine.
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - name: Build dircue
+        run: CGO_ENABLED=0 go build -trimpath -o bin/dircue .
+      - name: Collect repeated timing runs
+        run: |
+          mkdir -p .cache/perf-stable
+          FIXTURE="${{ inputs.fixture }}"
+          SOURCE="${{ inputs.source_mode }}"
+          WORKERS="${{ inputs.workers }}"
+          RUNS="${{ inputs.runs }}"
+          for i in $(seq 1 "${RUNS}"); do
+            OUT=".cache/perf-stable/run-${i}.json"
+            bin/dircue map \
+              --source "${SOURCE}" \
+              --workers "${WORKERS}" \
+              --json \
+              --stats-json "${OUT}" \
+              "${FIXTURE}" > /dev/null
+          done
+      - name: Write results summary
+        run: |
+          python3 - <<'EOF'
+          import json, os, statistics
+          from pathlib import Path
+
+          runs_dir = Path(".cache/perf-stable")
+          docs = [json.load(open(p)) for p in sorted(runs_dir.glob("run-*.json"))]
+          if not docs:
+              print("No run files found.")
+              exit(1)
+
+          det = docs[0]["deterministic_costs"]
+          wall_ms = [d["measurements"]["wall_time_ns"] // 1_000_000 for d in docs]
+          heap_mb = [d["measurements"]["peak_heap_inuse_bytes"] / (1024 ** 2) for d in docs]
+
+          lines = [
+              "## Stable-hardware performance results",
+              "",
+              f"**Fixture:** `{os.environ.get('FIXTURE_INPUT', docs[0].get('source_mode','?'))}`  ",
+              f"**Runs:** {len(docs)}  ",
+              f"**Notes:** {os.environ.get('NOTES_INPUT', '')}",
+              "",
+              "### Deterministic cost counters (identical across all runs)",
+              "",
+              "| Counter | Value |",
+              "| --- | ---: |",
+              f"| `files_enumerated` | {det['files_enumerated']} |",
+              f"| `files_content_read` | {det['files_content_read']} |",
+              f"| `bytes_requested` | {det['bytes_requested']} |",
+              "",
+              "### Wall-time distribution (ms)",
+              "",
+              "| Stat | ms |",
+              "| --- | ---: |",
+              f"| min | {min(wall_ms)} |",
+              f"| median | {statistics.median(wall_ms):.1f} |",
+              f"| max | {max(wall_ms)} |",
+              f"| stdev | {statistics.stdev(wall_ms):.1f} |" if len(wall_ms) > 1 else "",
+              "",
+              "### Peak heap in-use distribution (MiB)",
+              "",
+              "| Stat | MiB |",
+              "| --- | ---: |",
+              f"| min | {min(heap_mb):.2f} |",
+              f"| median | {statistics.median(heap_mb):.2f} |",
+              f"| max | {max(heap_mb):.2f} |",
+          ]
+          text = "\n".join(l for l in lines)
+          print(text)
+          summary = os.environ.get("GITHUB_STEP_SUMMARY", "")
+          if summary:
+              with open(summary, "a") as f:
+                  f.write(text + "\n")
+          EOF
+        env:
+          FIXTURE_INPUT: ${{ inputs.fixture }}
+          NOTES_INPUT: ${{ inputs.notes }}
+      - name: Package results as artifact
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          from pathlib import Path
+          import datetime
+
+          runs_dir = Path(".cache/perf-stable")
+          docs = [json.load(open(p)) for p in sorted(runs_dir.glob("run-*.json"))]
+
+          result = {
+              "recorded_at": datetime.datetime.utcnow().isoformat() + "Z",
+              "fixture": os.environ.get("FIXTURE_INPUT", ""),
+              "source_mode": os.environ.get("SOURCE_INPUT", "directory"),
+              "workers": os.environ.get("WORKERS_INPUT", "0"),
+              "notes": os.environ.get("NOTES_INPUT", ""),
+              "runs": docs,
+          }
+          out = Path(".cache/perf-stable/summary.json")
+          with open(out, "w") as f:
+              json.dump(result, f, indent=2)
+          print(f"Written: {out}")
+          EOF
+        env:
+          FIXTURE_INPUT: ${{ inputs.fixture }}
+          SOURCE_INPUT: ${{ inputs.source_mode }}
+          WORKERS_INPUT: ${{ inputs.workers }}
+          NOTES_INPUT: ${{ inputs.notes }}
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          retention-days: 90
+          name: perf-stable-results
+          path: .cache/perf-stable/

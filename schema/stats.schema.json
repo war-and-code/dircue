@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dircue.invalid/schema/stats.schema.json",
+  "title": "dircue run statistics",
+  "description": "Run statistics produced by --stats-json. The deterministic_costs block contains counters that are identical for the same input and settings, regardless of worker count. The measurements block contains observed values that vary with run conditions, hardware, and OS scheduler state.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "deterministic_costs", "measurements"],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "kind": {
+      "const": "run-stats"
+    },
+    "command": {
+      "type": "string",
+      "description": "CLI command that produced these statistics (e.g. 'map')."
+    },
+    "source_mode": {
+      "type": "string",
+      "description": "Source mode selected for the scan (git, directory, or auto)."
+    },
+    "deterministic_costs": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Counters that are identical for the same input and settings, regardless of worker count. Safe to gate CI on.",
+      "required": ["files_enumerated", "files_content_read", "bytes_requested", "limit_hits"],
+      "properties": {
+        "files_enumerated": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total regular files offered to the analysis pipeline (scanned_files in the profile summary)."
+        },
+        "files_content_read": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Files whose content was actually fetched from the source for classification and analysis."
+        },
+        "bytes_requested": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Logical bytes requested from the source for content-read files (uncompressed object size for Git, stat size for directories)."
+        },
+        "limit_hits": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["file_bytes", "tree_size"],
+          "properties": {
+            "file_bytes": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Files skipped because their size exceeded --max-file-bytes."
+            },
+            "tree_size": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "1 if the tree-size budget (--budget-files) was reached, 0 otherwise."
+            }
+          }
+        }
+      }
+    },
+    "measurements": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Non-deterministic observed costs. Values vary with run conditions, OS scheduler, caches, and hardware. Do not gate CI on these values.",
+      "required": ["wall_time_ns"],
+      "properties": {
+        "wall_time_ns": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Elapsed wall-clock time for the entire command, in nanoseconds."
+        },
+        "phases": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Per-phase wall-clock times in nanoseconds.",
+          "properties": {
+            "scan_ns": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Time spent in the scanner (walk + analysis workers)."
+            },
+            "build_ns": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Time spent building the map document after scanning."
+            }
+          }
+        },
+        "peak_heap_inuse_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Peak Go heap in-use bytes observed after the scan, from runtime.ReadMemStats."
+        },
+        "gc_count": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of completed GC cycles during the run, from runtime.ReadMemStats."
+        }
+      }
+    }
+  }
+}
