@@ -53,6 +53,7 @@ type resolvedMapSettings struct {
 	MemoryLimit           int64
 	SummarizeTrees        bool
 	AttachmentRecordLimit int
+	IntentObservations    int // intentmap MaxObservations; 0 uses the intentmap package default
 	Report                mapSettingsReport
 }
 
@@ -73,13 +74,17 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	digestMode, digestFormat, digestBytes := "git", "sha1", int64(defaultDigestBytes)
 	summarizeTrees := true // default on
 	attachmentRecordLimit := defaultAttachmentRecordLimit
-	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited", "source.digest": "default", "source.digest_format": "default", "source.digest_bytes": "default", "content.summarize_trees": "default", "attachment.record_limit": "default"}
+	intentObservations := 0 // 0 means use intentmap.DefaultMaxObservations
+	origins := map[string]string{"workers": "default", "inventory.files": "default", "content.file_bytes": "default", "git.object_cache_bytes": "default", "runtime.cpu": "inherited", "runtime.memory_bytes": "inherited", "source.digest": "default", "source.digest_format": "default", "source.digest_bytes": "default", "content.summarize_trees": "default", "attachment.record_limit": "default", "content.intent_observations": "default"}
 	switch flags.Preset {
 	case "low-memory":
 		workers, origins["workers"] = 2, "preset:low-memory"
 		gitCacheBytes, origins["git.object_cache_bytes"] = 8<<20, "preset:low-memory"
+		maxFileBytes, origins["content.file_bytes"] = 512<<10, "preset:low-memory"
+		intentObservations, origins["content.intent_observations"] = 2048, "preset:low-memory"
 	case "thorough":
 		maxFiles, origins["inventory.files"] = 250000, "preset:thorough"
+		intentObservations, origins["content.intent_observations"] = 16384, "preset:thorough"
 	}
 	for _, override := range flags.Overrides {
 		name, value, ok := strings.Cut(override, "=")
@@ -151,8 +156,14 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 				return resolvedMapSettings{}, err
 			}
 			attachmentRecordLimit = parsed
+		case "content.intent_observations":
+			parsed, err := parseMapSettingInt(name, value, 0, 1000000)
+			if err != nil {
+				return resolvedMapSettings{}, err
+			}
+			intentObservations = parsed
 		default:
-			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes, source.digest, source.digest_format, source.digest_bytes, content.summarize_trees, attachment.record_limit", diagnosticValue(name))
+			return resolvedMapSettings{}, fmt.Errorf("unknown map setting %q; supported settings: workers, inventory.files, content.file_bytes, git.object_cache_bytes, runtime.cpu, runtime.memory_bytes, source.digest, source.digest_format, source.digest_bytes, content.summarize_trees, attachment.record_limit, content.intent_observations", diagnosticValue(name))
 		}
 		origins[name] = "--set"
 	}
@@ -210,6 +221,7 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 		}(), Unit: "flag", Category: "coverage-affecting", Origin: origins["content.summarize_trees"], Description: "Recognize and summarize environment and build-output trees (node_modules, virtualenvs, Rust target/, .gradle, etc.) rather than walking them; on by default in directory mode. Off disables summarization and counts their contents in the language inventory."},
 		{Name: "classification.prefix_bytes", Value: strconv.FormatInt(scanner.ClassificationBytes, 10), Unit: "bytes", Category: "conformance-locked", Origin: "fixed:linguist-parity", Description: "Fixed classifier input window. Changing this value can change language results and invalidates the current Linguist conformance claim.", Minimum: strconv.FormatInt(scanner.ClassificationBytes, 10), Maximum: strconv.FormatInt(scanner.ClassificationBytes, 10)},
 		{Name: "attachment.record_limit", Value: strconv.Itoa(attachmentRecordLimit), Unit: "records", Category: "coverage-affecting", Origin: origins["attachment.record_limit"], Description: "Maximum combined records (artifacts, relationships, endpoints, results) per attached report before coverage degrades to partial with reason attachment_record_limit_reached. Reports exceeding this limit are still recorded in the coverage ledger; they do not cause map to exit non-zero.", Minimum: "1", Maximum: "10000000"},
+		{Name: "content.intent_observations", Value: strconv.Itoa(intentObservations), Unit: "observations", Category: "coverage-affecting", Origin: origins["content.intent_observations"], Description: "Maximum retained interface and capability observations from static intent analysis; 0 uses the built-in default (4096). Raise for large repos where many entry points are expected; lower to reduce memory pressure.", Minimum: "0", Maximum: "1000000"},
 	}
 	digestScope := ""
 	switch digestMode {
@@ -218,14 +230,15 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 	case "raw":
 		digestScope = string(treehash.ScopeRaw)
 	}
-	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, DigestScope: digestScope, DigestFormat: digestFormat, DigestBytes: digestBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, SummarizeTrees: summarizeTrees, AttachmentRecordLimit: attachmentRecordLimit, Report: mapSettingsReport{
+	return resolvedMapSettings{Workers: workers, MaxFiles: maxFiles, MaxFileBytes: maxFileBytes, GitCacheBytes: gitCacheBytes, DigestScope: digestScope, DigestFormat: digestFormat, DigestBytes: digestBytes, CPULimit: cpuLimit, MemoryLimit: memoryLimit, SummarizeTrees: summarizeTrees, AttachmentRecordLimit: attachmentRecordLimit, IntentObservations: intentObservations, Report: mapSettingsReport{
 		SchemaVersion: "1.0.0", Kind: "map_settings", Preset: flags.Preset, Settings: settings,
 		Notes: []string{
-			"low-memory tunes worker concurrency and retained Git object cache size while preserving map answers",
+			"balanced is the default preset; it suits most repositories and serves as the reference for answer-stability guarantees",
+			"low-memory reduces workers, Git object cache, per-file content reads (512 KiB cap), and retained intent observations; map answers are preserved but some interface and capability observations may be omitted on very large files",
 			"low-memory is a measured relative preference, not an RSS guarantee or hard memory ceiling",
+			"thorough raises the inventory file limit and retains 4x more intent observations; it may produce more interface answers than balanced on large monorepos",
 			"GOMEMLIMIT is a cooperative Go runtime limit inherited from the process environment; it is not a hard process or native-worker limit",
 			"--cpu-limit and --memory-limit are scoped cooperative runtime controls, not hard CPU, RSS, subprocess, or operating-system ceilings",
-			"thorough raises an inventory coverage limit and may change answers that balanced reports as partial",
 			"source.digest reads every in-scope directory file once more to compute its Git-compatible tree ID; set it to off for metadata-only runs",
 			"content.summarize_trees only applies to directory-mode maps; Git-mode maps always scan committed content",
 		},

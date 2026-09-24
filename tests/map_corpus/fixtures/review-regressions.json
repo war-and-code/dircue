@@ -8,7 +8,7 @@
         "fixture_evidence": "main.tf declares two aws providers with distinct literal aliases; both must be captured in a single module-level deployable rather than as two separate nodes (the 1.0.0 granularity rule: one deployable per Terraform module directory)"
       },
       "must_include": [
-        {"kind": "deployable", "name": "main.tf", "path": "."}
+        {"kind": "deployable", "name": "(root)", "path": "."}
       ],
       "must_not_include": [
         {"kind": "deployable", "name": "provider:aws.alias=primary"},

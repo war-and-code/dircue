@@ -133,3 +133,61 @@ SYFT_BINARY ?= bin/dircue
 
 syft-oracle: build ## Run Syft oracle: validate package-coverage binding against committed Syft reports
 	python3 tests/syft-oracle/run.py --binary $(SYFT_BINARY)
+
+# ---------------------------------------------------------------------------
+# Issues #77/#78/#79/#82: Tool oracle (Noir, ruff, semgrep)
+#
+# Validates dircue's ingestion of real analyzer reports:
+#   #77: OWASP Noir JSON/SARIF on web-framework fixtures
+#   #78: coverage ledger blind spots (not_run, unsupported_language, ...)
+#   #79: analyzer routing per component
+#   #82: dircue map locate with three SARIF emitters (Noir, ruff, semgrep)
+#
+# Fast committed-report checks; no Docker required.
+# To regenerate reports: make regenerate-tool-fixtures
+TOOL_ORACLE_BINARY ?= bin/dircue
+
+.PHONY: tool-oracles regenerate-tool-fixtures
+
+tool-oracles: build ## Run tool oracle: validate Noir/ruff/semgrep report ingestion and SARIF locate
+	python3 tests/tools/run.py --binary $(TOOL_ORACLE_BINARY)
+
+regenerate-tool-fixtures: ## Regenerate tool fixture reports with pinned images (requires Docker + network for pull)
+	@echo "==> Pulling pinned images (network required; subsequent runs use --network none)"
+	docker pull "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab"
+	docker pull "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df"
+	docker pull "semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596"
+	@echo "==> Regenerating OWASP Noir reports (network=none)"
+	for fixture in flask-app express-app spring-app; do \
+	  docker run --rm --network none \
+	    -v "$(PWD)/tests/tools/fixtures/$${fixture}:/app:ro" \
+	    "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab" \
+	    noir scan /app -f json 2>/dev/null \
+	    > "tests/tools/fixtures/$${fixture}.noir.json"; \
+	  docker run --rm --network none \
+	    -v "$(PWD)/tests/tools/fixtures/$${fixture}:/app:ro" \
+	    "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab" \
+	    noir scan /app -f sarif 2>/dev/null \
+	    > "tests/tools/fixtures/$${fixture}.noir.sarif.json"; \
+	done
+	@echo "==> Regenerating ruff SARIF reports (network=none)"
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/python-lint-sample:/src" \
+	  -w /src \
+	  "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df" \
+	  check --output-format sarif . 2>/dev/null \
+	  > tests/tools/fixtures/python-lint-sample.ruff.sarif.json; true
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/flask-app:/src" \
+	  -w /src \
+	  "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df" \
+	  check --output-format sarif . 2>/dev/null \
+	  > tests/tools/fixtures/flask-app.ruff.sarif.json; true
+	@echo "==> Regenerating Semgrep SARIF reports (network=none)"
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/python-lint-sample:/src:ro" \
+	  -v "$(PWD)/tests/tools/fixtures/semgrep-rules:/rules:ro" \
+	  "semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596" \
+	  semgrep --config /rules/python-checks.yaml --metrics off --sarif /src 2>/dev/null \
+	  > tests/tools/fixtures/python-lint-sample.semgrep.sarif.json
+	@echo "==> Reports regenerated; run make tool-oracles to validate"

@@ -80,7 +80,10 @@ func TestCollectorDeterministicAndSelectedOnly(t *testing.T) {
 	}
 }
 
-func TestPythonRequirementsNeedSelectedPythonSource(t *testing.T) {
+func TestPythonRequirementsOnlyRootProducesComponent(t *testing.T) {
+	// A requirements.txt without any .py source files is still a valid Python
+	// component: it declares a dependency set for a service whose code may be
+	// pre-built, live in a container image, or reside in a separate repository.
 	collect := func(withSource bool) *Report {
 		c := New("directory", "", 0)
 		c.Add("svc/requirements.txt", candidateFor("svc/requirements.txt", "fastapi==0.115\nredis>=5\n"))
@@ -94,12 +97,13 @@ func TestPythonRequirementsNeedSelectedPythonSource(t *testing.T) {
 		return r
 	}
 	without := collect(false)
-	if len(without.Projects) != 0 {
-		t.Fatalf("requirements alone overclaimed a project: %+v", without.Projects)
+	if len(without.Projects) != 1 || without.Projects[0].Kind != "python" {
+		t.Fatalf("requirements-only root should produce a Python component: %+v", without.Projects)
 	}
+	pythonTestReq(t, &Document{Project: &without.Projects[0]}, "python-dependency", "fastapi==0.115", "declared")
 	with := collect(true)
 	if len(with.Projects) != 1 || with.Projects[0].Kind != "python" {
-		t.Fatalf("Python source did not qualify a requirements project: %+v", with.Projects)
+		t.Fatalf("Python source should also qualify a requirements project: %+v", with.Projects)
 	}
 	pythonTestReq(t, &Document{Project: &with.Projects[0]}, "python-dependency", "fastapi==0.115", "declared")
 }
