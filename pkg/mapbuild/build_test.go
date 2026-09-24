@@ -278,11 +278,32 @@ func TestSingleMapDoesNotClaimMaterialChangeQuestion(t *testing.T) {
 
 func TestAuxiliaryPathRolesAreHintsNotDeletedFacts(t *testing.T) {
 	for _, test := range []struct{ filename, role string }{
+		// No role — caller assigns primary
 		{"services/api/App.csproj", ""},
+		// Fixture
 		{"tests/map_corpus/fixtures/app/package.json", "fixture"},
+		{"crates/ruff_linter/resources/test/fixtures/isort/pyproject.toml", "fixture"},
+		{"testdata/myapp/pyproject.toml", "fixture"},
+		// Test
 		{"src/Tests/Compiler.Tests.csproj", "test"},
+		{"crates/ruff_mdtest/Cargo.toml", ""}, // "mdtest" suffix is not "_test"; no role assigned
+		{"crates/ty_test/Cargo.toml", "test"},
+		{"tests/App.UnitTests/App.UnitTests.csproj", "test"},
+		{"tests/App.FunctionalTests/App.FunctionalTests.csproj", "test"},
+		// Example
 		{"examples/demo/Dockerfile", "example"},
+		{"samples/web/package.json", "example"},
+		{"demo/app/go.mod", "example"},
+		// Vendored
 		{"vendor/lib/Cargo.toml", "vendored"},
+		{"node_modules/react/package.json", "vendored"},
+		{"operator/.bingo/go.mod", "vendored"},
+		// Docs
+		{"docs/website/package.json", "docs"},
+		{"RELEASING/pyproject.toml", "docs"},
+		{"translations/setup.cfg", "docs"},
+		// Tooling
+		{"scripts/benchmark/pyproject.toml", "tooling"},
 	} {
 		if got := mapPathRole(test.filename); got != test.role {
 			t.Errorf("%s: role %q, want %q", test.filename, got, test.role)
