@@ -59,8 +59,8 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	// so that depends_on references can be resolved after all nodes are added.
 	composeServiceByID := map[string]string{}
 	type composeDep struct {
-		fromID  string
-		toName  string
+		fromID   string
+		toName   string
 		evidence mapdoc.Evidence
 	}
 	var composeDeps []composeDep
@@ -679,7 +679,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			componentNodeIdx[n.ID] = i
 		}
 	}
-	runtimeReqs := map[string][]string{} // ownerID → ["node>=18", "yarn>=4", ...]
+	runtimeReqs := map[string][]string{} // ownerID → ["node >= 18", "yarn ^4.0.0", ...]
 	for _, o := range r.Observations {
 		if o.Kind != intentmap.KindInterface {
 			continue
@@ -695,8 +695,10 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		switch ikind {
 		case "prerequisite":
 			entry := o.Name
+			// The target is the declared range as written (">= 18",
+			// "^4.0.0"); it is recorded verbatim after the tool name.
 			if t := o.Properties["target"]; t != "" {
-				entry += ">=" + t
+				entry += " " + t
 			}
 			runtimeReqs[ownerID] = append(runtimeReqs[ownerID], entry)
 		case "python-build-backend":

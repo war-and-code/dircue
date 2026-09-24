@@ -11,6 +11,7 @@ from verify_golden import (
     match_interface,
     match_capability,
     match_edge,
+    node_matches_endpoint,
     oracle_set,
     is_oracle_scoped,
     score_components,
@@ -246,8 +247,8 @@ class TestMatchEdge(unittest.TestCase):
         nodes = {
             "c1": {"id": "c1", "kind": "component", "name": "mastodon", "properties": {}},
             "c2": {"id": "c2", "kind": "capability", "name": "cache:redis", "properties": {}},
-            "d1": {"id": "d1", "kind": "deployable", "name": "web", "properties": {}},
-            "d2": {"id": "d2", "kind": "deployable", "name": "db", "properties": {}},
+            "d1": {"id": "d1", "kind": "deployable", "name": "web", "paths": ["docker-compose.yml"], "properties": {}},
+            "d2": {"id": "d2", "kind": "deployable", "name": "db", "paths": ["docker-compose.yml"], "properties": {}},
         }
         return nodes
 
@@ -410,3 +411,21 @@ class TestScoreCapabilities(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEndpointNormalisationBoundaries(unittest.TestCase):
+    def test_npm_scoped_name_is_not_a_go_module_path(self):
+        node = {"kind": "component", "name": "@mastodon/mastodon", "properties": {"ecosystem": "npm"}}
+        self.assertFalse(node_matches_endpoint(node, "Mastodon"))
+
+    def test_compose_service_requires_its_file(self):
+        dockerfile = {"kind": "deployable", "name": "superset-websocket", "paths": ["superset-websocket/Dockerfile"], "properties": {}}
+        service = {"kind": "deployable", "name": "superset-websocket", "paths": ["docker-compose.yml"], "properties": {}}
+        self.assertFalse(node_matches_endpoint(dockerfile, "docker-compose.yml:superset-websocket"))
+        self.assertTrue(node_matches_endpoint(service, "docker-compose.yml:superset-websocket"))
+
+    def test_contains_label_matches_reversed_member_of(self):
+        nodes = {"a": {"id": "a", "kind": "component", "name": "root", "properties": {}},
+                 "b": {"id": "b", "kind": "component", "name": "member", "properties": {}}}
+        edge = {"type": "member_of", "from": "b", "to": "a"}
+        self.assertTrue(match_edge({"type": "contains", "from": "root", "to": "member"}, edge, nodes))

@@ -473,3 +473,18 @@ func TestNPMDirectoryDerivedIdentityConflicts(t *testing.T) {
 		}
 	}
 }
+
+func TestNPMWorkspaceRootListedAsDotStillResolvesMembers(t *testing.T) {
+	root := ParseNPM("package.json", []byte(`{"name":"@app/root","workspaces":[".","streaming"]}`))
+	docs, files := npmFixtureDocuments(root, map[string]string{"streaming/package.json": `{"name":"@app/streaming"}`})
+	ResolveNPM(docs, files)
+	found := false
+	for _, ref := range root.Project.References {
+		if ref.Target == "streaming/package.json" && ref.Kind == "npm-workspace-member" && ref.State == "resolved" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("streaming member not resolved: %+v (diagnostics %+v)", root.Project.References, root.Diagnostics)
+	}
+}

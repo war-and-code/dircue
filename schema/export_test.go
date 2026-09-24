@@ -14,10 +14,10 @@ import (
 
 	"dircue/internal/cli"
 	"dircue/pkg/capabilities"
+	"dircue/pkg/mapdiff"
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/planning"
 	"dircue/pkg/profile"
-	"dircue/pkg/mapdiff"
 	"dircue/pkg/reportdiff"
 	"dircue/pkg/structure"
 	"dircue/schema"
@@ -213,10 +213,10 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 				"limit_hits":         map[string]any{"file_bytes": float64(0), "tree_size": float64(0)},
 			},
 			"measurements": map[string]any{
-				"wall_time_ns":           float64(1_000_000_000),
-				"phases":                 map[string]any{"scan_ns": float64(800_000_000), "build_ns": float64(100_000_000)},
-				"peak_heap_inuse_bytes":  float64(10_000_000),
-				"gc_count":               float64(2),
+				"wall_time_ns":          float64(1_000_000_000),
+				"phases":                map[string]any{"scan_ns": float64(800_000_000), "build_ns": float64(100_000_000)},
+				"peak_heap_inuse_bytes": float64(10_000_000),
+				"gc_count":              float64(2),
 			},
 		},
 		"forest": map[string]any{
