@@ -1,0 +1,47 @@
+# Example: architecture-change summary on pull requests using dircue map diff.
+#
+# This is an illustrative workflow for consuming repos, not an active workflow
+# in the dircue repository itself. Copy it into .github/workflows/ of the repo
+# you want to analyse.
+#
+# The action builds a map of the PR base and head, runs `dircue map compare`,
+# and writes a Markdown summary to $GITHUB_STEP_SUMMARY. Posting a PR comment
+# is opt-in via the post-comment input and requires pull-requests: write.
+#
+# dircue never contacts the network and never executes repository content.
+# The summary discloses indeterminate removals and partial coverage rather than
+# dropping them.
+
+name: Architecture diff
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  map-diff:
+    runs-on: ubuntu-latest
+    # Grant pull-requests: write only when you want the action to post a comment.
+    # Remove this block (and set post-comment: 'false') to avoid the permission.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Fetch full history so the merge-base calculation succeeds.
+          fetch-depth: 0
+
+      - name: dircue map diff
+        uses: war-and-code/dircue/.github/actions/map-diff@v1.0.0
+        with:
+          dircue-version: v1.0.0   # Pin for reproducible runs.
+          source-mode: auto        # Map the committed Git tree.
+          post-comment: 'true'     # Remove or set to 'false' to skip the PR comment.
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # extra-map-flags: "--attach syft-report.json"  # Uncomment to attach a Syft SBOM.
+          # dircue-binary: /path/to/dircue  # Skip download; use a local binary instead.

@@ -487,6 +487,20 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 	if line := topLevelKeyLine(content, "on"); line > 0 {
 		d.Evidence = append(d.Evidence, Evidence{Field: "triggers", Value: "declared", Line: line, Basis: "github-workflow-field"})
 	}
+
+	// Workflow-level defaults.run.working-directory (lowest non-implicit precedence).
+	wfWDVal, wfWDPresent, wfWDDynamic := workflowDefaultsWorkdir(doc)
+	if wfWDPresent {
+		q := "local"
+		if wfWDDynamic || !safeRelative(wfWDVal) {
+			q = "unresolved"
+		}
+		d.Evidence = append(d.Evidence, Evidence{Field: "defaults.run.working-directory", Value: bounded(wfWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-workflow-default"})
+		if !wfWDDynamic {
+			d.References = append(d.References, Reference{Kind: "working_directory", Value: bounded(wfWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(wfWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-workflow-default"}})
+		}
+	}
+
 	for _, jobName := range sortedKeys(jobs) {
 		job, ok := asObject(jobs[jobName])
 		if !ok {
@@ -498,6 +512,29 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 		if perms, exists := lookup(job, "permissions"); exists {
 			d.Evidence = append(d.Evidence, Evidence{Field: "job_permissions", Value: structuralType(perms), Line: lineOf(content, "permissions:"), Basis: "github-workflow-field"})
 		}
+
+		// Job `needs` references (#11): declare dependency edges between jobs.
+		if needsVal, exists := lookup(job, "needs"); exists {
+			for _, dep := range namesOf(needsVal) {
+				d.References = append(d.References, Reference{Kind: "job_needs", Value: bounded(dep), Qualification: "local", Evidence: Evidence{Field: "needs", Value: bounded(dep), Line: lineOf(content, "needs:"), Basis: "github-job-dependency"}})
+			}
+		}
+
+		// Job-level defaults.run.working-directory (#48).
+		// Record this even when a workflow-level default also exists; the job
+		// default takes precedence for this job and is a distinct declaration.
+		jobWDVal, jobWDPresent, jobWDDynamic := jobDefaultsWorkdir(job)
+		if jobWDPresent {
+			q := "local"
+			if jobWDDynamic || !safeRelative(jobWDVal) {
+				q = "unresolved"
+			}
+			d.Evidence = append(d.Evidence, Evidence{Field: "job." + bounded(jobName) + ".defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"})
+			if !jobWDDynamic {
+				d.References = append(d.References, Reference{Kind: "working_directory", Value: bounded(jobWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"}})
+			}
+		}
+
 		if steps, ok := sequence(job, "steps"); ok {
 			for _, raw := range steps {
 				step, ok := asObject(raw)
@@ -507,12 +544,39 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 				if uses, ok := stringValue(step, "uses"); ok {
 					d.References = append(d.References, workflowRef("action", uses, content))
 				}
-				if wd, ok := stringValue(step, "working-directory"); ok {
+				// Record checkout path declarations (#48): actions/checkout with an explicit
+				// path: input establishes a checkout-relative coordinate for subsequent steps.
+				if checkPath, hasPath := checkoutPath(step); hasPath {
 					q := "local"
-					if dynamic(wd) || !safeRelative(wd) {
+					if !safeRelative(checkPath) {
 						q = "unresolved"
 					}
-					d.References = append(d.References, Reference{Kind: "working_directory", Value: bounded(wd), Qualification: q, Evidence: Evidence{Field: "working-directory", Value: bounded(wd), Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}})
+					d.References = append(d.References, Reference{Kind: "checkout_path", Value: bounded(checkPath), Qualification: q, Evidence: Evidence{Field: "with.path", Value: bounded(checkPath), Line: lineOf(content, "path:"), Basis: "github-checkout-path"}})
+				}
+				// Step-level working-directory with full precedence chain (#48).
+				stepWDVal, stepWDPresent := "", false
+				stepWDDynamic := false
+				if wd, present := stringValue(step, "working-directory"); present {
+					stepWDVal, stepWDPresent, stepWDDynamic = wd, true, dynamic(wd)
+				}
+				prec := resolveWorkdir(
+					stepWDPresent, stepWDDynamic, stepWDVal,
+					jobWDPresent, jobWDDynamic, jobWDVal,
+					wfWDPresent, wfWDDynamic, wfWDVal,
+				)
+				// Only emit a working_directory reference at step level when the step
+				// itself carries an explicit declaration (higher-precedence levels are
+				// recorded once at the job/workflow scope above).
+				if stepWDPresent {
+					q := "local"
+					if prec.expressionBlocked || !safeRelative(prec.dir) {
+						q = "unresolved"
+					}
+					val := bounded(prec.dir)
+					if prec.expressionBlocked {
+						val = "unresolved"
+					}
+					d.References = append(d.References, Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}})
 				}
 			}
 		}
