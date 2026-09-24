@@ -26,7 +26,8 @@ type Detector struct {
 	selected     int
 	inspected    int
 	omissions    map[string]int
-	projects     map[string]string
+	projects     map[string]string // projectID → root dir
+	projectNames map[string]string // projectID → module/package name base (for binary naming)
 }
 
 var _ profile.Detector = (*Detector)(nil)
@@ -40,7 +41,7 @@ func New(options Options) *Detector {
 	if maxObs <= 0 || maxObs > DefaultMaxObservations {
 		maxObs = DefaultMaxObservations
 	}
-	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}}
+	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}}
 }
 
 func (d *Detector) Name() string { return DetectorName }
@@ -112,6 +113,20 @@ func (d *Detector) Finish(ctx context.Context) (*Report, error) {
 			if id := owningProject(out[i].Path, d.projects); id != "" {
 				out[i].ProjectID = id
 				out[i].ProjectAttribution = "directory_containment"
+			}
+		}
+		// For Go binaries whose main.go sits at the project root (as opposed
+		// to under cmd/<name>/), goBinaryName() returns the directory name,
+		// which is often "." → falls back to "main". Replace with the module
+		// path base so the name is stable across different checkout paths.
+		if out[i].Kind == KindInterface && out[i].Properties["interface_kind"] == "binary" {
+			if name, ok := d.projectNames[out[i].ProjectID]; ok && name != "" && name != "." {
+				// Only rename when the binary's source file sits at the project root.
+				obsDir := strings.Trim(path.Dir(out[i].Path), "./")
+				projRoot := strings.Trim(d.projects[out[i].ProjectID], "./")
+				if obsDir == projRoot {
+					out[i].Name = name
+				}
 			}
 		}
 	}

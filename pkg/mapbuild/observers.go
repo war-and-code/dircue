@@ -310,6 +310,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		n.Evidence = slices.Clone(g.evidence)
 		if g.projectID != "" {
 			if owner := componentsByManifest[g.projectID]; owner != "" {
+				n.Properties["owning_component"] = owner
 				edgeCoverage := n.Coverage
 				edgeReasons := slices.Clone(edgeCoverage.Reasons)
 				if g.attribution == "directory_containment" {
@@ -357,6 +358,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		n.Evidence = []mapdoc.Evidence{intentEvidence(o)}
 		if o.ProjectID != "" {
 			if owner := componentsByManifest[o.ProjectID]; owner != "" {
+				n.Properties["owning_component"] = owner
 				edgeKind := mapdoc.EdgeDeclares
 				edgeCoverage := n.Coverage
 				if o.ProjectAttribution == "directory_containment" {
