@@ -339,24 +339,20 @@ class TestSARIFLocate(unittest.TestCase):
         # Schema-level validation
         _validate_sarif_schema(annotated, self._schema, self)
 
-    def test_semgrep_undefined_base_id_is_unresolvable(self) -> None:
-        """Semgrep SARIF with %SRCROOT% base ID but no originalUriBaseIds.
+    def test_semgrep_absolute_uri_with_undeclared_base_resolves(self) -> None:
+        """Semgrep SARIF: absolute /src/... URIs carrying an undeclared %SRCROOT%.
 
-        Semgrep 1.117.0 emits %SRCROOT% uriBaseId without defining it in
-        originalUriBaseIds. dircue must report unresolvable_uri, not fabricate
-        a path. This is a documented oracle finding, not a dircue defect.
+        Semgrep 1.117.0 attaches uriBaseId %SRCROOT% to absolute URIs without
+        declaring it in originalUriBaseIds. An absolute URI does not depend on
+        its base (SARIF 2.1.0 section 3.4.4), so with --source-uri /src the
+        location resolves; without it, it stays unresolvable rather than guessed.
         """
         map_path = self._map_dir(FIXTURES / "python-lint-sample")
-        summary = self._locate_summary(
-            map_path,
-            FIXTURES / "python-lint-sample.semgrep.sarif.json",
-            source_uri="/src",
-        )
-        resolutions = summary.get("resolutions", {})
-        self.assertGreater(
-            resolutions.get("unresolvable_uri", 0), 0,
-            f"expected unresolvable_uri for undefined %SRCROOT%, got {resolutions}",
-        )
+        sarif = FIXTURES / "python-lint-sample.semgrep.sarif.json"
+        resolved = self._locate_summary(map_path, sarif, source_uri="/src").get("resolutions", {})
+        self.assertEqual(resolved, {"resolved": 1}, f"with --source-uri /src: {resolved}")
+        unbound = self._locate_summary(map_path, sarif).get("resolutions", {})
+        self.assertEqual(unbound, {"unresolvable_uri": 1}, f"without --source-uri: {unbound}")
 
     def test_noir_sarif_locations_resolve_to_component(self) -> None:
         """OWASP Noir SARIF: all 5 endpoint locations resolve to the Flask component.
