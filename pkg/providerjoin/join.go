@@ -346,6 +346,13 @@ func coverageFor(r Result) []mapdoc.QuestionCoverage {
 		if x.State == "unknown" || x.State == "tool_error" {
 			analyzerReasons = append(analyzerReasons, x.State)
 		}
+		if x.Reason == "attachment_record_limit_reached" {
+			analyzerReasons = append(analyzerReasons, "attachment_record_limit_reached")
+			if x.ReportKind == "syft-json" {
+				packageStatus = mapdoc.CoveragePartial
+				packageReasons = append(packageReasons, "attachment_record_limit_reached")
+			}
+		}
 	}
 	if !hasSyft {
 		packageStatus = mapdoc.CoverageUnknown
