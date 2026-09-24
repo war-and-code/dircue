@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"testing"
@@ -222,6 +223,9 @@ func iterations(def int) int {
 // TestDifferential is the canonical name for the differential oracle test.
 // Run with: DIRCUE_TREEHASH_ITERATIONS=1500 go test ./pkg/treehash -run Differential -count=1 -v
 func TestDifferential(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("random trees use POSIX names, modes and symlinks; Windows digests are partial (windows_checkout_semantics)")
+	}
 	git := gitAvailable(t)
 	for _, format := range []Format{FormatSHA1, FormatSHA256} {
 		for i := 0; i < iterations(40); i++ {
@@ -238,7 +242,7 @@ func TestDifferential(t *testing.T) {
 				switch {
 				case got.Ignored > 0 && (got.Status != StatusPartial || len(got.Reasons) != 1 || got.Reasons[0] != ReasonIgnoredWithoutIndex):
 					t.Fatalf("ignored=%d status %s reasons %v", got.Ignored, got.Status, got.Reasons)
-				case got.Ignored == 0 && got.Status != StatusComplete:
+				case got.Ignored == 0 && !completeHere(got):
 					t.Fatalf("status %s reasons %v", got.Status, got.Reasons)
 				}
 				if got.TreeID != want {
@@ -283,7 +287,7 @@ func TestNestedRepositoryBecomesGitlink(t *testing.T) {
 	runGit(t, git, nested, home, "pack-refs", "--all")
 	got := computeDir(t, dir, Options{})
 	want := oracleTree(t, git, dir, FormatSHA1)
-	if got.TreeID != want || got.Status != StatusComplete || got.Gitlinks != 1 {
+	if got.TreeID != want || !completeHere(got) || got.Gitlinks != 1 {
 		t.Fatalf("got %+v want %s", got, want)
 	}
 }
@@ -319,7 +323,7 @@ func TestTrackedIgnoredFilesUseRepositoryIndex(t *testing.T) {
 	got := computeDir(t, dir, Options{})
 	runGit(t, git, dir, home, "add", "-A")
 	want := runGit(t, git, dir, home, "write-tree")
-	if got.TreeID != want || got.Status != StatusComplete {
+	if got.TreeID != want || !completeHere(got) {
 		t.Fatalf("got %+v want %s", got, want)
 	}
 }
@@ -346,7 +350,7 @@ func TestCheckoutOfCommitMatchesItsTree(t *testing.T) {
 		t.Fatal(err)
 	}
 	got := computeDir(t, clone, Options{})
-	if got.TreeID != want || got.Status != StatusComplete {
+	if got.TreeID != want || !completeHere(got) {
 		t.Fatalf("got %+v want %s", got, want)
 	}
 	raw := computeDir(t, clone, Options{Scope: ScopeRaw})
@@ -427,6 +431,9 @@ func TestFilterAndEncodingAttributesQualifyTheResult(t *testing.T) {
 }
 
 func TestDeterministicAcrossWorkerCounts(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("random trees use POSIX names, modes and symlinks; Windows digests are partial (windows_checkout_semantics)")
+	}
 	dir := t.TempDir()
 	g := &treeGen{r: rand.New(rand.NewSource(42)), used: map[string]bool{}}
 	g.fill(t, dir, "", 0)
@@ -457,7 +464,7 @@ func TestTextAutoWithCommittedCRLF(t *testing.T) {
 	want := runGit(t, git, src, home, "rev-parse", "HEAD^{tree}")
 	clone := filepath.Join(t.TempDir(), "clone")
 	runGit(t, git, filepath.Dir(clone), home, "clone", "-q", src, clone)
-	if got := computeDir(t, clone, Options{}); got.TreeID != want || got.Status != StatusComplete {
+	if got := computeDir(t, clone, Options{}); got.TreeID != want || !completeHere(got) {
 		t.Fatalf("clean checkout: got %+v want %s", got, want)
 	}
 	write(t, filepath.Join(clone, "legacy.js"), []byte("a\r\nb\r\nchanged\r\n"), 0o644)
@@ -485,7 +492,7 @@ func TestEmptyTreeConstants(t *testing.T) {
 			if got.TreeID != tc.wantConst {
 				t.Fatalf("empty tree %s: got %s want %s", tc.format, got.TreeID, tc.wantConst)
 			}
-			if got.Status != StatusComplete {
+			if !completeHere(got) {
 				t.Fatalf("empty tree status: got %s want complete", got.Status)
 			}
 			if got.Files != 0 || got.Symlinks != 0 || got.Gitlinks != 0 {
@@ -493,4 +500,13 @@ func TestEmptyTreeConstants(t *testing.T) {
 			}
 		})
 	}
+}
+
+// completeHere reports whether a digest has the status this platform can
+// reach: complete, or on Windows partial for windows_checkout_semantics alone.
+func completeHere(r Result) bool {
+	if runtime.GOOS == "windows" {
+		return r.Status == StatusPartial && len(r.Reasons) == 1 && r.Reasons[0] == ReasonWindowsSemantics
+	}
+	return r.Status == StatusComplete
 }
