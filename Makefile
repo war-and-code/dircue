@@ -108,7 +108,7 @@ accuracy-cards: build ## Generate accuracy cards into docs/ACCURACY.md and inter
 	  --output docs/ACCURACY.md \
 	  --data internal/atlas/accuracy_data.json
 
-# Run the golden map-corpus gate (blind-labeled ground truth, issue #75).
+# Run the initially blind-labeled map regression gate (issue #75).
 # Requires pinned repo clones. See tests/map_corpus/golden_expectations.json
 # for the repo list, commit pins, and oracle-file SHA-256s.
 # Fetch repos with: python3 tests/map_corpus/fetch_golden.py --dest .cache/golden-repos

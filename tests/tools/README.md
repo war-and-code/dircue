@@ -93,11 +93,12 @@ as such) in `pkg/providerjoin/` unit tests. See the CHANGES.md for details.
 
 ## Crashed run (executionSuccessful: false)
 
-No tested tool (ruff 0.11.13, Semgrep OSS 1.117.0, golangci-lint v1.64.2)
-produces `executionSuccessful: false` in their SARIF invocations when a
-genuinely failing invocation occurs. Each tool either:
+The exercised ruff 0.11.13 and Semgrep OSS 1.117.0 invocations did not produce
+`executionSuccessful: false` for a failing run. Each tool either:
 - Sets `executionSuccessful: true` with `toolExecutionNotifications` containing errors, or
 - Exits non-zero without producing SARIF output at all.
+
+This oracle has no pinned golangci-lint report fixture.
 
 This case is covered by Go unit tests in `pkg/coverageledger/` and
 `pkg/providerjoin/` with a hand-crafted minimal SARIF fixture.

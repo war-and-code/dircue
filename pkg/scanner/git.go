@@ -459,7 +459,7 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 	return snapshot, nil, nil
 }
 
-var errGitRepositoryNotFound = errors.New("Git repository does not exist")
+var errGitRepositoryNotFound = errors.New("repository does not exist")
 
 func openLocalGitFilesystem(directory string, discover bool) (billy.Filesystem, string, string, error) {
 	root, err := filepath.Abs(directory)

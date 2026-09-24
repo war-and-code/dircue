@@ -39,9 +39,9 @@ CLI maximum RSS ranged from 25.5–33.9 MiB without function evidence and
 26.1–36.5 MiB with it across these cases. Separately measured standalone worker
 maximum RSS ranged from 2.8–6.8 MiB without evidence and 2.9–7.8 MiB with it.
 Those are separate process measurements, not simultaneous process-tree peaks.
-Do not add them. The full sample values are retained, not just these ranges.
+Do not add them. The receipts retain every sample value alongside these ranges.
 
-Timing was coordinated with other agents to avoid builds and test workloads.
+Timing was coordinated to avoid concurrent builds and test workloads.
 The host was not isolated from operating-system activity. No CPU or memory
 limits were imposed. All selected source blobs were under 1 MiB, and the warm
 runs include startup cost. Results do not extrapolate to entire repositories.

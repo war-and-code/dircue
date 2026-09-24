@@ -2,7 +2,7 @@
 
 ## 1.0.0 (unreleased)
 
-dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence and a per-question coverage status. The Linguist-compatible commands and outputs from 0.9 remain available and unchanged.
+dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence and a per-question coverage status. The strict Linguist-compatible language commands remain available with their 0.9 output contract; changes to other commands are listed below.
 
 ### The map
 - **`dircue map [path]`** writes a portable map document (`schema/map.schema.json`, schema version 1.0.0) for a committed Git tree or an ordinary directory. Redirected output defaults to JSON; a terminal gets a one-screen summary (`--summary`). Inspected content is never executed.
@@ -64,27 +64,27 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - `--stats-json PATH` writes deterministic cost counters and timings to a separate document, and `--cpuprofile`/`--memprofile` write Go profiles. The map document itself is byte-identical across worker counts, locations, locales and time zones.
 
 ### Git reading
-- The binary no longer links a network stack: go-git's transport client is excluded, and a build contract test enforces it. Release binaries are about 11% smaller than 0.9.0, despite the map.
+- The binary excludes go-git's transport client, and a build contract test checks the linked executable. The embedded fork's `go.mod` still downloads unused SSH transport modules. Release binaries are about 11% smaller than 0.9.0, despite the map.
 - Git-mode peak memory on the Linux kernel dropped by about 35%.
 - SHA-256 object-format repositories and corrupt Git directories fall back to directory mode with a warning.
 
 ### Distribution
-- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so `go install github.com/war-and-code/dircue@v1.0.0` works without `replace` directives.
+- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so no `replace` directives are needed. `go install github.com/war-and-code/dircue@v1.0.0` was validated against a local module proxy; fetching it from GitHub remains unverified until the tag is pushed and access is available.
 - Release archives for Linux, macOS and Windows (amd64 and arm64 where supported) come with `SHA256SUMS` and matching Python wheels. See `RELEASING.md`.
 
 ### Evidence
 - **Linguist parity.** Across the 38-repository atlas, dircue matches Linguist 9.7.0 exactly on all 355 language totals. Against scc 4.1.0, 261,081 of 262,575 shared per-file counters are identical. Every remaining difference is a file where dircue follows its Linguist language to a different scc grammar, recorded per file (`tests/atlas/results/1.0.0`).
-- **Map accuracy** is measured per question against blind, hand-written labels for seven repositories the map was not tuned on (`docs/GOLDEN.md`). Every question meets the gate of precision ≥ 0.90 and recall ≥ 0.80:
+- **Map accuracy** is measured per question against hand-written labels for seven repositories (`docs/GOLDEN.md`). The labeled set also informed map development, so these results are not an independent evaluation. Every question meets the gate of precision ≥ 0.90 and recall ≥ 0.80:
   - components, deployables and capabilities: 1.00 / 1.00;
   - interfaces: 1.00 / 0.98;
   - relationships: 1.00 / 0.98.
 
   The map never claimed `complete` where the labels did not.
-- **Oracles.** Real, pinned Syft, OWASP Noir, ruff, Semgrep and golangci-lint runs check attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
+- Committed fixtures from pinned Syft, OWASP Noir, ruff and Semgrep exercise attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 
 ### Compatibility
-- Legacy stdout, stderr and exit codes are byte-identical to 0.9.0, with two additive changes: `analyze discovery --json` records the selected `commit`, and `analyze environments` recognizes more toolchains.
+- Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Differences include project/declaration additions, removals, or reclassifications. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 - `dircue compare` (saved profiles) and `dircue map compare` (maps) reject each other's documents with a pointer to the right command.
 
 ## 0.9.0 (2026-09-22)

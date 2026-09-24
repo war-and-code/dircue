@@ -340,6 +340,14 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		report.SchemaVersion = profile.EnvironmentSchemaVersion
 	}
 	for _, warning := range report.Warnings {
+		// The Linguist-compatible language commands have always treated an
+		// unusable implicit Git source as an ordinary directory without writing
+		// a diagnostic. Keep that process contract for the two auto-source
+		// fallbacks that were historically silent. Structured commands, map, and
+		// scanner API consumers still receive the warning.
+		if mode == "languages" && opts.source == "auto" && legacyLanguageGitFallback(warning.Code) {
+			continue
+		}
 		if _, err := fmt.Fprintf(cmd.ErrOrStderr(), "warning: %s: %s (%s)\n", terminalValue(warning.Path), terminalValue(warning.Message), warning.Code); err != nil {
 			return err
 		}
@@ -472,6 +480,10 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		}
 		return nil
 	}
+}
+
+func legacyLanguageGitFallback(code string) bool {
+	return code == "git_head_not_found" || code == "git_no_commits_or_corrupt_gitdir"
 }
 
 func nonNilFindings(findings []profile.Finding) []profile.Finding {
