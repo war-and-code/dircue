@@ -83,6 +83,11 @@ tree. The harness copies only the clone's `.git` directory into the container
 archive` (which applies `export-ignore` and `export-subst`) or re-commit files
 (which applies `.gitignore`).
 
+For scc, the harness checks out the committed index into a temporary directory
+without applying `git archive` export rules. Git checkout filters may still
+transform file bytes, so any result on a repository using such filters needs
+separate inspection before it is treated as a byte-for-byte comparison.
+
 ### 3. Run the full atlas (all 38 pinned repos)
 
 ```

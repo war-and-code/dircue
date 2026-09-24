@@ -93,6 +93,85 @@ def verify_scc_binary(scc_path: Path):
     return version
 
 
+def read_head_file_prefixes(repo_path: Path, paths: set[str]) -> dict[str, bytes | None]:
+    """Read the first two bytes of selected regular files from immutable HEAD blobs."""
+    if not paths:
+        return {}
+    pathspecs = [f":(literal){path}" for path in sorted(paths)]
+    listing = subprocess.run(
+        ["git", "-C", str(repo_path), "ls-tree", "-rz", "--full-tree", "HEAD", "--", *pathspecs],
+        check=True,
+        capture_output=True,
+    ).stdout
+    entries: list[tuple[str, str]] = []
+    for record in listing.split(b"\0"):
+        if not record:
+            continue
+        metadata, raw_path = record.split(b"\t", 1)
+        mode, object_type, oid = metadata.decode("ascii").split()
+        path = raw_path.decode("utf-8", errors="surrogateescape")
+        if object_type == "blob" and mode in {"100644", "100755"}:
+            entries.append((path, oid))
+
+    prefixes: dict[str, bytes | None] = {path: None for path in paths}
+    process = subprocess.Popen(
+        ["git", "-C", str(repo_path), "cat-file", "--batch"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    assert process.stdin is not None and process.stdout is not None
+    try:
+        for path, oid in entries:
+            process.stdin.write(f"{oid}\n".encode("ascii"))
+            process.stdin.flush()
+            header = process.stdout.readline().rstrip(b"\n").split()
+            if len(header) != 3 or header[0].decode("ascii") != oid or header[1] != b"blob":
+                raise RuntimeError(f"unexpected git cat-file header for {path}: {header!r}")
+            size = int(header[2])
+            prefix = process.stdout.read(min(size, 2))
+            remaining = size - len(prefix)
+            while remaining:
+                chunk = process.stdout.read(min(remaining, 65536))
+                if not chunk:
+                    raise RuntimeError(f"truncated git cat-file blob for {path}")
+                remaining -= len(chunk)
+            if process.stdout.read(1) != b"\n":
+                raise RuntimeError(f"malformed git cat-file terminator for {path}")
+            prefixes[path] = prefix
+        process.stdin.close()
+        stderr = process.stderr.read() if process.stderr is not None else b""
+        status = process.wait()
+        if status != 0:
+            raise RuntimeError(f"git cat-file failed: {stderr.decode(errors='replace')}")
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        process.stdin.close()
+        process.stdout.close()
+        if process.stderr is not None:
+            process.stderr.close()
+    return prefixes
+
+
+def materialize_head_tree(repo_path: Path, destination: Path) -> None:
+    """Materialize the verified HEAD index using Git's checkout filters."""
+    index_matches_head = subprocess.run(
+        ["git", "-C", str(repo_path), "diff", "--cached", "--quiet", "HEAD", "--"],
+        capture_output=True,
+    )
+    if index_matches_head.returncode != 0:
+        raise RuntimeError(
+            f"refusing scc snapshot of modified index {repo_path}; expected index=HEAD"
+        )
+    destination.mkdir(parents=True, exist_ok=True)
+    run([
+        "git", "-C", str(repo_path), "checkout-index", "--all", "--force",
+        f"--prefix={destination}/",
+    ])
+
+
 def commit_of(repo_path: Path) -> str:
     return run(["git", "-C", str(repo_path), "rev-parse", "HEAD"], text=True).stdout.strip()
 
@@ -214,16 +293,17 @@ def compare_linguist(
 # ---------------------------------------------------------------------------
 
 def run_scc_on_repo(scc_path: Path, repo_path: Path) -> tuple[list[dict], float, int]:
-    """Run scc --by-file --format json on committed files via a temp dir snapshot."""
-    # Snapshot committed files via git archive
+    """Run scc on a temporary checkout of the verified HEAD index."""
     with tempfile.TemporaryDirectory(prefix="atlas-scc-") as tmpdir:
         tmp = Path(tmpdir)
-        archive = tmp / "repo.tar"
-        run(["git", "-C", str(repo_path), "archive", "--format=tar",
-             "-o", str(archive), "HEAD"])
         extract_dir = tmp / "repo"
         extract_dir.mkdir()
-        run(["tar", "-xf", str(archive), "-C", str(extract_dir)])
+        # `git archive` applies export-ignore/export-subst and can differ from
+        # dircue's committed-tree scan. Worktree differences are permitted
+        # because case-colliding paths can disappear on case-insensitive hosts.
+        # This preserves indexed paths and avoids archive attributes; Git
+        # checkout filters can still transform file contents during materialization.
+        materialize_head_tree(repo_path, extract_dir)
 
         cmd = [
             str(scc_path), "--no-config", "--no-cocomo", "--no-gitignore",
@@ -258,6 +338,39 @@ def run_scc_on_repo(scc_path: Path, repo_path: Path) -> tuple[list[dict], float,
                     "bytes": f.get("Bytes", 0),
                 })
         return files, wall_s, rss
+
+
+def probe_scc_skipped_paths(scc_path: Path, repo_path: Path, paths: set[str]) -> set[str]:
+    """Return paths still omitted by scc when probed alone from immutable HEAD."""
+    if not paths:
+        return set()
+    with tempfile.TemporaryDirectory(prefix="atlas-scc-probe-") as tmpdir:
+        probe_root = Path(tmpdir) / "repo"
+        probe_root.mkdir()
+        for path in sorted(paths):
+            blob = run(["git", "-C", str(repo_path), "show", f"HEAD:{path}"])
+            target = probe_root / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(blob.stdout)
+        cmd = [
+            str(scc_path), "--no-config", "--no-cocomo", "--no-gitignore",
+            "--no-ignore", "--no-scc-ignore", "--by-file", "--format", "json",
+            str(probe_root),
+        ]
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0 and not result.stdout.strip():
+            raise RuntimeError(f"scc isolated-file probe failed: {result.stderr[:500]}")
+        data = json.loads(result.stdout)
+        emitted: set[str] = set()
+        for group in data:
+            for entry in group.get("Files", []):
+                location = entry.get("Location") or entry.get("Filename", "")
+                try:
+                    rel = Path(location).relative_to(probe_root)
+                except ValueError:
+                    rel = Path(entry.get("Filename", location))
+                emitted.add(str(rel))
+        return paths - emitted
 
 
 def run_dircue_metrics(binary: str, repo_path: Path) -> tuple[dict, float, int]:
@@ -304,6 +417,9 @@ def compare_scc(
     dircue_metrics: dict,
     scc_files: list[dict],
     known_diffs: list[dict],
+    scc_supported_extensions: set[str] | None = None,
+    repo_path: Path | None = None,
+    scc_path: Path | None = None,
 ) -> dict:
     """Compare dircue per-file metrics with scc results.
 
@@ -321,7 +437,13 @@ def compare_scc(
              agreement_rate, mismatches: [...], categories: {...},
              skip_categories: {...}}.
     """
-    from classify import classify_scc_mismatch, classify_skip_dircue_only, classify_skip_scc_only
+    from classify import (
+        classify_scc_mismatch,
+        classify_skip_dircue_only,
+        classify_skip_scc_only,
+        scc_registry_supports_path,
+        scc_may_detect_shebang,
+    )
 
     # Build two dircue indices: all files (any status) and counted-only
     dircue_all: dict = {}
@@ -335,21 +457,42 @@ def compare_scc(
     # Build scc index by path
     scc_index: dict = {f["path"]: f for f in scc_files}
 
-    # Build per-repo scc evidence sets for dircue-only classification.
-    # scc_extensions_in_repo: file extensions present anywhere in scc's output
-    #   → distinguishes scc_no_language from unexplained
+    # Build path evidence for dircue-only classification. The language registry
+    # comes from the pinned scc binary, not from this repo's emitted files.
     # scc_paths_lower: lowercase-normalised version of every scc output path
     #   → detects harness_case_collision on macOS case-insensitive filesystems
-    scc_extensions_in_repo: set = set()
     scc_paths_lower: set = set()
     for f in scc_files:
         p = f["path"]
         scc_paths_lower.add(p.lower())
-        basename = p.rsplit("/", 1)[-1]
-        if "." in basename and not basename.startswith("."):
-            scc_extensions_in_repo.add("." + p.rsplit(".", 1)[-1].lower())
-        elif not basename.startswith("."):
-            scc_extensions_in_repo.add(basename.lower())
+
+    dircue_only_paths = set(dircue_index) - set(scc_index)
+    scc_shebang_paths: set[str] | None = None
+    if repo_path is not None and scc_supported_extensions is not None:
+        repo_root = repo_path.resolve()
+        scc_shebang_paths = set()
+        unknown_extension_paths = {
+            path for path in dircue_only_paths
+            if not scc_registry_supports_path(path, scc_supported_extensions)
+            and scc_may_detect_shebang(path)
+        }
+        # Read only names for which pinned scc considers shebangs, from immutable
+        # HEAD blobs even if case-colliding worktree files were lost on APFS.
+        head_prefixes = read_head_file_prefixes(repo_root, unknown_extension_paths)
+        scc_shebang_paths.update(
+            path for path, prefix in head_prefixes.items()
+            if prefix is None or prefix == b"#!"
+        )
+
+    scc_probe_skipped_paths: set[str] | None = None
+    if repo_path is not None and scc_path is not None and scc_supported_extensions is not None:
+        probe_paths = {
+            path for path in dircue_only_paths
+            if not path.rsplit("/", 1)[-1].startswith(".")
+            and path.lower() not in scc_paths_lower
+            and scc_registry_supports_path(path, scc_supported_extensions)
+        }
+        scc_probe_skipped_paths = probe_scc_skipped_paths(scc_path, repo_path, probe_paths)
 
     matched = 0
     mismatched = 0
@@ -367,7 +510,14 @@ def compare_scc(
         if path not in scc_index:
             # dircue counted this file but scc did not output it
             language = dircue_row.get("language", "")
-            cat = classify_skip_dircue_only(path, language, scc_extensions_in_repo, scc_paths_lower)
+            cat = classify_skip_dircue_only(
+                path,
+                language,
+                scc_supported_extensions or set(),
+                scc_paths_lower,
+                scc_shebang_paths,
+                scc_probe_skipped_paths,
+            )
             dircue_only += 1
             _inc_skip("dircue_only", cat)
             continue
@@ -659,6 +809,12 @@ def main():
 
     # Verify binaries/images before starting
     scc_version = verify_scc_binary(scc_binary)
+    scc_supported_extensions = None
+    if not args.no_scc:
+        from classify import parse_scc_language_registry
+
+        languages = run([str(scc_binary), "--no-config", "--languages"], text=True)
+        scc_supported_extensions = parse_scc_language_registry(languages.stdout)
     do_linguist = not args.no_linguist
     if do_linguist:
         if not check_docker():
@@ -740,7 +896,14 @@ def main():
             try:
                 scc_files, wall_oracle, rss_oracle = run_scc_on_repo(scc_binary, repo_path)
                 dircue_metrics, wall_dircue, rss_dircue = run_dircue_metrics(binary, repo_path)
-                comparison = compare_scc(dircue_metrics, scc_files, known_diffs)
+                comparison = compare_scc(
+                    dircue_metrics,
+                    scc_files,
+                    known_diffs,
+                    scc_supported_extensions,
+                    repo_path,
+                    scc_binary,
+                )
                 status = "matched" if comparison["mismatched"] == 0 else "mismatched"
                 print(f"{status} ({comparison['matched']} files matched, "
                       f"{comparison['mismatched']} mismatched, "

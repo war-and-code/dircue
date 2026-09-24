@@ -76,7 +76,7 @@ jobs:
         run: make reference
 
       - name: Run Python unit tests for atlas harness
-        run: python3 -m unittest tests/atlas/test_classify.py tests/atlas/test_accuracy.py -v
+        run: python3 -m unittest discover -s tests/atlas -p 'test_*.py' -v
 
       - name: Determine subset
         id: subset

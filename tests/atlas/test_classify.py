@@ -13,6 +13,8 @@ from classify import (
     classify_scc_mismatch,
     classify_skip_dircue_only,
     classify_skip_scc_only,
+    parse_scc_language_registry,
+    scc_may_detect_shebang,
 )
 
 KNOWN_DIFFS = [
@@ -143,11 +145,7 @@ class TestClassifyLinguistTopLevel(unittest.TestCase):
 
 
 class TestSkipDircueOnly(unittest.TestCase):
-    """Files that dircue counted but scc did not output.
-
-    The third argument is the set of file extensions present in scc's output
-    for the current repo, used to distinguish scc_no_language from unexplained.
-    """
+    """Files that dircue counted but scc did not output."""
 
     def test_dotfile_returns_scc_skips_dotfiles(self):
         # basename starts with '.' → scc skips it regardless of extensions present
@@ -158,37 +156,77 @@ class TestSkipDircueOnly(unittest.TestCase):
         cat = classify_skip_dircue_only(".flaskenv", "INI", set())
         self.assertEqual(cat, "scc_skips_dotfiles")
 
-    def test_unknown_extension_returns_scc_no_language(self):
-        # .am not in scc_extensions for this repo → scc's registry doesn't map it
-        cat = classify_skip_dircue_only("Makefile.am", "Makefile", set())
+    def test_registry_supported_extension_is_unexplained_even_when_unobserved(self):
+        # Registry says scc supports Makefiles; no emitted Makefile in this repo
+        # cannot explain why this particular file was omitted.
+        cat = classify_skip_dircue_only("Makefile", "Makefile", {"makefile"})
+        self.assertEqual(cat, "unexplained")
+
+    def test_extension_absent_from_scc_registry_is_scc_no_language(self):
+        cat = classify_skip_dircue_only(
+            "Makefile.am", "Makefile", {"makefile", "py"}, set(), set()
+        )
         self.assertEqual(cat, "scc_no_language")
 
-    def test_no_extension_not_in_scc_returns_scc_no_language(self):
-        # No extension; bare name not in scc_extensions
-        cat = classify_skip_dircue_only("Makefile", "Makefile", set())
+    def test_isolated_scc_omission_has_its_own_observed_category(self):
+        cat = classify_skip_dircue_only(
+            "scripts/package/PKGBUILD", "Shell", {"pkgbuild"}, set(), set(),
+            {"scripts/package/PKGBUILD"},
+        )
+        self.assertEqual(cat, "scc_skips_file")
+
+    def test_shebang_on_unregistered_extension_stays_unexplained(self):
+        # scc considers shebangs for extensionless basenames.
+        cat = classify_skip_dircue_only(
+            "scripts/tool", "Shell", {"sh"}, set(), {"scripts/tool"}
+        )
+        self.assertEqual(cat, "unexplained")
+
+    def test_dotted_unknown_extension_does_not_use_shebang(self):
+        # scc 4.1.0 only considers shebangs for extensionless names (or .dotfiles).
+        self.assertFalse(scc_may_detect_shebang("scripts/tool.unknown"))
+        cat = classify_skip_dircue_only("scripts/tool.unknown", "Shell", {"sh"}, set(), set())
         self.assertEqual(cat, "scc_no_language")
 
     def test_known_extension_in_scc_returns_unexplained(self):
         # .go IS in scc output but scc still did not output this file → unexplained
-        cat = classify_skip_dircue_only("src/main.go", "Go", {".go"})
+        cat = classify_skip_dircue_only("src/main.go", "Go", {"go"})
         self.assertEqual(cat, "unexplained")
 
     def test_extension_case_insensitive(self):
         # Extension matching is lowercase-normalised
-        cat = classify_skip_dircue_only("Module.PY", "Python", {".py"})
+        cat = classify_skip_dircue_only("Module.PY", "Python", {"py"})
         self.assertEqual(cat, "unexplained")
 
-    def test_unknown_extension_even_if_other_py_in_repo(self):
-        # .am not in scc output even though .py is
-        cat = classify_skip_dircue_only("configure.am", "Autoconf", {".py", ".go"})
-        self.assertEqual(cat, "scc_no_language")
+    def test_supported_bare_name_even_if_other_languages_are_present(self):
+        cat = classify_skip_dircue_only("Makefile", "Makefile", {"py", "go", "makefile"})
+        self.assertEqual(cat, "unexplained")
+
+
+class TestSccLanguageRegistry(unittest.TestCase):
+    def test_parse_languages_output(self):
+        registry = parse_scc_language_registry(
+            "Autoconf (in)\nMakefile (makefile,mak,gnumakefile)\n"
+            "BASH (bash,.bash_profile)\n"
+            "CloudFormation (JSON) (json)\n"
+            "CloudFormation (YAML) (yaml,yml)\n"
+            "Standard ML (SML) (sml)\n"
+        )
+        self.assertEqual(registry, {
+            "in", "makefile", "mak", "gnumakefile", "bash", ".bash_profile",
+            "json", "yaml", "yml", "sml",
+        })
+
+    def test_reject_empty_or_malformed_registry(self):
+        with self.assertRaises(ValueError):
+            parse_scc_language_registry("not a language registry")
 
     def test_case_collision_returns_harness_case_collision(self):
         # xt_CONNMARK.h (uppercase) collides with xt_connmark.h on macOS HFS+/APFS
         scc_paths_lower = {"include/uapi/linux/netfilter/xt_connmark.h"}
         cat = classify_skip_dircue_only(
             "include/uapi/linux/netfilter/xt_CONNMARK.h", "C",
-            {".h"}, scc_paths_lower,
+            {"h"}, scc_paths_lower,
         )
         self.assertEqual(cat, "harness_case_collision")
 
@@ -196,14 +234,14 @@ class TestSkipDircueOnly(unittest.TestCase):
         # Path not in scc_paths_lower → normal extension check
         cat = classify_skip_dircue_only(
             "include/uapi/linux/netfilter/xt_CONNMARK.h", "C",
-            {".h"}, {"something_else.h"},
+            {"h"}, {"something_else.h"},
         )
         # .h IS in extensions but no case collision → unexplained
         self.assertEqual(cat, "unexplained")
 
     def test_scc_paths_lower_none_skips_collision_check(self):
         # Backwards compat: scc_paths_lower=None means skip the case check
-        cat = classify_skip_dircue_only("foo/Bar.go", "Go", {".go"}, None)
+        cat = classify_skip_dircue_only("foo/Bar.go", "Go", {"go"}, None, set())
         self.assertEqual(cat, "unexplained")
 
 
