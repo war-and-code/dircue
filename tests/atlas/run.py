@@ -490,7 +490,10 @@ def compare_scc(
             path for path in dircue_only_paths
             if not path.rsplit("/", 1)[-1].startswith(".")
             and path.lower() not in scc_paths_lower
-            and scc_registry_supports_path(path, scc_supported_extensions)
+            and (
+                scc_registry_supports_path(path, scc_supported_extensions)
+                or (scc_shebang_paths is not None and path in scc_shebang_paths)
+            )
         }
         scc_probe_skipped_paths = probe_scc_skipped_paths(scc_path, repo_path, probe_paths)
 
