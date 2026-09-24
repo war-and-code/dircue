@@ -79,6 +79,14 @@ type Definition struct {
 	Coverage     string      `json:"coverage"` // complete or qualified
 	Evidence     []Evidence  `json:"evidence"`
 	References   []Reference `json:"references"`
+	// K8sKind holds the raw Kubernetes kind string (e.g. "Deployment") for
+	// same-object deduplication across files. Empty for non-Kubernetes providers.
+	K8sKind string `json:"k8s_kind,omitempty"`
+	// Namespace holds the declared Kubernetes namespace (empty = cluster default).
+	Namespace string `json:"namespace,omitempty"`
+	// Count is set by aggregation functions to record how many files declared
+	// the same logical object. Zero means unaggregated (treat as 1).
+	Count int `json:"count,omitempty"`
 }
 
 type Diagnostic struct {

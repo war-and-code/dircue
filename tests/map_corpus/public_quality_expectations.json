@@ -163,7 +163,8 @@
           "properties": {
             "kind": "infrastructure",
             "provider": "kubernetes",
-            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+            "declaration_count": "3"
           }
         },
         {
@@ -175,7 +176,8 @@
           "properties": {
             "kind": "service",
             "provider": "kubernetes",
-            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+            "declaration_count": "3"
           }
         },
         {
@@ -187,7 +189,8 @@
           "properties": {
             "kind": "workload",
             "provider": "kubernetes",
-            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+            "declaration_count": "3"
           }
         },
         {
@@ -223,7 +226,8 @@
           "properties": {
             "kind": "infrastructure",
             "provider": "kubernetes",
-            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021",
+            "declaration_count": "3"
           }
         },
         {
@@ -235,7 +239,8 @@
           "properties": {
             "kind": "service",
             "provider": "kubernetes",
-            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021",
+            "declaration_count": "3"
           }
         },
         {
@@ -247,7 +252,8 @@
           "properties": {
             "kind": "workload",
             "provider": "kubernetes",
-            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+            "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021",
+            "declaration_count": "3"
           }
         },
         {
@@ -259,7 +265,8 @@
           "properties": {
             "kind": "service",
             "provider": "kubernetes",
-            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+            "declaration_count": "3"
           }
         },
         {
@@ -271,7 +278,8 @@
           "properties": {
             "kind": "workload",
             "provider": "kubernetes",
-            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+            "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+            "declaration_count": "3"
           }
         },
         {
@@ -619,7 +627,8 @@
             "properties": {
               "kind": "workload",
               "provider": "kubernetes",
-              "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428"
+              "source_sha256": "e4ad956409551a90e7c2fc8065f285b65255e81bc15b7b722debf3a6ec761428",
+              "declaration_count": "3"
             }
           },
           "to": {
@@ -657,7 +666,8 @@
             "properties": {
               "kind": "workload",
               "provider": "kubernetes",
-              "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021"
+              "source_sha256": "04a83d1dfe64bf3655a0d712dd0d6cf6d11aa1a67d8474a09b3eeeb2926d0021",
+              "declaration_count": "3"
             }
           },
           "to": {

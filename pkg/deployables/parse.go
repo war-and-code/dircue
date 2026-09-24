@@ -610,15 +610,27 @@ func serverlessDefinitions(doc map[interface{}]interface{}, content []byte) ([]D
 
 func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, provider, fallback string) ([]Definition, bool, error) {
 	name := fallback
+	namespace := ""
 	if meta, ok := object(doc, "metadata"); ok {
 		if n, ok := stringValue(meta, "name"); ok {
 			name = n
+		}
+		if ns, ok := stringValue(meta, "namespace"); ok && ns != "" {
+			namespace = ns
 		}
 	}
 	if name == "" {
 		return nil, false, nil
 	}
-	d := Definition{Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified", Evidence: []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}}, References: []Reference{}}
+	d := Definition{
+		Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified",
+		Evidence:   []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}},
+		References: []Reference{},
+	}
+	if provider == "kubernetes" || provider == "tekton" {
+		d.K8sKind = bounded(fallback)
+		d.Namespace = bounded(namespace)
+	}
 	if provider == "tekton" || (provider == "kubernetes" && kind == "workload") {
 		if spec, ok := object(doc, "spec"); ok {
 			for _, image := range kubernetesImages(spec, 0) {

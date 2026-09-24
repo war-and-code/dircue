@@ -1,6 +1,7 @@
 package mapbuild
 
 import (
+	"fmt"
 	"path"
 	"slices"
 	"strings"
@@ -47,6 +48,13 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	// See docs/MAP.md, "Terraform granularity" for the design rationale.
 	definitions := aggregateTerraformDefs(r.Definitions)
 
+	// Aggregate Kubernetes/Tekton definitions: one deployable per
+	// (K8sKind, metadata.name, namespace, component-scope) tuple.
+	// Files that redeclare the same object (kustomize overlays, rendered
+	// release bundles, etc.) become additional evidence rather than separate
+	// nodes. See docs/MAP.md, "Kubernetes granularity".
+	definitions = aggregateKubernetesDefs(definitions, componentsByRoot)
+
 	type imageOwner struct {
 		component     string
 		evidence      mapdoc.Evidence
@@ -85,6 +93,9 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, nodePaths, def.Provider+":"+def.Kind+":"+def.Name)
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
+		if def.Count > 1 {
+			n.Properties["declaration_count"] = fmt.Sprintf("%d", def.Count)
+		}
 		if role := mapPathRole(def.Path); role != "" {
 			n.Properties["role"] = role
 			n.Properties["role_basis"] = "path_name"
@@ -261,6 +272,131 @@ func aggregateTerraformDefs(defs []deployables.Definition) []deployables.Definit
 		out = append(out, d)
 	}
 	return out
+}
+
+// aggregateKubernetesDefs collapses multiple per-file Kubernetes and Tekton
+// definitions that declare the same logical object into a single representative
+// definition. The grouping key is (Provider, K8sKind, Name, Namespace,
+// componentScope): definitions that differ in any of those fields are kept
+// separate. All declaring files become evidence items, capped at 20; the actual
+// count is stored in Count so addDeployables can expose it as declaration_count.
+//
+// The component scope is the nearest ancestor directory that is the root of an
+// existing component. Objects from different component scopes (different
+// services in a monorepo) are never merged, ensuring that a "frontend" workload
+// in service A is not conflated with "frontend" in service B.
+//
+// Non-Kubernetes/Tekton definitions are returned unchanged.
+func aggregateKubernetesDefs(defs []deployables.Definition, componentsByRoot map[string][]string) []deployables.Definition {
+	type groupKey struct {
+		provider  string
+		k8sKind   string
+		name      string
+		namespace string
+		scope     string
+	}
+	type groupState struct {
+		primary    deployables.Definition
+		allPaths   []string // all declaring file paths
+		evidence   []deployables.Evidence
+		refs       []deployables.Reference
+		count      int
+		coverage   string
+	}
+	groups := map[groupKey]*groupState{}
+	order := []groupKey{}
+	var out []deployables.Definition
+
+	for _, def := range defs {
+		if def.Provider != "kubernetes" && def.Provider != "tekton" {
+			out = append(out, def)
+			continue
+		}
+		if def.K8sKind == "" {
+			// Safety: no k8s kind recorded; pass through unchanged.
+			out = append(out, def)
+			continue
+		}
+		scope := k8sComponentScope(componentsByRoot, path.Dir(def.Path))
+		key := groupKey{
+			provider:  def.Provider,
+			k8sKind:   def.K8sKind,
+			name:      def.Name,
+			namespace: def.Namespace,
+			scope:     scope,
+		}
+		st := groups[key]
+		if st == nil {
+			st = &groupState{
+				primary:  def,
+				coverage: def.Coverage,
+			}
+			groups[key] = st
+			order = append(order, key)
+		}
+		st.allPaths = append(st.allPaths, def.Path)
+		st.evidence = append(st.evidence, def.Evidence...)
+		st.refs = append(st.refs, def.References...)
+		st.count++
+		if def.Coverage != "complete" {
+			st.coverage = "qualified"
+		}
+	}
+
+	for _, key := range order {
+		st := groups[key]
+		d := st.primary
+		// Cap evidence at 20 items; the full count is in Count.
+		evidence := st.evidence
+		if len(evidence) > 20 {
+			evidence = evidence[:20]
+		}
+		// Deduplicate references (same image may appear across many files).
+		seen := map[string]bool{}
+		var refs []deployables.Reference
+		for _, r := range st.refs {
+			k := r.Kind + "\x00" + r.Value
+			if !seen[k] {
+				seen[k] = true
+				refs = append(refs, r)
+			}
+		}
+		d.Evidence = evidence
+		d.References = refs
+		d.Coverage = st.coverage
+		d.Count = st.count
+		out = append(out, d)
+	}
+	return out
+}
+
+// k8sComponentScope returns the component ID (or directory path as fallback)
+// for the deepest component root that is an ancestor of dir. Returns "" when
+// no component owns the path.
+func k8sComponentScope(componentsByRoot map[string][]string, dir string) string {
+	p := dir
+	for {
+		if ids := componentsByRoot[p]; len(ids) == 1 {
+			return ids[0]
+		}
+		if len(componentsByRoot[p]) > 1 {
+			// Multiple components at this level: use the directory as the scope
+			// to prevent cross-component merging without a clear owner.
+			return p
+		}
+		parent := path.Dir(p)
+		if parent == p {
+			break
+		}
+		p = parent
+		if p == "." {
+			if ids := componentsByRoot["."]; len(ids) == 1 {
+				return ids[0]
+			}
+			break
+		}
+	}
+	return ""
 }
 
 // componentAncestorOwners walks up the directory tree from resolvedPath and
