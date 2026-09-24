@@ -33,7 +33,7 @@
         {"kind": "capability", "name": "cache:redis", "path": "Gemfile"},
         {"kind": "capability", "name": "cloud:aws", "path": "Gemfile"},
         {"kind": "capability", "name": "storage:object", "path": "Gemfile"},
-        {"kind": "capability", "name": "datastore:elasticsearch", "path": "Gemfile"},
+        {"kind": "capability", "name": "search:elasticsearch", "path": "Gemfile"},
         {"kind": "capability", "name": "auth:jwt", "path": "Gemfile"},
         {"kind": "capability", "name": "auth:oauth2", "path": "Gemfile"},
         {"kind": "capability", "name": "messaging:amqp", "path": "Gemfile"}

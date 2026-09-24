@@ -241,8 +241,8 @@ var prefixEntries = []prefixEntry{
 	// Go — crypto
 	{"golang.org/x/crypto", "crypto:library"},
 	// Go — search
-	{"github.com/elastic/go-elasticsearch", "datastore:elasticsearch"},
-	{"github.com/opensearch-project/opensearch-go", "datastore:elasticsearch"},
+	{"github.com/elastic/go-elasticsearch", "search:elasticsearch"},
+	{"github.com/opensearch-project/opensearch-go", "search:elasticsearch"},
 	// Go — cloud
 	{"github.com/aws/aws-sdk-go", "cloud:aws"},
 	{"github.com/aws/aws-sdk-go-v2", "cloud:aws"},
@@ -305,10 +305,10 @@ var prefixEntries = []prefixEntry{
 	{"org.springframework.data:spring-data-mongodb", "datastore:mongodb"},
 	{"org.springframework.boot:spring-boot-starter-data-mongodb", "datastore:mongodb"},
 	// Elasticsearch
-	{"org.elasticsearch.client", "datastore:elasticsearch"},
-	{"co.elastic.clients:elasticsearch-java", "datastore:elasticsearch"},
-	{"org.springframework.data:spring-data-elasticsearch", "datastore:elasticsearch"},
-	{"org.springframework.boot:spring-boot-starter-data-elasticsearch", "datastore:elasticsearch"},
+	{"org.elasticsearch.client", "search:elasticsearch"},
+	{"co.elastic.clients:elasticsearch-java", "search:elasticsearch"},
+	{"org.springframework.data:spring-data-elasticsearch", "search:elasticsearch"},
+	{"org.springframework.boot:spring-boot-starter-data-elasticsearch", "search:elasticsearch"},
 	// Kafka
 	{"org.apache.kafka:kafka-clients", "messaging:kafka"},
 	{"org.apache.kafka:kafka-streams", "messaging:kafka"},
@@ -343,7 +343,7 @@ var prefixEntries = []prefixEntry{
 	// Use the scope without trailing slash: "@aws-sdk" matches "@aws-sdk/client-s3"
 	// because the character after the prefix is "/".
 	{"@aws-sdk", "cloud:aws"},
-	{"@elastic/elasticsearch", "datastore:elasticsearch"},
+	{"@elastic/elasticsearch", "search:elasticsearch"},
 	{"@azure", "cloud:azure"},
 	{"@google-cloud", "cloud:gcp"},
 
@@ -402,8 +402,8 @@ var npmExact = map[string][]string{
 	"mongoose": {"datastore:mongodb"},
 	"monk":     {"datastore:mongodb"},
 	// Elasticsearch
-	"@elastic/elasticsearch":         {"datastore:elasticsearch"},
-	"@opensearch-project/opensearch": {"datastore:elasticsearch"},
+	"@elastic/elasticsearch":         {"search:elasticsearch"},
+	"@opensearch-project/opensearch": {"search:elasticsearch"},
 	// Kafka
 	"kafkajs":                        {"messaging:kafka"},
 	"kafka-node":                     {"messaging:kafka"},
@@ -469,9 +469,9 @@ var rubyExact = map[string][]string{
 	"mongoid": {"datastore:mongodb"},
 	"bson":    {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch": {"datastore:elasticsearch"},
-	"chewy":         {"datastore:elasticsearch"},
-	"searchkick":    {"datastore:elasticsearch"},
+	"elasticsearch": {"search:elasticsearch"},
+	"chewy":         {"search:elasticsearch"},
+	"searchkick":    {"search:elasticsearch"},
 	// Kafka
 	"ruby-kafka": {"messaging:kafka"},
 	"kafka":      {"messaging:kafka"},
@@ -533,8 +533,8 @@ var cargoExact = map[string][]string{
 	// MongoDB
 	"mongodb": {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch": {"datastore:elasticsearch"},
-	"opensearch":    {"datastore:elasticsearch"},
+	"elasticsearch": {"search:elasticsearch"},
+	"opensearch":    {"search:elasticsearch"},
 	// Kafka
 	"rdkafka": {"messaging:kafka"},
 	"kafka":   {"messaging:kafka"},
@@ -592,8 +592,8 @@ var phpExact = map[string][]string{
 	"mongodb/mongodb":      {"datastore:mongodb"},
 	"doctrine/mongodb-odm": {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch/elasticsearch": {"datastore:elasticsearch"},
-	"ruflin/elastica":             {"datastore:elasticsearch"},
+	"elasticsearch/elasticsearch": {"search:elasticsearch"},
+	"ruflin/elastica":             {"search:elasticsearch"},
 	// Kafka
 	"arnaud-lb/php-rdkafka": {"messaging:kafka"},
 	"longlang/phpkafka":     {"messaging:kafka"},
@@ -649,10 +649,10 @@ var nugetExact = map[string][]string{
 	// MongoDB
 	"mongodb.driver": {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch.net":             {"datastore:elasticsearch"},
-	"elastic.clients.elasticsearch": {"datastore:elasticsearch"},
-	"nest":                          {"datastore:elasticsearch"},
-	"opensearch.net":                {"datastore:elasticsearch"},
+	"elasticsearch.net":             {"search:elasticsearch"},
+	"elastic.clients.elasticsearch": {"search:elasticsearch"},
+	"nest":                          {"search:elasticsearch"},
+	"opensearch.net":                {"search:elasticsearch"},
 	// Kafka
 	"confluent.kafka": {"messaging:kafka"},
 	"kafka.client":    {"messaging:kafka"},
@@ -728,9 +728,9 @@ var pypiExact = map[string][]string{
 	"pymongo": {"datastore:mongodb"},
 	"motor":   {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch":     {"datastore:elasticsearch"},
-	"elasticsearch-dsl": {"datastore:elasticsearch"},
-	"opensearch-py":     {"datastore:elasticsearch"},
+	"elasticsearch":     {"search:elasticsearch"},
+	"elasticsearch-dsl": {"search:elasticsearch"},
+	"opensearch-py":     {"search:elasticsearch"},
 	// Kafka
 	"kafka-python":    {"messaging:kafka"},
 	"confluent-kafka": {"messaging:kafka"},
@@ -810,7 +810,7 @@ var pythonImportExact = map[string][]string{
 	"pymongo": {"datastore:mongodb"},
 	"motor":   {"datastore:mongodb"},
 	// Elasticsearch
-	"elasticsearch": {"datastore:elasticsearch"},
+	"elasticsearch": {"search:elasticsearch"},
 	// Kafka
 	"kafka":           {"messaging:kafka"},
 	"confluent_kafka": {"messaging:kafka"},

@@ -346,7 +346,6 @@ Current capability categories:
 | `datastore:postgresql` | PostgreSQL client libraries |
 | `datastore:mysql` | MySQL/MariaDB client libraries |
 | `datastore:mongodb` | MongoDB client libraries |
-| `datastore:elasticsearch` | Elasticsearch / OpenSearch clients |
 | `datastore:relational` | ORM / relational DB frameworks (SQLAlchemy, Hibernate, Doctrine, etc.) |
 | `cache:redis` | Redis client libraries |
 | `messaging:kafka` | Apache Kafka client libraries |
