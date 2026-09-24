@@ -5,13 +5,15 @@
       "oracle": {
         "source": "Terraform provider configuration syntax",
         "url": "https://developer.hashicorp.com/terraform/language/providers/configuration#alias-multiple-provider-configurations",
-        "fixture_evidence": "main.tf declares two aws providers with distinct literal aliases"
+        "fixture_evidence": "main.tf declares two aws providers with distinct literal aliases; both must be captured in a single module-level deployable rather than as two separate nodes (the 1.0.0 granularity rule: one deployable per Terraform module directory)"
       },
       "must_include": [
-        {"kind": "deployable", "name": "provider:aws.alias=primary", "path": "main.tf"},
-        {"kind": "deployable", "name": "provider:aws.alias=backup", "path": "main.tf"}
+        {"kind": "deployable", "name": "main.tf", "path": "."}
       ],
-      "must_not_include": []
+      "must_not_include": [
+        {"kind": "deployable", "name": "provider:aws.alias=primary"},
+        {"kind": "deployable", "name": "provider:aws.alias=backup"}
+      ]
     },
     {
       "id": "yaml-declarations",

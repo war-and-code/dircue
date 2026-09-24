@@ -13,29 +13,45 @@ import (
 )
 
 var (
-	tfBlock        = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
-	dockerFrom     = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
-	dockerCopyFrom = regexp.MustCompile(`(?i)^\s*COPY\s+--from=(\S+)\s+`)
+	tfBlock          = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
+	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
+	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+--from=(\S+)\s+`)
+	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
+
+// yamlDocLimitError is returned by parseYAML when the 128-document limit is hit.
+// It signals the caller to use partial definitions with a distinct diagnostic.
+type yamlDocLimitError struct{}
+
+func (e *yamlDocLimitError) Error() string { return "yaml_document_limit" }
 
 func parse(name string, content []byte) ([]Definition, bool, error) {
 	base := strings.ToLower(path.Base(name))
 	switch {
 	case base == "dockerfile" || strings.HasPrefix(base, "dockerfile."):
-		return parseDockerfile(content)
+		return parseDockerfile(name, content)
 	case strings.HasSuffix(base, ".tf"):
-		return parseTerraform(content)
+		return parseTerraform(name, content)
 	case base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile."):
 		return parseJenkins(content)
+	case base == "program.cs" && isAppHostDir(path.Dir(name)):
+		return parseAspireAppHost(name, content)
 	default:
 		return parseYAML(name, content)
 	}
 }
 
-func parseDockerfile(content []byte) ([]Definition, bool, error) {
+func isAppHostDir(dir string) bool {
+	base := strings.ToLower(path.Base(dir))
+	return strings.HasSuffix(base, ".apphost") || base == "apphost"
+}
+
+func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("Dockerfile contains binary data")
 	}
+	// Devcontainer Dockerfiles are tooling, not production images; other Dockerfiles
+	// are container builds. The role is set by addDeployables via mapPathRole.
 	lines := strings.Split(string(content), "\n")
 	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: "default", Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
 	stages := map[string]bool{}
@@ -50,6 +66,9 @@ func parseDockerfile(content []byte) ([]Definition, bool, error) {
 				d.Coverage = "qualified"
 			}
 			d.References = append(d.References, Reference{Kind: "base_image_or_stage", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			// Always record the FROM line as evidence so the node is never dropped
+			// even when the build has no named stages.
+			d.Evidence = append(d.Evidence, Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"})
 			if m[2] != "" {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
@@ -72,7 +91,16 @@ func parseDockerfile(content []byte) ([]Definition, bool, error) {
 	return []Definition{d}, true, nil
 }
 
-func parseTerraform(content []byte) ([]Definition, bool, error) {
+// parseTerraform returns ONE definition per file, representing the Terraform module
+// (directory) as a whole. Resource type counts are encoded as evidence items.
+// data blocks (read-only lookups) are excluded. module blocks are included as
+// references for cross-module edge assembly in addDeployables.
+//
+// One definition per file (not per block) is intentional: the right granularity
+// for a Terraform deployable is the module root (directory), not the individual
+// resource. addDeployables groups file-level definitions by directory to produce
+// one node per module root. See docs/MAP.md, "Terraform granularity".
+func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("Terraform file contains binary data")
 	}
@@ -80,17 +108,24 @@ func parseTerraform(content []byte) ([]Definition, bool, error) {
 	if len(matches) == 0 {
 		return nil, false, nil
 	}
-	defs := make([]Definition, 0, len(matches))
+	// One definition represents the whole file. Evidence carries each block as
+	// a record; module references become typed references.
+	evidence := []Evidence{}
+	refs := []Reference{}
 	for _, m := range matches {
 		kind := string(content[m[2]:m[3]])
+		// data blocks are read-only lookups, not deployed resources.
+		if kind == "data" {
+			continue
+		}
 		first := string(content[m[4]:m[5]])
 		second := ""
 		if m[6] >= 0 {
 			second = string(content[m[6]:m[7]])
 		}
-		name := first
+		blockName := first
 		if second != "" {
-			name = first + "." + second
+			blockName = first + "." + second
 		}
 		if kind == "provider" {
 			// Provider aliases are body attributes, not block labels. Include
@@ -100,19 +135,36 @@ func parseTerraform(content []byte) ([]Definition, bool, error) {
 				bodyEnd := terraformBlockEnd(content, open)
 				if bodyEnd > open {
 					if alias := terraformAlias.FindSubmatch(content[open+1 : bodyEnd]); alias != nil {
-						name += ".alias=" + string(alias[1])
+						blockName += ".alias=" + string(alias[1])
 					}
 				}
 			}
 		}
 		line := 1 + bytes.Count(content[:m[0]], []byte("\n"))
-		d := Definition{Kind: "infrastructure", Provider: "terraform", Name: bounded(kind + ":" + name), Coverage: "qualified", Evidence: []Evidence{{Field: kind, Value: bounded(name), Line: line, Basis: "terraform-literal-block"}}, References: []Reference{}}
+		ev := Evidence{Field: kind, Value: bounded(blockName), Line: line, Basis: "terraform-literal-block"}
+		evidence = append(evidence, ev)
 		if kind == "module" {
-			d.References = append(d.References, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: d.Evidence[0]})
+			refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
 		}
-		defs = append(defs, d)
 	}
-	return defs, true, nil
+	if len(evidence) == 0 {
+		return nil, false, nil // Only data blocks found; nothing deployable.
+	}
+	// The file name encodes the module directory for later aggregation.
+	dir := path.Dir(name)
+	moduleName := path.Base(dir)
+	if moduleName == "." || moduleName == "" {
+		moduleName = path.Base(name)
+	}
+	d := Definition{
+		Kind:       "infrastructure",
+		Provider:   "terraform",
+		Name:       bounded(moduleName),
+		Coverage:   "qualified",
+		Evidence:   evidence,
+		References: refs,
+	}
+	return []Definition{d}, true, nil
 }
 
 var terraformAlias = regexp.MustCompile(`(?m)^\s*alias\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$`)
@@ -175,6 +227,48 @@ func parseJenkins(content []byte) ([]Definition, bool, error) {
 	return []Definition{d}, true, nil
 }
 
+// parseAspireAppHost extracts AddProject<Projects.X>() references from a
+// .NET Aspire AppHost Program.cs. This is static text pattern matching: only
+// the declared project identifiers are captured; no C# is evaluated.
+// The discovered references become `runs` edges in addDeployables.
+func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error) {
+	if bytes.IndexByte(content, 0) >= 0 {
+		return nil, false, errors.New("Aspire AppHost Program.cs contains binary data")
+	}
+	matches := aspireAddProject.FindAllSubmatch(content, -1)
+	if len(matches) == 0 {
+		return nil, false, nil
+	}
+	appHostName := path.Base(path.Dir(name))
+	d := Definition{
+		Kind:       "service",
+		Provider:   "aspire-apphost",
+		Name:       bounded(appHostName),
+		Coverage:   "qualified",
+		Evidence:   []Evidence{{Field: "aspire-apphost", Value: bounded(appHostName), Line: 1, Basis: "aspire-apphost-program"}},
+		References: []Reference{},
+	}
+	seen := map[string]bool{}
+	for _, m := range matches {
+		ident := string(m[1])
+		if seen[ident] {
+			continue
+		}
+		seen[ident] = true
+		line := lineOf(content, "AddProject")
+		d.References = append(d.References, Reference{
+			Kind:          "aspire_project",
+			Value:         bounded(ident),
+			Qualification: "local",
+			Evidence:      Evidence{Field: "AddProject", Value: bounded(ident), Line: line, Basis: "aspire-csharp-static"},
+		})
+	}
+	if len(d.References) == 0 {
+		return nil, false, nil
+	}
+	return []Definition{d}, true, nil
+}
+
 func parseYAML(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("YAML candidate contains binary data")
@@ -192,20 +286,20 @@ func parseYAML(name string, content []byte) ([]Definition, bool, error) {
 		if errors.Is(err, io.EOF) {
 			break
 		}
+		if document >= 128 {
+			// Keep what was parsed up to the limit and signal a named truncation.
+			// The caller records a yaml_document_limit diagnostic and uses the
+			// partial definitions rather than discarding everything.
+			return disambiguateDocumentDefinitions(defs), recognized, &yamlDocLimitError{}
+		}
 		if err != nil {
-			// Helm templates are intentionally not rendered. Retain only literal
-			// apiVersion/kind evidence and qualify the unexpanded declaration.
+			// Helm template files under templates/ are intentionally not rendered.
+			// Individual template files are not deployables; the chart as a whole
+			// (declared in Chart.yaml) is the deployable. Skip silently.
 			if strings.Contains(name, "/templates/") && strings.Contains(string(content), "{{") {
-				api, kind := literalField(content, "apiVersion"), literalField(content, "kind")
-				if api != "" && kind != "" {
-					d := Definition{Kind: kubernetesDefinitionKind(kind), Provider: "helm-template", Name: bounded(kind), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: api, Line: lineOf(content, "apiVersion:"), Basis: "literal-template-field"}, {Field: "kind", Value: kind, Line: lineOf(content, "kind:"), Basis: "literal-template-field"}}, References: []Reference{{Kind: "template_expression", Value: "unexpanded", Qualification: "unresolved", Evidence: Evidence{Field: "template", Basis: "helm-template-not-rendered"}}}}
-					return []Definition{d}, true, nil
-				}
+				return nil, false, nil
 			}
 			return nil, false, fmt.Errorf("malformed or unsupported YAML: %w", err)
-		}
-		if document >= 128 {
-			return nil, false, errors.New("YAML document limit exceeded (128)")
 		}
 		if doc == nil {
 			continue
@@ -514,7 +608,19 @@ func helmChartDefinition(doc map[interface{}]interface{}, content []byte) ([]Def
 	if !a || !n {
 		return nil, false, nil
 	}
-	d := Definition{Kind: "infrastructure", Provider: "helm", Name: bounded(name), Coverage: "qualified", Evidence: []Evidence{{Field: "apiVersion", Value: bounded(api), Line: lineOf(content, "apiVersion:"), Basis: "helm-chart-field"}, {Field: "name", Value: bounded(name), Line: lineOf(content, "name:"), Basis: "helm-chart-field"}}, References: []Reference{}}
+	d := Definition{Kind: "infrastructure", Provider: "helm", Name: bounded(name), Coverage: "qualified",
+		Evidence: []Evidence{
+			{Field: "apiVersion", Value: bounded(api), Line: lineOf(content, "apiVersion:"), Basis: "helm-chart-field"},
+			{Field: "name", Value: bounded(name), Line: lineOf(content, "name:"), Basis: "helm-chart-field"},
+		},
+		References: []Reference{},
+	}
+	if v, ok := stringValue(doc, "version"); ok && v != "" {
+		d.Evidence = append(d.Evidence, Evidence{Field: "version", Value: bounded(v), Line: lineOf(content, "version:"), Basis: "helm-chart-field"})
+	}
+	if v, ok := stringValue(doc, "appVersion"); ok && v != "" {
+		d.Evidence = append(d.Evidence, Evidence{Field: "appVersion", Value: bounded(v), Line: lineOf(content, "appVersion:"), Basis: "helm-chart-field"})
+	}
 	for _, dep := range namesOfKey(doc, "dependencies") {
 		d.References = append(d.References, Reference{Kind: "chart_dependency", Value: bounded(dep), Qualification: "external", Evidence: Evidence{Field: "dependencies", Value: bounded(dep), Line: lineOf(content, "dependencies:"), Basis: "helm-chart-field"}})
 	}
@@ -568,15 +674,27 @@ func serverlessDefinitions(doc map[interface{}]interface{}, content []byte) ([]D
 
 func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, provider, fallback string) ([]Definition, bool, error) {
 	name := fallback
+	namespace := ""
 	if meta, ok := object(doc, "metadata"); ok {
 		if n, ok := stringValue(meta, "name"); ok {
 			name = n
+		}
+		if ns, ok := stringValue(meta, "namespace"); ok && ns != "" {
+			namespace = ns
 		}
 	}
 	if name == "" {
 		return nil, false, nil
 	}
-	d := Definition{Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified", Evidence: []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}}, References: []Reference{}}
+	d := Definition{
+		Kind: kind, Provider: provider, Name: bounded(name), Coverage: "qualified",
+		Evidence:   []Evidence{{Field: "kind", Value: bounded(fallback), Line: lineOf(content, "kind:"), Basis: provider + "-field"}},
+		References: []Reference{},
+	}
+	if provider == "kubernetes" || provider == "tekton" {
+		d.K8sKind = bounded(fallback)
+		d.Namespace = bounded(namespace)
+	}
 	if provider == "tekton" || (provider == "kubernetes" && kind == "workload") {
 		if spec, ok := object(doc, "spec"); ok {
 			for _, image := range kubernetesImages(spec, 0) {
@@ -723,14 +841,6 @@ func lineOf(content []byte, needle string) int {
 		return 0
 	}
 	return 1 + bytes.Count(content[:i], []byte("\n"))
-}
-func literalField(content []byte, key string) string {
-	re := regexp.MustCompile(`(?m)^[ \t]*` + regexp.QuoteMeta(key) + `:[ \t]*([^#\s{][^\r\n#]*)[ \t]*(?:#.*)?$`)
-	m := re.FindSubmatch(content)
-	if m == nil {
-		return ""
-	}
-	return bounded(strings.TrimSpace(string(m[1])))
 }
 func tooDeep(content []byte, maxDepth int) bool {
 	for _, line := range strings.Split(string(content), "\n") {

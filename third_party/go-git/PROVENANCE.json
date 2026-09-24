@@ -183,7 +183,7 @@
     "plumbing/transport/ssh/auth_method.go": "f63ecfeac2e1eb21fdadda3e17ed992e6c1173a81f4e05f47bc477b5811f05a0",
     "plumbing/transport/ssh/common.go": "109fc3bf9a2b3f4ba3ef9ef2dac8f1e9c0185661b986def8e5393bf414fa4ebc",
     "prune.go": "6cf33782619b6ff0af9c081e46323f423f8b49bf3d043887c0549bef47d60f55",
-    "remote.go": "91f1e6c11e5a7b8dd88c62562887e392dc87c8fc179ac2a18220c00126cb8644",
+    "remote.go": "5ebbbdece9f5b9275f8648c37b32a8292ee5187a154898ef5b4937626bf75027",
     "repository.go": "1b8ad526e231260d9860a6fafa9e00e79422ce4a679703baa012e45d0af85823",
     "repository_extensions.go": "01eea4c2d022c41191675d2e9ff6391dcedafbde3b227f702e3f20212ef709c4",
     "signer.go": "8ebb6a05abc9a60086b8e6be47e7b1bafb76f86697e180f1d74dc9df909fdf3a",

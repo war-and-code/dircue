@@ -446,8 +446,8 @@ func mapPathRole(paths ...string) string {
 			// docs/release tooling
 			case "docs", "doc", "documentation", "releasing", "translations", "i18n", "locale", "locales":
 				choose("docs", 2)
-			// other tooling
-			case "tools", "tooling", "scripts", "hack", "ci", "infra", "benchmarks", "bench":
+			// other tooling (including devcontainer)
+			case "tools", "tooling", "scripts", "hack", "ci", "infra", "benchmarks", "bench", ".devcontainer":
 				choose("tooling", 1)
 			default:
 				// Directory segments that end with _test, _tests, test, tests

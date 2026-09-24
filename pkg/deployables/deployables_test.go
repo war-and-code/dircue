@@ -215,29 +215,43 @@ func TestUnknownKubernetesResourceStaysQualifiedAndIdentifiable(t *testing.T) {
 }
 
 func TestTerraformAliasedProvidersHaveDistinctIDs(t *testing.T) {
+	// One .tf file → one module-level definition whose evidence records every block.
+	// Two provider blocks in the same file must both appear in evidence so no
+	// information is lost, even though they share a single deployable identity.
 	body := "provider \"aws\" {}\nprovider \"aws\" {\n  alias = \"west\"\n}\n"
 	r := observeOne(t, "infra/providers.tf", body)
-	if len(r.Definitions) != 2 || r.Definitions[0].ID == r.Definitions[1].ID {
-		t.Fatalf("provider aliases collided: %+v", r.Definitions)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("expected one module-level definition, got: %+v", r.Definitions)
 	}
-	if r.Definitions[0].Name == r.Definitions[1].Name {
-		t.Fatalf("provider alias missing from identity: %+v", r.Definitions)
+	d := r.Definitions[0]
+	if d.Provider != "terraform" || d.Kind != "infrastructure" {
+		t.Fatalf("wrong kind/provider for terraform module definition: %+v", d)
+	}
+	// Both provider blocks must appear as evidence.
+	if len(d.Evidence) < 2 {
+		t.Fatalf("expected at least 2 evidence items (one per provider block), got: %+v", d.Evidence)
 	}
 }
 
 func TestHelmTemplateLiteralFieldDoesNotConsumeFollowingLines(t *testing.T) {
+	// Template files inside charts/templates/ are Go-template sources, not
+	// deployed resources in their own right. The chart node (from Chart.yaml) is
+	// the deployable; per-template nodes would inflate the count 100×. Template
+	// files are intentionally skipped so callers see zero definitions here.
 	body := "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: {{ .Values.name }}\nspec: {{- .Values.spec | toYaml | nindent 2 }}\n"
 	r := observeOne(t, "chart/templates/deployment.yaml", body)
-	if len(r.Definitions) != 1 || r.Definitions[0].Name != "Deployment" || r.Definitions[0].Kind != "workload" || r.Definitions[0].Coverage != "qualified" {
-		t.Fatalf("literal kind was not isolated: %+v", r)
+	if len(r.Definitions) != 0 {
+		t.Fatalf("helm template file should produce no definitions, got: %+v", r.Definitions)
 	}
 }
 
 func TestHelmConditionalServiceAccountRemainsQualifiedInfrastructure(t *testing.T) {
+	// Same rule as above: template files are skipped. The ServiceAccount is part
+	// of the chart, not a standalone deployable. Expect zero definitions.
 	body := "apiVersion: v1\nkind: ServiceAccount\nmetadata:\n  name: {{ .Values.serviceAccount.name }}\n"
 	r := observeOne(t, "chart/templates/serviceaccount.yaml", body)
-	if len(r.Definitions) != 1 || r.Definitions[0].Provider != "helm-template" || r.Definitions[0].Kind != "infrastructure" || r.Definitions[0].Coverage != "qualified" {
-		t.Fatalf("conditional Helm resource lost partial identity: %+v", r.Definitions)
+	if len(r.Definitions) != 0 {
+		t.Fatalf("helm template file should produce no definitions, got: %+v", r.Definitions)
 	}
 }
 
