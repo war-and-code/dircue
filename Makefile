@@ -107,3 +107,98 @@ accuracy-cards: build ## Generate accuracy cards into docs/ACCURACY.md and inter
 	  --corpus-root "$(ATLAS_CACHE)" \
 	  --output docs/ACCURACY.md \
 	  --data internal/atlas/accuracy_data.json
+
+# ---------------------------------------------------------------------------
+# Mutation testing (issue #86)
+# ---------------------------------------------------------------------------
+# Scope: the five core packages most critical to map correctness and coverage
+# honesty. Run on demand; never on a schedule. gremlins@v0.6.0 is pinned.
+#
+# MUTATION_PKGS can be overridden to target a single package:
+#   make mutation MUTATION_PKGS=./pkg/sariflocate
+# MUTATION_TIMEOUT_COEFF controls how many multiples of baseline test time
+# gremlins waits before declaring a mutant "timed out" (default 20).
+MUTATION_PKGS     ?= ./pkg/mapdoc ./pkg/treehash ./pkg/providerjoin ./pkg/sariflocate ./pkg/mapdiff
+MUTATION_TIMEOUT_COEFF ?= 20
+MUTATION_OUTPUT   ?= tests/mutation/results.json
+
+.PHONY: mutation
+
+mutation: ## Run mutation testing on core packages (on-demand; slow)
+	@echo "Installing gremlins@v0.6.0..."
+	@_gdir=$$(mktemp -d /tmp/dircue-gremlins-XXXXX); \
+	GOBIN="$$_gdir" CGO_ENABLED=0 go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0; \
+	mkdir -p tests/mutation; \
+	echo "Running mutation testing on: $(MUTATION_PKGS)"; \
+	for pkg in $(MUTATION_PKGS); do \
+	  echo "=== $$pkg ==="; \
+	  "$$_gdir/gremlins" unleash \
+	    --timeout-coefficient $(MUTATION_TIMEOUT_COEFF) \
+	    -o tests/mutation/$$(echo "$$pkg" | tr '/' '-' | tr '.' '-').json \
+	    $$pkg; \
+	done; \
+	echo "Results written to tests/mutation/"
+
+# ---------------------------------------------------------------------------
+# On-demand fuzzing campaigns (issue #87)
+# ---------------------------------------------------------------------------
+# Runs every Go fuzz target in all packages for FUZZ_TIME seconds each.
+# Seed corpora are in testdata/fuzz/ beside each package (committed).
+# Findings (crashers/corpora) accumulate in FUZZ_CACHE when set.
+#
+# Usage:
+#   make fuzz-campaign                     # run all targets, 30 s each
+#   make fuzz-campaign FUZZ_TIME=300       # run all targets, 5 min each
+#   make fuzz-campaign FUZZ_PKG=./pkg/treehash  # single package
+#
+# When a crasher is found, save the input under the package's
+# testdata/fuzz/<FuzzTarget>/ directory as a regression seed and commit it.
+FUZZ_TIME  ?= 30
+FUZZ_PKG   ?= ./...
+FUZZ_CACHE ?=
+
+.PHONY: fuzz-campaign
+
+fuzz-campaign: build ## Run all Go fuzz targets on demand (FUZZ_TIME seconds each)
+	@_failed=0; \
+	for _pkg_path in $$(go list -f '{{.Dir}}' $(FUZZ_PKG) 2>/dev/null); do \
+	  _fuzz_funcs=$$(grep -rh '^func Fuzz' "$$_pkg_path"/*_test.go 2>/dev/null | sed 's/func \(Fuzz[A-Za-z0-9_]*\).*/\1/'); \
+	  if [ -z "$$_fuzz_funcs" ]; then continue; fi; \
+	  _import=$$(go list $$_pkg_path 2>/dev/null); \
+	  for _fn in $$_fuzz_funcs; do \
+	    echo ">>> fuzzing $$_import -run=^$${_fn}$$ ($(FUZZ_TIME)s)"; \
+	    _args="-test.fuzz=^$${_fn}$$ -test.fuzztime=$(FUZZ_TIME)s -test.run=^$${_fn}$$"; \
+	    if [ -n "$(FUZZ_CACHE)" ]; then \
+	      _args="$$_args -test.fuzzcachedir=$(FUZZ_CACHE)/$$_fn"; \
+	    fi; \
+	    if ! go test -count=1 $$_pkg_path -fuzz="^$${_fn}$$" -fuzztime="$(FUZZ_TIME)s" -run="^$${_fn}$$" 2>&1; then \
+	      echo "CRASHER in $$_import $$_fn — save failing input as a seed"; \
+	      _failed=$$((_failed + 1)); \
+	    fi; \
+	  done; \
+	done; \
+	if [ $$_failed -gt 0 ]; then \
+	  echo "$$_failed fuzz target(s) found a crasher — fix and commit seeds"; exit 1; \
+	fi; \
+	echo "Fuzz campaign complete: no new crashers."
+
+# ---------------------------------------------------------------------------
+# Issue #84: Syft oracle (independent package-coverage oracle)
+#
+# Verifies that `dircue map --attach syft-json=<fixture>` correctly integrates
+# a pre-generated Syft JSON report and reflects it in the packages coverage
+# question. The fixture is committed; no network access is required at run time.
+#
+# To regenerate the fixture (requires Docker and a network connection):
+#   docker run --rm -v "$PWD/tests/compatibility_next/composition/fixture:/src" \
+#     anchore/syft:1.20.0 scan /src -o json > tests/syft-oracle/fixtures/composition-syft.json
+#
+# Usage:
+#   make syft-oracle              # run with the default binary (bin/dircue)
+#   make syft-oracle BINARY=./bin/dircue-candidate
+SYFT_BINARY ?= bin/dircue
+
+.PHONY: syft-oracle
+
+syft-oracle: build ## Run Syft oracle: verify package-coverage binding with a pre-generated Syft report
+	python3 tests/syft-oracle/run.py --binary $(SYFT_BINARY)
