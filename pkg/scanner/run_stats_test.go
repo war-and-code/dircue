@@ -14,13 +14,13 @@ func TestRunCountersInvariantAcrossWorkerCounts(t *testing.T) {
 	// Create a small, deterministic fixture directory.
 	root := t.TempDir()
 	for name, content := range map[string]string{
-		"main.go":          "package main\nfunc main() {}\n",
-		"lib.go":           "package main\nfunc lib() {}\n",
-		"README.md":        "# Test\n",
-		"data.json":        `{"key":"value"}`,
-		"sub/helper.go":    "package main\nfunc helper() {}\n",
-		"sub/types.go":     "package main\ntype T struct{}\n",
-		"vendor/third.go":  "package third\nfunc third() {}\n",
+		"main.go":         "package main\nfunc main() {}\n",
+		"lib.go":          "package main\nfunc lib() {}\n",
+		"README.md":       "# Test\n",
+		"data.json":       `{"key":"value"}`,
+		"sub/helper.go":   "package main\nfunc helper() {}\n",
+		"sub/types.go":    "package main\ntype T struct{}\n",
+		"vendor/third.go": "package third\nfunc third() {}\n",
 	} {
 		path := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
@@ -31,7 +31,8 @@ func TestRunCountersInvariantAcrossWorkerCounts(t *testing.T) {
 		}
 	}
 
-	scan := func(workers int) RunCounters {
+	type counts struct{ files, bytes int64 }
+	scan := func(workers int) counts {
 		var c RunCounters
 		_, err := Scan(context.Background(), root, Options{
 			Source:      "directory",
@@ -41,19 +42,13 @@ func TestRunCountersInvariantAcrossWorkerCounts(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Scan(workers=%d): %v", workers, err)
 		}
-		return c
+		return counts{files: c.FilesContentRead.Load(), bytes: c.BytesRequested.Load()}
 	}
 
 	baseline := scan(1)
 	for _, workers := range []int{2, 4, 8} {
-		got := scan(workers)
-		if got.FilesContentRead.Load() != baseline.FilesContentRead.Load() {
-			t.Errorf("workers=%d: FilesContentRead=%d, want %d",
-				workers, got.FilesContentRead.Load(), baseline.FilesContentRead.Load())
-		}
-		if got.BytesRequested.Load() != baseline.BytesRequested.Load() {
-			t.Errorf("workers=%d: BytesRequested=%d, want %d",
-				workers, got.BytesRequested.Load(), baseline.BytesRequested.Load())
+		if got := scan(workers); got != baseline {
+			t.Errorf("workers=%d: counters=%+v, want %+v", workers, got, baseline)
 		}
 	}
 }
