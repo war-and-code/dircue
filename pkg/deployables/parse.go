@@ -646,6 +646,61 @@ func helmChartDefinition(doc map[interface{}]interface{}, content []byte) ([]Def
 	return []Definition{d}, true, nil
 }
 
+// parseHelmValuesRefs extracts image references from a Helm values.yaml. It
+// looks for the canonical Helm image pattern:
+//
+//	image:
+//	  repository: myrepo/myimage
+//	  tag: "1.2.3"
+//
+// Only the first level of YAML keys is inspected; nested sub-chart image
+// sections are skipped. The extracted reference uses "repository:tag" as the
+// image name (e.g. "myrepo/myimage:1.2.3"). When tag is absent or a template
+// placeholder ("latest" or a string containing "{{"), only the repository is
+// recorded. Qualification is always "external" because Helm values are not
+// evaluated against a component at parse time.
+func parseHelmValuesRefs(valuesPath string, content []byte) []Reference {
+	if bytes.IndexByte(content, 0) >= 0 {
+		return nil
+	}
+	if tooDeep(content, 64) {
+		return nil
+	}
+	decoder := yaml.NewDecoder(bytes.NewReader(content))
+	var doc map[interface{}]interface{}
+	if err := decoder.Decode(&doc); err != nil || doc == nil {
+		return nil
+	}
+	var refs []Reference
+	for _, k := range sortedKeys(doc) {
+		sub, ok := asObject(doc[k])
+		if !ok {
+			continue
+		}
+		repo, hasRepo := stringValue(sub, "repository")
+		if !hasRepo || repo == "" || strings.Contains(repo, "{{") {
+			continue
+		}
+		tag, _ := stringValue(sub, "tag")
+		image := bounded(repo)
+		if tag != "" && !strings.Contains(tag, "{{") && tag != "latest" {
+			image = bounded(repo + ":" + tag)
+		}
+		refs = append(refs, Reference{
+			Kind:          "image",
+			Value:         image,
+			Qualification: "external",
+			Evidence: Evidence{
+				Field: "image.repository",
+				Value: bounded(repo),
+				Line:  lineOf(content, "repository:"),
+				Basis: "helm-values-field",
+			},
+		})
+	}
+	return refs
+}
+
 func serverlessDefinitions(doc map[interface{}]interface{}, content []byte) ([]Definition, bool, error) {
 	service, ok := stringValue(doc, "service")
 	if !ok {
