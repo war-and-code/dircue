@@ -96,7 +96,7 @@
             "requirement_kind": "python-dependency",
             "state": "declared",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-            "evidence_path_count": "1"
+            "evidence_path_count": "2"
           }
         },
         {
@@ -112,22 +112,6 @@
             "requirement_kind": "code-generation",
             "state": "declared",
             "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
-            "evidence_path_count": "1"
-          }
-        },
-        {
-          "kind": "capability",
-          "name": "serialization:protobuf",
-          "paths": [
-            "src/emailservice/requirements.txt"
-          ],
-          "properties": {
-            "basis": "declared_dependency",
-            "observation_kind": "capability",
-            "requirement": "protobuf==6.33.5",
-            "requirement_kind": "python-dependency",
-            "state": "declared",
-            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
             "evidence_path_count": "1"
           }
         },
@@ -382,6 +366,22 @@
             "observation_kind": "interface",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
             "port": "8080",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "serialization:protobuf",
+          "paths": [
+            "src/emailservice/requirements.txt"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "evidence_path_count": "2",
+            "observation_kind": "capability",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "requirement": "grpcio==1.76.0",
+            "requirement_kind": "python-dependency",
             "state": "declared"
           }
         }
@@ -892,45 +892,7 @@
               "requirement_kind": "python-dependency",
               "state": "declared",
               "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-              "evidence_path_count": "1"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "src/emailservice/requirements.txt"
-          ]
-        },
-        {
-          "type": "uses_capability",
-          "from": {
-            "kind": "component",
-            "name": "emailservice",
-            "paths": [
-              "src/emailservice",
-              "src/emailservice/requirements.txt"
-            ],
-            "properties": {
-              "ecosystem": "python",
-              "project_kind": "python",
-              "root": "src/emailservice",
-              "role": "primary",
-              "role_basis": "path_name"
-            }
-          },
-          "to": {
-            "kind": "capability",
-            "name": "serialization:protobuf",
-            "paths": [
-              "src/emailservice/requirements.txt"
-            ],
-            "properties": {
-              "basis": "declared_dependency",
-              "observation_kind": "capability",
-              "requirement": "protobuf==6.33.5",
-              "requirement_kind": "python-dependency",
-              "state": "declared",
-              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-              "evidence_path_count": "1"
+              "evidence_path_count": "2"
             }
           },
           "properties": {},
@@ -1015,6 +977,44 @@
           "properties": {},
           "evidence_paths": [
             "src/emailservice/Dockerfile"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/emailservice"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "serialization:protobuf",
+            "paths": [
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "evidence_path_count": "2",
+              "observation_kind": "capability",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "requirement": "grpcio==1.76.0",
+              "requirement_kind": "python-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/requirements.txt"
           ]
         }
       ],
@@ -2159,9 +2159,169 @@
             "provider": "kubernetes",
             "source_sha256": "e00db4a8151c0623a49757e6fa4942b640775159e98e7b0e38ddd8b9817a3838"
           }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "paths": [
+            "pom.xml"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "evidence_path_count": "1",
+            "observation_kind": "capability",
+            "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+            "requirement": "org.postgresql:postgresql",
+            "requirement_kind": "maven-dependency",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:mysql",
+          "paths": [
+            "pom.xml"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "evidence_path_count": "1",
+            "observation_kind": "capability",
+            "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+            "requirement": "com.mysql:mysql-connector-j",
+            "requirement_kind": "maven-dependency",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:relational",
+          "paths": [
+            "pom.xml"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "evidence_path_count": "2",
+            "observation_kind": "capability",
+            "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+            "requirement": "com.h2database:h2",
+            "requirement_kind": "maven-dependency",
+            "state": "declared"
+          }
         }
       ],
-      "expected_edges": [],
+      "expected_edges": [
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "spring-petclinic",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "ecosystem": "maven",
+              "project_kind": "maven",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:postgresql",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "evidence_path_count": "1",
+              "observation_kind": "capability",
+              "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+              "requirement": "org.postgresql:postgresql",
+              "requirement_kind": "maven-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pom.xml"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "spring-petclinic",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "ecosystem": "maven",
+              "project_kind": "maven",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:mysql",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "evidence_path_count": "1",
+              "observation_kind": "capability",
+              "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+              "requirement": "com.mysql:mysql-connector-j",
+              "requirement_kind": "maven-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pom.xml"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "spring-petclinic",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "ecosystem": "maven",
+              "project_kind": "maven",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:relational",
+            "paths": [
+              "pom.xml"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "evidence_path_count": "2",
+              "observation_kind": "capability",
+              "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
+              "requirement": "com.h2database:h2",
+              "requirement_kind": "maven-dependency",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "pom.xml"
+          ]
+        }
+      ],
       "expected_coverage": [
         {
           "question": "analyzer_coverage",
@@ -2322,6 +2482,23 @@
             "target": ">= 18",
             "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
           }
+        },
+        {
+          "kind": "capability",
+          "name": "cache:redis",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "condition": "devDependencies",
+            "evidence_path_count": "1",
+            "observation_kind": "capability",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+            "requirement": "connect-redis@^8.0.1",
+            "requirement_kind": "npm-dependency",
+            "state": "declared"
+          }
         }
       ],
       "expected_edges": [
@@ -2356,6 +2533,45 @@
               "state": "declared",
               "target": ">= 18",
               "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "express",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "project_kind": "npm",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": ".",
+              "version": "5.1.0"
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "cache:redis",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "condition": "devDependencies",
+              "evidence_path_count": "1",
+              "observation_kind": "capability",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+              "requirement": "connect-redis@^8.0.1",
+              "requirement_kind": "npm-dependency",
+              "state": "declared"
             }
           },
           "properties": {},
