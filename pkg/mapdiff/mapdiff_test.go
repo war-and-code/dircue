@@ -297,3 +297,77 @@ func documentForFuzz() mapdoc.Document {
 	node := component("fuzz")
 	return testDocument("fuzz-tree", node, mapdoc.CoverageComplete)
 }
+
+func TestWriteMarkdownUnchanged(t *testing.T) {
+	node := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	node.Name = "api"
+	node.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	node.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc := testDocument("abc", node, mapdoc.CoverageComplete)
+	report, err := mapdiff.Compare(doc, doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := mapdiff.WriteMarkdown(&buf, report); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "## Architecture diff:") {
+		t.Fatalf("missing heading:\n%s", out)
+	}
+	if !strings.Contains(out, "No material changes") {
+		t.Fatalf("expected unchanged label:\n%s", out)
+	}
+}
+
+func TestWriteMarkdownChanged(t *testing.T) {
+	nodeA := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	nodeA.Name = "service-a"
+	nodeA.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	nodeA.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	nodeB := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	nodeB.Name = "service-b"
+	nodeB.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	nodeB.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	base := testDocument("aaa", nodeA, mapdoc.CoverageComplete)
+	head := testDocument("bbb", nodeB, mapdoc.CoverageComplete)
+	report, err := mapdiff.Compare(base, head)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := mapdiff.WriteMarkdown(&buf, report); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "material change") {
+		t.Fatalf("expected material change in heading:\n%s", out)
+	}
+	// Source binding and observer compatibility must appear.
+	if !strings.Contains(out, "**Source binding:**") {
+		t.Fatalf("missing source binding:\n%s", out)
+	}
+}
+
+func TestWriteMarkdownIndeterminate(t *testing.T) {
+	node := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	node.Name = "svc"
+	node.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	node.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	base := testDocument("aaa", node, mapdoc.CoverageComplete)
+	headDoc := testDocument("bbb", node, mapdoc.CoveragePartial)
+	headDoc.Nodes = nil
+	report, err := mapdiff.Compare(base, headDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var buf bytes.Buffer
+	if err := mapdiff.WriteMarkdown(&buf, report); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "indeterminate") && !strings.Contains(out, "Indeterminate") {
+		t.Fatalf("indeterminate removal not disclosed:\n%s", out)
+	}
+}

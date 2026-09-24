@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
 
 	"dircue/pkg/mapdiff"
 	"dircue/pkg/mapdoc"
@@ -13,11 +14,18 @@ import (
 const maxMapComparisonBytes = 64 << 20
 
 func newMapCompareCommand(opts *options) *cobra.Command {
+	var format string
+	var exitCode bool
 	command := &cobra.Command{
-		Use:     "compare <base-map.json> <head-map.json>",
-		Short:   "Compare two saved directory maps",
-		Long:    "Compare two explicitly selected dircue map documents by stable node and relationship IDs. The comparison opens neither source tree. It separates material observations from evidence and coverage changes, and does not claim a deletion when head coverage is incomplete.",
-		Example: "  dircue map --json old-checkout > before.json\n  dircue map --json new-checkout > after.json\n  dircue map compare --json before.json after.json",
+		Use:   "compare <base-map.json> <head-map.json>",
+		Short: "Compare two saved directory maps",
+		Long: "Compare two explicitly selected dircue map documents by stable node and relationship IDs. The comparison opens neither source tree. It separates material observations from evidence and coverage changes, and does not claim a deletion when head coverage is incomplete.\n\n" +
+			"Output formats (--format):\n" +
+			"  text     Plain text summary (default when stdout is a terminal).\n" +
+			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
+			"--json supersedes --format and writes the full comparison document.\n\n" +
+			"--exit-code causes the command to exit 1 when material changes are present. The default is exit 0 regardless of changes; only I/O or usage errors produce a non-zero exit.",
+		Example: "  dircue map --json old-checkout > before.json\n  dircue map --json new-checkout > after.json\n  dircue map compare --json before.json after.json\n  dircue map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
 				return fmt.Errorf("map compare requires base and head map files; see: dircue map compare --help")
@@ -27,6 +35,9 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := rejectMapSavedInputFlags(cmd, opts); err != nil {
 				return err
+			}
+			if format != "text" && format != "markdown" {
+				return fmt.Errorf("unsupported --format %q; choose text or markdown", format)
 			}
 			base, err := loadMapDocument(args[0], "base map")
 			if err != nil {
@@ -41,11 +52,26 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 				return err
 			}
 			if opts.json {
-				return json.NewEncoder(cmd.OutOrStdout()).Encode(report)
+				if err := json.NewEncoder(cmd.OutOrStdout()).Encode(report); err != nil {
+					return err
+				}
+			} else if format == "markdown" {
+				if err := mapdiff.WriteMarkdown(cmd.OutOrStdout(), report); err != nil {
+					return err
+				}
+			} else {
+				if err := writeMapComparison(cmd.OutOrStdout(), report); err != nil {
+					return err
+				}
 			}
-			return writeMapComparison(cmd.OutOrStdout(), report)
+			if exitCode && report.Counts.Material > 0 {
+				os.Exit(1)
+			}
+			return nil
 		},
 	}
+	command.Flags().StringVar(&format, "format", "text", "Output format: text (default) or markdown")
+	command.Flags().BoolVar(&exitCode, "exit-code", false, "Exit 1 when material changes are present (default exit is always 0 for a successful comparison)")
 	setSavedReportHelp(command)
 	return command
 }
