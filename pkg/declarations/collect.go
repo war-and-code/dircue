@@ -70,7 +70,13 @@ func New(source, tree string, maxFileBytes int64) *Collector {
 	if maxFileBytes > 0 {
 		limit = min(limit, maxFileBytes)
 	}
-	return &Collector{report: Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", SupportedEcosystems: []string{"cargo", "dotnet", "go", "gradle", "maven", "npm", "python", "python-uv", "kbuild-kconfig"}, Selection: "selected-regular-files-excluding-node-modules", Source: source, Tree: tree, Limits: Limits{ManifestBytes: limit, Documents: MaxDocuments, ObservationsPerManifest: MaxObservationsPerManifest, TotalObservations: MaxTotalObservations, StringBytes: MaxStringBytes, Patterns: MaxPatterns, InventoryPaths: MaxInventoryPaths, InputBytes: MaxInputBytes, OutputBytes: MaxOutputBytes, ResolutionWork: map[string]int{"npm": 1 << 20, "python-uv": pythonMatchBudget, "cargo": cargoMaxResolutionWork}}, Projects: []Project{}, Diagnostics: []Diagnostic{}}, files: map[string]bool{}, readLimit: limit}
+	return &Collector{report: Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", SupportedEcosystems: []string{
+		"autoconf", "bazel-module", "bazel-workspace", "cargo", "clojure-deps", "clojure-leiningen", "cmake",
+		"dart-pub", "deno", "dotnet", "elixir-mix", "erlang-rebar", "go", "gradle", "haskell-cabal", "haskell-stack",
+		"julia-project", "kbuild-kconfig", "maven", "meson", "npm", "perl-cpanfile", "perl-extutils",
+		"php-composer", "python", "python-uv", "r-package", "ruby-bundler", "ruby-gem",
+		"scala-sbt", "swift-package", "zig-build",
+	}, Selection: "selected-regular-files-excluding-node-modules", Source: source, Tree: tree, Limits: Limits{ManifestBytes: limit, Documents: MaxDocuments, ObservationsPerManifest: MaxObservationsPerManifest, TotalObservations: MaxTotalObservations, StringBytes: MaxStringBytes, Patterns: MaxPatterns, InventoryPaths: MaxInventoryPaths, InputBytes: MaxInputBytes, OutputBytes: MaxOutputBytes, ResolutionWork: map[string]int{"npm": 1 << 20, "python-uv": pythonMatchBudget, "cargo": cargoMaxResolutionWork}}, Projects: []Project{}, Diagnostics: []Diagnostic{}}, files: map[string]bool{}, readLimit: limit}
 }
 
 // IsManifest excludes installed npm contents even when language analysis includes them.
@@ -78,12 +84,71 @@ func IsManifest(name string) bool {
 	if strings.Contains("/"+name+"/", "/node_modules/") {
 		return false
 	}
-	switch path.Base(name) {
-	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml", "setup.py", "Kbuild", "Kconfig":
+	base := path.Base(name)
+	switch base {
+	case "package.json", "go.mod", "go.work", "Cargo.toml", "pyproject.toml", "setup.py", "setup.cfg", "Kbuild", "Kconfig":
+		return true
+	// Ruby
+	case "Gemfile":
+		return true
+	case "application.rb":
+		// Only the conventional Rails config/application.rb carries an app name.
+		lower := strings.ToLower(strings.ReplaceAll(name, "\\", "/"))
+		return lower == "config/application.rb" || strings.HasSuffix(lower, "/config/application.rb")
+
+	// PHP
+	case "composer.json":
+		return true
+	// Swift
+	case "Package.swift":
+		return true
+	// Dart/Flutter
+	case "pubspec.yaml":
+		return true
+	// Elixir
+	case "mix.exs":
+		return true
+	// Erlang
+	case "rebar.config":
+		return true
+	// Scala
+	case "build.sbt":
+		return true
+	// Haskell
+	case "stack.yaml":
+		return true
+	// CMake
+	case "CMakeLists.txt", "meson.build", "configure.ac":
+		return true
+	// Deno
+	case "deno.json", "deno.jsonc":
+		return true
+	// Bazel (root-level only — checked by the scanner before calling IsManifest)
+	case "MODULE.bazel", "WORKSPACE":
+		return true
+	// Zig
+	case "build.zig":
+		return true
+	// Julia
+	case "Project.toml":
+		return true
+	// R
+	case "DESCRIPTION":
+		return true
+	// Clojure
+	case "deps.edn", "project.clj":
+		return true
+	// Perl
+	case "cpanfile", "Makefile.PL":
 		return true
 	}
-	base := path.Base(name)
 	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+		return true
+	}
+	if strings.HasSuffix(base, ".gemspec") {
+		return true
+	}
+	if strings.HasSuffix(base, ".cabal") {
 		return true
 	}
 	return projects.IsDotnet(name) || projects.IsJVM(name)
@@ -345,22 +410,79 @@ func sortJSON[T any](values []T) {
 }
 
 func Parse(name string, content []byte) *Document {
-	switch path.Base(name) {
+	base := path.Base(name)
+	switch base {
 	case "package.json":
 		return ParseNPM(name, content)
 	case "go.mod", "go.work":
 		return ParseGo(name, content)
-	case "pyproject.toml":
+	case "pyproject.toml", "setup.py":
 		return ParsePython(name, content)
-	case "setup.py":
-		return ParsePython(name, content)
+	case "setup.cfg":
+		return ParsePythonSetupCfg(name, content)
 	case "Cargo.toml":
 		return ParseCargo(name, content)
 	case "Kbuild", "Kconfig":
 		return ParseKernelMarker(name, content)
+	// Ruby
+	case "Gemfile":
+		return ParseRuby(name, content)
+	case "application.rb":
+		return ParseRailsApp(name, content)
+	// PHP
+	case "composer.json":
+		return ParsePHP(name, content)
+	// Swift
+	case "Package.swift":
+		return ParseSwift(name, content)
+	// Dart/Flutter
+	case "pubspec.yaml":
+		return ParseDart(name, content)
+	// Elixir
+	case "mix.exs":
+		return ParseElixir(name, content)
+	// Erlang
+	case "rebar.config":
+		return ParseErlang(name, content)
+	// Scala
+	case "build.sbt":
+		return ParseScala(name, content)
+	// Haskell
+	case "stack.yaml":
+		return ParseHaskell(name, content)
+	// CMake
+	case "CMakeLists.txt", "meson.build", "configure.ac":
+		return ParseCMake(name, content)
+	// Deno
+	case "deno.json", "deno.jsonc":
+		return ParseDeno(name, content)
+	// Bazel (root-level only)
+	case "MODULE.bazel", "WORKSPACE":
+		return ParseBazel(name, content)
+	// Zig
+	case "build.zig":
+		return ParseZig(name, content)
+	// Julia
+	case "Project.toml":
+		return ParseJulia(name, content)
+	// R
+	case "DESCRIPTION":
+		return ParseR(name, content)
+	// Clojure
+	case "deps.edn", "project.clj":
+		return ParseClojure(name, content)
+	// Perl
+	case "cpanfile", "Makefile.PL":
+		return ParsePerl(name, content)
 	}
-	if strings.HasPrefix(path.Base(name), "requirements") && strings.HasSuffix(path.Base(name), ".txt") {
+	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
 		return ParsePython(name, content)
+	}
+	if strings.HasSuffix(base, ".gemspec") {
+		return ParseRuby(name, content)
+	}
+	if strings.HasSuffix(base, ".cabal") {
+		return ParseHaskell(name, content)
 	}
 	if projects.IsDotnet(name) || projects.IsJVM(name) {
 		return fromLegacy(name, projects.Parse(name, content))
