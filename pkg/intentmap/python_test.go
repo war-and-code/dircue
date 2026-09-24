@@ -49,19 +49,19 @@ func TestParsePythonFlaskApp(t *testing.T) {
 		{
 			name:    "test file excluded by path",
 			path:    "tests/unit/test_app.py",
-			content: "app = Flask(__name__)\n",
+			content: "from flask import Flask\napp = Flask(__name__)\n",
 			wantLen: 0,
 		},
 		{
 			name:    "test file excluded by prefix",
 			path:    "test/conftest.py",
-			content: "app = Flask(__name__)\n",
+			content: "from flask import Flask\napp = Flask(__name__)\n",
 			wantLen: 0,
 		},
 		{
 			name:    "_test.py suffix excluded",
 			path:    "myapp_test.py",
-			content: "app = Flask(__name__)\n",
+			content: "from flask import Flask\napp = Flask(__name__)\n",
 			wantLen: 0,
 		},
 		{
@@ -73,9 +73,28 @@ func TestParsePythonFlaskApp(t *testing.T) {
 		{
 			name:    "only first occurrence returned",
 			path:    "multi.py",
-			content: "app1 = Flask(__name__)\napp2 = Flask(__name__)\n",
+			content: "from flask import Flask\napp1 = Flask(__name__)\napp2 = Flask(__name__)\n",
 			wantLen: 1,
 			wantVar: "app1",
+		},
+		{
+			name:    "block opener does not capture an indented assignment",
+			path:    "app.py",
+			content: "from flask import Flask\ntry:\n    app = Flask(__name__)\nexcept ImportError:\n    pass\n",
+			wantLen: 0,
+		},
+		{
+			name:    "qualified flask.Flask constructor",
+			path:    "wsgi.py",
+			content: "import flask\n\napp = flask.Flask(__name__)\n",
+			wantLen: 1,
+			wantVar: "app",
+		},
+		{
+			name:    "Flask class not imported from flask",
+			path:    "thermos.py",
+			content: "from lab import Flask\nvessel = Flask(500)\n",
+			wantLen: 0,
 		},
 	}
 	for _, tt := range tests {
@@ -114,7 +133,7 @@ func TestParsePythonFlaskApp(t *testing.T) {
 	}
 }
 
-// TestSQLiteImportCapability verifies that sqlite3 import produces datastore:sqlite.
+// TestSQLiteImportCapability verifies that sqlite3 import produces datastore:relational.
 func TestSQLiteImportCapability(t *testing.T) {
 	tests := []struct {
 		name       string
