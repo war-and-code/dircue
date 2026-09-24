@@ -95,7 +95,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		if def.Coverage != "complete" {
-			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"static_declaration_not_evaluated"}}
+			coverageReason := "static_declaration_not_evaluated"
+			if def.Provider == "helm" {
+				coverageReason = "helm_templates_not_rendered"
+			}
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{coverageReason}}
 		}
 		for _, item := range def.Evidence {
 			n.Evidence = append(n.Evidence, deployableEvidence(def.Path, item))
@@ -190,7 +194,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 					skaffoldImages[name] = append(skaffoldImages[name], imageOwner{component: localComponent, evidence: localEvidence, imageEvidence: image.evidence})
 				}
 			}
-			if def.Provider == "kubernetes" {
+			if def.Provider == "kubernetes" || def.Provider == "helm" {
 				imageUsers = append(imageUsers, struct {
 					id       string
 					image    string
@@ -312,12 +316,12 @@ func aggregateKubernetesDefs(defs []deployables.Definition, componentsByRoot map
 		scope     string
 	}
 	type groupState struct {
-		primary    deployables.Definition
-		allPaths   []string // all declaring file paths
-		evidence   []deployables.Evidence
-		refs       []deployables.Reference
-		count      int
-		coverage   string
+		primary  deployables.Definition
+		allPaths []string // all declaring file paths
+		evidence []deployables.Evidence
+		refs     []deployables.Reference
+		count    int
+		coverage string
 	}
 	groups := map[groupKey]*groupState{}
 	order := []groupKey{}
