@@ -1,0 +1,129 @@
+{
+  "repo": "node-realworld",
+  "source": "https://github.com/gothinkster/node-express-realworld-example-app",
+  "commit": "30b68e1e881462b2f4164ea09ab4c4f5699c7b0b",
+  "oracle_files": [
+    {
+      "path": "package.json",
+      "sha256": "637ace6c4d4fe31c18b00953da294e8952da236a94e70955632f7aa90a508e40"
+    },
+    {
+      "path": "src/prisma/schema.prisma",
+      "sha256": "b8692b20fa1bb5944b774552d71cfac53d8ca1a091a818d2190926b2a24002c7"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "f091c32983ed1d3f7b9e22acc2181606a2042674ff1a8905a297d07fa6d4f164"
+    },
+    {
+      "path": "project.json",
+      "sha256": "1beee2350cb546699f94c26b5181b1f18947145c85c01feb8877396810c315ca"
+    }
+  ],
+  "components": [
+    {
+      "name": "@api/source",
+      "root": ".",
+      "ecosystem": "npm",
+      "why": "package.json line 2: name '@api/source', version '0.0.0'; this is the root npm package manifest for the Node.js Express application. project.json declares name 'api' and projectType 'application' for the Nx build system, but the canonical npm package name is @api/source."
+    }
+  ],
+  "deployables": [
+    {
+      "kind": "container_build",
+      "name": "api",
+      "path": "Dockerfile",
+      "why": "Dockerfile at repository root: FROM node:lts-alpine, copies dist/api, sets ENV PORT=3000, CMD ['node', 'api']; builds the Node.js application container. Dockerfile comment: 'Run the container with docker run -p 3000:3000 -t api'."
+    }
+  ],
+  "interfaces": [
+    {
+      "kind": "npm_start",
+      "name": "start",
+      "path": "package.json",
+      "why": "package.json scripts section: 'start': 'nx serve' declares an npm start script; this is the application entry point per MAP.md npm start interface kind."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "datastore:postgresql",
+      "owner": "@api/source",
+      "path": "src/prisma/schema.prisma",
+      "why": "src/prisma/schema.prisma lines 1-3: datasource db { provider = 'postgresql'; url = env('DATABASE_URL') } explicitly declares PostgreSQL as the database provider via Prisma ORM."
+    },
+    {
+      "capability": "auth:jwt",
+      "owner": "@api/source",
+      "path": "package.json",
+      "why": "package.json dependencies: jsonwebtoken ^9.0.2 (JWT library) and express-jwt ^8.4.1 (Express middleware for JWT verification) are declared as production dependencies."
+    },
+    {
+      "capability": "net:http-client",
+      "owner": "@api/source",
+      "path": "package.json",
+      "why": "package.json dependencies: axios ^1.0.0 is declared as a production dependency; axios is the de facto JavaScript HTTP client library."
+    }
+  ],
+  "edges": [
+    {
+      "type": "builds",
+      "from": "api",
+      "to": "@api/source",
+      "why": "Dockerfile copies from dist/api (the build output of the npm package) and runs it; the build context is '.' matching the @api/source component root."
+    },
+    {
+      "type": "uses_capability",
+      "from": "@api/source",
+      "to": "datastore:postgresql",
+      "why": "src/prisma/schema.prisma datasource block declares provider='postgresql'; @prisma/client in package.json connects to this database."
+    },
+    {
+      "type": "uses_capability",
+      "from": "@api/source",
+      "to": "auth:jwt",
+      "why": "package.json production dependencies jsonwebtoken and express-jwt."
+    },
+    {
+      "type": "uses_capability",
+      "from": "@api/source",
+      "to": "net:http-client",
+      "why": "package.json production dependency axios."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "complete",
+      "why": "The repository contains one npm package (package.json at root) with a single application component. There are no workspace members or nested packages."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The Dockerfile container_build is labeled. There is no docker-compose.yml or Kubernetes/Helm manifest in the repository at this commit; the comment in the Dockerfile mentions running with docker run, not a Compose service."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "The npm start script is labeled. The Dockerfile does not contain an EXPOSE statement; ENV PORT=3000 sets a default port but is not a declared_port per MAP.md (EXPOSE is required). No other interface declarations are present in oracle files."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "PostgreSQL (Prisma schema), JWT (jsonwebtoken/express-jwt), and HTTP client (axios) are labeled. bcryptjs (password hashing) and express (HTTP server framework) are declared in package.json but do not match catalog capability names and are noted below."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "The container builds edge, three uses_capability edges are labeled. The Dockerfile has no explicit depends_on or runs relationship to an external database service since there is no docker-compose.yml."
+    }
+  },
+  "notes": [
+    "This repository has been significantly modernized from the original mongoose/MongoDB version to use Prisma ORM with PostgreSQL; the name 'node-express-realworld-example-app' is retained but the database is now PostgreSQL.",
+    "The Dockerfile sets ENV PORT=3000 but does not contain an EXPOSE statement; the port information is only in a comment. EXPOSE 3000 is not labeled as a declared_port because the MAP.md vocabulary requires EXPOSE, not ENV.",
+    "package.json declares @prisma/client as a production dependency; the specific database backend is determined by src/prisma/schema.prisma (provider='postgresql'), not by the npm package name alone.",
+    "bcryptjs (^2.4.3) is declared in dependencies but is a cryptographic utility (password hashing), not a datastore or auth protocol capability in the catalog.",
+    "express (~4.18.1) is the HTTP server framework; it is not labeled as a capability because the catalog does not have an 'net:http-server' entry.",
+    "project.json is an Nx workspace project descriptor; it declares projectType='application' and main='src/main.ts' but is not a standard npm or build-system manifest type recognized by the map component catalog."
+  ],
+  "non_goals": [],
+  "provenance": {
+    "upstream": "https://github.com/gothinkster/node-express-realworld-example-app",
+    "revision_source": "git clone --depth=1 then git rev-parse HEAD",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  }
+}
