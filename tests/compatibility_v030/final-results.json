@@ -2,12 +2,12 @@
   "schema_version": "1.0.0",
   "started_at_utc": "2026-09-16T20:28:38.608197+00:00",
   "baseline": {
-    "path": "/Users/gingeleski/Workspace/dircue/bin/dircue",
+    "path": "/home/user/Workspace/dircue/bin/dircue",
     "sha256": "62c884a82eacb8153cc57c6c3cc980ec1fba35391b02ab1690e5e850a145d059",
     "release": "v0.2.0"
   },
   "candidate": {
-    "path": "/Users/gingeleski/Workspace/dircue/.cache/v030/dircue",
+    "path": "/home/user/Workspace/dircue/.cache/v030/dircue",
     "sha256": "61a4cd8da957f0ac4c43c1485eefa016175bbd383cd11459b39c69a08202e7af"
   },
   "source": {
