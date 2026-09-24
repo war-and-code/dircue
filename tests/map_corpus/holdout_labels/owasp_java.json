@@ -38,7 +38,7 @@
   ],
   "deployables": [
     {
-      "kind": "service",
+      "kind": "archive",
       "name": "benchmark.war",
       "path": "pom.xml",
       "why": "pom.xml declares a WAR artifact; README describes it as a fully runnable web application and runBenchmark.sh launches it in a Tomcat container through the Maven Cargo configuration."
@@ -62,8 +62,8 @@
   "edges": [
     {
       "type": "builds",
-      "from": "benchmark",
-      "to": "benchmark.war",
+      "from": "benchmark.war",
+      "to": "benchmark",
       "why": "pom.xml:6 declares war packaging, and finalName benchmark is configured in the Maven build; the deployable WAR is produced by this single Maven component."
     },
     {
@@ -109,5 +109,17 @@
     "upstream": "https://github.com/OWASP-Benchmark/BenchmarkJava",
     "revision_source": "git ls-remote HEAD, then shallow checkout resolved to the same commit",
     "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
-  }
+  },
+  "corrections": [
+    {
+      "change": "deployable benchmark.war kind service -> archive",
+      "why": "pom.xml:6 declares war packaging; in docs/MAP.md, service is the Compose and serverless-framework kind (pkg/deployables/parse.go), and a declared packaged archive is kind archive. The fact is unchanged; only its vocabulary is.",
+      "after_first_comparison": true
+    },
+    {
+      "change": "builds edge restated from benchmark.war to benchmark",
+      "why": "docs/MAP.md defines builds from a deployable definition to the component it builds; the label named the same pom.xml:6 relationship in the opposite direction.",
+      "after_first_comparison": true
+    }
+  ]
 }
