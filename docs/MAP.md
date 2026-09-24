@@ -68,7 +68,7 @@ imply each other.
 | --- | --- | --- |
 | `contains` | The source node is the declared or structural parent of the target (a deployable contains a component it references by path; a component contains content files by directory containment). | The parent manages, builds, or depends on the target. |
 | `member_of` | The source component is a named member of the target workspace or multi-module root as declared in the workspace manifest. Membership is a declared relationship in a workspace configuration file. | The member is built by the root, or has any dependency on it. A workspace member and a `depends_on_local` reference are independent claims. |
-| `depends_on_local` | The source component declares a local path or module-replace reference to the target component. The reference is what the manifest states; it does not mean a successful build, that the version constraint is satisfied, or that the target is reachable at runtime. | The target is a transitive dependency, or that the reference resolves without a package manager. |
+| `depends_on_local` | The source component declares a local path, module-replace, or Maven reactor sibling reference to the target component. The reference is what the manifest states; it does not mean a successful build, that the version constraint is satisfied, or that the target is reachable at runtime. A Maven reactor sibling is identified by groupId:artifactId match across co-located POM files; the edge `declaration_kind` is `maven-sibling-dependency`. | The target is a transitive dependency, or that the reference resolves without a package manager. |
 | `depends_on` | The source deployable declares a startup or readiness dependency on the target deployable (e.g. a Compose `depends_on` entry). The dependency is what the Compose file states; it does not mean a health check passes or that the services communicate. | The target is reachable at runtime, or that startup ordering is enforced by the runtime. |
 | `builds` | A deployable definition references or contains an image, build context, or artifact whose path or name matches the target component. Derived by path or image-name matching; it is `partial` unless a direct manifest link is present. | The build succeeds, or the resulting artifact is the definitive version of the component. |
 | `runs` | A deployable definition names an image that matches the target component's declared image identity. Derived by image-name matching. | The component is currently running, or that the image is built from that component's source. |
@@ -377,7 +377,7 @@ Evidence levels (stored in the `basis` property of a capability node or
 | Basis | What it means |
 | --- | --- |
 | `declared_dependency` | The package coordinate appears in a parsed manifest (requirements.txt, go.mod, package.json, etc.). |
-| `declared_config` | A recognized configuration key in a config file (e.g. `DATABASE_URL`, `spring.datasource.*`) names the capability. Key names only; values are never stored. |
+| `declared_config` | A recognized configuration key or declaration in a config file (e.g. `DATABASE_URL`, `spring.datasource.*`, or a Prisma `schema.prisma` datasource `provider`) names the capability. Key names and provider strings only; connection strings and runtime values are never stored. |
 | `imported` | A top-level import statement in a source file names a package in the catalog. Only column-0 import statements are parsed; indented/conditional imports inside function bodies are not evidence. |
 
 A `declared_dependency` with no corroborating import is still valid evidence.

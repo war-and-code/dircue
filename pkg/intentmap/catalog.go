@@ -309,6 +309,9 @@ var prefixEntries = []prefixEntry{
 	{"co.elastic.clients:elasticsearch-java", "search:elasticsearch"},
 	{"org.springframework.data:spring-data-elasticsearch", "search:elasticsearch"},
 	{"org.springframework.boot:spring-boot-starter-data-elasticsearch", "search:elasticsearch"},
+	// Hibernate Search backends (Elasticsearch and OpenSearch share the same capability)
+	{"org.hibernate.search:hibernate-search-backend-elasticsearch", "search:elasticsearch"},
+	{"org.hibernate.search:hibernate-search-backend-opensearch", "search:elasticsearch"},
 	// Kafka
 	{"org.apache.kafka:kafka-clients", "messaging:kafka"},
 	{"org.apache.kafka:kafka-streams", "messaging:kafka"},
@@ -317,11 +320,24 @@ var prefixEntries = []prefixEntry{
 	// AMQP / RabbitMQ
 	{"org.springframework.boot:spring-boot-starter-amqp", "messaging:amqp"},
 	{"com.rabbitmq:amqp-client", "messaging:amqp"},
-	// Auth — spring security
+	// Auth — spring security OAuth2.
+	// spring-boot-starter-security is kept as a general OAuth2 signal:
+	// Spring Boot apps that secure HTTP endpoints commonly use it alongside
+	// OAuth2 starters. The broad org.springframework.security namespace prefix
+	// is replaced by explicit artifact-level entries below so that
+	// spring-security-crypto (password hashing) and unrelated sub-artifacts
+	// do not map to auth:oauth2.
 	{"org.springframework.boot:spring-boot-starter-security", "auth:oauth2"},
 	{"org.springframework.boot:spring-boot-starter-oauth2-client", "auth:oauth2"},
 	{"org.springframework.boot:spring-boot-starter-oauth2-resource-server", "auth:oauth2"},
-	{"org.springframework.security", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-core", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-client", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-jose", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-resource-server", "auth:oauth2"},
+	// Legacy Spring Security OAuth2 (pre-Spring Security 5)
+	{"org.springframework.security.oauth:spring-security-oauth2", "auth:oauth2"},
+	// Spring Authorization Server
+	{"org.springframework.security.oauth2.server:spring-security-oauth2-authorization-server", "auth:oauth2"},
 	{"io.jsonwebtoken:jjwt", "auth:jwt"},
 	{"com.auth0:java-jwt", "auth:jwt"},
 	// Cloud / AWS — "software.amazon.awssdk" prefix (separator is ":")
