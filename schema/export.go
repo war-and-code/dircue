@@ -40,6 +40,9 @@ var guideJSON []byte
 //go:embed forest.schema.json
 var forestJSON []byte
 
+//go:embed stats.schema.json
+var statsJSON []byte
+
 const resourceBase = "https://dircue.invalid/schema/"
 
 // The explicit registry is also the export allowlist. In particular, a name
@@ -62,6 +65,7 @@ var exportResources = map[string][]byte{
 	"map":              mapJSON,
 	"planning":         planningJSON,
 	"profile":          profileJSON,
+	"stats":            statsJSON,
 }
 
 // Names returns the sorted canonical names accepted by Export. Some schemas
