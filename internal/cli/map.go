@@ -623,10 +623,10 @@ func directorySourceDigest(ctx context.Context, dir string, settings resolvedMap
 	case treehash.StatusUnavailable:
 		return nil, &mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: result.Reasons}, nil
 	case treehash.StatusPartial:
-		digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+		digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: result.Scope.ScopeFilter(), Normalization: result.Scope.Normalization(), Value: result.TreeID}
 		return digest, &mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: result.Reasons}, nil
 	}
-	digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: string(result.Scope), Value: result.TreeID}
+	digest := &mapdoc.Digest{Algorithm: result.Algorithm, Scope: result.Scope.ScopeFilter(), Normalization: result.Scope.Normalization(), Value: result.TreeID}
 	return digest, &mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}, nil
 }
 
