@@ -1,28 +1,12 @@
-# Proposed 1.0 compatibility policy
+# 1.x compatibility policy
 
-This policy is a discussion draft for 1.0, not a declaration that 0.9 has
-frozen every analysis surface. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
-reserves 1.0 for the directory map and supersedes the earlier feature freeze.
-The legacy Linguist interface remains a compatibility target. Whether existing
-`analyze` reports become a frozen legacy profile in 1.x or remain provisional
-is still an owner decision.
+dircue 1.0 establishes a public contract centered on the directory map ([issue #81](https://github.com/war-and-code/dircue/issues/81)). This document lists the surfaces that keep their documented meaning across 1.x releases, and what is deliberately excluded. It complements [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md), which explains why documented compatibility surfaces matter.
 
-Version 1.0 will establish a public contract centered on the directory map.
-This document records a candidate policy for the existing surfaces so that
-their treatment can be decided explicitly. Except for the legacy Linguist
-compatibility target, the commitments below apply only if this proposal is
-adopted. It complements [DESIGN_PRINCIPLES.md](DESIGN_PRINCIPLES.md), which
-explains why documented compatibility surfaces matter.
+Anything not listed here is not covered. If a downstream consumer depends on unspecified behavior, the right next step is an [issue](https://github.com/war-and-code/dircue/issues) proposing that we cover it explicitly.
 
-Under this proposal, anything not listed here is not covered. If a downstream
-consumer depends on unspecified behavior, the correct next step is an
-[issue](https://github.com/war-and-code/dircue/issues) proposing that
-we cover it explicitly.
+## 1.x compatibility surfaces
 
-## Proposed 1.x compatibility surfaces
-
-If this policy is adopted, the surfaces below would retain their documented
-meanings across 1.x releases.
+The surfaces below retain their documented meanings across 1.x releases.
 Compatibility tests compare exact outputs for fixed fixtures where applicable.
 That does not freeze classification data, detected findings, tool versions,
 or all report bytes: upstream language patterns and supported analysis can
@@ -31,6 +15,27 @@ A harness exception does not authorize breaking an established CLI or report
 contract: those changes require the versioning and migration described below.
 Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
 
+- **The directory map.** `dircue map` and its subcommands (`map compare`,
+  `map locate`, `map route`, `map settings`), with their documented flags,
+  `--preset` names, `--set` setting names, and `--attach` report kinds. The
+  map document (`schema/map.schema.json`, `schema_version` 1.0.0), the forest
+  document (`schema/forest.schema.json`), the comparison document
+  (`schema/map-compare.schema.json`) and the run-statistics document
+  (`schema/stats.schema.json`) keep every documented field, type and meaning.
+  Also frozen:
+  - node kinds, edge types and coverage statuses: `complete`, `partial`,
+    `unknown`, `not_run`, `tool_error`;
+  - the rule that `complete` means exhaustive evidence for its scope;
+  - stable node and edge IDs, derived from paths, declared names and kinds,
+    so the same tree yields the same IDs at any location, worker count or
+    host.
+
+  New node kinds, edge types, properties, coverage reasons and interface or
+  capability names may be added. Consumers must ignore values they do not
+  recognize. Reason codes are stable in the same additive sense as warning
+  codes. The set of facts the map observes improves within 1.x: a newer
+  release may find more, or classify something more precisely. Such changes
+  are listed in `CHANGELOG.md`.
 - **Legacy Linguist CLI.** `dircue` with no subcommand emits the
   language-keyed directory JSON when invoked with `--json`, and the
   Linguist plain-text layout otherwise. Supported flags — `-j/--json`,
@@ -48,10 +53,10 @@ Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
   `analyze environments`, `analyze focus`, `analyze availability`,
   `analyze explain`, `analyze graph`, `analyze packages`,
   `analyze rules`, `analyze registries`, `analyze formats`,
-  `analyze structure`, and `analyze all` (with its module toggles) would be
-  frozen under this proposal. Enum values (`--source auto|git|directory`,
-  `--on-error fail|continue`, `--metrics-scope source|text`) are
-  also proposed as frozen; adding a new value would count as an additive change.
+  `analyze structure`, and `analyze all` (with its module toggles) are frozen.
+  Enum values (`--source auto|git|directory`, `--on-error fail|continue`,
+  `--metrics-scope source|text`) are frozen as well; adding a new value
+  counts as an additive change.
 - **`compare` and `plan`.** The saved-report readers accept the JSON
   their producers emit for the documented supported profile versions and
   input families, with the documented `--module` names and positional argument
@@ -68,7 +73,8 @@ Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
   aggregate `profile`, the standalone `languages`, `availability`,
   `capabilities`, `cli-capabilities`, `comparison`, `declarations`,
   `environments`, `explanation`, `findings`, `focus`, `formats`,
-  `guide`, `hotspots`, and `planning` documents — are the reference
+  `guide`, `hotspots`, `planning`, `map`, `map-compare`, `forest` and
+  `stats` documents — are the reference
   for what a dircue JSON output contains. Fields present in a 1.x
   schema stay present, with the same types and semantics. The
   reserved `$defs["_dircue_bundled_resources"]` key is part of the
@@ -101,7 +107,7 @@ When stdout is closed by a downstream reader (`dircue --json .
 success should read all of stdout before closing. This matches Go's
 default runtime behavior and is not classified as an error.
 
-## Proposed exclusions from the 1.x contract
+## Exclusions from the 1.x contract
 
 - **stderr text.** The exact wording of warnings, spelling
   suggestions, and diagnostic messages is not part of the contract.
@@ -139,7 +145,7 @@ default runtime behavior and is not classified as an error.
 
 ## Additive changes and `schema_version`
 
-Under this proposal, new optional modules and commands can be added without
+New optional modules and commands can be added without
 changing existing invocations. New fields, warning codes, or enum values still
 require a review of producer schemas and saved-report readers: a strict existing
 reader may reject them. Report versioning and consumer guidance must describe
@@ -152,7 +158,7 @@ requires a major bump and is not planned within 1.x. When the design
 requires such a change, we would ship it in a 2.0 with a migration
 note.
 
-## Proposed deprecation policy
+## Deprecation policy
 
 - A deprecation is announced in a CHANGELOG entry that names the
   surface, the replacement, and the earliest release the surface
@@ -165,7 +171,7 @@ note.
   carry a deprecation message.
 - Removal happens no earlier than the next major release.
 
-## What a 2.0 would mean under this proposal
+## What a 2.0 would mean
 
 A major bump is reserved for changes we cannot make additively:
 renaming or removing a documented CLI flag, tightening an existing
@@ -201,7 +207,7 @@ which of these platforms the release workflow builds and validates.
 
 <a id="known-boundaries-at-10"></a>
 
-## Current boundaries considered by this proposal
+## Current boundaries
 
 These are current limitations and follow-up work. They do not establish
 support for untested inputs or override the coverage reported by each module.
@@ -209,8 +215,10 @@ support for untested inputs or override the coverage reported by each module.
 - Bare, unborn, or SHA-256 Git repositories, Git alternates, and
   `GIT_DIR` overrides; subdirectory discovery inside a repository
   root. Support and diagnostics vary by repository shape; do not assume all
-  unsupported forms fail identically. `--source auto` may fall back to directory
-  mode without a stderr warning (see the README under "Content selection"). Tracked in
+  unsupported forms fail identically. When `--source auto` falls back from a
+  SHA-256, unborn or unreadable Git directory to directory mode, it says so on
+  stderr (`git_object_format_unsupported`, `git_no_commits_or_corrupt_gitdir`,
+  `git_head_not_found`). Tracked in
   [#66](https://github.com/war-and-code/dircue/issues/66).
 - `analyze focus --affected-by <path>` for a path with no matching
   declaration returns `status: complete` and echoes the query rather
