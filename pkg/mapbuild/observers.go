@@ -431,10 +431,10 @@ func aspireProjectOwners(componentsByRoot, componentsByName map[string][]string,
 		}
 	}
 	// Try root suffix match: find a component whose root ends with the identifier.
-	lower := strings.ToLower(projectIdent)
 	var candidates []string
 	for root, ids := range componentsByRoot {
-		if strings.ToLower(path.Base(root)) == lower || strings.ToLower(path.Base(root)) == strings.ToLower(normalized) {
+		base := path.Base(root)
+		if strings.EqualFold(base, projectIdent) || strings.EqualFold(base, normalized) {
 			candidates = append(candidates, ids...)
 		}
 	}
