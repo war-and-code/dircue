@@ -278,7 +278,7 @@ class WorkflowExpressionTests(unittest.TestCase):
 
     def test_full_pr_events_retain_expensive_job_selection(self) -> None:
         expected = {
-            "CI": {"preflight", "test", "linguist-conformance", "metrics-conformance"},
+            "CI": {"preflight", "test", "linguist-conformance", "metrics-conformance", "map-diff-dogfood"},
             "Structural worker": {"package"},
             "Structural prototype": {"prototype"},
         }
