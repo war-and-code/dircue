@@ -1,0 +1,95 @@
+{
+  "repo": "appflowy-editor",
+  "source": "https://github.com/AppFlowy-IO/appflowy-editor",
+  "commit": "01eccc6ee36bd07698bd80915289fe7070478cd2",
+  "oracle_files": [
+    {
+      "path": "pubspec.yaml",
+      "sha256": "cf7ce2f40a863a8a347f67ef77b0c91a2f7a01dfa4cc412609f615f0e7a6cce8"
+    },
+    {
+      "path": "example/pubspec.yaml",
+      "sha256": "ac2efb7bbbc5d1af29191496b42c2ef04b39d828d656bee9f84d6d2f270b3051"
+    }
+  ],
+  "components": [
+    {
+      "name": "appflowy_editor",
+      "root": ".",
+      "ecosystem": "dart",
+      "why": "pubspec.yaml declares name appflowy_editor, version 6.1.0, and a Flutter package with supported mobile, desktop, and web platforms."
+    },
+    {
+      "name": "example",
+      "root": "example",
+      "ecosystem": "dart",
+      "role": "example",
+      "why": "example/pubspec.yaml declares name: example and Flutter dependencies; dependency_overrides points appflowy_editor to ../, making this a local example application/package."
+    }
+  ],
+  "deployables": [],
+  "interfaces": [],
+  "capabilities": [
+    {
+      "capability": "net:http-client",
+      "owner": "appflowy_editor",
+      "path": "pubspec.yaml",
+      "why": "The root package declares http: ^1.2.0 as a direct runtime dependency; the Dart package is an HTTP client library."
+    },
+    {
+      "capability": "net:http-client",
+      "owner": "example",
+      "path": "example/pubspec.yaml",
+      "why": "The example package declares http: ^1.1.0 as a direct runtime dependency."
+    }
+  ],
+  "edges": [
+    {
+      "type": "depends_on_local",
+      "from": "example",
+      "to": "appflowy_editor",
+      "why": "example/pubspec.yaml dependency_overrides declares appflowy_editor with path: ../."
+    },
+    {
+      "type": "uses_capability",
+      "from": "appflowy_editor",
+      "to": "net:http-client",
+      "why": "pubspec.yaml declares direct runtime dependency http."
+    },
+    {
+      "type": "uses_capability",
+      "from": "example",
+      "to": "net:http-client",
+      "why": "example/pubspec.yaml declares direct runtime dependency http."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "complete",
+      "why": "The repository has exactly two tracked pubspec.yaml manifests, at the root and under example; both are oracle files."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The selected oracle files are package manifests and contain no deployment declarations. The example is a Flutter app package, but platform packaging/build configuration is outside oracle scope."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "The package manifests do not declare a map-supported interface. Flutter UI and package APIs are implemented in Dart source, outside oracle scope."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "Both direct http dependencies are labeled. Other dependencies were not exhaustively assessed for catalog capabilities, and the current capability catalog has no Dart dependency matching rules."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "The explicit local path override from example to the root package and the two HTTP capability-use edges are labeled. The package manifest does not express other local package relationships."
+    }
+  },
+  "notes": [
+    "The selected checkout contains 627 tracked .dart files across 879 tracked files, making this a substantive Flutter/Dart codebase rather than a manifest-only fixture.",
+    "The root package is a reusable rich-text editor library; example/ is a separate Flutter application package that consumes the root through a local path override.",
+    "Flutter platforms listed by the root pubspec are package targets, not separately labeled deployables because the oracle set contains no deployment manifests.",
+    "The explicit HTTP client capability is a source-backed semantic label; the current map capability catalog does not match Dart pub dependencies, so this holdout also exposes that coverage gap."
+  ],
+  "non_goals": []
+}

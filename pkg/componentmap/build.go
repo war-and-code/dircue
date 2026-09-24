@@ -106,6 +106,49 @@ func Build(report *declarations.Report) Fragment {
 			}
 		}
 	}
+
+	// Maven reactor sibling dependency resolution (O-27).
+	// A <dependency> whose groupId:artifactId exactly matches the declared
+	// coordinates of another Maven component in the same scan is a local
+	// project relationship. Version is ignored: Maven always resolves reactor
+	// siblings by groupId:artifactId regardless of the version token, which
+	// may be an unresolved property like ${project.version}.
+	// Ambiguity (two components with the same coordinates) yields no edge.
+	// Profile and scope conditions are preserved from the requirement.
+	mavenByCoords := buildMavenCoordIndex(projects, byManifest)
+	for _, p := range projects {
+		if _, ok := byManifest[p.ID]; !ok {
+			continue
+		}
+		for _, req := range p.Requirements {
+			if req.Kind != "maven-dependency" {
+				continue
+			}
+			coords := mavenDepGA(req.Value)
+			if coords == "" {
+				continue
+			}
+			targetKey, ok := mavenByCoords[coords]
+			if !ok || targetKey == "" {
+				// No matching sibling or ambiguous coordinates.
+				continue
+			}
+			from, to := p.ID, targetKey
+			if from == to {
+				continue
+			}
+			coverage := "complete"
+			if req.State == "conditional" || req.Condition != "" {
+				coverage = "partial"
+			}
+			r := Relationship{Type: "depends_on_local", From: from, To: to, DeclarationKind: "maven-sibling-dependency", Evidence: req.Evidence, State: req.State, Condition: req.Condition, Coverage: coverage}
+			k := relationshipKey(r)
+			if !seen[k] {
+				seen[k] = true
+				f.Relationships = append(f.Relationships, r)
+			}
+		}
+	}
 	sortFragment(&f)
 	f.Coverage.Components = len(f.Components)
 	f.Coverage.Relationships = len(f.Relationships)
@@ -181,7 +224,7 @@ func relationshipKind(kind string) (typ string, reverse, relevant bool) {
 	switch kind {
 	case "npm-workspace-member", "go-workspace-member", "cargo-workspace-member", "cargo-workspace-path-member", "uv-workspace-member", "solution-member", "module", "gradle-module":
 		return "member_of", true, true
-	case "npm-local-dependency", "npm-workspace-dependency", "go-local-replacement", "cargo-path-dependency", "cargo-workspace-path-dependency", "uv-local-dependency", "project-reference", "parent":
+	case "npm-local-dependency", "npm-workspace-dependency", "go-local-replacement", "cargo-path-dependency", "cargo-workspace-path-dependency", "uv-local-dependency", "project-reference", "parent", "pub-path-dependency":
 		return "depends_on_local", false, true
 	default:
 		return "", false, false
@@ -296,4 +339,80 @@ func sortFragment(f *Fragment) {
 		bk := strings.Join([]string{b.From, b.DeclarationKind, b.Target, b.Value, b.Evidence, b.State, b.Condition, b.Reason}, "\x00")
 		return strings.Compare(ak, bk)
 	})
+}
+
+// buildMavenCoordIndex returns a map from "groupId:artifactId" to the
+// component key for Maven components in the scan. A coordinate that appears
+// more than once maps to the empty string (ambiguous; no edge is emitted).
+// groupId inheritance: a module without a maven-groupId requirement inherits
+// the groupId from the first part of its maven-parent requirement value
+// ("parentGroupId:parentArtifactId:...").
+func buildMavenCoordIndex(projects []declarations.Project, byManifest map[string]Component) map[string]string {
+	type entry struct {
+		key string
+		n   int
+	}
+	coordCount := map[string]*entry{}
+	for _, p := range projects {
+		if _, ok := byManifest[p.ID]; !ok {
+			continue
+		}
+		if p.Kind != "maven" {
+			continue
+		}
+		groupID := mavenRequirement(p, "maven-groupId")
+		if groupID == "" {
+			// Inherit from parent: first colon-delimited field of maven-parent value.
+			if parent := mavenRequirement(p, "maven-parent"); parent != "" {
+				if i := strings.IndexByte(parent, ':'); i > 0 {
+					groupID = parent[:i]
+				}
+			}
+		}
+		artifactID := mavenRequirement(p, "maven-artifactId")
+		if groupID == "" || artifactID == "" {
+			continue
+		}
+		coords := groupID + ":" + artifactID
+		if e, exists := coordCount[coords]; exists {
+			e.n++
+			e.key = "" // ambiguous
+		} else {
+			coordCount[coords] = &entry{key: p.ID, n: 1}
+		}
+	}
+	out := make(map[string]string, len(coordCount))
+	for coords, e := range coordCount {
+		if e.n == 1 {
+			out[coords] = e.key
+		} else {
+			out[coords] = "" // ambiguous
+		}
+	}
+	return out
+}
+
+// mavenRequirement returns the first requirement value for the given kind, or "".
+func mavenRequirement(p declarations.Project, kind string) string {
+	for _, r := range p.Requirements {
+		if r.Kind == kind {
+			return r.Value
+		}
+	}
+	return ""
+}
+
+// mavenDepGA returns the "groupId:artifactId" portion of a maven-dependency
+// requirement value, stripping the optional ":version" suffix.
+func mavenDepGA(value string) string {
+	// Value may be "groupId:artifactId" or "groupId:artifactId:version".
+	first := strings.IndexByte(value, ':')
+	if first < 0 {
+		return ""
+	}
+	second := strings.IndexByte(value[first+1:], ':')
+	if second < 0 {
+		return strings.ToLower(value) // already "g:a"
+	}
+	return strings.ToLower(value[:first+1+second])
 }

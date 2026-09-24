@@ -30,10 +30,13 @@ type pythonSource struct {
 	invalid              bool
 }
 type pythonData struct {
-	project            bool
-	managed            bool
-	workspace          bool
-	auxiliary          bool
+	project   bool
+	managed   bool
+	workspace bool
+	auxiliary bool
+	// includeOnly marks a document that exists only to be resolved via a -r include;
+	// it never becomes a standalone component. Set for files inside requirements/.
+	includeOnly        bool
 	invalidPatterns    bool
 	invalidMembers     bool
 	patterns, excludes []string
@@ -49,6 +52,10 @@ func ParsePython(name string, content []byte) *Document {
 		return parsePythonSetup(name, content)
 	}
 	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+		return parsePythonRequirements(name, content)
+	}
+	// Any .txt file inside a requirements/ directory (e.g. requirements/prod.txt).
+	if strings.HasSuffix(base, ".txt") && path.Base(path.Dir(name)) == "requirements" {
 		return parsePythonRequirements(name, content)
 	}
 	if base != "pyproject.toml" {
@@ -321,6 +328,12 @@ func newPythonAuxDocument(name, semantics string) *Document {
 
 func parsePythonRequirements(name string, content []byte) *Document {
 	d := newPythonAuxDocument(name, "requirements-txt-static-v1")
+	data := d.Data.(*pythonData)
+	// Files inside a requirements/ directory (e.g. requirements/prod.txt) are
+	// include targets only; they do not create standalone components.
+	if path.Base(path.Dir(name)) == "requirements" {
+		data.includeOnly = true
+	}
 	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
 		d.Parsed = false
 		AddDiagnostic(d, "invalid-python-requirements", "Requirements file exceeds the byte limit or is not valid UTF-8.")
@@ -333,15 +346,89 @@ func parsePythonRequirements(name string, content []byte) *Document {
 		if text == "" || strings.HasPrefix(text, "#") {
 			continue
 		}
+		// -r FILE / --requirement FILE: record as an unresolved reference for later resolution.
+		if strings.HasPrefix(text, "-r ") || strings.HasPrefix(text, "--requirement ") {
+			var raw string
+			if strings.HasPrefix(text, "-r ") {
+				raw = strings.TrimSpace(text[3:])
+			} else {
+				raw = strings.TrimSpace(text[len("--requirement "):])
+			}
+			// Strip inline comment
+			if i := strings.IndexByte(raw, '#'); i >= 0 {
+				raw = strings.TrimSpace(raw[:i])
+			}
+			ref := Reference{Kind: "python-requirements-include", Value: "include", State: "unresolved", TargetStatus: "missing", Evidence: name}
+			if target, ok := LocalTarget(name, raw, ""); ok {
+				ref.Target = target
+				ref.State = "declared"
+			} else {
+				AddDiagnostic(d, "unsupported-python-requirements-line", "A requirements include has an unsupported or unsafe path.")
+			}
+			AddReference(d, ref)
+			continue
+		}
+		// -c FILE / --constraint FILE: constraints are not dependencies; emit a diagnostic only.
+		if strings.HasPrefix(text, "-c ") || strings.HasPrefix(text, "--constraint ") {
+			AddDiagnostic(d, "python-requirements-constraint", "A constraint file reference is not followed; constraint files do not declare dependencies.")
+			continue
+		}
 		if strings.HasPrefix(text, "-") || strings.HasPrefix(text, "\\") {
 			AddDiagnostic(d, "unsupported-python-requirements-line", "A requirements line uses an include, option, or continuation that is not resolved.")
 			continue
 		}
-		pythonRequirement(d, d.Data.(*pythonData), text, "", "python-dependency")
+		pythonRequirement(d, data, text, "", "python-dependency")
 	}
 	if scanner.Err() != nil {
 		d.limited = true
 		AddDiagnostic(d, "python-requirements-line-limit", "A requirements line exceeds the supported text limit.")
+	}
+	return d
+}
+
+// ParsePipfile reads a Pipfile (TOML format). [packages] become runtime
+// requirements; [dev-packages] become dev requirements using the
+// "dev_dependencies" condition so the capability engine skips them for
+// production-capability inference. The document is auxiliary and participates
+// in the same per-root deduplication as requirements.txt.
+func ParsePipfile(name string, content []byte) *Document {
+	d := newPythonAuxDocument(name, "pipfile-v1")
+	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-manifest", "Pipfile could not be parsed within the TOML limits.")
+		return d
+	}
+	raw, err := ValidateTOML(content)
+	if err != nil {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-manifest", "Pipfile could not be parsed within the TOML limits.")
+		return d
+	}
+	data := d.Data.(*pythonData)
+	if packages, ok := raw["packages"].(map[string]any); ok {
+		for _, k := range pythonKeys(packages) {
+			if d.limited {
+				break
+			}
+			if pythonNamePattern.MatchString(k) {
+				pythonRequirement(d, data, k, "", "python-dependency")
+			}
+		}
+	}
+	if devPackages, ok := raw["dev-packages"].(map[string]any); ok {
+		for _, k := range pythonKeys(devPackages) {
+			if d.limited {
+				break
+			}
+			if pythonNamePattern.MatchString(k) {
+				pythonRequirement(d, data, k, "dev_dependencies", "python-dependency")
+			}
+		}
+	}
+	if requires, ok := raw["requires"].(map[string]any); ok {
+		if pv, ok := requires["python_version"].(string); ok && pythonVersion.MatchString(pv) {
+			AddRequirement(d, Requirement{Kind: "python-requires-python", Value: pv, State: "declared", Evidence: name})
+		}
 	}
 	return d
 }

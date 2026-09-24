@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -877,6 +878,18 @@ func TestPythonReqsOnlyRootUnit(t *testing.T) {
 			root:   ".",
 			expect: true,
 		},
+		{
+			name:   "Pipfile counts",
+			files:  map[string]bool{"Pipfile": true},
+			root:   ".",
+			expect: true,
+		},
+		{
+			name:   "Pipfile in subdir counts",
+			files:  map[string]bool{"services/api/Pipfile": true},
+			root:   "services/api",
+			expect: true,
+		},
 	} {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
@@ -885,5 +898,182 @@ func TestPythonReqsOnlyRootUnit(t *testing.T) {
 				t.Fatalf("pythonReqsOnlyRoot(%v, %q) = %v, want %v", tc.files, tc.root, got, tc.expect)
 			}
 		})
+	}
+}
+
+// pythonTestInventoryAll routes files through the correct Python parsers
+// (ParsePython for requirements/pyproject/setup files, ParsePipfile for Pipfile,
+// ParsePythonSetupCfg for setup.cfg) and calls ResolvePython.
+func pythonTestInventoryAll(t *testing.T, input map[string]string) ([]*Document, map[string]bool) {
+	t.Helper()
+	keys := make([]string, 0, len(input))
+	for name := range input {
+		keys = append(keys, name)
+	}
+	slices.Sort(keys)
+	docs := []*Document{}
+	files := map[string]bool{}
+	for _, name := range keys {
+		files[name] = true
+		var d *Document
+		switch path.Base(name) {
+		case "Pipfile":
+			d = ParsePipfile(name, []byte(input[name]))
+		case "setup.cfg":
+			d = ParsePythonSetupCfg(name, []byte(input[name]))
+		default:
+			d = ParsePython(name, []byte(input[name]))
+		}
+		if d != nil {
+			docs = append(docs, d)
+		}
+	}
+	ResolvePython(docs, files)
+	return docs, files
+}
+
+// TestPythonRequirementsInclude verifies that -r includes are followed:
+// requirements from the included file are merged into the including file's
+// component with their original evidence paths preserved.
+func TestPythonRequirementsInclude(t *testing.T) {
+	docs, _ := pythonTestInventoryAll(t, map[string]string{
+		"requirements.txt":      "-r requirements/prod.txt\n",
+		"requirements/prod.txt": "psycopg2==2.9.9\nFlask==3.0.0\n",
+		"app.py":                "import flask\n",
+	})
+	// One component at root (not from requirements/prod.txt which is includeOnly).
+	var root *Document
+	for _, d := range docs {
+		if d.Project != nil && d.Project.Root == "." {
+			root = d
+			break
+		}
+	}
+	if root == nil {
+		t.Fatal("no component at root; expected requirements.txt to anchor one")
+	}
+	// psycopg2 should have been merged with evidence pointing to the included file.
+	found := false
+	for _, req := range root.Project.Requirements {
+		if req.Kind == "python-dependency" && req.Value == "psycopg2==2.9.9" && req.Evidence == "requirements/prod.txt" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("psycopg2 from included file not merged; requirements: %+v", root.Project.Requirements)
+	}
+	// The included file must NOT become a standalone component.
+	for _, d := range docs {
+		if d.Project != nil && d.Project.ID == "requirements/prod.txt" {
+			t.Fatal("includeOnly file requirements/prod.txt became a standalone component")
+		}
+	}
+}
+
+// TestPipfileRuntimeAndDevDeps verifies that Pipfile [packages] produce
+// declared deps and [dev-packages] produce dev_dependencies-conditioned deps.
+func TestPipfileRuntimeAndDevDeps(t *testing.T) {
+	docs, _ := pythonTestInventoryAll(t, map[string]string{
+		"Pipfile": `[[source]]
+url = "https://pypi.org/simple"
+name = "pypi"
+
+[packages]
+Flask = "*"
+psycopg2 = "*"
+
+[dev-packages]
+pytest = "*"
+factory-boy = "*"
+
+[requires]
+python_version = "3.11"
+`,
+		"app.py": "import flask\n",
+	})
+	if len(docs) != 1 {
+		t.Fatalf("expected 1 component, got %d", len(docs))
+	}
+	root := docs[0]
+	// Runtime deps: no condition.
+	pythonTestReq(t, root, "python-dependency", "Flask", "declared")
+	pythonTestReq(t, root, "python-dependency", "psycopg2", "declared")
+	// Dev deps: condition must be dev_dependencies.
+	found := false
+	for _, req := range root.Project.Requirements {
+		if req.Kind == "python-dependency" && req.Value == "pytest" && req.Condition == "dev_dependencies" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("pytest dev dep missing or wrong condition; reqs: %+v", root.Project.Requirements)
+	}
+	// python_version from [requires]
+	pythonTestReq(t, root, "python-requires-python", "3.11", "declared")
+}
+
+// TestSetupCfgToolOnlyReturnsNil verifies that a setup.cfg with only tool
+// sections ([flake8], [mypy], etc.) returns nil and causes no component.
+func TestSetupCfgToolOnlyReturnsNil(t *testing.T) {
+	content := []byte("[flake8]\nmax-line-length = 120\n[mypy]\npython_version = 3.11\n")
+	d := ParsePythonSetupCfg("setup.cfg", content)
+	if d != nil {
+		t.Fatalf("tool-only setup.cfg should return nil, got %+v", d)
+	}
+	// Confirm no component is created when combined with other files.
+	docs, _ := pythonTestInventoryAll(t, map[string]string{
+		"setup.cfg":        string(content),
+		"requirements.txt": "flask==3.0.0\n",
+		"app.py":           "import flask\n",
+	})
+	for _, d := range docs {
+		if d.Project != nil {
+			for _, req := range d.Project.Requirements {
+				if req.Evidence == "setup.cfg" && req.Kind == "declaration-semantics" {
+					t.Fatalf("tool-only setup.cfg contributed to a component: %+v", d.Project)
+				}
+			}
+		}
+	}
+}
+
+// TestSetupCfgWithMetadataCreatesComponent verifies that a setup.cfg with
+// a [metadata] section still produces a Python component.
+func TestSetupCfgWithMetadataCreatesComponent(t *testing.T) {
+	d := ParsePythonSetupCfg("setup.cfg", []byte("[metadata]\nname = my-package\nversion = 1.0.0\n"))
+	if d == nil {
+		t.Fatal("setup.cfg with [metadata] should not return nil")
+	}
+	if d.Project == nil || d.Project.Name != "my-package" {
+		t.Fatalf("expected name=my-package, got: %+v", d)
+	}
+}
+
+// TestPipfileAndRequirementsDedup verifies that when both a Pipfile and a
+// requirements.txt exist at the same root, only one component is produced
+// (Pipfile wins the dedup; it has higher-priority auxiliary evidence).
+func TestPipfileAndRequirementsDedup(t *testing.T) {
+	docs, _ := pythonTestInventoryAll(t, map[string]string{
+		"Pipfile": `[packages]
+Flask = "*"
+`,
+		"requirements.txt": "Flask==3.0.0\n",
+		"app.py":           "import flask\n",
+	})
+	// Count components with non-nil Project.
+	var components []*Document
+	for _, d := range docs {
+		if d.Project != nil {
+			components = append(components, d)
+		}
+	}
+	if len(components) != 1 {
+		t.Fatalf("expected 1 component after dedup, got %d: %+v", len(components), components)
+	}
+	// Pipfile should win (it has lower auxiliary priority value).
+	if path.Base(components[0].Project.ID) != "Pipfile" {
+		t.Fatalf("expected Pipfile to win dedup, got %s", components[0].Project.ID)
 	}
 }

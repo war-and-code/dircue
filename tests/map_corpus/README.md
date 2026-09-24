@@ -133,6 +133,129 @@ python3 tests/map_corpus/fetch_public.py \
 Fetching the full corpus can consume substantial disk space, so the helper has
 no `--all` mode. The verification gate itself never accesses the network.
 
+## Source-first holdouts
+
+Four additional pinned repositories test code bases outside the original eight
+golden-label projects: [OWASP BenchmarkJava](https://github.com/OWASP-Benchmark/BenchmarkJava),
+[OWASP BenchmarkPython](https://github.com/OWASP-Benchmark/BenchmarkPython),
+[AppFlowy editor](https://github.com/AppFlowy-IO/appflowy-editor) for Dart, and
+[AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo)
+for COBOL/JCL. Their labels in `holdout_labels/` were written from source and
+committed in `78fc5e1ea2ac642703ce4938f78bc007f10ec8eb` before dircue was
+run on the checkouts. A subsequent source-only review added three hashed
+supporting files and corrected the Java HSQLDB explanation and Python SQLite
+edge citation; it did not add or remove any scored positive fact. The original
+commit remains available to audit that sequence. Each current label pins the
+upstream commit and the SHA-256 of
+every cited source file. The labels assert selected positive map facts and
+coverage expectations; they are **not exhaustive**, so they cannot support a
+whole-repository precision estimate.
+
+The holdout runner checks the upstream commits and file digests, runs the map,
+and reports every labeled fact found or missed. It fails on a newly lost
+baseline fact or an unsupported `complete` coverage claim. Optionally, it
+compares legacy JSON against a local Linguist 9.7.0 container with networking
+disabled. It does not clone repositories or download container images:
+
+```sh
+python3 tests/map_corpus/run_holdout.py \
+  --binary ./dircue \
+  --repo owasp_java=/path/to/BenchmarkJava \
+  --repo owasp_python=/path/to/BenchmarkPython \
+  --repo dart=/path/to/appflowy-editor \
+  --repo cobol=/path/to/aws-mainframe-modernization-carddemo \
+  --linguist-image dircue-linguist:9.7.0 \
+  --output .cache/map-holdouts.json
+```
+
+The first source-first run found 5 of 18 labeled positives and made no
+`complete` coverage overclaims. The gaps it exposed were a Maven WAR and its
+build link, a Flask application and its SQLite use, and Dart HTTP-client and
+local-path relationships. PR #143 then implemented those as general map
+features. Against the labels exactly as frozen in `78fc5e1`, the new map
+finds 12 of 18. Four labels named facts in terms the map contract does not
+use: a WAR `service` instead of an `archive`, a `builds` edge in the reverse
+direction, a README-derived name for an undeclared Python root, and a
+`datastore:sqlite` category that the catalog spells `datastore:relational`.
+They were restated with source citations, recorded in each file's
+`corrections`. Against the corrected labels the map finds all 18, and
+`run_holdout.py` now enforces that as a regression floor. Because these four
+repositories guided the implementation, they no longer estimate accuracy on
+unseen code; `fresh_labels/` does that. `holdout_results.json` records the
+latest run, including each label file's corrections. The four legacy JSON
+outputs match Linguist exactly. COBOL/JCL has no positive map-graph label
+yet; its value is a language-parity and conservative-coverage probe, not
+proof of project relationship support (#144).
+
+## Fresh blind check
+
+Before the #143 map changes were run on them, four further repositories were
+labeled from source by a labeler who never ran dircue or read its output,
+and frozen in `c976461`:
+[OpenMRS core](https://github.com/openmrs/openmrs-core) (Maven reactor
+with a WAR module), a
+[Flask application](https://github.com/gothinkster/flask-realworld-example-app),
+the [bloc](https://github.com/felangel/bloc) Dart monorepo, and a
+[Prisma/Express application](https://github.com/gothinkster/node-express-realworld-example-app).
+The labels are exhaustive within named oracle files, so precision is
+measurable. See `fresh_labels/README.md` for selection and method.
+
+```sh
+python3 tests/map_corpus/fetch_fresh.py --dest .cache/fresh-repos
+python3 tests/map_corpus/score_fresh.py --binary ./dircue \
+  --repos .cache/fresh-repos --frozen      # the unseen measurement
+python3 tests/map_corpus/score_fresh.py --binary ./dircue \
+  --repos .cache/fresh-repos               # with recorded corrections
+```
+
+| Question | Frozen labels P / R | Corrected labels P / R |
+| --- | --- | --- |
+| components | 1.00 / 1.00 | 1.00 / 1.00 |
+| deployables | 0.80 / 0.80 | 1.00 / 0.83 |
+| interfaces | 1.00 / 1.00 | 1.00 / 1.00 |
+| capabilities | 0.60 / 1.00 | 1.00 / 1.00 |
+| relationships | 0.38 / 0.88 | 0.95 / 0.95 |
+
+The frozen-label precision is the honest unseen number, but most of the
+extra facts were real: compile-scope AWS S3 and Hibernate declarations, the
+six other reactor modules, the OpenMRS WAR the labeler had noted but could
+not name, and structural containment. Each correction cites the oracle-file
+line. The same review found real map errors, which #143 fixed before the
+corrected scores above: a Spring Security prefix that called password
+hashing OAuth2, Hibernate Search's Elasticsearch backend missing from the
+catalog, unfollowed `-r` includes, unsupported Pipfiles, a tool-only
+`setup.cfg` that created a second Python root, and unlinked Maven sibling
+modules. What remains: no Procfile deployable (#146); a root Dockerfile
+linked to the reactor aggregator rather than the WAR module it ships (#147);
+and a scorer naming mismatch for root Dockerfiles in edges (#149). Once
+corrected, these repositories also informed development, so a later release
+needs new unseen repositories for the next independent check.
+
+Two additional opt-in checks use bounded source slices from public projects
+with a checked-in binary referenced by a build declaration. The
+[zdh_web Maven POM](https://github.com/zhaoyachao/zdh_web/blob/1e420dcb3ec748011958a34e1d317ad58830c636/pom.xml#L1073-L1079)
+references a local JAR through `systemPath`; the
+[pyRevit project file](https://github.com/pyrevitlabs/pyRevit/blob/6294cf9c477130eadd73b9d156784f7a5553b4cd/dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj#L8)
+references a checked-in DLL through `HintPath`. `unmanaged_binary_slice.py`
+fetches only each cited project file and binary from pinned commits, limits
+response sizes, verifies the binary digests and declared references, and
+deletes the files after the run. It does not vendor binaries or make a claim
+about the complete source repositories:
+
+```sh
+python3 tests/map_corpus/unmanaged_binary_slice.py --binary ./dircue \
+  > .cache/unmanaged-binary-slices.json
+```
+
+The documented run recognized the JAR as archive content and the DLL as binary
+content. No package identity was inferred from those roles alone; package
+coverage stayed `unknown` without a provider report. This is an inventory
+smoke check, not a substitute for an SBOM tool or a test of whether a Syft
+report would identify either binary. It requires network access when invoked
+and is not part of ordinary CI. `unmanaged_binary_results.json` is the
+portable receipt, with the candidate binary hash and both upstream
+commits; no downloaded binary bytes are checked into this repository.
+
 ## On-demand resource and compatibility evidence
 
 The resource harness records wall time, user and system CPU, peak RSS, output

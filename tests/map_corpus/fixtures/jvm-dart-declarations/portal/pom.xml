@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.example</groupId>
+		<artifactId>platform-parent</artifactId>
+		<version>3.1</version>
+		<relativePath/>
+	</parent>
+	<artifactId>portal</artifactId>
+	<packaging>war</packaging>
+	<properties>
+		<app.name>portal-web</app.name>
+	</properties>
+	<dependencies>
+		<dependency>
+			<groupId>org.example</groupId>
+			<artifactId>helper</artifactId>
+			<version>9.0</version>
+		</dependency>
+	</dependencies>
+	<build>
+		<finalName>${app.name}</finalName>
+	</build>
+</project>

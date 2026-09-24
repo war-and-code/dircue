@@ -95,6 +95,9 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, nodePaths, def.Provider+":"+def.Kind+":"+def.Name)
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
+		if def.Format != "" {
+			n.Properties["format"] = def.Format
+		}
 		if def.Count > 1 {
 			n.Properties["declaration_count"] = fmt.Sprintf("%d", def.Count)
 		}
@@ -170,6 +173,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				if len(owners) == 1 {
 					addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "aspire-project:"+ref.Value, "aspire_addproject_declares_run", deployableEvidence(def.Path, ref.Evidence))
 				}
+			}
+		}
+		// Maven WAR/EAR: the pom.xml declares the packaging and the deployable
+		// artifact. Link it to the co-located Maven component with a builds edge.
+		if def.Provider == "maven" && def.Kind == "archive" && len(def.Evidence) > 0 {
+			owners := componentsByRoot[path.Dir(def.Path)]
+			if len(owners) == 1 {
+				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "maven-war:"+def.Path, "maven_pom_declares_war_packaging", deployableEvidence(def.Path, def.Evidence[0]))
 			}
 		}
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {

@@ -309,6 +309,9 @@ var prefixEntries = []prefixEntry{
 	{"co.elastic.clients:elasticsearch-java", "search:elasticsearch"},
 	{"org.springframework.data:spring-data-elasticsearch", "search:elasticsearch"},
 	{"org.springframework.boot:spring-boot-starter-data-elasticsearch", "search:elasticsearch"},
+	// Hibernate Search backends (Elasticsearch and OpenSearch share the same capability)
+	{"org.hibernate.search:hibernate-search-backend-elasticsearch", "search:elasticsearch"},
+	{"org.hibernate.search:hibernate-search-backend-opensearch", "search:elasticsearch"},
 	// Kafka
 	{"org.apache.kafka:kafka-clients", "messaging:kafka"},
 	{"org.apache.kafka:kafka-streams", "messaging:kafka"},
@@ -317,11 +320,24 @@ var prefixEntries = []prefixEntry{
 	// AMQP / RabbitMQ
 	{"org.springframework.boot:spring-boot-starter-amqp", "messaging:amqp"},
 	{"com.rabbitmq:amqp-client", "messaging:amqp"},
-	// Auth — spring security
+	// Auth — spring security OAuth2.
+	// spring-boot-starter-security is kept as a general OAuth2 signal:
+	// Spring Boot apps that secure HTTP endpoints commonly use it alongside
+	// OAuth2 starters. The broad org.springframework.security namespace prefix
+	// is replaced by explicit artifact-level entries below so that
+	// spring-security-crypto (password hashing) and unrelated sub-artifacts
+	// do not map to auth:oauth2.
 	{"org.springframework.boot:spring-boot-starter-security", "auth:oauth2"},
 	{"org.springframework.boot:spring-boot-starter-oauth2-client", "auth:oauth2"},
 	{"org.springframework.boot:spring-boot-starter-oauth2-resource-server", "auth:oauth2"},
-	{"org.springframework.security", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-core", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-client", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-jose", "auth:oauth2"},
+	{"org.springframework.security:spring-security-oauth2-resource-server", "auth:oauth2"},
+	// Legacy Spring Security OAuth2 (pre-Spring Security 5)
+	{"org.springframework.security.oauth:spring-security-oauth2", "auth:oauth2"},
+	// Spring Authorization Server
+	{"org.springframework.security.oauth2.server:spring-security-oauth2-authorization-server", "auth:oauth2"},
 	{"io.jsonwebtoken:jjwt", "auth:jwt"},
 	{"com.auth0:java-jwt", "auth:jwt"},
 	// Cloud / AWS — "software.amazon.awssdk" prefix (separator is ":")
@@ -338,6 +354,13 @@ var prefixEntries = []prefixEntry{
 	{"org.springframework.boot:spring-boot-starter-mail", "messaging:smtp"},
 	{"com.sun.mail:jakarta.mail", "messaging:smtp"},
 	{"org.simplejavamail:simple-java-mail", "messaging:smtp"},
+	// Directory / LDAP — client libraries and embedded LDAP servers
+	{"org.springframework.ldap", "directory:ldap"},
+	{"org.springframework.boot:spring-boot-starter-data-ldap", "directory:ldap"},
+	{"com.unboundid:unboundid-ldapsdk", "directory:ldap"},
+	{"org.apache.directory.server", "directory:ldap"},
+	{"org.apache.directory.client", "directory:ldap"},
+	{"com.novell.ldap:jldap", "directory:ldap"},
 
 	// npm scoped prefixes — coordinateMatch with separator "/".
 	// Use the scope without trailing slash: "@aws-sdk" matches "@aws-sdk/client-s3"
@@ -364,6 +387,8 @@ var exactByKind = map[string]map[string][]string{
 	"python-dependency":          pypiExact,
 	"python-build-requirement":   pypiExact,
 	"python-import":              pythonImportExact,
+	// Dart / pub
+	"dart-dependency": pubExact,
 }
 
 // npmExact: npm package name (exact, lowercased) → capabilities.
@@ -447,6 +472,9 @@ var npmExact = map[string][]string{
 	"@bufbuild/protobuf": {"serialization:protobuf"},
 	"js-yaml":            {"serialization:yaml"},
 	"yaml":               {"serialization:yaml"},
+	// Directory / LDAP
+	"ldapjs": {"directory:ldap"},
+	"ldapts": {"directory:ldap"},
 }
 
 // rubyExact: gem name (exact, lowercased) → capabilities.
@@ -700,6 +728,10 @@ var nugetExact = map[string][]string{
 	// AI
 	"azure.ai.openai":          {"ai:llm-sdk"},
 	"microsoft.semantickernel": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"novell.directory.ldap":              {"directory:ldap"},
+	"system.directoryservices.protocols": {"directory:ldap"},
+	"novell.directory.ldap.netstandard":  {"directory:ldap"},
 }
 
 // pypiExact: PyPI canonical name (lowercased, PEP 503 normalized) → capabilities.
@@ -717,6 +749,8 @@ var pypiExact = map[string][]string{
 	"mysql-connector-python": {"datastore:mysql"},
 	"cx-oracle":              {"datastore:relational"},
 	"pyodbc":                 {"datastore:relational"},
+	// SQLite — stdlib wrapper / async wrapper; matches vocabulary of npm sqlite3 and ruby sqlite3
+	"aiosqlite": {"datastore:relational"},
 	// ORM / query builder (multi-DB)
 	"sqlalchemy":   {"datastore:relational"},
 	"alembic":      {"datastore:relational"},
@@ -788,6 +822,9 @@ var pypiExact = map[string][]string{
 	"anthropic":       {"ai:llm-sdk"},
 	"langchain":       {"ai:llm-sdk"},
 	"huggingface-hub": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"ldap3":       {"directory:ldap"},
+	"python-ldap": {"directory:ldap"},
 }
 
 // pythonImportExact: Python top-level import name (exact, lowercased) → capabilities.
@@ -806,6 +843,9 @@ var pythonImportExact = map[string][]string{
 	"peewee":     {"datastore:relational"},
 	"django":     {"datastore:relational"},
 	"tortoise":   {"datastore:relational"},
+	// SQLite stdlib driver and async wrapper; matches vocabulary of npm sqlite3 and ruby sqlite3
+	"sqlite3":   {"datastore:relational"},
+	"aiosqlite": {"datastore:relational"},
 	// Cache / Redis
 	"redis":    {"cache:redis"},
 	"aioredis": {"cache:redis"},
@@ -847,4 +887,45 @@ var pythonImportExact = map[string][]string{
 	"openai":    {"ai:llm-sdk"},
 	"anthropic": {"ai:llm-sdk"},
 	"langchain": {"ai:llm-sdk"},
+	// Directory / LDAP
+	"ldap3": {"directory:ldap"},
+	"ldap":  {"directory:ldap"},
+}
+
+// pubExact: Dart pub package name (exact, lowercased) → capabilities.
+// Only well-known, unambiguous packages are listed. Packages with multiple
+// possible roles or primarily used for testing are omitted.
+// dev_dependencies are filtered by the capability engine and do not reach here.
+var pubExact = map[string][]string{
+	// HTTP clients — the Dart `http` package is the canonical HTTP client.
+	"http":    {"net:http-client"},
+	"dio":     {"net:http-client"},
+	"chopper": {"net:http-client"},
+	// SQLite / relational (embedded)
+	"sqflite":            {"datastore:relational"},
+	"drift":              {"datastore:relational"},
+	"sqlite3":            {"datastore:relational"},
+	"sqflite_common_ffi": {"datastore:relational"},
+	// PostgreSQL
+	"postgres": {"datastore:postgresql"},
+	// MongoDB
+	"mongo_dart": {"datastore:mongodb"},
+	// Redis
+	"redis": {"cache:redis"},
+	// Firebase (GCP)
+	"firebase_core":     {"cloud:gcp"},
+	"firebase_auth":     {"cloud:gcp"},
+	"firebase_database": {"cloud:gcp"},
+	"cloud_firestore":   {"cloud:gcp"},
+	"firebase_storage":  {"cloud:gcp", "storage:object"},
+	// Serialization
+	"protobuf": {"serialization:protobuf"},
+	"grpc":     {"serialization:protobuf"},
+	// Auth
+	"jwt_decode":        {"auth:jwt"},
+	"dart_jsonwebtoken": {"auth:jwt"},
+	// AI / LLM
+	"langchain":            {"ai:llm-sdk"},
+	"google_generative_ai": {"ai:llm-sdk"},
+	"openai_dart":          {"ai:llm-sdk"},
 }
