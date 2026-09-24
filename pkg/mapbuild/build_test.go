@@ -29,7 +29,8 @@ func TestDeclaredBuildAndRunLinksHaveEvidence(t *testing.T) {
 			{Kind: "build_context", Value: "services/api", Qualification: "local", Evidence: evidence},
 			{Kind: "image", Value: "example/api:v1", Qualification: "external", Evidence: evidence},
 		}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "services/api/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{evidence}},
+		// Name "api" reflects dockerfileDisplayName("services/api/Dockerfile") = path.Base("services/api") = "api".
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "services/api/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{evidence}},
 		{Provider: "kubernetes", Kind: "workload", Name: "api", Path: "k8s/api.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "image", Value: "example/api:v1", Qualification: "external", Evidence: evidence}}},
 		{Provider: "cloudformation", Kind: "infrastructure", Name: "function", Path: "template.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "code_uri", Value: "services/api", Qualification: "local", Evidence: evidence}}},
 	}
@@ -68,7 +69,8 @@ func TestKubernetesImageDoesNotInferRunFromDockerfileAndBasename(t *testing.T) {
 	dockerEvidence := deployables.Evidence{Field: "FROM", Value: "python:3.13", Line: 1, Basis: "dockerfile-instruction"}
 	definitions := []deployables.Definition{
 		{Provider: "kubernetes", Kind: "workload", Name: "emailservice", Path: "k8s/emailservice.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "Deployment", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "image", Value: workloadEvidence.Value, Qualification: "external", Evidence: workloadEvidence}}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "src/emailservice/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: dockerEvidence.Value, Qualification: "external", Evidence: dockerEvidence}}},
+		// Name "emailservice" reflects dockerfileDisplayName("src/emailservice/Dockerfile").
+		{Provider: "dockerfile", Kind: "container_build", Name: "emailservice", Path: "src/emailservice/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: dockerEvidence.Value, Qualification: "external", Evidence: dockerEvidence}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	for _, edge := range doc.Edges {
@@ -88,8 +90,10 @@ func TestKubernetesImageDoesNotChooseAmongDuplicateComponentRoots(t *testing.T) 
 	evidence := deployables.Evidence{Field: "image", Value: "registry.example/api:v1", Line: 1, Basis: "kubernetes-container-field"}
 	definitions := []deployables.Definition{
 		{Provider: "kubernetes", Kind: "workload", Name: "api", Path: "k8s/api.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "Deployment", Line: 1, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "image", Value: evidence.Value, Qualification: "external", Evidence: evidence}}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "one/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "two/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
+		// Names reflect dockerfileDisplayName: path.Base(path.Dir(…)) = "api" for both.
+		// The paths differ so the node IDs are distinct.
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "one/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "two/api/Dockerfile", Coverage: "complete", References: []deployables.Reference{{Kind: "base_image_or_stage", Value: "alpine", Qualification: "external", Evidence: deployables.Evidence{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	for _, edge := range doc.Edges {
@@ -107,7 +111,8 @@ func TestKubernetesImageDoesNotClaimAncestorComponentFromNestedDockerfile(t *tes
 	evidence := deployables.Evidence{Field: "image", Value: "cartservice:v1", Line: 1, Basis: "kubernetes-container-field"}
 	definitions := []deployables.Definition{
 		{Provider: "kubernetes", Kind: "workload", Name: "cartservice", Path: "k8s/cartservice.yaml", Coverage: "qualified", Evidence: []deployables.Evidence{evidence}, References: []deployables.Reference{{Kind: "image", Value: evidence.Value, Qualification: "external", Evidence: evidence}}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "default", Path: "src/cartservice/src/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}},
+		// Name "src" reflects dockerfileDisplayName("src/cartservice/src/Dockerfile") = path.Base("src/cartservice/src") = "src".
+		{Provider: "dockerfile", Kind: "container_build", Name: "src", Path: "src/cartservice/src/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	for _, edge := range doc.Edges {
@@ -314,6 +319,12 @@ func TestAuxiliaryPathRolesAreHintsNotDeletedFacts(t *testing.T) {
 		{"scripts/benchmark/pyproject.toml", "tooling"},
 		{"scripts/benchmarks/Cargo.toml", "tooling"},
 		{"scripts/bench/pyproject.toml", "tooling"},
+		// JVM package paths below a source set are not project layout.
+		{"src/main/java/org/springframework/samples/petclinic/PetClinicApplication.java", ""},
+		{"src/test/java/org/example/app/AppTest.java", "test"},
+		{"examples/web/src/main/kotlin/demo/App.kt", "example"},
+		// Only .NET project files use the name-suffix test rule.
+		{"cmd/latest/latest.go", ""},
 	} {
 		if got := mapPathRole(test.filename); got != test.role {
 			t.Errorf("%s: role %q, want %q", test.filename, got, test.role)
@@ -521,4 +532,63 @@ func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 		}
 	}
 	t.Fatal("no cache:redis capability node created")
+}
+
+func TestDockerfileMultipleCoLocatedComponentsEmitsPartialBuildsToEach(t *testing.T) {
+	// A root Dockerfile co-located with two components (e.g. mastodon's Ruby +
+	// Node apps in the same root directory) should produce partial builds edges
+	// to EACH component with reason dockerfile_co_located_with_multiple_components,
+	// rather than being silently dropped because "exactly one co-located component"
+	// doesn't hold.
+	doc := mapdoc.New()
+	ruby := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "ruby")
+	ruby.Name = "Mastodon"
+	ruby.Properties = map[string]string{"root": "."}
+	npm := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "npm")
+	npm.Name = "@mastodon/mastodon"
+	npm.Properties = map[string]string{"root": "."}
+	doc.Nodes = append(doc.Nodes, ruby, npm)
+
+	ev := deployables.Evidence{Field: "FROM", Value: "ruby:3.3", Line: 1, Basis: "dockerfile-instruction"}
+	// Name "(root)" reflects dockerfileDisplayName("Dockerfile") for the root Dockerfile.
+	definitions := []deployables.Definition{
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+
+	buildsEdges := 0
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeBuilds {
+			continue
+		}
+		if edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Fatalf("multi-component builds edge should be partial: %+v", edge)
+		}
+		found := false
+		for _, r := range edge.Coverage.Reasons {
+			if r == "dockerfile_co_located_with_multiple_components" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("multi-component builds edge missing expected reason: %+v", edge)
+		}
+		buildsEdges++
+	}
+	if buildsEdges != 2 {
+		t.Fatalf("want 2 partial builds edges (one per co-located component), got %d", buildsEdges)
+	}
+}
+
+func TestGoModuleDisplayName(t *testing.T) {
+	for _, test := range []struct{ module, want string }{
+		{"github.com/grafana/loki/v3", "loki"},
+		{"github.com/grafana/loki", "loki"},
+		{"dircue", "dircue"},
+		{"example.com/tools/v2/cmd", "cmd"},
+	} {
+		if got := goModuleDisplayName(test.module); got != test.want {
+			t.Errorf("goModuleDisplayName(%q) = %q, want %q", test.module, got, test.want)
+		}
+	}
 }

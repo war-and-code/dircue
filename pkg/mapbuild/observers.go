@@ -95,7 +95,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
 		if def.Coverage != "complete" {
-			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"static_declaration_not_evaluated"}}
+			coverageReason := "static_declaration_not_evaluated"
+			if def.Provider == "helm" {
+				coverageReason = "helm_templates_not_rendered"
+			}
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{coverageReason}}
 		}
 		for _, item := range def.Evidence {
 			n.Evidence = append(n.Evidence, deployableEvidence(def.Path, item))
@@ -154,8 +158,27 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			}
 		}
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {
-			if owners := componentsByRoot[path.Dir(def.Path)]; len(owners) == 1 {
+			owners := componentsByRoot[path.Dir(def.Path)]
+			if len(owners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
+			} else if len(owners) > 1 {
+				// Multiple components share the same directory as this Dockerfile
+				// (e.g. a monorepo root with Ruby and Node components). Emit a
+				// partial builds edge to each so the graph retains the co-location
+				// signal; callers should treat these as hints, not proof. The reason
+				// "dockerfile_co_located_with_multiple_components" distinguishes
+				// this case from the unambiguous single-component case.
+				ev := deployableEvidence(def.Path, def.Evidence[0])
+				for _, ownerID := range owners {
+					e := mapdoc.NewEdge(mapdoc.EdgeBuilds, n.ID, ownerID, "dockerfile-multi:"+ownerID)
+					if seenEdges[e.ID] {
+						continue
+					}
+					seenEdges[e.ID] = true
+					e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"dockerfile_co_located_with_multiple_components"}}
+					e.Evidence = []mapdoc.Evidence{ev}
+					d.Edges = append(d.Edges, e)
+				}
 			}
 		}
 		for _, image := range declaredImages {
@@ -171,7 +194,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 					skaffoldImages[name] = append(skaffoldImages[name], imageOwner{component: localComponent, evidence: localEvidence, imageEvidence: image.evidence})
 				}
 			}
-			if def.Provider == "kubernetes" {
+			if def.Provider == "kubernetes" || def.Provider == "helm" {
 				imageUsers = append(imageUsers, struct {
 					id       string
 					image    string
@@ -243,9 +266,13 @@ func aggregateTerraformDefs(defs []deployables.Definition) []deployables.Definit
 	}
 	for _, dir := range tfOrder {
 		st := tfByDir[dir]
+		// Use "(root)" for the repository root module so that it displays as
+		// "(root) [infrastructure]" rather than the misleading "main.tf".
+		// Non-root modules use their directory's base name (e.g. "modules/vpc"
+		// → "vpc"), which is the conventional Terraform module identity.
 		moduleName := path.Base(dir)
 		if moduleName == "." || moduleName == "" {
-			moduleName = path.Base(st.firstPath)
+			moduleName = "(root)"
 		}
 		// Path is set to the primary .tf file so that evidence items reference
 		// a real source file (required by the quality gate's evidence-path filter
@@ -289,12 +316,12 @@ func aggregateKubernetesDefs(defs []deployables.Definition, componentsByRoot map
 		scope     string
 	}
 	type groupState struct {
-		primary    deployables.Definition
-		allPaths   []string // all declaring file paths
-		evidence   []deployables.Evidence
-		refs       []deployables.Reference
-		count      int
-		coverage   string
+		primary  deployables.Definition
+		allPaths []string // all declaring file paths
+		evidence []deployables.Evidence
+		refs     []deployables.Reference
+		count    int
+		coverage string
 	}
 	groups := map[groupKey]*groupState{}
 	order := []groupKey{}

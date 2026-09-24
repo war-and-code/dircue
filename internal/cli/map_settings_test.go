@@ -19,7 +19,7 @@ func TestMapSettingsResolvesPresetAndOverride(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &report); err != nil {
 		t.Fatal(err)
 	}
-	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 12 {
+	if report.Kind != "map_settings" || report.Preset != "balanced" || len(report.Settings) != 13 {
 		t.Fatalf("unexpected report: %+v", report)
 	}
 	byName := map[string]mapEffectiveSetting{}
@@ -67,6 +67,31 @@ func TestMapSettingsPresetValuesAndValidation(t *testing.T) {
 		}
 		if preset == "low-memory" && (report.Settings[1].Name != "git.object_cache_bytes" || report.Settings[1].Value != "8388608") {
 			t.Fatalf("low-memory retained Git cache is not reduced: %+v", report.Settings)
+		}
+		byName := map[string]mapEffectiveSetting{}
+		for _, s := range report.Settings {
+			byName[s.Name] = s
+		}
+		if preset == "low-memory" {
+			if byName["content.file_bytes"].Value != "524288" || byName["content.file_bytes"].Origin != "preset:low-memory" {
+				t.Fatalf("low-memory file byte cap not set: %+v", byName["content.file_bytes"])
+			}
+			if byName["content.intent_observations"].Value != "2048" || byName["content.intent_observations"].Origin != "preset:low-memory" {
+				t.Fatalf("low-memory intent observations not reduced: %+v", byName["content.intent_observations"])
+			}
+		}
+		if preset == "thorough" {
+			if byName["inventory.files"].Value != "250000" || byName["inventory.files"].Origin != "preset:thorough" {
+				t.Fatalf("thorough file inventory not raised: %+v", byName["inventory.files"])
+			}
+			if byName["content.intent_observations"].Value != "16384" || byName["content.intent_observations"].Origin != "preset:thorough" {
+				t.Fatalf("thorough intent observations not raised: %+v", byName["content.intent_observations"])
+			}
+		}
+		if preset == "balanced" {
+			if byName["content.intent_observations"].Value != "0" || byName["content.intent_observations"].Origin != "default" {
+				t.Fatalf("balanced intent observations not default: %+v", byName["content.intent_observations"])
+			}
 		}
 	}
 	for _, args := range [][]string{

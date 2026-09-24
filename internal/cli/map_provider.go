@@ -129,6 +129,7 @@ func newMapRouteCommand(opts *options) *cobra.Command {
 
 func newMapLocateCommand(opts *options) *cobra.Command {
 	var sourceURI, digestSpec string
+	var uriBases []string
 	var summary bool
 	cmd := &cobra.Command{
 		Use:     "locate <map.json> <results.sarif>",
@@ -157,7 +158,11 @@ func newMapLocateCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			annotated, result, err := sariflocate.Annotate(input, doc, sariflocate.Options{SourceURI: sourceURI, Digest: digest})
+			bases, err := parseURIBases(uriBases)
+			if err != nil {
+				return err
+			}
+			annotated, result, err := sariflocate.Annotate(input, doc, sariflocate.Options{SourceURI: sourceURI, Digest: digest, URIBases: bases})
 			if err != nil {
 				return err
 			}
@@ -175,6 +180,7 @@ func newMapLocateCommand(opts *options) *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&sourceURI, "source-uri", "", "Selected source root used only to relativize absolute SARIF URIs")
+	cmd.Flags().StringArrayVar(&uriBases, "uri-base", nil, "Define a uriBaseId the report uses but does not declare, as NAME=URI; use NAME=. for the map root (repeatable)")
 	cmd.Flags().StringVar(&digestSpec, "source-digest", "", "Directory snapshot identity as ALGORITHM:SCOPE:VALUE")
 	cmd.Flags().BoolVar(&summary, "summary", false, "Emit JSON resolution and per-node counts instead of annotated SARIF")
 	setSavedReportHelp(cmd)
@@ -236,4 +242,21 @@ func parseMapDigest(spec string) (*mapdoc.Digest, error) {
 		return nil, fmt.Errorf("--source-digest requires ALGORITHM:SCOPE:VALUE")
 	}
 	return &mapdoc.Digest{Algorithm: parts[0], Scope: parts[1], Value: parts[2]}, nil
+}
+
+// parseURIBases reads repeated --uri-base NAME=URI values.
+func parseURIBases(values []string) (map[string]string, error) {
+	if len(values) == 0 {
+		return nil, nil
+	}
+	out := make(map[string]string, len(values))
+	for _, value := range values {
+		name, uri, ok := strings.Cut(value, "=")
+		name = strings.Trim(name, "%")
+		if !ok || name == "" || uri == "" {
+			return nil, fmt.Errorf("--uri-base must be NAME=URI, for example SRCROOT=.; got %q", value)
+		}
+		out[name] = uri
+	}
+	return out, nil
 }
