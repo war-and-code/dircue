@@ -1,6 +1,8 @@
 package intentmap
 
 import (
+	"bufio"
+	"bytes"
 	"container/heap"
 	"context"
 	"go/ast"
@@ -24,7 +26,8 @@ type Detector struct {
 	selected     int
 	inspected    int
 	omissions    map[string]int
-	projects     map[string]string
+	projects     map[string]string // projectID → root dir
+	projectNames map[string]string // projectID → module/package name base (for binary naming)
 }
 
 var _ profile.Detector = (*Detector)(nil)
@@ -38,7 +41,7 @@ func New(options Options) *Detector {
 	if maxObs <= 0 || maxObs > DefaultMaxObservations {
 		maxObs = DefaultMaxObservations
 	}
-	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}}
+	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}}
 }
 
 func (d *Detector) Name() string { return DetectorName }
@@ -53,7 +56,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	proto := strings.HasSuffix(filename, ".proto")
 	goFile := strings.HasSuffix(filename, ".go")
 	config := configCandidate(file.Path)
-	if !proto && !goFile && !config {
+	dockerfile := isDockerfile(file.Path)
+	if !proto && !goFile && !config && !dockerfile {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -72,6 +76,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseProto(file.Path, file.Content)
 	case goFile:
 		observations = parseGoImports(file.Path, file.Content)
+	case dockerfile:
+		observations = parseDockerfileExpose(file.Path, file.Content)
 	case config:
 		if strings.HasSuffix(filename, ".json") {
 			var depthLimited bool
@@ -79,6 +85,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 			if depthLimited {
 				d.omit("config_depth_limit")
 			}
+		} else if strings.HasSuffix(filename, ".yml") || strings.HasSuffix(filename, ".yaml") {
+			observations = parseYAMLConfig(file.Path, file.Content)
 		} else {
 			observations = parseConfig(file.Path, file.Content)
 		}
@@ -102,7 +110,24 @@ func (d *Detector) Finish(ctx context.Context) (*Report, error) {
 	for i := range out {
 		out[i].Properties = cloneMap(out[i].Properties)
 		if out[i].ProjectID == "" {
-			out[i].ProjectID = owningProject(out[i].Path, d.projects)
+			if id := owningProject(out[i].Path, d.projects); id != "" {
+				out[i].ProjectID = id
+				out[i].ProjectAttribution = "directory_containment"
+			}
+		}
+		// For Go binaries whose main.go sits at the project root (as opposed
+		// to under cmd/<name>/), goBinaryName() returns the directory name,
+		// which is often "." → falls back to "main". Replace with the module
+		// path base so the name is stable across different checkout paths.
+		if out[i].Kind == KindInterface && out[i].Properties["interface_kind"] == "binary" {
+			if name, ok := d.projectNames[out[i].ProjectID]; ok && name != "" && name != "." {
+				// Only rename when the binary's source file sits at the project root.
+				obsDir := strings.Trim(path.Dir(out[i].Path), "./")
+				projRoot := strings.Trim(d.projects[out[i].ProjectID], "./")
+				if obsDir == projRoot {
+					out[i].Name = name
+				}
+			}
 		}
 	}
 	slices.SortFunc(out, compareObservation)
@@ -152,6 +177,88 @@ func (h *observationHeap) Pop() any {
 
 func (d *Detector) omit(reason string) { d.mu.Lock(); d.omissions[reason]++; d.mu.Unlock() }
 
+// kindPriority returns a sort key that ensures interfaces are retained over
+// capabilities, and capabilities over config entries and imports, when the
+// observation heap is at capacity. Lower string = higher priority.
+func kindPriority(kind Kind) string {
+	switch kind {
+	case KindInterface:
+		return "1"
+	case KindCapability:
+		return "2"
+	case KindConfig:
+		return "3"
+	case KindImport:
+		return "4"
+	default:
+		return "9"
+	}
+}
+
+// goBinaryName returns a user-meaningful name for a Go CLI binary from the
+// source file path. It uses the immediate parent directory of the file; for
+// root-level files (parent ".") it falls back to the file stem.
+func goBinaryName(filePath string) string {
+	dir := path.Dir(filePath)
+	base := path.Base(dir)
+	if base == "" || base == "." {
+		// root-level binary (e.g. main.go at repo root)
+		base = strings.TrimSuffix(path.Base(filePath), ".go")
+	}
+	return base
+}
+
+// isDockerfile reports whether the path looks like a Dockerfile.
+func isDockerfile(name string) bool {
+	base := strings.ToLower(path.Base(name))
+	return base == "dockerfile" || strings.HasPrefix(base, "dockerfile.")
+}
+
+// parseDockerfileExpose extracts EXPOSE port declarations from a Dockerfile,
+// producing one interface observation per exposed port.
+func parseDockerfileExpose(name string, content []byte) []Observation {
+	var out []Observation
+	scanner := bufio.NewScanner(bytes.NewReader(content))
+	lineNum := 0
+	for scanner.Scan() {
+		lineNum++
+		line := strings.TrimSpace(scanner.Text())
+		if !strings.HasPrefix(strings.ToUpper(line), "EXPOSE") {
+			continue
+		}
+		rest := strings.TrimSpace(line[6:])
+		for _, token := range strings.Fields(rest) {
+			port := strings.SplitN(token, "/", 2)[0]
+			if port == "" || !isNumericPort(port) {
+				continue
+			}
+			out = append(out, Observation{
+				Kind:      KindInterface,
+				Name:      "port:" + port,
+				State:     "declared",
+				Basis:     "declared_config",
+				Path:      name,
+				StartLine: lineNum,
+				EndLine:   lineNum,
+				Properties: map[string]string{
+					"interface_kind": "declared_port",
+					"port":           port,
+				},
+			})
+		}
+	}
+	return out
+}
+
+func isNumericPort(s string) bool {
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return len(s) > 0
+}
+
 func parseGoImports(name string, content []byte) []Observation {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, name, content, 0)
@@ -166,7 +273,8 @@ func parseGoImports(name string, content []byte) []Observation {
 				continue
 			}
 			line := fset.Position(fn.Pos()).Line
-			out = append(out, Observation{Kind: KindInterface, Name: "go-binary", State: "declared", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"interface_kind": "binary", "package": "main"}})
+			binName := goBinaryName(name)
+			out = append(out, Observation{Kind: KindInterface, Name: binName, State: "declared", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"interface_kind": "binary", "package": "main"}})
 			break
 		}
 	}
@@ -188,8 +296,10 @@ func parseGoImports(name string, content []byte) []Observation {
 }
 
 func compareObservation(a, b Observation) int {
-	keysA := []string{string(a.Kind), a.Name, a.ProjectID, a.State, a.Basis, a.Path, strconv.Itoa(a.StartLine), propertiesKey(a.Properties)}
-	keysB := []string{string(b.Kind), b.Name, b.ProjectID, b.State, b.Basis, b.Path, strconv.Itoa(b.StartLine), propertiesKey(b.Properties)}
+	// kindPriority is the primary key so high-value observation kinds
+	// (interfaces first, then capabilities) are retained when the heap fills.
+	keysA := []string{kindPriority(a.Kind), string(a.Kind), a.Name, a.ProjectID, a.State, a.Basis, a.Path, strconv.Itoa(a.StartLine), propertiesKey(a.Properties)}
+	keysB := []string{kindPriority(b.Kind), string(b.Kind), b.Name, b.ProjectID, b.State, b.Basis, b.Path, strconv.Itoa(b.StartLine), propertiesKey(b.Properties)}
 	return strings.Compare(strings.Join(keysA, "\x00"), strings.Join(keysB, "\x00"))
 }
 func equalObservation(a, b Observation) bool { return compareObservation(a, b) == 0 }

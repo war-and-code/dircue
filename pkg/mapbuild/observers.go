@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"slices"
+	"strconv"
 	"strings"
 
 	"dircue/pkg/deployables"
@@ -479,6 +480,31 @@ func deployableEvidence(filename string, e deployables.Evidence) mapdoc.Evidence
 	return item
 }
 
+// maxCapabilityEvidencePaths caps the number of evidence paths per capability
+// node. The actual count is stored in the node's "evidence_path_count"
+// property so consumers can tell whether paths were omitted.
+const maxCapabilityEvidencePaths = 20
+
+// capGroup accumulates observations for a single (capability, component) pair.
+type capGroup struct {
+	name        string
+	projectID   string
+	attribution string
+	state       string
+	basis       string
+	paths       []string
+	evidence    []mapdoc.Evidence
+	properties  map[string]string
+	total       int // total distinct (path, name) observations before capping
+}
+
+func (g *capGroup) worstState(state string) {
+	// partial < declared < observed (worst = partial)
+	if state == "partial" || state == "unresolved" {
+		g.state = "partial"
+	}
+}
+
 func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 	coverage := mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_interface_and_capability_catalog"}}
 	if r.Coverage.Status != "complete" {
@@ -503,15 +529,95 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			contentByPath[n.Paths[0]] = n.ID
 		}
 	}
+
+	// ── Capability aggregation ─────────────────────────────────────────────
+	// One capability node per (capability name, component). All evidence paths
+	// are attached to that single node; the path count is stored as a property.
+	capGroups := map[string]*capGroup{} // key: name + "\x00" + projectID
+	capGroupOrder := []string{}         // insertion order for determinism
+	for _, o := range r.Observations {
+		if o.Kind != intentmap.KindCapability {
+			continue
+		}
+		gk := o.Name + "\x00" + o.ProjectID
+		g := capGroups[gk]
+		if g == nil {
+			g = &capGroup{
+				name:        o.Name,
+				projectID:   o.ProjectID,
+				attribution: o.ProjectAttribution,
+				state:       o.State,
+				basis:       o.Basis,
+				properties:  cloneProps(o.Properties),
+			}
+			capGroups[gk] = g
+			capGroupOrder = append(capGroupOrder, gk)
+		}
+		g.total++
+		g.worstState(o.State)
+		// Multiple bases → prefer declared_config > declared_dependency > others
+		if g.basis == "" || (o.Basis == "declared_config" && g.basis != "declared_config") {
+			g.basis = o.Basis
+		}
+		if len(g.paths) < maxCapabilityEvidencePaths {
+			g.paths = append(g.paths, o.Path)
+			g.evidence = append(g.evidence, intentEvidence(o))
+		}
+	}
+	slices.Sort(capGroupOrder)
+	for _, gk := range capGroupOrder {
+		g := capGroups[gk]
+		nodePaths := slices.Clone(g.paths)
+		n := mapdoc.NewNode(mapdoc.NodeCapability, nodePaths, "capability:"+g.name+":"+g.projectID)
+		n.Name = g.name
+		n.Properties = map[string]string{
+			"observation_kind":    "capability",
+			"state":               g.state,
+			"basis":               g.basis,
+			"evidence_path_count": strconv.Itoa(g.total),
+		}
+		if role := capPathRole(g.paths...); role != "" {
+			n.Properties["role"] = role
+			n.Properties["role_basis"] = "path_name"
+		}
+		for k, v := range g.properties {
+			if _, exists := n.Properties[k]; !exists {
+				n.Properties[k] = v
+			}
+		}
+		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		if g.state == "partial" || g.state == "unresolved" {
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"observation_" + g.state}}
+		}
+		n.Evidence = slices.Clone(g.evidence)
+		if g.projectID != "" {
+			if owner := componentsByManifest[g.projectID]; owner != "" {
+				n.Properties["owning_component"] = owner
+				edgeCoverage := n.Coverage
+				edgeReasons := slices.Clone(edgeCoverage.Reasons)
+				if g.attribution == "directory_containment" {
+					edgeReasons = append(edgeReasons, "attributed_by_directory_containment")
+					slices.Sort(edgeReasons)
+					edgeCoverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: edgeReasons}
+				}
+				e := mapdoc.NewEdge(mapdoc.EdgeUsesCapability, owner, n.ID, "capability:"+g.name+":"+g.projectID)
+				e.Coverage = edgeCoverage
+				e.Evidence = slices.Clone(n.Evidence)
+				d.Edges = append(d.Edges, e)
+			}
+		}
+		d.Nodes = append(d.Nodes, n)
+	}
+
+	// ── Interface observations ─────────────────────────────────────────────
+	// One node per (path, interface name, project). Interfaces are inherently
+	// distinct (different ports, different binaries, different proto services).
 	seen := map[string]bool{}
 	for _, o := range r.Observations {
-		if o.Kind == intentmap.KindImport {
+		if o.Kind != intentmap.KindInterface && o.Kind != intentmap.KindConfig {
 			continue
 		}
 		kind := mapdoc.NodeInterface
-		if o.Kind == intentmap.KindCapability {
-			kind = mapdoc.NodeCapability
-		}
 		key := string(o.Kind) + ":" + o.Path + ":" + o.Name + ":" + o.ProjectID
 		if seen[key] {
 			continue
@@ -534,12 +640,16 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		n.Evidence = []mapdoc.Evidence{intentEvidence(o)}
 		if o.ProjectID != "" {
 			if owner := componentsByManifest[o.ProjectID]; owner != "" {
-				kind := mapdoc.EdgeDeclares
-				if n.Kind == mapdoc.NodeCapability {
-					kind = mapdoc.EdgeUsesCapability
+				n.Properties["owning_component"] = owner
+				edgeKind := mapdoc.EdgeDeclares
+				edgeCoverage := n.Coverage
+				if o.ProjectAttribution == "directory_containment" {
+					reasons := append(slices.Clone(edgeCoverage.Reasons), "attributed_by_directory_containment")
+					slices.Sort(reasons)
+					edgeCoverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: reasons}
 				}
-				e := mapdoc.NewEdge(kind, owner, n.ID, string(o.Kind)+":"+o.Path)
-				e.Coverage = n.Coverage
+				e := mapdoc.NewEdge(edgeKind, owner, n.ID, string(o.Kind)+":"+o.Path)
+				e.Coverage = edgeCoverage
 				e.Evidence = slices.Clone(n.Evidence)
 				d.Edges = append(d.Edges, e)
 			}
@@ -559,6 +669,26 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		}
 		d.Nodes = append(d.Nodes, n)
 	}
+}
+
+// capPathRole is like mapPathRole but applies to a slice of capability evidence
+// paths. It returns the role for the primary (first) path only.
+func capPathRole(paths ...string) string {
+	if len(paths) == 0 {
+		return ""
+	}
+	return mapPathRole(paths[0])
+}
+
+func cloneProps(m map[string]string) map[string]string {
+	if m == nil {
+		return nil
+	}
+	out := make(map[string]string, len(m))
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
 }
 
 func intentEvidence(o intentmap.Observation) mapdoc.Evidence {
