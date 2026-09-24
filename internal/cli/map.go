@@ -231,6 +231,31 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	languages := []languageSummary{}
 	visibleIDs := map[string]bool{}
+	// Pre-pass: build a component-ID → role map so that interface and
+	// capability nodes can be filtered by their owning component's role.
+	componentRoles := map[string]string{}
+	for _, n := range d.Nodes {
+		if n.Kind == mapdoc.NodeComponent {
+			componentRoles[n.ID] = n.Properties["role"]
+		}
+	}
+	// Returns true if the owning component of an interface or capability node
+	// is auxiliary (test/fixture/example/vendored/docs/tooling — not primary).
+	ownedByAuxComponent := func(n mapdoc.Node) bool {
+		ownerID := n.Properties["owning_component"]
+		if ownerID == "" {
+			return false
+		}
+		ownerRole, ok := componentRoles[ownerID]
+		if !ok {
+			return false
+		}
+		switch ownerRole {
+		case "primary", "":
+			return false
+		}
+		return true
+	}
 	// auxComponentRoleCounts counts component nodes that are auxiliary (already
 	// excluded by auxiliaryMapNode) by their role, for the summary suffix.
 	auxComponentRoleCounts := map[string]int{}
@@ -254,11 +279,11 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 				deployables = append(deployables, n)
 			}
 		case mapdoc.NodeInterface:
-			if !auxiliaryMapNode(n) {
+			if !auxiliaryMapNode(n) && !ownedByAuxComponent(n) {
 				interfaces = append(interfaces, n)
 			}
 		case mapdoc.NodeCapability:
-			if !auxiliaryMapNode(n) {
+			if !auxiliaryMapNode(n) && !ownedByAuxComponent(n) {
 				capabilities = append(capabilities, n)
 			}
 		case mapdoc.NodePackage:
