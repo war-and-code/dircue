@@ -31,6 +31,34 @@
       ],
       "must_not_include": [],
       "allowed_unknown": ["actual endpoint address values", "runtime connectivity"]
+    },
+    {
+      "id": "dockerfile-expose-interface",
+      "oracle": {
+        "source": "Dockerfile EXPOSE instruction",
+        "url": "https://docs.docker.com/reference/dockerfile/#expose",
+        "fixture_evidence": "Dockerfile declares EXPOSE 9090"
+      },
+      "must_include": [
+        {"kind":"interface", "name":"port:9090", "path":"Dockerfile", "properties":{"basis":"declared_config", "interface_kind":"declared_port", "state":"declared"}}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether the port is reachable at runtime"]
+    },
+    {
+      "id": "go-binary-name-from-module-path",
+      "oracle": {
+        "source": "dircue map interface detection: Go entry-point binary naming",
+        "url": "https://go.dev/ref/spec#Package_initialization",
+        "fixture_evidence": "main.go at module root; go.mod declares module example.invalid/declared-intent; binary name is the module path base"
+      },
+      "must_include": [
+        {"kind":"interface", "name":"declared-intent", "path":"main.go", "properties":{"basis":"code_syntax", "interface_kind":"binary", "state":"declared"}}
+      ],
+      "must_not_include": [
+        {"kind":"interface", "name":"main", "path":"main.go"}
+      ],
+      "allowed_unknown": ["whether the binary is actually invoked"]
     }
   ]
 }
