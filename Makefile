@@ -107,3 +107,29 @@ accuracy-cards: build ## Generate accuracy cards into docs/ACCURACY.md and inter
 	  --corpus-root "$(ATLAS_CACHE)" \
 	  --output docs/ACCURACY.md \
 	  --data internal/atlas/accuracy_data.json
+
+# ---------------------------------------------------------------------------
+# Issue #84: Syft oracle (independent package-coverage oracle)
+#
+# Verifies that `dircue map --attach syft-json=<report>` correctly imports
+# each committed Syft report and reflects it in the packages coverage question.
+#
+# The Syft reports in tests/syft-oracle/fixtures/ are generated with:
+#   SYFT_IMAGE="anchore/syft@sha256:500e2d872ac019436926e8322b4fc1f39441d94d21f6f4046c6ff29b30e8cb02"
+#   docker run --rm --network none \
+#     -v "$PWD/tests/syft-oracle/fixtures/go-single:/src:ro" \
+#     "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+#     > tests/syft-oracle/fixtures/go-single.syft.json
+#   docker run --rm --network none \
+#     -v "$PWD/tests/syft-oracle/fixtures/multi:/src:ro" \
+#     "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+#     > tests/syft-oracle/fixtures/multi.syft.json
+#
+# Usage:
+#   make syft-oracle              # run against committed reports
+SYFT_BINARY ?= bin/dircue
+
+.PHONY: syft-oracle
+
+syft-oracle: build ## Run Syft oracle: validate package-coverage binding against committed Syft reports
+	python3 tests/syft-oracle/run.py --binary $(SYFT_BINARY)
