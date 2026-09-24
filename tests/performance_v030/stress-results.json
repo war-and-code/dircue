@@ -29,9 +29,9 @@
   },
   "cases": [
     {
-      "name": "talend",
+      "name": "etl-pipeline",
       "variant": "generated-excluded",
-      "path": "/stress/acceptance-final/talend/flat-generated-excluded",
+      "path": "/stress/acceptance-final/etl-pipeline/flat-generated-excluded",
       "logical_bytes": 2147484103,
       "allocated_bytes": 2147504128,
       "fixture_files": 8293,
@@ -114,7 +114,7 @@
         "peak_rss_bytes": 32202752,
         "cpu_percent": 184.23897116580403
       },
-      "artifact": "stress-artifacts/talend.json.gz",
+      "artifact": "stress-artifacts/etl-pipeline.json.gz",
       "artifact_sha256": "2e97170f21ace4c7e07aff1fae8c1f91d403892f8b709e2059a395d6be87e4bc",
       "stdout_sha256": "64f607c53a277c5671d052a7aba70c113d7f07ebb7906506374fbbabb77b87fd"
     },

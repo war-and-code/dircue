@@ -62,7 +62,9 @@
             "observation_kind": "capability",
             "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
             "requirement_kind": "package-reference",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -76,7 +78,9 @@
             "observation_kind": "capability",
             "requirement": "Npgsql@10.0.3",
             "requirement_kind": "package-reference",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -90,7 +94,9 @@
             "observation_kind": "capability",
             "requirement": "requests==2.32.5",
             "requirement_kind": "python-dependency",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -104,7 +110,9 @@
             "observation_kind": "capability",
             "requirement": "Protobuf",
             "requirement_kind": "code-generation",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -118,7 +126,9 @@
             "observation_kind": "capability",
             "requirement": "protobuf==6.33.5",
             "requirement_kind": "python-dependency",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -134,7 +144,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/cartservice/src"
+            "root": "src/cartservice/src",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -147,7 +159,9 @@
           "properties": {
             "ecosystem": "python",
             "project_kind": "python",
-            "root": "src/emailservice"
+            "root": "src/emailservice",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -281,7 +295,8 @@
             "interface_kind": "service",
             "observation_kind": "interface",
             "protocol": "protobuf",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -296,7 +311,8 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -311,7 +327,8 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
           }
         },
         {
@@ -326,7 +343,38 @@
             "observation_kind": "interface",
             "protocol": "protobuf",
             "state": "declared",
-            "service": "hipstershop.CartService"
+            "service": "hipstershop.CartService",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "port:7070",
+          "paths": [
+            "src/cartservice/src/Dockerfile"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+            "port": "7070",
+            "state": "declared"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "port:8080",
+          "paths": [
+            "src/emailservice/Dockerfile"
+          ],
+          "properties": {
+            "basis": "declared_config",
+            "interface_kind": "declared_port",
+            "observation_kind": "interface",
+            "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+            "port": "8080",
+            "state": "declared"
           }
         }
       ],
@@ -358,7 +406,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -390,7 +440,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -410,7 +462,9 @@
             "properties": {
               "ecosystem": "dotnet",
               "project_kind": "solution",
-              "root": "src/cartservice"
+              "root": "src/cartservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -426,7 +480,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -452,7 +508,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -466,7 +524,8 @@
               "interface_kind": "service",
               "observation_kind": "interface",
               "protocol": "protobuf",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -489,7 +548,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -504,7 +565,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -527,7 +589,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -542,7 +606,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -565,7 +630,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -580,7 +647,8 @@
               "observation_kind": "interface",
               "protocol": "protobuf",
               "state": "declared",
-              "service": "hipstershop.CartService"
+              "service": "hipstershop.CartService",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b"
             }
           },
           "properties": {},
@@ -615,7 +683,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -648,7 +718,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -672,7 +744,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -686,7 +760,9 @@
               "observation_kind": "capability",
               "requirement": "Microsoft.Extensions.Caching.StackExchangeRedis@10.0.11",
               "requirement_kind": "package-reference",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -709,7 +785,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -723,7 +801,9 @@
               "observation_kind": "capability",
               "requirement": "Npgsql@10.0.3",
               "requirement_kind": "package-reference",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -746,7 +826,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -760,7 +842,9 @@
               "observation_kind": "capability",
               "requirement": "Protobuf",
               "requirement_kind": "code-generation",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -780,7 +864,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -794,7 +880,9 @@
               "observation_kind": "capability",
               "requirement": "requests==2.32.5",
               "requirement_kind": "python-dependency",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -814,7 +902,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -828,12 +918,93 @@
               "observation_kind": "capability",
               "requirement": "protobuf==6.33.5",
               "requirement_kind": "python-dependency",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
           "evidence_paths": [
             "src/emailservice/requirements.txt"
+          ]
+        },
+        {
+          "record": "edge",
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "cartservice",
+            "paths": [
+              "src/cartservice/src",
+              "src/cartservice/src/cartservice.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/cartservice/src"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "port:7070",
+            "paths": [
+              "src/cartservice/src/Dockerfile"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "interface_kind": "declared_port",
+              "observation_kind": "interface",
+              "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
+              "port": "7070",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/cartservice/src/Dockerfile"
+          ]
+        },
+        {
+          "record": "edge",
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "emailservice",
+            "paths": [
+              "src/emailservice",
+              "src/emailservice/requirements.txt"
+            ],
+            "properties": {
+              "ecosystem": "python",
+              "project_kind": "python",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/emailservice"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "port:8080",
+            "paths": [
+              "src/emailservice/Dockerfile"
+            ],
+            "properties": {
+              "basis": "declared_config",
+              "interface_kind": "declared_port",
+              "observation_kind": "interface",
+              "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
+              "port": "8080",
+              "state": "declared"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/emailservice/Dockerfile"
           ]
         }
       ],
@@ -973,7 +1144,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:EventBus",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -987,7 +1160,9 @@
             "observation_kind": "capability",
             "requirement": "Protobuf",
             "requirement_kind": "code-generation",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1000,7 +1175,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:Redis",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1013,7 +1190,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1026,7 +1205,9 @@
             "basis": "declared_config",
             "key": "ConnectionStrings:EventBus",
             "observation_kind": "capability",
-            "state": "declared"
+            "state": "declared",
+            "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+            "evidence_path_count": "3"
           }
         },
         {
@@ -1042,7 +1223,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/Basket.API"
+            "root": "src/Basket.API",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -1058,7 +1241,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/eShop.AppHost"
+            "root": "src/eShop.AppHost",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         }
       ],
@@ -1078,7 +1263,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1094,7 +1281,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/WebApp"
+              "root": "src/WebApp",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1120,7 +1309,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1136,7 +1327,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Ordering.API"
+              "root": "src/Ordering.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1162,7 +1355,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1178,7 +1373,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/EventBusRabbitMQ"
+              "root": "src/EventBusRabbitMQ",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1204,7 +1401,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1220,7 +1419,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/PaymentProcessor"
+              "root": "src/PaymentProcessor",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1246,7 +1447,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1262,7 +1465,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1288,7 +1493,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1304,7 +1511,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Identity.API"
+              "root": "src/Identity.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1330,7 +1539,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1346,7 +1557,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.ServiceDefaults"
+              "root": "src/eShop.ServiceDefaults",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1372,7 +1585,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1388,7 +1603,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/WebhookClient"
+              "root": "src/WebhookClient",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1414,7 +1631,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1430,7 +1649,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Webhooks.API"
+              "root": "src/Webhooks.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1456,7 +1677,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1472,7 +1695,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/OrderProcessor"
+              "root": "src/OrderProcessor",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1498,7 +1723,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1514,7 +1741,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Catalog.API"
+              "root": "src/Catalog.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1540,7 +1769,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1553,7 +1784,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:EventBus",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "3"
             }
           },
           "properties": {},
@@ -1576,7 +1809,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1589,7 +1824,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:Redis",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1612,7 +1849,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1625,7 +1864,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings:EventBus",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1648,7 +1889,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1661,7 +1904,9 @@
               "basis": "declared_config",
               "key": "ConnectionStrings",
               "observation_kind": "capability",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1684,7 +1929,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1698,7 +1945,9 @@
               "observation_kind": "capability",
               "requirement": "Protobuf",
               "requirement_kind": "code-generation",
-              "state": "declared"
+              "state": "declared",
+              "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1836,7 +2085,9 @@
           "properties": {
             "ecosystem": "maven",
             "project_kind": "maven",
-            "root": "."
+            "root": ".",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2101,72 +2352,9 @@
             "ecosystem": "npm",
             "project_kind": "npm",
             "root": ".",
-            "version": "5.1.0"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test-tap",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "lint",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test-ci",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
-          }
-        },
-        {
-          "kind": "interface",
-          "name": "test-cov",
-          "paths": [
-            "package.json"
-          ],
-          "properties": {
-            "basis": "declared_manifest",
-            "interface_kind": "script",
-            "observation_kind": "interface",
-            "state": "declared"
+            "version": "5.1.0",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2181,7 +2369,8 @@
             "interface_kind": "prerequisite",
             "observation_kind": "interface",
             "state": "declared",
-            "target": ">= 18"
+            "target": ">= 18",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
           }
         }
       ],
@@ -2198,40 +2387,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2246,139 +2404,8 @@
               "interface_kind": "prerequisite",
               "observation_kind": "interface",
               "state": "declared",
-              "target": ">= 18"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-ci",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "lint",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-cov",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
-            }
-          },
-          "properties": {},
-          "evidence_paths": [
-            "package.json"
-          ]
-        },
-        {
-          "type": "declares",
-          "from": {
-            "kind": "component",
-            "name": "express",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "ecosystem": "npm",
-              "project_kind": "npm",
-              "root": ".",
-              "version": "5.1.0"
-            }
-          },
-          "to": {
-            "kind": "interface",
-            "name": "test-tap",
-            "paths": [
-              "package.json"
-            ],
-            "properties": {
-              "basis": "declared_manifest",
-              "interface_kind": "script",
-              "observation_kind": "interface",
-              "state": "declared"
+              "target": ">= 18",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240"
             }
           },
           "properties": {},
@@ -2457,7 +2484,9 @@
             "observation_kind": "capability",
             "requirement": "cryptography",
             "requirement_kind": "python-dependency",
-            "state": "conditional"
+            "state": "conditional",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
+            "evidence_path_count": "1"
           }
         },
         {
@@ -2470,7 +2499,9 @@
             "ecosystem": "python-uv",
             "project_kind": "python-uv",
             "root": ".",
-            "version": "3.1.2"
+            "version": "3.1.2",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2484,7 +2515,8 @@
             "interface_kind": "python-console-script",
             "observation_kind": "interface",
             "state": "declared",
-            "target": "flask.cli:main"
+            "target": "flask.cli:main",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
           }
         },
         {
@@ -2498,7 +2530,8 @@
             "interface_kind": "python-build-backend",
             "observation_kind": "interface",
             "state": "declared",
-            "target": "flit_core.buildapi"
+            "target": "flit_core.buildapi",
+            "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
           }
         }
       ],
@@ -2515,7 +2548,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2529,7 +2564,8 @@
               "interface_kind": "python-console-script",
               "observation_kind": "interface",
               "state": "declared",
-              "target": "flask.cli:main"
+              "target": "flask.cli:main",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
             }
           },
           "properties": {},
@@ -2549,7 +2585,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2563,7 +2601,8 @@
               "interface_kind": "python-build-backend",
               "observation_kind": "interface",
               "state": "declared",
-              "target": "flit_core.buildapi"
+              "target": "flit_core.buildapi",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583"
             }
           },
           "properties": {},
@@ -2583,7 +2622,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2598,7 +2639,9 @@
               "observation_kind": "capability",
               "requirement": "cryptography",
               "requirement_kind": "python-dependency",
-              "state": "conditional"
+              "state": "conditional",
+              "owning_component": "component:62b8ecaa681db1a491c0c74dc9ce9583",
+              "evidence_path_count": "1"
             }
           },
           "properties": {},

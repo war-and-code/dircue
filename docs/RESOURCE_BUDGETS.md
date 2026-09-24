@@ -72,7 +72,7 @@ sizes.
 
 The [resource harness](../tests/resources/README.md) runs six scans together
 at CPU quotas of 0.5, 1, and 2 cores per container, with 512 MiB memory and no
-swap. Its cases cover a pinned Go repository, synthetic Talend-shaped content,
+swap. Its cases cover a pinned Go repository, synthetic ETL-pipeline-shaped content,
 XML logs, and a packed .NET project graph. Each result must match the complete
 JSON from an individual unrestricted reference run of the same binary and
 input. Successful JSON can still contain a module's explicit partial status;

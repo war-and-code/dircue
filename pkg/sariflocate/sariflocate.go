@@ -81,6 +81,10 @@ func Annotate(input []byte, doc mapdoc.Document, opts Options) ([]byte, Summary,
 	if err := mapdoc.Validate(doc); err != nil {
 		return nil, Summary{}, fmt.Errorf("map: %w", err)
 	}
+	// Strip an optional UTF-8 BOM emitted by some Windows tools.
+	if len(input) >= 3 && input[0] == 0xEF && input[1] == 0xBB && input[2] == 0xBF {
+		input = input[3:]
+	}
 	var root rawObject
 	dec := json.NewDecoder(bytes.NewReader(input))
 	if err := dec.Decode(&root); err != nil {

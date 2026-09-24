@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"dircue/pkg/mapdoc"
 	"dircue/pkg/profile"
 	"dircue/pkg/structure"
 )
@@ -64,3 +65,54 @@ var errFunctionWrite = errors.New("write failed")
 type functionFailWriter struct{}
 
 func (functionFailWriter) Write([]byte) (int, error) { return 0, errFunctionWrite }
+
+func TestMapNodeLabelUsesRootDirectoryNotManifestFilename(t *testing.T) {
+	for _, tc := range []struct {
+		desc string
+		node mapdoc.Node
+		want string
+	}{
+		{
+			desc: "unnamed root component gets (root) label not Cargo",
+			node: func() mapdoc.Node {
+				n := mapdoc.NewNode(mapdoc.NodeComponent, []string{"Cargo.toml"}, "cargo")
+				n.Properties = map[string]string{"root": "."}
+				return n
+			}(),
+			want: "(root)",
+		},
+		{
+			desc: "unnamed root component from Gemfile gets (root) not Gemfile",
+			node: func() mapdoc.Node {
+				n := mapdoc.NewNode(mapdoc.NodeComponent, []string{"Gemfile"}, "ruby-bundler")
+				n.Properties = map[string]string{"root": "."}
+				return n
+			}(),
+			want: "(root)",
+		},
+		{
+			desc: "unnamed nested component uses directory basename",
+			node: func() mapdoc.Node {
+				n := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/go.mod"}, "go")
+				n.Properties = map[string]string{"root": "services/api"}
+				return n
+			}(),
+			want: "api",
+		},
+		{
+			desc: "named component label is the declared name",
+			node: func() mapdoc.Node {
+				n := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+				n.Name = "myapp"
+				n.Properties = map[string]string{"root": "."}
+				return n
+			}(),
+			want: "myapp",
+		},
+	} {
+		got := mapNodeLabel(tc.node)
+		if got != tc.want {
+			t.Errorf("%s: mapNodeLabel = %q, want %q", tc.desc, got, tc.want)
+		}
+	}
+}

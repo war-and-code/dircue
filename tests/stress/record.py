@@ -18,10 +18,10 @@ HISTORICAL_HARNESS_SHA256 = "53511bf72475bd5430fa8c09797dcb32c1f22f1b4cc6c89ac42
 HISTORICAL_GENERATOR_SHA256 = "1ccdc2094ff0357b728dfa35877ab73b522bb7c6d8b40e2d5561944d742fedf1"
 
 EXPECTED_CASES = {
-    "talend-generated-excluded", "talend-generated-included", "xml-log-default", "xml-log-detectable",
+    "etl-pipeline-generated-excluded", "etl-pipeline-generated-included", "xml-log-default", "xml-log-detectable",
     "dotnet-graph-default", "boundaries-default", "tree-count-default", "tree-count-default-limit99999",
     "tree-count-default-limit100000", "tree-count-default-limit100001",
-    "talend-packed-generated-excluded", "talend-packed-generated-included",
+    "etl-pipeline-packed-generated-excluded", "etl-pipeline-packed-generated-included",
     "xml-log-packed-default", "xml-log-packed-detectable",
 }
 
@@ -158,7 +158,7 @@ def main():
     lines += ["", f"Unique allocated fixture file blocks: {manifest['unique_allocated_bytes']:,} bytes. Payloads are fully written and hash-verified; hardlinked flat views share their storage. Checkout bytes, Git-history storage and compressed pack sizes are distinct fields in the raw report.", "",
               f"Candidate SHA-256: `{report['candidate_sha256']}`. Production commit: `{receipt['source_commit']}`. Fixture generator SHA-256: `{manifest['generator_sha256']}`. The [raw report](comparison.json) contains every timing sample and the build receipt.", "",
               "GNU time measures target-child CPU/RSS; wall time includes the same launcher overhead for every tool. Caches are warm, and fixture verification reads all unique payloads before profiling. Prefix reads are valid: logical source size is not physical bytes read during a scan. Twenty samples do not establish rare tails.", "",
-              f"These are explicitly synthetic layouts and formats, not verified Talend exports or MOVEit samples. The .NET graph is never built or restored. The results establish bounded compatibility and performance evidence for these inputs and this environment, not a guarantee for other repositories, histories, machines or future Linguist versions. See the [methodology and reproduction commands]({methodology_path}).", ""]
+              f"These are explicitly synthetic layouts and formats, not verified ETL-pipeline exports or log-transfer samples. The .NET graph is never built or restored. The results establish bounded compatibility and performance evidence for these inputs and this environment, not a guarantee for other repositories, histories, machines or future Linguist versions. See the [methodology and reproduction commands]({methodology_path}).", ""]
     args.output.mkdir(parents=True, exist_ok=True)
     if args.report.resolve() != (args.output/"comparison.json").resolve():
         shutil.copyfile(args.report, args.output/"comparison.json")

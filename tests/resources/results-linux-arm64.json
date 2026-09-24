@@ -281,7 +281,7 @@
       "-ldflags",
       "-s -w -X dircue/internal/cli.Version=0.3.0",
       "-o",
-      "/Users/gingeleski/Workspace/dircue/.cache/next-sprint/resources/dircue-linux-arm64",
+      "/home/user/Workspace/dircue/.cache/next-sprint/resources/dircue-linux-arm64",
       "."
     ],
     "CGO_ENABLED": "0",
@@ -312,11 +312,11 @@
       ]
     },
     {
-      "name": "talend-directory",
+      "name": "etl-pipeline-directory",
       "argv": [
         "--json",
         "--source=directory",
-        "/stress/acceptance-final/talend/flat-generated-excluded"
+        "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
       ]
     },
     {
@@ -352,13 +352,13 @@
       ]
     },
     {
-      "name": "talend-packed",
+      "name": "etl-pipeline-packed",
       "argv": [
         "--json",
         "--source=git",
         "--rev",
         "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-        "/stress/acceptance-final/talend-packed/git"
+        "/stress/acceptance-final/etl-pipeline-packed/git"
       ]
     }
   ],
@@ -374,7 +374,7 @@
     "manifest_sha256": "d7922edd9cbb84976e6ce56afab21dc625e319ea1db1565f0f31f43e78342ff9",
     "checked": [
       {
-        "fixture": "talend",
+        "fixture": "etl-pipeline",
         "variant": "generated-excluded",
         "files": 8293,
         "bytes": 2147484103
@@ -402,7 +402,7 @@
         ]
       },
       {
-        "fixture": "talend-packed",
+        "fixture": "etl-pipeline-packed",
         "revision": "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
         "pack_files": [
           {
@@ -664,13 +664,13 @@
       ]
     },
     {
-      "name": "baseline-talend-directory",
+      "name": "baseline-etl-pipeline-directory",
       "memory_bytes": null,
       "cpu_quota_cores": null,
       "simultaneous_child_overlap_seconds": 4.478317975997925,
       "cases": [
         {
-          "case": "talend-directory",
+          "case": "etl-pipeline-directory",
           "docker": {
             "Id": "f0c8c6ccc5e9d0516c6c7f2185b1e34c8ecec607e802f2837b23761ff6ed5fd4",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -707,7 +707,7 @@
               "/candidate/dircue",
               "--json",
               "--source=directory",
-              "/stress/acceptance-final/talend/flat-generated-excluded"
+              "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
             ],
             "started_unix": 1789853691.5476556,
             "ended_unix": 1789853696.0259736,
@@ -1149,13 +1149,13 @@
       ]
     },
     {
-      "name": "baseline-talend-packed",
+      "name": "baseline-etl-pipeline-packed",
       "memory_bytes": null,
       "cpu_quota_cores": null,
       "simultaneous_child_overlap_seconds": 8.295806646347046,
       "cases": [
         {
-          "case": "talend-packed",
+          "case": "etl-pipeline-packed",
           "docker": {
             "Id": "cc11b53e6d8db38913bbeed89473f6cbba2660e002a3fb8fab7624c3ad6ffb23",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -1194,7 +1194,7 @@
               "--source=git",
               "--rev",
               "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-              "/stress/acceptance-final/talend-packed/git"
+              "/stress/acceptance-final/etl-pipeline-packed/git"
             ],
             "started_unix": 1789853704.0968935,
             "ended_unix": 1789853712.3927002,
@@ -1387,7 +1387,7 @@
           }
         },
         {
-          "case": "talend-directory",
+          "case": "etl-pipeline-directory",
           "docker": {
             "Id": "79f63c8ed2165ad3ddc7b042763b20a60508fa8ba2f8d0b24c3199fc3932b495",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -1424,7 +1424,7 @@
               "/candidate/dircue",
               "--json",
               "--source=directory",
-              "/stress/acceptance-final/talend/flat-generated-excluded"
+              "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
             ],
             "started_unix": 1789853715.1609602,
             "ended_unix": 1789853744.7365139,
@@ -1840,7 +1840,7 @@
           }
         },
         {
-          "case": "talend-packed",
+          "case": "etl-pipeline-packed",
           "docker": {
             "Id": "f399a11c8b6ef44422a4c69724ad62d62758fa47423c484d67de4aa7f094fa34",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -1879,7 +1879,7 @@
               "--source=git",
               "--rev",
               "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-              "/stress/acceptance-final/talend-packed/git"
+              "/stress/acceptance-final/etl-pipeline-packed/git"
             ],
             "started_unix": 1789853715.1601274,
             "ended_unix": 1789853757.8551166,
@@ -2070,7 +2070,7 @@
           }
         },
         {
-          "case": "talend-directory",
+          "case": "etl-pipeline-directory",
           "docker": {
             "Id": "0cab32cc065836c89024ee8bb08ec3f5450f6d2825c86ad4ff76b168b402b696",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -2107,7 +2107,7 @@
               "/candidate/dircue",
               "--json",
               "--source=directory",
-              "/stress/acceptance-final/talend/flat-generated-excluded"
+              "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
             ],
             "started_unix": 1789853762.1783059,
             "ended_unix": 1789853776.154787,
@@ -2523,7 +2523,7 @@
           }
         },
         {
-          "case": "talend-packed",
+          "case": "etl-pipeline-packed",
           "docker": {
             "Id": "cc056ec8aa1c0145e3c808fbe4cbb23d2a14966a8f81be4b46207d7b8faaacea",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -2562,7 +2562,7 @@
               "--source=git",
               "--rev",
               "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-              "/stress/acceptance-final/talend-packed/git"
+              "/stress/acceptance-final/etl-pipeline-packed/git"
             ],
             "started_unix": 1789853762.1765342,
             "ended_unix": 1789853780.7499633,
@@ -2753,7 +2753,7 @@
           }
         },
         {
-          "case": "talend-directory",
+          "case": "etl-pipeline-directory",
           "docker": {
             "Id": "afefcf28a2f3573cd756b65a6c7fc1c46cf29e700097fe8b3e592351e9ef5d02",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -2790,7 +2790,7 @@
               "/candidate/dircue",
               "--json",
               "--source=directory",
-              "/stress/acceptance-final/talend/flat-generated-excluded"
+              "/stress/acceptance-final/etl-pipeline/flat-generated-excluded"
             ],
             "started_unix": 1789853785.0712962,
             "ended_unix": 1789853794.394905,
@@ -3206,7 +3206,7 @@
           }
         },
         {
-          "case": "talend-packed",
+          "case": "etl-pipeline-packed",
           "docker": {
             "Id": "ebb50b836676ad0c413f3ab443c1eed49fbb3864fb0295b45f1dd72f89bf0ae2",
             "Image": "sha256:4f8d1afed6d58037c680221ca6dd9fb4737b7ecfa7d4809ca809fdc0c7d9b786",
@@ -3245,7 +3245,7 @@
               "--source=git",
               "--rev",
               "8a1d3d2978cb9d2b042c93304ac0a0bd627381f7",
-              "/stress/acceptance-final/talend-packed/git"
+              "/stress/acceptance-final/etl-pipeline-packed/git"
             ],
             "started_unix": 1789853785.0621526,
             "ended_unix": 1789853798.2416658,
