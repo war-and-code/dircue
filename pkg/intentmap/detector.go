@@ -9,6 +9,7 @@ import (
 	"go/parser"
 	"go/token"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -286,7 +287,7 @@ func parseDockerfileExpose(name string, content []byte) []Observation {
 					if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
 						v = v[1 : len(v)-1]
 					}
-					varDefaults[k] = v
+					varDefaults[k] = resolveDockerVar(v, varDefaults)
 				}
 			}
 			continue
@@ -306,12 +307,12 @@ func parseDockerfileExpose(name string, content []byte) []Observation {
 				if len(v) >= 2 && (v[0] == '"' || v[0] == '\'') && v[len(v)-1] == v[0] {
 					v = v[1 : len(v)-1]
 				}
-				varDefaults[k] = v
+				varDefaults[k] = resolveDockerVar(v, varDefaults)
 			} else if strings.HasPrefix(upper, "ENV ") && rest != "" && !isContinuation {
 				// ENV VAR value (space-separated, no equals)
 				parts := strings.SplitN(rest, " ", 2)
 				if len(parts) == 2 {
-					varDefaults[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])
+					varDefaults[strings.TrimSpace(parts[0])] = resolveDockerVar(strings.TrimSpace(parts[1]), varDefaults)
 				}
 			}
 		}
@@ -357,15 +358,28 @@ func parseDockerfileExpose(name string, content []byte) []Observation {
 	return out
 }
 
-// resolveDockerVar expands ${VAR} or $VAR in s using the provided defaults map.
-// Returns the resolved value, or the original string if unresolvable.
+var dockerVarRef = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)(?::?-([^}]*))?\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+
+// resolveDockerVar expands $VAR, ${VAR} and ${VAR:-default} in s from the
+// ARG and ENV values defined earlier in the Dockerfile. Values are expanded
+// when they are defined, as Docker does, so one pass suffices. An undefined
+// variable without a default is left in place, so the result is not numeric
+// and no port is invented.
 func resolveDockerVar(s string, vars map[string]string) string {
-	result := s
-	for k, v := range vars {
-		result = strings.ReplaceAll(result, "${"+k+"}", v)
-		result = strings.ReplaceAll(result, "$"+k, v)
-	}
-	return result
+	return dockerVarRef.ReplaceAllStringFunc(s, func(ref string) string {
+		m := dockerVarRef.FindStringSubmatch(ref)
+		name, fallback := m[1], m[2]
+		if name == "" {
+			name = m[3]
+		}
+		if v, ok := vars[name]; ok && v != "" {
+			return v
+		}
+		if strings.Contains(ref, "-") && m[1] != "" {
+			return fallback
+		}
+		return ref
+	})
 }
 
 // isComposeFile reports whether the path looks like a Docker Compose file.
