@@ -715,7 +715,7 @@ var nugetExact = map[string][]string{
 	// Directory / LDAP
 	"novell.directory.ldap":              {"directory:ldap"},
 	"system.directoryservices.protocols": {"directory:ldap"},
-	"system.directoryservices.ldap":      {"directory:ldap"},
+	"novell.directory.ldap.netstandard":  {"directory:ldap"},
 }
 
 // pypiExact: PyPI canonical name (lowercased, PEP 503 normalized) → capabilities.
@@ -890,21 +890,21 @@ var pubExact = map[string][]string{
 	// MongoDB
 	"mongo_dart": {"datastore:mongodb"},
 	// Redis
-	"redis_dart": {"cache:redis"},
+	"redis": {"cache:redis"},
 	// Firebase (GCP)
-	"firebase_core":      {"cloud:gcp"},
-	"firebase_auth":      {"cloud:gcp", "auth:oauth2"},
-	"firebase_database":  {"cloud:gcp", "datastore:mongodb"},
-	"firebase_firestore": {"cloud:gcp"},
-	"cloud_firestore":    {"cloud:gcp"},
-	"firebase_storage":   {"cloud:gcp", "storage:object"},
+	"firebase_core":     {"cloud:gcp"},
+	"firebase_auth":     {"cloud:gcp"},
+	"firebase_database": {"cloud:gcp"},
+	"cloud_firestore":   {"cloud:gcp"},
+	"firebase_storage":  {"cloud:gcp", "storage:object"},
 	// Serialization
 	"protobuf": {"serialization:protobuf"},
 	"grpc":     {"serialization:protobuf"},
 	// Auth
-	"jwt_decode": {"auth:jwt"},
+	"jwt_decode":        {"auth:jwt"},
+	"dart_jsonwebtoken": {"auth:jwt"},
 	// AI / LLM
-	"langchain_dart":       {"ai:llm-sdk"},
+	"langchain":            {"ai:llm-sdk"},
 	"google_generative_ai": {"ai:llm-sdk"},
 	"openai_dart":          {"ai:llm-sdk"},
 }

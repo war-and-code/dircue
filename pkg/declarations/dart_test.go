@@ -191,3 +191,42 @@ dependencies:
 		}
 	}
 }
+
+func TestParseDartNestedKeysAreNotPackages(t *testing.T) {
+	content := []byte(`name: app
+dependencies:
+  internal_api:
+    hosted: https://pub.example.test
+    version: ^1.0.0
+  shared:
+    git:
+      url: https://example.test/shared.git
+      path: packages/shared
+  local_ui:
+    path: ../local_ui # sibling package
+`)
+	d := ParseDart("app/pubspec.yaml", content)
+	values := map[string]bool{}
+	for _, r := range d.Project.Requirements {
+		if r.Kind == "dart-dependency" {
+			values[r.Value] = true
+		}
+	}
+	for _, want := range []string{"internal_api", "shared", "local_ui"} {
+		if !values[want] {
+			t.Errorf("missing declared dependency %q", want)
+		}
+	}
+	for _, bogus := range []string{"hosted", "version", "git", "url", "path"} {
+		if values[bogus] {
+			t.Errorf("nested key %q was read as a package", bogus)
+		}
+	}
+	var refs []string
+	for _, ref := range d.Project.References {
+		refs = append(refs, ref.Value+" -> "+ref.Target)
+	}
+	if len(refs) != 1 || refs[0] != "local_ui path:../local_ui -> local_ui/pubspec.yaml" {
+		t.Errorf("references=%q; want only the local path dependency (not the git subdirectory)", refs)
+	}
+}

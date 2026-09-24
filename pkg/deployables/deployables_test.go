@@ -693,3 +693,56 @@ func TestMavenWARNestedInSubdirectory(t *testing.T) {
 		t.Errorf("name=%q; want webapp-1.0.war", r.Definitions[0].Name)
 	}
 }
+
+func TestMavenWARIgnoresParentCoordinatesAtAnyIndentation(t *testing.T) {
+	body := "<project xmlns=\"http://maven.apache.org/POM/4.0.0\">\n" +
+		"\t<parent>\n\t\t<artifactId>platform-parent</artifactId>\n\t\t<version>9.9</version>\n\t</parent>\n" +
+		"\t<artifactId>portal</artifactId>\n\t<packaging>war</packaging>\n" +
+		"\t<dependencies>\n\t\t<dependency>\n\t\t\t<artifactId>lib</artifactId>\n\t\t\t<version>1.0</version>\n\t\t</dependency>\n\t</dependencies>\n" +
+		"</project>\n"
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	d := r.Definitions[0]
+	// The version is inherited from <parent>, as Maven does.
+	if d.Name != "portal-9.9.war" || d.Coverage != "complete" {
+		t.Errorf("name=%q coverage=%q; want portal-9.9.war complete", d.Name, d.Coverage)
+	}
+}
+
+func TestMavenWARResolvesLocalProperties(t *testing.T) {
+	body := `<?xml version="1.0" encoding="ISO-8859-1"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <artifactId>web</artifactId>
+  <version>2.1</version>
+  <packaging>war</packaging>
+  <properties>
+    <webapp.name>clinic</webapp.name>
+  </properties>
+  <build>
+    <finalName>${webapp.name}-${project.version}</finalName>
+  </build>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want 1 definition, got %d", len(r.Definitions))
+	}
+	if d := r.Definitions[0]; d.Name != "clinic-2.1.war" || d.Coverage != "complete" {
+		t.Errorf("name=%q coverage=%q; want clinic-2.1.war complete", d.Name, d.Coverage)
+	}
+}
+
+func TestMavenWARProfilePackagingIsIgnored(t *testing.T) {
+	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
+  <artifactId>lib</artifactId>
+  <version>1.0</version>
+  <profiles><profile><id>x</id><packaging>war</packaging></profile></profiles>
+</project>
+`
+	r := observeOne(t, "pom.xml", body)
+	if len(r.Definitions) != 0 {
+		t.Errorf("profile-level packaging must not create a deployable, got %+v", r.Definitions)
+	}
+}
