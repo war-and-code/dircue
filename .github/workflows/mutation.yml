@@ -1,0 +1,61 @@
+name: Mutation Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: >
+          Space-separated list of packages to mutate.
+          Default: all five core packages.
+        required: false
+        default: >-
+          ./pkg/mapdoc
+          ./pkg/treehash
+          ./pkg/providerjoin
+          ./pkg/sariflocate
+          ./pkg/mapdiff
+      timeout_coefficient:
+        description: >
+          Gremlins timeout coefficient (multiples of baseline test time).
+          Increase if many mutants time out.
+        required: false
+        default: '20'
+
+permissions:
+  contents: read
+
+jobs:
+  mutate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - name: Install gremlins
+        run: |
+          GOBIN="$RUNNER_TEMP/gremlins" CGO_ENABLED=0 \
+            go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
+      - name: Run mutation testing
+        run: |
+          mkdir -p tests/mutation/run
+          for pkg in ${{ inputs.packages }}; do
+            safe=$(echo "$pkg" | tr '/.' '--')
+            echo "=== $pkg ==="
+            "$RUNNER_TEMP/gremlins/gremlins" unleash \
+              --timeout-coefficient "${{ inputs.timeout_coefficient }}" \
+              -o "tests/mutation/run/${safe}.json" \
+              "$pkg" || true
+          done
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: mutation-results
+          path: tests/mutation/run/
+          retention-days: 30
