@@ -335,3 +335,19 @@ func TestCatalogMavenCoordinatesNoFalsePrefix(t *testing.T) {
 		}
 	}
 }
+
+func TestCapabilitiesForCodeGeneration(t *testing.T) {
+	for _, test := range []struct {
+		value string
+		want  []string
+	}{
+		{"Protobuf", []string{"serialization:protobuf"}},
+		{"org.xolstice.maven.plugins:protobuf-maven-plugin", []string{"serialization:protobuf"}},
+		{"OpenApiReference", nil},
+	} {
+		got := capabilitiesFor("code-generation", test.value)
+		if len(got) != len(test.want) || (len(got) > 0 && got[0] != test.want[0]) {
+			t.Errorf("capabilitiesFor(code-generation, %q) = %v, want %v", test.value, got, test.want)
+		}
+	}
+}

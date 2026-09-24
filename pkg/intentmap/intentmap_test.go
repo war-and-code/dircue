@@ -626,3 +626,24 @@ func TestParsePythonImportsIndentedImportSkipped(t *testing.T) {
 		}
 	}
 }
+
+func TestNpmDevDependenciesDoNotBecomeCapabilities(t *testing.T) {
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "package.json", Root: ".", References: []declarations.Reference{
+		{Kind: "npm-dependency", Value: "pg@^8.0.0", State: "declared", Evidence: "package.json", Condition: "dependencies"},
+		{Kind: "npm-dependency", Value: "connect-redis@^8.0.1", State: "declared", Evidence: "package.json", Condition: "devDependencies"},
+	}}})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	names := map[string]bool{}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability {
+			names[o.Name] = true
+		}
+	}
+	if !names["datastore:postgresql"] || names["cache:redis"] {
+		t.Fatalf("capabilities = %v, want datastore:postgresql only", names)
+	}
+}
