@@ -41,6 +41,7 @@ jobs:
         run: |
           python -m unittest discover -s tests/projects/graph -p 'test_*.py' -v
           python -m unittest discover -s tests/resources -p 'test_*.py' -v
+          python -m unittest discover -s tests/bench -p 'test_*.py' -v
       - name: Test optional proof-evidence validation without Bend
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
@@ -197,19 +198,19 @@ jobs:
           path: .cache/metrics-differential.json
 
   counter-regression:
-    # PR gate: run map --stats-json on a small pinned fixture and write the
-    # deterministic cost counters to the job summary. Report-only for now;
-    # maintainers commit counter-regression/budgets.json after the first run
-    # to enable gating in a follow-up. Never gates on non-deterministic
-    # measurements (wall time, heap, GC).
+    # Report-only PR check: map the corpus fixtures with the base and head
+    # builds and compare their deterministic cost counters in the job summary.
+    # Wall time, heap and GC counts vary between runs and are never compared.
     if: github.event_name == 'pull_request' && !github.event.pull_request.draft
     needs: preflight
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -218,56 +219,19 @@ jobs:
             go.sum
             third_party/go-enry/go.sum
             third_party/go-git/go.sum
-      - name: Build dircue
-        run: CGO_ENABLED=0 go build -trimpath -o bin/dircue .
-      - name: Run map with --stats-json on polyglot-deployable fixture
+      - name: Build head and base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CGO_ENABLED: '0'
         run: |
-          bin/dircue map --source directory --json \
-            --stats-json .cache/stats.json \
-            tests/map_corpus/fixtures/polyglot-deployable > /dev/null
-      - name: Write deterministic cost counters to step summary
+          go build -trimpath -o "$RUNNER_TEMP/dircue-head" .
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/base" && go build -trimpath -o "$RUNNER_TEMP/dircue-base" .)
+      - name: Compare deterministic cost counters
         run: |
-          python3 - <<'EOF'
-          import json, sys
-          with open(".cache/stats.json") as f:
-              doc = json.load(f)
-          det = doc["deterministic_costs"]
-          meas = doc["measurements"]
-          rows = [
-              ("files_enumerated", det["files_enumerated"], "deterministic"),
-              ("files_content_read", det["files_content_read"], "deterministic"),
-              ("bytes_requested", det["bytes_requested"], "deterministic"),
-              ("limit_hits.file_bytes", det["limit_hits"]["file_bytes"], "deterministic"),
-              ("limit_hits.tree_size", det["limit_hits"]["tree_size"], "deterministic"),
-              ("wall_time_ms", meas["wall_time_ns"] // 1_000_000, "non-deterministic (report only)"),
-              ("peak_heap_inuse_bytes", meas["peak_heap_inuse_bytes"], "non-deterministic (report only)"),
-              ("gc_count", meas["gc_count"], "non-deterministic (report only)"),
-          ]
-          lines = [
-              "## Deterministic cost counters (polyglot-deployable fixture)",
-              "",
-              "| Counter | Value | Class |",
-              "| --- | ---: | --- |",
-          ]
-          for name, value, cls in rows:
-              lines.append(f"| `{name}` | {value} | {cls} |")
-          lines.append("")
-          lines.append(
-              "_Deterministic counters are identical for the same input and settings "
-              "regardless of worker count. Gate CI on these, not on measurements._"
-          )
-          print("\n".join(lines))
-          summary_path = __import__("os").environ.get("GITHUB_STEP_SUMMARY", "")
-          if summary_path:
-              with open(summary_path, "a") as s:
-                  s.write("\n".join(lines) + "\n")
-          EOF
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        if: always()
-        with:
-          retention-days: 14
-          name: counter-regression-stats
-          path: .cache/stats.json
+          python3 tests/bench/counter_compare.py \
+            --base "$RUNNER_TEMP/dircue-base" --head "$RUNNER_TEMP/dircue-head" \
+            tests/map_corpus/fixtures/*/
 
   map-diff-dogfood:
     # Self-test: exercise the map-diff action against this repository using the
