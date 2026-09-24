@@ -237,6 +237,7 @@ def classify_skip_scc_only(path: str, dircue_row: dict | None) -> str:
     _REASON_MAP = {
         "outside_scope": "dircue_out_of_scope",
         "unsupported_language": "dircue_unsupported_language",
+        "unsupported_encoding": "dircue_unsupported_encoding",
         "binary": "dircue_binary",
         "non_regular_file": "dircue_non_regular_file",
         "file_too_large": "dircue_file_too_large",

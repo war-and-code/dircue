@@ -31,11 +31,11 @@ Evaluated repositories: 8
 
 | Question (kind) | Labels | 95% CI lower | Precision | Recall | Repos | Sufficiency |
 |-----------------|--------|--------------|-----------|--------|-------|-------------|
-| capability | 8 | 0.68 | 1.000 | 1.000 | 3 | **insufficient_labels** |
-| component | 6 | 0.61 | 1.000 | 1.000 | 5 | **insufficient_labels** |
+| capability | 11 | 0.74 | 1.000 | 1.000 | 3 | **insufficient_labels** |
+| component | 7 | 0.65 | 1.000 | 1.000 | 5 | **insufficient_labels** |
 | content | 4 | 0.51 | 1.000 | 1.000 | 1 | **insufficient_labels** |
-| deployable | 18 | 0.82 | 1.000 | 1.000 | 4 | **insufficient_labels** |
-| interface | 8 | 0.68 | 1.000 | 1.000 | 2 | **insufficient_labels** |
+| deployable | 17 | 0.82 | 1.000 | 1.000 | 4 | **insufficient_labels** |
+| interface | 9 | 0.70 | 1.000 | 1.000 | 3 | **insufficient_labels** |
 
 ## Per-repository breakdown
 
@@ -43,10 +43,10 @@ Evaluated repositories: 8
 
 | Kind | Precision | Recall | TP | FP | FN | Labels |
 |------|-----------|--------|----|----|----|----|
-| capability | 1.000 | 1.000 | 2 | 0 | 0 | 2 |
-| component | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
-| deployable | 1.000 | 1.000 | 6 | 0 | 0 | 6 |
-| interface | N/A | N/A | 0 | 0 | 0 | 0 |
+| capability | 1.000 | 1.000 | 5 | 0 | 0 | 5 |
+| component | 1.000 | 1.000 | 2 | 0 | 0 | 2 |
+| deployable | 1.000 | 1.000 | 10 | 0 | 0 | 10 |
+| interface | 1.000 | 1.000 | 6 | 0 | 0 | 6 |
 
 ### eshop (b4a40872005d)
 
@@ -72,7 +72,7 @@ Evaluated repositories: 8
 |------|-----------|--------|----|----|----|----|
 | capability | N/A | N/A | 0 | 0 | 0 | 0 |
 | component | N/A | N/A | 0 | 0 | 0 | 0 |
-| deployable | 1.000 | 1.000 | 6 | 0 | 0 | 6 |
+| deployable | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 | interface | N/A | N/A | 0 | 0 | 0 | 0 |
 
 ### express (cd7d4397c398)
@@ -82,7 +82,7 @@ Evaluated repositories: 8
 | capability | N/A | N/A | 0 | 0 | 0 | 0 |
 | component | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 | deployable | N/A | N/A | 0 | 0 | 0 | 0 |
-| interface | 1.000 | 1.000 | 6 | 0 | 0 | 6 |
+| interface | 1.000 | 1.000 | 1 | 0 | 0 | 1 |
 
 ### flask (2c1b30d0503c)
 
@@ -130,4 +130,4 @@ python3 tests/atlas/accuracy.py \
 
 Labels: `tests/map_corpus/public_quality_expectations.json`
 
-Generated: 2026-09-23T19:54:40Z
+Generated: 2026-09-24T05:48:00Z
