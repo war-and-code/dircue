@@ -1,0 +1,164 @@
+{
+  "questions": [
+    {
+      "id": "npm-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "package.json declares pg (postgresql), ioredis (redis), kafkajs (kafka), amqplib (amqp), nodemailer (smtp), @aws-sdk/client-s3 (cloud:aws + storage:object), jsonwebtoken (jwt), passport (oauth2)",
+        "source": "npm package.json dependencies; npm parser stores dependencies as References with @version suffix",
+        "url": "https://docs.npmjs.com/cli/v10/configuring-npm/package-json"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "package.json"},
+        {"kind": "capability", "name": "cache:redis", "path": "package.json"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "package.json"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "package.json"},
+        {"kind": "capability", "name": "messaging:smtp", "path": "package.json"},
+        {"kind": "capability", "name": "cloud:aws", "path": "package.json"},
+        {"kind": "capability", "name": "storage:object", "path": "package.json"},
+        {"kind": "capability", "name": "auth:jwt", "path": "package.json"},
+        {"kind": "capability", "name": "auth:oauth2", "path": "package.json"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared packages are actually installed"]
+    },
+    {
+      "id": "ruby-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "Gemfile declares pg (postgresql), redis, aws-sdk-s3 (cloud:aws + storage:object), chewy (elasticsearch), jwt, devise (oauth2), bunny (amqp)",
+        "source": "Bundler Gemfile; gem names map directly to capability catalog keys",
+        "url": "https://bundler.io/gemfile.html"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "Gemfile"},
+        {"kind": "capability", "name": "cache:redis", "path": "Gemfile"},
+        {"kind": "capability", "name": "cloud:aws", "path": "Gemfile"},
+        {"kind": "capability", "name": "storage:object", "path": "Gemfile"},
+        {"kind": "capability", "name": "search:elasticsearch", "path": "Gemfile"},
+        {"kind": "capability", "name": "auth:jwt", "path": "Gemfile"},
+        {"kind": "capability", "name": "auth:oauth2", "path": "Gemfile"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "Gemfile"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared gems are installable"]
+    },
+    {
+      "id": "maven-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "pom.xml declares org.postgresql:postgresql, spring-data-redis (cache:redis), kafka-clients, software.amazon.awssdk:s3 (cloud:aws + storage:object), io.jsonwebtoken:jjwt (auth:jwt), spring-data-jpa (datastore:relational)",
+        "source": "Maven pom.xml; capabilities matched on group:artifact coordinate prefix",
+        "url": "https://maven.apache.org/pom.html"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "pom.xml"},
+        {"kind": "capability", "name": "cache:redis", "path": "pom.xml"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "pom.xml"},
+        {"kind": "capability", "name": "cloud:aws", "path": "pom.xml"},
+        {"kind": "capability", "name": "storage:object", "path": "pom.xml"},
+        {"kind": "capability", "name": "auth:jwt", "path": "pom.xml"},
+        {"kind": "capability", "name": "datastore:relational", "path": "pom.xml"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared artifacts are resolvable"]
+    },
+    {
+      "id": "nuget-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "catalog-fixture.csproj declares Npgsql (postgresql), StackExchange.Redis, Confluent.Kafka, AWSSDK.S3 (cloud:aws + storage:object), System.IdentityModel.Tokens.Jwt (auth:jwt), MassTransit (messaging:amqp)",
+        "source": "NuGet .csproj PackageReference; exact name matching after lowercasing",
+        "url": "https://learn.microsoft.com/en-us/nuget/consume-packages/package-references-in-project-files"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "cache:redis", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "cloud:aws", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "storage:object", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "auth:jwt", "path": "catalog-fixture.csproj"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "catalog-fixture.csproj"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared packages are compatible with the target framework"]
+    },
+    {
+      "id": "go-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "go.mod requires jackc/pgx (postgresql), redis/go-redis (redis), segmentio/kafka-go (kafka), aws-sdk-go-v2/service/s3 (cloud:aws + storage:object), golang-jwt/jwt (auth:jwt), rabbitmq/amqp091-go (amqp)",
+        "source": "Go module go.mod; go-require References stored as path@version; matched on module-path prefix",
+        "url": "https://go.dev/ref/mod"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "go.mod"},
+        {"kind": "capability", "name": "cache:redis", "path": "go.mod"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "go.mod"},
+        {"kind": "capability", "name": "cloud:aws", "path": "go.mod"},
+        {"kind": "capability", "name": "storage:object", "path": "go.mod"},
+        {"kind": "capability", "name": "auth:jwt", "path": "go.mod"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "go.mod"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether module graph is complete without go.sum"]
+    },
+    {
+      "id": "cargo-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "Cargo.toml declares tokio-postgres, redis, rdkafka, lapin (amqp), aws-sdk-s3 (cloud:aws + storage:object), jsonwebtoken (auth:jwt), reqwest (net:http-client), lettre (smtp)",
+        "source": "Cargo.toml [dependencies]; values are 'name version' after resolution",
+        "url": "https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "cache:redis", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "cloud:aws", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "storage:object", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "auth:jwt", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "net:http-client", "path": "Cargo.toml"},
+        {"kind": "capability", "name": "messaging:smtp", "path": "Cargo.toml"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether Cargo.lock is present to pin exact versions"]
+    },
+    {
+      "id": "php-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "composer.json requires predis/predis (redis), doctrine/dbal (relational), aws/aws-sdk-php (cloud:aws + storage:object), firebase/php-jwt (auth:jwt), php-amqplib/php-amqplib (amqp), mongodb/mongodb, guzzlehttp/guzzle (net:http-client)",
+        "source": "Composer composer.json; package names are vendor/package format",
+        "url": "https://getcomposer.org/doc/04-schema.md"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "cache:redis", "path": "composer.json"},
+        {"kind": "capability", "name": "datastore:relational", "path": "composer.json"},
+        {"kind": "capability", "name": "cloud:aws", "path": "composer.json"},
+        {"kind": "capability", "name": "storage:object", "path": "composer.json"},
+        {"kind": "capability", "name": "auth:jwt", "path": "composer.json"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "composer.json"},
+        {"kind": "capability", "name": "datastore:mongodb", "path": "composer.json"},
+        {"kind": "capability", "name": "net:http-client", "path": "composer.json"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared packages are available at declared constraints"]
+    },
+    {
+      "id": "python-declared-capabilities",
+      "oracle": {
+        "fixture_evidence": "requirements.txt declares psycopg2-binary (postgresql), redis, kafka-python, pika (amqp), boto3 (cloud:aws), python-jose[cryptography] (auth:jwt), sqlalchemy (relational), cryptography, requests (net:http-client)",
+        "source": "pip requirements.txt; PEP 503 canonical name normalization applied before catalog lookup",
+        "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "datastore:postgresql", "path": "requirements.txt"},
+        {"kind": "capability", "name": "cache:redis", "path": "requirements.txt"},
+        {"kind": "capability", "name": "messaging:kafka", "path": "requirements.txt"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "requirements.txt"},
+        {"kind": "capability", "name": "cloud:aws", "path": "requirements.txt"},
+        {"kind": "capability", "name": "auth:jwt", "path": "requirements.txt"},
+        {"kind": "capability", "name": "datastore:relational", "path": "requirements.txt"},
+        {"kind": "capability", "name": "crypto:library", "path": "requirements.txt"},
+        {"kind": "capability", "name": "net:http-client", "path": "requirements.txt"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether declared package versions are compatible"]
+    }
+  ]
+}
