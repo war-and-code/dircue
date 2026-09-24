@@ -106,7 +106,7 @@ func newMapCommand(opts *options) *cobra.Command {
 				}()
 			}
 			deployObserver := deployables.NewCollector(deployables.Options{})
-			intentObserver := intentmap.New(intentmap.Options{})
+			intentObserver := intentmap.New(intentmap.Options{MaxObservations: settings.IntentObservations})
 			hooks := append(detectors.Default(), deployObserver, intentObserver)
 			report, err := scanner.Scan(cmd.Context(), root, scanner.Options{
 				Source: opts.source, Revision: revision, Tree: opts.tree,
@@ -539,10 +539,13 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		line("Possible next analyzers: %s", strings.Join(tools[:min(6, len(tools))], ", "))
 	}
 	line("Attached provider runs: %d", len(d.CoverageLedger))
+	// Pre-count specific partial-coverage patterns so uncertain lines can be
+	// specific rather than generic (e.g. "3 Helm charts not rendered").
+	specificCounts := mapSpecificCounts(d.Nodes)
 	var unknown []string
 	for _, q := range d.Coverage {
 		if q.Status != mapdoc.CoverageComplete {
-			unknown = append(unknown, mapCoverageSummary(q, d.Source.Mode))
+			unknown = append(unknown, mapCoverageSummary(q, d.Source.Mode, specificCounts))
 		}
 	}
 	slices.Sort(unknown)
@@ -598,7 +601,27 @@ func mapNodeLabel(n mapdoc.Node) string {
 	return safeMapLabel(name)
 }
 
-func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
+// mapCounts holds pre-computed counts of specific partial-coverage patterns
+// so that mapCoverageSummary can produce specific rather than generic messages.
+type mapCounts struct {
+	helmPartial int // NodeDeployable nodes with reason helm_templates_not_rendered
+}
+
+// mapSpecificCounts inspects visible nodes and counts specific partial-coverage
+// patterns that can make "Still uncertain" lines more informative.
+func mapSpecificCounts(nodes []mapdoc.Node) mapCounts {
+	var c mapCounts
+	for _, n := range nodes {
+		if n.Kind == mapdoc.NodeDeployable && n.Coverage.Status == mapdoc.CoveragePartial {
+			if slices.Contains(n.Coverage.Reasons, "helm_templates_not_rendered") {
+				c.helmPartial++
+			}
+		}
+	}
+	return c
+}
+
+func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string, counts mapCounts) string {
 	switch q.Question {
 	case "source_binding":
 		if mode == "directory" {
@@ -610,6 +633,13 @@ func mapCoverageSummary(q mapdoc.QuestionCoverage, mode string) string {
 	case "components":
 		return "Components: some project declarations or references may be unresolved"
 	case "deployables":
+		if counts.helmPartial > 0 {
+			noun := "Helm chart"
+			if counts.helmPartial != 1 {
+				noun = "Helm charts"
+			}
+			return fmt.Sprintf("Deployables: %d %s not rendered (templates require evaluation for complete coverage)", counts.helmPartial, noun)
+		}
 		return "Deployables: some build or deployment declarations may be unrecognized"
 	case "interfaces":
 		return "Interfaces: some entry points or contracts may be unrecognized"
