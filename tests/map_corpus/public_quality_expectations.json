@@ -1,6 +1,6 @@
 {
   "schema": "dircue-public-map-quality-0.1",
-  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
+  "metric_scope": "Exact precision and recall over each entry\u2019s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
   "repositories": [
     {
       "id": "microservices-demo",
@@ -134,7 +134,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/cartservice/src"
+            "root": "src/cartservice/src",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -147,7 +149,9 @@
           "properties": {
             "ecosystem": "python",
             "project_kind": "python",
-            "root": "src/emailservice"
+            "root": "src/emailservice",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -358,7 +362,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -390,7 +396,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -410,7 +418,9 @@
             "properties": {
               "ecosystem": "dotnet",
               "project_kind": "solution",
-              "root": "src/cartservice"
+              "root": "src/cartservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -426,7 +436,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -452,7 +464,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -489,7 +503,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -527,7 +543,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -565,7 +583,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -615,7 +635,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -648,7 +670,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {},
@@ -672,7 +696,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -709,7 +735,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -746,7 +774,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/cartservice/src"
+              "root": "src/cartservice/src",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -780,7 +810,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -814,7 +846,9 @@
             "properties": {
               "ecosystem": "python",
               "project_kind": "python",
-              "root": "src/emailservice"
+              "root": "src/emailservice",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1042,7 +1076,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/Basket.API"
+            "root": "src/Basket.API",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -1058,7 +1094,9 @@
             "language_basis": "project_file_extension",
             "language_scope": "declared_primary_project_language",
             "project_kind": "dotnet",
-            "root": "src/eShop.AppHost"
+            "root": "src/eShop.AppHost",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         }
       ],
@@ -1078,7 +1116,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1094,7 +1134,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/WebApp"
+              "root": "src/WebApp",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1120,7 +1162,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1136,7 +1180,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Ordering.API"
+              "root": "src/Ordering.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1162,7 +1208,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1178,7 +1226,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/EventBusRabbitMQ"
+              "root": "src/EventBusRabbitMQ",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1204,7 +1254,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1220,7 +1272,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/PaymentProcessor"
+              "root": "src/PaymentProcessor",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1246,7 +1300,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1262,7 +1318,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1288,7 +1346,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1304,7 +1364,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Identity.API"
+              "root": "src/Identity.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1330,7 +1392,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1346,7 +1410,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.ServiceDefaults"
+              "root": "src/eShop.ServiceDefaults",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1372,7 +1438,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1388,7 +1456,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/WebhookClient"
+              "root": "src/WebhookClient",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1414,7 +1484,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1430,7 +1502,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Webhooks.API"
+              "root": "src/Webhooks.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1456,7 +1530,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1472,7 +1548,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/OrderProcessor"
+              "root": "src/OrderProcessor",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1498,7 +1576,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/eShop.AppHost"
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1514,7 +1594,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Catalog.API"
+              "root": "src/Catalog.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "properties": {
@@ -1540,7 +1622,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1576,7 +1660,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1612,7 +1698,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1648,7 +1736,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1684,7 +1774,9 @@
               "language_basis": "project_file_extension",
               "language_scope": "declared_primary_project_language",
               "project_kind": "dotnet",
-              "root": "src/Basket.API"
+              "root": "src/Basket.API",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -1836,7 +1928,9 @@
           "properties": {
             "ecosystem": "maven",
             "project_kind": "maven",
-            "root": "."
+            "root": ".",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2041,7 +2135,9 @@
             "ecosystem": "npm",
             "project_kind": "npm",
             "root": ".",
-            "version": "5.1.0"
+            "version": "5.1.0",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2138,7 +2234,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2171,7 +2269,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2206,7 +2306,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2239,7 +2341,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2272,7 +2376,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2305,7 +2411,9 @@
               "ecosystem": "npm",
               "project_kind": "npm",
               "root": ".",
-              "version": "5.1.0"
+              "version": "5.1.0",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2410,7 +2518,9 @@
             "ecosystem": "python-uv",
             "project_kind": "python-uv",
             "root": ".",
-            "version": "3.1.2"
+            "version": "3.1.2",
+            "role": "primary",
+            "role_basis": "path_name"
           }
         },
         {
@@ -2455,7 +2565,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2489,7 +2601,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
@@ -2523,7 +2637,9 @@
               "ecosystem": "python-uv",
               "project_kind": "python-uv",
               "root": ".",
-              "version": "3.1.2"
+              "version": "3.1.2",
+              "role": "primary",
+              "role_basis": "path_name"
             }
           },
           "to": {
