@@ -408,3 +408,49 @@ func TestCancellation(t *testing.T) {
 		t.Fatalf("detector got %v", err)
 	}
 }
+
+func TestDockerfileDisplayNameDerivedFromParentDirectory(t *testing.T) {
+	// Verify that parseDockerfile uses the parent directory name rather than
+	// the hard-coded "default" sentinel.
+	cases := []struct {
+		path string
+		want string
+	}{
+		{"Dockerfile", "(root)"},                       // root Dockerfile → "(root)"
+		{"src/api/Dockerfile", "api"},                  // service sub-directory
+		{"services/auth/Dockerfile", "auth"},           // deeper path
+		{"src/cartservice/src/Dockerfile", "src"},      // nested src/ uses parent dir
+		{"Dockerfile.prod", "(root)"},                  // variant at root
+		{"apps/web/Dockerfile.staging", "web"},         // variant in sub-directory
+	}
+	for _, tc := range cases {
+		got := dockerfileDisplayName(tc.path)
+		if got != tc.want {
+			t.Errorf("dockerfileDisplayName(%q) = %q; want %q", tc.path, got, tc.want)
+		}
+	}
+}
+
+func TestDockerfileObservationUsesPathDerivedName(t *testing.T) {
+	// End-to-end: a Dockerfile at "services/api/Dockerfile" should produce a
+	// definition whose Name is "api", not "default".
+	body := "FROM golang:1.26 AS build\nFROM scratch\n"
+	r := observeOne(t, "services/api/Dockerfile", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("expected one definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	if r.Definitions[0].Name != "api" {
+		t.Errorf("Dockerfile name = %q; want %q", r.Definitions[0].Name, "api")
+	}
+}
+
+func TestRootDockerfileObservationUsesRootSentinel(t *testing.T) {
+	body := "FROM node:22\n"
+	r := observeOne(t, "Dockerfile", body)
+	if len(r.Definitions) != 1 {
+		t.Fatalf("expected one definition, got %d: %+v", len(r.Definitions), r.Definitions)
+	}
+	if r.Definitions[0].Name != "(root)" {
+		t.Errorf("root Dockerfile name = %q; want \"(root)\"", r.Definitions[0].Name)
+	}
+}

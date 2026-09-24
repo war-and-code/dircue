@@ -46,14 +46,29 @@ func isAppHostDir(dir string) bool {
 	return strings.HasSuffix(base, ".apphost") || base == "apphost"
 }
 
+// dockerfileDisplayName derives a short, human-readable name from a Dockerfile
+// path. It uses the parent directory's base name, which is the component or
+// service name in almost all layouts (e.g. "src/cartservice/Dockerfile" →
+// "cartservice"). The root-level Dockerfile uses the sentinel "(root)" so that
+// it matches the component naming convention for the repository root.
+func dockerfileDisplayName(filePath string) string {
+	dir := path.Dir(filePath)
+	if dir == "." || dir == "" {
+		return "(root)"
+	}
+	return path.Base(dir)
+}
+
 func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("Dockerfile contains binary data")
 	}
 	// Devcontainer Dockerfiles are tooling, not production images; other Dockerfiles
 	// are container builds. The role is set by addDeployables via mapPathRole.
+	// The name is derived from the parent directory so that "src/api/Dockerfile"
+	// displays as "api [container_build]" rather than the opaque "default".
 	lines := strings.Split(string(content), "\n")
-	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: "default", Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
+	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: dockerfileDisplayName(name), Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
 	stages := map[string]bool{}
 	for i, line := range lines {
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
@@ -151,10 +166,14 @@ func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 		return nil, false, nil // Only data blocks found; nothing deployable.
 	}
 	// The file name encodes the module directory for later aggregation.
+	// aggregateTerraformDefs in mapbuild/observers.go re-derives the final name
+	// from the aggregated directory, so this per-file name is only used as a
+	// fallback (e.g. when the observer runs outside mapbuild). Use "(root)" for
+	// the repository root to avoid the misleading "main.tf" display name.
 	dir := path.Dir(name)
 	moduleName := path.Base(dir)
 	if moduleName == "." || moduleName == "" {
-		moduleName = path.Base(name)
+		moduleName = "(root)"
 	}
 	d := Definition{
 		Kind:       "infrastructure",
