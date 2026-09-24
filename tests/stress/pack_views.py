@@ -27,10 +27,10 @@ def main():
     manifest = json.loads(original)
     if not manifest.get("finished_at_utc") or manifest.get("packed_views"):
         parser.error("requires a completed, not yet extended fixture manifest")
-    names = ["talend", "xml-log"]
+    names = ["etl-pipeline", "xml-log"]
     fixtures = {fixture["name"]: fixture for fixture in manifest["fixtures"]}
     if any(name not in fixtures for name in names):
-        parser.error("Talend and XML-log base fixtures are required")
+        parser.error("ETL-pipeline and XML-log base fixtures are required")
     if any((root/(name+"-packed")).exists() for name in names):
         parser.error("packed destinations already exist; never overwrite them")
     needed = 2*sum(fixtures[name]["git_storage"]["logical_bytes"] for name in names)

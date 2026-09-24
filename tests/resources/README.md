@@ -11,14 +11,14 @@ The six concurrent cases are:
 | Case | Input and operation |
 | --- | --- |
 | Go directory | Pinned Cobra checkout; legacy language JSON |
-| Talend directory | 2 GiB synthetic fixture; generated-source exclusion; language JSON |
+| ETL-pipeline directory | 2 GiB synthetic fixture; generated-source exclusion; language JSON |
 | XML logs | 1.1 GiB synthetic XML log plus C#; language JSON |
 | .NET graph | 2,048 projects in a packed Git repository; graph JSON |
 | .NET projects | Same selected packed revision; project JSON |
-| Talend packed | Packed Git revision of the synthetic Talend fixture; language JSON |
+| ETL-pipeline packed | Packed Git revision of the synthetic ETL-pipeline fixture; language JSON |
 
-The Talend and XML fixtures are layout/format approximations, not actual
-Talend exports or MOVEit samples. See the [stress fixture description](../stress/README.md).
+The ETL-pipeline and XML fixtures are layout/format approximations, not actual
+ETL-pipeline exports or log-transfer samples. See the [stress fixture description](../stress/README.md).
 
 ## Run
 

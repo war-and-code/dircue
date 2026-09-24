@@ -276,3 +276,203 @@ func TestCandidateScopeAndLexicalObservationLimit(t *testing.T) {
 		t.Fatalf("wrong candidate scope or retained set: %+v", a)
 	}
 }
+
+// ── F-04: Interfaces recall ───────────────────────────────────────────────────
+
+func TestGoInterfacesSurviveFullCapabilityHeap(t *testing.T) {
+	// Regression for F-04. With a small heap and many capability observations,
+	// the interface observation must not be evicted because kindPriority gives
+	// interfaces the highest retention priority.
+	d := New(Options{MaxObservations: 8})
+	// Fill the heap with capability-producing imports.
+	for i := 0; i < 20; i++ {
+		src := fmt.Sprintf("package p\nimport \"github.com/jackc/pgx/v5\"\n")
+		path := fmt.Sprintf("svc/%02d.go", i)
+		_, _ = d.Detect(context.Background(), profile.File{Path: path, Size: int64(len(src)), Content: []byte(src)})
+	}
+	// Now add a file that declares an interface (binary).
+	mainSrc := []byte("package main\nfunc main() {}\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: "cmd/api/main.go", Size: int64(len(mainSrc)), Content: mainSrc})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.Kind == KindInterface && o.Name == "api" && o.Properties["interface_kind"] == "binary" {
+			return
+		}
+	}
+	t.Fatalf("binary interface was evicted from full heap; observations: %+v", r.Observations)
+}
+
+func TestGoBinaryNameUsesParentDirectory(t *testing.T) {
+	tests := []struct {
+		path string
+		want string
+	}{
+		{"cmd/loki/main.go", "loki"},
+		{"cmd/querier/main.go", "querier"},
+		{"main.go", "main"},
+		{"api/main.go", "api"},
+	}
+	for _, tt := range tests {
+		got := goBinaryName(tt.path)
+		if got != tt.want {
+			t.Errorf("goBinaryName(%q) = %q, want %q", tt.path, got, tt.want)
+		}
+	}
+}
+
+func TestDockerfileExposeProducesInterfaceObservation(t *testing.T) {
+	content := []byte("FROM alpine\nEXPOSE 3000\nEXPOSE 8080/tcp\nRUN echo ok\nEXPOSE 9090 9091\n")
+	obs := parseDockerfileExpose("services/api/Dockerfile", content)
+	wantPorts := map[string]bool{"3000": false, "8080": false, "9090": false, "9091": false}
+	for _, o := range obs {
+		if o.Kind != KindInterface {
+			t.Errorf("unexpected kind %v", o.Kind)
+		}
+		if o.Properties["interface_kind"] != "declared_port" {
+			t.Errorf("interface_kind = %q, want declared_port", o.Properties["interface_kind"])
+		}
+		port := o.Properties["port"]
+		if _, ok := wantPorts[port]; !ok {
+			t.Errorf("unexpected port %q", port)
+		}
+		wantPorts[port] = true
+		if o.Name != "port:"+port {
+			t.Errorf("name = %q, want port:%s", o.Name, port)
+		}
+	}
+	for port, seen := range wantPorts {
+		if !seen {
+			t.Errorf("port %q not detected", port)
+		}
+	}
+}
+
+// ── F-10: Capability recall ───────────────────────────────────────────────────
+
+func TestConfigCapabilityDBHostProducesRelational(t *testing.T) {
+	// DB_HOST is an unambiguous relational-database key. The catalog maps it to
+	// datastore:relational rather than a vendor-specific name because the key
+	// alone does not distinguish PostgreSQL from MySQL.
+	d := New(Options{})
+	content := []byte("DB_HOST=db.example\nDB_NAME=production\nDB_USER=app\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: ".env.production.sample", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability && o.Name == "datastore:relational" {
+			return
+		}
+	}
+	t.Fatalf("DB_HOST did not produce datastore:relational; observations: %+v", r.Observations)
+}
+
+func TestConfigCapabilityESHostProducesSearchElasticsearch(t *testing.T) {
+	d := New(Options{})
+	content := []byte("ES_HOST=elasticsearch.example\nES_PORT=9200\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: ".env.production.sample", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability && o.Name == "search:elasticsearch" {
+			return
+		}
+	}
+	t.Fatalf("ES_HOST did not produce search:elasticsearch; observations: %+v", r.Observations)
+}
+
+func TestConfigCapabilitySMTPServerProducesMessagingSMTP(t *testing.T) {
+	d := New(Options{})
+	content := []byte("SMTP_SERVER=smtp.mailgun.org\nSMTP_PORT=587\nSMTP_FROM_ADDRESS=noreply@example.com\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: ".env.production.sample", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability && o.Name == "messaging:smtp" {
+			return
+		}
+	}
+	t.Fatalf("SMTP_SERVER did not produce messaging:smtp; observations: %+v", r.Observations)
+}
+
+func TestConfigCapabilityS3BucketProducesStorageObject(t *testing.T) {
+	// S3_BUCKET maps to storage:object (the catalog does not distinguish S3 from
+	// MinIO or other compatible stores given only a bucket key).
+	d := New(Options{})
+	content := []byte("S3_ENABLED=true\nS3_BUCKET=my-prod-bucket\nS3_REGION=us-east-1\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: ".env.production.sample", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.Kind == KindCapability && o.Name == "storage:object" {
+			return
+		}
+	}
+	t.Fatalf("S3_BUCKET did not produce storage:object; observations: %+v", r.Observations)
+}
+
+func TestConnectionStringURISchemeProducesCapability(t *testing.T) {
+	// URI scheme detection via connectionStringCapability: postgres:// maps to
+	// datastore:relational, redis:// maps to cache:redis.
+	d := New(Options{})
+	content := []byte("DATABASE_URL=postgres://user:secret@db.example/prod\nREDIS_URL=redis://cache.example:6379\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: ".env", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	foundPg, foundRedis := false, false
+	for _, o := range r.Observations {
+		if o.Kind != KindCapability {
+			continue
+		}
+		if o.Name == "datastore:relational" {
+			foundPg = true
+		}
+		if o.Name == "cache:redis" {
+			foundRedis = true
+		}
+	}
+	if !foundPg {
+		t.Error("postgres:// URI did not produce datastore:relational")
+	}
+	if !foundRedis {
+		t.Error("redis:// URI did not produce cache:redis")
+	}
+}
+
+// ── P0: Attribution honesty ───────────────────────────────────────────────────
+
+func TestContainmentAttributedObservationSetsProjectAttribution(t *testing.T) {
+	// Regression for P0/ACC-F01: observations whose ProjectID is set by
+	// directory-containment heuristic must carry ProjectAttribution =
+	// "directory_containment", not an empty string.
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "app/go.mod", Root: "app"}})
+	content := []byte("REDIS_HOST=cache.example\n")
+	_, _ = d.Detect(context.Background(), profile.File{Path: "app/.env", Size: int64(len(content)), Content: content})
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range r.Observations {
+		if o.ProjectID != "app/go.mod" {
+			continue
+		}
+		if o.ProjectAttribution != "directory_containment" {
+			t.Errorf("observation %q projectID set by containment but ProjectAttribution = %q, want directory_containment", o.Name, o.ProjectAttribution)
+		}
+		return
+	}
+	t.Fatal("no observation found with projectID app/go.mod")
+}

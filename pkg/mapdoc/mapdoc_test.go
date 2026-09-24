@@ -174,6 +174,41 @@ func TestCoverageLedgerRequiresConfinedFilesAndBinding(t *testing.T) {
 	}
 }
 
+// TestAllProducerBindingConstantsAcceptedByValidator enumerates every binding
+// value defined in the public contract and verifies the validator accepts each
+// one.  A new constant must appear here before it can be shipped.
+func TestAllProducerBindingConstantsAcceptedByValidator(t *testing.T) {
+	allBindings := []string{"verified", "mismatch", "unknown", "caller_asserted"}
+	for _, b := range allBindings {
+		t.Run(b, func(t *testing.T) {
+			d := document()
+			d.CoverageLedger = []mapdoc.CoverageLedgerEntry{{
+				Tool:         "syft",
+				ReportKind:   "syft-json",
+				Scope:        ".",
+				Binding:      b,
+				Ran:          true,
+				CoveredFiles: []string{"b/package.json"},
+				State:        "covered_files_reported",
+				Reason:       "test_binding_" + b,
+			}}
+			if _, err := mapdoc.Marshal(d); err != nil {
+				t.Fatalf("binding %q rejected by validator: %v", b, err)
+			}
+		})
+	}
+	// A value outside the contract must be rejected.
+	d := document()
+	d.CoverageLedger = []mapdoc.CoverageLedgerEntry{{
+		Tool: "syft", ReportKind: "syft-json", Scope: ".",
+		Binding: "invented", Ran: true, CoveredFiles: []string{"b/package.json"},
+		State: "covered_files_reported", Reason: "bad",
+	}}
+	if _, err := mapdoc.Marshal(d); err == nil {
+		t.Fatal("invalid binding value accepted by validator")
+	}
+}
+
 func TestRejectsUnimplementedRelationshipKinds(t *testing.T) {
 	d := document()
 	edge := mapdoc.NewEdge(mapdoc.EdgeType("conflicts_with"), d.Nodes[0].ID, d.Nodes[1].ID, "")

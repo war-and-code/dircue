@@ -2,7 +2,11 @@
 // source imports, and neutral capability evidence without executing content.
 package intentmap
 
-import "dircue/pkg/declarations"
+import (
+	"path"
+
+	"dircue/pkg/declarations"
+)
 
 const (
 	DetectorName           = "dircue-intent-map"
@@ -21,15 +25,20 @@ const (
 )
 
 type Observation struct {
-	Kind       Kind              `json:"kind"`
-	Name       string            `json:"name"`
-	ProjectID  string            `json:"project_id,omitempty"`
-	State      string            `json:"state"`
-	Basis      string            `json:"basis"`
-	Path       string            `json:"path"`
-	StartLine  int               `json:"start_line,omitempty"`
-	EndLine    int               `json:"end_line,omitempty"`
-	Properties map[string]string `json:"properties,omitempty"`
+	Kind      Kind   `json:"kind"`
+	Name      string `json:"name"`
+	ProjectID string `json:"project_id,omitempty"`
+	// ProjectAttribution is "directory_containment" when ProjectID was assigned
+	// by path-containment heuristic in Finish rather than by the source
+	// observation. An empty value means the ProjectID was explicitly set by the
+	// source (e.g. a declared requirement in a manifest).
+	ProjectAttribution string            `json:"project_attribution,omitempty"`
+	State              string            `json:"state"`
+	Basis              string            `json:"basis"`
+	Path               string            `json:"path"`
+	StartLine          int               `json:"start_line,omitempty"`
+	EndLine            int               `json:"end_line,omitempty"`
+	Properties         map[string]string `json:"properties,omitempty"`
 }
 
 type Coverage struct {
@@ -60,6 +69,13 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 	defer d.mu.Unlock()
 	for _, project := range projects {
 		d.projects[project.ID] = project.Root
+		// Store the module/package name base for Go binary naming. When
+		// main.go sits at the project root, the binary name comes from
+		// the module path rather than the directory name (which is not
+		// portable across different checkout paths).
+		if name := path.Base(project.Name); project.Name != "" && name != "" && name != "." {
+			d.projectNames[project.ID] = name
+		}
 		for _, v := range project.Interfaces {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
