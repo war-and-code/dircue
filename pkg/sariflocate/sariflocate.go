@@ -33,8 +33,12 @@ func DefaultLimits() Limits {
 // portable map document. SourceURI is used only to relativize absolute SARIF
 // URIs and is never copied into output. Digest binds directory maps when set.
 type Options struct {
-	Limits        Limits
-	SourceURI     string
+	Limits    Limits
+	SourceURI string
+	// URIBases defines uriBaseId values that a report uses without declaring
+	// them in originalUriBaseIds, such as %SRCROOT%. Keys may be given with
+	// or without the surrounding percent signs. Declared bases always win.
+	URIBases      map[string]string
 	Digest        *mapdoc.Digest
 	CaseSensitive *bool
 }
@@ -112,7 +116,7 @@ func Annotate(input []byte, doc mapdoc.Document, opts Options) ([]byte, Summary,
 		tool, version := toolIdentity(runs[ri])
 		binding := sourceBinding(runs[ri], doc, opts)
 		summary.Runs = append(summary.Runs, RunSummary{Index: ri, Tool: tool, Version: version, Binding: binding})
-		bases := baseURIs(runs[ri])
+		bases := baseURIs(runs[ri], opts.URIBases)
 		var results []rawObject
 		if raw, ok := runs[ri]["results"]; ok {
 			if err := json.Unmarshal(raw, &results); err != nil {
@@ -304,10 +308,15 @@ func physical(loc rawObject) (rawObject, rawObject, bool) {
 	return a, r, true
 }
 
-func baseURIs(run rawObject) map[string]string {
+func baseURIs(run rawObject, supplied map[string]string) map[string]string {
 	var raw map[string]rawObject
 	_ = json.Unmarshal(run["originalUriBaseIds"], &raw)
 	out := map[string]string{}
+	for id, v := range supplied {
+		name := strings.Trim(id, "%")
+		out[name] = v + "\x00"
+		out["%"+name+"%"] = v + "\x00"
+	}
 	for id, v := range raw {
 		out[id] = stringValue(v["uri"]) + "\x00" + stringValue(v["uriBaseId"])
 	}
@@ -316,7 +325,9 @@ func baseURIs(run rawObject) map[string]string {
 
 func resolveURI(uri, baseID string, bases map[string]string, source string, sensitive bool) (string, string) {
 	seen := map[string]bool{}
-	for baseID != "" {
+	// An absolute URI does not depend on a base (SARIF 2.1.0 section 3.4.4),
+	// so a uriBaseId that some tools still attach to absolute paths is ignored.
+	for baseID != "" && !absoluteURI(uri) {
 		if seen[baseID] {
 			return "", "unresolvable_uri"
 		}
@@ -412,6 +423,10 @@ func windowsPath(v string) bool {
 	return driveRE.MatchString(v) || regexp.MustCompile(`^file:/+[A-Za-z]:`).MatchString(v)
 }
 func absolutePath(v string) bool { return strings.HasPrefix(v, "/") || driveRE.MatchString(v) }
+
+func absoluteURI(v string) bool {
+	return absolutePath(v) || strings.HasPrefix(strings.ToLower(v), "file:")
+}
 
 func sourceBinding(run rawObject, doc mapdoc.Document, opts Options) string {
 	if doc.Source.Mode == "directory" {
