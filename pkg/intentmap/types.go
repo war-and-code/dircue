@@ -81,6 +81,12 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
 		for _, req := range project.Requirements {
+			// PEP 735 dependency groups (dev, test, docs, lint) are never
+			// published with the package; like npm devDependencies they
+			// describe tooling, not what the component uses.
+			if strings.HasPrefix(req.Condition, "group:") {
+				continue
+			}
 			for _, capability := range capabilitiesFor(req.Kind, req.Value) {
 				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(req.State), Basis: "declared_dependency", Path: req.Evidence, Properties: compact(map[string]string{"requirement_kind": req.Kind, "requirement": req.Value, "condition": req.Condition})})
 			}
@@ -101,7 +107,14 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 				continue
 			}
 			for _, capability := range capabilitiesFor(ref.Kind, ref.Value) {
-				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: declarationState(ref.State), Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
+				state := declarationState(ref.State)
+				// Optional and peer dependencies are conditional: the package may
+				// or may not be installed, so capabilities derived from them are
+				// conditional too.
+				if ref.Condition == "optionalDependencies" || ref.Condition == "peerDependencies" {
+					state = "conditional"
+				}
+				d.addLocked(Observation{Kind: KindCapability, Name: capability, ProjectID: project.ID, State: state, Basis: "declared_dependency", Path: ref.Evidence, Properties: compact(map[string]string{"requirement_kind": ref.Kind, "requirement": ref.Value, "condition": ref.Condition})})
 			}
 		}
 	}

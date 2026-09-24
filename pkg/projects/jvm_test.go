@@ -169,6 +169,41 @@ func TestGradleProjectDirOverrides(t *testing.T) {
 	}
 }
 
+func TestGradleRootProjectName(t *testing.T) {
+	// settings.gradle: rootProject.name read for various syntaxes
+	for _, tt := range []struct {
+		name    string
+		script  string
+		wantReq string // expected gradle-root-name value, or "" for none
+	}{
+		{"groovy single-quote", "rootProject.name = 'spring-petclinic'\n", "spring-petclinic"},
+		{"groovy double-quote", `rootProject.name = "my-project"` + "\n", "my-project"},
+		{"kotlin kts", "rootProject.name = \"my-app\"\n", "my-app"},
+		{"with include", "rootProject.name = 'app'\ninclude(':lib')\n", "app"},
+		{"dynamic ignored", "rootProject.name = someVar\n", ""},
+		{"nested ignored", "allprojects {\nrootProject.name = 'inner'\n}\n", ""},
+	} {
+		d := ParseJVM("settings.gradle", []byte(tt.script))
+		var got string
+		for _, r := range d.Requirements {
+			if r.Kind == "gradle-root-name" {
+				got = r.Value
+				break
+			}
+		}
+		if got != tt.wantReq {
+			t.Errorf("%s: got gradle-root-name=%q, want %q", tt.name, got, tt.wantReq)
+		}
+	}
+	// build.gradle: rootProject.name is not a build-gradle token, should not be emitted
+	d := ParseJVM("build.gradle", []byte("rootProject.name = 'build'\n"))
+	for _, r := range d.Requirements {
+		if r.Kind == "gradle-root-name" {
+			t.Errorf("build.gradle emitted gradle-root-name unexpectedly: %+v", r)
+		}
+	}
+}
+
 func TestGradleToolchainLiterals(t *testing.T) {
 	d := ParseJVM("build.gradle.kts", []byte(`java {
  toolchain {

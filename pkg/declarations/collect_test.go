@@ -306,3 +306,41 @@ func TestMavenComponentNameComesFromRootArtifact(t *testing.T) {
 		t.Fatalf("unresolved expression became a component name: %+v", placeholder)
 	}
 }
+
+func TestGradleComponentNameFromSettingsRootProjectName(t *testing.T) {
+	ctx := context.Background()
+	// settings.gradle declares rootProject.name; build.gradle declares the project.
+	// The collector should propagate the name to the build.gradle project.
+	settingsContent := "rootProject.name = 'spring-petclinic'\ninclude(':lib')\n"
+	buildContent := "apply plugin: 'java'\n"
+	c := New("directory", "", 0)
+	c.Add("settings.gradle", candidateFor("settings.gradle", settingsContent))
+	c.Add("build.gradle", candidateFor("build.gradle", buildContent))
+	report, err := c.Finish(ctx)
+	if err != nil {
+		t.Fatalf("Finish: %v", err)
+	}
+	var gradleName string
+	for _, p := range report.Projects {
+		if p.Kind == "gradle" {
+			gradleName = p.Name
+		}
+	}
+	if gradleName != "spring-petclinic" {
+		t.Errorf("gradle component name: got %q, want %q", gradleName, "spring-petclinic")
+	}
+
+	// A dynamic rootProject.name (e.g. rootProject.name = someVar) must not set a name.
+	c2 := New("directory", "", 0)
+	c2.Add("settings.gradle", candidateFor("settings.gradle", "rootProject.name = someVar\n"))
+	c2.Add("build.gradle", candidateFor("build.gradle", "apply plugin: 'java'\n"))
+	report2, err := c2.Finish(ctx)
+	if err != nil {
+		t.Fatalf("Finish2: %v", err)
+	}
+	for _, p := range report2.Projects {
+		if p.Kind == "gradle" && p.Name != "" {
+			t.Errorf("dynamic name leaked: got %q", p.Name)
+		}
+	}
+}
