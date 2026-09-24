@@ -9,8 +9,8 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 type availabilityAccumulator struct {

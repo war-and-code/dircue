@@ -2,8 +2,8 @@ package scanner
 
 import (
 	"context"
-	"dircue/pkg/projects"
 	"encoding/json"
+	"github.com/war-and-code/dircue/pkg/projects"
 	"os"
 	"path/filepath"
 	"reflect"

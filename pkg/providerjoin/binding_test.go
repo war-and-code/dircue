@@ -3,7 +3,7 @@ package providerjoin
 import (
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func TestBindingRequiresEverySuppliedIdentityToBeComparable(t *testing.T) {

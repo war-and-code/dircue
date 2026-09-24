@@ -12,7 +12,7 @@ import (
 	"os"
 	"slices"
 
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func main() {

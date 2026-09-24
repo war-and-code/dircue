@@ -7,11 +7,11 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/coverageledger"
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/providerjoin"
-	"dircue/pkg/sariflocate"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/coverageledger"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/providerjoin"
+	"github.com/war-and-code/dircue/pkg/sariflocate"
 )
 
 func joinMapAttachments(cmd *cobra.Command, doc mapdoc.Document, specs []string, callerAsserted bool, settings resolvedMapSettings) (mapdoc.Document, error) {

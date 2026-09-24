@@ -1,6 +1,6 @@
 package profile
 
-import "dircue/pkg/structure"
+import "github.com/war-and-code/dircue/pkg/structure"
 
 // StructureReport records selected source coverage. Observations are additive
 // syntax-node counts; BCA metrics remain per-file because many are not additive.

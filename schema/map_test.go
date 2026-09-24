@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 func schemaMapNode(kind mapdoc.NodeKind, source mapdoc.EvidenceSource) mapdoc.Node {

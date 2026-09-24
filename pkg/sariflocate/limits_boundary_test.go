@@ -23,8 +23,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/sariflocate"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/sariflocate"
 )
 
 // TestBytesBoundaryExactlyAccepted ensures that a SARIF payload whose length

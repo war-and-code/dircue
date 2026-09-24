@@ -5,8 +5,8 @@ import (
 	"io"
 	"slices"
 
-	"dircue/pkg/discovery"
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 func writeDiscovery(out io.Writer, r *discovery.Report) error {

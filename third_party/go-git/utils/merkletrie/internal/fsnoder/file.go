@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 
-	"github.com/go-git/go-git/v5/utils/merkletrie/noder"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/merkletrie/noder"
 )
 
 // file values represent file-like noders in a merkle trie.

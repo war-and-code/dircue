@@ -3,7 +3,7 @@
 // with colliding extensions, based on regexps from Linguist data.
 package rule
 
-import "github.com/go-enry/go-enry/v2/regex"
+import "github.com/war-and-code/dircue/third_party/go-enry/regex"
 
 // Matcher checks if the data matches (number of) pattern(s).
 // Every heuristic rule below implements this interface.

@@ -3,8 +3,8 @@ package providerjoin_test
 import (
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/providerjoin"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/providerjoin"
 )
 
 func routingComponent(root, language string) mapdoc.Node {

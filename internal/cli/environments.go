@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/environments"
 )
 
 func writeEnvironments(out io.Writer, report *environments.Report) error {

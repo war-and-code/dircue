@@ -2,9 +2,9 @@ package scanner
 
 import (
 	"context"
-	"dircue/pkg/explain"
-	"dircue/pkg/profile"
 	"errors"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/profile"
 	"os"
 	"path"
 	"strings"

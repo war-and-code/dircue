@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/scanner"
-	"dircue/pkg/treehash"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/scanner"
+	"github.com/war-and-code/dircue/pkg/treehash"
 )
 
 var mapPresetNames = []string{"balanced", "low-memory", "thorough"}

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/providerjoin"
+	"github.com/war-and-code/dircue/pkg/providerjoin"
 )
 
 func TestAttachmentFIFORejectedWithoutBlocking(t *testing.T) {

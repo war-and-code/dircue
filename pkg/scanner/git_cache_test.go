@@ -14,10 +14,10 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/war-and-code/dircue/pkg/profile"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 func TestGitObjectCacheBudgetPreservesReport(t *testing.T) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/planning"
 )
 
 func TestErgonomicErrorsTeachWithoutExecutingGuesses(t *testing.T) {

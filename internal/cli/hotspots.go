@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func writeHotspots(out io.Writer, r *structure.HotspotReport) error {

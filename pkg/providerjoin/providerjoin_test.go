@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/mapdoc"
-	"dircue/pkg/providerjoin"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/providerjoin"
 )
 
 func attachment(t *testing.T, body string) string {
@@ -43,6 +43,13 @@ func TestSyftFactsRemainQualifiedAndFindingsAreNotPossible(t *testing.T) {
 	}
 	if r.Ledger[0].Binding != providerjoin.BindingUnknown {
 		t.Fatalf("binding=%s", r.Ledger[0].Binding)
+	}
+	for _, coverage := range r.Coverage {
+		if coverage.Question == "packages" {
+			if coverage.Status != mapdoc.CoveragePartial || !slices.Contains(coverage.Reasons, "syft_cataloger_scope_not_proven_exhaustive") || slices.Contains(coverage.Reasons, "no_syft_report_attached") {
+				t.Fatalf("verified Syft report overclaimed package-universe coverage: %+v", coverage)
+			}
+		}
 	}
 	associated := false
 	for _, edge := range r.Edges {

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/go-enry/go-enry/v2/data"
-	"github.com/go-enry/go-enry/v2/internal/tokenizer"
+	"github.com/war-and-code/dircue/third_party/go-enry/data"
+	"github.com/war-and-code/dircue/third_party/go-enry/internal/tokenizer"
 )
 
 // The model is exported from the pinned official Linguist gem. Inference is a

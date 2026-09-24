@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	git "github.com/go-git/go-git/v5"
+	"github.com/war-and-code/dircue/pkg/profile"
+	git "github.com/war-and-code/dircue/third_party/go-git"
 )
 
 const goSource = "package main\n\nfunc main() {}\n"

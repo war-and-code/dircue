@@ -1,6 +1,6 @@
 package data
 
-import "github.com/go-enry/go-enry/v2/data/rule"
+import "github.com/war-and-code/dircue/third_party/go-enry/data/rule"
 
 // Heuristics implements a rule-based content matching engine.
 

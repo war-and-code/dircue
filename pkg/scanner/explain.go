@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strconv"
 
-	"dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/explain"
 )
 
 // analyzeFileWithLanguageTrace runs the ordinary file-analysis path with an

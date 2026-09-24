@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
 const DescriptorVersion = "1.0.0"

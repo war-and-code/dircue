@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
-	"dircue/internal/cli"
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/profile"
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func reviewProfile(t testing.TB, n int) profile.Report {

@@ -5,7 +5,7 @@ import (
 	"io"
 	"slices"
 
-	"dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/formats"
 )
 
 func writeFormats(out io.Writer, r *formats.Report) error {

@@ -21,6 +21,8 @@ func TestMaintainedGoGitSourceMatchesProvenance(t *testing.T) {
 		Module        string            `json:"module"`
 		Version       string            `json:"version"`
 		Files         map[string]string `json:"files"`
+		UpstreamFiles map[string]string `json:"upstream_files"`
+		RuntimeModule string            `json:"runtime_module"`
 		Patch         string            `json:"patch"`
 		PatchHash     string            `json:"patch_sha256"`
 		Generator     string            `json:"generator_script"`
@@ -29,8 +31,11 @@ func TestMaintainedGoGitSourceMatchesProvenance(t *testing.T) {
 	if err := json.Unmarshal(data, &manifest); err != nil {
 		t.Fatal(err)
 	}
-	if manifest.Module != "github.com/go-git/go-git/v5" || manifest.Version != "v5.19.2" || len(manifest.Files) == 0 {
+	if manifest.Module != "github.com/go-git/go-git/v5" || manifest.Version != "v5.19.2" || len(manifest.Files) == 0 || len(manifest.UpstreamFiles) == 0 {
 		t.Fatal("unexpected or empty go-git provenance")
+	}
+	if manifest.RuntimeModule != "github.com/war-and-code/dircue/third_party/go-git" {
+		t.Fatalf("unexpected embedded go-git import path %q", manifest.RuntimeModule)
 	}
 	check := func(base, relative, expected string) {
 		t.Helper()
@@ -48,6 +53,16 @@ func TestMaintainedGoGitSourceMatchesProvenance(t *testing.T) {
 	}
 	for relative, expected := range manifest.Files {
 		check(fork, relative, expected)
+	}
+	for upstream, retained := range map[string]string{"go.mod": "upstream.go.mod", "go.sum": "upstream.go.sum"} {
+		digest, ok := manifest.UpstreamFiles[upstream]
+		if !ok {
+			t.Fatalf("upstream manifest omitted %s", upstream)
+		}
+		check(fork, retained, digest)
+	}
+	if _, err := os.Stat(filepath.Join(fork, "go.mod")); !os.IsNotExist(err) {
+		t.Fatal("embedded go-git snapshot unexpectedly has a nested go.mod")
 	}
 	check(root, manifest.Patch, manifest.PatchHash)
 	check(root, manifest.Generator, manifest.GeneratorHash)

@@ -6,10 +6,10 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/capabilities"
-	"dircue/schema"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/schema"
 )
 
 type cliFlagContract struct {

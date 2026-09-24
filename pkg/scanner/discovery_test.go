@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/discovery"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func discoveryOptions() Options {

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 const goSource = "package sample\n\nfunc Hello() string { return \"hello\" }\n"

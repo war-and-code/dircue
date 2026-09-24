@@ -5,8 +5,8 @@ package planning
 import (
 	"errors"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 const (

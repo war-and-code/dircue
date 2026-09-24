@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 func TestRulesFIFOIsNotOpened(t *testing.T) {

@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func nativeStructure(t *testing.T, limit int64, timeout time.Duration) *structure.Client {

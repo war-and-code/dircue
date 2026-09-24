@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/schema"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func cloneProfile(t *testing.T, value map[string]any) map[string]any {

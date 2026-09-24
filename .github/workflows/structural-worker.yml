@@ -37,10 +37,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
             prototypes/structural/driver/go.mod
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -76,7 +73,7 @@ jobs:
         env:
           CGO_ENABLED: '0'
         run: |
-          go build -trimpath -ldflags "-X dircue/internal/cli.Version=${{ env.DIRCUE_CI_VERSION }}" -o bin/dircue${{ matrix.suffix }} .
+          go build -trimpath -ldflags "-X github.com/war-and-code/dircue/internal/cli.Version=${{ env.DIRCUE_CI_VERSION }}" -o bin/dircue${{ matrix.suffix }} .
           python tests/structural_breadth/run.py --candidate bin/dircue${{ matrix.suffix }} --worker prototypes/structural/worker/target/${{ matrix.target }}/release/dircue-structural-worker${{ matrix.suffix }} --output dist/structural-worker/breadth-${{ matrix.platform }}.json
       - name: Check packaged core capability receipts
         env:

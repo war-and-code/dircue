@@ -6,8 +6,8 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/focus"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 type entity struct {

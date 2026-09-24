@@ -9,10 +9,10 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/discovery"
-	"dircue/pkg/profile"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 // Build makes a deterministic plan from caller-validated report data.

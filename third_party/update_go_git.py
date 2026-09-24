@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-"""Reproduce the maintained go-git snapshot from a pinned module archive."""
+"""Reproduce the embedded go-git snapshot from a pinned module archive."""
 import argparse
 import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import subprocess
@@ -14,6 +15,7 @@ import zipfile
 HERE = Path(__file__).resolve().parent
 MODULE = "github.com/go-git/go-git/v5"
 VERSION = "v5.19.2"
+RUNTIME_MODULE = "github.com/war-and-code/dircue/third_party/go-git"
 MODULE_SUM = "h1:wkfn7vOlUBu8ivAWKBWisTiwJK4jYHzTF8Ndv1LyGqY="
 MOD_SUM = "h1:QqCBE1EFN5ddFmrliLQ3/ntRCUjZU3EJuwuB/jWEHjk="
 ZIP_SHA256 = "8912b30dd8f38491ea74ab818cacc50b0083fafb4c5c896b2824e36090dab133"
@@ -40,6 +42,65 @@ def tree_files(root):
         if path.is_file():
             files[path.relative_to(root).as_posix()] = digest(path.read_bytes())
     return files
+
+
+def rewrite_import_paths(root, source_module=MODULE, runtime_module=RUNTIME_MODULE):
+    """Rewrite only the exact upstream self-import prefix in retained Go files."""
+    changed = []
+    import_line = re.compile(
+        r'(?P<prefix>\s*(?:import\s+)?(?:[A-Za-z_]\w*\s+)?)"'
+        r'(?P<path>' + re.escape(source_module) + r'(?:/[^"\\]*)?)"')
+    import_comment = re.compile(
+        r'(//\s*import\s+")' + re.escape(source_module) + r'(\s*")')
+    for path in sorted(root.rglob("*.go")):
+        if path.is_symlink():
+            raise RuntimeError(f"unexpected symlink: {path}")
+        original = path.read_bytes()
+        # Git checkouts normalize the handful of upstream CRLF files. Make the
+        # generated snapshot stable across archive extraction and host settings.
+        text = original.replace(b"\r\n", b"\n").decode("utf-8")
+        in_import_block = False
+        lines = []
+        for line in text.splitlines(keepends=True):
+            stripped = line.lstrip()
+            if stripped.startswith("import ("):
+                in_import_block = True
+                lines.append(line)
+                continue
+            if in_import_block and stripped.startswith(")"):
+                in_import_block = False
+                lines.append(line)
+                continue
+            if in_import_block or stripped.startswith("import ") or "// import \"" in line:
+                def replace(match):
+                    return (match.group("prefix") + '"' +
+                            runtime_module + match.group("path")[len(source_module):] + '"')
+                line = import_line.sub(replace, line)
+                line = import_comment.sub(r'\g<1>' + runtime_module + r'\g<2>', line)
+            lines.append(line)
+        updated = "".join(lines).encode("utf-8")
+        if updated != original:
+            path.write_bytes(updated)
+            changed.append(path.relative_to(root).as_posix())
+    return changed
+
+
+def prepare_embedded_module(root):
+    """Install a temporary module manifest so the relocated source can be tested."""
+    upstream_mod = root / "upstream.go.mod"
+    upstream_sum = root / "upstream.go.sum"
+    content = upstream_mod.read_text()
+    old_line = f"module {MODULE}"
+    new_line = f"module {RUNTIME_MODULE}"
+    if content.count(old_line) != 1:
+        raise RuntimeError("upstream go.mod has an unexpected module declaration")
+    (root / "go.mod").write_text(content.replace(old_line, new_line, 1))
+    shutil.copyfile(upstream_sum, root / "go.sum")
+
+
+def remove_embedded_module(root):
+    for name in ("go.mod", "go.sum"):
+        (root / name).unlink()
 
 
 def regenerate(stage):
@@ -73,9 +134,19 @@ def regenerate(stage):
     upstream_files = tree_files(stage)
     subprocess.run(["git", "apply", "--check", str(PATCH)], cwd=stage, check=True)
     subprocess.run(["git", "apply", str(PATCH)], cwd=stage, check=True)
+    changed_imports = rewrite_import_paths(stage)
+    os.replace(stage / "go.mod", stage / "upstream.go.mod")
+    os.replace(stage / "go.sum", stage / "upstream.go.sum")
+    prepare_embedded_module(stage)
+    environment["GOTOOLCHAIN"] = "local"
+    subprocess.run(["go", "test", "./..."], cwd=stage, env=environment, check=True)
+    remove_embedded_module(stage)
     provenance = {
         "module": MODULE, "version": VERSION, "module_sum": MODULE_SUM,
         "go_mod_sum": MOD_SUM, "archive_sha256": ZIP_SHA256,
+        "runtime_module": RUNTIME_MODULE,
+        "module_path_rewrite": {"from": MODULE, "to": RUNTIME_MODULE},
+        "rewritten_import_files": changed_imports,
         "selection": "production Go files excluding _examples and test directories; LICENSE, go.mod, go.sum, patch_delta_test.go",
         "patch": "third_party/patches/go-git-reader-delta.patch",
         "patch_sha256": digest(PATCH.read_bytes()),

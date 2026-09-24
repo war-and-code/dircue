@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func compareReports(t *testing.T) (string, string) {
