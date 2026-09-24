@@ -360,3 +360,44 @@ func TestCapabilitiesForRubyHTTPClients(t *testing.T) {
 		}
 	}
 }
+
+func TestPubCapabilityCatalog(t *testing.T) {
+	cases := []struct {
+		pkg  string
+		want string
+	}{
+		{"http", "net:http-client"},
+		{"dio", "net:http-client"},
+		{"sqflite", "datastore:relational"},
+		{"drift", "datastore:relational"},
+		{"sqlite3", "datastore:relational"},
+		{"postgres", "datastore:postgresql"},
+		{"mongo_dart", "datastore:mongodb"},
+		{"firebase_core", "cloud:gcp"},
+		{"protobuf", "serialization:protobuf"},
+		{"grpc", "serialization:protobuf"},
+	}
+	for _, tc := range cases {
+		got := capabilitiesFor("dart-dependency", tc.pkg)
+		found := false
+		for _, c := range got {
+			if c == tc.want {
+				found = true
+			}
+		}
+		if !found {
+			t.Errorf("capabilitiesFor(dart-dependency, %q) = %v; want to include %q", tc.pkg, got, tc.want)
+		}
+	}
+}
+
+func TestPubCapabilityCatalogNoFalsePositives(t *testing.T) {
+	// Packages that should not match any capability.
+	noCap := []string{"provider", "flutter_svg", "collection", "intl", "logging"}
+	for _, pkg := range noCap {
+		got := capabilitiesFor("dart-dependency", pkg)
+		if len(got) != 0 {
+			t.Errorf("capabilitiesFor(dart-dependency, %q) = %v; want no capability", pkg, got)
+		}
+	}
+}

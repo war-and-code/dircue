@@ -8,8 +8,20 @@ import (
 	"unicode/utf8"
 )
 
+// dartSection names the tracked pubspec.yaml dependency section.
+type dartSection int
+
+const (
+	dartSectionNone dartSection = iota
+	dartSectionDeps
+	dartSectionDevDeps
+	dartSectionOverrides
+)
+
 // ParseDart reads pubspec.yaml (Dart/Flutter) manifests.
-// Only the top-level `name:` line is extracted; the YAML is not fully parsed.
+// It extracts the package name, version, runtime and dev dependencies, and
+// local path relationships from dependencies:, dev_dependencies:, and
+// dependency_overrides: sections.
 func ParseDart(name string, content []byte) *Document {
 	d := NewDocument(name, "dart-pub")
 	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
@@ -28,8 +40,19 @@ func ParseDart(name string, content []byte) *Document {
 	if ver != "" && len(ver) <= MaxStringBytes {
 		d.Project.Version = ver
 	}
-	// Collect dependencies section (simple `  pkgname:` or `  pkgname: ^1.0.0` lines).
-	inDeps := false
+
+	// Line scanner for the three dependency sections. The first indented line
+	// under a section fixes the package indentation; deeper lines belong to
+	// the preceding package's block (for example `path:`, `hosted:`, `sdk:` or
+	// `version:`) and are never read as package names:
+	//
+	//   dependencies:
+	//     http: ^1.2.0
+	//     appflowy_editor:
+	//       path: ../
+	section := dartSectionNone
+	packageIndent := -1
+	blockPkg := "" // package whose block the following deeper lines belong to
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	scanner.Buffer(make([]byte, 4096), MaxStringBytes+1)
 	for scanner.Scan() {
@@ -38,25 +61,98 @@ func ParseDart(name string, content []byte) *Document {
 		}
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
-		if trimmed == "dependencies:" || trimmed == "dev_dependencies:" {
-			inDeps = true
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
-		// A non-indented non-comment line ends the current dependencies section.
-		if inDeps && len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") && !strings.HasPrefix(trimmed, "#") {
-			inDeps = false
-		}
-		if !inDeps || strings.HasPrefix(trimmed, "#") {
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+		if indent == 0 {
+			switch trimmed {
+			case "dependencies:":
+				section = dartSectionDeps
+			case "dev_dependencies:":
+				section = dartSectionDevDeps
+			case "dependency_overrides:":
+				section = dartSectionOverrides
+			default:
+				section = dartSectionNone
+			}
+			packageIndent, blockPkg = -1, ""
 			continue
 		}
-		if m := dartDepLineRE.FindStringSubmatch(trimmed); m != nil {
-			AddRequirement(d, Requirement{Kind: "dart-dependency", Value: m[1], State: "declared", Evidence: name})
+		if section == dartSectionNone {
+			continue
+		}
+		if packageIndent < 0 {
+			packageIndent = indent
+		}
+		if indent > packageIndent {
+			// A key inside the current package's block. Only a direct local
+			// `path:` source is a project relationship. A `path:` under `git:`
+			// names a directory inside a remote repository; it is never read
+			// because only the block's first line can name the source.
+			if blockPkg == "" {
+				continue
+			}
+			if m := dartPathSublineRE.FindStringSubmatch(trimmed); m != nil {
+				rawPath := strings.Trim(strings.TrimSpace(stripDartComment(m[1])), `"'`)
+				if target, ok := LocalTarget(name, rawPath, "pubspec.yaml"); ok {
+					AddReference(d, Reference{Kind: "pub-path-dependency", Value: blockPkg + " path:" + rawPath, Target: target, State: "declared", Evidence: name, Condition: dartSectionCondition(section)})
+				} else {
+					AddDiagnostic(d, "external-pub-path-dependency", "A pub path dependency is outside the selected inventory.")
+				}
+			}
+			// Only the first nested level can carry the source key.
+			blockPkg = ""
+			continue
+		}
+		blockPkg = ""
+		if indent != packageIndent {
+			continue
+		}
+		m := dartDepLineRE.FindStringSubmatch(trimmed)
+		if m == nil {
+			continue
+		}
+		pkgName := m[1]
+		if value := strings.TrimSpace(stripDartComment(trimmed[len(m[0]):])); value == "" {
+			blockPkg = pkgName
+		}
+		// Overrides replace the source of a package declared elsewhere; they
+		// do not declare a dependency of their own.
+		if section != dartSectionOverrides {
+			AddRequirement(d, Requirement{Kind: "dart-dependency", Value: pkgName, State: "declared", Evidence: name, Condition: dartSectionCondition(section)})
 		}
 	}
 	return d
 }
 
 var dartDepLineRE = regexp.MustCompile(`^([a-z][a-z0-9_]{0,127})\s*:`)
+
+// dartPathSublineRE matches a `path: value` line inside a dependency block.
+// The value may be a relative path like `../` or `../packages/foo`.
+var dartPathSublineRE = regexp.MustCompile(`^path:\s*(.+)$`)
+
+func stripDartComment(value string) string {
+	if i := strings.Index(value, " #"); i >= 0 {
+		return value[:i]
+	}
+	if strings.HasPrefix(value, "#") {
+		return ""
+	}
+	return value
+}
+
+// dartSectionCondition returns the Condition string for a dependency section.
+func dartSectionCondition(s dartSection) string {
+	switch s {
+	case dartSectionDevDeps:
+		return "dev_dependencies"
+	case dartSectionOverrides:
+		return "dependency_overrides"
+	default:
+		return ""
+	}
+}
 
 func dartNameOK(s string) bool {
 	if s == "" || len(s) > MaxStringBytes {
