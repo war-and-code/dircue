@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -189,4 +190,148 @@ func writeMapSourceFixture(t *testing.T, root string) {
 			t.Fatal(err)
 		}
 	}
+}
+
+// minimalSyftJSON is a minimal Syft SBOM JSON without any artifacts.
+const minimalSyftJSON = `{"descriptor":{"name":"syft","version":"1.2.3"},"artifacts":[],"artifactRelationships":[],"source":{"type":"directory","target":"."},"distro":{}}`
+
+// TestCallerAssertedBindingContractEndToEnd covers the four clauses of the
+// caller-assertion contract described in the PR:
+//  1. complete digest + CallerAsserted in directory mode → caller_asserted
+//  2. partial/no digest + CallerAsserted → unknown (not caller_asserted)
+//  3. git source + CallerAsserted → unknown (not caller_asserted)
+//  4. SARIF revision mismatch + CallerAsserted → mismatch (not overridden)
+func TestCallerAssertedBindingContractEndToEnd(t *testing.T) {
+	root := t.TempDir()
+	writeMapSourceFixture(t, root)
+	syftPath := filepath.Join(t.TempDir(), "syft.json")
+	if err := os.WriteFile(syftPath, []byte(minimalSyftJSON), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	ledgerBinding := func(t *testing.T, doc mapdoc.Document) string {
+		t.Helper()
+		if len(doc.CoverageLedger) == 0 {
+			t.Fatal("coverage ledger is empty")
+		}
+		return doc.CoverageLedger[0].Binding
+	}
+
+	// Clause 1: complete directory digest + caller-asserted → caller_asserted
+	t.Run("complete_digest_caller_asserted", func(t *testing.T) {
+		out, stderr, err := invoke("map", "--source", "directory", "--json",
+			"--attach", "syft-json="+syftPath,
+			"--attach-binding", "caller-asserted",
+			root)
+		if err != nil {
+			t.Fatalf("unexpected exit 1: %v\nstderr: %s", err, stderr)
+		}
+		var doc mapdoc.Document
+		if err := json.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if err := mapdoc.Validate(doc); err != nil {
+			t.Fatalf("validate: %v", err)
+		}
+		if b := ledgerBinding(t, doc); b != string(providerjoin.BindingCallerAsserted) {
+			t.Fatalf("binding = %q, want %q", b, providerjoin.BindingCallerAsserted)
+		}
+	})
+
+	// Clause 2: no digest (digest=off) + caller-asserted → unknown
+	t.Run("no_digest_caller_asserted", func(t *testing.T) {
+		out, stderr, err := invoke("map", "--source", "directory", "--json",
+			"--set", "source.digest=off",
+			"--attach", "syft-json="+syftPath,
+			"--attach-binding", "caller-asserted",
+			root)
+		if err != nil {
+			t.Fatalf("unexpected exit 1: %v\nstderr: %s", err, stderr)
+		}
+		var doc mapdoc.Document
+		if err := json.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if b := ledgerBinding(t, doc); b != string(providerjoin.BindingUnknown) {
+			t.Fatalf("binding = %q, want unknown (no digest means caller assertion cannot apply)", b)
+		}
+	})
+
+	// Clause 3: git source + caller-asserted (canCallerAssert requires directory mode)
+	t.Run("git_source_caller_asserted_is_not_applicable", func(t *testing.T) {
+		git, err := exec.LookPath("git")
+		if err != nil {
+			t.Skip("git unavailable")
+		}
+		gitRoot := t.TempDir()
+		writeMapSourceFixture(t, gitRoot)
+		gitEnv := append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull, "HOME="+t.TempDir(),
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.invalid", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.invalid")
+		for _, args := range [][]string{{"init", "-q"}, {"add", "-A"}, {"commit", "-q", "-m", "init"}} {
+			cmd := exec.Command(git, args...)
+			cmd.Dir, cmd.Env = gitRoot, gitEnv
+			if out, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("git %v: %s", args, out)
+			}
+		}
+		out, stderr, err := invoke("map", "--source", "git", "--json",
+			"--attach", "syft-json="+syftPath,
+			"--attach-binding", "caller-asserted",
+			gitRoot)
+		if err != nil {
+			t.Fatalf("unexpected exit 1: %v\nstderr: %s", err, stderr)
+		}
+		var doc mapdoc.Document
+		if err := json.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		// In git mode, canCallerAssert is false, so the binding falls back to unknown.
+		if b := ledgerBinding(t, doc); b != string(providerjoin.BindingUnknown) {
+			t.Fatalf("binding = %q, want unknown (caller-asserted requires directory mode)", b)
+		}
+	})
+
+	// Clause 4: SARIF with mismatched revisionId + caller-asserted on git source
+	// → mismatch (the comparable mismatch must not be overridden).
+	t.Run("git_source_sarif_mismatch_not_overridden", func(t *testing.T) {
+		git, err := exec.LookPath("git")
+		if err != nil {
+			t.Skip("git unavailable")
+		}
+		gitRoot := t.TempDir()
+		writeMapSourceFixture(t, gitRoot)
+		gitEnv := append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull, "HOME="+t.TempDir(),
+			"GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.invalid", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.invalid")
+		for _, args := range [][]string{{"init", "-q"}, {"add", "-A"}, {"commit", "-q", "-m", "init"}} {
+			cmd := exec.Command(git, args...)
+			cmd.Dir, cmd.Env = gitRoot, gitEnv
+			if out, err := cmd.CombinedOutput(); err != nil {
+				t.Fatalf("git %v: %s", args, out)
+			}
+		}
+		sarifPath2 := filepath.Join(t.TempDir(), "mismatch.sarif")
+		sarif := `{"version":"2.1.0","runs":[{"tool":{"driver":{"name":"test-scanner","version":"1.0"}},"results":[],"versionControlProvenance":[{"revisionId":"` + strings.Repeat("f", 40) + `"}]}]}`
+		if err := os.WriteFile(sarifPath2, []byte(sarif), 0600); err != nil {
+			t.Fatal(err)
+		}
+		out, stderr, err := invoke("map", "--source", "git", "--json",
+			"--attach", "sarif="+sarifPath2,
+			"--attach-binding", "caller-asserted",
+			gitRoot)
+		if err != nil {
+			t.Fatalf("unexpected exit 1: %v\nstderr: %s", err, stderr)
+		}
+		var doc mapdoc.Document
+		if err := json.Unmarshal([]byte(out), &doc); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if err := mapdoc.Validate(doc); err != nil {
+			t.Fatalf("validate: %v", err)
+		}
+		// The SARIF revisionId is clearly wrong; canCallerAssert is false in git mode.
+		// The binding must be mismatch, not caller_asserted.
+		if b := ledgerBinding(t, doc); b != string(providerjoin.BindingMismatch) {
+			t.Fatalf("binding = %q, want mismatch (comparable mismatch must not be overridden)", b)
+		}
+	})
 }
