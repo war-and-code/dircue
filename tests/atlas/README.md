@@ -43,6 +43,13 @@ Generated outputs (not committed, attached as release assets):
   atlas-summary.md         Human-readable summary with agreement rates
 ```
 
+The full 38-repository run behind the 1.0.0 release is committed in
+`tests/atlas/results/1.0.0/`: Linguist 9.7.0 matched all 355 language totals,
+and 261,081 of 262,575 shared scc 4.1.0 per-file counters were identical. The
+remaining 1,494 are files where dircue follows its Linguist language to a
+different scc grammar (for example C rather than C Header for `.h` files in
+the Linux kernel), each recorded with both grammar names.
+
 The accuracy cards are embedded in the binary:
 ```
 internal/atlas/
