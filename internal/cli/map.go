@@ -416,7 +416,24 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	if len(uniquePrimaryComponents) > 4 {
 		line("  (+%d more components)", len(uniquePrimaryComponents)-4)
 	}
-	line("Deployables: %d", len(deployables))
+	// Partition deployables: runnable workloads/builds/charts/modules first;
+	// CI workflows and Kubernetes cluster-management objects as secondary counts.
+	runnableDeployables := []mapdoc.Node{}
+	secondaryCounts := map[string]int{} // "CI workflows", "cluster resources"
+	for _, n := range deployables {
+		kind := n.Properties["kind"]
+		provider := n.Properties["provider"]
+		if runnableDeployableKind(kind, provider) {
+			runnableDeployables = append(runnableDeployables, n)
+		} else {
+			secondaryCounts["cluster resources"]++
+		}
+	}
+	secondarySuffix := ""
+	if n := secondaryCounts["cluster resources"]; n > 0 {
+		secondarySuffix = fmt.Sprintf(" (+%d cluster resources)", n)
+	}
+	line("Deployables: %d%s", len(deployables), secondarySuffix)
 	linked := map[string][]string{}
 	componentByID := make(map[string]mapdoc.Node, len(components))
 	for _, component := range components {
@@ -430,7 +447,7 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 			linked[e.From] = append(linked[e.From], string(e.Type)+" "+mapNodeLabel(target))
 		}
 	}
-	slices.SortFunc(deployables, func(a, b mapdoc.Node) int {
+	slices.SortFunc(runnableDeployables, func(a, b mapdoc.Node) int {
 		left, right := linkedDeclarations[a.ID], linkedDeclarations[b.ID]
 		leftTotal, rightTotal := left.runs+left.builds, right.runs+right.builds
 		if leftTotal != rightTotal {
@@ -447,7 +464,7 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		}
 		return strings.Compare(a.ID, b.ID)
 	})
-	for _, n := range deployables[:min(4, len(deployables))] {
+	for _, n := range runnableDeployables[:min(4, len(runnableDeployables))] {
 		links := linked[n.ID]
 		slices.Sort(links)
 		suffix := ""
@@ -456,8 +473,8 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		}
 		line("  %s [%s]%s", mapNodeLabel(n), safeMapLabel(n.Properties["kind"]), suffix)
 	}
-	if len(deployables) > 4 {
-		line("  (+%d more deployables)", len(deployables)-4)
+	if len(runnableDeployables) > 4 {
+		line("  (+%d more runnable deployables)", len(runnableDeployables)-4)
 	}
 	writeMapNames := func(title string, nodes []mapdoc.Node) {
 		names := make([]string, 0, len(nodes))
@@ -622,4 +639,36 @@ type digestOutcome struct {
 func hasRootDotGit(dir string) bool {
 	_, err := os.Lstat(filepath.Join(dir, ".git"))
 	return err == nil
+}
+
+// runnableDeployableKind returns true for deployable kinds that describe
+// something that runs, builds, or orchestrates: container images,
+// Compose/Serverless/Aspire services, Kubernetes workloads, Helm charts,
+// Terraform modules, and CI workflows. Only Kubernetes generic cluster-management
+// objects (resource kind) return false; those are shown as a secondary count in
+// the summary rather than listed by name, because large monorepos can have
+// hundreds of them and they add little signal to a quick overview.
+func runnableDeployableKind(kind, provider string) bool {
+	switch kind {
+	case "container_build":
+		return true
+	case "workload":
+		return true
+	case "service":
+		// Kubernetes Service objects are cluster-management; Compose/Serverless/Aspire
+		// services describe runnable processes.
+		return provider != "kubernetes" && provider != "tekton"
+	case "infrastructure":
+		// Helm charts and Terraform modules describe runnable deployments;
+		// Kubernetes infrastructure objects (ServiceAccounts, ConfigMaps, etc.) do not.
+		return provider == "helm" || provider == "terraform" || provider == "cloudformation"
+	case "resource":
+		// Kubernetes generic resources are cluster-management objects.
+		return false
+	case "workflow":
+		// CI workflows are always shown by name; link-count sorting puts the ones
+		// that build or run components first.
+		return true
+	}
+	return true
 }

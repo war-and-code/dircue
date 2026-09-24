@@ -22,7 +22,12 @@ import (
 	"github.com/go-git/go-git/v5/plumbing/revlist"
 	"github.com/go-git/go-git/v5/plumbing/storer"
 	"github.com/go-git/go-git/v5/plumbing/transport"
-	"github.com/go-git/go-git/v5/plumbing/transport/client"
+	// dircue: transport/client intentionally omitted.  That import pulls in
+	// transport/http, transport/ssh and their dependencies (net/http,
+	// crypto/tls, golang.org/x/crypto/ssh), none of which dircue or scc ever
+	// invoke at runtime.  newClient below returns an error instead.  Network
+	// operations (Fetch, Push, Clone) are therefore unavailable in this build,
+	// which is intentional: dircue reads only local on-disk repositories.
 	"github.com/go-git/go-git/v5/storage"
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/go-git/go-git/v5/storage/memory"
@@ -561,12 +566,11 @@ func newClient(url string, insecure bool, clientCert, clientKey, caBundle []byte
 	ep.CaBundle = caBundle
 	ep.Proxy = proxyOpts
 
-	c, err := client.NewClient(ep)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return c, ep, err
+	// dircue: transport/client is not imported in this build (see import block
+	// comment above).  Network fetch/push/clone are not needed by dircue or scc,
+	// which only open local on-disk repositories.  Return a clear error rather
+	// than a transport-specific one so callers see what happened.
+	return nil, ep, errors.New("dircue: network transport not compiled in; this go-git fork excludes transport/client to remove net/http and crypto/tls from the binary")
 }
 
 func (r *Remote) fetchPack(ctx context.Context, o *FetchOptions, s transport.UploadPackSession,
