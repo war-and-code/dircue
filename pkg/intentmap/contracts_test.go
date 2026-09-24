@@ -52,3 +52,14 @@ func TestParseContractGraphQLSchema(t *testing.T) {
 		t.Fatalf("got %+v", got)
 	}
 }
+
+func TestDockerfileExposeResolvesChainedAndDefaultedVariables(t *testing.T) {
+	src := "ARG APP_PORT=8080\nENV PORT=$APP_PORT\nENV PORT_ADMIN=9090\nEXPOSE ${PORT}\nEXPOSE $PORT_ADMIN\nEXPOSE ${METRICS:-9100}/tcp\nEXPOSE $UNDEFINED\n"
+	var ports []string
+	for _, o := range parseDockerfileExpose("Dockerfile", []byte(src)) {
+		ports = append(ports, o.Properties["port"])
+	}
+	if got := strings.Join(ports, ","); got != "8080,9090,9100" {
+		t.Fatalf("ports = %s, want 8080,9090,9100", got)
+	}
+}
