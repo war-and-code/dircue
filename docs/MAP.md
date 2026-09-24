@@ -59,6 +59,24 @@ keys for future producers.
 | Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
 | Package | `package_type` from the attached provider report. |
 
+### Edge semantics
+
+Each edge type has a distinct meaning. They are not interchangeable and do not
+imply each other.
+
+| Edge type | What it means | What it does not mean |
+| --- | --- | --- |
+| `contains` | The source node is the declared or structural parent of the target (a deployable contains a component it references by path; a component contains content files by directory containment). | The parent manages, builds, or depends on the target. |
+| `member_of` | The source component is a named member of the target workspace or multi-module root as declared in the workspace manifest. Membership is a declared relationship in a workspace configuration file. | The member is built by the root, or has any dependency on it. A workspace member and a `depends_on_local` reference are independent claims. |
+| `depends_on_local` | The source component declares a local path or module-replace reference to the target component. The reference is what the manifest states; it does not mean a successful build, that the version constraint is satisfied, or that the target is reachable at runtime. | The target is a transitive dependency, or that the reference resolves without a package manager. |
+| `builds` | A deployable definition references or contains an image, build context, or artifact whose path or name matches the target component. Derived by path or image-name matching; it is `partial` unless a direct manifest link is present. | The build succeeds, or the resulting artifact is the definitive version of the component. |
+| `runs` | A deployable definition names an image that matches the target component's declared image identity. Derived by image-name matching. | The component is currently running, or that the image is built from that component's source. |
+| `exposes` | The source node (component or deployable) is the declared or inferred owner of the target interface. | The interface is reachable at runtime. |
+| `declares` | The source component declares the target interface in its manifest or source. | The interface is implemented, reachable, or exposed outside the component. |
+| `uses_capability` | The source component has evidence of using the target capability (declared dependency, imported symbol, or config key). When `attributed_by_directory_containment` is set, the owning component was inferred by directory containment. | The capability is exercised at runtime, or is present in every code path. |
+| `packaged_in` | The source package (from an attached provider report) is packaged in or provided by the target component or deployable. | The component depends on or imports the package. |
+| `analyzed_by` | The source node was analyzed by the target tool run from an attached provider report. | The analysis is complete or the findings are exhaustive. |
+
 An edge's `declaration_kind` and `state` describe a local declaration when
 present. A `builds` or `runs` edge derived from a matching path or image is
 partial and cites both declarations when needed; it does not prove that a
@@ -295,6 +313,80 @@ Provider file lists are retained but do
 not prove exhaustive coverage. No report means `not_run`, while an empty report
 from a tool that ran remains `unknown`. Repository content cannot override the
 built-in capability data.
+
+## Capability catalog
+
+The built-in catalog maps package coordinates (npm, PyPI, Go module path,
+Maven group:artifact, NuGet, crate, RubyGem) and import names to capability
+categories. It is the bounded list in `pkg/intentmap/catalog.go`.
+
+Current categories:
+
+| Category | Description |
+| --- | --- |
+| `datastore:postgresql` | PostgreSQL client libraries |
+| `datastore:mysql` | MySQL/MariaDB client libraries |
+| `datastore:mongodb` | MongoDB client libraries |
+| `datastore:elasticsearch` | Elasticsearch / OpenSearch clients |
+| `cache:redis` | Redis client libraries |
+| `messaging:kafka` | Apache Kafka client libraries |
+| `messaging:amqp` | AMQP / RabbitMQ client libraries |
+| `messaging:event-bus` | Higher-level message-bus frameworks (MassTransit, NServiceBus, Azure Service Bus) |
+| `net:http-client` | Outbound HTTP client libraries |
+| `auth:oidc` | OpenID Connect / OAuth2 provider clients |
+| `auth:jwt` | JWT signing and verification libraries |
+| `auth:oauth2` | OAuth2 server-side authentication frameworks |
+| `crypto:library` | General-purpose cryptography libraries |
+| `serialization:protobuf` | Protocol Buffers runtime libraries |
+| `serialization:yaml` | YAML parsing libraries |
+| `exec:process` | APIs that spawn child processes |
+| `ai:llm-sdk` | LLM provider SDKs (OpenAI, Anthropic, LangChain, HuggingFace) |
+| `cloud:aws` | AWS SDK and service client libraries |
+| `cloud:azure` | Azure SDK and service client libraries |
+| `cloud:gcp` | Google Cloud / Firebase client libraries |
+
+Evidence levels (stored in the `basis` property of a capability node or
+`uses_capability` edge):
+
+| Basis | What it means |
+| --- | --- |
+| `declared_dependency` | The package coordinate appears in a parsed manifest (requirements.txt, go.mod, package.json, etc.). |
+| `declared_config` | A recognized configuration key in a config file (e.g. `DATABASE_URL`, `spring.datasource.*`) names the capability. Key names only; values are never stored. |
+| `imported` | A top-level import statement in a source file names a package in the catalog. Only column-0 import statements are parsed; indented/conditional imports inside function bodies are not evidence. |
+
+A `declared_dependency` with no corroborating import is still valid evidence.
+An `imported` observation without a matching declaration means the import was
+found in source but not in a parsed manifest (possible in lock-file-only or
+vendor setups). The map records both and lets consumers decide how to weight
+agreement vs. single-path evidence.
+
+### Contributing a new catalog entry
+
+The catalog is in `pkg/intentmap/catalog.go`. Each entry is:
+
+```go
+{"category:name", []string{"coordinate-or-prefix", "..."}},
+```
+
+Coordinates are matched case-insensitively against the declared requirement or
+import name using `coordinateMatch`: a coordinate matches when the value starts
+with the coordinate string and the next character (if any) is a valid separator
+(`/`, space, `@`, `>`, `<`, `=`, `!`, `~`, `[`, `;`). The hyphen `-` is not a
+separator, so `psycopg2` does not match `psycopg2-binary`; list them separately.
+
+To add entries:
+
+1. Pick or propose a category name. Prefer an existing category for the same
+   technology, not a new one per library.
+2. Add the coordinate(s) to the catalog, keeping the list sorted by category.
+3. Add a unit test in `pkg/intentmap/intentmap_test.go` that calls `capabilitiesFor`
+   with at least one coordinate and asserts the expected category.
+4. Run `go test ./pkg/intentmap/...` and `go test -race ./pkg/intentmap/...`.
+5. If the corpus fixture for the affected technology exists, verify it still
+   passes with `python3 tests/map_corpus/verify.py`.
+
+Catalog entries must be verifiable against public documentation for the
+package or import name. Do not add entries for internal or private packages.
 
 ## Route follow-up tools
 
