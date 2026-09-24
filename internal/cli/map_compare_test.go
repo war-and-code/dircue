@@ -124,3 +124,63 @@ func TestMapCompareRejectsProfileDocument(t *testing.T) {
 		t.Fatalf("error should mention 'dircue compare'; got err=%v stderr=%q", err, stderr)
 	}
 }
+
+func TestMapCompareMarkdownFormat(t *testing.T) {
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("before", "aaa", true))
+	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("after", "bbb", true))
+	out, stderr, err := invoke("map", "compare", "--format", "markdown", base, head)
+	if err != nil || stderr != "" {
+		t.Fatalf("stderr=%q err=%v", stderr, err)
+	}
+	if !strings.Contains(out, "## Architecture diff:") {
+		t.Fatalf("markdown output missing heading:\n%s", out)
+	}
+	if !strings.Contains(out, "**Source binding:**") {
+		t.Fatalf("markdown output missing source binding:\n%s", out)
+	}
+}
+
+func TestMapCompareMarkdownUnchanged(t *testing.T) {
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("svc", "aaa", true))
+	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("svc", "aaa", true))
+	out, stderr, err := invoke("map", "compare", "--format", "markdown", base, head)
+	if err != nil || stderr != "" {
+		t.Fatalf("stderr=%q err=%v", stderr, err)
+	}
+	if !strings.Contains(out, "No material changes") {
+		t.Fatalf("expected unchanged status in markdown:\n%s", out)
+	}
+}
+
+func TestMapCompareChangedExitsZero(t *testing.T) {
+	// A changed comparison always exits 0; only I/O or usage errors are non-zero.
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("before", "aaa", true))
+	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("after", "bbb", true))
+	_, stderr, err := invoke("map", "compare", base, head)
+	if err != nil || stderr != "" {
+		t.Fatalf("expected exit 0 for changed comparison: stderr=%q err=%v", stderr, err)
+	}
+}
+
+func TestMapCompareRejectsUnknownFormat(t *testing.T) {
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("svc", "aaa", true))
+	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("svc", "aaa", true))
+	_, _, err := invoke("map", "compare", "--format", "xml", base, head)
+	if err == nil || !strings.Contains(err.Error(), "unsupported --format") {
+		t.Fatalf("expected error for unknown format; got %v", err)
+	}
+}
+
+func TestMapCompareMarkdownDisclosesIndeterminateRemoval(t *testing.T) {
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("service", "aaa", true))
+	headDoc := mapComparisonFixture("unused", "bbb", false)
+	headDoc.Nodes = nil
+	head := writeComparisonMapFixture(t, "head.json", headDoc)
+	out, stderr, err := invoke("map", "compare", "--format", "markdown", base, head)
+	if err != nil || stderr != "" {
+		t.Fatalf("stderr=%q err=%v", stderr, err)
+	}
+	if !strings.Contains(out, "indeterminate") && !strings.Contains(out, "Indeterminate") {
+		t.Fatalf("markdown hides indeterminate removal:\n%s", out)
+	}
+}

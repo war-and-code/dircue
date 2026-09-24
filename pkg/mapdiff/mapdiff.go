@@ -45,6 +45,8 @@ type Counts struct {
 type Change struct {
 	Entity    string   `json:"entity"`
 	ID        string   `json:"id"`
+	Kind      string   `json:"kind,omitempty"`
+	Label     string   `json:"label,omitempty"`
 	Status    string   `json:"status"`
 	Fields    []string `json:"fields"`
 	Material  bool     `json:"material"`
@@ -99,7 +101,7 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 	}
 	report.SourceBinding = compareSourceDocuments(base, head)
 	report.ObserverCompatibility = "same"
-	if !slices.Equal(producerSet(base), producerSet(head)) {
+	if !compatibleProducers(producerSet(base), producerSet(head)) {
 		report.ObserverCompatibility = "different"
 		report.Caveats = append(report.Caveats, "observer or provider identities differ; map changes cannot be attributed solely to source changes")
 	}
@@ -193,6 +195,8 @@ func Compare(baseInput, headInput mapdoc.Document) (Report, error) {
 			}
 		}
 	}
+	labelChanges(report.Changes, baseNodes, headNodes, baseEdges, headEdges)
+	labelChanges(report.ProviderChanges, baseNodes, headNodes, baseEdges, headEdges)
 	slices.SortFunc(report.Changes, func(a, b Change) int {
 		return strings.Compare(a.Entity+"\x00"+a.ID, b.Entity+"\x00"+b.ID)
 	})
@@ -515,6 +519,73 @@ func coverageChanges(base, head []mapdoc.QuestionCoverage) []CoverageChange {
 		}
 	}
 	return result
+}
+
+// compatibleProducers reports whether two maps were produced by compatible
+// observers: every rule or provider present in both documents must appear at
+// the same versions. A rule that fired in only one document reflects a source
+// change (for example, a newly added Dockerfile), not an observer change.
+func compatibleProducers(base, head []string) bool {
+	versions := func(values []string) map[string][]string {
+		out := map[string][]string{}
+		for _, value := range values {
+			id, version, _ := strings.Cut(value, "@")
+			out[id] = append(out[id], version)
+		}
+		return out
+	}
+	a, b := versions(base), versions(head)
+	for id, before := range a {
+		if after, ok := b[id]; ok && !slices.Equal(before, after) {
+			return false
+		}
+	}
+	return true
+}
+
+// labelChanges attaches the node kind and a human-readable label to each
+// change, preferring the head document and falling back to the base.
+func labelChanges(changes []Change, baseNodes, headNodes map[string]mapdoc.Node, baseEdges, headEdges map[string]mapdoc.Edge) {
+	node := func(id string) (mapdoc.Node, bool) {
+		if n, ok := headNodes[id]; ok {
+			return n, true
+		}
+		n, ok := baseNodes[id]
+		return n, ok
+	}
+	nodeLabel := func(id string) string {
+		n, ok := node(id)
+		if !ok {
+			return id
+		}
+		label := n.Name
+		if label == "" {
+			label = n.ID
+		}
+		if len(n.Paths) > 0 && n.Paths[0] != label {
+			label += " (" + n.Paths[0] + ")"
+		}
+		return label
+	}
+	for i := range changes {
+		c := &changes[i]
+		switch c.Entity {
+		case "node":
+			if n, ok := node(c.ID); ok {
+				c.Kind = string(n.Kind)
+				c.Label = nodeLabel(c.ID)
+			}
+		case "edge":
+			e, ok := headEdges[c.ID]
+			if !ok {
+				e, ok = baseEdges[c.ID]
+			}
+			if ok {
+				c.Kind = string(e.Type)
+				c.Label = nodeLabel(e.From) + " " + string(e.Type) + " " + nodeLabel(e.To)
+			}
+		}
+	}
 }
 
 func producerSet(document mapdoc.Document) []string {

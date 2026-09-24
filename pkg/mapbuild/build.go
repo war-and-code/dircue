@@ -210,6 +210,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	)
 	if opts.Deployables != nil {
 		addDeployables(&d, opts.Deployables)
+		addWorkflowComponentEdges(&d, opts.Deployables)
 	}
 	if opts.Intent != nil {
 		addIntent(&d, opts.Intent)
