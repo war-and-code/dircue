@@ -41,6 +41,7 @@ jobs:
         run: |
           python -m unittest discover -s tests/projects/graph -p 'test_*.py' -v
           python -m unittest discover -s tests/resources -p 'test_*.py' -v
+          python -m unittest discover -s tests/bench -p 'test_*.py' -v
       - name: Test optional proof-evidence validation without Bend
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
@@ -195,6 +196,42 @@ jobs:
           retention-days: 7
           name: metrics-conformance
           path: .cache/metrics-differential.json
+
+  counter-regression:
+    # Report-only PR check: map the corpus fixtures with the base and head
+    # builds and compare their deterministic cost counters in the job summary.
+    # Wall time, heap and GC counts vary between runs and are never compared.
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: |
+            go.sum
+            third_party/go-enry/go.sum
+            third_party/go-git/go.sum
+      - name: Build head and base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CGO_ENABLED: '0'
+        run: |
+          go build -trimpath -o "$RUNNER_TEMP/dircue-head" .
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/base" && go build -trimpath -o "$RUNNER_TEMP/dircue-base" .)
+      - name: Compare deterministic cost counters
+        run: |
+          python3 tests/bench/counter_compare.py \
+            --base "$RUNNER_TEMP/dircue-base" --head "$RUNNER_TEMP/dircue-head" \
+            tests/map_corpus/fixtures/*/
 
   map-diff-dogfood:
     # Self-test: exercise the map-diff action against this repository using the
