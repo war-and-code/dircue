@@ -46,6 +46,7 @@ func dowild(p, text string, pathname bool) wildResult {
 				return wmNoMatch
 			}
 			continue
+		//lint:ignore ST1015 case order mirrors Git's wildmatch.c for review against upstream
 		default:
 			if tch != pch {
 				return wmNoMatch
