@@ -1,0 +1,124 @@
+{
+  "repo": "bloc",
+  "source": "https://github.com/felangel/bloc",
+  "commit": "b9be1e252ee24ffbe9f2fb629edc7624b2cfbf05",
+  "oracle_files": [
+    {
+      "path": "packages/bloc/pubspec.yaml",
+      "sha256": "4d1d4d2165f91e04a1e9f1bdfa9e883aa747cb559b5d6506c2d7359630b39a9f"
+    },
+    {
+      "path": "packages/flutter_bloc/pubspec.yaml",
+      "sha256": "08016f267e1096d306cbc569259d7a69eaeb2c77788c53dacaacdec26480c0e2"
+    },
+    {
+      "path": "examples/flutter_weather/pubspec.yaml",
+      "sha256": "1f4c302e93fdd78709dece31d10d1c9721b9869057de177911d39380491e0a9f"
+    },
+    {
+      "path": "examples/flutter_weather/packages/weather_repository/pubspec.yaml",
+      "sha256": "5ffb7f546508e503cb99d8b5d4199b7f0405f68c6b365c9f9baf668e07b811fb"
+    },
+    {
+      "path": "examples/flutter_weather/packages/open_meteo_api/pubspec.yaml",
+      "sha256": "fbf0c805d1bd57788df8f5e6afee51705fd706edd0a48e7540492f4ec14f89a8"
+    }
+  ],
+  "components": [
+    {
+      "name": "bloc",
+      "root": "packages/bloc",
+      "ecosystem": "dart",
+      "why": "packages/bloc/pubspec.yaml line 1: name: bloc, version: 9.2.1; a pure Dart package (no flutter SDK dependency) providing BLoC state management."
+    },
+    {
+      "name": "flutter_bloc",
+      "root": "packages/flutter_bloc",
+      "ecosystem": "dart",
+      "why": "packages/flutter_bloc/pubspec.yaml line 1: name: flutter_bloc, version: 9.1.1; a Flutter package (depends on sdk: flutter) providing Flutter widgets for BLoC."
+    },
+    {
+      "name": "flutter_weather",
+      "root": "examples/flutter_weather",
+      "ecosystem": "dart",
+      "why": "examples/flutter_weather/pubspec.yaml line 1: name: flutter_weather, version: 1.0.0+1; a Flutter application (publish_to: none) with path: dependencies on local packages."
+    },
+    {
+      "name": "weather_repository",
+      "root": "examples/flutter_weather/packages/weather_repository",
+      "ecosystem": "dart",
+      "why": "examples/flutter_weather/packages/weather_repository/pubspec.yaml line 1: name: weather_repository, version: 1.0.0+1; a Dart library (publish_to: none) with a path: dependency on open_meteo_api."
+    },
+    {
+      "name": "open_meteo_api",
+      "root": "examples/flutter_weather/packages/open_meteo_api",
+      "ecosystem": "dart",
+      "why": "examples/flutter_weather/packages/open_meteo_api/pubspec.yaml line 1: name: open_meteo_api, version: 1.0.0+1; a Dart API client library that declares http: ^1.0.0."
+    }
+  ],
+  "deployables": [],
+  "interfaces": [],
+  "capabilities": [
+    {
+      "capability": "net:http-client",
+      "owner": "open_meteo_api",
+      "path": "examples/flutter_weather/packages/open_meteo_api/pubspec.yaml",
+      "why": "open_meteo_api/pubspec.yaml dependencies section: http: ^1.0.0 is a direct runtime dependency on the Dart http package, which is the standard HTTP client library."
+    }
+  ],
+  "edges": [
+    {
+      "type": "depends_on_local",
+      "from": "flutter_weather",
+      "to": "weather_repository",
+      "why": "examples/flutter_weather/pubspec.yaml dependencies section: weather_repository: path: packages/weather_repository declares a local path reference to the weather_repository package at examples/flutter_weather/packages/weather_repository."
+    },
+    {
+      "type": "depends_on_local",
+      "from": "weather_repository",
+      "to": "open_meteo_api",
+      "why": "examples/flutter_weather/packages/weather_repository/pubspec.yaml dependencies section: open_meteo_api: path: ../open_meteo_api declares a local path reference to the open_meteo_api package at examples/flutter_weather/packages/open_meteo_api."
+    },
+    {
+      "type": "uses_capability",
+      "from": "open_meteo_api",
+      "to": "net:http-client",
+      "why": "open_meteo_api/pubspec.yaml: http: ^1.0.0 is a direct dependency; the package is a Dart API client that issues HTTP requests to the Open-Meteo weather API."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "partial",
+      "why": "The oracle files cover 5 of the repository's many packages (bloc, flutter_bloc from packages/, and the 3-package flutter_weather chain from examples/). The repository contains at least 10 additional packages under packages/ and numerous example apps under examples/ that are not oracle files."
+    },
+    "deployables": {
+      "status": "unknown",
+      "why": "The selected oracle files are package manifests (pubspec.yaml). None of the oracle files declares a container build, Compose service, or other deployable. The Flutter examples may have platform-specific build configurations outside oracle scope."
+    },
+    "interfaces": {
+      "status": "unknown",
+      "why": "pubspec.yaml manifests do not declare map-supported interface types (no CLI binary, declared port, gRPC service, or Spring Boot application). The packages are Dart/Flutter libraries and an example app; their interfaces are implemented in Dart source outside oracle scope."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "The http: ^1.0.0 dependency in open_meteo_api is labeled. The remaining 4 oracle-scope packages (bloc, flutter_bloc, flutter_weather, weather_repository) were checked and have no direct dependencies matching catalog capability names in their main dependencies sections."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "Both path: dependency edges in the flutter_weather chain are labeled, and the uses_capability edge for http is included. flutter_bloc declares bloc: ^9.0.0 as a pub.dev version reference (not a path:), so no depends_on_local edge is labeled between those packages even though they are co-located in the repository."
+    }
+  },
+  "notes": [
+    "The repository does not use melos.yaml for workspace tooling; cross-package dependencies within the main packages/ directory use pub.dev version references (e.g. flutter_bloc: bloc: ^9.0.0), not path: overrides. Only the example applications under examples/ use path: references for local co-developed packages.",
+    "The flutter_weather example contains 3 co-located packages linked by path: refs: flutter_weather → weather_repository → open_meteo_api. This is the primary path-dependency chain in the oracle scope.",
+    "packages/bloc/pubspec.yaml and packages/flutter_bloc/pubspec.yaml are included to show the main library components; they have no path: dependencies among themselves.",
+    "The flutter_todos example (examples/flutter_todos/) also contains a rich path: dependency graph (flutter_todos → local_storage_todos_api → todos_api, todos_repository → todos_api) but was excluded from oracle scope to keep this label focused on 3-6 files.",
+    "open_meteo_api is a Dart library that calls the Open-Meteo weather REST API; its http: ^1.0.0 dependency is the Dart community HTTP client package (pub.dev: http by dart.dev)."
+  ],
+  "non_goals": [],
+  "provenance": {
+    "upstream": "https://github.com/felangel/bloc",
+    "revision_source": "git clone --depth=1 then git rev-parse HEAD",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  }
+}

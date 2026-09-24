@@ -1,0 +1,186 @@
+{
+  "repo": "openmrs-core",
+  "source": "https://github.com/OpenMRS/openmrs-core",
+  "commit": "a4d278a8772faf16da132a958135026d330108e2",
+  "oracle_files": [
+    {
+      "path": "pom.xml",
+      "sha256": "e079032c09820392fa9c1de6b07e3869071fda603a1d346224deae4161bfcb43"
+    },
+    {
+      "path": "webapp/pom.xml",
+      "sha256": "abac4f8facd8098d13f66b3b5867a73b2f5035a22bb5de3873ffe3453b53b99a"
+    },
+    {
+      "path": "api/pom.xml",
+      "sha256": "cb063f280468fe4597db4c4c9b7b965cb7e7c70bd829e3f92fbd3926aa39f6d8"
+    },
+    {
+      "path": "Dockerfile",
+      "sha256": "a21485114710cbd88fc3c5c093eb41546f2e4794b42bb86add9ecc6abedd3380"
+    },
+    {
+      "path": "docker-compose.yml",
+      "sha256": "070aeae512da61da47279cfbc7a1372552f6185ef5dc783caf4702d1ab9425c3"
+    }
+  ],
+  "components": [
+    {
+      "name": "openmrs",
+      "root": ".",
+      "ecosystem": "maven",
+      "why": "pom.xml:18-20 declares groupId org.openmrs, artifactId openmrs, version 3.0.0-SNAPSHOT with packaging pom; it is the multi-module root aggregator declaring 8 child modules."
+    },
+    {
+      "name": "openmrs-api",
+      "root": "api",
+      "ecosystem": "maven",
+      "why": "api/pom.xml:21-22 declares groupId org.openmrs.api, artifactId openmrs-api; packaging defaults to jar; parent is org.openmrs:openmrs (lines 15-17)."
+    },
+    {
+      "name": "openmrs-webapp",
+      "root": "webapp",
+      "ecosystem": "maven",
+      "why": "webapp/pom.xml:20-21 declares artifactId openmrs-webapp with packaging war; finalName is ${webapp.name} which resolves to 'openmrs' (line 207 of webapp/pom.xml); parent is org.openmrs:openmrs."
+    }
+  ],
+  "deployables": [
+    {
+      "kind": "container_build",
+      "name": "openmrs-core",
+      "path": "Dockerfile",
+      "why": "Dockerfile at repository root defines a multi-stage Maven + Tomcat container build; the runtime stage (line 125: FROM tomcat:11-$RUNTIME_JDK) copies the built WAR into Tomcat and exposes port 8080."
+    },
+    {
+      "kind": "service",
+      "name": "db",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml defines a service named 'db' using image mariadb:10.11.7 with no local build context; it is a Compose service providing the relational datastore."
+    },
+    {
+      "kind": "service",
+      "name": "api",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml defines a service named 'api' with build context '.' (the repository root), ports 8080:8080, and depends_on 'db'; it runs the openmrs application container."
+    }
+  ],
+  "interfaces": [
+    {
+      "kind": "declared_port",
+      "name": "8080",
+      "path": "Dockerfile",
+      "why": "Dockerfile line 170: EXPOSE 8080 in the production runtime stage (FROM tomcat:11-$RUNTIME_JDK); the dev stage at line 113 also declares EXPOSE 8080."
+    },
+    {
+      "kind": "declared_port",
+      "name": "8080",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml: the 'api' service declares ports: '8080:8080', publishing the container's port 8080 to the host."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "datastore:mysql",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml lines 213-215: runtime dependency com.mysql:mysql-connector-j (the official MySQL JDBC connector); lines 218-220 also declare org.mariadb.jdbc:mariadb-java-client (MariaDB, MySQL-protocol-compatible) as a runtime dependency."
+    },
+    {
+      "capability": "datastore:postgresql",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml lines 222-224: runtime dependency org.postgresql:postgresql (the official PostgreSQL JDBC driver)."
+    },
+    {
+      "capability": "search:elasticsearch",
+      "owner": "openmrs-api",
+      "path": "api/pom.xml",
+      "why": "api/pom.xml line 156: dependency org.hibernate.search:hibernate-search-backend-elasticsearch declares Hibernate Search's Elasticsearch backend, establishing an Elasticsearch datastore capability."
+    }
+  ],
+  "edges": [
+    {
+      "type": "member_of",
+      "from": "openmrs-api",
+      "to": "openmrs",
+      "why": "api/pom.xml lines 15-17 declare parent org.openmrs:openmrs; root pom.xml line 57 lists <module>api</module>, establishing api as a member of the root aggregator."
+    },
+    {
+      "type": "member_of",
+      "from": "openmrs-webapp",
+      "to": "openmrs",
+      "why": "webapp/pom.xml lines 14-17 declare parent org.openmrs:openmrs; root pom.xml line 59 lists <module>webapp</module>, establishing webapp as a member of the root aggregator."
+    },
+    {
+      "type": "depends_on_local",
+      "from": "openmrs-webapp",
+      "to": "openmrs-api",
+      "why": "webapp/pom.xml line 28: dependency on org.openmrs.api:openmrs-api (a sibling Maven reactor module resolved locally within the multi-module build)."
+    },
+    {
+      "type": "builds",
+      "from": "openmrs-core",
+      "to": "openmrs-webapp",
+      "why": "Dockerfile lines 32-61: COPY . . followed by mvn clean install builds the Maven project from the repository root; the produced artifact is openmrs.war (from webapp/pom.xml finalName=openmrs), which is deployed in the Tomcat runtime stage."
+    },
+    {
+      "type": "depends_on",
+      "from": "api",
+      "to": "db",
+      "why": "docker-compose.yml: the 'api' service declares depends_on: db, establishing a startup dependency on the MariaDB service."
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "datastore:mysql",
+      "why": "api/pom.xml runtime dependencies on mysql-connector-j (line 213) and mariadb-java-client (line 218)."
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "datastore:postgresql",
+      "why": "api/pom.xml runtime dependency org.postgresql:postgresql (lines 222-224)."
+    },
+    {
+      "type": "uses_capability",
+      "from": "openmrs-api",
+      "to": "search:elasticsearch",
+      "why": "api/pom.xml dependency on hibernate-search-backend-elasticsearch (line 156)."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "partial",
+      "why": "Root pom.xml declares 8 child modules (bom, tools, test, api, web, webapp, liquibase, test-suite); only api and webapp have oracle pom.xml files, so 6 modules are unlabeled. The root component openmrs is complete from pom.xml."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The Dockerfile and docker-compose.yml are fully covered by oracle files, yielding the container_build and two Compose services. Additional Compose override files (docker-compose.override.yml) and grafana/elasticsearch variants are out of oracle scope."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "EXPOSE 8080 in Dockerfile and ports 8080:8080 in docker-compose.yml are labeled. The docker-compose.override.yml adds port 3306 for the db service, but that file is not in oracle scope."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "MySQL, PostgreSQL, and Elasticsearch capabilities are labeled from api/pom.xml runtime dependencies. The full dependency list (Hibernate ORM, Spring Security, Lucene, etc.) was not exhaustively mapped to capabilities; only those with clear catalog matches are labeled."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "member_of and depends_on_local edges for oracle-scope components are labeled; 6 unlabeled modules prevent complete workspace membership coverage. The Compose depends_on and Dockerfile builds edges are labeled. No runs edge is labeled because the Compose api service image name (openmrs/openmrs-core) does not directly match a component name."
+    }
+  },
+  "notes": [
+    "webapp/pom.xml finalName uses the Maven property ${webapp.name}, which is defined in webapp/pom.xml line 207 as 'openmrs'; the resolved WAR artifact name is openmrs.war.",
+    "The mariadb-java-client dependency is labeled under datastore:mysql because MariaDB uses the MySQL wire protocol and is used as a MySQL-compatible datastore in OpenMRS deployments; the catalog does not have a separate datastore:mariadb entry.",
+    "api/pom.xml declares both MySQL and PostgreSQL JDBC drivers as runtime dependencies, reflecting OpenMRS's support for multiple relational databases selectable by configuration.",
+    "The Dockerfile's dev stage (line 64: FROM maven:3.9 AS dev) and runtime stage (line 125: FROM tomcat:11) both declare EXPOSE 8080; only the runtime stage port is labeled as the primary interface since it is the production deployable.",
+    "Six Maven modules (bom, tools, test, web, liquibase, test-suite) are listed in root pom.xml but their pom.xml files are not oracle files; they are unlabeled components."
+  ],
+  "non_goals": [],
+  "provenance": {
+    "upstream": "https://github.com/OpenMRS/openmrs-core",
+    "revision_source": "git clone --depth=1 then git rev-parse HEAD",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  }
+}

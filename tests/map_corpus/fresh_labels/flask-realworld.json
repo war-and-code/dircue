@@ -1,0 +1,108 @@
+{
+  "repo": "flask-realworld",
+  "source": "https://github.com/gothinkster/flask-realworld-example-app",
+  "commit": "4b95fb2227dfeb5dd1a45d89b2bf48630b93fd28",
+  "oracle_files": [
+    {
+      "path": "requirements/prod.txt",
+      "sha256": "002829b1c67b2b2e0dd74b2f3f62dd5a965d308b827e0adbff3e09e20c5440f7"
+    },
+    {
+      "path": "Pipfile",
+      "sha256": "baebe856f6ef93af759527f0e487efe5d9b794e411b6185642c04ad19523aab2"
+    },
+    {
+      "path": "Procfile",
+      "sha256": "cd0249f7d14af4efa362c1301029d6736bc2e4399a63ba6ffe28d7a6c2d9a795"
+    },
+    {
+      "path": "conduit/app.py",
+      "sha256": "3f64808746e80dd0e1c16899cba0e83c74ef35ad9abc338ce9c98bf5475d6534"
+    },
+    {
+      "path": "conduit/settings.py",
+      "sha256": "6a61b923179fade728019398e5fb7ee9edc2066e5ba6fdafc862cfe887efdac3"
+    }
+  ],
+  "components": [
+    {
+      "name": "(root)",
+      "root": ".",
+      "ecosystem": "python",
+      "why": "Pipfile at repository root declares [packages] and [requires] python_version='3.7', establishing a Python project boundary. No setup.py or pyproject.toml is present, so no formal package name is declared; the root component is named (root) per the labeling convention."
+    }
+  ],
+  "deployables": [
+    {
+      "kind": "service",
+      "name": "web",
+      "path": "Procfile",
+      "why": "Procfile line 1: 'web: gunicorn autoapp:app -b 0.0.0.0:$PORT -w 3' declares a web process type binding the application via gunicorn. This is the Heroku-style process declaration analogous to a Compose service; labeled as kind=service per the closest MAP.md vocabulary match."
+    }
+  ],
+  "interfaces": [],
+  "capabilities": [
+    {
+      "capability": "datastore:postgresql",
+      "owner": "(root)",
+      "path": "requirements/prod.txt",
+      "why": "requirements/prod.txt declares psycopg2, the PostgreSQL adapter for Python; conduit/settings.py ProdConfig (line ~36) uses SQLALCHEMY_DATABASE_URI defaulting to 'postgresql://localhost/example', confirming PostgreSQL as the production datastore."
+    },
+    {
+      "capability": "auth:jwt",
+      "owner": "(root)",
+      "path": "requirements/prod.txt",
+      "why": "requirements/prod.txt declares Flask-JWT-Extended and PyJWT; conduit/app.py line ~10 imports JWTManager from flask_jwt_extended and registers it as a Flask extension."
+    }
+  ],
+  "edges": [
+    {
+      "type": "uses_capability",
+      "from": "(root)",
+      "to": "datastore:postgresql",
+      "why": "requirements/prod.txt psycopg2 dependency and conduit/settings.py ProdConfig DATABASE_URL defaulting to postgresql://."
+    },
+    {
+      "type": "uses_capability",
+      "from": "(root)",
+      "to": "auth:jwt",
+      "why": "requirements/prod.txt Flask-JWT-Extended and PyJWT dependencies; JWT auth is registered in conduit/app.py."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "partial",
+      "why": "Pipfile and requirements files establish a Python project boundary but no formal package name is declared (no setup.py or pyproject.toml). The conduit/ sub-directory contains the application package but there is no separate component manifest for it."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The Procfile web process is labeled. The map vocabulary does not have an explicit Procfile kind; 'service' is the closest available kind. There is no Dockerfile in this repository."
+    },
+    "interfaces": {
+      "status": "unknown",
+      "why": "The Procfile binds to $PORT (a dynamic environment variable), not a static port number. No Dockerfile EXPOSE or compose ports declaration is present in oracle files, so no declared_port interface can be labeled."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "psycopg2 (PostgreSQL) and Flask-JWT-Extended/PyJWT (JWT auth) are labeled. Flask-SQLAlchemy (ORM) and Flask-Bcrypt (password hashing) are declared in requirements but lack clear single-capability catalog mappings and are noted below. The full dependency list was not exhaustively mapped."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "uses_capability edges for labeled capabilities are included. No local component dependencies or build/run relationships exist in this single-component project."
+    }
+  },
+  "notes": [
+    "This repository has no setup.py or pyproject.toml; the Pipfile and requirements/prod.txt establish the Python dependency context but do not assign a project name. The component is labeled (root).",
+    "Flask-SQLAlchemy and SQLAlchemy are declared in requirements/prod.txt; they are an ORM layer over the PostgreSQL database declared by psycopg2. A separate datastore:relational label is not added because the specific driver (psycopg2) already establishes datastore:postgresql unambiguously.",
+    "Flask-Bcrypt (password hashing) and Flask-Caching (in-memory cache, CACHE_TYPE='simple') are declared but do not match any catalog capability name; they are noted here.",
+    "The Pipfile [requires] python_version='3.7' is a runtime requirement; it would appear in the component's runtime_requirements property per MAP.md if the map supports Pipfile.",
+    "conduit/settings.py DevConfig uses SQLite (sqlite:///dev.db); this is a development-only configuration and is not labeled as a separate capability per the oracle scope.",
+    "The Procfile 'web' process entry is the primary deployment declaration; its gunicorn binding uses $PORT so no static port can be labeled."
+  ],
+  "non_goals": [],
+  "provenance": {
+    "upstream": "https://github.com/gothinkster/flask-realworld-example-app",
+    "revision_source": "git clone --depth=1 then git rev-parse HEAD",
+    "label_scope": "Source-only independent labels; dircue was not run and its output was not inspected."
+  }
+}
