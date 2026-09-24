@@ -90,7 +90,7 @@ func TestGitSnapshotOpensOnlyNeededObjectLanes(t *testing.T) {
 		{name: "single-file inspect", opts: Options{Source: "git", Workers: 16}, discover: true, lanes: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			snapshot, err := openGitSnapshot(context.Background(), root, test.opts, test.discover, test.lanes)
+			snapshot, _, err := openGitSnapshot(context.Background(), root, test.opts, test.discover, test.lanes)
 			if err != nil {
 				t.Fatal(err)
 			}
