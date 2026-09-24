@@ -41,20 +41,18 @@ func ParseDart(name string, content []byte) *Document {
 		d.Project.Version = ver
 	}
 
-	// Two-pass scanner:
-	//   Pass 1: collect simple `  pkgname: version` dependency lines and the
-	//           current top-level section header.
-	//   Pass 2: look for path: sub-values that follow a package name line.
+	// Line scanner for the three dependency sections. The first indented line
+	// under a section fixes the package indentation; deeper lines belong to
+	// the preceding package's block (for example `path:`, `hosted:`, `sdk:` or
+	// `version:`) and are never read as package names:
 	//
-	// A multi-value dependency block looks like:
 	//   dependencies:
+	//     http: ^1.2.0
 	//     appflowy_editor:
 	//       path: ../
-	//
-	// We capture the most-recently-seen package name in a dependency section
-	// and, if the next indented line is `path:`, emit a path-dependency reference.
 	section := dartSectionNone
-	pendingPathPkg := "" // package name awaiting a possible `path:` sub-line
+	packageIndent := -1
+	blockPkg := "" // package whose block the following deeper lines belong to
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	scanner.Buffer(make([]byte, 4096), MaxStringBytes+1)
 	for scanner.Scan() {
@@ -63,76 +61,66 @@ func ParseDart(name string, content []byte) *Document {
 		}
 		line := scanner.Text()
 		trimmed := strings.TrimSpace(line)
-
-		// Track top-level section headers (non-indented lines).
-		if len(line) > 0 && !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+			continue
+		}
+		indent := len(line) - len(strings.TrimLeft(line, " \t"))
+		if indent == 0 {
 			switch trimmed {
 			case "dependencies:":
 				section = dartSectionDeps
-				pendingPathPkg = ""
-				continue
 			case "dev_dependencies:":
 				section = dartSectionDevDeps
-				pendingPathPkg = ""
-				continue
 			case "dependency_overrides:":
 				section = dartSectionOverrides
-				pendingPathPkg = ""
-				continue
 			default:
-				if trimmed != "" && !strings.HasPrefix(trimmed, "#") {
-					section = dartSectionNone
-					pendingPathPkg = ""
-				}
-				continue
+				section = dartSectionNone
 			}
-		}
-
-		if section == dartSectionNone || strings.HasPrefix(trimmed, "#") {
-			pendingPathPkg = ""
+			packageIndent, blockPkg = -1, ""
 			continue
 		}
-
-		// Detect `path: <value>` sub-key after a pending package name.
-		if pendingPathPkg != "" {
+		if section == dartSectionNone {
+			continue
+		}
+		if packageIndent < 0 {
+			packageIndent = indent
+		}
+		if indent > packageIndent {
+			// A key inside the current package's block. Only a direct local
+			// `path:` source is a project relationship. A `path:` under `git:`
+			// names a directory inside a remote repository; it is never read
+			// because only the block's first line can name the source.
+			if blockPkg == "" {
+				continue
+			}
 			if m := dartPathSublineRE.FindStringSubmatch(trimmed); m != nil {
-				rawPath := m[1]
-				cond := dartSectionCondition(section)
+				rawPath := strings.Trim(strings.TrimSpace(stripDartComment(m[1])), `"'`)
 				if target, ok := LocalTarget(name, rawPath, "pubspec.yaml"); ok {
-					AddReference(d, Reference{Kind: "pub-path-dependency", Value: pendingPathPkg + " path:" + rawPath, Target: target, State: "declared", Evidence: name, Condition: cond})
+					AddReference(d, Reference{Kind: "pub-path-dependency", Value: blockPkg + " path:" + rawPath, Target: target, State: "declared", Evidence: name, Condition: dartSectionCondition(section)})
 				} else {
 					AddDiagnostic(d, "external-pub-path-dependency", "A pub path dependency is outside the selected inventory.")
 				}
-				pendingPathPkg = ""
-				continue
 			}
-			// A line that is not a sub-key for this package ends the pending state.
-			// Reset only if we're back to package-level indentation (two spaces/one tab).
-			pendingPathPkg = ""
+			// Only the first nested level can carry the source key.
+			blockPkg = ""
+			continue
 		}
-
-		// Detect a package name line: `  pkgname:` or `  pkgname: ^version`.
-		// Two-space indented (or tab-indented) lines at the direct child level
-		// of a section header are package names.
-		if m := dartDepLineRE.FindStringSubmatch(trimmed); m != nil {
-			pkgN := m[1]
-			// Determine whether this is a simple `pkgname: value` or a block
-			// header `pkgname:` (value to follow on sub-lines).
-			// m[0] is the full match including the trailing colon (e.g. "http:").
-			afterColon := strings.TrimSpace(trimmed[len(m[0]):])
-			isBlock := afterColon == "" || strings.HasPrefix(afterColon, "#")
-			if isBlock {
-				// This is a block header; the next sub-lines may have path:.
-				pendingPathPkg = pkgN
-			} else {
-				// Simple version-pinned dependency.
-				if section != dartSectionDevDeps {
-					AddRequirement(d, Requirement{Kind: "dart-dependency", Value: pkgN, State: "declared", Evidence: name})
-				} else {
-					AddRequirement(d, Requirement{Kind: "dart-dependency", Value: pkgN, State: "declared", Evidence: name, Condition: "dev_dependencies"})
-				}
-				pendingPathPkg = ""
-			}
+		blockPkg = ""
+		if indent != packageIndent {
+			continue
+		}
+		m := dartDepLineRE.FindStringSubmatch(trimmed)
+		if m == nil {
+			continue
+		}
+		pkgName := m[1]
+		if value := strings.TrimSpace(stripDartComment(trimmed[len(m[0]):])); value == "" {
+			blockPkg = pkgName
+		}
+		// Overrides replace the source of a package declared elsewhere; they
+		// do not declare a dependency of their own.
+		if section != dartSectionOverrides {
+			AddRequirement(d, Requirement{Kind: "dart-dependency", Value: pkgName, State: "declared", Evidence: name, Condition: dartSectionCondition(section)})
 		}
 	}
 	return d
@@ -143,6 +131,16 @@ var dartDepLineRE = regexp.MustCompile(`^([a-z][a-z0-9_]{0,127})\s*:`)
 // dartPathSublineRE matches a `path: value` line inside a dependency block.
 // The value may be a relative path like `../` or `../packages/foo`.
 var dartPathSublineRE = regexp.MustCompile(`^path:\s*(.+)$`)
+
+func stripDartComment(value string) string {
+	if i := strings.Index(value, " #"); i >= 0 {
+		return value[:i]
+	}
+	if strings.HasPrefix(value, "#") {
+		return ""
+	}
+	return value
+}
 
 // dartSectionCondition returns the Condition string for a dependency section.
 func dartSectionCondition(s dartSection) string {
