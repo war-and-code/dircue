@@ -157,8 +157,18 @@ func readBounded(ctx context.Context, filename string, limit int64) ([]byte, err
 	return b, nil
 }
 
+// stripBOM removes an optional leading UTF-8 byte-order mark (\xEF\xBB\xBF).
+// Many Windows tools and some CI pipelines emit BOMs; stripping exactly one
+// lets them round-trip without an obscure "invalid character '\uf'" error.
+func stripBOM(data []byte) []byte {
+	if len(data) >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF {
+		return data[3:]
+	}
+	return data
+}
+
 func decodeOne(data []byte, dst any) error {
-	dec := json.NewDecoder(bytes.NewReader(data))
+	dec := json.NewDecoder(bytes.NewReader(stripBOM(data)))
 	if err := dec.Decode(dst); err != nil {
 		return err
 	}
@@ -335,6 +345,13 @@ func coverageFor(r Result) []mapdoc.QuestionCoverage {
 		}
 		if x.State == "unknown" || x.State == "tool_error" {
 			analyzerReasons = append(analyzerReasons, x.State)
+		}
+		if x.Reason == "attachment_record_limit_reached" {
+			analyzerReasons = append(analyzerReasons, "attachment_record_limit_reached")
+			if x.ReportKind == "syft-json" {
+				packageStatus = mapdoc.CoveragePartial
+				packageReasons = append(packageReasons, "attachment_record_limit_reached")
+			}
 		}
 	}
 	if !hasSyft {

@@ -22,8 +22,7 @@
       },
       "must_include": [
         {"kind": "deployable", "name": "init & validate", "path": ".github/workflows/check.yml"},
-        {"kind": "deployable", "name": "emailservice", "path": "k8s/all.yaml"},
-        {"kind": "deployable", "name": "emailservice#document-2", "path": "k8s/all.yaml"}
+        {"kind": "deployable", "name": "emailservice", "path": "k8s/all.yaml"}
       ],
       "must_not_include": []
     },

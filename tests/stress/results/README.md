@@ -8,8 +8,8 @@ The three cutoff cases return an empty result after the tree-size check. Their t
 
 | Case | Work | Counted bytes | Ruby Git median (ms) | Auragaze Git (ms) | Auragaze flat (ms) | Git speedup |
 |---|---|---:|---:|---:|---:|---:|
-| talend-generated-excluded | Full traversal | 250 | 28,853.54 | 9,510.69 | 2,734.62 | 3.03× |
-| talend-generated-included | Full traversal | 805,306,618 | 41,758.26 | 9,621.61 | 2,705.94 | 4.34× |
+| etl-pipeline-generated-excluded | Full traversal | 250 | 28,853.54 | 9,510.69 | 2,734.62 | 3.03× |
+| etl-pipeline-generated-included | Full traversal | 805,306,618 | 41,758.26 | 9,621.61 | 2,705.94 | 4.34× |
 | xml-log-default | Full traversal | 87 | 7,072.85 | 18.78 | 16.67 | 376.62× |
 | xml-log-detectable | Full traversal | 1,153,433,688 | 7,067.67 | 18.94 | 16.49 | 373.11× |
 | dotnet-graph-default | Full traversal | 2,291,540 | 1,560.40 | 472.99 | 150.15 | 3.30× |
@@ -18,8 +18,8 @@ The three cutoff cases return an empty result after the tree-size check. Their t
 | tree-count-default-limit99999 | Cutoff; empty | 0 | 379.77 | 71.17 | 158.66 | 5.34× |
 | tree-count-default-limit100000 | Cutoff; empty | 0 | 378.55 | 70.86 | 158.26 | 5.34× |
 | tree-count-default-limit100001 | Full traversal | 1,888,890 | 15,635.52 | 6,088.95 | 1,509.70 | 2.57× |
-| talend-packed-generated-excluded | Full traversal | 250 | 30,019.96 | 7,952.59 | 2,791.87 | 3.77× |
-| talend-packed-generated-included | Full traversal | 805,306,618 | 44,167.78 | 8,019.69 | 2,843.82 | 5.51× |
+| etl-pipeline-packed-generated-excluded | Full traversal | 250 | 30,019.96 | 7,952.59 | 2,791.87 | 3.77× |
+| etl-pipeline-packed-generated-included | Full traversal | 805,306,618 | 44,167.78 | 8,019.69 | 2,843.82 | 5.51× |
 | xml-log-packed-default | Full traversal | 87 | 7,064.27 | 18.99 | 16.20 | 371.98× |
 | xml-log-packed-detectable | Full traversal | 1,153,433,688 | 7,062.22 | 18.91 | 16.28 | 373.41× |
 
@@ -27,8 +27,8 @@ Empirical p95 uses the nearest-rank sample; CV is population standard deviation 
 
 | Case | Ruby Git p95 (ms) | Auragaze Git p95 (ms) | Auragaze flat p95 (ms) | Ruby CV | Git CV | Flat CV |
 |---|---:|---:|---:|---:|---:|---:|
-| talend-generated-excluded | 28,959.36 | 9,713.83 | 2,828.20 | 0.002 | 0.015 | 0.021 |
-| talend-generated-included | 41,968.07 | 9,783.37 | 2,822.79 | 0.003 | 0.013 | 0.021 |
+| etl-pipeline-generated-excluded | 28,959.36 | 9,713.83 | 2,828.20 | 0.002 | 0.015 | 0.021 |
+| etl-pipeline-generated-included | 41,968.07 | 9,783.37 | 2,822.79 | 0.003 | 0.013 | 0.021 |
 | xml-log-default | 7,181.60 | 19.60 | 17.38 | 0.008 | 0.032 | 0.044 |
 | xml-log-detectable | 7,148.12 | 20.28 | 17.50 | 0.006 | 0.047 | 0.035 |
 | dotnet-graph-default | 1,592.19 | 501.70 | 154.83 | 0.012 | 0.031 | 0.019 |
@@ -37,8 +37,8 @@ Empirical p95 uses the nearest-rank sample; CV is population standard deviation 
 | tree-count-default-limit99999 | 397.16 | 72.55 | 162.23 | 0.020 | 0.013 | 0.013 |
 | tree-count-default-limit100000 | 392.63 | 72.13 | 163.69 | 0.019 | 0.021 | 0.020 |
 | tree-count-default-limit100001 | 16,505.54 | 6,229.52 | 1,556.15 | 0.111 | 0.013 | 0.016 |
-| talend-packed-generated-excluded | 30,941.47 | 8,109.54 | 3,023.78 | 0.016 | 0.015 | 0.035 |
-| talend-packed-generated-included | 45,024.73 | 8,334.38 | 3,013.87 | 0.019 | 0.022 | 0.035 |
+| etl-pipeline-packed-generated-excluded | 30,941.47 | 8,109.54 | 3,023.78 | 0.016 | 0.015 | 0.035 |
+| etl-pipeline-packed-generated-included | 45,024.73 | 8,334.38 | 3,013.87 | 0.019 | 0.022 | 0.035 |
 | xml-log-packed-default | 7,167.83 | 19.80 | 16.81 | 0.008 | 0.053 | 0.024 |
 | xml-log-packed-detectable | 7,251.08 | 19.69 | 17.53 | 0.008 | 0.026 | 0.036 |
 
@@ -46,8 +46,8 @@ Observed variability deserves attention: tree-count-default-limit100001 (Ruby Gi
 
 | Case | Ruby Git median CPU (s) | Auragaze Git CPU (s) | Auragaze flat CPU (s) |
 |---|---:|---:|---:|
-| talend-generated-excluded | 28.840 | 19.725 | 13.120 |
-| talend-generated-included | 41.745 | 19.735 | 12.995 |
+| etl-pipeline-generated-excluded | 28.840 | 19.725 | 13.120 |
+| etl-pipeline-generated-included | 41.745 | 19.735 | 12.995 |
 | xml-log-default | 7.060 | 0.020 | 0.020 |
 | xml-log-detectable | 7.050 | 0.020 | 0.010 |
 | dotnet-graph-default | 1.550 | 0.755 | 0.480 |
@@ -56,8 +56,8 @@ Observed variability deserves attention: tree-count-default-limit100001 (Ruby Gi
 | tree-count-default-limit99999 | 0.370 | 0.080 | 0.180 |
 | tree-count-default-limit100000 | 0.370 | 0.080 | 0.180 |
 | tree-count-default-limit100001 | 15.620 | 9.260 | 5.250 |
-| talend-packed-generated-excluded | 30.010 | 18.140 | 13.340 |
-| talend-packed-generated-included | 44.155 | 18.355 | 13.600 |
+| etl-pipeline-packed-generated-excluded | 30.010 | 18.140 | 13.340 |
+| etl-pipeline-packed-generated-included | 44.155 | 18.355 | 13.600 |
 | xml-log-packed-default | 7.050 | 0.020 | 0.010 |
 | xml-log-packed-detectable | 7.050 | 0.020 | 0.010 |
 
@@ -65,8 +65,8 @@ CPU is user plus system time reported for the measured child, distinct from elap
 
 | Case | Ruby Git peak RSS (MiB) | Auragaze Git (MiB) | Auragaze flat (MiB) |
 |---|---:|---:|---:|
-| talend-generated-excluded | 70.2 | 165.9 | 37.5 |
-| talend-generated-included | 88.9 | 165.3 | 42.1 |
+| etl-pipeline-generated-excluded | 70.2 | 165.9 | 37.5 |
+| etl-pipeline-generated-included | 88.9 | 165.3 | 42.1 |
 | xml-log-default | 1766.9 | 19.1 | 18.0 |
 | xml-log-detectable | 1766.9 | 18.9 | 17.9 |
 | dotnet-graph-default | 70.2 | 40.5 | 27.6 |
@@ -75,8 +75,8 @@ CPU is user plus system time reported for the measured child, distinct from elap
 | tree-count-default-limit99999 | 70.2 | 26.4 | 21.5 |
 | tree-count-default-limit100000 | 70.2 | 26.5 | 21.4 |
 | tree-count-default-limit100001 | 209.7 | 124.2 | 45.3 |
-| talend-packed-generated-excluded | 869.9 | 166.4 | 38.5 |
-| talend-packed-generated-included | 1333.6 | 166.9 | 38.0 |
+| etl-pipeline-packed-generated-excluded | 869.9 | 166.4 | 38.5 |
+| etl-pipeline-packed-generated-included | 1333.6 | 166.9 | 38.0 |
 | xml-log-packed-default | 1766.9 | 18.8 | 17.7 |
 | xml-log-packed-detectable | 1766.9 | 19.0 | 18.0 |
 
@@ -86,7 +86,7 @@ Candidate SHA-256: `618f5210478a286cc150bef7acc959de54b60b446208400ac49a28264fc6
 
 GNU time measures target-child CPU/RSS; wall time includes the same launcher overhead for every tool. Caches are warm, and fixture verification reads all unique payloads before profiling. Prefix reads are valid: logical source size is not physical bytes read during a scan. Twenty samples do not establish rare tails.
 
-These are explicitly synthetic layouts and formats, not verified Talend exports or MOVEit samples. The .NET graph is never built or restored. The results establish bounded compatibility and performance evidence for these inputs and this environment, not a guarantee for other repositories, histories, machines or future Linguist versions. See the [methodology and reproduction commands](../README.md).
+These are explicitly synthetic layouts and formats, not verified ETL-pipeline exports or log-transfer samples. The .NET graph is never built or restored. The results establish bounded compatibility and performance evidence for these inputs and this environment, not a guarantee for other repositories, histories, machines or future Linguist versions. See the [methodology and reproduction commands](../README.md).
 
 
 The [fixture manifest](fixture-manifest.json.gz) retains every generated path, byte size, SHA-256 and Git blob ID. The [correctness outputs](correctness-artifacts.tar.gz) retain stdout, stderr, exit status and diagnostic resources, including `analyze all`. Both archives have deterministic metadata; [archive hashes](archive-sha256.json) permit integrity checks.

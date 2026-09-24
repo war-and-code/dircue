@@ -2,7 +2,7 @@
   {
     "name": "spring-framework",
     "source": "git",
-    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+    "path": "/home/user/Workspace/dircue/.cache/corpus/spring-framework",
     "input": {
       "selection": "all recursive HEAD entries including symlinks/submodules",
       "entries": 11348,
@@ -22,7 +22,7 @@
   {
     "name": "roslyn",
     "source": "git",
-    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+    "path": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
     "input": {
       "selection": "all recursive HEAD entries including symlinks/submodules",
       "entries": 35220,
@@ -42,7 +42,7 @@
   {
     "name": "aspnetcore",
     "source": "git",
-    "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+    "path": "/home/user/Workspace/dircue/.cache/corpus/aspnetcore",
     "input": {
       "selection": "all recursive HEAD entries including symlinks/submodules",
       "entries": 16517,
@@ -63,7 +63,7 @@
   {
     "name": "xml-2gib",
     "source": "directory",
-    "path": "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
+    "path": "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
     "input": {
       "selection": "regular-file SHA256 and directory/symlink metadata, excluding .git directories",
       "entries": 128,
