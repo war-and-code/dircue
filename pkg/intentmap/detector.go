@@ -72,10 +72,11 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	filename := strings.ToLower(file.Path)
 	proto := strings.HasSuffix(filename, ".proto")
 	goFile := strings.HasSuffix(filename, ".go")
+	pythonFile := strings.HasSuffix(filename, ".py")
 	config := configCandidate(file.Path)
 	dockerfile := isDockerfile(file.Path)
 	java := javaCandidate(file.Path)
-	if !proto && !goFile && !config && !dockerfile && !java {
+	if !proto && !goFile && !pythonFile && !config && !dockerfile && !java {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -94,6 +95,8 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseProto(file.Path, file.Content)
 	case goFile:
 		observations = parseGoImports(file.Path, file.Content)
+	case pythonFile:
+		observations = parsePythonImports(file.Path, file.Content)
 	case dockerfile:
 		observations = parseDockerfileExpose(file.Path, file.Content)
 	case java:
@@ -318,6 +321,74 @@ func parseGoImports(name string, content []byte) []Observation {
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
 		for _, capability := range capabilitiesFor(value) {
 			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"import": value}})
+		}
+	}
+	return out
+}
+
+// parsePythonImports scans Python source files for import statements and infers
+// capabilities from the imported top-level package names. It uses a simple
+// line-oriented scanner rather than a full AST, which is sufficient for the
+// first-level package name and avoids executing any inspected content. Only
+// `import X` and `from X import ...` forms are recognised; relative imports
+// (from .sibling) and comments are skipped. A capability observation is emitted
+// for every catalog match.
+func parsePythonImports(name string, content []byte) []Observation {
+	var out []Observation
+	line := 0
+	for _, raw := range strings.Split(string(content), "\n") {
+		line++
+		// Skip indented lines — only top-level (column-0) imports are parsed.
+		// Indented imports are conditional, function-scoped, or try/except guards
+		// that are not reliable indicators of a module's direct dependencies.
+		if len(raw) > 0 && (raw[0] == ' ' || raw[0] == '\t') {
+			continue
+		}
+		s := strings.TrimSpace(raw)
+		// Skip comments and blank lines.
+		if s == "" || strings.HasPrefix(s, "#") {
+			continue
+		}
+		var pkg string
+		if strings.HasPrefix(s, "import ") {
+			// `import foo` or `import foo.bar`
+			rest := strings.TrimSpace(s[len("import "):])
+			// Handle `import foo, bar` by taking only the first token.
+			if i := strings.IndexAny(rest, ", \t"); i > 0 {
+				rest = rest[:i]
+			}
+			pkg = rest
+		} else if strings.HasPrefix(s, "from ") {
+			// `from foo import bar` or `from foo.bar import baz`
+			rest := strings.TrimSpace(s[len("from "):])
+			// Relative imports (from .sibling) are not top-level packages.
+			if strings.HasPrefix(rest, ".") {
+				continue
+			}
+			if i := strings.Index(rest, " import"); i > 0 {
+				pkg = rest[:i]
+			} else {
+				pkg = rest
+			}
+		}
+		if pkg == "" {
+			continue
+		}
+		// Use only the top-level package name for catalog matching.
+		if i := strings.IndexByte(pkg, '.'); i > 0 {
+			pkg = pkg[:i]
+		}
+		for _, capability := range capabilitiesFor(pkg) {
+			out = append(out, Observation{
+				Kind:       KindCapability,
+				Name:       capability,
+				State:      "observed",
+				Basis:      "imported",
+				Path:       name,
+				StartLine:  line,
+				EndLine:    line,
+				Properties: map[string]string{"import": pkg},
+			})
 		}
 	}
 	return out

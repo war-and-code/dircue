@@ -17,6 +17,7 @@ import (
 	"dircue/pkg/mapdoc"
 	"dircue/pkg/planning"
 	"dircue/pkg/profile"
+	"dircue/pkg/mapdiff"
 	"dircue/pkg/reportdiff"
 	"dircue/pkg/structure"
 	"dircue/schema"
@@ -26,7 +27,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "planning", "profile", "stats"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "map-compare", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -184,6 +185,14 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		"findings": exportCLIValue(t, "analyze", "frameworks", "--json", "--source", "directory", root),
 		"focus":    focus["focus"], "formats": base["formats"], "hotspots": hotspots,
 		"languages": exportCLIValue(t, "--json", "--source", "directory", root),
+		"map-compare": func() mapdiff.Report {
+			doc := mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, AnalyzerCoverage: []mapdoc.AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{}, Nodes: []mapdoc.Node{}, Edges: []mapdoc.Edge{}}
+			report, err := mapdiff.Compare(doc, doc)
+			if err != nil {
+				panic("map-compare fixture: " + err.Error())
+			}
+			return report
+		}(),
 		"map": func() mapdoc.Document {
 			n := mapdoc.NewNode(mapdoc.NodeContent, []string{"main.go"}, "source")
 			n.Properties = map[string]string{"role": "source"}
