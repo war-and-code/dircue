@@ -108,6 +108,29 @@ func deduplicateResult(r *Result) error {
 			edges = append(edges, edge)
 		}
 	}
+	// When a package has both a provider_location packaged_in edge and a richer
+	// declared_requirement:* packaged_in edge to the same component, suppress
+	// the provider_location edge: the declared_requirement edge carries
+	// component-declaration evidence and is strictly more informative.
+	type fromTo struct{ from, to string }
+	declaredPairs := map[fromTo]bool{}
+	for _, edge := range edges {
+		if edge.Type == mapdoc.EdgePackagedIn && strings.HasPrefix(edge.Discriminator, "declared_requirement:") {
+			declaredPairs[fromTo{edge.From, edge.To}] = true
+		}
+	}
+	if len(declaredPairs) > 0 {
+		filtered := edges[:0]
+		for _, edge := range edges {
+			if edge.Type == mapdoc.EdgePackagedIn && edge.Discriminator == "provider_location" {
+				if declaredPairs[fromTo{edge.From, edge.To}] {
+					continue // suppressed; the declared_requirement edge covers this
+				}
+			}
+			filtered = append(filtered, edge)
+		}
+		edges = filtered
+	}
 	r.Edges = edges
 	return nil
 }
