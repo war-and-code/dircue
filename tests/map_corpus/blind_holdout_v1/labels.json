@@ -1,5 +1,5 @@
 {
-  "schema": "dircue-source-first-holdout-1",
+  "schema": "dircue-source-first-holdout-1.1",
   "labeling_protocol": "Source-only; no dircue binary, map output, or per-repository result receipt was run or read before freeze. Every oracle file is pinned by path and SHA-256; positive facts include source line ranges. Expectations are exhaustive only for graph facts statically derivable from the named oracle files under docs/MAP.md 1.0 semantics. Coverage claims are limited to the declared scan subdirectory and oracle-file universe; unknowns are explicit.",
   "repositories": [
     {
@@ -151,8 +151,8 @@
           },
           {
             "name": "flasky",
-            "kind": "container",
-            "provider": "docker",
+            "kind": "container_build",
+            "provider": "dockerfile",
             "evidence": [
               {
                 "path": "Dockerfile",
@@ -163,9 +163,10 @@
         ],
         "interfaces": [
           {
-            "name": "5000",
+            "name": "port:5000",
             "kind": "declared_port",
-            "provider": "docker",
+            "provider": "dockerfile",
+            "port": "5000",
             "evidence": [
               {
                 "path": "Dockerfile",
@@ -174,9 +175,10 @@
             ]
           },
           {
-            "name": "8000:5000",
+            "name": "port:5000",
             "kind": "declared_port",
             "provider": "compose",
+            "port": "5000",
             "evidence": [
               {
                 "path": "docker-compose.yml",
@@ -245,67 +247,97 @@
             "scoring": "unsupported deployable kind in 1.0; retain as explicit limitation"
           },
           {
-            "fact": "Compose flasky service links to mysql as dbserver.",
+            "fact": "Compose flasky service links to mysql with alias dbserver.",
             "evidence": [
               {
                 "path": "docker-compose.yml",
                 "lines": "3-10"
               }
             ],
-            "scoring": "link declaration is not a depends_on relationship"
+            "scoring": "source declaration retained; relationship semantics are outside this exact label set because links are not the documented depends_on edge"
           }
         ],
         "relationships": [
           {
             "type": "builds",
-            "from": "Compose flasky service",
-            "to": "root component",
-            "evidence": [
-              {
-                "path": "docker-compose.yml",
-                "lines": "3-4"
-              }
+            "from": {
+              "kind": "deployable",
+              "name": "flasky",
+              "paths": [
+                "docker-compose.yml"
+              ]
+            },
+            "to": {
+              "kind": "component",
+              "name": "flasky",
+              "paths": [
+                "requirements.txt"
+              ]
+            },
+            "evidence_paths": [
+              "docker-compose.yml"
             ]
           },
           {
             "type": "uses_capability",
-            "from": "root component",
-            "to": "datastore:relational",
-            "evidence": [
-              {
-                "path": "requirements/common.txt",
-                "lines": "14,26"
-              },
-              {
-                "path": "app/__init__.py",
-                "lines": "5,13"
-              }
+            "from": {
+              "kind": "component",
+              "name": "flasky",
+              "paths": [
+                "requirements.txt"
+              ]
+            },
+            "to": {
+              "kind": "capability",
+              "name": "datastore:relational",
+              "paths": [
+                "requirements/common.txt"
+              ]
+            },
+            "evidence_paths": [
+              "requirements/common.txt",
+              "app/__init__.py"
             ]
           },
           {
             "type": "uses_capability",
-            "from": "root component",
-            "to": "datastore:postgresql",
-            "evidence": [
-              {
-                "path": "requirements/heroku.txt",
-                "lines": "1-3"
-              }
+            "from": {
+              "kind": "component",
+              "name": "flasky",
+              "paths": [
+                "requirements.txt"
+              ]
+            },
+            "to": {
+              "kind": "capability",
+              "name": "datastore:postgresql",
+              "paths": [
+                "requirements/heroku.txt"
+              ]
+            },
+            "evidence_paths": [
+              "requirements/heroku.txt"
             ]
           },
           {
             "type": "uses_capability",
-            "from": "root component",
-            "to": "datastore:mysql",
-            "evidence": [
-              {
-                "path": "requirements/docker.txt",
-                "lines": "1-3"
-              },
-              {
-                "path": "docker-compose.yml",
-                "lines": "11-14"
-              }
+            "from": {
+              "kind": "component",
+              "name": "flasky",
+              "paths": [
+                "requirements.txt"
+              ]
+            },
+            "to": {
+              "kind": "capability",
+              "name": "datastore:mysql",
+              "paths": [
+                "requirements/docker.txt"
+              ]
+            },
+            "evidence_paths": [
+              "requirements/docker.txt",
+              "docker-compose.yml"
             ]
           }
         ],
@@ -316,8 +348,9 @@
           "capabilities": "partial",
           "relationships": "partial"
         },
-        "exhaustiveness_note": "The oracle set exhausts these explicitly named manifest, deployment, and app-factory declarations only. The wider repository (migrations, tests, templates, and other sources) is outside the scored oracle universe. SQLite-category, Procfile, and Compose links are explicit unresolved facts; no whole-repository precision claim is made."
+        "exhaustiveness_note": "The oracle set exhausts these explicitly named manifest, deployment, and app-factory declarations only. The wider repository (migrations, tests, templates, and other sources) is outside the scored oracle universe. SQLite-category, Procfile, and Compose links are explicit unresolved facts; no whole-repository precision claim is made. Labels are qualitative semantic facts, not complete normalized output records; do not compute precision/recall from them."
       }
     }
-  ]
+  ],
+  "metric_scope": "Qualitative source-first holdout; these labels are source grounded and bounded, but do not encode the full normalized map properties needed for exact precision/recall. Do not claim numerical precision from this file."
 }
