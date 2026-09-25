@@ -197,8 +197,12 @@ with a WAR module), a
 [Flask application](https://github.com/gothinkster/flask-realworld-example-app),
 the [bloc](https://github.com/felangel/bloc) Dart monorepo, and a
 [Prisma/Express application](https://github.com/gothinkster/node-express-realworld-example-app).
-The labels are exhaustive within named oracle files, so precision is
-measurable. See `fresh_labels/README.md` for selection and method.
+The frozen labels were intended to be exhaustive within named oracle files.
+The subsequent source review found omissions, including OpenMRS module
+membership whose child POMs were outside that original oracle set. Treat the
+frozen precision as measured against the original labels, and the corrected
+precision as an adjudicated regression score, not a whole-repository estimate.
+See `fresh_labels/README.md` for selection and method.
 
 ```sh
 python3 tests/map_corpus/fetch_fresh.py --dest .cache/fresh-repos

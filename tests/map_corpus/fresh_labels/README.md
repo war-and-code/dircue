@@ -34,7 +34,7 @@ Four public repositories were selected to stress the feature areas being finaliz
 
 Each label file follows the golden corpus schema (`verify_golden.score_repo`-compatible). For every repository, 3–5 oracle files were selected from: the primary project manifest, a container/compose definition, a configuration file declaring datastores, and an entry-point source file.
 
-Labels are exhaustive within the oracle files: every component, deployable, interface, capability, and edge that the selected files statically establish is included. Precision is measurable because no label was added from files outside the oracle set.
+The frozen labels were intended to cover every component, deployable, interface, capability, and edge statically established by the selected oracle files. The later source review found omissions; some corrected membership labels also cite child POMs outside the original oracle set. Thus the frozen precision is relative to the original labels, while corrected precision is an adjudicated regression measure. Neither is a whole-repository precision estimate.
 
 Every label has a `why` field citing a file and line number. Where MAP.md vocabulary is ambiguous (e.g. Procfile `web` process, Dockerfile `ENV PORT` vs `EXPOSE`), notes are included.
 
