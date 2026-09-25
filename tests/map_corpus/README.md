@@ -189,9 +189,8 @@ proof of project relationship support (#144).
 
 ## Fresh blind check
 
-Before the #143 map changes were run on them, four further repositories were
-labeled from source by a labeler who never ran dircue or read its output,
-and frozen in `c976461`:
+Four further repositories were labeled from source and frozen in `c976461`.
+The Flask manifest was added by commit [`a80a6be`](https://github.com/war-and-code/dircue/commit/a80a6be608b2e5b4792c701c04780d1c661a6e58) after implementation-aware review; therefore this set is not wholly blind to the implementation. The other repository labels were written before their candidate runs. The set is useful for regression comparisons, with this limitation made explicit:
 [OpenMRS core](https://github.com/openmrs/openmrs-core) (Maven reactor
 with a WAR module), a
 [Flask application](https://github.com/gothinkster/flask-realworld-example-app),

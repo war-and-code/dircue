@@ -40,15 +40,22 @@ containment, and provider analysis. A relationship means only what its type
 and evidence establish. For example, a declaration can establish a local
 reference without proving that the project builds.
 
-A Dockerfile normally links to the component at its directory. When a static
-plain-form `COPY` source is under a Maven module root and names its recognized
-WAR/EAR artifact, or a `COPY --from` source comes from a declared local build
-stage and uniquely names one recognized Maven archive, the `builds` edge
-instead points to that archive's component and cites the `COPY` source. This
-is still a partial attribution: it does not evaluate Docker build arguments,
-ignore rules, stage contents, or Maven output. Ambiguous or unresolved sources
-do not establish an archive owner; the directory-based link remains when no
-other source establishes one.
+A Dockerfile normally links to the component at its directory. A statically
+recognized `COPY` source can instead attribute its `builds` edge to a Maven
+WAR/EAR component when the source path identifies the module and the source
+uniquely names that module's archive. For `COPY --from`, attribution requires a
+local stage and evidence that the copied path maps back to the module's
+`target/` artifact through tracked copy destinations. Docker build-context
+`COPY` paths are relative to the build-context root; the parser currently reads
+them relative to the repository root and does not resolve nested Dockerfiles
+against a separately configured context. Stage paths are relative to that
+stage's filesystem root. This attribution remains partial: it does not
+interpret build arguments, ignore rules, arbitrary shell commands, or Maven
+output. Ambiguous or unresolved sources do not establish an archive owner; the
+directory-based link remains when no other source establishes one. The
+`copy_source` and `copy_source_stage` fact kinds record context and stage copy
+sources, respectively; the archive relationship uses the reason
+`dockerfile_copy_source_matches_maven_archive`.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
@@ -66,7 +73,9 @@ keys for future producers.
 | Component | `root`, `ecosystem`, `project_kind`; `language` is present only when attributed, with `language_basis`. Auxiliary paths may carry `role` and `role_basis=path_name`. Toolchain declarations that are not interface endpoints — npm `engines`, Python `requires-python`, Rust toolchain, build backends, and build scripts — are stored as component properties: `runtime_requirements` (semicolon-separated list), `build_backend`, and `build_script`. |
 | Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. Archive deployables (Maven WAR/EAR) also carry `format` (`war` or `ear`). |
 | Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. `owning_component` holds the ID of the declaring component node when determinable. |
-| Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
+| Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. Maven and Gradle main-class declarations
+use `interface_kind: maven_main_class` and `gradle_main_class`; their node names
+are the statically declared class names. |
 | Package | `package_type` from the attached provider report. |
 
 ### Edge semantics

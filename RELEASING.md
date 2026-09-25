@@ -9,7 +9,7 @@ This document describes how a maintainer cuts a versioned release.
   (e.g. `v1.0.0`). The tag must exist in the remote before dispatching the
   release workflow.
 - Committed Markdown release notes exist at a path you control (e.g.
-  `docs/releases/v1.0.0.md`).
+  `docs/releases/1.0.0.md`).
 
 ## Version injection
 
@@ -21,6 +21,14 @@ The version string is injected at build time via Go ldflags:
 
 The variable is `Version` in `internal/cli/cli.go`. `scripts/release.py`
 applies this flag for every platform binary it builds.
+
+## Pre-tag checklist
+
+Before creating a release tag, finalize the version entry in `CHANGELOG.md`
+(remove the `(unreleased)` marker only as part of the release), review
+`docs/releases/1.0.0.md` for release-ready wording, and confirm its claims and
+receipts describe the exact commit to tag. The release notes are copied into
+the draft GitHub Release as written.
 
 ## How to cut a release
 
@@ -39,7 +47,7 @@ Go to **Actions → Prepare draft release → Run workflow** and fill in:
 |---|---|
 | Version | `1.0.0` (no leading `v`) |
 | Commit | the exact 40-character SHA of the tagged commit |
-| Notes path | `docs/releases/v1.0.0.md` (relative to repo root) |
+| Notes path | `docs/releases/1.0.0.md` (relative to repo root) |
 
 The workflow:
 1. Validates the tag, commit, and release notes path.
