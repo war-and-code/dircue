@@ -93,6 +93,9 @@ type Definition struct {
 	// sources remain context-relative, so consumers must not treat them as
 	// repository-root paths without separate context evidence.
 	DockerContextUnknown bool `json:"-"`
+	// DockerPathWrites retains bounded opaque RUN/ADD instructions as private
+	// barriers while mapbuild traces staged artifact paths.
+	DockerPathWrites []Reference `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`

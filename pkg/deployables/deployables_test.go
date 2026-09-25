@@ -702,6 +702,31 @@ func TestDockerfileBroadContextCopyRemainsPublicEvidence(t *testing.T) {
 	}
 }
 
+func TestDockerfileRetainsContextDestinationAndWriteBarriersPrivately(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /workspace\nCOPY . .\nADD https://example.invalid/ROOT.war /workspace/webapp/target/ROOT.war\nRUN curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	d := r.Definitions[0]
+	foundContext := false
+	for _, ref := range d.References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			foundContext = ref.TargetPath == "/workspace"
+		}
+	}
+	if !foundContext {
+		t.Fatalf("COPY destination was not retained: %+v", d.References)
+	}
+	foundAdd, foundRun := false, false
+	for _, ref := range d.DockerPathWrites {
+		foundAdd = foundAdd || ref.Kind == "add_source" && ref.Evidence.Line == 4
+		foundRun = foundRun || ref.Kind == "run_instruction" && strings.Contains(ref.Value, "curl") && ref.Evidence.Line == 5
+	}
+	if !foundAdd || !foundRun {
+		t.Fatalf("missing private overwrite barriers: %+v", d.DockerPathWrites)
+	}
+}
+
 func TestDockerfileRetainsBoundedRunCopyPathsForStageAttribution(t *testing.T) {
 	r := observeOne(t, "Dockerfile", `FROM maven:3.9 AS dev
 RUN mkdir -p /openmrs/distribution/openmrs_core/ \
@@ -797,6 +822,7 @@ func TestDockerfileMultiSourceRunCopyDoesNotInventAPathTransfer(t *testing.T) {
 	for _, command := range []string{
 		"RUN cp /webapp/target/ROOT.war /ROOT.war /tmp/output/",
 		"RUN true && cp -a /webapp/target/ROOT.war /ROOT.war /tmp/output/",
+		"RUN cp /workspace/webapp/target/ROOT.war /workspace/ROOT.war /tmp/extra.war",
 	} {
 		r := observeOne(t, "Dockerfile", "FROM alpine AS build\n"+command+"\n")
 		if len(r.Definitions) != 1 || len(r.Definitions[0].DockerPathCopies) != 0 {
