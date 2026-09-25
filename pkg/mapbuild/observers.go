@@ -322,15 +322,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	}
 }
 
-// dockerContextIncludesModule requires a stage artifact copy to be accompanied
-// by an earlier build-context COPY that includes the Maven module. A matching
-// archive basename from a stage alone is not enough: the stage may have
-// downloaded an unrelated artifact with the same name.
+// dockerContextIncludesModule traces a copied artifact backward through
+// explicit stage and RUN cp transfers. The trace must reach the Maven module's
+// target directory with the same archive basename. A broad build-context COPY
+// is not ownership evidence: a later ADD or RUN can replace the artifact.
 func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, moduleRoot, sourceStage, artifactPath string, stageCopyLine int) bool {
 	if sourceStage == "" || artifactPath == "" {
 		return false
 	}
-	root := strings.Trim(strings.TrimPrefix(path.Clean(moduleRoot), "./"), "/")
 	allRefs := append(append([]deployables.Reference(nil), refs...), pathCopies...)
 	// Walk only backward through explicit local COPY --from relationships. This
 	// handles staged builds such as OpenMRS (compile -> dev -> final) while
@@ -354,23 +353,36 @@ func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, modul
 			if ref.Stage != current.name || ref.Evidence.Line >= current.beforeLine {
 				continue
 			}
-			if ref.Kind == "copy_source" && ref.Qualification == "local" {
-				source := strings.Trim(strings.TrimPrefix(path.Clean(ref.Value), "./"), "/")
-				if source == "." || source == "" || (root == "" && source == "pom.xml") || (root != "" && (source == root || strings.HasPrefix(source, root+"/") || strings.HasPrefix(root, source+"/"))) {
-					return true
-				}
-			}
 			if ref.Kind == "copy_from" && ref.Qualification == "local" && ref.SourceStage != "" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
 				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
 				queue = append(queue, stageAt{name: ref.SourceStage, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
 			if ref.Kind == "run_copy" && ref.Qualification == "local" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
 				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
+				if dockerArtifactPathIdentifiesModule(sourcePath, moduleRoot) {
+					return true
+				}
 				queue = append(queue, stageAt{name: current.name, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
 		}
 	}
 	return false
+}
+
+func dockerArtifactPathIdentifiesModule(artifactPath, moduleRoot string) bool {
+	artifact := strings.Trim(strings.TrimPrefix(path.Clean(artifactPath), "./"), "/")
+	root := strings.Trim(strings.TrimPrefix(path.Clean(moduleRoot), "./"), "/")
+	if root == "." {
+		root = ""
+	}
+	if artifact == "" {
+		return false
+	}
+	suffix := "target/" + path.Base(artifact)
+	if root != "" {
+		suffix = root + "/" + suffix
+	}
+	return artifact == suffix || strings.HasSuffix(artifact, "/"+suffix)
 }
 
 func dockerCopyMappedSource(source, destination, artifact string) string {
