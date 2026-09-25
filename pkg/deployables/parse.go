@@ -24,7 +24,7 @@ var (
 	// Only a two-operand cp can establish a source-to-destination transfer.
 	// A third path makes the final operand a directory; matching the first two
 	// would invent a transfer that the command does not perform.
-	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-[a-zA-Z]+\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
+	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-a\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
 
@@ -109,7 +109,7 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				qual = "unresolved"
 				d.Coverage = "qualified"
 			}
-			d.References = append(d.References, Reference{Kind: "base_image_or_stage", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			d.References = append(d.References, Reference{Kind: "base_image_or_stage", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			// Always record the FROM line as evidence so the node is never dropped
 			// even when the build has no named stages.
 			d.Evidence = append(d.Evidence, Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"})

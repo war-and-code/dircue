@@ -823,6 +823,8 @@ func TestDockerfileMultiSourceRunCopyDoesNotInventAPathTransfer(t *testing.T) {
 		"RUN cp /webapp/target/ROOT.war /ROOT.war /tmp/output/",
 		"RUN true && cp -a /webapp/target/ROOT.war /ROOT.war /tmp/output/",
 		"RUN cp /workspace/webapp/target/ROOT.war /workspace/ROOT.war /tmp/extra.war",
+		"RUN cp -t /usr/local/tomcat/webapps/ /tmp/foreign/ROOT.war",
+		"RUN cp --target-directory=/usr/local/tomcat/webapps/ /tmp/foreign/ROOT.war",
 	} {
 		r := observeOne(t, "Dockerfile", "FROM alpine AS build\n"+command+"\n")
 		if len(r.Definitions) != 1 || len(r.Definitions[0].DockerPathCopies) != 0 {
