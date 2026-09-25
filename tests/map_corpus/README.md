@@ -246,10 +246,14 @@ with a checked-in binary referenced by a build declaration. The
 references a local JAR through `systemPath`; the
 [pyRevit project file](https://github.com/pyrevitlabs/pyRevit/blob/6294cf9c477130eadd73b9d156784f7a5553b4cd/dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj#L8)
 references a checked-in DLL through `HintPath`. `unmanaged_binary_slice.py`
-fetches only each cited project file and binary from pinned commits, limits
-response sizes, verifies the binary digests and declared references, and
-deletes the files after the run. It does not vendor binaries or make a claim
-about the complete source repositories:
+fetches the cited declaration files and binary from pinned commits, limits
+response sizes, verifies the binary digests and references, and deletes the
+files after the run. For pyRevit it also reads the pinned
+`dev/Directory.Build.targets`, checks its `net48` to `netfx` property mapping,
+and statically substitutes the path properties to show that
+`$(PyRevitDevLibsDir)` selects `dev/libs/netfx/pyRevitLabs.Json.dll`. It does
+not invoke MSBuild or run repository build logic, vendor binaries, or make a
+claim about the complete source repositories:
 
 ```sh
 python3 tests/map_corpus/unmanaged_binary_slice.py --binary ./dircue \

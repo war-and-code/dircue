@@ -5,7 +5,7 @@
   },
   "claims": {
     "package_identity": "not inferred from the binary file role; any package nodes are reported as tool observations only",
-    "repository_population": "not measured; only one manifest/project file and one referenced binary per pinned repository are included"
+    "repository_population": "not measured; only the referenced binary and its bounded declaration files per pinned repository are included"
   },
   "dircue_binary_sha256": "56ca0172160aeb175e98403640331d608faeee16f613a541223c54560323f402",
   "opt_in": true,
@@ -111,6 +111,15 @@
       "binary": "dev/libs/netfx/pyRevitLabs.Json.dll",
       "binary_sha256": "8eedc650cdb204ae8b1cf7f1c3b47e29d2617b875c10b48140b0e34381dfbeb3",
       "binary_size": 699392,
+      "build_targets": "dev/Directory.Build.targets",
+      "build_variable_resolution": {
+        "NetFolder": "netfx",
+        "PyRevitDevLibsDir": "<repository-root>/dev/libs/netfx",
+        "build_logic_executed": false,
+        "method": "static_property_substitution",
+        "resolved_reference": "<repository-root>/dev/libs/netfx/pyRevitLabs.Json.dll",
+        "target_framework": "net48"
+      },
       "commit": "6294cf9c477130eadd73b9d156784f7a5553b4cd",
       "dircue_map": {
         "content_roles": {
