@@ -717,6 +717,53 @@ RUN mkdir -p /openmrs/distribution/openmrs_core/ \
 	}
 }
 
+func TestDockerfileContextCopyTargetTracksAbsoluteWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /openmrs_core\nCOPY . .\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			if ref.TargetPath != "/openmrs_core" || ref.Evidence.Field != "COPY source" || ref.Evidence.Line != 3 {
+				t.Fatalf("unexpected resolved COPY target: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source evidence")
+}
+
+func TestDockerfileContextCopyTargetTracksRelativeWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /app\nWORKDIR build\nCOPY . output\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			if ref.TargetPath != "/app/build/output" {
+				t.Fatalf("relative WORKDIR destination resolved incorrectly: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source evidence")
+}
+
+func TestDockerfileCopyTargetRemainsUnknownForDynamicOrInheritedWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /known\nFROM ${BASE}\nCOPY . relative\nWORKDIR ${APP_DIR}\nCOPY . .\nCOPY . /absolute\n")
+	var relative, afterDynamic, absolute string
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind != "copy_source" || ref.Value != "." {
+			continue
+		}
+		switch ref.Evidence.Line {
+		case 4:
+			relative = ref.TargetPath
+		case 6:
+			afterDynamic = ref.TargetPath
+		case 7:
+			absolute = ref.TargetPath
+		}
+	}
+	if relative != "" || afterDynamic != "" || absolute != "/absolute" {
+		t.Fatalf("unexpected target paths: relative=%q afterDynamic=%q absolute=%q", relative, afterDynamic, absolute)
+	}
+}
+
 func TestDockerfileCommentedOrEchoedRunCopyDoesNotCreatePathEvidence(t *testing.T) {
 	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\n# RUN cp -a /webapp/target/app.war /download/app.war\nRUN echo cp -a /webapp/target/app.war /download/app.war\n")
 	if len(r.Definitions[0].DockerPathCopies) != 0 {
