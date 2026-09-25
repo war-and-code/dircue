@@ -593,7 +593,7 @@ func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
 	copyEvidence := deployables.Evidence{Field: "COPY --from source", Value: "/openmrs/distribution/openmrs_core/openmrs.war", Line: 168, Basis: "dockerfile-instruction"}
 	definitions := []deployables.Definition{
 		{Provider: "maven", Kind: "archive", Format: "war", Name: "openmrs.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archiveEvidence}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source_stage", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: "webapp/pom.xml", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: "webapp/pom.xml", Line: 38, Basis: "dockerfile-instruction"}, Stage: "compile"}, {Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 55, Basis: "dockerfile-instruction"}, Stage: "compile"}, {Kind: "copy_from", Value: "compile", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY --from", Value: "compile", Line: 80, Basis: "dockerfile-instruction"}, Stage: "dev", SourceStage: "compile", SourcePath: "/openmrs_core", TargetPath: "/openmrs_core/"}, {Kind: "copy_source_stage", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence, Stage: "final", SourceStage: "dev", SourcePath: "/openmrs_core/openmrs.war", TargetPath: "/usr/local/tomcat/webapps/openmrs.war"}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
@@ -633,6 +633,31 @@ func TestDockerfileUnrelatedCopyBasenameDoesNotSelectMavenModule(t *testing.T) {
 		if edge.From == dockerID && edge.Type == mapdoc.EdgeBuilds {
 			if edge.To != aggregator.ID {
 				t.Fatalf("unrelated same-basename source selected %q; want fallback to aggregator %q", edge.To, aggregator.ID)
+			}
+			return
+		}
+	}
+	t.Fatal("no root Dockerfile builds edge emitted")
+}
+
+func TestDockerfileStageArchiveRequiresModuleBuildContextCopy(t *testing.T) {
+	doc := mapdoc.New()
+	root := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")
+	root.Properties = map[string]string{"root": "."}
+	webapp := mapdoc.NewNode(mapdoc.NodeComponent, []string{"webapp", "webapp/pom.xml"}, "maven")
+	webapp.Properties = map[string]string{"root": "webapp"}
+	doc.Nodes = append(doc.Nodes, root, webapp)
+	evidence := deployables.Evidence{Field: "COPY --from source", Value: "/webapp/target/ROOT.war", Line: 8, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "maven", Kind: "archive", Format: "war", Name: "ROOT.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 2, Basis: "dockerfile-instruction"}, Stage: "unrelated"}, {Kind: "copy_from", Value: "curl", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY --from", Value: "curl", Line: 5, Basis: "dockerfile-instruction"}, Stage: "final", SourceStage: "curl", SourcePath: "/tmp/config", TargetPath: "/etc/config"}, {Kind: "copy_source_stage", Value: evidence.Value, Qualification: "local", Evidence: evidence, Stage: "final", SourceStage: "curl", SourcePath: evidence.Value, TargetPath: "/usr/local/tomcat/webapps/ROOT.war"}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	for _, edge := range doc.Edges {
+		if edge.From == dockerID && edge.Type == mapdoc.EdgeBuilds {
+			if edge.To != root.ID {
+				t.Fatalf("downloaded same-basename archive attributed to %q; want Dockerfile root fallback %q", edge.To, root.ID)
 			}
 			return
 		}

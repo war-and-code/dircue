@@ -629,6 +629,44 @@ func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
 	t.Fatal("missing source path copied from declared stage")
 }
 
+func TestDockerfileCopyFromAllowsFlagsBeforeFrom(t *testing.T) {
+	for _, instruction := range []string{
+		"COPY --chown=1000:1000 --from=build /app/target/app.war /app/app.war",
+		"COPY --from=build --chown=1000:1000 /app/target/app.war /app/app.war",
+		"COPY --link --from=build /app/target/app.war /app/app.war",
+		"COPY --from=build --link /app/target/app.war /app/app.war",
+	} {
+		t.Run(instruction, func(t *testing.T) {
+			r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\n"+instruction+"\n")
+			var stageSource, localSource bool
+			for _, ref := range r.Definitions[0].References {
+				if ref.Kind == "copy_source_stage" && ref.Value == "/app/target/app.war" && ref.Qualification == "local" {
+					stageSource = true
+				}
+				if ref.Kind == "copy_source" && ref.Value == "/app/target/app.war" {
+					localSource = true
+				}
+			}
+			if !stageSource || localSource {
+				t.Fatalf("expected stage source only, stage=%v local=%v refs=%+v", stageSource, localSource, r.Definitions[0].References)
+			}
+		})
+	}
+}
+
+func TestDockerfileBroadContextCopyRemainsPublicEvidence(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nCOPY . .\nCOPY --from=build /app/target/app.war /app/app.war\n")
+	found := false
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("COPY . . should remain public build-context evidence")
+	}
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>

@@ -214,11 +214,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				for _, candidate := range matches {
 					cleanSource := strings.TrimPrefix(path.Clean(ref.Value), "/")
 					root := strings.TrimPrefix(path.Clean(candidate.root), "./")
-					pathIdentifiesModule := strings.HasPrefix(cleanSource, root+"/")
+					pathIdentifiesModule := ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, root+"/")
 					if root == "." {
-						pathIdentifiesModule = strings.HasPrefix(cleanSource, "target/")
+						pathIdentifiesModule = ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, "target/")
 					}
-					stageIdentifiesArtifact := ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source"
+					stageIdentifiesArtifact := ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && dockerContextIncludesModule(def.References, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
 					if pathIdentifiesModule || stageIdentifiesArtifact {
 						if matchedOnce {
 							matchedOnce = false // duplicate artifact identities are ambiguous
@@ -316,6 +316,65 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			continue
 		}
 	}
+}
+
+// dockerContextIncludesModule requires a stage artifact copy to be accompanied
+// by an earlier build-context COPY that includes the Maven module. A matching
+// archive basename from a stage alone is not enough: the stage may have
+// downloaded an unrelated artifact with the same name.
+func dockerContextIncludesModule(refs []deployables.Reference, moduleRoot, sourceStage, artifactPath string, stageCopyLine int) bool {
+	if sourceStage == "" || artifactPath == "" {
+		return false
+	}
+	root := strings.Trim(strings.TrimPrefix(path.Clean(moduleRoot), "./"), "/")
+	// Walk only backward through explicit local COPY --from relationships. This
+	// handles staged builds such as OpenMRS (compile -> dev -> final) while
+	// rejecting a context COPY made in a stage unrelated to the copied artifact.
+	type stageAt struct {
+		name         string
+		artifactPath string
+		beforeLine   int
+	}
+	queue := []stageAt{{name: sourceStage, artifactPath: path.Clean(artifactPath), beforeLine: stageCopyLine}}
+	visited := map[string]int{}
+	for len(queue) > 0 {
+		current := queue[0]
+		queue = queue[1:]
+		visitKey := current.name + "\x00" + current.artifactPath
+		if prior, seen := visited[visitKey]; seen && prior >= current.beforeLine {
+			continue
+		}
+		visited[visitKey] = current.beforeLine
+		for _, ref := range refs {
+			if ref.Stage != current.name || ref.Evidence.Line >= current.beforeLine {
+				continue
+			}
+			if ref.Kind == "copy_source" && ref.Qualification == "local" {
+				source := strings.Trim(strings.TrimPrefix(path.Clean(ref.Value), "./"), "/")
+				if source == "." || source == "" || (root == "" && source == "pom.xml") || (root != "" && (source == root || strings.HasPrefix(source, root+"/") || strings.HasPrefix(root, source+"/"))) {
+					return true
+				}
+			}
+			if ref.Kind == "copy_from" && ref.Qualification == "local" && ref.SourceStage != "" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				sourcePath := path.Clean(ref.SourcePath)
+				if current.artifactPath != path.Clean(ref.TargetPath) {
+					relative := strings.TrimPrefix(current.artifactPath, path.Clean(ref.TargetPath)+"/")
+					sourcePath = path.Join(sourcePath, relative)
+				}
+				queue = append(queue, stageAt{name: ref.SourceStage, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
+			}
+		}
+	}
+	return false
+}
+
+func dockerCopyPathCarries(destination, artifact string) bool {
+	if destination == "" || artifact == "" {
+		return false
+	}
+	destination = path.Clean(destination)
+	artifact = path.Clean(artifact)
+	return artifact == destination || strings.HasPrefix(artifact, strings.TrimSuffix(destination, "/")+"/")
 }
 
 // aggregateTerraformDefs collapses multiple per-file Terraform definitions

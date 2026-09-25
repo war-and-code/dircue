@@ -65,6 +65,12 @@ type Reference struct {
 	Value         string   `json:"value"`
 	Qualification string   `json:"qualification"` // local, external, unresolved, or declared
 	Evidence      Evidence `json:"evidence"`
+	// Stage is parser-only Dockerfile context used to bind COPY observations to
+	// the build stage in which they occur. It is intentionally not public output.
+	Stage       string `json:"-"`
+	SourceStage string `json:"-"`
+	SourcePath  string `json:"-"`
+	TargetPath  string `json:"-"`
 }
 
 // Definition is a declaration, not proof of a built image, executed workflow,

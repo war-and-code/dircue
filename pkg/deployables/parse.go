@@ -8,6 +8,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	yaml "go.yaml.in/yaml/v2"
@@ -16,7 +17,7 @@ import (
 var (
 	tfBlock          = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
 	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
-	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+--from=(\S+)\s+`)
+	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
 	dockerCopy       = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
@@ -74,8 +75,16 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	lines := strings.Split(string(content), "\n")
 	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: dockerfileDisplayName(name), Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
 	stages := map[string]bool{}
+	currentStage := ""
+	stageIndex := 0
 	for i, line := range lines {
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
+			currentStage = strconv.Itoa(stageIndex)
+			stages[currentStage] = true
+			stageIndex++
+			if m[2] != "" {
+				currentStage = strings.ToLower(m[2])
+			}
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
 				qual = "local"
@@ -101,7 +110,8 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				qual = "unresolved"
 				d.Coverage = "qualified"
 			}
-			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			copyFromIndex := len(d.References)
+			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: strings.ToLower(m[1])})
 			// A source copied from a declared build stage is stronger artifact
 			// evidence than an arbitrary path in the build context. Retain it
 			// separately so consumers can apply stricter matching rules.
@@ -115,11 +125,13 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				sources = append(sources, field)
 			}
 			if len(sources) >= 2 {
+				d.References[copyFromIndex].SourcePath = bounded(sources[0])
+				d.References[copyFromIndex].TargetPath = bounded(sources[len(sources)-1])
 				for _, source := range sources[:len(sources)-1] {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
 						continue
 					}
-					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}})
+					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: strings.ToLower(m[1]), SourcePath: bounded(source), TargetPath: bounded(sources[len(sources)-1])})
 				}
 			}
 		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
@@ -138,7 +150,8 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
 						continue
 					}
-					d.References = append(d.References, Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}})
+					ref := Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage}
+					d.References = append(d.References, ref)
 				}
 			}
 		}
