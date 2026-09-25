@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dircue.invalid/schema/map.schema.json",
+  "title": "dircue map document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "source", "coverage", "coverage_ledger", "analyzer_coverage", "analyzer_blind_spots", "nodes", "edges"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "kind": { "const": "map" },
+    "status": { "$ref": "#/$defs/coverage_status" },
+    "source": { "$ref": "#/$defs/source" },
+    "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
+    "coverage_ledger": { "type": "array", "items": { "$ref": "#/$defs/coverage_ledger_entry" } },
+    "analyzer_coverage": { "type": "array", "items": { "$ref": "#/$defs/analyzer_coverage_entry" } },
+    "analyzer_blind_spots": { "type": "array", "items": { "$ref": "#/$defs/analyzer_blind_spot" } },
+    "nodes": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+    "edges": { "type": "array", "items": { "$ref": "#/$defs/edge" } }
+  },
+  "allOf": [{
+    "if": {
+      "properties": { "source": { "properties": { "mode": { "const": "directory" } }, "required": ["mode"], "not": { "required": ["digest"] } } },
+      "required": ["source"]
+    },
+    "then": {
+      "properties": { "coverage": { "contains": { "type": "object", "properties": { "question": { "const": "source_binding" }, "scope": { "const": "." }, "status": { "enum": ["unknown", "partial"] } }, "required": ["question", "scope", "status"] } } }
+    }
+  }],
+  "$defs": {
+    "nonempty": { "type": "string", "minLength": 1 },
+    "relative_path": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]" },
+    "coverage_status": { "enum": ["complete", "partial", "unknown"] },
+    "coverage": {
+      "type": "object", "additionalProperties": false, "required": ["status", "reasons"],
+      "properties": { "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
+      "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
+    },
+    "digest": {
+      "type": "object", "additionalProperties": false, "required": ["algorithm", "scope", "value"],
+      "properties": { "algorithm": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "normalization": { "$ref": "#/$defs/nonempty" }, "value": { "$ref": "#/$defs/nonempty" } }
+    },
+    "source": {
+      "type": "object", "additionalProperties": false, "required": ["mode"],
+      "properties": { "mode": { "enum": ["git", "directory"] }, "revision": { "$ref": "#/$defs/nonempty" }, "commit": { "type": "string", "pattern": "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$" }, "tree": { "$ref": "#/$defs/nonempty" }, "digest": { "$ref": "#/$defs/digest" } },
+      "oneOf": [
+        { "properties": { "mode": { "const": "git" } }, "required": ["revision", "tree"], "not": { "required": ["digest"] } },
+        { "properties": { "mode": { "const": "directory" } }, "not": { "anyOf": [{ "required": ["revision"] }, { "required": ["commit"] }, { "required": ["tree"] }] } }
+      ]
+    },
+    "question_coverage": {
+      "type": "object", "additionalProperties": false, "required": ["question", "scope", "status", "reasons"],
+      "properties": { "question": { "$ref": "#/$defs/nonempty" }, "scope": { "$ref": "#/$defs/nonempty" }, "status": { "$ref": "#/$defs/coverage_status" }, "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } } },
+      "allOf": [{ "if": { "properties": { "status": { "enum": ["partial", "unknown"] } }, "required": ["status"] }, "then": { "properties": { "reasons": { "minItems": 1 } } } }]
+    },
+    "coverage_ledger_entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["tool", "report_kind", "scope", "binding", "ran", "covered_files", "state", "reason"],
+      "properties": {
+        "tool": { "$ref": "#/$defs/nonempty" }, "report_kind": { "$ref": "#/$defs/nonempty" },
+        "scope": { "$ref": "#/$defs/relative_path" }, "binding": { "enum": ["verified", "mismatch", "unknown"] },
+        "ran": { "type": "boolean" }, "covered_files": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
+        "state": { "$ref": "#/$defs/nonempty" }, "reason": { "type": "string" }
+      }
+    },
+    "analyzer_coverage_entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["component_id", "language", "language_basis", "tool", "descriptor_version", "descriptor_source", "expected_applicable", "ran", "covered_files", "not_covered", "reason"],
+      "properties": {
+        "component_id": { "$ref": "#/$defs/nonempty" }, "language": { "$ref": "#/$defs/nonempty" }, "language_basis": { "enum": ["component_property", "repository_population", "unattributed"] }, "tool": { "$ref": "#/$defs/nonempty" },
+        "descriptor_version": { "$ref": "#/$defs/nonempty" }, "descriptor_source": { "$ref": "#/$defs/nonempty" },
+        "expected_applicable": { "type": "boolean" }, "ran": { "type": "boolean" },
+        "covered_files": { "type": "array", "items": { "$ref": "#/$defs/relative_path" } },
+        "not_covered": { "enum": ["not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"] },
+        "reason": { "$ref": "#/$defs/nonempty" }
+      }
+    },
+    "analyzer_blind_spot": {
+      "type": "object", "additionalProperties": false, "required": ["reason", "entries"],
+      "properties": { "reason": { "enum": ["not_run", "unsupported_language", "unsupported_framework", "prerequisite_unmet", "tool_error", "unknown"] }, "entries": { "type": "integer", "minimum": 1 } }
+    },
+    "producer": {
+      "type": "object", "additionalProperties": false, "required": ["id", "version"],
+      "properties": { "id": { "$ref": "#/$defs/nonempty" }, "version": { "$ref": "#/$defs/nonempty" } }
+    },
+    "span": {
+      "type": "object", "additionalProperties": false, "required": ["start_line", "end_line"],
+      "properties": { "start_line": { "type": "integer", "minimum": 1 }, "start_column": { "type": "integer", "minimum": 0 }, "end_line": { "type": "integer", "minimum": 1 }, "end_column": { "type": "integer", "minimum": 0 } }
+    },
+    "evidence": {
+      "type": "object", "additionalProperties": false, "required": ["basis", "path", "source_kind"],
+      "properties": {
+        "basis": { "enum": ["declared_config", "code_syntax", "resolved_reference", "provider_reported", "rule_inferred", "filename_hint"] },
+        "path": { "$ref": "#/$defs/relative_path" }, "span": { "$ref": "#/$defs/span" },
+        "source_kind": { "enum": ["file", "directory", "configuration", "code", "comment", "docstring", "documentation"] },
+        "rule": { "$ref": "#/$defs/producer" }, "provider": { "$ref": "#/$defs/producer" }
+      },
+      "oneOf": [{ "required": ["rule"], "not": { "required": ["provider"] } }, { "required": ["provider"], "not": { "required": ["rule"] } }],
+      "allOf": [{ "if": { "properties": { "basis": { "const": "provider_reported" } }, "required": ["basis"] }, "then": { "required": ["provider"] } }]
+    },
+    "properties": { "type": "object", "additionalProperties": { "type": "string" } },
+    "fact": {
+      "type": "object", "additionalProperties": false, "required": ["kind", "coverage", "evidence"],
+      "properties": { "kind": { "$ref": "#/$defs/nonempty" }, "name": { "type": "string" }, "value": { "type": "string" }, "state": { "type": "string" }, "condition": { "type": "string" }, "properties": { "$ref": "#/$defs/properties" }, "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } } }
+    },
+    "node": {
+      "type": "object", "additionalProperties": false, "required": ["id", "kind", "paths", "coverage", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonempty" }, "kind": { "enum": ["content", "component", "deployable", "interface", "capability", "package", "tool_run"] },
+        "name": { "type": "string" }, "paths": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/relative_path" } }, "discriminator": { "type": "string" },
+        "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }, "properties": { "$ref": "#/$defs/properties" }, "facts": { "type": "array", "items": { "$ref": "#/$defs/fact" } }
+      },
+      "allOf": [{ "if": { "properties": { "evidence": { "contains": { "properties": { "source_kind": { "const": "directory" } }, "required": ["source_kind"] } } }, "required": ["evidence"] }, "then": { "properties": { "kind": { "const": "content" } } } }]
+    },
+    "edge": {
+      "type": "object", "additionalProperties": false, "required": ["id", "type", "from", "to", "coverage", "evidence"],
+      "properties": {
+        "id": { "$ref": "#/$defs/nonempty" }, "type": { "enum": ["contains", "member_of", "depends_on_local", "depends_on", "builds", "runs", "exposes", "declares", "uses_capability", "packaged_in", "analyzed_by"] },
+        "from": { "$ref": "#/$defs/nonempty" }, "to": { "$ref": "#/$defs/nonempty" }, "discriminator": { "type": "string" }, "coverage": { "$ref": "#/$defs/coverage" }, "evidence": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/evidence" } }, "properties": { "$ref": "#/$defs/properties" }
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@
 // build-tool configuration.
 package focus
 
-import "dircue/pkg/declarations"
+import "github.com/war-and-code/dircue/pkg/declarations"
 
 const (
 	Provider        = "dircue"

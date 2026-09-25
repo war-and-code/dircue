@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/internal/cli"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/internal/cli"
 )
 
 func TestPackageEvidenceSchema(t *testing.T) {

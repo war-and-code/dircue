@@ -12,10 +12,10 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/scanner"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/scanner"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 func TestHostileManifestShapes(t *testing.T) {

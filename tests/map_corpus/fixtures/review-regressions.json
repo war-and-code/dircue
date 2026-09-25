@@ -1,0 +1,50 @@
+{
+  "questions": [
+    {
+      "id": "terraform-aliases",
+      "oracle": {
+        "source": "Terraform provider configuration syntax",
+        "url": "https://developer.hashicorp.com/terraform/language/providers/configuration#alias-multiple-provider-configurations",
+        "fixture_evidence": "main.tf declares two aws providers with distinct literal aliases; both must be captured in a single module-level deployable rather than as two separate nodes (the 1.0.0 granularity rule: one deployable per Terraform module directory)"
+      },
+      "must_include": [
+        {"kind": "deployable", "name": "(root)", "path": "."}
+      ],
+      "must_not_include": [
+        {"kind": "deployable", "name": "provider:aws.alias=primary"},
+        {"kind": "deployable", "name": "provider:aws.alias=backup"}
+      ]
+    },
+    {
+      "id": "yaml-declarations",
+      "oracle": {
+        "source": "GitHub Actions workflow and Kubernetes multi-document YAML declarations",
+        "url": "https://kubernetes.io/docs/concepts/overview/working-with-objects/#describing-a-kubernetes-object",
+        "fixture_evidence": "check.yml has scalar punctuation and all.yaml has Deployment and Service documents"
+      },
+      "must_include": [
+        {"kind": "deployable", "name": "init & validate", "path": ".github/workflows/check.yml"},
+        {"kind": "deployable", "name": "emailservice", "path": "k8s/all.yaml"}
+      ],
+      "must_not_include": []
+    },
+    {
+      "id": "project-and-coverage",
+      "oracle": {
+        "source": "Python requirements file and GNU Makefile naming convention",
+        "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/",
+        "fixture_evidence": "emailservice has requirements.txt, app.py and appsettings.json; scripts/Makefile.lib is text, not a static library"
+      },
+      "must_include": [
+        {"kind": "component", "path": "services/emailservice/requirements.txt"},
+        {"kind": "capability", "name": "cache:redis", "path": "services/emailservice/requirements.txt"},
+        {"kind": "capability", "name": "messaging:amqp", "path": "services/emailservice/appsettings.json"},
+        {"kind": "coverage", "name": "components", "property": "status", "value": "partial"},
+        {"kind": "coverage", "name": "capabilities", "property": "status", "value": "partial"}
+      ],
+      "must_not_include": [
+        {"kind": "content", "path": "scripts/Makefile.lib", "property": "role", "value": "binary"}
+      ]
+    }
+  ]
+}

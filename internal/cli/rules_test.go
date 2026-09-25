@@ -11,8 +11,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 func TestRulesCLIExplicitAndAdditive(t *testing.T) {

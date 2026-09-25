@@ -1,0 +1,4 @@
+syntax = "proto3";
+service Orders { rpc Get (Request) returns (Reply); }
+message Request { string id = 1; }
+message Reply { string state = 1; }

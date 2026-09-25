@@ -16,19 +16,20 @@ import (
 	"strings"
 	"sync"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/environments"
-	"dircue/pkg/explain"
-	"dircue/pkg/focus"
-	"dircue/pkg/formats"
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
-	"dircue/pkg/registries"
-	"dircue/pkg/rules"
-	"dircue/pkg/structure"
-	enry "github.com/go-enry/go-enry/v2"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/forest"
+	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/structure"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 )
 
 const DefaultMaxFileBytes int64 = 0
@@ -81,11 +82,29 @@ type Options struct {
 	DeclarationsOnly bool
 	Structure        *structure.Client
 	StructureFiles   bool
+	// RunCounters collects deterministic cost counters for external reporting.
+	// They are never written to a deterministic scan report.
+	RunCounters *RunCounters
 	// GitReadMetrics enables internal, opt-in Git work counters. Counters do
 	// not enter deterministic reports and may vary with scheduling/cache state.
 	GitReadMetrics *GitReadMetrics
-	structureGate  chan struct{}
-	languageTrace  *explain.LanguageTrace
+	// GitObjectCacheBytes bounds go-git's retained decoded-object cache. Zero
+	// uses go-git's default; this changes memory/speed, not selected content.
+	GitObjectCacheBytes int64
+	// SummarizeTrees, when true and the source is a directory, recognizes
+	// environment and build-output trees (node_modules, virtualenvs, Rust
+	// target/, .gradle, etc.) and summarizes them instead of walking them.
+	// Has no effect on Git-mode maps.
+	SummarizeTrees bool
+	// SummarizeTreeEntryCap bounds the entry count per summarized tree.
+	// Zero uses the package default (1,000,000).
+	SummarizeTreeEntryCap int64
+	// ExcludePaths is a set of root-relative directory paths to skip entirely
+	// during the directory walk. Used by forest mode to exclude nested roots
+	// from the residual scan.
+	ExcludePaths  map[string]bool
+	structureGate chan struct{}
+	languageTrace *explain.LanguageTrace
 }
 
 type ErrorPolicy string
@@ -145,6 +164,10 @@ type result struct {
 	role                string
 	omission            string
 	structural          *structure.File
+	// envTree is set when this result represents a summarized environment tree
+	// rather than a scanned file. Only populated in directory mode when
+	// SummarizeTrees is true.
+	envTree *profile.SummarizedTree
 }
 
 // Scan returns a deterministic report. A zero worker count uses GOMAXPROCS,
@@ -258,7 +281,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if !info.IsDir() {
 		return nil, errors.New("scan root must be a directory")
 	}
-	snapshot, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
+	snapshot, gitFallbackWarning, err := openGitSnapshot(ctx, abs, opts, false, gitObjectLaneCount(opts.Workers))
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +314,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		return nil, err
 	}
 	if snapshot == nil {
-		exceeded, err := directoryTreeLimit(ctx, root, opts.MaxTreeSize)
+		exceeded, err := directoryTreeLimit(ctx, root, opts)
 		if err != nil {
 			return nil, err
 		}
@@ -411,6 +434,18 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		attributeRuleCount := 0
 		err := fs.WalkDir(root.FS(), ".", func(filename string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
+				if opts.ErrorPolicy == ErrorPolicyContinue {
+					code := "walk_error"
+					msg := walkErr.Error()
+					if errors.Is(walkErr, fs.ErrPermission) {
+						code = "permission_denied"
+						msg = fmt.Sprintf("directory not accessible: %s", walkErr)
+					}
+					if !send(result{path: filename, skipped: true, warnings: []profile.Warning{{Path: filename, Code: code, Message: msg}}}) {
+						return ctx.Err()
+					}
+					return nil
+				}
 				return walkErr
 			}
 			if err := ctx.Err(); err != nil {
@@ -419,6 +454,26 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			if entry.IsDir() {
 				if entry.Name() == ".git" {
 					return fs.SkipDir
+				}
+				// Skip explicitly excluded paths (used by forest residual scans).
+				if opts.ExcludePaths != nil && opts.ExcludePaths[filename] {
+					return fs.SkipDir
+				}
+				// Recognize environment and build-output trees.
+				if opts.SummarizeTrees && filename != "." && snapshot == nil {
+					if match := forest.CheckEnvTree(root, filename); match != nil {
+						summary := forest.SummarizeEnvTree(root, *match, opts.SummarizeTreeEntryCap)
+						st := &profile.SummarizedTree{
+							Path: summary.Path, Kind: string(summary.Kind), Ecosystem: summary.Ecosystem,
+							Marker: summary.Marker, Basis: summary.Basis,
+							Entries: summary.Entries, Bytes: summary.Bytes,
+							Bounded: summary.Bounded, LowerBound: summary.LowerBound, Reason: summary.Reason,
+						}
+						if !send(result{envTree: st}) {
+							return ctx.Err()
+						}
+						return fs.SkipDir
+					}
 				}
 				depth := 0
 				if filename != "." {
@@ -429,6 +484,13 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				attrsPath := path.Join(filename, ".gitattributes")
 				info, attrErr := root.Lstat(attrsPath)
 				if attrErr != nil && !errors.Is(attrErr, fs.ErrNotExist) {
+					if opts.ErrorPolicy == ErrorPolicyContinue && errors.Is(attrErr, fs.ErrPermission) {
+						// Directory is inaccessible; skip gitattributes silently
+						// and continue (the directory's files will be skipped
+						// when WalkDir reports the ReadDir failure as walkErr).
+						stack = append(stack, local)
+						return nil
+					}
 					return fmt.Errorf("inspect %s: %w", attrsPath, attrErr)
 				}
 				if attrErr == nil {
@@ -532,6 +594,12 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	go func() { wg.Wait(); close(results) }()
 	report := newReport(abs)
+	// If git source fell back to directory mode under --source auto, record the
+	// reason as a report warning so that the CLI can surface it on stderr and
+	// it appears in the JSON warnings array for programmatic consumers.
+	if gitFallbackWarning != nil {
+		report.Warnings = append(report.Warnings, *gitFallbackWarning)
+	}
 	var formatCollector *formats.Collector
 	if opts.Formats {
 		source, tree := "directory", ""
@@ -590,6 +658,11 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	var targetTrace *explain.LanguageTrace
 	targetNonRegular := false
 	for value := range results {
+		// Env tree summaries are a distinct result kind; handle them first.
+		if value.envTree != nil {
+			report.SummarizedTrees = append(report.SummarizedTrees, *value.envTree)
+			continue
+		}
 		if environmentCollector != nil {
 			if err := environmentCollector.add(value); err != nil {
 				fail(err)
@@ -777,6 +850,9 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	if discoveryCollector != nil {
 		report.Discovery = discoveryCollector.Finish()
+		if snapshot != nil && !snapshot.commit.IsZero() {
+			report.Discovery.Source.Commit = snapshot.commit.String()
+		}
 		for _, warning := range report.Warnings {
 			switch warning.Code {
 			case "tree_size_limit":
@@ -996,7 +1072,7 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 	var content []byte
 	var tooLarge bool
 	var err error
-	actualSize := item.size
+	var actualSize int64
 	if item.read != nil {
 		content, actualSize, err = item.read(limit)
 		tooLarge = opts.MaxFileBytes > 0 && actualSize > opts.MaxFileBytes
@@ -1013,6 +1089,11 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 			setLanguageTraceDecision(trace, "unavailable", "read_error", "", "", "")
 		}
 		return value, recoverable(err)
+	}
+	// Content was successfully fetched; record it in the deterministic counters.
+	if opts.RunCounters != nil {
+		opts.RunCounters.FilesContentRead.Add(1)
+		opts.RunCounters.BytesRequested.Add(actualSize)
 	}
 	if trace != nil {
 		trace.Extent.FileBytes = actualSize
@@ -1267,11 +1348,18 @@ func newReport(root string) *profile.Report {
 
 // Preflight avoids reporting partial statistics when a filesystem tree reaches
 // the same file-count limit as a Git tree. No file content is opened here.
-func directoryTreeLimit(ctx context.Context, root *os.Root, limit int) (bool, error) {
+// The preflight skips exactly what the directory walk skips: .git
+// directories, forest-excluded roots, and summarized environment trees, so a
+// large node_modules cannot exhaust the inventory limit it never consumes.
+func directoryTreeLimit(ctx context.Context, root *os.Root, opts Options) (bool, error) {
+	limit, policy := opts.MaxTreeSize, opts.ErrorPolicy
 	count := 0
 	stop := errors.New("tree size reached")
 	err := fs.WalkDir(root.FS(), ".", func(name string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
+			if policy == ErrorPolicyContinue && errors.Is(walkErr, fs.ErrPermission) {
+				return nil
+			}
 			return walkErr
 		}
 		if err := ctx.Err(); err != nil {
@@ -1279,6 +1367,12 @@ func directoryTreeLimit(ctx context.Context, root *os.Root, limit int) (bool, er
 		}
 		if entry.IsDir() {
 			if entry.Name() == ".git" {
+				return fs.SkipDir
+			}
+			if opts.ExcludePaths != nil && opts.ExcludePaths[name] {
+				return fs.SkipDir
+			}
+			if opts.SummarizeTrees && name != "." && forest.CheckEnvTree(root, name) != nil {
 				return fs.SkipDir
 			}
 			return nil

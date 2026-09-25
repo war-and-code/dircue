@@ -6,6 +6,105 @@ import (
 	"strings"
 )
 
+// auxiliaryPriority returns a sort key for breaking ties when multiple auxiliary
+// Python manifests exist at the same root. Lower value = higher priority (wins).
+func auxiliaryPriority(d *Document) int {
+	switch path.Base(d.Project.ID) {
+	case "setup.py":
+		return 0
+	case "setup.cfg":
+		return 1
+	case "Pipfile":
+		return 2
+	}
+	return 3 // requirements*.txt and other auxiliary files
+}
+
+// resolveRequirementsIncludes copies requirements from -r included files into the
+// including document. Resolution is transitive up to maxIncludeDepth levels.
+// Only files already parsed and present in byPath are followed. Cycles are
+// detected via a visited set. The included files themselves are not modified.
+func resolveRequirementsIncludes(docs []*Document, byPath map[string]*Document) {
+	const maxIncludeDepth = 5
+
+	for _, root := range docs {
+		if root == nil || root.Project == nil {
+			continue
+		}
+		data, ok := root.Data.(*pythonData)
+		if !ok || data.includeOnly {
+			continue
+		}
+		// Check if this doc has any -r references at all.
+		hasIncludes := false
+		for _, ref := range root.Project.References {
+			if ref.Kind == "python-requirements-include" {
+				hasIncludes = true
+				break
+			}
+		}
+		if !hasIncludes {
+			continue
+		}
+
+		type workItem struct {
+			doc   *Document
+			depth int
+		}
+		visited := map[string]bool{root.Project.ID: true}
+		queue := []workItem{}
+
+		// Seed the queue from direct -r references on root.
+		for i := range root.Project.References {
+			ref := &root.Project.References[i]
+			if ref.Kind != "python-requirements-include" || ref.Target == "" {
+				continue
+			}
+			inc := byPath[ref.Target]
+			if inc == nil || inc.Project == nil {
+				// Not in inventory as a parsed manifest: leave state as declared/unresolved.
+				continue
+			}
+			ref.TargetStatus = "present"
+			ref.State = "resolved"
+			if !visited[ref.Target] {
+				visited[ref.Target] = true
+				queue = append(queue, workItem{inc, 1})
+			}
+		}
+
+		for len(queue) > 0 {
+			curr := queue[0]
+			queue = queue[1:]
+			// Merge requirements from curr.doc into root (preserve original evidence paths).
+			for _, req := range curr.doc.Project.Requirements {
+				if req.Kind == "declaration-semantics" || req.Kind == "python-requires-python" {
+					continue
+				}
+				AddRequirement(root, req)
+			}
+			if curr.depth >= maxIncludeDepth {
+				continue
+			}
+			// Follow transitive -r references inside the included file.
+			for _, ref := range curr.doc.Project.References {
+				if ref.Kind != "python-requirements-include" || ref.Target == "" {
+					continue
+				}
+				if visited[ref.Target] {
+					continue
+				}
+				inc := byPath[ref.Target]
+				if inc == nil || inc.Project == nil {
+					continue
+				}
+				visited[ref.Target] = true
+				queue = append(queue, workItem{inc, curr.depth + 1})
+			}
+		}
+	}
+}
+
 type pythonWorkspace struct {
 	doc        *Document
 	members    map[string]*Document
@@ -16,6 +115,89 @@ type pythonWorkspace struct {
 // ResolvePython only consults the selected inventory. A matched manifest proves
 // a declared relationship, not installability or the active uv environment.
 func ResolvePython(docs []*Document, files map[string]bool) {
+	pyprojectRoots := map[string]bool{}
+	for _, d := range docs {
+		if d != nil && d.Project != nil && path.Base(d.Project.ID) == "pyproject.toml" {
+			pyprojectRoots[d.Project.Root] = true
+		}
+	}
+
+	// Step 1: resolve -r includes BEFORE filtering, while all parsed docs are available.
+	byPath := map[string]*Document{}
+	for _, d := range docs {
+		if d != nil && d.Project != nil {
+			byPath[d.Project.ID] = d
+		}
+	}
+	resolveRequirementsIncludes(docs, byPath)
+
+	for _, d := range docs {
+		if d == nil || d.Project == nil {
+			continue
+		}
+		data, ok := d.Data.(*pythonData)
+		if !ok || !data.auxiliary {
+			continue
+		}
+		// Include-only files (requirements/ subdirectory targets) never become
+		// standalone components regardless of what else is in the tree.
+		if data.includeOnly {
+			d.Project = nil
+			continue
+		}
+		// Drop auxiliary Python documents that are shadowed by a pyproject.toml in
+		// the same root (the primary manifest wins) or have no Python evidence in
+		// their tree. A requirements.txt with no .py siblings is still kept: it is
+		// the only manifest file in that directory and therefore valid evidence of a
+		// Python dependency set, even when the application code isn't in the tree
+		// (pre-built images, Docker contexts, separate code repos, etc.).
+		if pyprojectRoots[d.Project.Root] {
+			d.Project = nil
+			continue
+		}
+		if !pythonSourceInRoot(files, d.Project.Root) && !pythonReqsOnlyRoot(files, d.Project.Root) {
+			d.Project = nil
+		}
+	}
+
+	// Step 2: deduplicate — when multiple auxiliary manifests share the same root,
+	// keep the highest-priority one and merge the others' requirements into it.
+	// Priority: setup.py > setup.cfg > Pipfile > requirements*.txt.
+	// This prevents duplicate (root) components when both Pipfile and requirements.txt
+	// coexist, while preserving evidence paths from all contributing files.
+	byRootAux := map[string][]*Document{}
+	for _, d := range docs {
+		if d == nil || d.Project == nil {
+			continue
+		}
+		data, ok := d.Data.(*pythonData)
+		if !ok || !data.auxiliary {
+			continue
+		}
+		byRootAux[d.Project.Root] = append(byRootAux[d.Project.Root], d)
+	}
+	for _, group := range byRootAux {
+		if len(group) <= 1 {
+			continue
+		}
+		slices.SortFunc(group, func(a, b *Document) int {
+			if pa, pb := auxiliaryPriority(a), auxiliaryPriority(b); pa != pb {
+				return pa - pb
+			}
+			return strings.Compare(a.Project.ID, b.Project.ID)
+		})
+		winner := group[0]
+		for _, loser := range group[1:] {
+			// Merge loser's requirements into winner (preserving original evidence paths).
+			for _, req := range loser.Project.Requirements {
+				if req.Kind == "declaration-semantics" {
+					continue
+				}
+				AddRequirement(winner, req)
+			}
+			loser.Project = nil
+		}
+	}
 	pythonDocs := []*Document{}
 	byID := map[string]*Document{}
 	workspaces := map[string]*pythonWorkspace{}
@@ -238,6 +420,51 @@ func ResolvePython(docs []*Document, files map[string]bool) {
 		}
 
 	}
+}
+
+// pythonReqsOnlyRoot returns true when the selected inventory contains at
+// least one requirements*.txt file or a Pipfile directly in root and no
+// competing primary Python manifest (setup.py) at the same level. pyproject.toml
+// is handled before this call by the caller. This supports repos that declare a
+// Python dependency set via requirements.txt or Pipfile only — no source files,
+// no setup.py — such as a service whose code lives elsewhere or is shipped as a
+// pre-built container image.
+func pythonReqsOnlyRoot(files map[string]bool, root string) bool {
+	hasReqs := false
+	rootDir := root
+	if rootDir == "" {
+		rootDir = "."
+	}
+	for filename := range files {
+		dir := path.Dir(filename)
+		if dir != rootDir {
+			continue
+		}
+		base := strings.ToLower(path.Base(filename))
+		if base == "setup.py" {
+			return false // setup.py in same dir takes precedence; drop auxiliary
+		}
+		if base == "pipfile" {
+			hasReqs = true
+		}
+		if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+			hasReqs = true
+		}
+	}
+	return hasReqs
+}
+
+func pythonSourceInRoot(files map[string]bool, root string) bool {
+	for filename := range files {
+		if path.Ext(filename) != ".py" || path.Base(filename) == "setup.py" {
+			continue
+		}
+		relative, ok := pythonRelative(root, path.Dir(filename))
+		if ok && relative != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func pythonRelative(root, dir string) (string, bool) {

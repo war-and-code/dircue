@@ -10,7 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
+	git "github.com/war-and-code/dircue/third_party/go-git"
 )
 
 const goSource = "package sample\n\nfunc Hello() string { return \"hello\" }\n"
@@ -68,6 +69,40 @@ func TestLegacyAndStructuredLanguageRouting(t *testing.T) {
 				t.Fatalf("unexpected files: %s", out)
 			}
 		})
+	}
+}
+
+func TestLegacyLanguagesKeepUnbornGitFallbackSilent(t *testing.T) {
+	root := fixture(t)
+	if _, err := git.PlainInit(root, false); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{root},
+		{"--json", root},
+		{"--breakdown", root},
+		{"--strategies", root},
+		{"analyze", "languages", "--json", root},
+	} {
+		t.Run(strings.Join(args, " "), func(t *testing.T) {
+			out, stderr, err := invoke(args...)
+			if err != nil || stderr != "" || !strings.Contains(out, "Go") {
+				t.Fatalf("stdout=%q stderr=%q err=%v", out, stderr, err)
+			}
+		})
+	}
+}
+
+func TestLegacyMissingGitDiagnostic(t *testing.T) {
+	root := fixture(t)
+	for _, args := range [][]string{
+		{"--source", "git", "--json", root},
+		{"--rev", "HEAD", "--json", root},
+	} {
+		out, stderr, err := invoke(args...)
+		if err == nil || out != "" || stderr != "" || err.Error() != "open Git repository: repository does not exist" {
+			t.Fatalf("%v: stdout=%q stderr=%q err=%v", args, out, stderr, err)
+		}
 	}
 }
 

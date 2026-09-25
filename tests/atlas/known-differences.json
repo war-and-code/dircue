@@ -1,0 +1,18 @@
+[
+  {
+    "tool": "scc",
+    "repo": "*",
+    "file": "src/RawStringLimitation.java",
+    "category": "known-upstream-diff",
+    "root_cause": "scc 4.1.0 counts the // line inside a Java raw-string literal (text block) as a comment even though it is raw-string content; this is a known scc limitation documented in tests/metrics/run.py",
+    "resolved_in": null
+  },
+  {
+    "tool": "scc",
+    "repo": "*",
+    "file": "src/RawStringLimitation.cs",
+    "category": "known-upstream-diff",
+    "root_cause": "scc 4.1.0 counts the // line inside a C# raw-string literal as a comment even though it is raw-string content; this is a known scc limitation documented in tests/metrics/run.py",
+    "resolved_in": null
+  }
+]

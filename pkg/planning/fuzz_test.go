@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/planning"
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 // FuzzLoadAndBuildPlan feeds hostile saved-report bytes through the reportdiff

@@ -1,5 +1,97 @@
 # Changelog
 
+## 1.0.0 (unreleased)
+
+dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence and a per-question coverage status. The strict Linguist-compatible language commands remain available with their 0.9 output contract; changes to other commands are listed below.
+
+### The map
+- **`dircue map [path]`** writes a portable map document (`schema/map.schema.json`, schema version 1.0.0) for a committed Git tree or an ordinary directory. Redirected output defaults to JSON; a terminal gets a one-screen summary (`--summary`). Inspected content is never executed.
+- **Output.** Nodes (content populations, components, deployables, interfaces, capabilities, packages) and edges (`contains`, `member_of`, `depends_on_local`, `depends_on`, `builds`, `runs`, `exposes`, `declares`, `uses_capability`, `packaged_in`, `analyzed_by`) have stable IDs derived from paths and declared names. Each has evidence (file, span, rule and version) and coverage (`complete`, `partial`, `unknown`, `not_run`, `tool_error`, with named reasons).
+- **What `complete` means.** A question, node or edge says `complete` only when its evidence is exhaustive for its scope. Heuristic attribution, such as a capability credited to a component by directory containment or a Dockerfile shared by several projects, is `partial`, with a named reason. Content problems never abort a map; they degrade coverage.
+- **Components** come from static, bounded parsing of 34 manifest kinds across 26 ecosystems:
+  - npm, Go, Cargo and Python (pyproject, uv, `setup.cfg` with project metadata, `Pipfile`, requirements files and their `-r` includes);
+  - Maven, Gradle, .NET and Kbuild;
+  - Ruby (Bundler, gemspec, Rails application name) and PHP (Composer);
+  - Swift, Dart (including `path:` dependencies), Elixir, Erlang, Scala (sbt) and Haskell;
+  - CMake, Meson and Autoconf;
+  - Deno, Bazel, Zig, Julia, R, Clojure and Perl.
+
+  Each component has a `role`: `primary`, `test`, `fixture`, `example`, `vendored`, `docs` or `tooling`. The summary leads with primary components. Local project relationships (`depends_on_local`) come from path, workspace and module references, including Maven reactor sibling dependencies and pub `path:` dependencies.
+- **Deployables:**
+  - Dockerfiles (named by directory);
+  - Compose services;
+  - Kubernetes objects, one per kind, name and namespace, with every declaring manifest as evidence;
+  - Helm charts, one per chart, with static `values.yaml` images;
+  - Terraform modules, one per directory;
+  - SAM and Serverless functions, .NET Aspire app hosts, and CI workflows;
+  - Maven WAR and EAR packaging, as `archive` deployables named by `finalName` or Maven's `artifactId-version` default, with same-file properties resolved.
+- **How things build and run.** `builds` and `runs` edges come from static declarations:
+  - Dockerfile co-location;
+  - Skaffold artifacts and exact image references;
+  - SAM `CodeUri`;
+  - Aspire `AddProject<>()`;
+  - Maven WAR/EAR packaging;
+  - GitHub Actions working directories.
+- **Interfaces:**
+  - Go `package main` binaries;
+  - Rust, npm and Python entry points;
+  - Spring Boot applications and Maven/Gradle main classes;
+  - module-level Flask application objects;
+  - declared ports (`EXPOSE`, including `ARG`/`ENV` defaults; Compose `ports`/`expose`; Kubernetes `containerPort`; application listener keys);
+  - gRPC services and operations;
+  - OpenAPI and Swagger documents and their operations;
+  - AsyncAPI documents and GraphQL schemas.
+
+  Runtime prerequisites (npm `engines`, `requires-python`) and build backends are recorded as component properties (`runtime_requirements`, `build_backend`, `build_script`), not as interfaces.
+- **Capabilities** (datastores, caches, messaging, search, object storage, auth, HTTP clients, cloud SDKs and more) come from an ecosystem-aware catalog of the most common packages per ecosystem, from declared configuration keys, connection strings and Prisma datasource providers, and from top-level Go and Python imports (including `sqlite3`). There is one capability node per owning component. Optional dependencies (extras, optional and peer dependencies) are `conditional`. Development-only ones (npm `devDependencies`, PEP 735 dependency groups, pub `dev_dependencies`, Pipfile `[dev-packages]`) are excluded. Maven `test` scope is not yet distinguished (#150).
+
+### Source identity, forests and hostile filesystems
+- Directory maps carry a **Git-compatible tree ID** computed without Git. A clean checkout has the same ID as its commit's tree, so `map compare` recognizes the same source across Git and directory maps. Control it with `--set source.digest=git|raw|off`. On Windows, where Git checks out without executable bits or symlinks and matches names case-insensitively, the digest is `partial` (`windows_checkout_semantics`).
+- **`map --forest`** discovers nested, bare and submodule Git roots, summarizes dependency and build-output trees (`node_modules`, virtualenvs, `target/`, …), and accounts for every remaining file. Remote credentials are redacted.
+- FIFOs, sockets, devices, symlink loops, escaping symlinks and unreadable directories are skipped with warnings and `partial` coverage, never followed or fatal.
+
+### Joining deeper tools, without importing findings
+- **`map --attach KIND=PATH`** joins saved Syft, SARIF 2.1.0, OWASP Noir and Bifrost reports:
+  - Only facts and run coverage are imported: packages, endpoints, covered files and run state. Findings and verdicts never are.
+  - SARIF revision provenance binds a report to the selected commit. `--attach-binding caller-asserted` records an explicit caller assertion for fully digested directories.
+  - Per-attachment record limits degrade coverage instead of failing.
+- **`map route`** writes inert follow-up plans. **`map compare`** compares maps by stable identity; `--format markdown` gives a readable pull-request summary, and `.github/actions/map-diff` is a reusable action. **`map locate`** annotates SARIF locations with map ownership, with `--source-uri` and `--uri-base` for tools that emit container paths or undeclared bases.
+
+### Control and measurement
+- **Presets:**
+  - `balanced` (the default);
+  - `low-memory` (fewer workers, a smaller Git object cache, a lower per-file cap; about 60% less peak memory on the Linux kernel);
+  - `thorough` (larger inventory and observation budgets).
+
+  Every setting is typed and visible with `map settings`, and each is labeled performance-only or coverage-affecting.
+- `--stats-json PATH` writes deterministic cost counters and timings to a separate document, and `--cpuprofile`/`--memprofile` write Go profiles. The map document itself is byte-identical across worker counts, locations, locales and time zones.
+
+### Git reading
+- The binary excludes go-git's transport client, and a build contract test checks the linked executable. The embedded fork's `go.mod` still downloads unused SSH transport modules. Release binaries are about 11% smaller than 0.9.0, despite the map.
+- Git-mode peak memory on the Linux kernel dropped by about 35%.
+- SHA-256 object-format repositories and corrupt Git directories fall back to directory mode with a warning.
+
+### Distribution
+- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so no `replace` directives are needed. `go install github.com/war-and-code/dircue@v1.0.0` was validated against a local module proxy; fetching it from GitHub remains unverified until the tag is pushed and access is available.
+- Release archives for Linux, macOS and Windows (amd64 and arm64 where supported) come with `SHA256SUMS` and matching Python wheels. See `RELEASING.md`.
+
+### Evidence
+- **Linguist parity.** Across the 38-repository atlas, dircue matches Linguist 9.7.0 exactly on all 355 language totals. Against scc 4.1.0, 261,081 of 262,575 shared per-file counters are identical. Every remaining difference is a file where dircue follows its Linguist language to a different scc grammar, recorded per file (`tests/atlas/results/1.0.0`).
+- **Map accuracy** is measured per question against hand-written labels for seven repositories (`docs/GOLDEN.md`). The labeled set also informed map development, so these results are not an independent evaluation. Every question meets the gate of precision ≥ 0.90 and recall ≥ 0.80:
+  - components, deployables and capabilities: 1.00 / 1.00;
+  - interfaces: 1.00 / 0.98;
+  - relationships: 1.00 / 0.98.
+
+  The map never claimed `complete` where the labels did not.
+- **Holdouts labeled before dircue ran.** Four repositories were labeled from source before any map run: OWASP BenchmarkJava and BenchmarkPython, AppFlowy editor (Dart) and AWS CardDemo (COBOL). The first run found 5 of 18 labeled facts. The map work they prompted finds 12 of 18 against those original labels, and 18 of 18 after the labels were restated in the map's documented vocabulary, with each change citing the source (`tests/map_corpus/holdout_labels`).
+- **A fresh blind check.** Four more repositories (OpenMRS core, a Flask application, the bloc Dart monorepo and a Prisma/Express application) were labeled blind before that work was run on them (`tests/map_corpus/fresh_labels`). Against those frozen labels, recall is 1.00 for components, interfaces and capabilities, 0.80 for deployables and 0.88 for relationships. Precision is lower: 0.60 for capabilities and 0.38 for relationships. Source review found that most of the extra facts were true declarations the labels had omitted. After source-checked corrections, capabilities score 1.00 / 1.00 and relationships 0.95 / 0.95; these repositories have since informed development too. Remaining gaps are Procfiles (#146), which module a root Dockerfile ships (#147) and a scorer naming mismatch (#149).
+- Committed fixtures from pinned Syft, OWASP Noir, ruff and Semgrep exercise attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
+- **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
+
+### Compatibility
+- Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Eighteen cases expose a new warning when an unborn Git repository falls back to directory mode in structured analysis. Eighteen add a Gradle root name from `settings.gradle.kts`. Fifteen reflect declaration changes: wider ecosystem support, Maven names, uv manifest classification, and removal of Go-version and npm developer-task interfaces. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
+- `dircue compare` (saved profiles) and `dircue map compare` (maps) reject each other's documents with a pointer to the right command.
+
 ## 0.9.0 (2026-09-22)
 
 - Match pinned Linguist 9.7.0 candidate narrowing for filename and extension
@@ -200,7 +292,7 @@ First release as dircue, renamed from auragaze before publication. Language prof
 - Maintained Enry compatibility fork with pinned Linguist data, centroid classification, pure-Go tokenizer, regeneration provenance, and license notices.
 - Ecosystem, framework, and layout detectors with a versioned aggregate JSON schema.
 - Differential checks against the actual Ruby CLI and upstream samples, pinned public-repository comparisons, cross-platform builds, and an unprivileged minimal Docker image.
-- Java/.NET coverage and synthetic GiB-scale Talend/XML, interconnected project, packed-object, and 100,000-file cases, including regressions for binary-prefix detection and tree-size cutoffs.
+- Java/.NET coverage and synthetic GiB-scale ETL-pipeline/XML, interconnected project, packed-object, and 100,000-file cases, including regressions for binary-prefix detection and tree-size cutoffs.
 - Local release packaging for Linux, macOS, and Windows, plus Python wheels containing the same binaries for installation with uv or pip.
 
 Compatibility results apply to Linguist 9.7.0 and the recorded inputs. See the [conformance results](tests/conformance/results/latest.md), [classifier results](tests/conformance/results/samples.md), [final performance results](tests/performance/results/final/README.md), and [documented differences](tests/conformance/DISCREPANCIES.md). Attribute/resource limits, refusal to inspect symlink files, and arbitrary-directory support are intentional differences. Future Linguist releases require renewed comparison.

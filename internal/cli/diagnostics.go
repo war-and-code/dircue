@@ -220,7 +220,7 @@ func flagErrorWithHint(cmd *cobra.Command, err error) error {
 var analysisFlagNames = []string{"breakdown", "strategies", "workers", "max-file-bytes", "source", "rev", "tree", "tree-size", "on-error"}
 
 func savedReportFlagRejected(cmd *cobra.Command, name string) bool {
-	return slices.Contains([]string{"capabilities", "plan", "compare"}, cmd.Name()) && slices.Contains(analysisFlagNames, name)
+	return slices.Contains([]string{"capabilities", "plan", "compare", "locate", "route", "settings"}, cmd.Name()) && slices.Contains(analysisFlagNames, name)
 }
 
 func analysisSelectionError(cmd *cobra.Command, args []string) error {
@@ -257,8 +257,8 @@ func missingPathCommandHint(cmd *cobra.Command, args []string, err error) error 
 			}
 		}
 	}
-	if suggestion := nearbyRootSubcommand(cmd, token); suggestion != "" {
-		return fmt.Errorf("%w; if you intended the command, use: dircue %s --help", err, suggestion)
+	if suggestion := nearbySubcommandPath(cmd, token); suggestion != "" {
+		return fmt.Errorf("%w; if you intended the command, use: %s --help", err, suggestion)
 	}
 	return err
 }
@@ -274,28 +274,30 @@ func isTypoCandidate(token string) bool {
 	return terminalValue(token) == token
 }
 
-// nearbyRootSubcommand returns a nearby non-hidden root subcommand name for
-// the given token, or the empty string when no unique candidate is close.
+// nearbySubcommandPath returns the command path of a nearby non-hidden direct
+// child, or the empty string when no unique candidate is close.
 // Hyphen-prefixed tokens such as `-h` or `--v` are excluded upstream by
 // isTypoCandidate so nearbyName never sees them; the single-edit gate keeps
 // generic short tokens from mapping to unrelated subcommand names.
-func nearbyRootSubcommand(cmd *cobra.Command, token string) string {
-	root := cmd
-	if r := cmd.Root(); r != nil {
-		root = r
-	}
+func nearbySubcommandPath(cmd *cobra.Command, token string) string {
 	var names []string
-	for _, child := range root.Commands() {
+	byName := make(map[string]*cobra.Command)
+	for _, child := range cmd.Commands() {
 		if child.Hidden {
 			continue
 		}
 		names = append(names, child.Name())
+		byName[child.Name()] = child
 	}
-	return nearbyName(token, names)
+	name := nearbyName(token, names)
+	if name == "" {
+		return ""
+	}
+	return byName[name].CommandPath()
 }
 
-// subcommandTypoSuffix returns "; did you mean `dircue <name>`?" when the
-// token is a plausible mistyped root subcommand, and the empty string
+// subcommandTypoSuffix returns a full command-path hint when the token is a
+// plausible mistyped direct subcommand, and the empty string
 // otherwise. The hint never re-executes the command with a guess.
 func subcommandTypoSuffix(cmd *cobra.Command, token string) string {
 	if !isTypoCandidate(token) {
@@ -304,9 +306,9 @@ func subcommandTypoSuffix(cmd *cobra.Command, token string) string {
 	if _, err := os.Lstat(token); err == nil {
 		return ""
 	}
-	suggestion := nearbyRootSubcommand(cmd, token)
+	suggestion := nearbySubcommandPath(cmd, token)
 	if suggestion == "" {
 		return ""
 	}
-	return "; did you mean `dircue " + suggestion + "`?"
+	return "; did you mean `" + suggestion + "`?"
 }

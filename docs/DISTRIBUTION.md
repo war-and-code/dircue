@@ -33,6 +33,24 @@ on PyPI. A configured private index or a local wheel collection supplied with
 publication is announced, use GitHub wheels as shown below. The package name and executable
 name are both `dircue`.
 
+## Go module installation
+
+The root module embeds its maintained Enry and go-git packages beneath
+`github.com/war-and-code/dircue/third_party/...`; it uses no local module
+`replace` directives. After the repository is public and a version tag exists,
+the expected installation form is:
+
+```sh
+go install github.com/war-and-code/dircue@v1.0.0
+```
+
+Verify this command against a clean module cache and the actual public tag as a
+release gate. While the repository is private, a maintainer can clone with
+authenticated GitHub access and build from that checkout. A versioned `go
+install module@version` cannot be confirmed in a clean anonymous environment
+until the tag is publicly fetchable; local `go install .` does not prove the
+remote installation contract.
+
 `uvx` installs into an isolated cached environment. It avoids changing the
 checkout's Python dependencies, but its first invocation still needs the wheel
 and a compatible Python interpreter. uv can obtain Python when permitted. For

@@ -18,6 +18,7 @@ var enumFlagsBySemantics = map[string]struct{}{
 	"module":        {},
 	"question":      {},
 	"input":         {},
+	"preset":        {},
 }
 
 // TestCatalogCoversAllCommandsAndFlags asserts three invariants that stop a

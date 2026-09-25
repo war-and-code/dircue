@@ -1,11 +1,15 @@
 package declarations
 
 import (
+	"bufio"
+	"bytes"
 	"path"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 const pythonMatchBudget = 1 << 20
@@ -26,9 +30,13 @@ type pythonSource struct {
 	invalid              bool
 }
 type pythonData struct {
-	project            bool
-	managed            bool
-	workspace          bool
+	project   bool
+	managed   bool
+	workspace bool
+	auxiliary bool
+	// includeOnly marks a document that exists only to be resolved via a -r include;
+	// it never becomes a standalone component. Set for files inside requirements/.
+	includeOnly        bool
 	invalidPatterns    bool
 	invalidMembers     bool
 	patterns, excludes []string
@@ -39,7 +47,18 @@ type pythonData struct {
 // ParsePython reads the documented pyproject and uv declaration subset. Values
 // are observations, not an evaluated Python environment or dependency solution.
 func ParsePython(name string, content []byte) *Document {
-	if path.Base(name) != "pyproject.toml" {
+	base := path.Base(name)
+	if base == "setup.py" {
+		return parsePythonSetup(name, content)
+	}
+	if strings.HasPrefix(base, "requirements") && strings.HasSuffix(base, ".txt") {
+		return parsePythonRequirements(name, content)
+	}
+	// Any .txt file inside a requirements/ directory (e.g. requirements/prod.txt).
+	if strings.HasSuffix(base, ".txt") && path.Base(path.Dir(name)) == "requirements" {
+		return parsePythonRequirements(name, content)
+	}
+	if base != "pyproject.toml" {
 		return nil
 	}
 	d := NewDocument(name, "python")
@@ -207,6 +226,7 @@ func ParsePython(name string, content []byte) *Document {
 	if !ok {
 		return d
 	}
+	d.Project.Kind = "python-uv"
 	if value, found := uv["managed"]; found {
 		managed, ok := value.(bool)
 		data.managed = ok && managed
@@ -297,6 +317,324 @@ func ParsePython(name string, content []byte) *Document {
 		}
 	}
 	return d
+}
+
+func newPythonAuxDocument(name, semantics string) *Document {
+	d := NewDocument(name, "python")
+	d.Data = &pythonData{managed: false, auxiliary: true, sources: map[string][]pythonSource{}}
+	AddRequirement(d, Requirement{Kind: "declaration-semantics", Value: semantics, State: "declared", Evidence: name})
+	return d
+}
+
+func parsePythonRequirements(name string, content []byte) *Document {
+	d := newPythonAuxDocument(name, "requirements-txt-static-v1")
+	data := d.Data.(*pythonData)
+	// Files inside a requirements/ directory (e.g. requirements/prod.txt) are
+	// include targets only; they do not create standalone components.
+	if path.Base(path.Dir(name)) == "requirements" {
+		data.includeOnly = true
+	}
+	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-requirements", "Requirements file exceeds the byte limit or is not valid UTF-8.")
+		return d
+	}
+	scanner := bufio.NewScanner(bytes.NewReader(content))
+	scanner.Buffer(make([]byte, 4096), MaxStringBytes+1)
+	for line := 1; scanner.Scan(); line++ {
+		text := strings.TrimSpace(scanner.Text())
+		if text == "" || strings.HasPrefix(text, "#") {
+			continue
+		}
+		// -r FILE / --requirement FILE: record as an unresolved reference for later resolution.
+		if strings.HasPrefix(text, "-r ") || strings.HasPrefix(text, "--requirement ") {
+			var raw string
+			if strings.HasPrefix(text, "-r ") {
+				raw = strings.TrimSpace(text[3:])
+			} else {
+				raw = strings.TrimSpace(text[len("--requirement "):])
+			}
+			// Strip inline comment
+			if i := strings.IndexByte(raw, '#'); i >= 0 {
+				raw = strings.TrimSpace(raw[:i])
+			}
+			ref := Reference{Kind: "python-requirements-include", Value: "include", State: "unresolved", TargetStatus: "missing", Evidence: name}
+			if target, ok := LocalTarget(name, raw, ""); ok {
+				ref.Target = target
+				ref.State = "declared"
+			} else {
+				AddDiagnostic(d, "unsupported-python-requirements-line", "A requirements include has an unsupported or unsafe path.")
+			}
+			AddReference(d, ref)
+			continue
+		}
+		// -c FILE / --constraint FILE: constraints are not dependencies; emit a diagnostic only.
+		if strings.HasPrefix(text, "-c ") || strings.HasPrefix(text, "--constraint ") {
+			AddDiagnostic(d, "python-requirements-constraint", "A constraint file reference is not followed; constraint files do not declare dependencies.")
+			continue
+		}
+		if strings.HasPrefix(text, "-") || strings.HasPrefix(text, "\\") {
+			AddDiagnostic(d, "unsupported-python-requirements-line", "A requirements line uses an include, option, or continuation that is not resolved.")
+			continue
+		}
+		pythonRequirement(d, data, text, "", "python-dependency")
+	}
+	if scanner.Err() != nil {
+		d.limited = true
+		AddDiagnostic(d, "python-requirements-line-limit", "A requirements line exceeds the supported text limit.")
+	}
+	return d
+}
+
+// ParsePipfile reads a Pipfile (TOML format). [packages] become runtime
+// requirements; [dev-packages] become dev requirements using the
+// "dev_dependencies" condition so the capability engine skips them for
+// production-capability inference. The document is auxiliary and participates
+// in the same per-root deduplication as requirements.txt.
+func ParsePipfile(name string, content []byte) *Document {
+	d := newPythonAuxDocument(name, "pipfile-v1")
+	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-manifest", "Pipfile could not be parsed within the TOML limits.")
+		return d
+	}
+	raw, err := ValidateTOML(content)
+	if err != nil {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-manifest", "Pipfile could not be parsed within the TOML limits.")
+		return d
+	}
+	data := d.Data.(*pythonData)
+	if packages, ok := raw["packages"].(map[string]any); ok {
+		for _, k := range pythonKeys(packages) {
+			if d.limited {
+				break
+			}
+			if pythonNamePattern.MatchString(k) {
+				pythonRequirement(d, data, k, "", "python-dependency")
+			}
+		}
+	}
+	if devPackages, ok := raw["dev-packages"].(map[string]any); ok {
+		for _, k := range pythonKeys(devPackages) {
+			if d.limited {
+				break
+			}
+			if pythonNamePattern.MatchString(k) {
+				pythonRequirement(d, data, k, "dev_dependencies", "python-dependency")
+			}
+		}
+	}
+	if requires, ok := raw["requires"].(map[string]any); ok {
+		if pv, ok := requires["python_version"].(string); ok && pythonVersion.MatchString(pv) {
+			AddRequirement(d, Requirement{Kind: "python-requires-python", Value: pv, State: "declared", Evidence: name})
+		}
+	}
+	return d
+}
+
+var setupCallStart = regexp.MustCompile(`(?m)^[ \t]*(?:[A-Za-z_][A-Za-z0-9_]*\.)?setup[ \t]*\(`)
+
+func parsePythonSetup(name string, content []byte) *Document {
+	d := newPythonAuxDocument(name, "setup-py-literal-subset-v1")
+	if len(content) > int(MaxManifestBytes) || !utf8.Valid(content) {
+		d.Parsed = false
+		AddDiagnostic(d, "invalid-python-setup", "setup.py exceeds the byte limit or is not valid UTF-8.")
+		return d
+	}
+	match := setupCallStart.FindIndex(content)
+	if match == nil {
+		AddDiagnostic(d, "unsupported-python-setup", "No statically recognizable setup(...) call was found; setup.py was not executed.")
+		return d
+	}
+	open := bytes.IndexByte(content[match[0]:match[1]], '(') + match[0]
+	close := pythonBalancedEnd(content, open, '(', ')')
+	if close < 0 {
+		AddDiagnostic(d, "unsupported-python-setup", "The setup(...) arguments are dynamic or malformed; setup.py was not executed.")
+		return d
+	}
+	args := splitPythonTopLevel(string(content[open+1 : close]))
+	seen := map[string]bool{}
+	for _, arg := range args {
+		key, value, ok := strings.Cut(strings.TrimSpace(arg), "=")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		if key != "name" && key != "version" && key != "install_requires" {
+			continue
+		}
+		if seen[key] {
+			AddDiagnostic(d, "ambiguous-python-setup", "A setup(...) field is declared more than once; that field is unresolved.")
+			continue
+		}
+		seen[key] = true
+		switch key {
+		case "name", "version":
+			literal, ok := pythonLiteralString(value)
+			if !ok || (key == "name" && !pythonNamePattern.MatchString(literal)) || (key == "version" && !pythonVersion.MatchString(literal)) {
+				AddDiagnostic(d, "dynamic-python-setup-metadata", "setup.py has a non-literal or unsupported project identity; the expression was not evaluated.")
+				continue
+			}
+			if key == "name" {
+				d.Project.Name = literal
+			} else {
+				d.Project.Version = literal
+			}
+			AddRequirement(d, Requirement{Kind: "python-" + key, Value: literal, State: "declared", Evidence: name})
+		case "install_requires":
+			items, static := pythonLiteralList(value)
+			for _, item := range items {
+				pythonRequirement(d, d.Data.(*pythonData), item, "", "python-dependency")
+			}
+			if !static {
+				AddDiagnostic(d, "dynamic-python-requirements", "Some setup.py install_requires entries are dynamic or unsupported and were not evaluated.")
+			}
+		}
+	}
+	if !seen["install_requires"] {
+		AddDiagnostic(d, "missing-static-python-requirements", "setup.py does not declare a statically readable install_requires list.")
+	}
+	return d
+}
+
+func pythonBalancedEnd(src []byte, open int, left, right byte) int {
+	depth := 0
+	quote, escaped, comment := byte(0), false, false
+	for i := open; i < len(src); i++ {
+		c := src[i]
+		if comment {
+			if c == '\n' {
+				comment = false
+			}
+			continue
+		}
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if c == '\\' {
+				escaped = true
+				continue
+			}
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		if c == '#' {
+			comment = true
+			continue
+		}
+		if c == '\'' || c == '"' {
+			quote = c
+			continue
+		}
+		if c == left {
+			depth++
+		} else if c == right {
+			depth--
+			if depth == 0 {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+func splitPythonTopLevel(text string) []string {
+	var out []string
+	start, depth := 0, 0
+	quote, escaped, comment := byte(0), false, false
+	for i := 0; i < len(text); i++ {
+		c := text[i]
+		if comment {
+			if c == '\n' {
+				comment = false
+			}
+			continue
+		}
+		if quote != 0 {
+			if escaped {
+				escaped = false
+				continue
+			}
+			if c == '\\' {
+				escaped = true
+				continue
+			}
+			if c == quote {
+				quote = 0
+			}
+			continue
+		}
+		if c == '#' {
+			comment = true
+			continue
+		}
+		if c == '\'' || c == '"' {
+			quote = c
+			continue
+		}
+		if c == '[' || c == '(' || c == '{' {
+			depth++
+		} else if c == ']' || c == ')' || c == '}' {
+			depth--
+		} else if c == ',' && depth == 0 {
+			out = append(out, text[start:i])
+			start = i + 1
+		}
+	}
+	if strings.TrimSpace(text[start:]) != "" {
+		out = append(out, text[start:])
+	}
+	return out
+}
+
+func pythonLiteralString(text string) (string, bool) {
+	text = strings.TrimSpace(text)
+	if len(text) < 2 || (text[0] != '\'' && text[0] != '"') || text[len(text)-1] != text[0] {
+		return "", false
+	}
+	if text[0] == '\'' {
+		value := text[1 : len(text)-1]
+		if strings.ContainsAny(value, "'\\") || !pythonText(value) {
+			return "", false
+		}
+		return value, true
+	}
+	value, err := strconv.Unquote(text)
+	if err != nil || !pythonText(value) {
+		return "", false
+	}
+	return value, true
+}
+
+func pythonLiteralList(text string) ([]string, bool) {
+	text = strings.TrimSpace(text)
+	if len(text) < 2 || text[0] != '[' {
+		return nil, false
+	}
+	end := pythonBalancedEnd([]byte(text), 0, '[', ']')
+	if end != len(text)-1 {
+		return nil, false
+	}
+	items := splitPythonTopLevel(text[1:end])
+	out := []string{}
+	static := true
+	for _, item := range items {
+		value, ok := pythonLiteralString(item)
+		if !ok {
+			static = false
+			continue
+		}
+		out = append(out, value)
+		if len(out) > MaxObservationsPerManifest {
+			return out[:MaxObservationsPerManifest], false
+		}
+	}
+	return out, static
 }
 
 func pythonCanonical(s string) string {

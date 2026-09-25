@@ -1,0 +1,14 @@
+name: init & validate
+on:
+  push:
+jobs:
+  check:
+    if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    # A cron-shaped scalar exercises YAML parsing without scheduling this fixture.
+    env:
+      CRON_EXAMPLE: "0 12 * * *"
+    steps:
+      - name: list directories
+        run: |
+          ls -d */

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 // Pending candidates retain metadata and the original Git object reader only.

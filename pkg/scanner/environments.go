@@ -8,9 +8,9 @@ import (
 	"path"
 	"slices"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/environments"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // environmentAccumulator retains selected configuration readers, never paths

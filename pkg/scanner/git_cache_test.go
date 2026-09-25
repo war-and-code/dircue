@@ -3,6 +3,7 @@ package scanner
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -13,10 +14,37 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/war-and-code/dircue/pkg/profile"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
+
+func TestGitObjectCacheBudgetPreservesReport(t *testing.T) {
+	root, _, _ := gitFixture(t, map[string]string{
+		"go.mod":  "module example.test/cache\n\ngo 1.24\n",
+		"main.go": "package main\nfunc main() {}\n",
+	})
+	baseline, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, Discovery: true, Declarations: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	budgeted, err := Scan(context.Background(), root, Options{Source: "git", Workers: 2, Discovery: true, Declarations: true, GitObjectCacheBytes: 1 << 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	a, err := json.Marshal(baseline)
+	if err != nil {
+		t.Fatal(err)
+	}
+	b, err := json.Marshal(budgeted)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(a, b) {
+		t.Fatalf("retained-object cache budget changed Git scan answer\nbase=%s\nbudgeted=%s", a, b)
+	}
+}
 
 func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func(...string) string) {
 	t.Helper()
@@ -73,7 +101,7 @@ func packedCacheFixture(t *testing.T) (string, []string, map[string]string, func
 
 func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	root, names, files, run := packedCacheFixture(t)
-	snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", MaxTreeSize: 100000}, false, 1)
+	snapshot, _, err := openGitSnapshot(context.Background(), root, Options{Source: "git", MaxTreeSize: 100000}, false, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +110,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	lazy, err := snapshot.repo.BlobObject(first.Hash)
+	lazy, err := object.GetBlob(snapshot.storage, first.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -91,7 +119,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if _, err = snapshot.repo.BlobObject(entry.Hash); err != nil {
+		if _, err = object.GetBlob(snapshot.storage, entry.Hash); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -149,7 +177,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	}
 	// Alternate object decoding is supported, but this pinned go-git version's
 	// EncodedObjectSize does not search alternates. Preserve that limitation.
-	alternateSnapshot, err := openGitSnapshot(context.Background(), alternate, Options{Source: "git"}, false, 1)
+	alternateSnapshot, _, err := openGitSnapshot(context.Background(), alternate, Options{Source: "git"}, false, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -158,7 +186,7 @@ func TestGitPackCacheEvictionRetainsLazyReaderAndReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	alternateBlob, err := alternateSnapshot.repo.BlobObject(entry.Hash)
+	alternateBlob, err := object.GetBlob(alternateSnapshot.storage, entry.Hash)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -237,7 +265,7 @@ func TestGitSnapshotClosesLanesWhenAttributeRootFails(t *testing.T) {
 	sentinel := errors.New("attribute root fault")
 	before := countOpenDescriptors(t)
 	for i := 0; i < 12; i++ {
-		snapshot, err := openGitSnapshotWithAttributeRoot(context.Background(), root, Options{Source: "git"}, false, 1, func(string) (*os.Root, error) {
+		snapshot, _, err := openGitSnapshotWithAttributeRoot(context.Background(), root, Options{Source: "git"}, false, 1, func(string) (*os.Root, error) {
 			return nil, sentinel
 		})
 		if snapshot != nil || !errors.Is(err, sentinel) {
@@ -295,7 +323,7 @@ func TestGitPackCacheClosesAcrossSuccessErrorsAndCancellation(t *testing.T) {
 			return err
 		}, true},
 		{"snapshot-wrong-object-type", func() error {
-			snapshot, err := openGitSnapshot(context.Background(), root, Options{Source: "git", Tree: firstHash.String()}, false, 1)
+			snapshot, _, err := openGitSnapshot(context.Background(), root, Options{Source: "git", Tree: firstHash.String()}, false, 1)
 			if snapshot != nil {
 				defer snapshot.close()
 			}

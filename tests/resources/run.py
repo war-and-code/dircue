@@ -219,14 +219,14 @@ def main():
     manifest = json.loads(args.manifest.read_text())
     fixtures = {f['name']: f for f in manifest['fixtures']}
     revision = fixtures['dotnet-graph']['variants'][-1]['revision']
-    talend_revision = fixtures['talend-packed']['variants'][-1]['revision']
+    etl_pipeline_revision = fixtures['etl-pipeline-packed']['variants'][-1]['revision']
     cases = [
         {'name': 'go-directory', 'argv': ['--json', '--source=directory', '/corpus/cobra']},
-        {'name': 'talend-directory', 'argv': ['--json', '--source=directory', '/stress/acceptance/talend/flat-generated-excluded']},
+        {'name': 'etl-pipeline-directory', 'argv': ['--json', '--source=directory', '/stress/acceptance/etl-pipeline/flat-generated-excluded']},
         {'name': 'xml-log-directory', 'argv': ['--json', '--source=directory', '/stress/acceptance/xml-log/flat-default']},
         {'name': 'dotnet-graph-packed', 'argv': ['analyze', 'graph', '--json', '--source=git', '--rev', revision, '/stress/acceptance/dotnet-graph/git']},
         {'name': 'dotnet-projects-packed', 'argv': ['analyze', 'projects', '--json', '--source=git', '--rev', revision, '/stress/acceptance/dotnet-graph/git']},
-        {'name': 'talend-packed', 'argv': ['--json', '--source=git', '--rev', talend_revision, '/stress/acceptance/talend-packed/git']},
+        {'name': 'etl-pipeline-packed', 'argv': ['--json', '--source=git', '--rev', etl_pipeline_revision, '/stress/acceptance/etl-pipeline-packed/git']},
     ]
     for case in cases:
         case['argv'] = [value.replace('/stress/acceptance/', '/stress/' + args.fixture_subdir + '/')

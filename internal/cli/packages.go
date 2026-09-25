@@ -8,9 +8,9 @@ import (
 	"os"
 	"slices"
 
-	"dircue/pkg/packageevidence"
-	"dircue/pkg/projects"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 func addPackageFlags(cmd *cobra.Command, opts *options) {

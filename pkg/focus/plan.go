@@ -12,7 +12,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 const ownershipRule = "nearest-project-manifest-directory-v1"
@@ -741,10 +741,6 @@ func addProjectEvidence(ctx context.Context, result *Result, selected *ProjectRe
 	}
 	r.Coverage.ContextInputs = len(r.Context)
 	return nil
-}
-
-func ancestor(parent, child string) bool {
-	return parent == "." || child == parent || strings.HasPrefix(child, parent+"/")
 }
 
 func relationClass(projectKind, kind string) (string, bool) {

@@ -7,7 +7,7 @@ import (
 	"io"
 	"strings"
 
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
 )
 
 // commitScanner holds the working state of the commit decoder driven by the

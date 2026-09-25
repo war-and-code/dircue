@@ -1,0 +1,66 @@
+{
+  "schema": "dircue-map-corpus-0.1",
+  "scope": "initial hand-written fixtures; not the complete real-repository corpus",
+  "fixtures": [
+    {
+      "id": "non-source",
+      "description": "release-like directory with binary, data, certificate and documentation",
+      "expectations": "non-source.json"
+    },
+    {
+      "id": "polyglot-deployable",
+      "description": "Go, TypeScript and Rust components with Compose, Kubernetes and proto configuration",
+      "expectations": "polyglot-deployable.json"
+    },
+    {
+      "id": "documentation-boundary",
+      "description": "README claims that are intentionally not evidence",
+      "expectations": "documentation-boundary.json"
+    },
+    {
+      "id": "declared-intent",
+      "description": "Go imports and ASP.NET-style configuration declarations with no runtime inference",
+      "expectations": "declared-intent.json"
+    },
+    {
+      "id": "misleading-declarations",
+      "description": "recognized filenames whose contents do not satisfy the referenced declaration grammars",
+      "expectations": "misleading-declarations.json"
+    },
+    {
+      "id": "review-regressions",
+      "description": "Terraform aliases, punctuation-heavy workflow, multi-document Kubernetes, Python requirements, and Makefile fragment",
+      "expectations": "review-regressions.json"
+    },
+    {
+      "id": "python-capabilities",
+      "description": "Python capability inference from imports and declared requirements",
+      "expectations": "python-capabilities.json"
+    },
+    {
+      "id": "capabilities-polyglot",
+      "description": "Ecosystem-aware capability matching across npm, Ruby, Maven, NuGet, Go, Cargo, PHP and Python declared dependencies",
+      "expectations": "capabilities-polyglot.json"
+    },
+    {
+      "id": "flask-entry-point",
+      "description": "Flask application object detected from module-level assignment; sqlite3 import mapped to datastore:relational",
+      "expectations": "flask-entry-point.json"
+    },
+    {
+      "id": "jvm-dart-declarations",
+      "description": "Maven WAR archive naming from direct POM children and same-file properties; pub path dependencies, git subdirectories and dev-only capabilities",
+      "expectations": "jvm-dart-declarations.json"
+    },
+    {
+      "id": "jvm-maven-sibling-prisma",
+      "description": "Maven reactor sibling depends_on_local edges (normal and test-scope) plus Prisma datasource provider detection",
+      "expectations": "jvm-maven-sibling-prisma.json"
+    },
+    {
+      "id": "python-manifest-extras",
+      "description": "Pipfile runtime and dev packages; -r include resolution; tool-only setup.cfg does not create a component; Pipfile+requirements.txt deduplication",
+      "expectations": "python-manifest-extras.json"
+    }
+  ]
+}

@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/internal/cli"
-	"dircue/pkg/reportdiff"
-	"dircue/schema"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func TestPartialFocusedMetricsRoundTripThroughSavedExplanation(t *testing.T) {

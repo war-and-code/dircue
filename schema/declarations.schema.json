@@ -369,17 +369,42 @@
       "type": "array",
       "items": {
         "enum": [
+          "autoconf",
+          "bazel-module",
+          "bazel-workspace",
           "cargo",
+          "clojure-deps",
+          "clojure-leiningen",
+          "cmake",
+          "dart-pub",
+          "deno",
           "dotnet",
+          "elixir-mix",
+          "erlang-rebar",
           "go",
           "gradle",
+          "haskell-cabal",
+          "haskell-stack",
+          "julia-project",
+          "kbuild-kconfig",
           "maven",
+          "meson",
           "npm",
-          "python-uv"
+          "perl-cpanfile",
+          "perl-extutils",
+          "php-composer",
+          "python",
+          "python-uv",
+          "r-package",
+          "ruby-bundler",
+          "ruby-gem",
+          "scala-sbt",
+          "swift-package",
+          "zig-build"
         ]
       },
       "uniqueItems": true,
-      "maxItems": 7
+      "maxItems": 64
     }
   },
   "required": [

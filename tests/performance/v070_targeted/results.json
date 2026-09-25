@@ -3,7 +3,7 @@
   "candidate_sha256": "758664d3ed32a66db77b2f96ba1f1b2f62863b1ffd209beb2843de3960577555",
   "commands": {
     "availability": [
-      "/Users/gingeleski/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
+      "/home/user/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
       "analyze",
       "availability",
       "--json",
@@ -11,10 +11,10 @@
       "directory",
       "--workers",
       "8",
-      "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+      "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
     ],
     "explain_file": [
-      "/Users/gingeleski/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
+      "/home/user/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
       "analyze",
       "explain",
       "--file",
@@ -24,10 +24,10 @@
       "directory",
       "--workers",
       "8",
-      "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+      "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
     ],
     "explain_saved": [
-      "/Users/gingeleski/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
+      "/home/user/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
       "analyze",
       "explain",
       "--file",
@@ -37,13 +37,13 @@
       "/var/folders/p4/y7w7p6m923j369nrbmdf0cyw0000gn/T/dircue-targeted-cost-ck8bu667/report.json"
     ],
     "language_default": [
-      "/Users/gingeleski/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
+      "/home/user/Workspace/dircue/.cache/v070-sprint/final-candidate/dircue",
       "--json",
       "--source",
       "directory",
       "--workers",
       "8",
-      "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+      "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
     ]
   },
   "finished_at_utc": "2026-09-21T12:05:02.203853+00:00",

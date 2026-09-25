@@ -5,9 +5,9 @@ import (
 	"io"
 	"slices"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/profile"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func addFocusFlags(command *cobra.Command, opts *options) {

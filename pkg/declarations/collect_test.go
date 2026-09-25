@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 func candidateFor(name, content string) *Candidate {
@@ -77,6 +77,80 @@ func TestCollectorDeterministicAndSelectedOnly(t *testing.T) {
 		if e != nil || again != r {
 			t.Fatal("finish is not idempotent")
 		}
+	}
+}
+
+func TestPythonRequirementsOnlyRootProducesComponent(t *testing.T) {
+	// A requirements.txt without any .py source files is still a valid Python
+	// component: it declares a dependency set for a service whose code may be
+	// pre-built, live in a container image, or reside in a separate repository.
+	collect := func(withSource bool) *Report {
+		c := New("directory", "", 0)
+		c.Add("svc/requirements.txt", candidateFor("svc/requirements.txt", "fastapi==0.115\nredis>=5\n"))
+		if withSource {
+			c.Add("svc/app/main.py", nil)
+		}
+		r, err := c.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	without := collect(false)
+	if len(without.Projects) != 1 || without.Projects[0].Kind != "python" {
+		t.Fatalf("requirements-only root should produce a Python component: %+v", without.Projects)
+	}
+	pythonTestReq(t, &Document{Project: &without.Projects[0]}, "python-dependency", "fastapi==0.115", "declared")
+	with := collect(true)
+	if len(with.Projects) != 1 || with.Projects[0].Kind != "python" {
+		t.Fatalf("Python source should also qualify a requirements project: %+v", with.Projects)
+	}
+	pythonTestReq(t, &Document{Project: &with.Projects[0]}, "python-dependency", "fastapi==0.115", "declared")
+}
+
+func TestPythonSetupPyReadsOnlyStaticArguments(t *testing.T) {
+	setup := "from setuptools import setup\nsetup(name='svc', version='1.0', install_requires=['fastapi>=0.1', get_extra()])\n"
+	c := New("directory", "", 0)
+	c.Add("svc/setup.py", candidateFor("svc/setup.py", setup))
+	c.Add("svc/main.py", nil)
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Projects) != 1 || r.Projects[0].Name != "svc" || r.Status != "partial" {
+		t.Fatalf("static/dynamic setup.py evidence was misreported: %+v", r)
+	}
+	foundStatic, foundUnknown := false, false
+	for _, req := range r.Projects[0].Requirements {
+		foundStatic = foundStatic || req.Kind == "python-dependency" && req.Value == "fastapi>=0.1"
+	}
+	for _, diag := range r.Diagnostics {
+		foundUnknown = foundUnknown || diag.Code == "dynamic-python-requirements"
+	}
+	if !foundStatic || !foundUnknown {
+		t.Fatalf("missing static dependency or dynamic coverage diagnostic: %+v", r)
+	}
+}
+
+func TestKbuildProjectRequiresBothSelectedRootMarkers(t *testing.T) {
+	make := func(withConfig bool) *Report {
+		c := New("directory", "", 0)
+		c.Add("Kbuild", candidateFor("Kbuild", "obj-y += tools/pyynl/"))
+		if withConfig {
+			c.Add("Kconfig", candidateFor("Kconfig", "mainmenu \"Example\"\n"))
+		}
+		r, err := c.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		return r
+	}
+	if r := make(false); len(r.Projects) != 0 {
+		t.Fatalf("single marker overclaimed project: %+v", r.Projects)
+	}
+	r := make(true)
+	if len(r.Projects) != 1 || r.Projects[0].Kind != "kbuild-kconfig" || len(r.Projects[0].Requirements) != 2 {
+		t.Fatalf("root marker project missing or overclaimed: %+v", r.Projects)
 	}
 }
 func TestCollectorLexicalManifestLimit(t *testing.T) {
@@ -217,6 +291,56 @@ func TestCollectorContinueDoesNotSwallowReaderCancellation(t *testing.T) {
 		c.Add("go.mod", candidate)
 		if _, err := c.Finish(context.Background()); !errors.Is(err, want) {
 			t.Fatalf("continue swallowed %v: %v", want, err)
+		}
+	}
+}
+
+func TestMavenComponentNameComesFromRootArtifact(t *testing.T) {
+	content := `<project><artifactId>spring-petclinic</artifactId><profiles><profile><id>alternate</id><artifactId>other</artifactId></profile></profiles></project>`
+	d := Parse("pom.xml", []byte(content))
+	if d == nil || d.Project == nil || d.Project.Name != "spring-petclinic" {
+		t.Fatalf("root artifact name was not retained: %+v", d)
+	}
+	placeholder := Parse("pom.xml", []byte(`<project><artifactId>${module.name}</artifactId></project>`))
+	if placeholder == nil || placeholder.Project == nil || placeholder.Project.Name != "" {
+		t.Fatalf("unresolved expression became a component name: %+v", placeholder)
+	}
+}
+
+func TestGradleComponentNameFromSettingsRootProjectName(t *testing.T) {
+	ctx := context.Background()
+	// settings.gradle declares rootProject.name; build.gradle declares the project.
+	// The collector should propagate the name to the build.gradle project.
+	settingsContent := "rootProject.name = 'spring-petclinic'\ninclude(':lib')\n"
+	buildContent := "apply plugin: 'java'\n"
+	c := New("directory", "", 0)
+	c.Add("settings.gradle", candidateFor("settings.gradle", settingsContent))
+	c.Add("build.gradle", candidateFor("build.gradle", buildContent))
+	report, err := c.Finish(ctx)
+	if err != nil {
+		t.Fatalf("Finish: %v", err)
+	}
+	var gradleName string
+	for _, p := range report.Projects {
+		if p.Kind == "gradle" {
+			gradleName = p.Name
+		}
+	}
+	if gradleName != "spring-petclinic" {
+		t.Errorf("gradle component name: got %q, want %q", gradleName, "spring-petclinic")
+	}
+
+	// A dynamic rootProject.name (e.g. rootProject.name = someVar) must not set a name.
+	c2 := New("directory", "", 0)
+	c2.Add("settings.gradle", candidateFor("settings.gradle", "rootProject.name = someVar\n"))
+	c2.Add("build.gradle", candidateFor("build.gradle", "apply plugin: 'java'\n"))
+	report2, err := c2.Finish(ctx)
+	if err != nil {
+		t.Fatalf("Finish2: %v", err)
+	}
+	for _, p := range report2.Projects {
+		if p.Kind == "gradle" && p.Name != "" {
+			t.Errorf("dynamic name leaked: got %q", p.Name)
 		}
 	}
 }

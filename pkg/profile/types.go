@@ -3,17 +3,17 @@ package profile
 
 import (
 	"context"
-	"dircue/pkg/availability"
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/environments"
-	"dircue/pkg/explain"
-	"dircue/pkg/focus"
-	"dircue/pkg/formats"
-	"dircue/pkg/packageevidence"
-	"dircue/pkg/projects"
-	"dircue/pkg/registries"
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 const SchemaVersion = "1.0.0"
@@ -82,6 +82,21 @@ const TargetedSchemaVersion = "1.6.0"
 
 const EnvironmentSchemaVersion = "1.7.0"
 
+// SummarizedTree records a recognized environment or build-output tree that
+// was counted rather than scanned in detail.
+type SummarizedTree struct {
+	Path       string `json:"path"`
+	Kind       string `json:"kind"`
+	Ecosystem  string `json:"ecosystem"`
+	Marker     string `json:"marker"`
+	Basis      string `json:"basis"`
+	Entries    int64  `json:"entries"`
+	Bytes      int64  `json:"bytes"`
+	Bounded    bool   `json:"bounded"`
+	LowerBound bool   `json:"lower_bound,omitempty"`
+	Reason     string `json:"reason,omitempty"`
+}
+
 type Report struct {
 	Environments    *environments.Report    `json:"environments,omitempty"`
 	Explanation     *explain.Report         `json:"explanation,omitempty"`
@@ -97,6 +112,10 @@ type Report struct {
 	Graph           *projects.GraphReport   `json:"graph,omitempty"`
 	Projects        *projects.Report        `json:"projects,omitempty"`
 	Structure       *StructureReport        `json:"structure,omitempty"`
+	// SummarizedTrees holds environment and build-output trees that were
+	// recognized and counted rather than walked in detail. Only populated
+	// when the scanner was run with SummarizeTrees=true on a directory source.
+	SummarizedTrees []SummarizedTree `json:"summarized_trees,omitempty"`
 	// Strategies is CLI-only diagnostic data and does not change the JSON schema.
 	Strategies    map[string]string `json:"-"`
 	SchemaVersion string            `json:"schema_version"`

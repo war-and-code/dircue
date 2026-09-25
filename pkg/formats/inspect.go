@@ -12,7 +12,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"dircue/internal/jsontext"
+	"github.com/war-and-code/dircue/internal/jsontext"
 )
 
 func extension(name string) string {
@@ -37,6 +37,14 @@ func extension(name string) string {
 		return "sqlite"
 	case ".exe", ".dll":
 		return "pe"
+	case ".wasm":
+		return "wasm"
+	case ".class":
+		return "java_class"
+	case ".tar":
+		return "tar"
+	case ".dylib":
+		return "mach_o"
 	case ".txt", ".md", ".csv", ".tsv", ".log":
 		return "text"
 	}
@@ -68,11 +76,27 @@ func inspect(name string, data []byte, complete bool) Observation {
 		{"elf", []byte{0x7f, 'E', 'L', 'F'}}, {"pdf", []byte("%PDF-")},
 		{"png", []byte{137, 80, 78, 71, 13, 10, 26, 10}}, {"jpeg", []byte{0xff, 0xd8, 0xff}},
 		{"sqlite", []byte("SQLite format 3\x00")},
+		{"wasm", []byte{'\x00', 'a', 's', 'm', '\x01', '\x00', '\x00', '\x00'}},
+		{"mach_o", []byte{0xfe, 0xed, 0xfa, 0xce}}, {"mach_o", []byte{0xce, 0xfa, 0xed, 0xfe}},
+		{"mach_o", []byte{0xfe, 0xed, 0xfa, 0xcf}}, {"mach_o", []byte{0xcf, 0xfa, 0xed, 0xfe}},
+		{"mach_o_fat", []byte{0xbe, 0xba, 0xfe, 0xca}},
 	} {
 		if bytes.HasPrefix(data, signature.magic) {
 			add(signature.format, "signature_match", "header_magic_only")
 			break
 		}
+	}
+	if len(data) >= 8 && bytes.Equal(data[:4], []byte{0xca, 0xfe, 0xba, 0xbe}) {
+		minor := uint16(data[4])<<8 | uint16(data[5])
+		major := uint16(data[6])<<8 | uint16(data[7])
+		if (minor == 0 || minor == 0xffff) && major >= 45 && major <= 100 {
+			add("java_class", "signature_match", "header_magic_and_plausible_version_only")
+		} else {
+			add("mach_o_fat", "signature_match", "header_magic_only")
+		}
+	}
+	if len(data) >= 262 && bytes.Equal(data[257:262], []byte("ustar")) {
+		add("tar", "signature_match", "header_magic_only")
 	}
 	// MZ alone identifies a DOS header. A PE match also requires its referenced signature inside the prefix.
 	if bytes.HasPrefix(data, []byte("MZ")) {

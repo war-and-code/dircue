@@ -28,11 +28,23 @@ var languagesJSON []byte
 //go:embed planning.schema.json
 var planningJSON []byte
 
+//go:embed map.schema.json
+var mapJSON []byte
+
+//go:embed map-compare.schema.json
+var mapCompareJSON []byte
+
 //go:embed cli-capabilities.schema.json
 var cliCapabilitiesJSON []byte
 
 //go:embed guide.schema.json
 var guideJSON []byte
+
+//go:embed forest.schema.json
+var forestJSON []byte
+
+//go:embed stats.schema.json
+var statsJSON []byte
 
 const resourceBase = "https://dircue.invalid/schema/"
 
@@ -48,12 +60,16 @@ var exportResources = map[string][]byte{
 	"explanation":      explanationJSON,
 	"findings":         findingsJSON,
 	"focus":            focusJSON,
+	"forest":           forestJSON,
 	"formats":          formatsJSON,
 	"hotspots":         hotspotsJSON,
 	"guide":            guideJSON,
 	"languages":        languagesJSON,
+	"map":              mapJSON,
+	"map-compare":      mapCompareJSON,
 	"planning":         planningJSON,
 	"profile":          profileJSON,
+	"stats":            statsJSON,
 }
 
 // Names returns the sorted canonical names accepted by Export. Some schemas

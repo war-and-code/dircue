@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func declarationCandidate(root *os.Root, item job) *declarations.Candidate {

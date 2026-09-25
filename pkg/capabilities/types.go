@@ -5,8 +5,8 @@ package capabilities
 import (
 	"slices"
 
-	"dircue/pkg/codemetrics"
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/codemetrics"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 const SchemaVersion = "1.0.0"

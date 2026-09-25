@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dircue.invalid/schema/forest.schema.json",
+  "title": "dircue forest document",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "kind", "status", "source", "coverage", "roots", "residual"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "kind": { "const": "forest" },
+    "status": { "$ref": "#/$defs/coverage_status" },
+    "source": { "$ref": "#/$defs/forest_source" },
+    "coverage": { "type": "array", "items": { "$ref": "#/$defs/question_coverage" } },
+    "roots": { "type": "array", "items": { "$ref": "#/$defs/root_entry" } },
+    "environment_trees": { "type": "array", "items": { "$ref": "#/$defs/env_tree_summary" } },
+    "residual": { "$ref": "#/$defs/residual_map" },
+    "residual_totals": { "$ref": "#/$defs/residual_totals" }
+  },
+  "$defs": {
+    "nonempty": { "type": "string", "minLength": 1 },
+    "relative_path": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]" },
+    "coverage_status": { "enum": ["complete", "partial", "unknown"] },
+    "question_coverage": {
+      "type": "object", "additionalProperties": false,
+      "required": ["question", "scope", "status", "reasons"],
+      "properties": {
+        "question": { "$ref": "#/$defs/nonempty" },
+        "scope": { "$ref": "#/$defs/nonempty" },
+        "status": { "$ref": "#/$defs/coverage_status" },
+        "reasons": { "type": "array", "items": { "$ref": "#/$defs/nonempty" } }
+      }
+    },
+    "forest_source": {
+      "type": "object", "additionalProperties": false, "required": ["mode", "path"],
+      "properties": {
+        "mode": { "const": "directory" },
+        "path": { "const": "." },
+        "digest": {
+          "type": "object", "additionalProperties": false, "required": ["algorithm", "scope", "value"],
+          "properties": {
+            "algorithm": { "$ref": "#/$defs/nonempty" },
+            "scope": { "$ref": "#/$defs/nonempty" },
+            "normalization": { "$ref": "#/$defs/nonempty" },
+            "value": { "$ref": "#/$defs/nonempty" }
+          }
+        }
+      }
+    },
+    "remote": {
+      "type": "object", "additionalProperties": false, "required": ["name"],
+      "properties": {
+        "name": { "$ref": "#/$defs/nonempty" },
+        "kind": { "type": "string", "enum": ["local_path"] },
+        "url": { "type": ["string", "null"] },
+        "redacted": { "type": "boolean" }
+      }
+    },
+    "root_entry": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "kind", "head", "identity_status", "remotes"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonempty" },
+        "kind": { "enum": ["git_worktree", "git_bare", "git_submodule"] },
+        "head": { "$ref": "#/$defs/nonempty" },
+        "commit": { "type": "string", "pattern": "^[0-9a-fA-F]{40}([0-9a-fA-F]{24})?$" },
+        "tree": { "$ref": "#/$defs/nonempty" },
+        "committer_time": { "type": "integer" },
+        "remotes": { "type": "array", "items": { "$ref": "#/$defs/remote" } },
+        "submodule_of": { "$ref": "#/$defs/nonempty" },
+        "identity_status": { "enum": ["resolved", "unknown"] },
+        "identity_reason": { "$ref": "#/$defs/nonempty" },
+        "map_status": { "type": "string", "enum": ["ok", "failed"] },
+        "map_reason": { "type": "string" },
+        "working_tree_only_files": { "type": "integer", "minimum": 0 },
+        "symlink_files": { "type": "integer", "minimum": 0 },
+        "special_files": { "type": "integer", "minimum": 0 },
+        "map": { "type": "object" }
+      }
+    },
+    "env_tree_summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["path", "kind", "ecosystem", "marker", "basis", "entries", "bytes", "bounded"],
+      "properties": {
+        "path": { "$ref": "#/$defs/nonempty" },
+        "kind": { "enum": ["dependency_tree", "build_output", "cache"] },
+        "ecosystem": { "$ref": "#/$defs/nonempty" },
+        "marker": { "$ref": "#/$defs/nonempty" },
+        "basis": { "enum": ["filename_hint", "rule_inferred"] },
+        "entries": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 },
+        "bounded": { "type": "boolean" },
+        "lower_bound": { "type": "boolean" },
+        "reason": { "type": "string" }
+      }
+    },
+    "residual_totals": {
+      "type": "object", "additionalProperties": false,
+      "required": ["files", "bytes"],
+      "properties": {
+        "files": { "type": "integer", "minimum": 0 },
+        "bytes": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "residual_map": {
+      "type": "object",
+      "properties": {
+        "schema_version": { "const": "1.0.0" },
+        "kind": { "const": "map" }
+      }
+    }
+  }
+}

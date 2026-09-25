@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Regenerate the local Enry fork from pinned official sources.
+"""Regenerate the embedded Enry snapshot from pinned official sources.
 
 The project-owned patch contains documented compatibility and performance
-changes. This script deliberately does not edit the root go.mod replacement.
+changes. The output is a package subtree in the qualified dircue module; the
+upstream module files are retained under `upstream.go.mod` and `.sum`.
 """
 import argparse
 import hashlib
@@ -22,6 +23,7 @@ import urllib.request
 HERE = Path(__file__).resolve().parent
 ENRY = 'github.com/go-enry/go-enry/v2'
 VERSION = 'v2.9.6'
+RUNTIME_MODULE = 'github.com/war-and-code/dircue/third_party/go-enry'
 ENRY_SUM = 'h1:np63eOtMV56zfYDHnFVgpEVOk8fr2kmylcMnAZUDbSs='
 ENRY_GO_MOD_SUM = 'h1:9yrj4ES1YrbNb1Wb7/PWYr2bpaCXUGRt0uafN0ISyG8='
 GO_VERSION = 'go1.26.6'
@@ -58,6 +60,69 @@ def file_sha256(path):
         for block in iter(lambda: stream.read(1024 * 1024), b''):
             digest.update(block)
     return digest.hexdigest()
+
+
+def file_manifest(root):
+    """Hash every regular file in an upstream source tree by normalized path."""
+    result = {}
+    for path in sorted(root.rglob('*')):
+        if path.is_symlink():
+            raise RuntimeError(f'refusing symlink in upstream source: {path}')
+        if path.is_file():
+            relative = path.relative_to(root).as_posix()
+            validate_relative_name(relative, 'upstream source')
+            result[relative] = file_sha256(path)
+    return result
+
+
+def rewrite_import_paths(content, source_module=ENRY, runtime_module=RUNTIME_MODULE):
+    """Rewrite exact self-imports while keeping source-attribution comments intact."""
+    text = content.replace(b'\r\n', b'\n').decode('utf-8')
+    old = re.escape(source_module)
+    import_line = re.compile(
+        r'(?P<prefix>\s*(?:import\s+)?(?:[A-Za-z_]\w*\s+)?)"'
+        r'(?P<path>' + old + r'(?:/[^"\\]*)?)"')
+    import_comment = re.compile(r'(//\s*import\s+")' + old + r'(\s*")')
+    in_import_block = False
+    lines = []
+    for line in text.splitlines(keepends=True):
+        stripped = line.lstrip()
+        if stripped.startswith('import ('):
+            in_import_block = True
+            lines.append(line)
+            continue
+        if in_import_block and stripped.startswith(')'):
+            in_import_block = False
+            lines.append(line)
+            continue
+        if in_import_block or stripped.startswith('import ') or '// import "' in line:
+            def replace(match):
+                return (match.group('prefix') + '"' + runtime_module +
+                        match.group('path')[len(source_module):] + '"')
+            line = import_line.sub(replace, line)
+            line = import_comment.sub(r'\g<1>' + runtime_module + r'\g<2>', line)
+        lines.append(line)
+    return ''.join(lines).encode('utf-8')
+
+
+def prepare_embedded_module(root):
+    """Create a temporary test module using the upstream dependency set."""
+    upstream_mod = root / 'upstream.go.mod'
+    upstream_sum = root / 'upstream.go.sum'
+    content = upstream_mod.read_text()
+    old_line, new_line = f'module {ENRY}', f'module {RUNTIME_MODULE}'
+    if content.count(old_line) != 1:
+        raise RuntimeError('upstream go.mod has an unexpected module declaration')
+    content = content.replace(old_line, new_line, 1)
+    # The embedded sources use the root module's language version.
+    content = re.sub(r'(?m)^go [0-9.]+$', f'go {GO_VERSION.removeprefix("go")}', content, count=1)
+    (root / 'go.mod').write_text(content)
+    shutil.copyfile(upstream_sum, root / 'go.sum')
+
+
+def remove_embedded_module(root):
+    for name in ('go.mod', 'go.sum'):
+        (root / name).unlink()
 
 
 def validate_relative_name(name, description):
@@ -657,6 +722,7 @@ def main():
         module = json.loads(run(
             [compiler, 'mod', 'download', '-json', ENRY+'@'+VERSION], temporary, go_env)[0])
         source = validate_module(module, module_cache)
+        upstream_files = file_manifest(source)
         run([compiler, 'mod', 'verify'], temporary, go_env)
         stage = temporary/'enry'
         shutil.copytree(source, stage)
@@ -719,18 +785,32 @@ def main():
         candidate.mkdir()
         try:
             manifest = {}
+            rewritten_import_files = []
             for path in sorted(files):
                 relative = path.relative_to(stage)
-                target = candidate/relative
+                output_relative = relative
+                if relative.as_posix() == 'go.mod':
+                    output_relative = Path('upstream.go.mod')
+                elif relative.as_posix() == 'go.sum':
+                    output_relative = Path('upstream.go.sum')
+                target = candidate/output_relative
                 target.parent.mkdir(parents=True, exist_ok=True)
                 content = path.read_bytes()
                 upstream = source/relative
-                if ((path.suffix == '.go' or path.name == 'go.mod') and
-                        upstream.is_file() and content != upstream.read_bytes()):
+                if output_relative.name in ('upstream.go.mod', 'upstream.go.sum'):
+                    # Retain the downloaded manifests byte for byte; the
+                    # embedded package tree has no module of its own.
+                    content = upstream.read_bytes()
+                if path.suffix == '.go' and upstream.is_file() and content != upstream.read_bytes():
                     content = (b'// Modified for dircue; see PROVENANCE.json '
                                b'in this maintained fork.\n\n' + content)
+                if path.suffix == '.go':
+                    rewritten = rewrite_import_paths(content)
+                    if rewritten != content:
+                        rewritten_import_files.append(output_relative.as_posix())
+                    content = rewritten
                 target.write_bytes(content)
-                manifest[relative.as_posix()] = file_sha256(target)
+                manifest[output_relative.as_posix()] = file_sha256(target)
             shutil.copyfile(linguist/'LICENSE', candidate/'LINGUIST_LICENSE')
             manifest['LINGUIST_LICENSE'] = file_sha256(candidate/'LINGUIST_LICENSE')
             (candidate/'GENERATOR_WARNINGS.txt').write_text(clean_warnings)
@@ -741,11 +821,13 @@ def main():
             migration_source.write_bytes(model)
             migration_test.write_text(centroid_migration_go_test())
             run([formatter, '-w', migration_test.name], candidate)
+            prepare_embedded_module(candidate)
             run([compiler, 'test', '.', '-run',
                  '^TestDircueGeneratedCentroidMigration$', '-count=1'],
                 candidate, go_env)
             migration_test.unlink()
             migration_source.unlink()
+            remove_embedded_module(candidate)
             provenance = {
                 'enry_module': ENRY, 'enry_version': VERSION,
                 'enry_sum': ENRY_SUM, 'enry_go_mod_sum': ENRY_GO_MOD_SUM,
@@ -758,11 +840,17 @@ def main():
                 'linguist_centroid_binary_sha256': centroid_metadata['binary_sha256'],
                 'patch_sha256': file_sha256(patch),
                 'generator_script_sha256': file_sha256(Path(__file__)),
+                'runtime_module': RUNTIME_MODULE,
+                'module_path_rewrite': {'from': ENRY, 'to': RUNTIME_MODULE},
+                'rewritten_import_files': rewritten_import_files,
+                'upstream_files': upstream_files,
                 'files': manifest,
             }
             (candidate/'PROVENANCE.json').write_text(json.dumps(provenance, indent=2)+'\n')
             validate_staged_output(candidate, manifest)
+            prepare_embedded_module(candidate)
             run([compiler, 'test', './...'], candidate, go_env)
+            remove_embedded_module(candidate)
             publish_tree(output, candidate, output_snapshot)
         except BaseException:
             if candidate.exists():

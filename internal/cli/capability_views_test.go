@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/schema"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func TestCapabilityDefaultDescriptorBytesRemainUnchanged(t *testing.T) {
@@ -35,7 +35,7 @@ func TestCLIContractDerivesActualCommandsFlagsAndDefaultValues(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &contract); err != nil {
 		t.Fatal(err)
 	}
-	if len(contract.Commands) != 24 || contract.Kind != "dircue-cli-capabilities" {
+	if len(contract.Commands) != 29 || contract.Kind != "dircue-cli-capabilities" {
 		t.Fatalf("commands=%d kind=%s", len(contract.Commands), contract.Kind)
 	}
 	flagLine := regexp.MustCompile(`(?m)^\s+(?:-[A-Za-z0-9],\s+)?--([a-z0-9-]+)(?:\s|$)`)
@@ -70,6 +70,19 @@ func TestCLIContractDerivesActualCommandsFlagsAndDefaultValues(t *testing.T) {
 		if output.ID == "languages-file" && (output.Schema != "" || output.SchemaScope != "unavailable") {
 			t.Fatal("single-file falsely mapped to directory schema")
 		}
+	}
+	var mapCommand *cliCommandContract
+	for i := range contract.Commands {
+		if strings.Join(contract.Commands[i].Path, " ") == "dircue map" {
+			mapCommand = &contract.Commands[i]
+			break
+		}
+	}
+	if mapCommand == nil {
+		t.Fatal("CLI catalog omits the map command")
+	}
+	if restrictions := strings.Join(mapCommand.Restrictions, " "); !strings.Contains(restrictions, "bifrost-code-query-json") {
+		t.Fatalf("map attachment contract omits a supported provider: %q", restrictions)
 	}
 	for _, resource := range contract.SchemaResources {
 		if resource.Name == "hotspots" && (resource.Scope != "profile component" || resource.Pointer != "/structure/hotspots") {
@@ -222,5 +235,29 @@ func TestGuideTextAndJSONShareSafeExamples(t *testing.T) {
 	}
 	if !strings.Contains(plain, "inert argv") || !strings.Contains(plain, "not a sandbox") || !strings.Contains(plain, "no bundled schema") {
 		t.Fatalf("missing boundaries: %s", plain)
+	}
+}
+
+// TestGuideListsMapLocate verifies that dircue map locate appears in both
+// --cli and --guide output, satisfying issue #82 acceptance.
+func TestGuideListsMapLocate(t *testing.T) {
+	cli, _, err := invoke("capabilities", "--cli")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(cli, "dircue map locate") {
+		t.Fatalf("map locate missing from --cli output")
+	}
+
+	guide, _, err := invoke("capabilities", "--guide")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(guide, "map locate") {
+		t.Fatalf("map locate missing from --guide output")
+	}
+	// Verify the guide mentions SARIF specifically for locate context.
+	if !strings.Contains(guide, "SARIF") {
+		t.Fatalf("guide does not mention SARIF in locate section")
 	}
 }

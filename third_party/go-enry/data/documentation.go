@@ -5,7 +5,7 @@
 
 package data
 
-import "github.com/go-enry/go-enry/v2/regex"
+import "github.com/war-and-code/dircue/third_party/go-enry/regex"
 
 var DocumentationMatchers = []regex.EnryRegexp{
 	regex.MustCompile(`^[Dd]ocs?/`),

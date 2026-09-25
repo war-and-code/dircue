@@ -72,7 +72,7 @@ The extra Java/C# declaration fields should not be inferred for other rows.
 | Objective-C | Objective-C | No dedicated Xcode project reader |
 | Perl | Perl | No dedicated Perl package-manifest reader |
 | PHP | PHP | `composer.json` filename discovery |
-| Python | Python | Opt-in `pyproject.toml`/uv declarations; filename discovery for other recognized manifests |
+| Python | Python | Opt-in `pyproject.toml`/uv declarations and bounded static `requirements*.txt`/`setup.py` project observations; filename discovery for other recognized manifests |
 | Ruby | Ruby | `Gemfile` filename discovery |
 | Rust | Rust | Opt-in Cargo package/workspace declarations and local relationships |
 | Shell | Bash | No dedicated shell project reader; other shell dialects may recover or misparse |

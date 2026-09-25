@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"dircue/pkg/reportdiff"
-	profileschema "dircue/schema"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	profileschema "github.com/war-and-code/dircue/schema"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )

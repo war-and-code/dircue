@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/go-git/go-git/v5/plumbing/format/objfile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/objfile"
 )
 
 func TestReadAllBoundedCompressedGitStreams(t *testing.T) {

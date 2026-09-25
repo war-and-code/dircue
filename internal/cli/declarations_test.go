@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestDeclarationsOptIn(t *testing.T) {
@@ -44,7 +44,9 @@ func TestDeclarationsOptIn(t *testing.T) {
 	if err := Execute(context.Background(), []string{"analyze", "declarations", root}, &out, &errOut); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(out.String(), "test") || strings.Contains(out.String(), "do-not-output-secret") {
+	// Developer-task scripts ("test") are not surfaced as interfaces; only the
+	// raw command text must remain absent (security check).
+	if strings.Contains(out.String(), "do-not-output-secret") {
 		t.Fatal(out.String())
 	}
 }

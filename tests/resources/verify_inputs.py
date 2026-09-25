@@ -19,7 +19,7 @@ def regular(path):
 def verify(root, manifest):
     fixtures = {f['name']: f for f in manifest['fixtures']}
     checked = []
-    for name, variant_name in [('talend', 'generated-excluded'), ('xml-log', 'default')]:
+    for name, variant_name in [('etl-pipeline', 'generated-excluded'), ('xml-log', 'default')]:
         variant = next(v for v in fixtures[name]['variants'] if v['name'] == variant_name)
         base = root / variant['flat']
         expected = {f['path'] for f in variant['files']}
@@ -34,7 +34,7 @@ def verify(root, manifest):
         checked.append({'fixture': name, 'variant': variant_name,
                         'files': len(expected), 'bytes': sum(f['bytes'] for f in variant['files'])})
     for name, key, files_key in [('dotnet-graph', 'packed_history', 'pack_files'),
-                                  ('talend-packed', 'packed_backend', 'packs')]:
+                                  ('etl-pipeline-packed', 'packed_backend', 'packs')]:
         fixture = fixtures[name]
         base = root / fixture['git'] / '.git' / 'objects'
         entries = fixture[key][files_key]

@@ -1,0 +1,14 @@
+name: mobile_app
+version: 1.0.0
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+dependencies:
+  http: ^1.2.0
+  ui_kit:
+    path: ../ui_kit
+  shared:
+    git:
+      url: https://example.invalid/shared.git
+      path: packages/shared
+dev_dependencies:
+  sqflite: ^2.3.0

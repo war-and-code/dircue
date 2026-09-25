@@ -41,7 +41,7 @@ def main():
     args.output.parent.mkdir(parents=True, exist_ok=True)
     artifacts = args.output.parent/'stress-artifacts'
     artifacts.mkdir(exist_ok=True)
-    selected = {'talend': 'generated-excluded', 'xml-log': 'default', 'dotnet-graph': 'default'}
+    selected = {'etl-pipeline': 'generated-excluded', 'xml-log': 'default', 'dotnet-graph': 'default'}
     for fixture in manifest['fixtures']:
         name = fixture['name']
         if name not in selected:
@@ -66,7 +66,7 @@ def main():
         plain, _ = performance.capture([str(binary), '--json', '--source', 'directory', str(root)])
         languages = {row['name']: row['bytes'] for row in profile['languages']}
         assert languages == {language: row['size'] for language, row in json.loads(plain).items()}
-        if name == 'talend':
+        if name == 'etl-pipeline':
             assert sum(sizes) >= 2*1024**3
             assert inventory['project_kinds'].get('maven', 0) >= 1
         elif name == 'xml-log':

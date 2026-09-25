@@ -1,14 +1,15 @@
 package cli
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
-	"dircue/pkg/reportdiff"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func newCompareCommand(opts *options) *cobra.Command {
@@ -73,11 +74,45 @@ func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
 	if opened.Size() > reportdiff.MaxInputBytes {
 		return nil, fmt.Errorf("%s report: %w", role, reportdiff.ErrLimit)
 	}
-	snapshot, err := reportdiff.Load(file)
+	data, err := io.ReadAll(io.LimitReader(file, reportdiff.MaxInputBytes+1))
+	if err != nil {
+		return nil, fmt.Errorf("read %s report: %w", role, err)
+	}
+	if documentKind(data) == "map" {
+		return nil, fmt.Errorf("%s report is a map document (kind: \"map\"); use: dircue map compare", role)
+	}
+	snapshot, err := reportdiff.Load(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("%s report: %w", role, err)
 	}
 	return snapshot, nil
+}
+
+// documentKind peeks at the top-level "kind" string of a JSON document without
+// fully parsing it. Returns an empty string when the field is absent or the
+// document is not a JSON object.
+func documentKind(data []byte) string {
+	var envelope struct {
+		Kind string `json:"kind"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return ""
+	}
+	return envelope.Kind
+}
+
+// isProfileDocument returns true when data looks like a legacy dircue profile:
+// a JSON object that has a "schema_version" field but no top-level "kind" field.
+// This allows map compare to emit a helpful cross-command error.
+func isProfileDocument(data []byte) bool {
+	var envelope struct {
+		SchemaVersion string `json:"schema_version"`
+		Root          string `json:"root"`
+	}
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		return false
+	}
+	return envelope.SchemaVersion != "" && envelope.Root != ""
 }
 
 func writeComparison(out io.Writer, report *reportdiff.Report) error {

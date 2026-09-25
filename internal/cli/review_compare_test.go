@@ -2,7 +2,7 @@ package cli
 
 import (
 	"bytes"
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 	"strings"
 	"testing"
 )
