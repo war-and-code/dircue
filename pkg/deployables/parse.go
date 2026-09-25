@@ -75,7 +75,9 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	// displays as "api [container_build]" rather than the opaque "default".
 	lines := strings.Split(string(content), "\n")
 	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: dockerfileDisplayName(name), Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
+	d.DockerContextUnknown = path.Dir(name) != "." && path.Dir(name) != ""
 	stages := map[string]bool{}
+	stageNamesByIndex := map[string]string{}
 	currentStage := ""
 	stageIndex := 0
 	inRunContinuation := false
@@ -87,6 +89,7 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			stageIndex++
 			if m[2] != "" {
 				currentStage = strings.ToLower(m[2])
+				stageNamesByIndex[strconv.Itoa(stageIndex-1)] = currentStage
 			}
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
@@ -114,7 +117,11 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				d.Coverage = "qualified"
 			}
 			copyFromIndex := len(d.References)
-			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: strings.ToLower(m[1])})
+			sourceStage := strings.ToLower(m[1])
+			if namedStage, ok := stageNamesByIndex[sourceStage]; ok {
+				sourceStage = namedStage
+			}
+			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage})
 			// A source copied from a declared build stage is stronger artifact
 			// evidence than an arbitrary path in the build context. Retain it
 			// separately so consumers can apply stricter matching rules.
@@ -134,7 +141,7 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
 						continue
 					}
-					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: strings.ToLower(m[1]), SourcePath: bounded(source), TargetPath: bounded(sources[len(sources)-1])})
+					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage, SourcePath: bounded(source), TargetPath: bounded(sources[len(sources)-1])})
 				}
 			}
 		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {

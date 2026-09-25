@@ -613,6 +613,25 @@ func TestDockerfileRecordsStaticCopySources(t *testing.T) {
 	}
 }
 
+func TestNestedDockerfileMarksBuildContextAsUnknown(t *testing.T) {
+	r := observeOne(t, "services/api/Dockerfile", "FROM tomcat:10\nCOPY webapp/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 || !r.Definitions[0].DockerContextUnknown {
+		t.Fatalf("nested Dockerfile should retain context ambiguity: %+v", r.Definitions)
+	}
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value != "webapp/target/app.war" {
+			t.Fatalf("COPY source must remain raw and context-relative: %+v", ref)
+		}
+	}
+}
+
+func TestRootDockerfileBuildContextIsNotMarkedUnknown(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM tomcat:10\nCOPY webapp/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 || r.Definitions[0].DockerContextUnknown {
+		t.Fatalf("root Dockerfile context should retain existing default: %+v", r.Definitions)
+	}
+}
+
 func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
 	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\nCOPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /usr/local/tomcat/webapps/openmrs.war\n")
 	if len(r.Definitions) != 1 {
@@ -627,6 +646,22 @@ func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
 		}
 	}
 	t.Fatal("missing source path copied from declared stage")
+}
+
+func TestDockerfileCopyFromNumericIndexResolvesNamedStage(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nFROM alpine:3.20 AS runtime\nCOPY --from=0 /app/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source_stage" {
+			if ref.Value != "/app/target/app.war" || ref.Qualification != "local" || ref.SourceStage != "build" || ref.Stage != "runtime" {
+				t.Fatalf("numeric stage reference was not resolved: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing source path copied from numeric stage index 0")
 }
 
 func TestDockerfileCopyFromAllowsFlagsBeforeFrom(t *testing.T) {
