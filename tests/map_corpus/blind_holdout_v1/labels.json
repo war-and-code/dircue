@@ -1,0 +1,323 @@
+{
+  "schema": "dircue-source-first-holdout-1",
+  "labeling_protocol": "Source-only; no dircue binary, map output, or per-repository result receipt was run or read before freeze. Every oracle file is pinned by path and SHA-256; positive facts include source line ranges. Expectations are exhaustive only for graph facts statically derivable from the named oracle files under docs/MAP.md 1.0 semantics. Coverage claims are limited to the declared scan subdirectory and oracle-file universe; unknowns are explicit.",
+  "repositories": [
+    {
+      "id": "gs-maven",
+      "url": "https://github.com/spring-guides/gs-maven.git",
+      "commit": "c65883f80b35bac86bb2580944de9146e2c6a55a",
+      "scan_subdirectory": "complete",
+      "oracle_files": [
+        {
+          "path": "complete/pom.xml",
+          "sha256": "ee2e07035d386842d68c8fbb521e9b5b44899c07d9a227360b98e4011ed145f4"
+        },
+        {
+          "path": "complete/src/main/java/hello/Greeter.java",
+          "sha256": "d834014b4bfb169745850f98a3642d2688b36b5719c58eea54b53c6529e24641"
+        },
+        {
+          "path": "complete/src/main/java/hello/HelloWorld.java",
+          "sha256": "a19ecad457cb8936af1dd0c1c2895698e697ad4ede012f2c6a10b5e45440240f"
+        },
+        {
+          "path": "complete/src/test/java/hello/GreeterTest.java",
+          "sha256": "1ecb7f186df45bd585415869a25aeb2d3f94f76128ff6c2bf339c535d5a184e2"
+        }
+      ],
+      "labels": {
+        "components": [
+          {
+            "name": "gs-maven",
+            "root": "complete",
+            "ecosystem": "maven",
+            "evidence": [
+              {
+                "path": "complete/pom.xml",
+                "lines": "6-9"
+              }
+            ]
+          }
+        ],
+        "deployables": [],
+        "interfaces": [],
+        "capabilities": [],
+        "relationships": [],
+        "coverage": {
+          "components": "complete",
+          "deployables": "complete",
+          "interfaces": "complete",
+          "capabilities": "complete",
+          "relationships": "complete"
+        },
+        "exhaustiveness_note": "The complete/ subtree relevant source inventory consists of the POM, two production Java sources, and one test Java source, all hash-pinned above. Maven jar packaging is not a 1.0 archive deployable; Joda-Time is not a catalogued service capability; JUnit is test-scoped."
+      }
+    },
+    {
+      "id": "flasky",
+      "url": "https://github.com/miguelgrinberg/flasky.git",
+      "commit": "3beedd640b9146b0bd65c8c2ecf402b01798bc33",
+      "scan_subdirectory": ".",
+      "oracle_files": [
+        {
+          "path": "requirements.txt",
+          "sha256": "8a1eea69bedc53f7b29a7a2235420d802d817ef3dcc37f743650ce1a01a0f668"
+        },
+        {
+          "path": "requirements/common.txt",
+          "sha256": "3a78abca061ed663c1a15f9bcb329c0a0afecd7c4dd465bf6f2a2cf36f8b8683"
+        },
+        {
+          "path": "requirements/prod.txt",
+          "sha256": "d57e88c5a83cb188e41d066a2a540d18339480328b699f8b1d1a945d73b80a8b"
+        },
+        {
+          "path": "requirements/heroku.txt",
+          "sha256": "35f990bbec144d472c95838fca3bc44289e0877f73d7d2d63b3bb27cd61d4444"
+        },
+        {
+          "path": "requirements/docker.txt",
+          "sha256": "83b8e83c832918fad5940f698b2c8829dc45c3dd80d97e76f380bd03ae4f97ee"
+        },
+        {
+          "path": "Dockerfile",
+          "sha256": "7d39a005489c22d5df2ff8101d6ac6e1a1f2a93b80b9c5de40d5fcb06e3e8ae0"
+        },
+        {
+          "path": "docker-compose.yml",
+          "sha256": "e058c72bc86a23c4221ed6e6ffa45b70b002a2dc53dd8f325f7a248e4a44302b"
+        },
+        {
+          "path": "Procfile",
+          "sha256": "24904741415300a879dd9af4bb361f067b36c471b1182e469c940904ad824281"
+        },
+        {
+          "path": "flasky.py",
+          "sha256": "119924c83f07cf58f88863be19d419d501e97a2c7512d44a331f19f6b5790638"
+        },
+        {
+          "path": "app/__init__.py",
+          "sha256": "5084f51fa2d9c29b3501f9a219851a0743076a3a65c4ebd42795d11733a7f171"
+        },
+        {
+          "path": "config.py",
+          "sha256": "1fd8032092e6bf1aa9180b78b3abd885477a897182847aa7eee1d93c9e5066f0"
+        }
+      ],
+      "labels": {
+        "components": [
+          {
+            "name": "flasky",
+            "root": ".",
+            "ecosystem": "python",
+            "evidence": [
+              {
+                "path": "requirements.txt",
+                "lines": "1-3"
+              },
+              {
+                "path": "flasky.py",
+                "lines": "20"
+              },
+              {
+                "path": "app/__init__.py",
+                "lines": "20-23"
+              }
+            ]
+          }
+        ],
+        "deployables": [
+          {
+            "name": "flasky",
+            "kind": "service",
+            "provider": "compose",
+            "evidence": [
+              {
+                "path": "docker-compose.yml",
+                "lines": "2-10"
+              }
+            ]
+          },
+          {
+            "name": "mysql",
+            "kind": "service",
+            "provider": "compose",
+            "evidence": [
+              {
+                "path": "docker-compose.yml",
+                "lines": "2-14"
+              }
+            ]
+          },
+          {
+            "name": "flasky",
+            "kind": "container",
+            "provider": "docker",
+            "evidence": [
+              {
+                "path": "Dockerfile",
+                "lines": "1-21"
+              }
+            ]
+          }
+        ],
+        "interfaces": [
+          {
+            "name": "5000",
+            "kind": "declared_port",
+            "provider": "docker",
+            "evidence": [
+              {
+                "path": "Dockerfile",
+                "lines": "20"
+              }
+            ]
+          },
+          {
+            "name": "8000:5000",
+            "kind": "declared_port",
+            "provider": "compose",
+            "evidence": [
+              {
+                "path": "docker-compose.yml",
+                "lines": "3-6"
+              }
+            ]
+          }
+        ],
+        "capabilities": [
+          {
+            "name": "datastore:relational",
+            "evidence": [
+              {
+                "path": "requirements/common.txt",
+                "lines": "14,26"
+              },
+              {
+                "path": "app/__init__.py",
+                "lines": "5,13"
+              }
+            ]
+          },
+          {
+            "name": "datastore:postgresql",
+            "evidence": [
+              {
+                "path": "requirements/heroku.txt",
+                "lines": "1-3"
+              }
+            ]
+          },
+          {
+            "name": "datastore:mysql",
+            "evidence": [
+              {
+                "path": "requirements/docker.txt",
+                "lines": "1-3"
+              },
+              {
+                "path": "docker-compose.yml",
+                "lines": "11-14"
+              }
+            ]
+          }
+        ],
+        "unresolved_source_facts": [
+          {
+            "fact": "SQLite URLs are configurable in DevelopmentConfig, TestingConfig, and ProductionConfig.",
+            "candidate_category": "datastore:sqlite",
+            "evidence": [
+              {
+                "path": "config.py",
+                "lines": "29-44"
+              }
+            ],
+            "scoring": "unknown; do not force into positive capability or false absence"
+          },
+          {
+            "fact": "The Procfile declares release and web commands.",
+            "evidence": [
+              {
+                "path": "Procfile",
+                "lines": "1-2"
+              }
+            ],
+            "scoring": "unsupported deployable kind in 1.0; retain as explicit limitation"
+          },
+          {
+            "fact": "Compose flasky service links to mysql as dbserver.",
+            "evidence": [
+              {
+                "path": "docker-compose.yml",
+                "lines": "3-10"
+              }
+            ],
+            "scoring": "link declaration is not a depends_on relationship"
+          }
+        ],
+        "relationships": [
+          {
+            "type": "builds",
+            "from": "Compose flasky service",
+            "to": "root component",
+            "evidence": [
+              {
+                "path": "docker-compose.yml",
+                "lines": "3-4"
+              }
+            ]
+          },
+          {
+            "type": "uses_capability",
+            "from": "root component",
+            "to": "datastore:relational",
+            "evidence": [
+              {
+                "path": "requirements/common.txt",
+                "lines": "14,26"
+              },
+              {
+                "path": "app/__init__.py",
+                "lines": "5,13"
+              }
+            ]
+          },
+          {
+            "type": "uses_capability",
+            "from": "root component",
+            "to": "datastore:postgresql",
+            "evidence": [
+              {
+                "path": "requirements/heroku.txt",
+                "lines": "1-3"
+              }
+            ]
+          },
+          {
+            "type": "uses_capability",
+            "from": "root component",
+            "to": "datastore:mysql",
+            "evidence": [
+              {
+                "path": "requirements/docker.txt",
+                "lines": "1-3"
+              },
+              {
+                "path": "docker-compose.yml",
+                "lines": "11-14"
+              }
+            ]
+          }
+        ],
+        "coverage": {
+          "components": "complete",
+          "deployables": "partial",
+          "interfaces": "partial",
+          "capabilities": "partial",
+          "relationships": "partial"
+        },
+        "exhaustiveness_note": "The oracle set exhausts these explicitly named manifest, deployment, and app-factory declarations only. The wider repository (migrations, tests, templates, and other sources) is outside the scored oracle universe. SQLite-category, Procfile, and Compose links are explicit unresolved facts; no whole-repository precision claim is made."
+      }
+    }
+  ]
+}
