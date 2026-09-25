@@ -615,6 +615,52 @@ func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
 	t.Fatal("no root Dockerfile builds edge emitted")
 }
 
+func TestRootDockerfileTargetCopyCanIdentifyRootMavenArchive(t *testing.T) {
+	doc := mapdoc.New()
+	root := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")
+	root.Properties = map[string]string{"root": "."}
+	doc.Nodes = append(doc.Nodes, root)
+	archive := deployables.Evidence{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}
+	copy := deployables.Evidence{Field: "COPY source", Value: "target/ROOT.war", Line: 8, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "maven", Kind: "archive", Format: "war", Name: "ROOT.war", Path: "pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archive}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: copy.Value, Qualification: "local", Evidence: copy}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	for _, edge := range doc.Edges {
+		if edge.From == dockerID && edge.Type == mapdoc.EdgeBuilds {
+			if edge.To != root.ID || len(edge.Coverage.Reasons) != 1 || edge.Coverage.Reasons[0] != "dockerfile_copy_source_matches_maven_archive" {
+				t.Fatalf("root target copy did not identify root Maven archive: %+v", edge)
+			}
+			return
+		}
+	}
+	t.Fatal("no root Dockerfile builds edge emitted")
+}
+
+func TestNestedDockerfileTargetCopyDoesNotIdentifyRootMavenArchive(t *testing.T) {
+	doc := mapdoc.New()
+	root := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")
+	root.Properties = map[string]string{"root": "."}
+	service := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/go.mod"}, "go")
+	service.Properties = map[string]string{"root": "services/api"}
+	doc.Nodes = append(doc.Nodes, root, service)
+	archive := deployables.Evidence{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}
+	copy := deployables.Evidence{Field: "COPY source", Value: "target/ROOT.war", Line: 8, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "maven", Kind: "archive", Format: "war", Name: "ROOT.war", Path: "pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archive}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "services/api/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: copy.Value, Qualification: "local", Evidence: copy}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile"}, "dockerfile:container_build:api").ID
+	for _, edge := range doc.Edges {
+		if edge.From == dockerID && edge.Type == mapdoc.EdgeBuilds && edge.To == root.ID {
+			t.Fatalf("nested Dockerfile target copy was falsely attributed to root Maven module: %+v", edge)
+		}
+	}
+}
+
 func TestDockerfileUnrelatedCopyBasenameDoesNotSelectMavenModule(t *testing.T) {
 	doc := mapdoc.New()
 	aggregator := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")

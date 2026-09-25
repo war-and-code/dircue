@@ -216,7 +216,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 					root := strings.TrimPrefix(path.Clean(candidate.root), "./")
 					pathIdentifiesModule := ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, root+"/")
 					if root == "." {
-						pathIdentifiesModule = ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, "target/")
+						// A bare target/<artifact> source can only identify the root
+						// Maven module when the Dockerfile itself is at the repository
+						// root. For nested Dockerfiles the build context is not known
+						// here, so this path alone is insufficient ownership evidence.
+						pathIdentifiesModule = ref.Kind == "copy_source" && path.Dir(def.Path) == "." && strings.HasPrefix(cleanSource, "target/")
 					}
 					stageIdentifiesArtifact := ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && dockerContextIncludesModule(def.References, def.DockerPathCopies, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
 					if pathIdentifiesModule || stageIdentifiesArtifact {
