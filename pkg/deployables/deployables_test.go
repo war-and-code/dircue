@@ -667,6 +667,28 @@ func TestDockerfileBroadContextCopyRemainsPublicEvidence(t *testing.T) {
 	}
 }
 
+func TestDockerfileRetainsBoundedRunCopyPathsForStageAttribution(t *testing.T) {
+	r := observeOne(t, "Dockerfile", `FROM maven:3.9 AS dev
+RUN mkdir -p /openmrs/distribution/openmrs_core/ \
+    && cp -a /openmrs_core/webapp/target/openmrs.war /openmrs/distribution/openmrs_core/openmrs.war \
+    && rm -rf /tmp/build
+`)
+	if len(r.Definitions[0].DockerPathCopies) != 1 {
+		t.Fatalf("expected one bounded RUN cp path observation: %+v", r.Definitions[0].DockerPathCopies)
+	}
+	ref := r.Definitions[0].DockerPathCopies[0]
+	if ref.Stage != "dev" || ref.SourcePath != "/openmrs_core/webapp/target/openmrs.war" || ref.TargetPath != "/openmrs/distribution/openmrs_core/openmrs.war" || ref.Evidence.Line != 3 {
+		t.Fatalf("unexpected RUN cp observation: %+v", ref)
+	}
+}
+
+func TestDockerfileCommentedOrEchoedRunCopyDoesNotCreatePathEvidence(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\n# RUN cp -a /webapp/target/app.war /download/app.war\nRUN echo cp -a /webapp/target/app.war /download/app.war\n")
+	if len(r.Definitions[0].DockerPathCopies) != 0 {
+		t.Fatalf("commented or echoed cp should not create path evidence: %+v", r.Definitions[0].DockerPathCopies)
+	}
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>

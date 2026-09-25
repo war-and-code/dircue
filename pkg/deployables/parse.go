@@ -19,6 +19,7 @@ var (
 	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
 	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
 	dockerCopy       = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
+	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-[a-zA-Z]+\s+)?(\S+)\s+(\S+)`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
 
@@ -77,7 +78,9 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	stages := map[string]bool{}
 	currentStage := ""
 	stageIndex := 0
+	inRunContinuation := false
 	for i, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
 			currentStage = strconv.Itoa(stageIndex)
 			stages[currentStage] = true
@@ -155,6 +158,17 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				}
 			}
 		}
+		isRunInstruction := strings.HasPrefix(strings.ToUpper(trimmedLine), "RUN ")
+		isRunContinuationLine := inRunContinuation && strings.HasPrefix(trimmedLine, "&&")
+		if isRunInstruction || isRunContinuationLine {
+			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
+				source, target := m[1], m[2]
+				if strings.HasPrefix(source, "/") && strings.HasPrefix(target, "/") && !dynamic(source) && !dynamic(target) && !strings.ContainsAny(source+target, "[]{}\"'\\") {
+					d.DockerPathCopies = append(d.DockerPathCopies, Reference{Kind: "run_copy", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "RUN cp source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourcePath: bounded(source), TargetPath: bounded(target)})
+				}
+			}
+		}
+		inRunContinuation = (isRunInstruction || inRunContinuation) && strings.HasSuffix(trimmedLine, "\\")
 	}
 	if len(d.References) == 0 {
 		return nil, false, nil
