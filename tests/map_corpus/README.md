@@ -316,6 +316,15 @@ check with useful counterexamples, not a population accuracy estimate or a
 passing whole-map quality gate. `independent_results.json` records the first
 run, binary and label hashes, and every matched or missed fact.
 
+`independent_flask_triage.json` separately reviews all 12 Flask exact-key misses
+against the pinned source and the first-run map (4 equivalent under a different
+name or vocabulary, 6 real map misses, and 2 unresolved). It is a post-hoc
+qualitative review: the exact-key scores above remain unchanged, and these
+targeted categories do not estimate precision. A test checks ledger coverage,
+unique keys, allowed categories, citations, and the frozen receipt and label
+hashes. See [BUILD_PROVENANCE.md](BUILD_PROVENANCE.md) for reproduction details
+of the independent receipt.
+
 Two additional opt-in checks use bounded source slices from public projects
 with a checked-in binary referenced by a build declaration. The
 [zdh_web Maven POM](https://github.com/zhaoyachao/zdh_web/blob/1e420dcb3ec748011958a34e1d317ad58830c636/pom.xml#L1073-L1079)
