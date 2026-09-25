@@ -47,3 +47,16 @@ The scored oracle is limited to the files listed in `labels.json`. Paths below a
 ## Interpretation limits
 
 This is a bounded qualitative oracle, not a numerical precision/recall fixture. The labels name source grounded facts but do not include every normalized output property and identity field required for an exact score; use them for source-by-source qualitative adjudication only. The Java slice is deliberately exhaustive and small. For Flasky, only the eleven hashed oracle files contribute to graph precision/recall; tests, migrations, templates, and other application files are outside the denominator. Coverage statuses are stated with the limitation of each question. The known ambiguities (Procfile, SQLite category, and Compose `links`) are explicit unknowns/partials, not silently counted as supported facts. A reviewer should adjudicate each source fact against the post-freeze map and avoid computing or aggregating precision/recall from these qualitative labels.
+
+## Separate exact-category fixture
+
+`flask-on-docker.json` is a `verify_golden.py`-compatible manifest for the pinned `testdrivenio/flask-on-docker` repository. It is source-first but implementation-aware; an independent labeler should finish before any map is generated. The exact oracle has four files (`docker-compose.yml`, `services/web/Dockerfile`, `services/web/requirements.txt`, and `services/web/project/__init__.py`) and each digest is pinned. The exact precision denominator is three deployables. Interfaces, components, capabilities, and edges are labeled for targeted recall only; their verifier scores must not be presented as exact precision. The separate production Compose/Nginx source facts are also targeted recall only and have hashes under `supporting_files`.
+
+Fetch the source at the frozen commit with:
+
+```sh
+git clone --no-checkout https://github.com/testdrivenio/flask-on-docker.git .cache/blind-holdout-v1/flask-on-docker
+git -C .cache/blind-holdout-v1/flask-on-docker checkout --detach c51257d182ad9c1e1b5f6addb633f74a358c0f71
+```
+
+Use `verify_golden.py --labels tests/map_corpus/blind_holdout_v1/flask-on-docker.json --maps <maps-dir> --no-gate` after the independent labeler and first map run. Read only deployables as an exact precision measurement; the manifest keeps `evaluation_scope` separate from source-based map coverage statuses.
