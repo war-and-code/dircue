@@ -724,6 +724,18 @@ func TestDockerfileCommentedOrEchoedRunCopyDoesNotCreatePathEvidence(t *testing.
 	}
 }
 
+func TestDockerfileMultiSourceRunCopyDoesNotInventAPathTransfer(t *testing.T) {
+	for _, command := range []string{
+		"RUN cp /webapp/target/ROOT.war /ROOT.war /tmp/output/",
+		"RUN true && cp -a /webapp/target/ROOT.war /ROOT.war /tmp/output/",
+	} {
+		r := observeOne(t, "Dockerfile", "FROM alpine AS build\n"+command+"\n")
+		if len(r.Definitions) != 1 || len(r.Definitions[0].DockerPathCopies) != 0 {
+			t.Fatalf("multi-source cp must not imply first-to-second transfer: %q: %+v", command, r.Definitions)
+		}
+	}
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>
