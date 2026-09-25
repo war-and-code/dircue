@@ -43,15 +43,18 @@ reference without proving that the project builds.
 A Dockerfile normally links to the component at its directory. A statically
 recognized `COPY` source can instead attribute its `builds` edge to a Maven
 WAR/EAR component when the source path identifies the module and the source
-uniquely names that module's archive. For `COPY --from`, attribution requires a
-local stage and evidence that the copied path maps back to the module's
-`target/` artifact through tracked copy destinations. Docker build-context
-`COPY` paths are relative to the build-context root; the parser currently reads
-them relative to the repository root and does not resolve nested Dockerfiles
-against a separately configured context. Stage paths are relative to that
-stage's filesystem root. This attribution remains partial: it does not
-interpret build arguments, ignore rules, arbitrary shell commands, or Maven
-output. Ambiguous or unresolved sources do not establish an archive owner; the
+uniquely names that module's archive. A direct context copy must occur in the
+final build stage and survive later writes. For `COPY --from`, attribution also
+requires a surviving copy in the final stage, a local source stage, and a
+tracked path back to the module's `target/` artifact. Docker build-context
+`COPY` paths are relative to the build-context root. A nested Dockerfile does
+not establish where that context begins, so its `COPY` paths do not establish
+Maven module ownership. Stage paths are relative to that stage's filesystem
+root. The bounded path trace follows static destinations and supported
+`WORKDIR` and `cp` forms; a later `ADD`, an unknown `RUN`, or unresolved path
+blocks attribution. This attribution remains partial: it does not interpret
+build arguments, ignore rules, arbitrary shell commands, or Maven output.
+Ambiguous or unresolved sources do not establish an archive owner; the
 directory-based link remains when no other source establishes one. The
 `copy_source` and `copy_source_stage` fact kinds record context and stage copy
 sources, respectively; the archive relationship uses the reason
