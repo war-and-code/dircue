@@ -10,13 +10,13 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/packageevidence"
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
-	"dircue/pkg/registries"
-	"dircue/pkg/rules"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/rules"
 )
 
 func emptyProfile() profile.Report {
@@ -90,7 +90,7 @@ func TestDeclarationsCompareIdenticalAndChangedRequirements(t *testing.T) {
 	for _, field := range changed.Changes[0].Fields {
 		fields = append(fields, field.Field)
 	}
-	if !reflect.DeepEqual(fields, []string{"interfaces", "requirements"}) {
+	if !reflect.DeepEqual(fields, []string{"requirements"}) {
 		t.Fatalf("changed fields: %v", fields)
 	}
 	if changed.Changes[0].BaseEvidence[0] != "go.mod" {
@@ -267,7 +267,10 @@ func TestDeclaredWorkspaceRelationshipsAndInterfacesAreCompared(t *testing.T) {
 	for _, f := range m.Changes[0].Fields {
 		fields = append(fields, f.Field)
 	}
-	if !reflect.DeepEqual(fields, []string{"interfaces", "references", "requirements"}) {
+	// Developer-task scripts ("test", "build") are not modeled as interfaces,
+	// so adding them does not appear as an interface change. Only references
+	// (workspace membership) and requirements change.
+	if !reflect.DeepEqual(fields, []string{"references", "requirements"}) {
 		t.Fatalf("workspace fields: %v", fields)
 	}
 	data, _ := json.Marshal(m)

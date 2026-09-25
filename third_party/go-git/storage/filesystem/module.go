@@ -1,9 +1,9 @@
 package filesystem
 
 import (
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/storage"
-	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/storage"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem/dotgit"
 )
 
 type ModuleStorage struct {

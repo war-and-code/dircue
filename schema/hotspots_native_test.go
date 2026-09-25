@@ -12,9 +12,9 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/internal/cli"
-	"dircue/pkg/reportdiff"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func TestNativeHotspotCLIAndSchemaAcrossLanguages(t *testing.T) {

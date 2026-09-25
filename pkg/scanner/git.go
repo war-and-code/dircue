@@ -10,18 +10,22 @@ import (
 	"path"
 	"path/filepath"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/profile"
 	"github.com/go-git/go-billy/v5"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/storage/filesystem"
+	"github.com/go-git/go-billy/v5/osfs"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/filemode"
+	formatcfg "github.com/war-and-code/dircue/third_party/go-git/plumbing/format/config"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/storer"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem/dotgit"
 )
 
 type gitSnapshot struct {
@@ -31,7 +35,8 @@ type gitSnapshot struct {
 	storages     []io.Closer
 	root         string
 	tree         *object.Tree
-	repo         *git.Repository
+	storage      *filesystem.Storage
+	commit       plumbing.Hash
 	maxTreeSize  int
 	errorPolicy  ErrorPolicy
 	infoRules    []attributeRule
@@ -61,21 +66,21 @@ func gitPackDescriptorLimit(laneCount int) int {
 }
 
 type gitObjectLane struct {
-	repo *git.Repository
+	storage *filesystem.Storage
 }
 
 // gitObjectLanes serializes each mutable go-git filesystem storage while
 // allowing independent storages to decode objects concurrently. Every lane
 // shares one thread-safe, size-bounded object cache.
 type gitObjectLanes struct {
-	// primaryRepo is also one of the available lanes. Direct use is confined
+	// primaryStorage is also one of the available lanes. Direct use is confined
 	// to snapshot setup, the serial tree prepass, and single-file inspection;
 	// those phases never overlap leased worker reads.
-	primaryRepo *git.Repository
-	available   chan *gitObjectLane
+	primaryStorage *filesystem.Storage
+	available      chan *gitObjectLane
 }
 
-func newGitObjectLanes(repositoryFS, worktreeFS billy.Filesystem, objectCache cache.Object, options filesystem.Options, count int) (*gitObjectLanes, []*filesystem.Storage, error) {
+func newGitObjectLanes(repositoryFS billy.Filesystem, objectCache cache.Object, options filesystem.Options, count int) (*gitObjectLanes, []*filesystem.Storage, error) {
 	if count < 1 {
 		return nil, nil, errors.New("Git object lane count must be positive")
 	}
@@ -83,19 +88,11 @@ func newGitObjectLanes(repositoryFS, worktreeFS billy.Filesystem, objectCache ca
 	storages := make([]*filesystem.Storage, 0, count)
 	for range count {
 		storage := filesystem.NewStorageWithOptions(repositoryFS, objectCache, options)
-		repo, err := git.Open(storage, worktreeFS)
-		if err != nil {
-			closeErr := storage.Close()
-			for _, opened := range storages {
-				closeErr = errors.Join(closeErr, opened.Close())
-			}
-			return nil, nil, errors.Join(err, closeErr)
-		}
 		storages = append(storages, storage)
-		if lanes.primaryRepo == nil {
-			lanes.primaryRepo = repo
+		if lanes.primaryStorage == nil {
+			lanes.primaryStorage = storage
 		}
-		lanes.available <- &gitObjectLane{repo: repo}
+		lanes.available <- &gitObjectLane{storage: storage}
 	}
 	return lanes, storages, nil
 }
@@ -118,7 +115,7 @@ func (l *gitObjectLanes) read(ctx context.Context, hash plumbing.Hash, filename 
 		return nil, 0, err
 	}
 	defer release()
-	blob, err := lane.repo.BlobObject(hash)
+	blob, err := object.GetBlob(lane.storage, hash)
 	if err != nil {
 		return nil, 0, recoverable(fmt.Errorf("read Git blob %s: %w", filename, err))
 	}
@@ -145,12 +142,12 @@ type gitTreeFrame struct {
 }
 
 type gitTreeIterator struct {
-	repo  *git.Repository
-	stack []gitTreeFrame
+	storage storer.EncodedObjectStorer
+	stack   []gitTreeFrame
 }
 
-func newGitTreeIterator(repo *git.Repository, tree *object.Tree) *gitTreeIterator {
-	return &gitTreeIterator{repo: repo, stack: []gitTreeFrame{{tree: tree}}}
+func newGitTreeIterator(storage storer.EncodedObjectStorer, tree *object.Tree) *gitTreeIterator {
+	return &gitTreeIterator{storage: storage, stack: []gitTreeFrame{{tree: tree}}}
 }
 
 // Next walks stored tree objects without requiring names that go-git can write
@@ -177,7 +174,7 @@ func (w *gitTreeIterator) Next() (string, object.TreeEntry, error) {
 			if len(w.stack) > maxGitTreeDepth {
 				return "", object.TreeEntry{}, object.ErrMaxTreeDepth
 			}
-			tree, err := w.repo.TreeObject(entry.Hash)
+			tree, err := object.GetTree(w.storage, entry.Hash)
 			if err != nil {
 				return "", object.TreeEntry{}, err
 			}
@@ -237,7 +234,7 @@ func (s *gitSnapshot) findEntry(filename string) (*object.TreeEntry, error) {
 			return nil, object.ErrMaxTreeDepth
 		}
 		var err error
-		tree, err = s.repo.TreeObject(found.Hash)
+		tree, err = object.GetTree(s.storage, found.Hash)
 		if err != nil {
 			return nil, err
 		}
@@ -269,7 +266,7 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 			if len(stack) > maxGitTreeDepth {
 				return false, object.ErrMaxTreeDepth
 			}
-			tree, err := s.repo.TreeObject(entry.Hash)
+			tree, err := object.GetTree(s.storage, entry.Hash)
 			if err != nil {
 				return false, err
 			}
@@ -284,28 +281,46 @@ func (s *gitSnapshot) exceedsTreeLimit(ctx context.Context) (bool, error) {
 	return false, nil
 }
 
-func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (*gitSnapshot, error) {
+// openGitSnapshot opens the git snapshot for the given directory.
+// It returns a non-nil fallbackWarning when --source auto silently switched to
+// directory mode because a .git directory was found but could not be used.
+// The warning message is safe for display (no absolute host paths).
+func openGitSnapshot(ctx context.Context, directory string, opts Options, discover bool, laneCount int) (snap *gitSnapshot, fallbackWarning *profile.Warning, err error) {
 	return openGitSnapshotWithAttributeRoot(ctx, directory, opts, discover, laneCount, attributeRoot)
 }
 
-func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, err error) {
+func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opts Options, discover bool, laneCount int, openAttributeRoot func(string) (*os.Root, error)) (snapshot *gitSnapshot, fallbackWarning *profile.Warning, err error) {
 	if opts.Source == "directory" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	if err := ctx.Err(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	repo, err := git.PlainOpenWithOptions(directory, &git.PlainOpenOptions{DetectDotGit: discover, EnableDotGitCommonDir: true})
-	if errors.Is(err, git.ErrRepositoryNotExists) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
-		return nil, nil
+	repositoryFS, root, metadataPath, err := openLocalGitFilesystem(directory, discover)
+	if errors.Is(err, errGitRepositoryNotFound) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
+		// No .git directory present; directory mode is the expected and silent path.
+		return nil, nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("open Git repository: %w", err)
+		return nil, nil, fmt.Errorf("open Git repository: %w", err)
 	}
-	var retainedStorages []*filesystem.Storage
-	var retainedLanes *gitObjectLanes
+	objectCache := cache.Object(cache.NewObjectLRUDefault())
+	if opts.GitObjectCacheBytes > 0 {
+		objectCache = cache.NewObjectLRU(cache.FileSize(opts.GitObjectCacheBytes))
+	}
+	if opts.GitReadMetrics != nil {
+		objectCache = &metricsObjectCache{Object: objectCache, metrics: opts.GitReadMetrics}
+	}
+	lanes, retainedStorages, err := newGitObjectLanes(repositoryFS, objectCache, filesystem.Options{
+		LargeObjectThreshold: ClassificationBytes,
+		MaxOpenDescriptors:   gitPackDescriptorLimit(laneCount),
+		ReadMetrics:          opts.GitReadMetrics,
+	}, laneCount)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open bounded Git storage: %w", err)
+	}
 	defer func() {
-		if snapshot == nil && len(retainedStorages) > 0 {
+		if snapshot == nil {
 			var closeErr error
 			for _, storage := range retainedStorages {
 				closeErr = errors.Join(closeErr, storage.Close())
@@ -315,118 +330,393 @@ func openGitSnapshotWithAttributeRoot(ctx context.Context, directory string, opt
 			}
 		}
 	}()
-	// PlainOpen's default storage eagerly materializes every complete object.
-	// Reopen using a bounded threshold so large non-delta objects are streamed.
-	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		objectCache := cache.Object(cache.NewObjectLRUDefault())
-		if opts.GitReadMetrics != nil {
-			objectCache = &metricsObjectCache{Object: objectCache, metrics: opts.GitReadMetrics}
+	storage := lanes.primaryStorage
+
+	// Detect SHA-256 object-format repositories.  go-git is compiled without
+	// SHA-256 support (no "sha256" build tag), so it cannot read objects from
+	// these repositories and would produce a misleading "object not found"
+	// error later.  Catch the situation early with a clear message instead.
+	//
+	// Note: config.Config.Extensions.ObjectFormat is NOT populated by
+	// config.Unmarshal in the current go-git fork (unmarshalExtensions is
+	// absent).  We use the raw parsed section instead.
+	if cfg, cfgErr := storage.Config(); cfgErr == nil {
+		if cfg.Raw.Section("extensions").Options.Get("objectformat") == string(formatcfg.SHA256) {
+			if opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
+				w := &profile.Warning{
+					Path:    ".git/config",
+					Code:    "git_object_format_unsupported",
+					Message: "repository uses sha256 object format; git mode not available, using directory scan",
+				}
+				return nil, w, nil
+			}
+			return nil, nil, errors.New("unsupported Git object format sha256: use --source directory")
 		}
-		var worktreeFS billy.Filesystem
-		wt, wtErr := repo.Worktree()
-		if wtErr == nil {
-			worktreeFS = wt.Filesystem
-		}
-		retainedLanes, retainedStorages, err = newGitObjectLanes(storage.Filesystem(), worktreeFS, objectCache, filesystem.Options{LargeObjectThreshold: ClassificationBytes, MaxOpenDescriptors: gitPackDescriptorLimit(laneCount), ReadMetrics: opts.GitReadMetrics}, laneCount)
-		if err != nil {
-			return nil, fmt.Errorf("open bounded Git storage: %w", err)
-		}
-		repo = retainedLanes.primaryRepo
 	}
+
+	if _, err := storage.Reference(plumbing.HEAD); err != nil {
+		if errors.Is(err, plumbing.ErrReferenceNotFound) && opts.Source == "auto" && opts.Revision == "" && opts.Tree == "" {
+			w := &profile.Warning{
+				Path:    ".git/HEAD",
+				Code:    "git_head_not_found",
+				Message: "HEAD reference not found; git mode not available, using directory scan",
+			}
+			return nil, w, nil
+		}
+		return nil, nil, fmt.Errorf("open Git repository: %w", err)
+	}
+
 	var tree *object.Tree
+	var selectedCommit plumbing.Hash
 	if opts.Tree != "" {
 		if !fullSHA1(opts.Tree) {
-			return nil, errors.New("tree must be a full 40-character hexadecimal Git object ID")
+			return nil, nil, errors.New("tree must be a full 40-character hexadecimal Git object ID")
 		}
-		tree, err = repo.TreeObject(plumbing.NewHash(opts.Tree))
+		hash := plumbing.NewHash(opts.Tree)
+		tree, err = object.GetTree(storage, hash)
 		if err != nil {
-			// When the object exists but is a commit, blob, or tag, tell the
-			// caller what kind it actually is so a copy-pasted commit or blob
-			// hash does not look like a missing object. The kind probe reuses
-			// the same storage the tree lookup consulted.
 			if errors.Is(err, plumbing.ErrObjectNotFound) {
-				if obj, probeErr := repo.Object(plumbing.AnyObject, plumbing.NewHash(opts.Tree)); probeErr == nil && obj != nil {
-					return nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, obj.Type())
+				if encoded, probeErr := storage.EncodedObject(plumbing.AnyObject, hash); probeErr == nil {
+					return nil, nil, fmt.Errorf("resolve Git tree %q: object is a %s, not a tree", opts.Tree, encoded.Type())
 				}
 			}
-			return nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
+			return nil, nil, fmt.Errorf("resolve Git tree %q: %w", opts.Tree, err)
 		}
 	} else {
 		revision := opts.Revision
 		if revision == "" {
 			revision = "HEAD"
 		}
-		hash, resolveErr := repo.ResolveRevision(plumbing.Revision(revision))
-		if resolveErr != nil {
-			// Only a repository with no branch refs is treated as legitimately
-			// unborn. Existing refs whose objects cannot be read fail closed.
-			if opts.Source == "auto" && opts.Revision == "" && errors.Is(resolveErr, plumbing.ErrReferenceNotFound) && isUnbornRepository(repo) {
-				return nil, nil
-			}
-			return nil, fmt.Errorf("resolve Git revision %q: %w", revision, resolveErr)
-		}
-		commit, commitErr := repo.CommitObject(*hash)
-		if commitErr != nil {
-			return nil, fmt.Errorf("resolve Git commit: %w", commitErr)
-		}
-		tree, err = commit.Tree()
+		selectedCommit, err = resolveLocalRevision(storage, revision)
 		if err != nil {
-			return nil, fmt.Errorf("read Git tree: %w", err)
+			if opts.Source == "auto" && opts.Revision == "" && errors.Is(err, plumbing.ErrReferenceNotFound) && isUnbornRepository(storage) {
+				// An unborn repository (no commits yet) or a corrupt gitdir
+				// (e.g. .git/commondir pointing to a path that does not hold
+				// the expected refs) looks identical from git mode's point of
+				// view: HEAD points to a branch that has no objects.  Fall
+				// back to directory scan and emit a warning so the user knows
+				// git mode was not active.
+				w := &profile.Warning{
+					Path:    ".git",
+					Code:    "git_no_commits_or_corrupt_gitdir",
+					Message: "HEAD branch has no commits visible in the reference store (unborn repository or corrupt commondir); using directory scan",
+				}
+				return nil, w, nil
+			}
+			return nil, nil, fmt.Errorf("resolve Git revision %q: %w", revision, err)
 		}
-	}
-	root := directory
-	if discover {
-		if wt, err := repo.Worktree(); err == nil {
-			root = wt.Filesystem.Root()
+		commit, commitErr := object.GetCommit(storage, selectedCommit)
+		if commitErr != nil {
+			return nil, nil, fmt.Errorf("resolve Git commit: %w", commitErr)
+		}
+		tree, err = object.GetTree(storage, commit.TreeHash)
+		if err != nil {
+			return nil, nil, fmt.Errorf("read Git tree: %w", err)
 		}
 	}
 	root, err = filepath.Abs(root)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ownedStorages := make([]io.Closer, len(retainedStorages))
 	for i := range retainedStorages {
 		ownedStorages[i] = retainedStorages[i]
 	}
-	snapshot = &gitSnapshot{root: root, tree: tree, repo: repo, lanes: retainedLanes, storages: ownedStorages, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
-	if storage, ok := repo.Storer.(*filesystem.Storage); ok {
-		files, err := openAttributeRoot(storage.Filesystem().Root())
-		if err != nil {
-			return nil, err
-		}
-		defer files.Close()
-		info, err := files.Lstat("info/attributes")
-		if err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return nil, fmt.Errorf("inspect Git info attributes: %w", err)
-		}
-		if err == nil {
-			if !info.Mode().IsRegular() || info.Size() > maxAttributesBytes {
-				snapshot.infoWarnings = append(snapshot.infoWarnings, profile.Warning{Path: ".git/info/attributes", Code: "unsupported_gitattributes", Message: "non-regular or oversized attribute file ignored"})
-			} else {
-				// The same confined, no-follow/nonblocking regular-file reader
-				// used for checkout files prevents symlink escape and FIFO races.
-				data, tooLarge, err := readBounded(files, "info/attributes", maxAttributesBytes)
-				if err != nil {
-					return nil, fmt.Errorf("read Git info attributes: %w", err)
-				}
-				if tooLarge {
-					return nil, fmt.Errorf("Git info attributes exceeds 1 MiB")
-				}
-				var exceeded bool
-				snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBoundedFrom(".gitattributes", ".git/info/attributes", data, maxAttributeRules)
-				if exceeded {
-					snapshot.infoRules = nil
-					snapshot.infoWarnings = append(snapshot.infoWarnings, profile.Warning{Path: ".git/info/attributes", Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)})
-				}
-				for i := range snapshot.infoWarnings {
-					snapshot.infoWarnings[i].Path = ".git/info/attributes"
-				}
+	snapshot = &gitSnapshot{root: root, tree: tree, storage: storage, commit: selectedCommit, lanes: lanes, storages: ownedStorages, maxTreeSize: opts.MaxTreeSize, errorPolicy: opts.ErrorPolicy}
+	files, err := openAttributeRoot(metadataPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer files.Close()
+	info, err := files.Lstat("info/attributes")
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, nil, fmt.Errorf("inspect Git info attributes: %w", err)
+	}
+	if err == nil {
+		if !info.Mode().IsRegular() || info.Size() > maxAttributesBytes {
+			snapshot.infoWarnings = append(snapshot.infoWarnings, profile.Warning{Path: ".git/info/attributes", Code: "unsupported_gitattributes", Message: "non-regular or oversized attribute file ignored"})
+		} else {
+			data, tooLarge, err := readBounded(files, "info/attributes", maxAttributesBytes)
+			if err != nil {
+				return nil, nil, fmt.Errorf("read Git info attributes: %w", err)
+			}
+			if tooLarge {
+				return nil, nil, fmt.Errorf("Git info attributes exceeds 1 MiB")
+			}
+			var exceeded bool
+			snapshot.infoRules, snapshot.infoWarnings, exceeded = parseGitAttributesBoundedFrom(".gitattributes", ".git/info/attributes", data, maxAttributeRules)
+			if exceeded {
+				snapshot.infoRules = nil
+				snapshot.infoWarnings = append(snapshot.infoWarnings, profile.Warning{Path: ".git/info/attributes", Code: "unsupported_gitattributes", Message: fmt.Sprintf("attribute rules exceed %d rule limit; rules ignored", maxAttributeRules)})
+			}
+			for i := range snapshot.infoWarnings {
+				snapshot.infoWarnings[i].Path = ".git/info/attributes"
 			}
 		}
 	}
 	snapshot.availability = opts.Availability
 	snapshot.explainPath = opts.ExplainPath
-	return snapshot, nil
+	return snapshot, nil, nil
+}
+
+var errGitRepositoryNotFound = errors.New("repository does not exist")
+
+func openLocalGitFilesystem(directory string, discover bool) (billy.Filesystem, string, string, error) {
+	root, err := filepath.Abs(directory)
+	if err != nil {
+		return nil, "", "", err
+	}
+	for {
+		checkout, openErr := os.OpenRoot(root)
+		if openErr != nil {
+			return nil, "", "", openErr
+		}
+		info, statErr := checkout.Lstat(".git")
+		if statErr == nil {
+			metadataPath := filepath.Join(root, ".git")
+			switch {
+			case info.IsDir():
+				checkout.Close()
+			case info.Mode().IsRegular():
+				if info.Size() > 4096 {
+					checkout.Close()
+					return nil, "", "", errors.New("Git metadata pointer exceeds 4096 bytes")
+				}
+				data, tooLarge, readErr := readBounded(checkout, ".git", 4096)
+				checkout.Close()
+				if readErr != nil {
+					return nil, "", "", readErr
+				}
+				if tooLarge {
+					return nil, "", "", errors.New("Git metadata pointer exceeds 4096 bytes")
+				}
+				value := strings.TrimSpace(string(data))
+				if !strings.HasPrefix(value, "gitdir: ") || strings.TrimSpace(strings.TrimPrefix(value, "gitdir: ")) == "" {
+					return nil, "", "", errors.New("invalid Git metadata pointer")
+				}
+				metadataPath = strings.TrimSpace(strings.TrimPrefix(value, "gitdir: "))
+				if !filepath.IsAbs(metadataPath) {
+					metadataPath = filepath.Join(root, metadataPath)
+				}
+				metadataPath = filepath.Clean(metadataPath)
+			default:
+				checkout.Close()
+				return nil, "", "", errors.New("Git metadata path is not a directory or regular file")
+			}
+			metadataFS := osfs.New(metadataPath)
+			metadataRoot, rootErr := os.OpenRoot(metadataPath)
+			if rootErr != nil {
+				return nil, "", "", rootErr
+			}
+			commonInfo, commonErr := metadataRoot.Lstat("commondir")
+			if errors.Is(commonErr, fs.ErrNotExist) {
+				metadataRoot.Close()
+				return metadataFS, root, metadataPath, nil
+			}
+			if commonErr != nil {
+				metadataRoot.Close()
+				return nil, "", "", commonErr
+			}
+			if !commonInfo.Mode().IsRegular() || commonInfo.Size() > 4096 {
+				metadataRoot.Close()
+				return nil, "", "", errors.New("Git commondir must be a regular file no larger than 4096 bytes")
+			}
+			data, tooLarge, readErr := readBounded(metadataRoot, "commondir", 4096)
+			metadataRoot.Close()
+			if readErr != nil {
+				return nil, "", "", readErr
+			}
+			if tooLarge {
+				return nil, "", "", errors.New("Git commondir exceeds 4096 bytes")
+			}
+			common := strings.TrimSpace(string(data))
+			if common == "" {
+				return nil, "", "", errors.New("Git commondir is empty")
+			}
+			if !filepath.IsAbs(common) {
+				common = filepath.Join(metadataPath, common)
+			}
+			commonFS := osfs.New(filepath.Clean(common))
+			return dotgit.NewRepositoryFilesystem(metadataFS, commonFS), root, metadataPath, nil
+		}
+		checkout.Close()
+		if statErr != nil && !errors.Is(statErr, fs.ErrNotExist) {
+			return nil, "", "", statErr
+		}
+		if !discover {
+			if isBareGitDirectory(root) {
+				return osfs.New(root), root, root, nil
+			}
+			return nil, "", "", errGitRepositoryNotFound
+		}
+		parent := filepath.Dir(root)
+		if parent == root {
+			return nil, "", "", errGitRepositoryNotFound
+		}
+		root = parent
+	}
+}
+
+func isBareGitDirectory(directory string) bool {
+	head, headErr := os.Lstat(filepath.Join(directory, "HEAD"))
+	objects, objectsErr := os.Lstat(filepath.Join(directory, "objects"))
+	return headErr == nil && head.Mode().IsRegular() && objectsErr == nil && objects.IsDir()
+}
+
+func resolveLocalRevision(storage *filesystem.Storage, value string) (plumbing.Hash, error) {
+	base, operations, err := parseRevisionOperations(value)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	hash, err := resolveRevisionBase(storage, base)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	commit, err := peelCommit(storage, hash)
+	if err != nil {
+		return plumbing.ZeroHash, err
+	}
+	for _, operation := range operations {
+		switch operation.kind {
+		case '^':
+			if operation.depth == 0 {
+				continue
+			}
+			commit, err = commit.Parent(operation.depth - 1)
+		case '~':
+			for range operation.depth {
+				commit, err = commit.Parent(0)
+				if err != nil {
+					break
+				}
+			}
+		}
+		if err != nil {
+			return plumbing.ZeroHash, err
+		}
+	}
+	return commit.Hash, nil
+}
+
+type revisionOperation struct {
+	kind  byte
+	depth int
+}
+
+func parseRevisionOperations(value string) (string, []revisionOperation, error) {
+	if value == "" {
+		return "", nil, plumbing.ErrReferenceNotFound
+	}
+	first := strings.IndexAny(value, "^~")
+	if first < 0 {
+		return value, nil, nil
+	}
+	base := value[:first]
+	if base == "" {
+		return "", nil, fmt.Errorf("invalid Git revision %q", value)
+	}
+	var operations []revisionOperation
+	for i := first; i < len(value); {
+		kind := value[i]
+		i++
+		start := i
+		for i < len(value) && value[i] >= '0' && value[i] <= '9' {
+			i++
+		}
+		depth := 1
+		if start != i {
+			parsed, err := strconv.ParseUint(value[start:i], 10, 31)
+			if err != nil {
+				return "", nil, fmt.Errorf("invalid Git revision %q: %w", value, err)
+			}
+			depth = int(parsed)
+		}
+		if i < len(value) && value[i] != '^' && value[i] != '~' {
+			return "", nil, fmt.Errorf("invalid Git revision %q", value)
+		}
+		operations = append(operations, revisionOperation{kind: kind, depth: depth})
+	}
+	return base, operations, nil
+}
+
+func resolveRevisionBase(storage *filesystem.Storage, value string) (plumbing.Hash, error) {
+	if isHexPrefix(value) {
+		if len(value) == 40 {
+			return plumbing.NewHash(value), nil
+		}
+		iter, err := storage.IterEncodedObjects(plumbing.AnyObject)
+		if err != nil {
+			return plumbing.ZeroHash, err
+		}
+		defer iter.Close()
+		var match plumbing.Hash
+		for {
+			encoded, err := iter.Next()
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			if err != nil {
+				return plumbing.ZeroHash, err
+			}
+			if strings.HasPrefix(encoded.Hash().String(), strings.ToLower(value)) {
+				if match != plumbing.ZeroHash && match != encoded.Hash() {
+					return plumbing.ZeroHash, fmt.Errorf("ambiguous abbreviated object ID %q", value)
+				}
+				match = encoded.Hash()
+			}
+		}
+		if match != plumbing.ZeroHash {
+			return match, nil
+		}
+	}
+	var candidates []plumbing.ReferenceName
+	if strings.HasPrefix(value, "refs/") || value == "HEAD" || strings.HasPrefix(value, "MERGE_HEAD") {
+		candidates = append(candidates, plumbing.ReferenceName(value))
+	}
+	if !strings.HasPrefix(value, "refs/") && value != "HEAD" {
+		candidates = append(candidates,
+			plumbing.NewBranchReferenceName(value),
+			plumbing.NewTagReferenceName(value),
+			plumbing.ReferenceName("refs/remotes/"+value),
+		)
+	}
+	for _, candidate := range candidates {
+		ref, err := storer.ResolveReference(storage, candidate)
+		if err == nil {
+			return ref.Hash(), nil
+		}
+		if !errors.Is(err, plumbing.ErrReferenceNotFound) {
+			return plumbing.ZeroHash, err
+		}
+	}
+	return plumbing.ZeroHash, plumbing.ErrReferenceNotFound
+}
+
+func isHexPrefix(value string) bool {
+	if len(value) < 4 || len(value) > 40 {
+		return false
+	}
+	for _, r := range value {
+		if !((r >= '0' && r <= '9') || (r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F')) {
+			return false
+		}
+	}
+	return true
+}
+
+func peelCommit(storage storer.EncodedObjectStorer, hash plumbing.Hash) (*object.Commit, error) {
+	for range 1024 {
+		commit, err := object.GetCommit(storage, hash)
+		if err == nil {
+			return commit, nil
+		}
+		tag, tagErr := object.GetTag(storage, hash)
+		if tagErr != nil {
+			return nil, plumbing.ErrObjectNotFound
+		}
+		hash = tag.Target
+	}
+	return nil, errors.New("Git tag chain exceeds 1024 objects")
 }
 
 func fullSHA1(value string) bool {
@@ -441,12 +731,12 @@ func fullSHA1(value string) bool {
 	return true
 }
 
-func isUnbornRepository(repo *git.Repository) bool {
-	head, err := repo.Reference(plumbing.HEAD, false)
+func isUnbornRepository(storage *filesystem.Storage) bool {
+	head, err := storage.Reference(plumbing.HEAD)
 	if err != nil || head.Type() != plumbing.SymbolicReference || !head.Target().IsBranch() {
 		return false
 	}
-	refs, err := repo.References()
+	refs, err := storage.IterReferences()
 	if err != nil {
 		return false
 	}
@@ -486,7 +776,7 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 	var entries []job
 	var rules []attributeRule
 	warnings := slices.Clone(s.infoWarnings)
-	walker := newGitTreeIterator(s.repo, s.tree)
+	walker := newGitTreeIterator(s.storage, s.tree)
 	for {
 		if err := ctx.Err(); err != nil {
 			return err
@@ -514,7 +804,7 @@ func (s *gitSnapshot) walk(ctx context.Context, jobs chan<- job, send func(resul
 		// this first loop before the second loop dispatches any jobs. Workers
 		// therefore cannot lease that lane until this prepass is complete.
 		// Preserve that ordering if traversal and dispatch are ever interleaved.
-		size, err := s.repo.Storer.EncodedObjectSize(entry.Hash)
+		size, err := s.storage.EncodedObjectSize(entry.Hash)
 		if err != nil {
 			if s.errorPolicy == ErrorPolicyContinue {
 				if !send(result{path: filename, skipped: true, omission: "missing_git_object", warnings: []profile.Warning{{Path: filename, Code: "missing_git_object", Message: fmt.Sprintf("Git object could not be read; file skipped: %v", err)}}}) {

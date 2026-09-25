@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func envInput(files map[string]string, starts []Invocation) Input {

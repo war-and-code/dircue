@@ -1,0 +1,65 @@
+name: Fuzz Campaign
+
+on:
+  workflow_dispatch:
+    inputs:
+      fuzz_time:
+        description: >
+          Seconds per fuzz target. Short runs find shallow bugs;
+          longer runs (300–600 s) find deeper ones.
+        required: false
+        default: '60'
+      packages:
+        description: >
+          Go import path pattern(s) for packages to fuzz, space-separated.
+          Default: all packages with Fuzz* targets.
+        required: false
+        default: './...'
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Run fuzz campaign
+        id: fuzz
+        run: |
+          make fuzz-campaign \
+            FUZZ_TIME="${{ inputs.fuzz_time }}" \
+            FUZZ_PKG="${{ inputs.packages }}" \
+            FUZZ_CACHE="$RUNNER_TEMP/fuzz-cache"
+        continue-on-error: true
+      - name: Collect crashers
+        if: always()
+        run: |
+          # Collect any crashers written to testdata/fuzz/*/
+          find . -path '*/testdata/fuzz/*/*' -newer go.sum -not -path '*/.git/*' \
+            -print > /tmp/new-seeds.txt || true
+          if [ -s /tmp/new-seeds.txt ]; then
+            echo "New fuzz seeds (potential crashers or corpus additions):"
+            cat /tmp/new-seeds.txt
+          else
+            echo "No new seeds found."
+          fi
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: fuzz-campaign-results
+          retention-days: 30
+          path: |
+            ${{ runner.temp }}/fuzz-cache/
+      - name: Report outcome
+        if: steps.fuzz.outcome == 'failure'
+        run: |
+          echo "::error::Fuzz campaign found at least one crasher."
+          echo "Retrieve the artifact 'fuzz-campaign-results' to find the failing inputs."
+          exit 1

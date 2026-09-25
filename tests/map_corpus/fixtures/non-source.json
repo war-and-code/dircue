@@ -1,0 +1,10 @@
+{
+  "questions": [
+    {"id":"content-populations","oracle":{"source":"SQLite file format and ELF/PEM identifying prefixes","url":"https://www.sqlite.org/fileformat.html","fixture_evidence":"state.sqlite, app, service.crt, users.csv and README.md are direct fixture inputs"},"must_include":[
+      {"kind":"content","property":"role","value":"binary"},
+      {"kind":"content","property":"role","value":"data"},
+      {"kind":"content","property":"role","value":"certificate"},
+      {"kind":"content","property":"role","value":"documentation"}
+    ],"must_not_include":[{"kind":"deployable"},{"kind":"component","property":"name","value":"release service"}],"allowed_unknown":["binary format subtype"]}
+  ]
+}

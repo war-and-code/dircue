@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 // TestTreeSizeLimitOverridesUnreadableFile pins the contract that the

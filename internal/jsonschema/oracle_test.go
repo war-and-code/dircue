@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	private "dircue/internal/jsonschema"
 	upstream "github.com/santhosh-tekuri/jsonschema/v5"
+	private "github.com/war-and-code/dircue/internal/jsonschema"
 )
 
 func TestUnmodifiedUpstreamParity(t *testing.T) {

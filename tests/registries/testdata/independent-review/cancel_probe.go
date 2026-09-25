@@ -1,4 +1,4 @@
 package main
-import("context";"encoding/json";"os";"strings";"time";"dircue/pkg/registries")
+import("context";"encoding/json";"os";"strings";"time";"github.com/war-and-code/dircue/pkg/registries")
 func main(){content:=[]byte("<configuration>"+strings.Repeat("<!--x-->",30000)+"</configuration>");for i:=0;i<10;i++{ctx,cancel:=context.WithCancel(context.Background());c,_:=registries.New(registries.Source{Mode:"directory"},registries.Options{});c.Add(registries.Candidate{Path:"NuGet.Config",Size:int64(len(content)),Read:func(context.Context,int64)([]byte,int64,error){time.AfterFunc(100*time.Microsecond,cancel);return content,int64(len(content)),nil}});start:=time.Now();r,e:=c.Finish(ctx);json.NewEncoder(os.Stdout).Encode(map[string]any{"elapsed_ms":float64(time.Since(start).Nanoseconds())/1e6,"context_error":str(ctx.Err()),"error":str(e),"report_non_nil":r!=nil});cancel()}}
 func str(e error)string{if e==nil{return ""};return e.Error()}

@@ -23,8 +23,8 @@ elapsed seconds and the largest single-process peak RSS across those three runs.
 `analyze all --projects --metrics`. “Staged” runs the first pass, inspects its
 JSON, and runs `analyze metrics` unless the inventory has complete data-only
 composition, no project entries, and no warnings. Only the XML-only case skips
-the follow-up. The staged total includes both invocations where applicable;
-it is not just the follow-up duration.
+the follow-up. Where applicable, the staged total includes both the first pass
+and the follow-up invocation.
 
 All commands use `--source directory --json --workers 8 --tree-size 1000000`.
 Metrics use their default `source` scope and 16 MiB per-file limit. No native
@@ -45,7 +45,7 @@ with other tools.
   an SDK-style `.csproj` plus C# source. The verifier hashes every unique XML inode
   against the deterministic expected payload, checks exact inventory byte
   accounting, and asserts that the mixed project and its source metrics remain
-  present. These repetitive synthetic logs do not reproduce real MOVEit data.
+  present. These repetitive synthetic logs do not reproduce real log-transfer data.
 - Small source: a generated Go module with 200 files and 100 function declarations
   per file. The verifier checks every generated source file's complete bytes.
 - Spring and Roslyn: clean checkouts at the revisions in

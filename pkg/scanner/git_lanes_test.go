@@ -12,10 +12,12 @@ import (
 	"time"
 
 	"github.com/go-git/go-billy/v5"
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/cache"
-	"github.com/go-git/go-git/v5/storage/filesystem"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/cache"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/storer"
+	"github.com/war-and-code/dircue/third_party/go-git/storage/filesystem"
 )
 
 func TestGitObjectLanesAcquireAndCancellation(t *testing.T) {
@@ -88,7 +90,7 @@ func TestGitSnapshotOpensOnlyNeededObjectLanes(t *testing.T) {
 		{name: "single-file inspect", opts: Options{Source: "git", Workers: 16}, discover: true, lanes: 1},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			snapshot, err := openGitSnapshot(context.Background(), root, test.opts, test.discover, test.lanes)
+			snapshot, _, err := openGitSnapshot(context.Background(), root, test.opts, test.discover, test.lanes)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -181,13 +183,9 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 		t.Fatal(err)
 	}
 	base := opened.Storer.(*filesystem.Storage)
-	worktree, err := opened.Worktree()
-	if err != nil {
-		t.Fatal(err)
-	}
 	tracked := newDescriptorTrackingFS(base.Filesystem())
 	shared := cache.NewObjectLRUDefault()
-	lanes, storages, err := newGitObjectLanes(tracked, worktree.Filesystem, shared, filesystem.Options{
+	lanes, storages, err := newGitObjectLanes(tracked, shared, filesystem.Options{
 		LargeObjectThreshold: ClassificationBytes,
 		MaxOpenDescriptors:   maxGitPackDescriptorsPerConcurrentLane,
 	}, maxGitObjectLanes)
@@ -202,16 +200,16 @@ func TestGitObjectLanesShareBoundedCacheAndCloseDescriptors(t *testing.T) {
 		}
 	}()
 
-	primary := lanes.primaryRepo
-	head, err := primary.Head()
+	primary := lanes.primaryStorage
+	head, err := storer.ResolveReference(primary, plumbing.HEAD)
 	if err != nil {
 		t.Fatal(err)
 	}
-	commit, err := primary.CommitObject(head.Hash())
+	commit, err := object.GetCommit(primary, head.Hash())
 	if err != nil {
 		t.Fatal(err)
 	}
-	tree, err := commit.Tree()
+	tree, err := object.GetTree(primary, commit.TreeHash)
 	if err != nil {
 		t.Fatal(err)
 	}

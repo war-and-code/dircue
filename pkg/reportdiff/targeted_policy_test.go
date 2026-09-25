@@ -3,10 +3,10 @@ package reportdiff
 import (
 	"testing"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/declarations"
-	"dircue/pkg/environments"
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/environments"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestAvailabilityDeclarationSourceMustMatchWithinReport(t *testing.T) {

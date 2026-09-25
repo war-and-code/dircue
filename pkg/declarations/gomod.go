@@ -104,7 +104,6 @@ func goAddRequirement(d *Document, kind, value, condition string) bool {
 func goDirectives(d *Document, minimum *modfile.Go, toolchain *modfile.Toolchain, debug []*modfile.Godebug) {
 	if minimum != nil {
 		goAddRequirement(d, "go-language-minimum", minimum.Version, "")
-		AddInterface(d, Interface{Kind: "prerequisite", Name: "go", Target: minimum.Version, State: "declared", Evidence: d.Project.ID, Condition: "minimum Go language/toolchain version declaration"})
 	}
 	if toolchain != nil {
 		goAddRequirement(d, "go-toolchain-suggestion", toolchain.Name, "")

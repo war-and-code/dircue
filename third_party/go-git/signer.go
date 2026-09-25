@@ -3,7 +3,7 @@ package git
 import (
 	"io"
 
-	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
 )
 
 // signableObject is an object which can be signed.

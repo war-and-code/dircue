@@ -1,9 +1,9 @@
 package cli
 
 import (
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
 	"fmt"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
 	"io"
 	"slices"
 	"text/tabwriter"

@@ -16,7 +16,7 @@ The new scanner fixture exceeds cache capacity with eleven packs and exercises a
 
 ## Measurement contract
 
-`compare_candidate.py measure` runs three warmup pairs followed by twenty measured adjacent baseline/candidate pairs for each selected lane. Pair order alternates AB/BA. All samples and outliers are retained, binaries and corpus fingerprints are checked, and no agent build/test/install is allowed during the measurement window. This remains a shared macOS desktop with background system activity, not an isolated production host. Runtime controls match the source-bound build receipt.
+`compare_candidate.py measure` runs three warmup pairs followed by twenty measured adjacent baseline/candidate pairs for each selected lane. Pair order alternates AB/BA. All samples and outliers are retained, binaries and corpus fingerprints are checked, and no concurrent build, test, or install is allowed during the measurement window. This remains a shared macOS desktop with background system activity, not an isolated production host. Runtime controls match the source-bound build receipt.
 
 The paired median ratio and fixed-seed bootstrap interval describe this host/window/workload. The interval resamples twenty paired ratios and is not a claim about production uncertainty or extreme tails. At this sample count, p99/p99.9/p99.99 equal the observed maximum. RSS is standalone peak resident memory; sampled heap allocation is a separate metric. Logical input throughput is not disk bandwidth. Eight cache slots is a bounded design choice, not an empirically tuned optimum.
 

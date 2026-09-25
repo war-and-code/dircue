@@ -1,0 +1,56 @@
+{
+  "questions": [
+    {
+      "id": "python-import-capability",
+      "oracle": {
+        "fixture_evidence": "app.py imports jose (python-jose) and psycopg2; requirements.txt declares them; both paths appear in the capability evidence",
+        "source": "Python import system: PEP 302, import statement",
+        "url": "https://docs.python.org/3/reference/simple_stmts.html#import"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "auth:jwt",
+          "path": "app.py"
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "path": "app.py"
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "whether imported code is reached at runtime"
+      ]
+    },
+    {
+      "id": "python-requirements-declared-capability",
+      "oracle": {
+        "fixture_evidence": "requirements.txt declares python-jose[cryptography] and psycopg2-binary",
+        "source": "pip requirements file format: package coordinates map to capability catalog",
+        "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "auth:jwt",
+          "properties": {
+            "basis": "declared_dependency"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "properties": {
+            "basis": "declared_dependency"
+          }
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "whether the declared package version is installed"
+      ]
+    }
+  ]
+}

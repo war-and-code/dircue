@@ -1,0 +1,486 @@
+{
+  "gate": "golden-map-corpus",
+  "labeled_by": "blind",
+  "repos": [
+    {
+      "repo": "bloc",
+      "commit": "b9be1e252ee24ffbe9f2fb629edc7624b2cfbf05",
+      "questions": [
+        {
+          "question": "components",
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "name=bloc eco=dart",
+            "name=flutter_bloc eco=dart",
+            "name=flutter_weather eco=dart",
+            "name=weather_repository eco=dart",
+            "name=open_meteo_api eco=dart"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "deployables",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "tp_items": [],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "interfaces",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "tp_items": [],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "capabilities",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=net:http-client owner=open_meteo_api"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "edges",
+          "tp": 3,
+          "fp": 2,
+          "fn": 0,
+          "precision": 0.6,
+          "recall": 1.0,
+          "tp_items": [
+            "type=depends_on_local from=flutter_weather to=weather_repository",
+            "type=depends_on_local from=weather_repository to=open_meteo_api",
+            "type=uses_capability from=open_meteo_api to=net:http-client"
+          ],
+          "fp_items": [
+            "type=contains from=flutter_weather to=weather_repository",
+            "type=contains from=flutter_weather to=open_meteo_api"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "coverage",
+          "tp": 2,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.5,
+          "tp_items": [
+            "question=components status=partial",
+            "question=capabilities status=partial"
+          ],
+          "fp_items": [],
+          "fn_items": [
+            "question=deployables: label=unknown but dircue=partial (conservative)",
+            "question=interfaces: label=unknown but dircue=partial (conservative)"
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "flask-realworld",
+      "commit": "4b95fb2227dfeb5dd1a45d89b2bf48630b93fd28",
+      "questions": [
+        {
+          "question": "components",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "name=(root) eco=python"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "deployables",
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "precision": null,
+          "recall": 0.0,
+          "tp_items": [],
+          "fp_items": [],
+          "fn_items": [
+            "kind=service name=web path=Procfile"
+          ]
+        },
+        {
+          "question": "interfaces",
+          "tp": 0,
+          "fp": 0,
+          "fn": 0,
+          "precision": null,
+          "recall": null,
+          "tp_items": [],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "capabilities",
+          "tp": 2,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.6667,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=datastore:postgresql owner=(root)",
+            "capability=auth:jwt owner=(root)"
+          ],
+          "fp_items": [
+            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['Pipfile', 'conduit/database.py', 'conduit/user/views.py', 'requirements/prod.txt']"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "edges",
+          "tp": 2,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.6667,
+          "recall": 1.0,
+          "tp_items": [
+            "type=uses_capability from=(root) to=datastore:postgresql",
+            "type=uses_capability from=(root) to=auth:jwt"
+          ],
+          "fp_items": [
+            "type=uses_capability from=(root) to=datastore:relational"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "coverage",
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
+          "tp_items": [
+            "question=components status=partial",
+            "question=deployables status=partial",
+            "question=capabilities status=partial"
+          ],
+          "fp_items": [],
+          "fn_items": [
+            "question=interfaces: label=unknown but dircue=partial (conservative)"
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "node-realworld",
+      "commit": "30b68e1e881462b2f4164ea09ab4c4f5699c7b0b",
+      "questions": [
+        {
+          "question": "components",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "name=@api/source eco=npm"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "deployables",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "kind=container_build name=api"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "interfaces",
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "kind=npm_start name=start"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "capabilities",
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.75,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=datastore:postgresql owner=@api/source",
+            "capability=auth:jwt owner=@api/source",
+            "capability=net:http-client owner=@api/source"
+          ],
+          "fp_items": [
+            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['package.json']"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "edges",
+          "tp": 3,
+          "fp": 2,
+          "fn": 1,
+          "precision": 0.6,
+          "recall": 0.75,
+          "tp_items": [
+            "type=uses_capability from=@api/source to=datastore:postgresql",
+            "type=uses_capability from=@api/source to=auth:jwt",
+            "type=uses_capability from=@api/source to=net:http-client"
+          ],
+          "fp_items": [
+            "type=builds from=(root) to=@api/source",
+            "type=uses_capability from=@api/source to=datastore:relational"
+          ],
+          "fn_items": [
+            "type=builds from=api to=@api/source"
+          ]
+        },
+        {
+          "question": "coverage",
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.75,
+          "tp_items": [
+            "question=deployables status=partial",
+            "question=interfaces status=partial",
+            "question=capabilities status=partial"
+          ],
+          "fp_items": [],
+          "fn_items": [
+            "question=components: label=complete but dircue=partial (conservative)"
+          ]
+        }
+      ]
+    },
+    {
+      "repo": "openmrs-core",
+      "commit": "a4d278a8772faf16da132a958135026d330108e2",
+      "questions": [
+        {
+          "question": "components",
+          "tp": 3,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "name=openmrs eco=maven",
+            "name=openmrs-api eco=maven",
+            "name=openmrs-webapp eco=maven"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "deployables",
+          "tp": 3,
+          "fp": 1,
+          "fn": 0,
+          "precision": 0.75,
+          "recall": 1.0,
+          "tp_items": [
+            "kind=container_build name=openmrs-core",
+            "kind=service name=db",
+            "kind=service name=api"
+          ],
+          "fp_items": [
+            "deployable:openmrs.war:root=:eco=:kind=archive:ikind=:paths=['webapp/pom.xml']"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "interfaces",
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "kind=declared_port name=8080",
+            "kind=declared_port name=8080"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        },
+        {
+          "question": "capabilities",
+          "tp": 3,
+          "fp": 4,
+          "fn": 0,
+          "precision": 0.4286,
+          "recall": 1.0,
+          "tp_items": [
+            "capability=datastore:mysql owner=openmrs-api",
+            "capability=datastore:postgresql owner=openmrs-api",
+            "capability=search:elasticsearch owner=openmrs-api"
+          ],
+          "fp_items": [
+            "capability:storage:object:root=:eco=:kind=:ikind=:paths=['api/pom.xml']",
+            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['webapp/pom.xml']",
+            "capability:cloud:aws:root=:eco=:kind=:ikind=:paths=['api/pom.xml']",
+            "capability:datastore:relational:root=:eco=:kind=:ikind=:paths=['api/pom.xml']"
+          ],
+          "fn_items": []
+        },
+        {
+          "question": "edges",
+          "tp": 7,
+          "fp": 20,
+          "fn": 1,
+          "precision": 0.2593,
+          "recall": 0.875,
+          "tp_items": [
+            "type=member_of from=openmrs-api to=openmrs",
+            "type=member_of from=openmrs-webapp to=openmrs",
+            "type=depends_on_local from=openmrs-webapp to=openmrs-api",
+            "type=depends_on from=api to=db",
+            "type=uses_capability from=openmrs-api to=datastore:mysql",
+            "type=uses_capability from=openmrs-api to=datastore:postgresql",
+            "type=uses_capability from=openmrs-api to=search:elasticsearch"
+          ],
+          "fp_items": [
+            "type=builds from=api to=openmrs",
+            "type=builds from=(root) to=openmrs",
+            "type=builds from=openmrs.war to=openmrs-webapp",
+            "type=contains from=openmrs to=openmrs-api",
+            "type=contains from=openmrs to=openmrs-webapp",
+            "type=depends_on_local from=openmrs-webapp to=openmrs",
+            "type=depends_on_local from=openmrs-api to=openmrs-test",
+            "type=depends_on_local from=openmrs-api to=openmrs",
+            "type=depends_on_local from=openmrs-webapp to=openmrs-web",
+            "type=member_of from=openmrs-test to=openmrs",
+            "type=member_of from=openmrs-web to=openmrs",
+            "type=member_of from=openmrs-liquibase to=openmrs",
+            "type=member_of from=openmrs-tools to=openmrs",
+            "type=member_of from=openmrs-bom to=openmrs",
+            "type=member_of from=openmrs-test-suite to=openmrs",
+            "type=runs from=api to=openmrs",
+            "type=uses_capability from=openmrs-webapp to=datastore:relational",
+            "type=uses_capability from=openmrs-api to=cloud:aws",
+            "type=uses_capability from=openmrs-api to=datastore:relational",
+            "type=uses_capability from=openmrs-api to=storage:object"
+          ],
+          "fn_items": [
+            "type=builds from=openmrs-core to=openmrs-webapp"
+          ]
+        },
+        {
+          "question": "coverage",
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
+          "tp_items": [
+            "question=components status=partial",
+            "question=deployables status=partial",
+            "question=interfaces status=partial",
+            "question=capabilities status=partial"
+          ],
+          "fp_items": [],
+          "fn_items": []
+        }
+      ]
+    }
+  ],
+  "totals": {
+    "components": {
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "deployables": {
+      "tp": 4,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.8,
+      "recall": 0.8
+    },
+    "interfaces": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
+    },
+    "capabilities": {
+      "tp": 9,
+      "fp": 6,
+      "fn": 0,
+      "precision": 0.6,
+      "recall": 1.0
+    },
+    "edges": {
+      "tp": 15,
+      "fp": 25,
+      "fn": 2,
+      "precision": 0.375,
+      "recall": 0.8824
+    },
+    "coverage": {
+      "tp": 12,
+      "fp": 0,
+      "fn": 4,
+      "precision": 1.0,
+      "recall": 0.75
+    }
+  },
+  "gates": {
+    "components": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "deployables": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "interfaces": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "capabilities": {
+      "precision": 0.9,
+      "recall": 0.8
+    },
+    "edges": {
+      "precision": 0.9,
+      "recall": 0.8
+    }
+  }
+}

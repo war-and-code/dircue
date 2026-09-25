@@ -2,8 +2,8 @@
 package main
 
 import (
-	"dircue/pkg/registries"
 	"encoding/json"
+	"github.com/war-and-code/dircue/pkg/registries"
 	"os"
 )
 

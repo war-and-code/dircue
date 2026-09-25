@@ -89,10 +89,7 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - name: Validate checkout and tag before building
         run: python scripts/draft_release.py validate --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES"
       - name: Check Go core

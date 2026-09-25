@@ -10,9 +10,9 @@ import (
 	"strconv"
 	"strings"
 
-	"dircue/pkg/explain"
-	"dircue/pkg/profile"
-	enry "github.com/go-enry/go-enry/v2"
+	"github.com/war-and-code/dircue/pkg/explain"
+	"github.com/war-and-code/dircue/pkg/profile"
+	enry "github.com/war-and-code/dircue/third_party/go-enry"
 )
 
 const maxAttributesBytes int64 = 1 << 20
@@ -423,14 +423,6 @@ func attributeFields(text string) ([]string, error) {
 		}
 	}
 	return nil, fmt.Errorf("unterminated quoted pattern")
-}
-
-// Rugged/libgit2 as shipped with Linguist 9.7.0 ignores C-quoted patterns.
-// Preserve that observed behavior for Git snapshots. Flat directory mode
-// accepts the Git specification's quoted patterns as a documented extension.
-func parseGitAttributes(filename string, content []byte) ([]attributeRule, []profile.Warning) {
-	rules, warnings, _ := parseGitAttributesBounded(filename, content, maxAttributeRules)
-	return rules, warnings
 }
 
 func parseGitAttributesBounded(filename string, content []byte, ruleLimit int) ([]attributeRule, []profile.Warning, bool) {

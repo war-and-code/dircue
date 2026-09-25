@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"slices"
 
-	"dircue/pkg/availability"
-	"dircue/pkg/declarations"
-	"dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/availability"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/focus"
 )
 
 type LanguageEvidence struct {

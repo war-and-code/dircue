@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/registries"
 )
 
 func TestRegistriesSpecialFilesAreNeverOpened(t *testing.T) {

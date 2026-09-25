@@ -1,0 +1,39 @@
+name: Public map quality
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bounded-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Build candidate
+        run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+      - name: Fetch exact public corpus revisions
+        run: |
+          python3 tests/map_corpus/fetch_public.py --destination "$RUNNER_TEMP/map-corpus" \
+            --id microservices-demo --id eshop --id spring-petclinic \
+            --id terraform-alias --id express --id flask --id helm-examples
+      - name: Measure bounded map precision and recall
+        run: |
+          python3 tests/map_corpus/verify_public_quality.py \
+            --binary bin/dircue --corpus-root "$RUNNER_TEMP/map-corpus" \
+            --output .cache/public-map-quality.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          retention-days: 7
+          name: public-map-quality
+          path: .cache/public-map-quality.json

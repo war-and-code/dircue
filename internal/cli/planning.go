@@ -6,18 +6,20 @@ import (
 	"io"
 	"path"
 	"slices"
+	"sort"
 	"strings"
 	"unicode"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/planning"
-	"dircue/pkg/reportdiff"
-	"dircue/schema"
 	"github.com/spf13/cobra"
+	"github.com/war-and-code/dircue/internal/atlas"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/schema"
 )
 
 func newCapabilitiesCommand(opts *options) *cobra.Command {
-	var cliView, guideView bool
+	var cliView, guideView, accuracyView bool
 	var schemaName string
 	command := &cobra.Command{Use: "capabilities", Short: "Describe modules supported by saved-report planning", Args: cobra.NoArgs, RunE: func(cmd *cobra.Command, _ []string) error {
 		if err := rejectPlanningAnalysisFlags(cmd); err != nil {
@@ -27,16 +29,16 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 			return err
 		}
 		selected := 0
-		for _, name := range []string{"cli", "guide", "schema"} {
+		for _, name := range []string{"cli", "guide", "schema", "accuracy"} {
 			if cmd.Flags().Changed(name) {
 				selected++
 			}
 		}
 		if selected > 1 {
-			return fmt.Errorf("choose exactly one capabilities view: --cli, --guide, or --schema NAME; omit all three for planner modules")
+			return fmt.Errorf("choose exactly one capabilities view: --cli, --guide, --accuracy, or --schema NAME; omit all for planner modules")
 		}
-		if cmd.Flags().Changed("cli") && !cliView || cmd.Flags().Changed("guide") && !guideView {
-			return fmt.Errorf("capabilities view selectors require true; omit --cli or --guide for planner modules")
+		if cmd.Flags().Changed("cli") && !cliView || cmd.Flags().Changed("guide") && !guideView || cmd.Flags().Changed("accuracy") && !accuracyView {
+			return fmt.Errorf("capabilities view selectors require true; omit --cli, --guide, or --accuracy for planner modules")
 		}
 		if cliView {
 			d := describeCLI(cmd.Root())
@@ -51,6 +53,25 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 			}
 			return writeAutomationGuide(cmd.OutOrStdout(), d)
+		}
+		if accuracyView {
+			if opts.json {
+				cards := atlas.RawJSON()
+				n, err := cmd.OutOrStdout().Write(cards)
+				if err == nil && n != len(cards) {
+					return io.ErrShortWrite
+				}
+				// Ensure trailing newline
+				if err == nil && (len(cards) == 0 || cards[len(cards)-1] != '\n') {
+					_, err = fmt.Fprintln(cmd.OutOrStdout())
+				}
+				return err
+			}
+			cards, err := atlas.Load()
+			if err != nil {
+				return err
+			}
+			return writeAccuracyCards(cmd.OutOrStdout(), cards)
 		}
 		if cmd.Flags().Changed("schema") {
 			if !slices.Contains(schema.Names(), schemaName) {
@@ -80,10 +101,11 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 	}}
 	command.Flags().BoolVar(&cliView, "cli", false, "Describe the actual CLI grammar and automation contracts")
 	command.Flags().BoolVar(&guideView, "guide", false, "Print the automation guide without scanning or executing examples")
+	command.Flags().BoolVar(&accuracyView, "accuracy", false, "Print embedded accuracy cards derived from hand-labeled ground truth")
 	command.Flags().StringVar(&schemaName, "schema", "", "Export a bundled JSON Schema by exact name; always emits JSON")
-	command.Long = "Describe planner-supported modules by default. Explicit --cli, --guide, and --schema views expose CLI contracts, workflow guidance, and offline schemas. These mutually exclusive views never scan directories or probe tools. --cli=false and --guide=false are rejected; omit the selector for planner modules."
+	command.Long = "Describe planner-supported modules by default. Explicit --cli, --guide, --accuracy, and --schema views expose CLI contracts, workflow guidance, embedded accuracy cards, and offline schemas. These mutually exclusive views never scan directories, probe tools, or access the network. --cli=false, --guide=false, and --accuracy=false are rejected; omit the selector for planner modules."
 	setSavedReportHelp(command)
-	command.Example = "  dircue capabilities --json\n  dircue capabilities --cli --json\n  dircue capabilities --guide\n  dircue capabilities --schema profile --json"
+	command.Example = "  dircue capabilities --json\n  dircue capabilities --cli --json\n  dircue capabilities --guide\n  dircue capabilities --accuracy --json\n  dircue capabilities --schema profile --json"
 	return command
 }
 
@@ -231,6 +253,37 @@ func rejectPlanningAnalysisFlags(cmd *cobra.Command) error {
 	for _, flag := range analysisFlagNames {
 		if cmd.Flags().Changed(flag) {
 			return fmt.Errorf("--%s does not apply to %s; set scan options when creating a report with dircue analyze discovery --json /checkout", flag, cmd.Name())
+		}
+	}
+	return nil
+}
+
+func writeAccuracyCards(out io.Writer, cards *atlas.AccuracyCards) error {
+	if _, err := fmt.Fprintf(out, "Accuracy cards: %s (evaluated repos: %d)\n%s\n",
+		cards.SchemaVersion, cards.EvaluatedRepos, cards.ScopeNote); err != nil {
+		return err
+	}
+	// Sort kinds for deterministic output
+	kinds := make([]string, 0, len(cards.Overall))
+	for k := range cards.Overall {
+		kinds = append(kinds, k)
+	}
+	sort.Strings(kinds)
+	for _, kind := range kinds {
+		s := cards.Overall[kind]
+		tp := s.TP
+		labels := s.LabelCount
+		ciLower := "N/A"
+		if s.CILower != nil {
+			ciLower = fmt.Sprintf("%.2f", *s.CILower)
+		}
+		suffNote := ""
+		if s.Sufficiency == "insufficient_labels" {
+			suffNote = fmt.Sprintf(" [INSUFFICIENT: %d < 30 labels; results directional only]", labels)
+		}
+		if _, err := fmt.Fprintf(out, "  %s: %d/%d correct (95%% CI lower=%s), %d repos, path-scoped%s\n",
+			kind, tp, labels, ciLower, s.RepoCount, suffNote); err != nil {
+			return err
 		}
 	}
 	return nil

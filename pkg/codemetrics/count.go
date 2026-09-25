@@ -8,7 +8,7 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/boyter/scc/v4/processor"
+	"github.com/war-and-code/dircue/pkg/codemetrics/internal/sccprocessor"
 )
 
 const EngineVersion = "4.1.0"

@@ -1,0 +1,500 @@
+{
+  "binary_sha256": "56ca0172160aeb175e98403640331d608faeee16f613a541223c54560323f402",
+  "complete_overclaims": 0,
+  "interpretation": "Selected-file positive recall and coverage disagreement only; labels are not exhaustive, so precision is not estimated.",
+  "label_freeze_commit": "78fc5e1ea2ac642703ce4938f78bc007f10ec8eb",
+  "labeled_positives": 18,
+  "positives_found": 18,
+  "repositories": [
+    {
+      "commit": "20cbf3d11123347e47ed89541e6942836def53f7",
+      "id": "owasp_java",
+      "label_corrections": [
+        "deployable benchmark.war kind service -> archive",
+        "builds edge restated from benchmark.war to benchmark"
+      ],
+      "label_sha256": "8d83a01f4ceccf6f962784f82d4f4b75e448729f144faf4f9b16aa11cd8c47f5",
+      "language_parity": {
+        "dircue": {
+          "Batchfile": {
+            "percentage": "0.04",
+            "size": 6008
+          },
+          "CSS": {
+            "percentage": "0.03",
+            "size": 4749
+          },
+          "Dockerfile": {
+            "percentage": "0.01",
+            "size": 1468
+          },
+          "HTML": {
+            "percentage": "27.94",
+            "size": 4496835
+          },
+          "Java": {
+            "percentage": "71.79",
+            "size": 11554745
+          },
+          "JavaScript": {
+            "percentage": "0.06",
+            "size": 9196
+          },
+          "Shell": {
+            "percentage": "0.14",
+            "size": 22762
+          }
+        },
+        "linguist": {
+          "Batchfile": {
+            "percentage": "0.04",
+            "size": 6008
+          },
+          "CSS": {
+            "percentage": "0.03",
+            "size": 4749
+          },
+          "Dockerfile": {
+            "percentage": "0.01",
+            "size": 1468
+          },
+          "HTML": {
+            "percentage": "27.94",
+            "size": 4496835
+          },
+          "Java": {
+            "percentage": "71.79",
+            "size": 11554745
+          },
+          "JavaScript": {
+            "percentage": "0.06",
+            "size": 9196
+          },
+          "Shell": {
+            "percentage": "0.14",
+            "size": 22762
+          }
+        },
+        "matches_linguist": true
+      },
+      "map_sha256": "7786a0e2f9681c77ae7fdd8c26edc2c4f1a83f4d9f03382f4aaa26407f61f8e1",
+      "map_status": "partial",
+      "oracle_files": [
+        "pom.xml",
+        "src/config/web.xml",
+        "src/main/webapp/WEB-INF/benchmark-servlet.xml",
+        "README.md",
+        "src/main/resources/context.xml",
+        "src/config/build.xml"
+      ],
+      "questions": {
+        "capabilities": {
+          "found": 2,
+          "labeled_positives": 2,
+          "missed": []
+        },
+        "components": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        },
+        "coverage": {
+          "compatible_unknown": [],
+          "complete_overclaims": [],
+          "matches": 3,
+          "other_disagreements": [
+            "question=components: label=complete but dircue=partial (conservative)"
+          ]
+        },
+        "deployables": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        },
+        "edges": {
+          "found": 3,
+          "labeled_positives": 3,
+          "missed": []
+        },
+        "interfaces": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        }
+      },
+      "repository": "https://github.com/OWASP-Benchmark/BenchmarkJava"
+    },
+    {
+      "commit": "f1291485808b66e20ddb6b01b10dc71b3df8c8ba",
+      "id": "owasp_python",
+      "label_corrections": [
+        "component benchmark-python -> (root), with its owners",
+        "capability datastore:sqlite -> datastore:relational, with its edge",
+        "service deployable app.py -> flask_application interface app at app.py"
+      ],
+      "label_sha256": "fa30a88c603aac7bd6b6c216ceccb936e6499fc0ebbf38dcb65ea04cdbc3f617",
+      "language_parity": {
+        "dircue": {
+          "Batchfile": {
+            "percentage": "0.03",
+            "size": 1042
+          },
+          "CSS": {
+            "percentage": "0.13",
+            "size": 4749
+          },
+          "HTML": {
+            "percentage": "39.82",
+            "size": 1502724
+          },
+          "JavaScript": {
+            "percentage": "0.23",
+            "size": 8712
+          },
+          "Python": {
+            "percentage": "59.60",
+            "size": 2248758
+          },
+          "Shell": {
+            "percentage": "0.20",
+            "size": 7368
+          }
+        },
+        "linguist": {
+          "Batchfile": {
+            "percentage": "0.03",
+            "size": 1042
+          },
+          "CSS": {
+            "percentage": "0.13",
+            "size": 4749
+          },
+          "HTML": {
+            "percentage": "39.82",
+            "size": 1502724
+          },
+          "JavaScript": {
+            "percentage": "0.23",
+            "size": 8712
+          },
+          "Python": {
+            "percentage": "59.60",
+            "size": 2248758
+          },
+          "Shell": {
+            "percentage": "0.20",
+            "size": 7368
+          }
+        },
+        "matches_linguist": true
+      },
+      "map_sha256": "402366fceb4d203fae95d630b6669ca900d32de63986ba528fd49ee0774381af",
+      "map_status": "partial",
+      "oracle_files": [
+        "README.md",
+        "app.py",
+        "requirements.txt",
+        "runBenchmark.sh",
+        "helpers/db_sqlite.py",
+        "testcode/BenchmarkTest00018.py",
+        "testcode/BenchmarkTest00099.py"
+      ],
+      "questions": {
+        "capabilities": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        },
+        "components": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        },
+        "coverage": {
+          "compatible_unknown": [],
+          "complete_overclaims": [],
+          "matches": 3,
+          "other_disagreements": [
+            "question=deployables: label=complete but dircue=partial (conservative)"
+          ]
+        },
+        "deployables": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "edges": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        },
+        "interfaces": {
+          "found": 1,
+          "labeled_positives": 1,
+          "missed": []
+        }
+      },
+      "repository": "https://github.com/OWASP-Benchmark/BenchmarkPython"
+    },
+    {
+      "commit": "01eccc6ee36bd07698bd80915289fe7070478cd2",
+      "id": "dart",
+      "label_corrections": [],
+      "label_sha256": "5a0eb0bb885d5c292eabdb0755a45d3104a74067450d0ff1ee408fbaa4e5212b",
+      "language_parity": {
+        "dircue": {
+          "C": {
+            "percentage": "0.03",
+            "size": 820
+          },
+          "C++": {
+            "percentage": "0.78",
+            "size": 20586
+          },
+          "CMake": {
+            "percentage": "0.65",
+            "size": 17374
+          },
+          "Dart": {
+            "percentage": "98.22",
+            "size": 2605311
+          },
+          "HTML": {
+            "percentage": "0.12",
+            "size": 3241
+          },
+          "Kotlin": {
+            "percentage": "0.00",
+            "size": 124
+          },
+          "Objective-C": {
+            "percentage": "0.00",
+            "size": 38
+          },
+          "Ruby": {
+            "percentage": "0.15",
+            "size": 4037
+          },
+          "Swift": {
+            "percentage": "0.04",
+            "size": 1095
+          }
+        },
+        "linguist": {
+          "C": {
+            "percentage": "0.03",
+            "size": 820
+          },
+          "C++": {
+            "percentage": "0.78",
+            "size": 20586
+          },
+          "CMake": {
+            "percentage": "0.65",
+            "size": 17374
+          },
+          "Dart": {
+            "percentage": "98.22",
+            "size": 2605311
+          },
+          "HTML": {
+            "percentage": "0.12",
+            "size": 3241
+          },
+          "Kotlin": {
+            "percentage": "0.00",
+            "size": 124
+          },
+          "Objective-C": {
+            "percentage": "0.00",
+            "size": 38
+          },
+          "Ruby": {
+            "percentage": "0.15",
+            "size": 4037
+          },
+          "Swift": {
+            "percentage": "0.04",
+            "size": 1095
+          }
+        },
+        "matches_linguist": true
+      },
+      "map_sha256": "3d70dbb58f73cbe7dc66f714c0d7d27abe6aadd6c02b458d8979e2bde6b56b35",
+      "map_status": "partial",
+      "oracle_files": [
+        "pubspec.yaml",
+        "example/pubspec.yaml"
+      ],
+      "questions": {
+        "capabilities": {
+          "found": 2,
+          "labeled_positives": 2,
+          "missed": []
+        },
+        "components": {
+          "found": 2,
+          "labeled_positives": 2,
+          "missed": []
+        },
+        "coverage": {
+          "compatible_unknown": [],
+          "complete_overclaims": [],
+          "matches": 3,
+          "other_disagreements": [
+            "question=components: label=complete but dircue=partial (conservative)"
+          ]
+        },
+        "deployables": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "edges": {
+          "found": 3,
+          "labeled_positives": 3,
+          "missed": []
+        },
+        "interfaces": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        }
+      },
+      "repository": "https://github.com/AppFlowy-IO/appflowy-editor"
+    },
+    {
+      "commit": "59cc6c2fd7ebd7ef7925cad552a01a4b8b6e4d5e",
+      "id": "cobol",
+      "label_corrections": [],
+      "label_sha256": "6f4df48eee2d653081454b756c907aa4de4e9fc1756a3c9047d5c1822f53ef0e",
+      "language_parity": {
+        "dircue": {
+          "Assembly": {
+            "percentage": "0.15",
+            "size": 3993
+          },
+          "Awk": {
+            "percentage": "0.00",
+            "size": 113
+          },
+          "COBOL": {
+            "percentage": "83.99",
+            "size": 2260376
+          },
+          "Clean": {
+            "percentage": "0.50",
+            "size": 13472
+          },
+          "Csound Document": {
+            "percentage": "1.51",
+            "size": 40663
+          },
+          "JCL": {
+            "percentage": "6.45",
+            "size": 173527
+          },
+          "PostScript": {
+            "percentage": "6.59",
+            "size": 177350
+          },
+          "Shell": {
+            "percentage": "0.34",
+            "size": 9236
+          },
+          "Visual Basic 6.0": {
+            "percentage": "0.46",
+            "size": 12399
+          }
+        },
+        "linguist": {
+          "Assembly": {
+            "percentage": "0.15",
+            "size": 3993
+          },
+          "Awk": {
+            "percentage": "0.00",
+            "size": 113
+          },
+          "COBOL": {
+            "percentage": "83.99",
+            "size": 2260376
+          },
+          "Clean": {
+            "percentage": "0.50",
+            "size": 13472
+          },
+          "Csound Document": {
+            "percentage": "1.51",
+            "size": 40663
+          },
+          "JCL": {
+            "percentage": "6.45",
+            "size": 173527
+          },
+          "PostScript": {
+            "percentage": "6.59",
+            "size": 177350
+          },
+          "Shell": {
+            "percentage": "0.34",
+            "size": 9236
+          },
+          "Visual Basic 6.0": {
+            "percentage": "0.46",
+            "size": 12399
+          }
+        },
+        "matches_linguist": true
+      },
+      "map_sha256": "3db51b51cd6e3a7d152a537bfca0b35543254156cacf3992e5baf80815bf2d95",
+      "map_status": "partial",
+      "oracle_files": [
+        "app/cbl/CBACT01C.cbl",
+        "app/cpy/CVACT01Y.cpy",
+        "app/jcl/READACCT.jcl",
+        "README.md"
+      ],
+      "questions": {
+        "capabilities": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "components": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "coverage": {
+          "compatible_unknown": [
+            "components",
+            "deployables",
+            "interfaces",
+            "capabilities"
+          ],
+          "complete_overclaims": [],
+          "matches": 0,
+          "other_disagreements": []
+        },
+        "deployables": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "edges": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        },
+        "interfaces": {
+          "found": 0,
+          "labeled_positives": 0,
+          "missed": []
+        }
+      },
+      "repository": "https://github.com/aws-samples/aws-mainframe-modernization-carddemo"
+    }
+  ],
+  "schema": "dircue-map-source-first-holdout-1"
+}

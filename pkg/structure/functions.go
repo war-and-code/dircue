@@ -2,8 +2,8 @@ package structure
 
 import (
 	"bytes"
-	"dircue/internal/jsontext"
 	"encoding/json"
+	"github.com/war-and-code/dircue/internal/jsontext"
 	"io"
 	"strings"
 	"unicode"

@@ -5,7 +5,7 @@ package environments
 import (
 	"context"
 
-	"dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 const (

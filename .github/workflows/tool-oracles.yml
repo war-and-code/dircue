@@ -1,0 +1,187 @@
+name: Tool Oracles
+
+# Independent oracle that validates dircue's ingestion of real analyzer reports
+# and the SARIF locate command.
+#
+# Issues: #77 (Noir/SARIF ingestion), #78 (coverage ledger), #79 (routing),
+#         #82 (SARIF locate with three emitters).
+#
+# make tool-oracles   — run against the committed reports (offline).
+# This workflow       — optionally regenerate reports with pinned images, diff
+#                       them against committed ones, then run the oracle.
+#
+# Pinned images:
+#   OWASP Noir:  ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab (v1.3.1)
+#   ruff:        ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df (v0.11.13)
+#   Semgrep OSS: semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596 (v1.117.0)
+on:
+  workflow_dispatch:
+    inputs:
+      regenerate:
+        description: >
+          'true' (default) regenerates reports from pinned images and runs the
+          oracle on both the fresh and committed reports. 'false' skips Docker
+          and runs the oracle against committed reports only.
+        required: false
+        default: 'true'
+
+permissions:
+  contents: read
+
+env:
+  NOIR_IMAGE: "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab"
+  RUFF_IMAGE: "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df"
+  SEMGREP_IMAGE: "semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596"
+
+jobs:
+  tool-oracles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Build dircue
+        run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+
+      # --- Image pulls (requires network) ---
+      - name: Pull pinned Noir image
+        if: inputs.regenerate == 'true'
+        run: docker pull "$NOIR_IMAGE"
+
+      - name: Pull pinned ruff image
+        if: inputs.regenerate == 'true'
+        run: docker pull "$RUFF_IMAGE"
+
+      - name: Pull pinned Semgrep image
+        if: inputs.regenerate == 'true'
+        run: docker pull "$SEMGREP_IMAGE"
+
+      # --- Regenerate reports (network=none after pull) ---
+      - name: Regenerate OWASP Noir reports
+        if: inputs.regenerate == 'true'
+        run: |
+          for fixture in flask-app express-app spring-app; do
+            docker run --rm --network none \
+              -v "$PWD/tests/tools/fixtures/${fixture}:/app:ro" \
+              "$NOIR_IMAGE" noir scan /app -f json 2>/dev/null \
+              > "tests/tools/fixtures/${fixture}.noir.fresh.json"
+            docker run --rm --network none \
+              -v "$PWD/tests/tools/fixtures/${fixture}:/app:ro" \
+              "$NOIR_IMAGE" noir scan /app -f sarif 2>/dev/null \
+              > "tests/tools/fixtures/${fixture}.noir.sarif.fresh.json"
+          done
+
+      - name: Regenerate ruff SARIF reports
+        if: inputs.regenerate == 'true'
+        run: |
+          docker run --rm --network none \
+            -v "$PWD/tests/tools/fixtures/python-lint-sample:/src" \
+            -w /src "$RUFF_IMAGE" \
+            check --output-format sarif . 2>/dev/null \
+            > tests/tools/fixtures/python-lint-sample.ruff.sarif.fresh.json || true
+          docker run --rm --network none \
+            -v "$PWD/tests/tools/fixtures/flask-app:/src" \
+            -w /src "$RUFF_IMAGE" \
+            check --output-format sarif . 2>/dev/null \
+            > tests/tools/fixtures/flask-app.ruff.sarif.fresh.json || true
+
+      - name: Regenerate Semgrep SARIF reports
+        if: inputs.regenerate == 'true'
+        run: |
+          docker run --rm --network none \
+            -v "$PWD/tests/tools/fixtures/python-lint-sample:/src:ro" \
+            -v "$PWD/tests/tools/fixtures/semgrep-rules:/rules:ro" \
+            "$SEMGREP_IMAGE" \
+            semgrep --config /rules/python-checks.yaml --metrics off --sarif /src \
+            2>/dev/null \
+            > tests/tools/fixtures/python-lint-sample.semgrep.sarif.fresh.json
+
+      # --- Diff fresh against committed ---
+      - name: Diff fresh Noir reports against committed ones
+        if: inputs.regenerate == 'true'
+        run: |
+          python3 - <<'PYEOF'
+          import json, sys, os
+
+          def load(path):
+              if not os.path.exists(path):
+                  return None
+              with open(path) as f:
+                  return json.load(f)
+
+          def endpoint_set(doc):
+              if doc is None:
+                  return set()
+              endpoints = doc.get("endpoints", doc) if isinstance(doc, dict) else doc
+              return {(e.get("method", ""), e.get("url", "")) for e in endpoints}
+
+          drifted = False
+          for fixture in ["flask-app", "express-app", "spring-app"]:
+              committed = load(f"tests/tools/fixtures/{fixture}.noir.json")
+              fresh = load(f"tests/tools/fixtures/{fixture}.noir.fresh.json")
+              if committed is None or fresh is None:
+                  print(f"SKIP {fixture}: missing committed or fresh report")
+                  continue
+              committed_eps = endpoint_set(committed)
+              fresh_eps = endpoint_set(fresh)
+              if committed_eps != fresh_eps:
+                  print(f"DRIFT in {fixture}:")
+                  print(f"  added:   {fresh_eps - committed_eps}")
+                  print(f"  removed: {committed_eps - fresh_eps}")
+                  drifted = True
+              else:
+                  print(f"OK: {fixture} — endpoint set unchanged ({len(committed_eps)} endpoints)")
+
+          if drifted:
+              print("\nDrift detected — regenerate and commit the updated reports.")
+              sys.exit(1)
+          PYEOF
+
+      # --- Run oracle against fresh reports ---
+      - name: Run tool oracle against fresh reports
+        if: inputs.regenerate == 'true'
+        run: |
+          # Replace committed fixtures with fresh ones temporarily
+          for f in \
+            tests/tools/fixtures/flask-app.noir.json \
+            tests/tools/fixtures/express-app.noir.json \
+            tests/tools/fixtures/spring-app.noir.json \
+            tests/tools/fixtures/flask-app.noir.sarif.json \
+            tests/tools/fixtures/express-app.noir.sarif.json \
+            tests/tools/fixtures/spring-app.noir.sarif.json \
+            tests/tools/fixtures/python-lint-sample.ruff.sarif.json \
+            tests/tools/fixtures/python-lint-sample.semgrep.sarif.json \
+            tests/tools/fixtures/flask-app.ruff.sarif.json; do
+            fresh="${f%.json}.fresh.json"
+            if [ -f "$fresh" ]; then
+              cp "$f" "${f}.committed"
+              cp "$fresh" "$f"
+            fi
+          done
+          python3 tests/tools/run.py --binary bin/dircue
+          # Restore committed fixtures
+          for f in tests/tools/fixtures/*.committed; do
+            [ -f "$f" ] && mv "$f" "${f%.committed}"
+          done
+
+      # --- Run oracle against committed reports (always) ---
+      - name: Run tool oracle against committed reports
+        run: python3 tests/tools/run.py --binary bin/dircue
+
+      - name: Upload oracle artifacts
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: tool-oracle-results
+          retention-days: 7
+          path: |
+            tests/tools/fixtures/*.fresh.json

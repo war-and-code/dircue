@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 func TestFormatsCommandsAndComparison(t *testing.T) {

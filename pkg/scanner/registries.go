@@ -5,7 +5,7 @@ import (
 	"errors"
 	"os"
 
-	"dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/registries"
 )
 
 type registryAccumulator struct {

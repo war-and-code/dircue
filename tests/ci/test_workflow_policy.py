@@ -1,4 +1,4 @@
-"""Keep Actions event-driven and external dependencies pinned."""
+"""Keep Actions event-driven, external dependencies pinned, and permissions least-privilege."""
 
 from pathlib import Path
 import re
@@ -37,6 +37,23 @@ def workflow_events(source: str) -> set[str]:
     return events
 
 
+def top_level_permissions(source: str) -> dict[str, str]:
+    """Return the top-level permissions mapping for a workflow, or raise."""
+    lines = source.splitlines()
+    try:
+        start = lines.index("permissions:")
+    except ValueError:
+        raise AssertionError("workflow has no top-level 'permissions:' block")
+    result: dict[str, str] = {}
+    for line in lines[start + 1:]:
+        if not line.startswith("  ") or line.startswith("    "):
+            break
+        match = re.fullmatch(r"([a-z_-]+):\s*([a-z_-]+)", line.strip())
+        if match:
+            result[match.group(1)] = match.group(2)
+    return result
+
+
 def action_revisions(source: str) -> list[str]:
     revisions = []
     for line in source.splitlines():
@@ -62,6 +79,38 @@ class WorkflowPolicyTests(unittest.TestCase):
         for path in files:
             with self.subTest(path=path.name):
                 workflow_events(path.read_text())
+
+    def test_no_workflow_contains_schedule_trigger(self) -> None:
+        """Explicit absence check: scheduled CI violates the project event-driven policy."""
+        files = sorted((*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")))
+        self.assertTrue(files, "no workflows found")
+        for path in files:
+            with self.subTest(path=path.name):
+                text = path.read_text()
+                # A bare 'schedule:' or quoted 'schedule': at any indentation level
+                # would indicate a schedule trigger block.
+                self.assertNotRegex(
+                    text,
+                    r"(?m)^[ \t]*['\"]?schedule['\"]?\s*:",
+                    f"{path.name} must not contain a 'schedule:' trigger",
+                )
+
+    def test_every_workflow_has_explicit_least_privilege_permissions(self) -> None:
+        """Every workflow must declare top-level permissions: contents: read."""
+        files = sorted((*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")))
+        self.assertTrue(files, "no workflows found")
+        for path in files:
+            with self.subTest(path=path.name):
+                perms = top_level_permissions(path.read_text())
+                self.assertIn(
+                    "contents", perms,
+                    f"{path.name}: top-level permissions must declare 'contents'",
+                )
+                self.assertEqual(
+                    perms["contents"],
+                    "read",
+                    f"{path.name}: top-level 'contents' permission must be 'read' (write is allowed only at job scope)",
+                )
 
     def test_external_actions_use_full_commit_hashes(self) -> None:
         files = sorted((*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")))

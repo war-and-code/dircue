@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/planning"
-	"dircue/pkg/profile"
 	"github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestCapabilityDescriptorSchema(t *testing.T) {

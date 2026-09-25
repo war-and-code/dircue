@@ -1,6 +1,6 @@
 package reportdiff
 
-import "dircue/pkg/profile"
+import "github.com/war-and-code/dircue/pkg/profile"
 
 func contentModules(p profile.Report, result map[string]moduleData) {
 	m := newModule()

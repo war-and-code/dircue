@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode"
 
-	git "github.com/go-git/go-git/v5"
-	"github.com/go-git/go-git/v5/plumbing/object"
+	git "github.com/war-and-code/dircue/third_party/go-git"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
 )
 
 func assertSafeCLIError(t *testing.T, err error) {

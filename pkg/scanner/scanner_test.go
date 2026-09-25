@@ -13,8 +13,8 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/profile"
-	git "github.com/go-git/go-git/v5"
+	"github.com/war-and-code/dircue/pkg/profile"
+	git "github.com/war-and-code/dircue/third_party/go-git"
 )
 
 const goSource = "package main\n\nfunc main() {}\n"
@@ -173,6 +173,11 @@ func TestLateNULWithinClassificationPrefixIsBinary(t *testing.T) {
 	}
 	if language, strategy := DetectLanguage("beyond.cs", []byte(utf16Beyond)); language != "C#" || strategy != "Classifier" {
 		t.Fatalf("BOM-marked UTF-16 with a late U+0000 detected as %q by %q", language, strategy)
+	}
+	// ASP.NET Core's pinned MvcSandbox/Models/Index.cs contains only a UTF-8
+	// BOM. Linguist 9.7.0 reports C# via Classifier for this ambiguous suffix.
+	if language, strategy := DetectLanguage("Index.cs", []byte{0xef, 0xbb, 0xbf}); language != "C#" || strategy != "Classifier" {
+		t.Fatalf("BOM-only C# file detected as %q by %q", language, strategy)
 	}
 	root := fixtures(t, map[string]string{
 		"plain.rtf": plainRTF, "sample.rtf": rtf, "main.go": goSource,

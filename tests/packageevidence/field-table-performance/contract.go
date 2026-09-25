@@ -19,7 +19,7 @@ import (
 	"sync"
 	"time"
 
-	"dircue/pkg/packageevidence"
+	"github.com/war-and-code/dircue/pkg/packageevidence"
 )
 
 type checkedContext struct {

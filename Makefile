@@ -1,12 +1,14 @@
-VERSION ?= 0.9.0
+VERSION ?= 1.0.0-dev
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
+ATLAS_CACHE ?= .cache/atlas-repos
+ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden
 
 build:
-	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
+	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
 
 test:
 	go test -race ./...
@@ -19,6 +21,12 @@ check:
 
 bench:
 	go test ./pkg/scanner -run '^$$' -bench . -benchmem
+
+hostile-fs: build
+	python3 tests/hostile_fs/run.py --binary bin/dircue
+
+forest-e2e: build
+	python3 tests/forest/run.py --binary bin/dircue
 
 reference:
 	docker build -t $(REFERENCE_IMAGE) -f tests/conformance/Dockerfile tests/conformance
@@ -44,3 +52,156 @@ release:
 
 release-archives:
 	python3 scripts/release.py --version "$(VERSION)" --output "$(RELEASE_DIR)"
+
+# ---------------------------------------------------------------------------
+# Atlas parity and accuracy targets
+# ---------------------------------------------------------------------------
+
+# Fetch the full corpus (~50 repos) into the cache directory.
+# Requires network access; dircue itself never fetches.
+atlas-fetch: ## Fetch all pinned corpus repos into ATLAS_CACHE
+	python3 tests/atlas/fetch.py --cache "$(ATLAS_CACHE)" --all
+
+# Run the differential atlas on the smoke subset (5 repos).
+# Includes Linguist comparison when the Docker image is present (make reference to build it).
+# Requires: bin/dircue, scc 4.1.0 in GOBIN or PATH, and the smoke repos in ATLAS_CACHE.
+atlas-smoke: build ## Run differential atlas on the smoke subset (5 repos); includes Linguist when image present
+	@if docker image inspect $(REFERENCE_IMAGE) >/dev/null 2>&1; then \
+	  _linguist_flag=""; \
+	else \
+	  echo "WARNING: $(REFERENCE_IMAGE) not found; skipping Linguist (run 'make reference' to build it)"; \
+	  _linguist_flag="--no-linguist"; \
+	fi; \
+	if [ -z "$(SCC_BIN)" ]; then \
+	  echo "Installing scc 4.1.0..."; \
+	  _scc_dir=$$(mktemp -d /tmp/dircue-scc-XXXXX); \
+	  CGO_ENABLED=0 GOBIN="$$_scc_dir" go install github.com/boyter/scc/v4@v4.1.0; \
+	  python3 tests/atlas/run.py --candidate bin/dircue --scc "$$_scc_dir/scc" \
+	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke $$_linguist_flag; \
+	else \
+	  python3 tests/atlas/run.py --candidate bin/dircue --scc "$(SCC_BIN)" \
+	    --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --smoke $$_linguist_flag; \
+	fi
+
+# Run the full atlas (all corpus repos). Requires Docker for Linguist comparison.
+# Pass NO_LINGUIST=1 to skip the Linguist comparison (e.g. when Docker is unavailable).
+atlas: build ## Run the full differential atlas (all corpus repos)
+	@if [ -z "$(SCC_BIN)" ]; then \
+	  echo "Installing scc 4.1.0..."; \
+	  _scc_dir=$$(mktemp -d /tmp/dircue-scc-XXXXX); \
+	  CGO_ENABLED=0 GOBIN="$$_scc_dir" go install github.com/boyter/scc/v4@v4.1.0; \
+	  _scc="$$_scc_dir/scc"; \
+	else \
+	  _scc="$(SCC_BIN)"; \
+	fi; \
+	_flags=""; \
+	[ -n "$(NO_LINGUIST)" ] && _flags="$$_flags --no-linguist"; \
+	python3 tests/atlas/run.py --candidate bin/dircue --scc "$$_scc" \
+	  --cache "$(ATLAS_CACHE)" --output "$(ATLAS_OUTPUT)" --all $$_flags
+
+# Generate accuracy cards from hand-labeled ground truth.
+# Requires: bin/dircue and the labeled corpus repos in ATLAS_CACHE.
+accuracy-cards: build ## Generate accuracy cards into docs/ACCURACY.md and internal/atlas/accuracy_data.json
+	python3 tests/atlas/accuracy.py \
+	  --binary bin/dircue \
+	  --corpus-root "$(ATLAS_CACHE)" \
+	  --output docs/ACCURACY.md \
+	  --data internal/atlas/accuracy_data.json
+
+# Run the initially blind-labeled map regression gate (issue #75).
+# Requires pinned repo clones. See tests/map_corpus/golden_expectations.json
+# for the repo list, commit pins, and oracle-file SHA-256s.
+# Fetch repos with: python3 tests/map_corpus/fetch_golden.py --dest .cache/golden-repos
+# Not added to per-PR CI; run manually or via workflow_dispatch.
+GOLDEN_REPOS ?= .cache/golden-repos
+golden: build ## Run golden map-corpus gate (needs pinned repo clones in GOLDEN_REPOS)
+	@echo "==> Running golden gate (repos: $(GOLDEN_REPOS))"
+	@python3 tests/map_corpus/verify_golden.py \
+	  --labels tests/map_corpus/golden_expectations.json \
+	  --binary bin/dircue \
+	  --repos "$(GOLDEN_REPOS)" \
+	  --output tests/map_corpus/golden_results.json
+
+# ---------------------------------------------------------------------------
+# Issue #84: Syft oracle (independent package-coverage oracle)
+#
+# Verifies that `dircue map --attach syft-json=<report>` correctly imports
+# each committed Syft report and reflects it in the packages coverage question.
+#
+# The Syft reports in tests/syft-oracle/fixtures/ are generated with:
+#   SYFT_IMAGE="anchore/syft@sha256:500e2d872ac019436926e8322b4fc1f39441d94d21f6f4046c6ff29b30e8cb02"
+#   docker run --rm --network none \
+#     -v "$PWD/tests/syft-oracle/fixtures/go-single:/src:ro" \
+#     "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+#     > tests/syft-oracle/fixtures/go-single.syft.json
+#   docker run --rm --network none \
+#     -v "$PWD/tests/syft-oracle/fixtures/multi:/src:ro" \
+#     "$SYFT_IMAGE" scan dir:/src -o syft-json -q \
+#     > tests/syft-oracle/fixtures/multi.syft.json
+#
+# Usage:
+#   make syft-oracle              # run against committed reports
+SYFT_BINARY ?= bin/dircue
+
+.PHONY: syft-oracle
+
+syft-oracle: build ## Run Syft oracle: validate package-coverage binding against committed Syft reports
+	python3 tests/syft-oracle/run.py --binary $(SYFT_BINARY)
+
+# ---------------------------------------------------------------------------
+# Issues #77/#78/#79/#82: Tool oracle (Noir, ruff, semgrep)
+#
+# Validates dircue's ingestion of real analyzer reports:
+#   #77: OWASP Noir JSON/SARIF on web-framework fixtures
+#   #78: coverage ledger blind spots (not_run, unsupported_language, ...)
+#   #79: analyzer routing per component
+#   #82: dircue map locate with three SARIF emitters (Noir, ruff, semgrep)
+#
+# Fast committed-report checks; no Docker required.
+# To regenerate reports: make regenerate-tool-fixtures
+TOOL_ORACLE_BINARY ?= bin/dircue
+
+.PHONY: tool-oracles regenerate-tool-fixtures
+
+tool-oracles: build ## Run tool oracle: validate Noir/ruff/semgrep report ingestion and SARIF locate
+	python3 tests/tools/run.py --binary $(TOOL_ORACLE_BINARY)
+
+regenerate-tool-fixtures: ## Regenerate tool fixture reports with pinned images (requires Docker + network for pull)
+	@echo "==> Pulling pinned images (network required; subsequent runs use --network none)"
+	docker pull "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab"
+	docker pull "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df"
+	docker pull "semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596"
+	@echo "==> Regenerating OWASP Noir reports (network=none)"
+	for fixture in flask-app express-app spring-app; do \
+	  docker run --rm --network none \
+	    -v "$(PWD)/tests/tools/fixtures/$${fixture}:/app:ro" \
+	    "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab" \
+	    noir scan /app -f json 2>/dev/null \
+	    > "tests/tools/fixtures/$${fixture}.noir.json"; \
+	  docker run --rm --network none \
+	    -v "$(PWD)/tests/tools/fixtures/$${fixture}:/app:ro" \
+	    "ghcr.io/owasp-noir/noir@sha256:4f39307465326433b281508b5ffc433ec31cd150d7fd8f69167946c8ffb689ab" \
+	    noir scan /app -f sarif 2>/dev/null \
+	    > "tests/tools/fixtures/$${fixture}.noir.sarif.json"; \
+	done
+	@echo "==> Regenerating ruff SARIF reports (network=none)"
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/python-lint-sample:/src" \
+	  -w /src \
+	  "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df" \
+	  check --output-format sarif . 2>/dev/null \
+	  > tests/tools/fixtures/python-lint-sample.ruff.sarif.json; true
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/flask-app:/src" \
+	  -w /src \
+	  "ghcr.io/astral-sh/ruff@sha256:45cb2b28f0ad694917b159c65d058f1eeafdda0cb155a30374194c4c4b6c56df" \
+	  check --output-format sarif . 2>/dev/null \
+	  > tests/tools/fixtures/flask-app.ruff.sarif.json; true
+	@echo "==> Regenerating Semgrep SARIF reports (network=none)"
+	docker run --rm --network none \
+	  -v "$(PWD)/tests/tools/fixtures/python-lint-sample:/src:ro" \
+	  -v "$(PWD)/tests/tools/fixtures/semgrep-rules:/rules:ro" \
+	  "semgrep/semgrep@sha256:f435f06d2332f24d76a93791c8c5bd8c5bef7b426061eb04ff452a9d41e1b596" \
+	  semgrep --config /rules/python-checks.yaml --metrics off --sarif /src 2>/dev/null \
+	  > tests/tools/fixtures/python-lint-sample.semgrep.sarif.json
+	@echo "==> Reports regenerated; run make tool-oracles to validate"

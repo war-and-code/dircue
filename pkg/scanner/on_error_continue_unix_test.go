@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"dircue/pkg/structure"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 // TestAnalyzeAllContinueSurvivesUnreadableAggregationCandidates covers

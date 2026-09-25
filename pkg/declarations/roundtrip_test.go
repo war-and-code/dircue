@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"testing"
 
-	"dircue/pkg/declarations"
-	"dircue/pkg/profile"
-	"dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
 )
 
 // Exercise the producer/consumer boundary as well as the individual parsers.

@@ -1,0 +1,208 @@
+{
+  "bounded_fetch_bytes": {
+    "binary_per_file": 2000000,
+    "source_per_file": 250000
+  },
+  "claims": {
+    "package_identity": "not inferred from the binary file role; any package nodes are reported as tool observations only",
+    "repository_population": "not measured; only one manifest/project file and one referenced binary per pinned repository are included"
+  },
+  "dircue_binary_sha256": "56ca0172160aeb175e98403640331d608faeee16f613a541223c54560323f402",
+  "opt_in": true,
+  "results": [
+    {
+      "binary": "lib/zdh_generator.jar",
+      "binary_sha256": "7bfbff05cbb57dd10026a54f8c54c77d205547547ab530e0100fc33d5eea7264",
+      "binary_size": 14276,
+      "commit": "1e420dcb3ec748011958a34e1d317ad58830c636",
+      "dircue_map": {
+        "content_roles": {
+          "archive": 1
+        },
+        "coverage": [
+          {
+            "question": "analyzer_coverage",
+            "reasons": [
+              "no_analyzer_report_attached"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "capabilities",
+            "reasons": [
+              "bounded_interface_and_capability_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "components",
+            "reasons": [
+              "bounded_declaration_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "content",
+            "reasons": [],
+            "scope": ".",
+            "status": "complete"
+          },
+          {
+            "question": "deployables",
+            "reasons": [
+              "bounded_deployable_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "interfaces",
+            "reasons": [
+              "bounded_interface_and_capability_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "packages",
+            "reasons": [
+              "no_package_report_attached"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "routing",
+            "reasons": [
+              "no_route_plan_evaluated"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "source_binding",
+            "reasons": [],
+            "scope": ".",
+            "status": "complete"
+          }
+        ],
+        "node_counts": {
+          "capability": 9,
+          "component": 1,
+          "content": 1,
+          "interface": 1
+        },
+        "package_names": [],
+        "package_nodes": 0,
+        "status": "partial"
+      },
+      "id": "zdh-web-local-jar",
+      "manifest": "pom.xml",
+      "manifest_reference_verified": true,
+      "package_identity_claimed": false,
+      "repo": "zhaoyachao/zdh_web",
+      "role": "Maven system-scope local JAR reference",
+      "whole_repository_coverage": false
+    },
+    {
+      "binary": "dev/libs/netfx/pyRevitLabs.Json.dll",
+      "binary_sha256": "8eedc650cdb204ae8b1cf7f1c3b47e29d2617b875c10b48140b0e34381dfbeb3",
+      "binary_size": 699392,
+      "commit": "6294cf9c477130eadd73b9d156784f7a5553b4cd",
+      "dircue_map": {
+        "content_roles": {
+          "binary": 1
+        },
+        "coverage": [
+          {
+            "question": "analyzer_coverage",
+            "reasons": [
+              "no_analyzer_report_attached"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "capabilities",
+            "reasons": [
+              "bounded_interface_and_capability_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "components",
+            "reasons": [
+              "bounded_declaration_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "content",
+            "reasons": [],
+            "scope": ".",
+            "status": "complete"
+          },
+          {
+            "question": "deployables",
+            "reasons": [
+              "bounded_deployable_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "interfaces",
+            "reasons": [
+              "bounded_interface_and_capability_catalog"
+            ],
+            "scope": ".",
+            "status": "partial"
+          },
+          {
+            "question": "packages",
+            "reasons": [
+              "no_package_report_attached"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "routing",
+            "reasons": [
+              "no_route_plan_evaluated"
+            ],
+            "scope": ".",
+            "status": "unknown"
+          },
+          {
+            "question": "source_binding",
+            "reasons": [],
+            "scope": ".",
+            "status": "complete"
+          }
+        ],
+        "node_counts": {
+          "capability": 1,
+          "component": 1,
+          "content": 1
+        },
+        "package_names": [],
+        "package_nodes": 0,
+        "status": "partial"
+      },
+      "id": "pyrevit-local-dll",
+      "manifest": "dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj",
+      "manifest_reference_verified": true,
+      "package_identity_claimed": false,
+      "repo": "pyrevitlabs/pyRevit",
+      "role": ".NET HintPath reference to checked-in managed DLL",
+      "whole_repository_coverage": false
+    }
+  ],
+  "schema": "dircue-unmanaged-binary-source-slice-0.1"
+}

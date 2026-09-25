@@ -6,8 +6,8 @@
 package data
 
 import (
-	"github.com/go-enry/go-enry/v2/data/rule"
-	"github.com/go-enry/go-enry/v2/regex"
+	"github.com/war-and-code/dircue/third_party/go-enry/data/rule"
+	"github.com/war-and-code/dircue/third_party/go-enry/regex"
 )
 
 var ContentHeuristics = map[string]*Heuristics{

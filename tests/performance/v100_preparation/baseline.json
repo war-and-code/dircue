@@ -16,7 +16,7 @@
     {
       "name": "spring-framework",
       "source": "git",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/spring-framework",
       "input": {
         "selection": "all recursive HEAD entries including symlinks/submodules",
         "entries": 11348,
@@ -34,7 +34,7 @@
       ],
       "commands": {
         "languages": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "--json",
           "--source",
           "git",
@@ -44,10 +44,10 @@
           "1000000",
           "--rev",
           "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ],
         "discovery": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "discovery",
           "--json",
@@ -59,10 +59,10 @@
           "1000000",
           "--rev",
           "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ],
         "all": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--json",
@@ -74,10 +74,10 @@
           "1000000",
           "--rev",
           "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "projects",
           "--json",
@@ -89,7 +89,7 @@
           "1000000",
           "--rev",
           "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/spring-framework"
+          "/home/user/Workspace/dircue/.cache/corpus/spring-framework"
         ]
       },
       "summary": {
@@ -162,7 +162,7 @@
     {
       "name": "roslyn",
       "source": "git",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/roslyn",
       "input": {
         "selection": "all recursive HEAD entries including symlinks/submodules",
         "entries": 35220,
@@ -180,7 +180,7 @@
       ],
       "commands": {
         "languages": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "--json",
           "--source",
           "git",
@@ -190,10 +190,10 @@
           "1000000",
           "--rev",
           "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ],
         "discovery": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "discovery",
           "--json",
@@ -205,10 +205,10 @@
           "1000000",
           "--rev",
           "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ],
         "all": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--json",
@@ -220,10 +220,10 @@
           "1000000",
           "--rev",
           "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "projects",
           "--json",
@@ -235,7 +235,7 @@
           "1000000",
           "--rev",
           "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/roslyn"
+          "/home/user/Workspace/dircue/.cache/corpus/roslyn"
         ]
       },
       "summary": {
@@ -308,7 +308,7 @@
     {
       "name": "aspnetcore",
       "source": "git",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore",
+      "path": "/home/user/Workspace/dircue/.cache/corpus/aspnetcore",
       "input": {
         "selection": "all recursive HEAD entries including symlinks/submodules",
         "entries": 16517,
@@ -327,7 +327,7 @@
       ],
       "commands": {
         "languages": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "--json",
           "--source",
           "git",
@@ -337,10 +337,10 @@
           "1000000",
           "--rev",
           "7387de91234d3ef751fa50b3d1bfede4130213ff",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "discovery": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "discovery",
           "--json",
@@ -352,10 +352,10 @@
           "1000000",
           "--rev",
           "7387de91234d3ef751fa50b3d1bfede4130213ff",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "all": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--json",
@@ -367,10 +367,10 @@
           "1000000",
           "--rev",
           "7387de91234d3ef751fa50b3d1bfede4130213ff",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "projects",
           "--json",
@@ -382,10 +382,10 @@
           "1000000",
           "--rev",
           "7387de91234d3ef751fa50b3d1bfede4130213ff",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ],
         "optional": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--projects",
@@ -404,7 +404,7 @@
           "1000000",
           "--rev",
           "7387de91234d3ef751fa50b3d1bfede4130213ff",
-          "/Users/gingeleski/Workspace/dircue/.cache/corpus/aspnetcore"
+          "/home/user/Workspace/dircue/.cache/corpus/aspnetcore"
         ]
       },
       "summary": {
@@ -493,7 +493,7 @@
     {
       "name": "xml-2gib",
       "source": "directory",
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
+      "path": "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only",
       "input": {
         "selection": "regular-file SHA256 and directory/symlink metadata, excluding .git directories",
         "entries": 128,
@@ -510,7 +510,7 @@
       ],
       "commands": {
         "languages": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "--json",
           "--source",
           "directory",
@@ -518,10 +518,10 @@
           "8",
           "--tree-size",
           "1000000",
-          "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+          "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
         ],
         "discovery": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "discovery",
           "--json",
@@ -531,10 +531,10 @@
           "8",
           "--tree-size",
           "1000000",
-          "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+          "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
         ],
         "all": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--json",
@@ -544,10 +544,10 @@
           "8",
           "--tree-size",
           "1000000",
-          "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+          "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
         ],
         "projects": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "projects",
           "--json",
@@ -557,10 +557,10 @@
           "8",
           "--tree-size",
           "1000000",
-          "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+          "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
         ],
         "optional": [
-          "/Users/gingeleski/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
+          "/home/user/Workspace/dircue/.cache/review080/worktree/.cache/v100/baseline/dircue",
           "analyze",
           "all",
           "--projects",
@@ -577,7 +577,7 @@
           "8",
           "--tree-size",
           "1000000",
-          "/Users/gingeleski/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
+          "/home/user/Workspace/dircue/.cache/staged-analysis/fixtures/xml-only"
         ]
       },
       "summary": {

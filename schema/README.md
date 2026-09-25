@@ -19,7 +19,7 @@ components within those reports, not necessarily the complete output of a
 similarly named command. `findings` describes the standalone framework/ecosystem
 array; `languages` describes Linguist-compatible **directory** language maps.
 The distinct legacy single-file response currently has no bundled schema.
-`capabilities`, `planning`, and `comparison` describe their dedicated outputs.
+`capabilities`, `planning`, `comparison`, and `map` describe their dedicated outputs.
 `cli-capabilities` describes the explicit CLI catalog, and `guide` describes the
 offline guide's section and argument-array format.
 

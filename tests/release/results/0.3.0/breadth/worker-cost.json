@@ -13,7 +13,7 @@
   "outputs_equal_excluding_timings": true,
   "workers": {
     "before": {
-      "path": "/Users/gingeleski/Workspace/dircue/.cache/v030-breadth/previous-worker/dircue-structural-worker",
+      "path": "/home/user/Workspace/dircue/.cache/v030-breadth/previous-worker/dircue-structural-worker",
       "sha256": "04dd6cb10d5f20e0dd746ec0c1d39b1700e0889de0e403617350b9d03e1d1599",
       "bytes": 6471584,
       "elapsed_ms": [
@@ -52,7 +52,7 @@
       }
     },
     "candidate": {
-      "path": "/Users/gingeleski/Workspace/dircue/prototypes/structural/worker/target/release/dircue-structural-worker",
+      "path": "/home/user/Workspace/dircue/prototypes/structural/worker/target/release/dircue-structural-worker",
       "sha256": "62ec4623aa1220fe279b3ac337b704409b3ebde2d8c965ccd90fa5bbacb216b8",
       "bytes": 35065696,
       "elapsed_ms": [

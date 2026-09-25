@@ -6,10 +6,10 @@ import (
 	"slices"
 	"strings"
 
-	"dircue/pkg/capabilities"
-	"dircue/schema"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/schema"
 )
 
 type cliFlagContract struct {
@@ -147,8 +147,8 @@ func describeCLI(root *cobra.Command) cliContract {
 		Scope  string `json:"scope"`
 		Effect string `json:"effect"`
 	}{
-		{"GOMAXPROCS", "Go runtime", "Automatic file workers use min(GOMAXPROCS, 16); --workers explicitly overrides worker count."},
-		{"GOMEMLIMIT", "Go runtime", "Cooperative Go memory limit; not a hard process memory cap and does not constrain the separate native worker."},
+		{"GOMAXPROCS", "Go runtime", "Automatic file workers use min(GOMAXPROCS, 16); map --cpu-limit temporarily sets GOMAXPROCS, while --workers explicitly selects worker count."},
+		{"GOMEMLIMIT", "Go runtime", "map --memory-limit temporarily sets the cooperative Go-managed memory target. Neither setting is a hard CPU, RSS, subprocess, or operating-system ceiling."},
 		{"SystemRoot", "Windows worker cancellation", "Locates System32/taskkill.exe for worker-tree cancellation; falls back to C:\\Windows."},
 	}
 	d.Behavior = []string{"No dircue-specific environment configuration, telemetry, or scan-time downloads.", "Output is unstyled and noninteractive, including when NO_COLOR, CI, or TERM=dumb is set. These variables do not activate a separate rendering mode.", "Reports contain no wall-clock timestamps; SOURCE_DATE_EPOCH does not change them.", "Core inspection does not execute inspected code. Structural analysis executes only the explicitly supplied trusted worker; the worker is not a sandbox.", "Saved-report planning, comparison, and capabilities never open the report's declared source root. Planned argv is inert and requires caller revalidation.", "Metadata describes supported command syntax and explicit semantic restrictions; it is not a host tool-availability probe."}
@@ -157,11 +157,19 @@ func describeCLI(root *cobra.Command) cliContract {
 		{"languages-file", "single-file inspection object", "", "unavailable", "Distinct legacy single-file layout; no bundled schema currently covers this variant."},
 		{"findings", "finding array", "findings", "whole output", "Standalone ecosystem/framework results."},
 		{"profile", "versioned aggregate profile", "profile", "whole output", "Version depends on selected modules. Module schemas below describe components, not the full standalone analyzer envelope."},
+		{"map", "portable node and edge map", "map", "whole output", "Question coverage distinguishes unknown and partial evidence; --summary selects a separate compact text view."},
+		{"map-summary", "compact text map", "", "unavailable", "Human summary omits detailed facts and evidence; use --json for the full map."},
+		{"map-routing", "inert analyzer plan array", "", "self-described", "Plans contain placeholders and prerequisites; no plan is executed and host tool availability is not checked."},
+		{"map-comparison", "saved map comparison", "", "self-described", "Stable IDs distinguish material, evidence, coverage, and indeterminate changes without opening either source."},
+		{"map-settings", "effective map settings", "", "self-described", "Typed execution and coverage controls with resolved values, categories, origins, and honest resource-limit qualifications."},
+		{"sarif-located", "SARIF 2.1.0 log with dircue.map location properties", "", "self-described", "Upstream SARIF with a dircue.map property extension. Unknown SARIF fields are retained; source binding and URI resolution determine annotation resolution."},
+		{"sarif-location-summary", "resolution and per-node count object", "", "self-described", "Selected by --summary; emits counts instead of the annotated SARIF log."},
 		{"comparison", "saved-report comparison", "comparison", "whole output", "Successful comparisons can contain differences; inspect coverage and module compatibility."},
 		{"planner-capabilities", "planner module registry", "capabilities", "whole output", "Default capabilities output retains its independent versioned contract."},
 		{"plan", "inert follow-up plan", "planning", "whole output", "argv placeholders and executable:false require caller revalidation; reported cost is evidence, not a timing prediction."},
 		{"cli-capabilities", "versioned CLI contract", "cli-capabilities", "whole output", "This explicit CLI metadata view uses its independent schema_version 1.0.0."},
 		{"guide", "versioned guide sections and example argv", "guide", "whole output", "Static guidance; examples are never executed."},
+		{"accuracy-cards", "embedded accuracy cards", "", "self-described", "Precision and recall per map question derived from hand-labeled ground truth; embedded in the binary. Does not access the network or scan anything."},
 		{"json-schema", "Draft 2020-12 compound schema", "", "self-described", "Offline bundled resources have identifiers, not URLs that need fetching."},
 		{"help-text", "unstructured help", "", "unavailable", "Plain-text usage suitable for humans; --json is accepted but ignored. Use capabilities --guide --json for structured guidance."},
 	}
@@ -179,7 +187,10 @@ func describeCLI(root *cobra.Command) cliContract {
 }
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
-	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
+	if name == "preset" && (cmd.CommandPath() == "dircue map" || cmd.CommandPath() == "dircue map settings") {
+		return slices.Clone(mapPresetNames)
+	}
+	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Name() == "map" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
 	if scanCommand {
 		switch name {
 		case "source":
@@ -224,11 +235,21 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 	case "dircue analyze ecosystems", "dircue analyze frameworks":
 		return []string{"findings"}
 	case "dircue capabilities":
-		return []string{"planner-capabilities", "cli-capabilities", "guide", "json-schema"}
+		return []string{"planner-capabilities", "cli-capabilities", "guide", "json-schema", "accuracy-cards"}
 	case "dircue plan":
 		return []string{"plan"}
 	case "dircue compare":
 		return []string{"comparison"}
+	case "dircue map":
+		return []string{"map", "map-summary"}
+	case "dircue map route":
+		return []string{"map-routing"}
+	case "dircue map compare":
+		return []string{"map-comparison"}
+	case "dircue map settings":
+		return []string{"map-settings"}
+	case "dircue map locate":
+		return []string{"sarif-located", "sarif-location-summary"}
 	case "dircue help":
 		return []string{"help-text"}
 	case "dircue analyze":
@@ -246,15 +267,27 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	if cmd.Parent() == nil || (cmd.Parent() != nil && cmd.Parent().Name() == "analyze") {
 		r = append(r, "At most one source path. --rev and --tree are mutually exclusive. --rev requires a Git source.")
 	}
+	if cmd.CommandPath() == "dircue map compare" {
+		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. A zero exit status means the comparison completed, not that the maps are identical.")
+	}
+	if cmd.CommandPath() == "dircue map settings" {
+		return append(r, "No source is scanned. --preset and repeatable --set resolve effective values; inherited analysis flags are rejected. Resource notes are contractual qualifications, not measured ceiling claims.")
+	}
 	switch cmd.Name() {
 	case "all":
 		r = append(r, "Optional modules require explicit flags; --environments reuses declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
+	case "map":
+		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. Named resource flags override --set, which overrides --preset. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, noir-json, and bifrost-code-query-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
+	case "route":
+		r = append(r, "Exactly one saved map document; inherited source scan flags are rejected. Output plans are inert templates with placeholders and require caller validation before execution.")
+	case "locate":
+		r = append(r, "Exactly one saved map and one SARIF 2.1.0 log; inherited source scan flags are rejected. Default output is annotated SARIF; --summary selects a separate JSON count object.")
 	case "plan":
 		r = append(r, "Exactly one saved aggregate report and at least one --module or --question. Module/question vocabulary and prerequisites come from default capabilities. One --project, only for focus. Cataloged --input values are the union of caller-supplied prerequisites; each is accepted only when required by a selected module.")
 	case "compare":
 		r = append(r, "Exactly two saved aggregate reports; no source scan options.")
 	case "capabilities":
-		r = append(r, "No positional arguments. --cli, --guide, and --schema are mutually exclusive by flag presence. Schema output is JSON whether or not --json is supplied.")
+		r = append(r, "No positional arguments. --cli, --guide, --accuracy, and --schema are mutually exclusive by flag presence. Schema output is JSON whether or not --json is supplied. --accuracy reads the embedded binary data; it never accesses the network or scans anything.")
 	case "help":
 		r = append(r, "Help always emits plain text. Inherited analysis options and --json are accepted only for parser compatibility and ignored; use dircue capabilities --guide --json or dircue capabilities --cli --json for structured guidance.")
 	case "structure":

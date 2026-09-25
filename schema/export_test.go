@@ -12,20 +12,22 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/internal/cli"
-	"dircue/pkg/capabilities"
-	"dircue/pkg/planning"
-	"dircue/pkg/profile"
-	"dircue/pkg/reportdiff"
-	"dircue/pkg/structure"
-	"dircue/schema"
 	upstream "github.com/santhosh-tekuri/jsonschema/v5"
+	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/mapdiff"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/reportdiff"
+	"github.com/war-and-code/dircue/pkg/structure"
+	"github.com/war-and-code/dircue/schema"
 )
 
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "formats", "guide", "hotspots", "languages", "planning", "profile"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "map-compare", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -183,7 +185,68 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		"findings": exportCLIValue(t, "analyze", "frameworks", "--json", "--source", "directory", root),
 		"focus":    focus["focus"], "formats": base["formats"], "hotspots": hotspots,
 		"languages": exportCLIValue(t, "--json", "--source", "directory", root),
-		"planning":  plan, "profile": base,
+		"map-compare": func() mapdiff.Report {
+			doc := mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, AnalyzerCoverage: []mapdoc.AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{}, Nodes: []mapdoc.Node{}, Edges: []mapdoc.Edge{}}
+			report, err := mapdiff.Compare(doc, doc)
+			if err != nil {
+				panic("map-compare fixture: " + err.Error())
+			}
+			return report
+		}(),
+		"map": func() mapdoc.Document {
+			n := mapdoc.NewNode(mapdoc.NodeContent, []string{"main.go"}, "source")
+			n.Properties = map[string]string{"role": "source"}
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}
+			n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisFilenameHint, Path: "main.go", SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "fixture", Version: "1"}}}
+			return mapdoc.Document{SchemaVersion: mapdoc.SchemaVersion, Kind: "map", Status: mapdoc.CoverageComplete, Source: mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "sha256", Scope: "full_selected_tree", Value: strings.Repeat("a", 64)}}, Coverage: []mapdoc.QuestionCoverage{}, CoverageLedger: []mapdoc.CoverageLedgerEntry{}, AnalyzerCoverage: []mapdoc.AnalyzerCoverageEntry{}, AnalyzerBlindSpots: []mapdoc.AnalyzerBlindSpot{}, Nodes: []mapdoc.Node{n}, Edges: []mapdoc.Edge{}}
+		}(),
+		"planning": plan, "profile": base,
+		"stats": map[string]any{
+			"schema_version": "1.0.0",
+			"kind":           "run-stats",
+			"command":        "map",
+			"source_mode":    "directory",
+			"deterministic_costs": map[string]any{
+				"files_enumerated":   float64(10),
+				"files_content_read": float64(8),
+				"bytes_requested":    float64(4096),
+				"limit_hits":         map[string]any{"file_bytes": float64(0), "tree_size": float64(0)},
+			},
+			"measurements": map[string]any{
+				"wall_time_ns":          float64(1_000_000_000),
+				"phases":                map[string]any{"scan_ns": float64(800_000_000), "build_ns": float64(100_000_000)},
+				"peak_heap_inuse_bytes": float64(10_000_000),
+				"gc_count":              float64(2),
+			},
+		},
+		"forest": map[string]any{
+			"schema_version": "1.0.0",
+			"kind":           "forest",
+			"status":         "complete",
+			"source":         map[string]any{"mode": "directory", "path": "."},
+			"coverage": []map[string]any{
+				{"question": "roots", "scope": ".", "status": "complete", "reasons": []string{}},
+				{"question": "residual", "scope": ".", "status": "complete", "reasons": []string{}},
+				{"question": "environment_trees", "scope": ".", "status": "complete", "reasons": []string{}},
+			},
+			"roots": []any{},
+			"residual": map[string]any{
+				"schema_version":       "1.0.0",
+				"kind":                 "map",
+				"status":               "complete",
+				"source":               map[string]any{"mode": "directory"},
+				"coverage":             []any{},
+				"coverage_ledger":      []any{},
+				"analyzer_coverage":    []any{},
+				"analyzer_blind_spots": []any{},
+				"nodes":                []any{},
+				"edges":                []any{},
+			},
+			"residual_totals": map[string]any{
+				"files": float64(42),
+				"bytes": float64(1024),
+			},
+		},
 	}
 	for _, name := range schema.Names() {
 		t.Run(name, func(t *testing.T) {

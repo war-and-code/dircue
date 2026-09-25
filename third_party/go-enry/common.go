@@ -11,8 +11,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-enry/go-enry/v2/data"
-	"github.com/go-enry/go-enry/v2/regex"
+	"github.com/war-and-code/dircue/third_party/go-enry/data"
+	"github.com/war-and-code/dircue/third_party/go-enry/regex"
 )
 
 // OtherLanguage is used as a zero value when a function can not return a specific language.

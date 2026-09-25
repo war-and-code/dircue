@@ -5,7 +5,7 @@ import (
 	"io"
 	"slices"
 
-	"dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func writeFunctions(out io.Writer, r *profile.FunctionReport) error {

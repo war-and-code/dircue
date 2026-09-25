@@ -9,19 +9,20 @@ dircue analyze all --declarations --discovery --json /checkout
 
 The first command inventories selected regular files and reads supported manifests. It does not classify unrelated file contents, count lines, or start a structural worker. The second adds declaration observations to the usual aggregate profile. Neither command runs a package manager, build script, interpreter, or compiler.
 
-Existing `analyze projects` keeps its earlier output, including filename-based discovery outside .NET and JVM projects. The new `declarations` module has its own report contract and does not change the legacy language-only path.
+`analyze projects` remains available, including filename-based discovery outside .NET and JVM projects. The `declarations` module has its own report contract and does not change the legacy language-only path.
 
 ## Supported declarations
 
 | Ecosystem | Inputs | Observations |
 | --- | --- | --- |
-| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, unambiguous membership-only `workspace:*`/`workspace:^`/`workspace:~` links, script names and binary entrypoints |
+| npm | `package.json` | Declared identity, version, private flag, package manager, engines, dependency scopes, workspace membership, explicit local references, unambiguous membership-only `workspace:*`/`workspace:^`/`workspace:~` links, conventional entry-point scripts (`start`, `serve`) and binary entrypoints |
 | Go | `go.mod`, `go.work` | Module identity, minimum language version, suggested toolchain, require/exclude/replace directives, workspace membership and selected local replacement targets |
-| Python and uv | `pyproject.toml` | Project and dynamic metadata, Python requirement, build backend, dependency groups and extras, named entrypoints, uv workspace membership and source declarations |
+| Python and uv | `pyproject.toml`, `requirements*.txt`, `Pipfile`, literal `setup.py`, `setup.cfg` (project sections only) | Project and dynamic metadata, Python requirement, build backend, dependency groups and extras, named entrypoints, uv workspace membership and source declarations; Pipfile `[packages]` (runtime) and `[dev-packages]` (dev_dependencies condition); `-r FILE` includes resolved transitively up to five levels; bounded auxiliary projects for requirements and literal setup calls; `setup.cfg` with only tool sections (`[flake8]`, `[mypy]`, etc.) produces no component |
+| Kbuild/Kconfig | A directory containing both `Kbuild` and `Kconfig` | A project-root marker only; no target or build relationship is inferred |
 | Cargo | `Cargo.toml` | Package and workspace identity, members/default selection, supported inherited fields, scoped dependencies, declared feature names, targets and build-script observations |
 | .NET, Maven and Gradle | Existing supported project/configuration manifests | Reused static requirements and references, with the same restrictions on build evaluation as the [project reader](PROJECTS.md) |
 
-The Go grammar uses `golang.org/x/mod v0.40.0`. TOML parsing uses `go-toml v2.4.3`, with additional input and depth limits. Python/uv observations target a documented subset of uv 0.12.17. npm workspace behavior is checked against npm 11.16.0 for the supported pattern subset. A synthetic Cargo workspace is checked against Cargo 1.85.0 for membership, default-member selection, and inherited version, edition and minimum Rust version; this does not establish complete Cargo behavior. These readers do not emulate every package-manager version or configuration option.
+The Go grammar uses `golang.org/x/mod v0.40.0`. TOML parsing uses `go-toml v2.4.3`, with additional input and depth limits. Python/uv observations target a documented subset of uv 0.12.17. Requirements files and `setup.py` are parsed only for supported static forms; options, variables and computed setup arguments remain qualified. Pipfile TOML is parsed for `[packages]`, `[dev-packages]` and `[requires]` only; source URL and hash fields are ignored. Requirements `-r FILE` includes are resolved relative to the including file within the same inventory up to five levels deep; constraint files (`-c FILE`) are noted as a diagnostic but not followed. A requirements-only project needs selected Python source in the same root, and a same-root `pyproject.toml` takes precedence. When Pipfile and requirements files coexist at the same root, Pipfile takes precedence and they merge into one component. npm workspace behavior is checked against npm 11.16.0 for the supported pattern subset. A synthetic Cargo workspace is checked against Cargo 1.85.0 for membership, default-member selection, and inherited version, edition and minimum Rust version; this does not establish complete Cargo behavior. These readers do not emulate every package-manager version or configuration option.
 
 Requirements, references, and interfaces retain evidence identifying the declaring manifest. Project IDs are root-relative manifest paths, rather than package names: two packages with the same name are still distinct observations. Shared or inherited declarations identify their supplying manifest and the relevant context.
 
@@ -31,7 +32,7 @@ Workspace membership, local dependencies, source overrides, and directory contai
 
 `state` describes the declaration or its applicability. `target_status` describes what the reader established about a referenced target. A conditional reference can point to a present file. A target may also be missing, external, unparsed, ambiguous, unsupported, or inconsistent with the declared package name. `state: resolved` marks a supported relationship within the selected inventory; `target_status: present` alone establishes selected target presence. Neither establishes dependency resolution, installation, successful compilation, or the set of files a compiler would use.
 
-Go's minimum language version and suggested toolchain are separate observations. dircue does not read `GOWORK`, `GOPATH`, the module cache, installed toolchains, or parent directories outside the selected root.
+Go's minimum language version and suggested toolchain are requirements, not executable interfaces. dircue does not read `GOWORK`, `GOPATH`, the module cache, installed toolchains, or parent directories outside the selected root.
 
 uv member source declarations override inherited workspace sources. Environment markers and dependency scopes are retained without evaluating an environment. A nearby `uv.lock` is associated by presence only; the report does not claim that it is fresh or complete.
 
@@ -39,7 +40,7 @@ Cargo workspace declarations are resolved separately from filesystem nesting. Su
 
 ## Declared interfaces
 
-The `interfaces` array contains named scripts, entrypoints, tools and targets where the manifest provides them. Script bodies are not included. A script named `test` establishes that declaration, not the quality or completeness of a test suite. A Python `module:object` entrypoint does not establish that importing it succeeds. A Cargo build-script candidate does not mean it has run.
+The `interfaces` array contains supported entry-point scripts, tools and targets where the manifest provides them. For npm, only `start` and `serve` scripts are modeled as interfaces; developer tasks such as `test`, `check` and lint scripts are omitted. Script bodies are not included. A Python `module:object` entrypoint does not establish that importing it succeeds. A Cargo build-script candidate does not mean it has run.
 
 The .NET/JVM expansion reuses static declarations. Raw build conditions are represented as present with their expressions withheld, and unsupported path/URL values are withheld. Callers needing the existing detailed project-reader contract can request `analyze projects` separately. No report is a guarantee that every possible secret embedded in arbitrary project metadata has been removed.
 

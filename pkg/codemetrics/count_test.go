@@ -9,7 +9,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/boyter/scc/v4/processor"
+	"github.com/war-and-code/dircue/pkg/codemetrics/internal/sccprocessor"
+	upstream "github.com/war-and-code/dircue/third_party/scc/processor"
 )
 
 func TestGrammars(t *testing.T) {
@@ -73,6 +74,38 @@ func TestCountReference(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestCountOnlySubsetMatchesUpstreamAcrossMappedLanguages(t *testing.T) {
+	upstream.ProcessConstants()
+	for language, grammar := range grammarNames {
+		for _, content := range upstreamInitializationInputs(upstream.LanguageDatabase()[grammar]) {
+			wantJob := upstream.FileJob{Filename: "source", Language: grammar, Content: content, Bytes: int64(len(content))}
+			upstream.CountStats(&wantJob)
+			want := Counts{Grammar: grammar, Lines: wantJob.Lines, Code: wantJob.Code, Comment: wantJob.Comment, Blank: wantJob.Blank, Complexity: wantJob.Complexity}
+			got, err := Count(context.Background(), "source", language, content)
+			if err != nil {
+				t.Fatalf("%s: %v", language, err)
+			}
+			if got != want {
+				t.Errorf("%s (%s): count-only=%+v upstream=%+v", language, content, got, want)
+			}
+		}
+	}
+}
+
+func upstreamInitializationInputs(language upstream.Language) [][]byte {
+	inputs := [][]byte{nil, []byte("\n\r\n"), []byte("value = 1\n// comment?\nif (value) {}\n")}
+	for _, marker := range language.LineComment {
+		inputs = append(inputs, []byte(marker+" comment\n\nvalue\n"))
+	}
+	for _, pair := range language.MultiLine {
+		inputs = append(inputs, []byte(pair[0]+" first\nsecond\n"+pair[1]+"\nvalue\n"))
+	}
+	for _, quote := range language.Quotes {
+		inputs = append(inputs, []byte(quote.Start+"text // not a comment /* */"+quote.End+"\n"))
+	}
+	return inputs
 }
 
 func TestCountKnownResults(t *testing.T) {

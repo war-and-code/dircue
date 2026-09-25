@@ -2,68 +2,108 @@
 
 Profile source code repos and other directories of computer content.
 
-Dircue identifies languages, maps declared projects and their relationships, and describes the contents of unfamiliar directories. Its Go binary works with committed Git trees or ordinary files. Profiling is offline and does not run project build scripts. Optional structural analysis invokes a worker explicitly selected by the caller.
+`dircue map` describes what an unfamiliar directory contains and how it fits
+together. It works deterministically and offline, without running anything in
+the directory.
 
-The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control, evidence honesty, and the [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md). What's new in 0.9.0 is in the [CHANGELOG](CHANGELOG.md).
+`dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
+- **components:** projects across 26 ecosystems;
+- **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
+- **interfaces:** binaries, ports, gRPC and OpenAPI;
+- **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
+- **relationships:** what builds, runs, depends on and contains what.
+
+Every fact carries its evidence (file, line, rule), and every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
+
+The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) says what 1.0 freezes. What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 
 ## Quick example
 
-For a small checkout containing two Go source files and a module declaration:
+The summary for [GoogleCloudPlatform/microservices-demo](https://github.com/GoogleCloudPlatform/microservices-demo):
+
+```text
+$ dircue map --summary .
+Directory map: partial (git source)
+Languages: Go 28.9%, Python 27.9%, HTML 10.0%, C# 8.1%, Shell 6.6%, Dockerfile 4.6% (+4 more)
+Content populations: 5   Relationships: 187   Packages: 0
+Relationship declarations: 12 runs, 13 builds
+Components: 13 (dotnet 2, go 4, gradle 1, npm 2, python 4) (+1 test)
+  cartservice [dotnet]
+  checkoutservice [go]
+  emailservice [python]
+  frontend [go]
+  (+8 more components)
+Deployables: 99 (+9 CI workflows, +49 cluster resources)
+  adservice [workload] → runs hipstershop
+  cartservice [workload] → runs cartservice
+  checkoutservice [workload] → runs checkoutservice
+  currencyservice [workload] → runs grpc-currency-service
+  (+37 more runnable deployables)
+Interfaces: checkoutservice, frontend, grpc.health.v1.Health, grpc.health.v1.Health/Check (+33 more)
+Capabilities: ai:llm-sdk, auth:oauth2, cache:redis, cloud:gcp (+7 more)
+Possible next analyzers: bca, bifrost, scc, syft
+Attached provider runs: 0
+Still uncertain:
+  Analyzer coverage: no analyzer report attached
+  Capabilities: some service dependencies may be unrecognized
+  Components: some project declarations or references may be unresolved
+  Deployables: 1 Helm chart not rendered (templates require evaluation for complete coverage)
+  Interfaces: some entry points or contracts may be unrecognized
+  Packages: no complete package inventory is established
+  (+1 more questions)
+Use --json for evidence and full coverage details.
+```
+
+Common next steps:
+
+```sh
+dircue map --json . > map.json                          # the full evidence graph (schema/map.schema.json)
+dircue map --attach syft-json=sbom.json --json . > map.json   # join saved Syft, SARIF, Noir or Bifrost reports
+dircue map route --json map.json                        # inert follow-up plans for deeper analyzers
+dircue map compare --format markdown base.json head.json   # what changed between two maps
+dircue map locate map.json results.sarif > located.sarif     # which component owns each SARIF location
+dircue map --forest /disk                               # nested repositories, dependency trees and the rest
+```
+
+Attached reports contribute facts and run coverage, never findings or verdicts. Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
+
+The classic Linguist-compatible output is unchanged:
 
 ```sh
 $ dircue --json .
 {"Go":{"size":77,"percentage":"100.00"}}
-
-$ dircue --breakdown .
-100.00% 77         Go
-
-Go:
-  cmd/main.go
-  internal/lib.go
-
-$ dircue analyze all --json . > profile.json
-$ head -n 12 profile.json
-{
-  "schema_version": "1.0.0",
-  "root": "/path/to/checkout",
-  "summary": {
-    "scanned_files": 3,
-    "analyzed_files": 3,
-    "skipped_files": 0,
-    "language_bytes": 77
-  },
-  "languages": [
-    {
 ```
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
 
 ## Install
 
-The 0.9.0 release provides platform archives and Python wheels as GitHub release assets with a `SHA256SUMS` manifest; PyPI publication is not part of this release, and no container image is published (the `Dockerfile` builds one locally). An archive and its matching wheels contain identical Go executable bytes. While the repository remains private, use authenticated `gh release download` to obtain an asset, then pass the downloaded wheel to `uvx --from`; the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads) shows those commands.
+Releases provide platform archives and Python wheels as GitHub release assets, with a `SHA256SUMS` manifest. An archive and its matching wheels contain identical Go executable bytes. PyPI publication and container images are not part of the release; the `Dockerfile` builds an image locally. While the repository is private, use authenticated `gh release download` to fetch assets; the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads) shows the commands.
+
+The commands below target the prospective `v1.0.0` release. Its remote tag
+and release assets are not available yet. The `go install` command has been
+validated against a local module proxy; fetching the module from GitHub remains
+untested until the tag is pushed and access is available.
 
 ```sh
+# Go toolchain (1.26.6 or later): installs the module at the release tag
+go install github.com/war-and-code/dircue@v1.0.0
+
 # Release archive + checksum verification (Linux amd64 shown; substitute your platform)
-curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue_0.9.0_linux_amd64.tar.gz
-curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v0.9.0/SHA256SUMS
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue_1.0.0_linux_amd64.tar.gz
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
 sha256sum -c SHA256SUMS --ignore-missing
-tar -xzf dircue_0.9.0_linux_amd64.tar.gz
+tar -xzf dircue_1.0.0_linux_amd64.tar.gz
 mkdir -p "$HOME/.local/bin"
 install -m 755 dircue "$HOME/.local/bin/dircue"
 
-# Go toolchain: build from a clone. `go install dircue@version` is not supported,
-# because go.mod carries replace directives for the maintained Enry and go-git forks.
-git clone --branch v0.9.0 --depth 1 https://github.com/war-and-code/dircue.git
-cd dircue
-make build VERSION=0.9.0
-mkdir -p "$HOME/.local/bin"
-install -m 755 bin/dircue "$HOME/.local/bin/dircue"
-
 # Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
-  dircue --breakdown --json /path/to/checkout
+  https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
+  dircue map --summary /path/to/checkout
 ```
+
+While the repository is private, `go install` also needs `GOPRIVATE=github.com/war-and-code` and Git credentials for GitHub.
 
 The [distribution guide](docs/DISTRIBUTION.md) covers the full archive/wheel matrix, offline installation, and how to build a local archive from source without publishing. The optional structural worker is packaged separately; see the [worker guide](docs/STRUCTURE.md#building-the-add-on).
 
@@ -77,10 +117,14 @@ CGO_ENABLED=0 go build -trimpath -o bin/dircue .
 ## Compatibility direction
 
 Version 0.9 keeps the documented legacy Linguist CLI and JSON as a
-compatibility target. [Issue #81](https://github.com/war-and-code/dircue/issues/81)
-reserves 1.0 for the directory map, which will become the primary 1.x contract.
-The [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) is a discussion
-draft; it does not yet freeze every existing `analyze` report shape for 1.x.
+compatibility target. The [`dircue map`](docs/MAP.md) document is the primary
+1.x contract, and the [compatibility policy](docs/COMPATIBILITY.md) lists
+every surface 1.x keeps stable.
+
+Against the published 0.9.0 executable, 227 of 278 compatibility cases produce
+identical stdout and stderr; 51 have output changes, with no exit-status
+changes. Strict raw Linguist output matches for committed trees, ordinary
+directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 
 ## License
 
@@ -102,6 +146,10 @@ dircue analyze availability --json /path/to/checkout
 dircue analyze explain --file src/main.go --json /path/to/checkout
 dircue analyze structure --hotspots --structural-worker ./dircue-structural-worker --json /path/to/checkout
 dircue analyze all --projects --metrics --json /path/to/checkout
+dircue map --json /path/to/checkout
+dircue map compare --json before-map.json after-map.json
+dircue map route --json map.json
+dircue map locate map.json results.sarif > located.sarif
 dircue --breakdown --json /path/to/checkout
 dircue capabilities --json
 dircue plan saved-profile.json --module declarations --json
@@ -117,6 +165,9 @@ source directory or execute their examples:
 dircue --help
 dircue analyze --help
 dircue analyze metrics --help
+dircue map --help
+dircue map settings --help
+dircue map locate --help
 dircue capabilities --guide
 dircue capabilities --guide --json
 dircue capabilities --cli --json
@@ -172,7 +223,7 @@ Language profiling targets **GitHub Linguist 9.7.0** compatibility through a mai
 | Implementation | Ruby with native dependencies | Go library and CLI | Go CLI with a maintained Enry fork; optional native parser worker |
 | Directory statistics | Requires a usable Git repository | Supports ordinary directories | Committed Git trees or ordinary directories |
 | CLI output | Reference contract | Its own defaults and output | Targets Linguist's supported flags and output |
-| Additional profiling | Language metadata | Language metadata | Metadata and format evidence, project declarations and graphs, package/configuration observations, caller rules, optional scc and structural metrics/hotspots |
+| Additional profiling | Language metadata | Language metadata | Portable directory maps; metadata and format evidence; project declarations and graphs; package/configuration observations; caller rules; optional scc and structural metrics/hotspots |
 
 The recorded 0.1 release candidate had 5.38–14.66× faster median execution than Linguist on 11 pinned public projects, with matching language totals and file breakdowns. That Linux arm64 Docker run also recorded higher peak memory on several large projects.
 
@@ -229,6 +280,21 @@ For trees with 100,000 or more entries, raise `--tree-size` **above** the entry 
 
 ## Profiling beyond languages
 
+The 1.0 entry point is `dircue map`. It performs one bounded scan and
+produces a portable graph of observed content, languages, components,
+deployables, interfaces, capabilities, and supported relationships. Coverage
+is part of the document, so an unknown or bounded question does not look like a
+proven absence.
+
+```sh
+dircue map --json /checkout > map.json
+dircue map --summary /checkout
+dircue map --json --attach syft-json=syft.json /checkout > enriched-map.json
+```
+
+The narrower `analyze` reports remain available alongside it. The [map guide](docs/MAP.md) documents its node and edge model,
+limits, source binding, attachments, comparison, routing, and SARIF annotation.
+
 ```sh
 dircue analyze languages /checkout --json
 dircue analyze ecosystems /checkout --json
@@ -257,7 +323,9 @@ For a lightweight first pass, use [`analyze discovery --json`](docs/DISCOVERY.md
 
 Plain `analyze all` retains its existing behavior. Add `--declarations`, `--environments`, `--projects`, `--metrics`, or `--structure` for the modules you need. Environment analysis automatically includes the declaration evidence it reuses. Structural analysis requires `--structural-worker`; it never downloads a parser during a scan.
 
-The [roadmap](https://github.com/war-and-code/dircue/issues/41) tracks broader relationship and entry-point mapping, reusable analysis context, and explainable complexity hotspots. The [capability matrix](docs/CAPABILITIES.md) describes the supported inputs and limits of each current module.
+The directory map combines relationship and entry-point observations in one
+document. The [capability matrix](docs/CAPABILITIES.md)
+describes the supported inputs and limits of the existing analysis modules.
 
 Available since 0.4.0:
 
@@ -305,13 +373,23 @@ Committed Git tree or directory
    deterministic text or JSON report
 ```
 
-Saved reports can be compared without rescanning their source directories:
+Portable maps and aggregate profiles have separate saved-report comparison
+commands:
 
 ```sh
+dircue map compare before-map.json after-map.json --json
 dircue compare before.json after.json --json
 ```
 
-Use aggregate reports such as those from `analyze all --json`. Comparison reports distinguish observation changes from changes in provider or selection policy; incomplete coverage limits what absence can establish. The caller chooses the pair; dircue does not verify repository identity. Valid comparisons exit zero even when observations differ. See [saved-report comparison](docs/COMPARISON.md).
+`map compare` uses stable map node and edge IDs and keeps indeterminate removals
+separate when head coverage is incomplete. The older top-level `compare`
+command uses aggregate reports such as those from `analyze all --json`.
+Comparison reports distinguish observation changes from changes in provider or
+selection policy; incomplete coverage limits what absence can establish. The
+caller chooses the pair, and dircue does not verify repository identity. Valid
+comparisons exit zero even when observations differ. See the [map
+guide](docs/MAP.md#compare-saved-maps) and [aggregate saved-report
+comparison](docs/COMPARISON.md).
 
 ## Attributes and boundaries
 
@@ -341,10 +419,10 @@ Bounded content buffers do not impose a hard total-memory limit. Git delta recon
 Build a local image from the tagged source and run it with the network denied and the source mounted read-only:
 
 ```sh
-docker build --build-arg VERSION=0.9.0 -t dircue:0.9.0 .
+docker build --build-arg VERSION=1.0.0 -t dircue:1.0.0 .
 docker run --rm --network none \
   -v /path/to/checkout:/repo:ro \
-  dircue:0.9.0 --breakdown --json /repo
+  dircue:1.0.0 map --json /repo
 ```
 
 The runtime image contains the binary and license notices, and runs as an unprivileged user. Mounted source must be readable by that user; an explicit `--user` can match your pipeline's source permissions.
@@ -352,8 +430,8 @@ The runtime image contains the binary and license notices, and runs as an unpriv
 From a clean committed checkout, choose fresh output directories to prepare Linux/macOS/Windows archives, wheels, checksums, and build provenance locally:
 
 ```sh
-python3 scripts/release.py --version 0.9.0 --output dist/release-0.9.0
-python3 scripts/wheels.py --release-dir dist/release-0.9.0 --output dist/wheels-0.9.0
+python3 scripts/release.py --version 1.0.0 --output dist/release-1.0.0
+python3 scripts/wheels.py --release-dir dist/release-1.0.0 --output dist/wheels-1.0.0
 ```
 
 These commands do not publish anything. Wheels package the same Go binaries as the archives and need Python 3.10+ for their launcher. The Docker image and wheels do not include the structural worker; prepare that add-on separately using the [worker packaging instructions](docs/STRUCTURE.md#building-the-add-on).
@@ -362,7 +440,7 @@ These commands do not publish anything. Wheels package the same Go binaries as t
 
 GitHub Releases provide the standalone archives, wheels, checksums, and build provenance for each tagged version. `uv` can install a compatible wheel from a local file or a GitHub Release URL; the wheel's launcher only invokes the bundled Go binary and does not download anything at runtime. See the [distribution guide](docs/DISTRIBUTION.md) for the platform matrix, offline use, and authentication for private or draft assets.
 
-The 0.9.0 release does not include a PyPI publication step. If a future release adds one, its CHANGELOG entry will announce it and the distribution guide will document the `uvx dircue@<version>` and `uv tool install 'dircue==<version>'` commands.
+The 1.0.0 release does not include a PyPI publication step. If a future release adds one, its CHANGELOG entry will announce it and the distribution guide will document the `uvx dircue@<version>` and `uv tool install 'dircue==<version>'` commands.
 
 ## Troubleshooting
 
@@ -371,8 +449,11 @@ The 0.9.0 release does not include a PyPI publication step. If a future release 
 | `dircue: command not found` | Add the installation directory to `PATH`, or call `./bin/dircue`. |
 | Recent edits are missing from the report | Repository roots use committed `HEAD`. Use `--source directory` to inspect working files. |
 | A large repository returns empty language statistics | Check stderr for the tree-size warning and set `--tree-size` above the entry count. |
+| A map exits `0` but says `partial` | Exit status confirms that a valid map was produced. Inspect each `coverage` entry and its reasons before relying on absence. |
+| An attached report has `binding: unknown` | The report and selected source lack comparable snapshot identity. See [source selection and binding](docs/MAP.md#source-selection-and-binding); do not treat path association as immutable-snapshot proof. |
+| `map locate` reports `unresolvable_uri` | Supply `--source-uri` when SARIF uses absolute artifact URIs, and confirm that the URI is inside that root. |
 | Docker cannot read mounted source | Check file permissions and use `--user` to select a suitable UID/GID. |
-| uv cannot find dircue on PyPI | The 0.9.0 release does not publish to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
+| uv cannot find dircue on PyPI | Releases are not published to PyPI. Install a compatible wheel directly from the GitHub Release URL, or point `uv` at a local wheel; see the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
 
@@ -403,7 +484,7 @@ go vet ./...
 
 [Conformance](tests/conformance/README.md) compares the actual pinned Ruby CLI, including failures and intentional extensions. [Upstream sample results](tests/conformance/results/samples.md) compare language classifiers. The [performance harness](tests/performance/README.md) compares identical committed public checkouts, requires exact language output before timing, and records raw measurements and environment details.
 
-Java and C#/.NET receive explicit coverage through Spring Framework, Roslyn, ASP.NET Core, and focused Maven/Gradle/MSBuild fixtures. The [scale suite](tests/stress/README.md) adds a fully written 2 GiB Talend-shaped checkout, a 1.1 GiB XML log, and 2,048 interconnected `.csproj` files. It exercises both loose and packed Git objects, bounded delta history, Git-free views, generated-code overrides, and tree-size boundaries. Talend and XML-log fixtures are synthetic; they are not verified Talend exports or MOVEit samples. The 0.3 project mapper now reports declared project-reference edges. Directory attribution and target-presence checks remain distinct from evaluated build membership or dependency resolution.
+Java and C#/.NET receive explicit coverage through Spring Framework, Roslyn, ASP.NET Core, and focused Maven/Gradle/MSBuild fixtures. The [scale suite](tests/stress/README.md) adds a fully written 2 GiB ETL-pipeline-shaped checkout, a 1.1 GiB XML log, and 2,048 interconnected `.csproj` files. It exercises both loose and packed Git objects, bounded delta history, Git-free views, generated-code overrides, and tree-size boundaries. ETL-pipeline and XML-log fixtures are synthetic and not verified exports from any vendor. The 0.3 project mapper now reports declared project-reference edges. Directory attribution and target-presence checks remain distinct from evaluated build membership or dependency resolution.
 
 XML is normally excluded as a data language. The [attribute examples](#attributes-and-boundaries) show how to include XML or generated Java when that suits your pipeline.
 

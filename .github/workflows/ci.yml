@@ -41,6 +41,7 @@ jobs:
         run: |
           python -m unittest discover -s tests/projects/graph -p 'test_*.py' -v
           python -m unittest discover -s tests/resources -p 'test_*.py' -v
+          python -m unittest discover -s tests/bench -p 'test_*.py' -v
       - name: Test optional proof-evidence validation without Bend
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
@@ -49,6 +50,10 @@ jobs:
         run: python -m unittest discover -s tests/focus_v070 -p 'test_*.py' -v
       - name: Test context evidence receipt contracts
         run: python -m unittest discover -s tests/context_v080 -p 'test_*.py' -v
+      - name: Test atlas classification and map quality harnesses
+        run: |
+          python -m unittest discover -s tests/atlas -p 'test_*.py' -v
+          python -m unittest discover -s tests/map_corpus -p 'test_verify_public_quality.py' -v
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
 
@@ -67,14 +72,19 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
       - run: go vet ./...
+      - name: Keep network transports out of the linked binary
+        run: sh scripts/check-linked-deps.sh
+      - name: Verify a clean versioned Go module install
+        # A file:// module proxy needs a drive-letter URL on Windows; the
+        # install path itself is platform-independent and is verified on
+        # Linux and macOS.
+        if: runner.os != 'Windows'
+        run: sh scripts/check-clean-install.sh
       - name: Audit Go dependencies for known reachable vulnerabilities
         if: runner.os == 'Linux'
         run: |
@@ -82,14 +92,60 @@ jobs:
           "$RUNNER_TEMP/govulncheck/govulncheck" ./...
       - run: go test -race ./...
       - run: go test ./...
-        working-directory: third_party/go-enry
-      - run: go test -race . ./plumbing/format/packfile ./storage/filesystem ./storage/filesystem/dotgit
-        working-directory: third_party/go-git
       - run: go build -trimpath -o bin/ .
         env:
           CGO_ENABLED: '0'
+      - name: Cross-compile for Windows, Linux/arm64 and Darwin/amd64
+        if: runner.os == 'Linux'
+        run: |
+          GOOS=windows   CGO_ENABLED=0 go build -trimpath ./...
+          GOOS=windows   CGO_ENABLED=0 go vet ./...
+          GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath ./...
+          GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath ./...
+      - name: staticcheck (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          GOBIN="$RUNNER_TEMP/staticcheck" CGO_ENABLED=0 go install honnef.co/go/tools/cmd/staticcheck@v0.6.0
+          # Exclude embedded upstream code: the jsonschema snapshot, third_party
+          # forks and the vendored scc processor.
+          go list ./... | grep -v -E 'dircue/internal/jsonschema|/third_party/|/internal/sccprocessor' | xargs "$RUNNER_TEMP/staticcheck/staticcheck"
+      - name: Coverage summary (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          go test -coverprofile="$RUNNER_TEMP/coverage.out" ./... -count=1 | tee "$RUNNER_TEMP/cover-run.txt"
+          {
+            echo '## Per-package test coverage'
+            echo '```'
+            grep '^ok\b' "$RUNNER_TEMP/cover-run.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: runner.os == 'Linux'
+        with:
+          retention-days: 7
+          name: coverage-profile
+          path: ${{ runner.temp }}/coverage.out
+      - name: Ergonomics regression tests (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          for id in R-001 R-002 R-003 R-004 R-005 R-006 R-007 R-008 R-009 R-010 R-011; do
+            python3 "tests/ergonomics_v100/audit/regression_tests/${id}__contract.test.py" bin/dircue
+          done
+      - name: Verify one-shot map golden and metamorphic gates
+        run: |
+          python3 tests/map_corpus/run.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --output .cache/map-corpus
+          python3 tests/map_corpus/verify.py --results .cache/map-corpus
+          python3 tests/map_corpus/metamorphic.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+          python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+          python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Test staged-analysis consumer against the built CLI
         run: python examples/staged_analysis/test_route.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Hostile-filesystem conformance (quick, POSIX only)
+        if: runner.os != 'Windows'
+        run: python3 tests/hostile_fs/run.py --binary bin/dircue --quick
+      - name: Forest E2E conformance (quick, POSIX only)
+        if: runner.os != 'Windows'
+        run: python3 tests/forest/run.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --quick
 
   linguist-conformance:
     needs: preflight
@@ -102,10 +158,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - run: make conformance
       - run: make samples
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -126,10 +179,7 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-          cache-dependency-path: |
-            go.sum
-            third_party/go-enry/go.sum
-            third_party/go-git/go.sum
+          cache-dependency-path: go.sum
       - run: go build -trimpath -o bin/dircue .
         env:
           CGO_ENABLED: '0'
@@ -144,3 +194,65 @@ jobs:
           retention-days: 7
           name: metrics-conformance
           path: .cache/metrics-differential.json
+
+  counter-regression:
+    # Report-only PR check: map the corpus fixtures with the base and head
+    # builds and compare their deterministic cost counters in the job summary.
+    # Wall time, heap and GC counts vary between runs and are never compared.
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    needs: preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Build head and base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          CGO_ENABLED: '0'
+        run: |
+          go build -trimpath -o "$RUNNER_TEMP/dircue-head" .
+          git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
+          (cd "$RUNNER_TEMP/base" && go build -trimpath -o "$RUNNER_TEMP/dircue-base" .)
+      - name: Compare deterministic cost counters
+        run: |
+          python3 tests/bench/counter_compare.py \
+            --base "$RUNNER_TEMP/dircue-base" --head "$RUNNER_TEMP/dircue-head" \
+            tests/map_corpus/fixtures/*/
+
+  map-diff-dogfood:
+    # Self-test: exercise the map-diff action against this repository using the
+    # binary built from the PR branch. No release download; no PR comment.
+    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Full history is required for merge-base calculation inside the action.
+          fetch-depth: 0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Build dircue
+        run: go build -trimpath -o bin/dircue .
+        env:
+          CGO_ENABLED: '0'
+      - name: dircue map diff (self-test)
+        uses: ./.github/actions/map-diff
+        with:
+          dircue-binary: bin/dircue
+          source-mode: auto
+          post-comment: 'false'

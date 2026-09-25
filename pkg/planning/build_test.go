@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
-	"dircue/pkg/capabilities"
-	"dircue/pkg/declarations"
-	"dircue/pkg/discovery"
-	"dircue/pkg/focus"
-	"dircue/pkg/planning"
-	"dircue/pkg/profile"
-	"dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/capabilities"
+	"github.com/war-and-code/dircue/pkg/declarations"
+	"github.com/war-and-code/dircue/pkg/discovery"
+	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/planning"
+	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/projects"
 )
 
 const digest = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"

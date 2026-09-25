@@ -1,0 +1,93 @@
+{
+  "questions": [
+    {
+      "id": "pipfile-and-requirements-single-component",
+      "oracle": {
+        "fixture_evidence": "Pipfile and requirements.txt both exist at root; setup.cfg has only [flake8]; the component must be deduplicated to one, anchored by Pipfile",
+        "source": "Pipfile is the primary Python dependency declaration when present alongside requirements.txt",
+        "url": "https://pipenv.pypa.io/en/latest/pipfile/"
+      },
+      "must_include": [
+        {
+          "kind": "component",
+          "name": "(root)",
+          "path": "Pipfile"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "component",
+          "name": "(root)",
+          "path": "setup.cfg"
+        }
+      ],
+      "allowed_unknown": [
+        "whether components exceed exactly one"
+      ]
+    },
+    {
+      "id": "pipfile-runtime-capabilities",
+      "oracle": {
+        "fixture_evidence": "Pipfile [packages] declares psycopg2 (datastore:postgresql) and PyJWT (auth:jwt); both are runtime dependencies",
+        "source": "Pipfile [packages] section: runtime dependencies available in production",
+        "url": "https://pipenv.pypa.io/en/latest/pipfile/"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "auth:jwt",
+          "path": "Pipfile"
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "path": "Pipfile"
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "whether packages are used at runtime"
+      ]
+    },
+    {
+      "id": "pipfile-dev-deps-not-capabilities",
+      "oracle": {
+        "fixture_evidence": "Pipfile [dev-packages] declares pytest; dev deps must not create capabilities",
+        "source": "Pipfile [dev-packages]: not installed in production; same convention as Dart dev_dependencies",
+        "url": "https://pipenv.pypa.io/en/latest/pipfile/"
+      },
+      "must_include": [],
+      "must_not_include": [
+        {
+          "kind": "capability",
+          "name": "testing:unit"
+        }
+      ],
+      "allowed_unknown": [
+        "whether pytest is the only test framework"
+      ]
+    },
+    {
+      "id": "requirements-include-resolved",
+      "oracle": {
+        "fixture_evidence": "requirements.txt has only -r requirements/prod.txt; prod.txt lists psycopg2, PyJWT, Flask; they must appear as deps of the (root) component",
+        "source": "pip requirements file format: -r includes the referenced file's packages",
+        "url": "https://pip.pypa.io/en/stable/reference/requirements-file-format/#referring-to-other-requirements-files"
+      },
+      "must_include": [
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql"
+        },
+        {
+          "kind": "capability",
+          "name": "auth:jwt"
+        }
+      ],
+      "must_not_include": [],
+      "allowed_unknown": [
+        "transitive pip include depth"
+      ]
+    }
+  ]
+}

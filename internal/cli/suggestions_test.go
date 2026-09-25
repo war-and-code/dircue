@@ -16,7 +16,7 @@ import (
 // nearbyName because isTypoCandidate rejects them at the caller, and
 // nearbyName itself refuses ties and inputs over 64 bytes.
 func TestNearbyNameEditDistance(t *testing.T) {
-	subcommands := []string{"analyze", "capabilities", "compare", "help", "plan"}
+	subcommands := []string{"analyze", "capabilities", "compare", "help", "map", "plan"}
 	analyzers := []string{"availability", "declarations", "discovery", "environments", "focus", "formats", "metrics", "structure"}
 	enumSource := []string{"auto", "git", "directory"}
 	enumOnError := []string{"fail", "continue"}
@@ -28,6 +28,7 @@ func TestNearbyNameEditDistance(t *testing.T) {
 	}{
 		{"exact", "plan", subcommands, "plan"},
 		{"one_edit_subcommand", "plann", subcommands, "plan"},
+		{"one_edit_map_subcommand", "maps", subcommands, "map"},
 		{"one_edit_source", "sourc", enumSource, ""},
 		{"typo_source_delete", "gt", enumSource, "git"},
 		{"typo_source_substitution", "atuo", enumSource, "auto"},
@@ -100,6 +101,7 @@ func TestUnknownFirstTokenSuggestsSubcommand(t *testing.T) {
 	}{
 		{"plann", "if you intended the command, use: dircue plan --help"},
 		{"capabilties", "if you intended the command, use: dircue capabilities --help"},
+		{"maps", "if you intended the command, use: dircue map --help"},
 	} {
 		_, _, err := invoke(tc.token)
 		if err == nil || !strings.Contains(err.Error(), tc.want) {
@@ -120,5 +122,53 @@ func TestUnknownFirstTokenSuggestsSubcommand(t *testing.T) {
 	}
 	if _, _, err := invoke("otherdir", "."); err == nil || strings.Contains(err.Error(), "did you mean") || !strings.Contains(err.Error(), "received 2") {
 		t.Fatalf("existing-path two-arg: %v", err)
+	}
+}
+
+func TestMapNestedCommandTyposTeachWithoutGuessingOrBreakingPaths(t *testing.T) {
+	root := t.TempDir()
+	t.Chdir(root)
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"map", "routee", "missing.json"}, "did you mean `dircue map route`?"},
+		{[]string{"map", "locat", "map.json", "results.sarif"}, "did you mean `dircue map locate`?"},
+	} {
+		out, stderr, err := invoke(tc.args...)
+		if err == nil || out != "" || stderr != "" || !strings.Contains(err.Error(), tc.want) {
+			t.Fatalf("%v: stdout=%q stderr=%q err=%v", tc.args, out, stderr, err)
+		}
+	}
+	if err := os.Mkdir(filepath.Join(root, "routee"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "routee", "main.go"), []byte("package main\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"map", "--source", "directory", "--json", "--", "routee"},
+		{"map", "--source", "directory", "--json", "./routee"},
+	} {
+		out, stderr, err := invoke(args...)
+		if err != nil || stderr != "" || !strings.Contains(out, `"Go"`) || strings.Contains(out, "did you mean") {
+			t.Fatalf("explicit path %v: stdout=%q stderr=%q err=%v", args, out, stderr, err)
+		}
+	}
+}
+
+func TestMapSavedInputArgumentErrorsPointToExactHelp(t *testing.T) {
+	for _, tc := range []struct {
+		args []string
+		want string
+	}{
+		{[]string{"map", "route"}, "map route requires one saved map file; see: dircue map route --help"},
+		{[]string{"map", "locate"}, "map locate requires a saved map and SARIF report; see: dircue map locate --help"},
+		{[]string{"map", "compare"}, "map compare requires base and head map files; see: dircue map compare --help"},
+	} {
+		out, stderr, err := invoke(tc.args...)
+		if err == nil || out != "" || stderr != "" || err.Error() != tc.want {
+			t.Fatalf("%v: stdout=%q stderr=%q err=%v", tc.args, out, stderr, err)
+		}
 	}
 }

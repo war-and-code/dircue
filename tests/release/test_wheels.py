@@ -73,7 +73,7 @@ def fixture_release(directory):
                   'clean_checkout': True, 'head_and_clean_state_verified_after_build': True,
                   'git_revision': '0' * 40, 'cgo_enabled': False,
                   'controls': {'CGO_ENABLED': '0', 'GOAMD64': 'v1', 'GOARM64': 'v8.0', 'selected_toolchain': 'go1.26.6'},
-                  'build_flags': ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags', '-s -w -X dircue/internal/cli.Version=0.1.0'],
+                  'build_flags': ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags', '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=0.1.0'],
                   'archives': records}
     (directory / 'provenance.json').write_bytes(wheels.encoded(provenance))
     (directory / 'SHA256SUMS').write_text(''.join(f"{row['sha256']}  {row['name']}\n" for row in records))

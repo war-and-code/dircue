@@ -11,8 +11,8 @@
       "Path": "github.com/go-enry/go-enry/v2",
       "Version": "v2.9.6",
       "Time": "2026-04-04T19:44:49Z",
-      "Dir": "/Users/gingeleski/go/pkg/mod/github.com/go-enry/go-enry/v2@v2.9.6",
-      "GoMod": "/Users/gingeleski/go/pkg/mod/cache/download/github.com/go-enry/go-enry/v2/@v/v2.9.6.mod",
+      "Dir": "/home/user/go/pkg/mod/github.com/go-enry/go-enry/v2@v2.9.6",
+      "GoMod": "/home/user/go/pkg/mod/cache/download/github.com/go-enry/go-enry/v2/@v/v2.9.6.mod",
       "GoVersion": "1.14",
       "Sum": "h1:np63eOtMV56zfYDHnFVgpEVOk8fr2kmylcMnAZUDbSs=",
       "GoModSum": "h1:9yrj4ES1YrbNb1Wb7/PWYr2bpaCXUGRt0uafN0ISyG8="

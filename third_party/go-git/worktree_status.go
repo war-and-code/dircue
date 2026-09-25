@@ -10,17 +10,17 @@ import (
 	"strings"
 
 	"github.com/go-git/go-billy/v5/util"
-	"github.com/go-git/go-git/v5/internal/pathutil"
-	"github.com/go-git/go-git/v5/plumbing"
-	"github.com/go-git/go-git/v5/plumbing/filemode"
-	"github.com/go-git/go-git/v5/plumbing/format/gitignore"
-	"github.com/go-git/go-git/v5/plumbing/format/index"
-	"github.com/go-git/go-git/v5/plumbing/object"
-	"github.com/go-git/go-git/v5/utils/ioutil"
-	"github.com/go-git/go-git/v5/utils/merkletrie"
-	"github.com/go-git/go-git/v5/utils/merkletrie/filesystem"
-	mindex "github.com/go-git/go-git/v5/utils/merkletrie/index"
-	"github.com/go-git/go-git/v5/utils/merkletrie/noder"
+	"github.com/war-and-code/dircue/third_party/go-git/internal/pathutil"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/filemode"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/gitignore"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/format/index"
+	"github.com/war-and-code/dircue/third_party/go-git/plumbing/object"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/ioutil"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/merkletrie"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/merkletrie/filesystem"
+	mindex "github.com/war-and-code/dircue/third_party/go-git/utils/merkletrie/index"
+	"github.com/war-and-code/dircue/third_party/go-git/utils/merkletrie/noder"
 )
 
 var (

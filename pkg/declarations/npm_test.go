@@ -44,9 +44,17 @@ func TestNPMDeclarationsDoNotRetainCommandsOrURLs(t *testing.T) {
 			t.Errorf("entrypoint: %+v", iface)
 		}
 	}
-	for _, name := range []string{"test", "lint:fix", "node", "npm", "example"} {
+	// Developer-task scripts ("test", "lint:fix") are not application entry points
+	// and must not appear as interfaces. Only bin declarations and conventional
+	// entry-point scripts (start, serve) are modeled.
+	for _, name := range []string{"node", "npm", "example"} {
 		if !gotNames[name] {
 			t.Errorf("missing interface %q", name)
+		}
+	}
+	for _, name := range []string{"test", "lint:fix"} {
+		if gotNames[name] {
+			t.Errorf("developer-task script %q must not be an interface", name)
 		}
 	}
 }
@@ -251,14 +259,16 @@ func TestNPMLimitsAndInstalledWorkspaceExclusion(t *testing.T) {
 	if len(root.Project.References) != 0 {
 		t.Fatal("installed dependency became a workspace member")
 	}
+	// Developer-task scripts (none named "start" or "serve") do not produce
+	// interfaces, so there is no observation cap to hit.
 	scripts := map[string]string{}
 	for i := 0; i < MaxObservationsPerManifest+20; i++ {
 		scripts[fmt.Sprintf("script%d", i)] = "secret command"
 	}
 	content, _ = json.Marshal(map[string]any{"scripts": scripts})
 	d = ParseNPM("package.json", content)
-	if len(d.Project.Interfaces)+len(d.Project.Requirements) > MaxObservationsPerManifest || len(d.Diagnostics) != 1 {
-		t.Fatalf("observation cap: %+v", d)
+	if len(d.Project.Interfaces) != 0 || len(d.Diagnostics) != 0 {
+		t.Fatalf("developer-task scripts must not produce interfaces or diagnostics: %+v", d)
 	}
 }
 
@@ -461,5 +471,20 @@ func TestNPMDirectoryDerivedIdentityConflicts(t *testing.T) {
 				t.Fatal("directory fallback emitted as declared package name")
 			}
 		}
+	}
+}
+
+func TestNPMWorkspaceRootListedAsDotStillResolvesMembers(t *testing.T) {
+	root := ParseNPM("package.json", []byte(`{"name":"@app/root","workspaces":[".","streaming"]}`))
+	docs, files := npmFixtureDocuments(root, map[string]string{"streaming/package.json": `{"name":"@app/streaming"}`})
+	ResolveNPM(docs, files)
+	found := false
+	for _, ref := range root.Project.References {
+		if ref.Target == "streaming/package.json" && ref.Kind == "npm-workspace-member" && ref.State == "resolved" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("streaming member not resolved: %+v (diagnostics %+v)", root.Project.References, root.Diagnostics)
 	}
 }
