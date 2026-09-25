@@ -349,15 +349,16 @@
         },
         {
           "question": "edges",
-          "tp": 26,
-          "fp": 1,
-          "fn": 1,
-          "precision": 0.963,
-          "recall": 0.963,
+          "tp": 27,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
             "type=member_of from=openmrs-api to=openmrs",
             "type=member_of from=openmrs-webapp to=openmrs",
             "type=depends_on_local from=openmrs-webapp to=openmrs-api",
+            "type=builds from=openmrs-core to=openmrs-webapp",
             "type=depends_on from=api to=db",
             "type=uses_capability from=openmrs-api to=datastore:mysql",
             "type=uses_capability from=openmrs-api to=datastore:postgresql",
@@ -382,12 +383,8 @@
             "type=depends_on_local from=openmrs-api to=openmrs-test",
             "type=depends_on_local from=openmrs-webapp to=openmrs-web"
           ],
-          "fp_items": [
-            "type=builds from=(root) to=openmrs"
-          ],
-          "fn_items": [
-            "type=builds from=openmrs-core to=openmrs-webapp"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -438,11 +435,11 @@
       "recall": 1.0
     },
     "edges": {
-      "tp": 39,
-      "fp": 1,
-      "fn": 1,
-      "precision": 0.975,
-      "recall": 0.975
+      "tp": 40,
+      "fp": 0,
+      "fn": 0,
+      "precision": 1.0,
+      "recall": 1.0
     },
     "coverage": {
       "tp": 12,

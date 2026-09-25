@@ -223,22 +223,23 @@ not just the rounded figures below.
 | deployables | 0.80 / 0.80 | 1.00 / 0.83 |
 | interfaces | 1.00 / 1.00 | 1.00 / 1.00 |
 | capabilities | 0.60 / 1.00 | 1.00 / 1.00 |
-| relationships | 0.38 / 0.88 | 0.95 / 0.95 |
+| relationships | 0.42 / 1.00 | 1.00 / 1.00 |
 
 The frozen-label precision is the honest unseen number, but most of the
 extra facts were real: compile-scope AWS S3 and Hibernate declarations, the
 six other reactor modules, the OpenMRS WAR the labeler had noted but could
 not name, and structural containment. Each correction cites the oracle-file
-line. The same review found real map errors, which #143 fixed before the
-corrected scores above: a Spring Security prefix that called password
-hashing OAuth2, Hibernate Search's Elasticsearch backend missing from the
-catalog, unfollowed `-r` includes, unsupported Pipfiles, a tool-only
+line. The same review found real map errors. #143 fixed a Spring Security
+prefix that called password hashing OAuth2, a missing Hibernate Search
+Elasticsearch backend in the catalog, unfollowed `-r` includes, unsupported
+Pipfiles, a tool-only
 `setup.cfg` that created a second Python root, and unlinked Maven sibling
-modules. What remains: no Procfile deployable (#146); a root Dockerfile
-linked to the reactor aggregator rather than the WAR module it ships (#147);
-and a scorer naming mismatch for root Dockerfiles in edges (#149). Once
-corrected, these repositories also informed development, so a later release
-needs new unseen repositories for the next independent check.
+modules. The follow-up to #147 now links OpenMRS's root Dockerfile to the WAR
+module through a partial, source-cited `COPY --from` edge. The #149 scorer
+fix matches root Dockerfile edge endpoints by unique path. The remaining
+known deployable gap is Procfile support (#146). These repositories have
+informed development; their corrected scores are regression measurements,
+not a new independent accuracy estimate.
 
 Two additional opt-in checks use bounded source slices from public projects
 with a checked-in binary referenced by a build declaration. The
