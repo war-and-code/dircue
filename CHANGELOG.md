@@ -25,8 +25,10 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
   - Terraform modules, one per directory;
   - SAM and Serverless functions, .NET Aspire app hosts, and CI workflows;
   - Maven WAR and EAR packaging, as `archive` deployables named by `finalName` or Maven's `artifactId-version` default, with same-file properties resolved.
+- **Dockerfile copy sources.** Dockerfile `COPY` instructions now add deployable references for local build-context sources (`copy_source`) and build-stage sources (`copy_source_stage`). These references are additive map output; `COPY . .` is retained as a source fact. In the `google/microservices-demo` corpus checkout, these references add 45 facts (about 3% more JSON).
 - **How things build and run.** `builds` and `runs` edges come from static declarations:
   - Dockerfile co-location;
+  - Dockerfile copies that identify a Maven WAR/EAR artifact (`dockerfile_copy_source_matches_maven_archive`);
   - Skaffold artifacts and exact image references;
   - SAM `CodeUri`;
   - Aspire `AddProject<>()`;
@@ -84,7 +86,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 
   The map never claimed `complete` where the labels did not.
 - **Holdouts labeled before dircue ran.** Four repositories were labeled from source before any map run: OWASP BenchmarkJava and BenchmarkPython, AppFlowy editor (Dart) and AWS CardDemo (COBOL). The first run found 5 of 18 labeled facts. The map work they prompted finds 12 of 18 against those original labels, and 18 of 18 after the labels were restated in the map's documented vocabulary, with each change citing the source (`tests/map_corpus/holdout_labels`).
-- **A fresh blind check.** Four more repositories (OpenMRS core, a Flask application, the bloc Dart monorepo and a Prisma/Express application) were labeled blind before that work was run on them (`tests/map_corpus/fresh_labels`). Against those frozen labels, recall is 1.00 for components, interfaces and capabilities, 0.80 for deployables and 0.88 for relationships. Precision is lower: 0.60 for capabilities and 0.38 for relationships. Source review found that most of the extra facts were true declarations the labels had omitted. After source-checked corrections, capabilities score 1.00 / 1.00 and relationships 0.95 / 0.95; these repositories have since informed development too. Remaining gaps are Procfiles (#146), which module a root Dockerfile ships (#147) and a scorer naming mismatch (#149).
+- **A fresh blind check.** Four repositories (OpenMRS core, a Flask application, the bloc Dart monorepo and a Prisma/Express application) were labeled blind before the first candidate run (`tests/map_corpus/fresh_labels`). On those original frozen labels, the first run scored 0.38 precision / 0.88 recall for relationships; frozen-label recall was 1.00 for components, interfaces and capabilities, and 0.80 for deployables. Re-scoring the same relationship labels with the updated scorer and the original binary gives 0.40 / 0.94; the updated binary and scorer give 0.425 / 1.00. Those are regression comparisons, not independent estimates. The scorer and Dockerfile-attribution changes account for part of the movement. Source-checked label corrections produce 1.00 / 1.00 for relationships and capabilities, but the repositories have since informed development. Procfiles remain a known gap (#146); the Dockerfile attribution and scorer issues tracked as #147 and #149 are addressed.
 - Committed fixtures from pinned Syft, OWASP Noir, ruff and Semgrep exercise attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 
