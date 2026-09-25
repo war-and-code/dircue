@@ -50,13 +50,17 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	// Index statically declared Maven archive artifacts by filename. A Docker
 	// COPY source can then identify the reactor module whose WAR/EAR it ships;
 	// the archive's POM directory identifies its owning component.
-	mavenArchives := map[string][]string{}
+	type mavenArchiveOwner struct {
+		component string
+		root      string
+	}
+	mavenArchives := map[string][]mavenArchiveOwner{}
 	for _, def := range definitions {
 		if def.Provider != "maven" || def.Kind != "archive" || def.Name == "" {
 			continue
 		}
 		for _, owner := range componentsByRoot[path.Dir(def.Path)] {
-			mavenArchives[path.Base(def.Name)] = append(mavenArchives[path.Base(def.Name)], owner)
+			mavenArchives[path.Base(def.Name)] = append(mavenArchives[path.Base(def.Name)], mavenArchiveOwner{component: owner, root: path.Dir(def.Path)})
 		}
 	}
 
@@ -201,16 +205,32 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			artifactOwnerSet := map[string]bool{}
 			var artifactEvidence mapdoc.Evidence
 			for _, ref := range def.References {
-				if ref.Kind != "copy_source" || ref.Qualification != "local" {
+				if (ref.Kind != "copy_source" && ref.Kind != "copy_source_stage") || ref.Qualification != "local" {
 					continue
 				}
 				matches := mavenArchives[path.Base(ref.Value)]
-				if len(matches) == 1 {
-					if !artifactOwnerSet[matches[0]] {
-						artifactOwners = append(artifactOwners, matches[0])
-						artifactOwnerSet[matches[0]] = true
-						artifactEvidence = deployableEvidence(def.Path, ref.Evidence)
+				var matched mavenArchiveOwner
+				matchedOnce := false
+				for _, candidate := range matches {
+					cleanSource := strings.TrimPrefix(path.Clean(ref.Value), "/")
+					root := strings.TrimPrefix(path.Clean(candidate.root), "./")
+					pathIdentifiesModule := strings.HasPrefix(cleanSource, root+"/")
+					if root == "." {
+						pathIdentifiesModule = strings.HasPrefix(cleanSource, "target/")
 					}
+					stageIdentifiesArtifact := ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source"
+					if pathIdentifiesModule || stageIdentifiesArtifact {
+						if matchedOnce {
+							matchedOnce = false // duplicate artifact identities are ambiguous
+							break
+						}
+						matched, matchedOnce = candidate, true
+					}
+				}
+				if matchedOnce && !artifactOwnerSet[matched.component] {
+					artifactOwners = append(artifactOwners, matched.component)
+					artifactOwnerSet[matched.component] = true
+					artifactEvidence = deployableEvidence(def.Path, ref.Evidence)
 				}
 			}
 			if len(artifactOwners) == 1 {

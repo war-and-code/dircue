@@ -102,6 +102,26 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				d.Coverage = "qualified"
 			}
 			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			// A source copied from a declared build stage is stronger artifact
+			// evidence than an arbitrary path in the build context. Retain it
+			// separately so consumers can apply stricter matching rules.
+			remainder := strings.TrimSpace(strings.TrimPrefix(line, m[0]))
+			fields := strings.Fields(remainder)
+			var sources []string
+			for _, field := range fields {
+				if strings.HasPrefix(field, "--") && len(sources) == 0 {
+					continue
+				}
+				sources = append(sources, field)
+			}
+			if len(sources) >= 2 {
+				for _, source := range sources[:len(sources)-1] {
+					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						continue
+					}
+					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}})
+				}
+			}
 		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
 			// Keep only ordinary, static source paths. Docker's JSON form and
 			// quoted shell form are intentionally outside this bounded parser.
