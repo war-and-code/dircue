@@ -109,13 +109,18 @@ func Build(report *declarations.Report) Fragment {
 
 	// Maven reactor sibling dependency resolution (O-27).
 	// A <dependency> whose groupId:artifactId exactly matches the declared
-	// coordinates of another Maven component in the same scan is a local
-	// project relationship. Version is ignored: Maven always resolves reactor
-	// siblings by groupId:artifactId regardless of the version token, which
-	// may be an unresolved property like ${project.version}.
+	// coordinates of another Maven component in the same scan may be a local
+	// project relationship. A known version mismatch rules the match out;
+	// missing or unresolved versions leave the attribution partial.
 	// Ambiguity (two components with the same coordinates) yields no edge.
 	// Profile and scope conditions are preserved from the requirement.
 	mavenByCoords := buildMavenCoordIndex(projects, byManifest)
+	mavenVersions := make(map[string]string, len(mavenByCoords))
+	for _, p := range projects {
+		if p.Kind == "maven" {
+			mavenVersions[p.ID] = mavenProjectVersion(p)
+		}
+	}
 	for _, p := range projects {
 		if _, ok := byManifest[p.ID]; !ok {
 			continue
@@ -137,8 +142,13 @@ func Build(report *declarations.Report) Fragment {
 			if from == to {
 				continue
 			}
+			depVersion := mavenDepVersion(req.Value)
+			targetVersion := mavenVersions[targetKey]
+			if depVersion != "" && targetVersion != "" && depVersion != targetVersion {
+				continue
+			}
 			coverage := "complete"
-			if req.State == "conditional" || req.Condition != "" {
+			if req.State != "declared" || req.Condition != "" || depVersion == "" || targetVersion == "" {
 				coverage = "partial"
 			}
 			r := Relationship{Type: "depends_on_local", From: from, To: to, DeclarationKind: "maven-sibling-dependency", Evidence: req.Evidence, State: req.State, Condition: req.Condition, Coverage: coverage}
@@ -415,4 +425,32 @@ func mavenDepGA(value string) string {
 		return strings.ToLower(value) // already "g:a"
 	}
 	return strings.ToLower(value[:first+1+second])
+}
+
+func mavenDepVersion(value string) string {
+	parts := strings.SplitN(value, ":", 3)
+	if len(parts) != 3 || strings.Contains(parts[2], "${") || strings.ContainsAny(parts[2], "[](),") || parts[2] == "LATEST" || parts[2] == "RELEASE" {
+		return ""
+	}
+	return parts[2]
+}
+
+func mavenProjectVersion(p declarations.Project) string {
+	for _, r := range p.Requirements {
+		if r.Kind == "maven-version" && r.Condition == "" {
+			if r.State == "declared" {
+				return r.Value
+			}
+			return ""
+		}
+	}
+	for _, r := range p.Requirements {
+		if r.Kind == "maven-parent" && r.Condition == "" && r.State == "declared" {
+			parts := strings.SplitN(r.Value, ":", 3)
+			if len(parts) == 3 && !strings.Contains(parts[2], "${") {
+				return parts[2]
+			}
+		}
+	}
+	return ""
 }

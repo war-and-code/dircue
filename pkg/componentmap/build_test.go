@@ -190,6 +190,7 @@ func TestMavenReactorSiblingDependency(t *testing.T) {
 				Requirements: []declarations.Requirement{
 					{Kind: "maven-groupId", Value: "org.example", State: "declared", Evidence: "api/pom.xml"},
 					{Kind: "maven-artifactId", Value: "api", State: "declared", Evidence: "api/pom.xml"},
+					{Kind: "maven-version", Value: "1.0.0", State: "declared", Evidence: "api/pom.xml"},
 				},
 			},
 			{
@@ -197,7 +198,7 @@ func TestMavenReactorSiblingDependency(t *testing.T) {
 				Requirements: []declarations.Requirement{
 					{Kind: "maven-groupId", Value: "org.example.web", State: "declared", Evidence: "webapp/pom.xml"},
 					{Kind: "maven-artifactId", Value: "webapp", State: "declared", Evidence: "webapp/pom.xml"},
-					{Kind: "maven-dependency", Value: "org.example:api", State: "declared", Evidence: "webapp/pom.xml"},
+					{Kind: "maven-dependency", Value: "org.example:api:1.0.0", State: "declared", Evidence: "webapp/pom.xml"},
 				},
 			},
 		},
@@ -268,6 +269,53 @@ func TestMavenReactorSiblingDependencyTestScope(t *testing.T) {
 	}
 	if siblingEdge.Coverage != "partial" {
 		t.Errorf("test-scope sibling edge coverage = %q, want partial", siblingEdge.Coverage)
+	}
+}
+
+func TestMavenSiblingVersionMustAgree(t *testing.T) {
+	for _, tc := range []struct {
+		name, dependencyVersion, wantCoverage string
+		wantEdge                              bool
+	}{
+		{"matching", "1.0.0", "complete", true},
+		{"different", "2.0.0", "", false},
+		{"unversioned", "", "partial", true},
+		{"unresolved", "${api.version}", "partial", true},
+		{"version_range", "[1.0.0,2.0.0)", "partial", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dep := "org.example:api"
+			state := "declared"
+			if tc.dependencyVersion != "" {
+				dep += ":" + tc.dependencyVersion
+			}
+			if tc.name == "unresolved" {
+				state = "unresolved"
+			}
+			report := &declarations.Report{Status: "complete", Projects: []declarations.Project{
+				{ID: "api/pom.xml", Root: "api", Kind: "maven", Requirements: []declarations.Requirement{
+					{Kind: "maven-groupId", Value: "org.example", State: "declared"},
+					{Kind: "maven-artifactId", Value: "api", State: "declared"},
+					{Kind: "maven-version", Value: "1.0.0", State: "declared"},
+				}},
+				{ID: "web/pom.xml", Root: "web", Kind: "maven", Requirements: []declarations.Requirement{
+					{Kind: "maven-dependency", Value: dep, State: state},
+				}},
+			}}
+			found := false
+			for _, edge := range Build(report).Relationships {
+				if edge.DeclarationKind != "maven-sibling-dependency" {
+					continue
+				}
+				found = true
+				if edge.Coverage != tc.wantCoverage {
+					t.Errorf("coverage = %q, want %q", edge.Coverage, tc.wantCoverage)
+				}
+			}
+			if found != tc.wantEdge {
+				t.Errorf("edge found = %t, want %t", found, tc.wantEdge)
+			}
+		})
 	}
 }
 
