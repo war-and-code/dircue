@@ -40,6 +40,13 @@ containment, and provider analysis. A relationship means only what its type
 and evidence establish. For example, a declaration can establish a local
 reference without proving that the project builds.
 
+A Dockerfile normally links to the component at its directory. When a static
+plain-form Dockerfile `COPY` source names exactly one recognized Maven WAR/EAR
+artifact, the `builds` edge instead points to that archive's component and
+cites the `COPY` source. This is still a partial attribution: it does not
+evaluate Docker build arguments, ignore rules, stages, or Maven output, and
+ambiguous or unresolved sources retain the directory-based behavior.
+
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
 can be compared across maps of the same logical content, but an ID is not a

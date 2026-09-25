@@ -580,6 +580,41 @@ func TestDockerfileMultipleCoLocatedComponentsEmitsPartialBuildsToEach(t *testin
 	}
 }
 
+func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
+	doc := mapdoc.New()
+	aggregator := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")
+	aggregator.Name = "openmrs"
+	aggregator.Properties = map[string]string{"root": "."}
+	webapp := mapdoc.NewNode(mapdoc.NodeComponent, []string{"webapp", "webapp/pom.xml"}, "maven")
+	webapp.Name = "openmrs-webapp"
+	webapp.Properties = map[string]string{"root": "webapp"}
+	doc.Nodes = append(doc.Nodes, aggregator, webapp)
+	archiveEvidence := deployables.Evidence{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}
+	copyEvidence := deployables.Evidence{Field: "COPY source", Value: "webapp/target/openmrs.war", Line: 8, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "maven", Kind: "archive", Format: "war", Name: "openmrs.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archiveEvidence}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	for _, edge := range doc.Edges {
+		if edge.From != dockerID || edge.Type != mapdoc.EdgeBuilds {
+			continue
+		}
+		if edge.To != webapp.ID {
+			t.Fatalf("root Dockerfile attributed to %q; want WAR module %q", edge.To, webapp.ID)
+		}
+		if edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Coverage.Reasons) != 1 || edge.Coverage.Reasons[0] != "dockerfile_copy_source_matches_maven_archive" {
+			t.Fatalf("artifact attribution must remain qualified: %+v", edge)
+		}
+		if len(edge.Evidence) != 1 || edge.Evidence[0].Path != "Dockerfile" || edge.Evidence[0].Span == nil || edge.Evidence[0].Span.StartLine != 8 {
+			t.Fatalf("edge must cite the COPY source: %+v", edge.Evidence)
+		}
+		return
+	}
+	t.Fatal("no root Dockerfile builds edge emitted")
+}
+
 func TestGoModuleDisplayName(t *testing.T) {
 	for _, test := range []struct{ module, want string }{
 		{"github.com/grafana/loki/v3", "loki"},

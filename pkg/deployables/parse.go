@@ -17,6 +17,7 @@ var (
 	tfBlock          = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
 	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
 	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+--from=(\S+)\s+`)
+	dockerCopy       = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
 
@@ -101,6 +102,25 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				d.Coverage = "qualified"
 			}
 			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
+			// Keep only ordinary, static source paths. Docker's JSON form and
+			// quoted shell form are intentionally outside this bounded parser.
+			fields := strings.Fields(m[1])
+			var sources []string
+			for _, field := range fields {
+				if strings.HasPrefix(field, "--") && len(sources) == 0 {
+					continue
+				}
+				sources = append(sources, field)
+			}
+			if len(sources) >= 2 {
+				for _, source := range sources[:len(sources)-1] {
+					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						continue
+					}
+					d.References = append(d.References, Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}})
+				}
+			}
 		}
 	}
 	if len(d.References) == 0 {

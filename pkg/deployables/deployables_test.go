@@ -597,6 +597,22 @@ func TestMavenWARWithFinalName(t *testing.T) {
 	}
 }
 
+func TestDockerfileRecordsStaticCopySources(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM tomcat:10\nCOPY --chown=1000:1000 webapp/target/openmrs.war /usr/local/tomcat/webapps/ROOT.war\nCOPY ${ARTIFACT} /tmp/app.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	var sources []Reference
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" {
+			sources = append(sources, ref)
+		}
+	}
+	if len(sources) != 1 || sources[0].Value != "webapp/target/openmrs.war" || sources[0].Evidence.Line != 2 {
+		t.Fatalf("static source evidence mismatch: %+v", sources)
+	}
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>

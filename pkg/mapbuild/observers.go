@@ -47,6 +47,18 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	// release bundles, etc.) become additional evidence rather than separate
 	// nodes. See docs/MAP.md, "Kubernetes granularity".
 	definitions = aggregateKubernetesDefs(definitions, componentsByRoot)
+	// Index statically declared Maven archive artifacts by filename. A Docker
+	// COPY source can then identify the reactor module whose WAR/EAR it ships;
+	// the archive's POM directory identifies its owning component.
+	mavenArchives := map[string][]string{}
+	for _, def := range definitions {
+		if def.Provider != "maven" || def.Kind != "archive" || def.Name == "" {
+			continue
+		}
+		for _, owner := range componentsByRoot[path.Dir(def.Path)] {
+			mavenArchives[path.Base(def.Name)] = append(mavenArchives[path.Base(def.Name)], owner)
+		}
+	}
 
 	type imageOwner struct {
 		component     string
@@ -185,7 +197,25 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {
 			owners := componentsByRoot[path.Dir(def.Path)]
-			if len(owners) == 1 {
+			var artifactOwners []string
+			artifactOwnerSet := map[string]bool{}
+			var artifactEvidence mapdoc.Evidence
+			for _, ref := range def.References {
+				if ref.Kind != "copy_source" || ref.Qualification != "local" {
+					continue
+				}
+				matches := mavenArchives[path.Base(ref.Value)]
+				if len(matches) == 1 {
+					if !artifactOwnerSet[matches[0]] {
+						artifactOwners = append(artifactOwners, matches[0])
+						artifactOwnerSet[matches[0]] = true
+						artifactEvidence = deployableEvidence(def.Path, ref.Evidence)
+					}
+				}
+			}
+			if len(artifactOwners) == 1 {
+				addRelationship(mapdoc.EdgeBuilds, n.ID, artifactOwners[0], "dockerfile-artifact:"+def.Path, "dockerfile_copy_source_matches_maven_archive", artifactEvidence)
+			} else if len(owners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
 			} else if len(owners) > 1 {
 				// Multiple components share the same directory as this Dockerfile
