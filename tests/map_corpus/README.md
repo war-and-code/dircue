@@ -207,10 +207,15 @@ See `fresh_labels/README.md` for selection and method.
 ```sh
 python3 tests/map_corpus/fetch_fresh.py --dest .cache/fresh-repos
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
-  --repos .cache/fresh-repos --frozen      # the unseen measurement
+  --repos .cache/fresh-repos --frozen \
+  --output tests/map_corpus/fresh_results_frozen.json
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
-  --repos .cache/fresh-repos               # with recorded corrections
+  --repos .cache/fresh-repos \
+  --output tests/map_corpus/fresh_results_corrected.json
 ```
+
+The two committed result files retain the per-fact matches and disagreements,
+not just the rounded figures below.
 
 | Question | Frozen labels P / R | Corrected labels P / R |
 | --- | --- | --- |
