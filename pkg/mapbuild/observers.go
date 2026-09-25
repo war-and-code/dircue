@@ -392,6 +392,8 @@ func dockerNoInterveningWrites(refs []deployables.Reference, stage, artifactPath
 		switch ref.Kind {
 		case "add_source":
 			return false
+		case "run_instruction_opaque":
+			return false
 		case "run_instruction":
 			if !dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath) {
 				return false

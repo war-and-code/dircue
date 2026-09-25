@@ -831,6 +831,20 @@ func TestDockerfileMultiSourceRunCopyDoesNotInventAPathTransfer(t *testing.T) {
 	}
 }
 
+func TestDockerfileOverlongRunWriteIsOpaque(t *testing.T) {
+	line := "RUN mvn clean install " + strings.Repeat("x", DefaultStringBytes) + " && curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war"
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /workspace\nCOPY . .\n"+line+"\n")
+	for _, ref := range r.Definitions[0].DockerPathWrites {
+		if strings.HasPrefix(ref.Evidence.Value, "RUN ") && ref.Evidence.Line == 4 {
+			if ref.Kind != "run_instruction_opaque" {
+				t.Fatalf("overlong RUN was retained as classifiable: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing overlong RUN write marker")
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>
