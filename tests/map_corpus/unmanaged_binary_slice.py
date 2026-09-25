@@ -2,7 +2,7 @@
 """Opt-in bounded check of public repositories with checked-in local binaries.
 
 This is a source-slice validation, not a whole-repository corpus gate. It fetches
-two project files and two binary files at fixed commits into a temporary
+bounded declaration files and two binary files at fixed commits into a temporary
 directory, verifies their references and SHA-256 digests, and optionally asks
 dircue to map those slices. No fetched content is written into the checkout.
 """
@@ -43,7 +43,9 @@ SLICES = (
         "repo": "pyrevitlabs/pyRevit",
         "commit": "6294cf9c477130eadd73b9d156784f7a5553b4cd",
         "manifest": "dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj",
-        "manifest_contains": '<Reference Include="pyRevitLabs.Json" HintPath="$(PyRevitDevLibsDir)\\pyRevitLabs.Json.dll"',
+        "target_framework": "net48",
+        "reference_include": "pyRevitLabs.Json",
+        "reference_hint_path": "$(PyRevitDevLibsDir)\\pyRevitLabs.Json.dll",
         "build_targets": "dev/Directory.Build.targets",
         "build_targets_properties": {
             "NetFolder": ("'$(TargetFramework)' == 'net48'", "netfx"),
@@ -102,24 +104,43 @@ def map_slice(binary: Path, root: Path) -> dict[str, Any]:
     }
 
 
+def local_name(tag: str) -> str:
+    return re.sub(r"^\{[^}]+\}", "", tag)
+
+
 def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> dict[str, Any]:
     base = f"https://raw.githubusercontent.com/{spec['repo']}/{spec['commit']}/"
     manifest_bytes = fetch(base + spec["manifest"], MAX_SOURCE_BYTES)
     manifest_text = manifest_bytes.decode("utf-8")
-    if spec["manifest_contains"] not in manifest_text:
-        raise ValueError(f"{spec['id']}: pinned manifest no longer contains its binary reference")
     build_targets_path = None
     resolution = None
     build_targets_bytes = None
+    source_hashes = {"manifest_sha256": hashlib.sha256(manifest_bytes).hexdigest()}
     if "build_targets" in spec:
         build_targets_bytes = fetch(base + spec["build_targets"], MAX_SOURCE_BYTES)
         try:
+            manifest_root = ET.fromstring(manifest_bytes)
             build_targets_root = ET.fromstring(build_targets_bytes)
         except ET.ParseError as exc:
-            raise ValueError(f"{spec['id']}: pinned build targets are not valid XML: {exc}") from exc
+            raise ValueError(f"{spec['id']}: pinned project or build targets are not valid XML: {exc}") from exc
+        target_frameworks = [
+            (element.text or "").strip()
+            for element in manifest_root.iter()
+            if local_name(element.tag) == "TargetFrameworks"
+        ]
+        if not any(spec["target_framework"] in value.split(";") for value in target_frameworks):
+            raise ValueError(f"{spec['id']}: project does not target {spec['target_framework']}: {target_frameworks!r}")
+        references = [element for element in manifest_root.iter() if local_name(element.tag) == "Reference"]
+        matched_reference = next(
+            (element for element in references if element.attrib.get("Include") == spec["reference_include"]),
+            None,
+        )
+        if matched_reference is None or matched_reference.attrib.get("HintPath") != spec["reference_hint_path"]:
+            actual = matched_reference.attrib.get("HintPath") if matched_reference is not None else None
+            raise ValueError(f"{spec['id']}: project reference HintPath mismatch: {actual!r}")
         properties: dict[str, list[tuple[str | None, str]]] = {}
         for element in build_targets_root.iter():
-            name = re.sub(r"^\{[^}]+\}", "", element.tag)
+            name = local_name(element.tag)
             if name in spec["build_targets_properties"]:
                 properties.setdefault(name, []).append((element.attrib.get("Condition"), (element.text or "").strip()))
         for name, (expected_condition, expected_value) in spec["build_targets_properties"].items():
@@ -128,24 +149,51 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
                 raise ValueError(f"{spec['id']}: {spec['build_targets']} {name} property mismatch: {actual!r}")
         # Resolve these declarations symbolically for the pinned project location;
         # do not invoke MSBuild or execute repository build logic.
-        repo_root = Path("<repository-root>")
-        build_targets_dir = repo_root / Path(spec["build_targets"]).parent
-        pyrevit_root = posixpath.normpath((build_targets_dir / "..").as_posix())
-        pyrevit_dev = f"{pyrevit_root}/dev"
-        pyrevit_libs = f"{pyrevit_dev}/libs/netfx"
-        expected_binary = f"{pyrevit_libs}/pyRevitLabs.Json.dll"
-        declared_binary = spec["binary"].replace("\\", "/")
-        if expected_binary.removeprefix("<repository-root>/") != declared_binary:
-            raise ValueError(f"{spec['id']}: static net48 property resolution does not select {declared_binary}")
+        netfolder_value = next(
+            value
+            for condition, value in properties["NetFolder"]
+            if condition == ("'$(TargetFramework)' == '" + spec["target_framework"] + "'")
+        )
+        build_targets_directory = posixpath.dirname(spec["build_targets"])
+        properties_for_resolution = {
+            "TargetFramework": spec["target_framework"],
+            "NetFolder": netfolder_value,
+            "MSBuildThisFileDirectory": f"<repository-root>/{build_targets_directory}/",
+        }
+        properties_for_resolution.update({
+            name: next(value for condition, value in properties[name] if condition == expected_condition)
+            for name, (expected_condition, _) in spec["build_targets_properties"].items()
+            if name != "NetFolder"
+        })
+
+        def substitute(value: str) -> str:
+            for _ in range(len(properties_for_resolution) + 1):
+                updated = re.sub(
+                    r"\$\(([^)]+)\)",
+                    lambda match: properties_for_resolution.get(match.group(1), match.group(0)),
+                    value,
+                )
+                if updated == value:
+                    return value
+                value = updated
+            raise ValueError(f"{spec['id']}: cyclic property expansion in {value!r}")
+
+        resolved_lib_dir = posixpath.normpath(substitute(properties_for_resolution["PyRevitDevLibsDir"]).replace("\\", "/"))
+        resolved_reference = posixpath.normpath(substitute(matched_reference.attrib["HintPath"]).replace("\\", "/"))
+        binary_relative_path = spec["binary"].replace("\\", "/")
+        declared_binary = f"<repository-root>/{binary_relative_path}"
+        if resolved_reference != declared_binary:
+            raise ValueError(f"{spec['id']}: property resolution selected {resolved_reference}, expected {declared_binary}")
         build_targets_path = Path(spec["build_targets"])
         resolution = {
             "method": "static_property_substitution",
             "build_logic_executed": False,
-            "target_framework": "net48",
-            "NetFolder": "netfx",
-            "PyRevitDevLibsDir": "<repository-root>/dev/libs/netfx",
-            "resolved_reference": f"<repository-root>/{declared_binary}",
+            "target_framework": spec["target_framework"],
+            "NetFolder": properties_for_resolution["NetFolder"],
+            "PyRevitDevLibsDir": resolved_lib_dir,
+            "resolved_reference": resolved_reference,
         }
+        source_hashes["build_targets_sha256"] = hashlib.sha256(build_targets_bytes).hexdigest()
     binary_bytes = fetch(base + spec["binary"], MAX_BINARY_BYTES)
     digest = hashlib.sha256(binary_bytes).hexdigest()
     if len(binary_bytes) != spec["binary_size"]:
@@ -179,6 +227,7 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
         "whole_repository_coverage": False,
         "package_identity_claimed": False,
     }
+    result.update(source_hashes)
     if resolution is not None:
         result["build_targets"] = spec["build_targets"]
         result["build_variable_resolution"] = resolution

@@ -102,6 +102,7 @@
       "id": "zdh-web-local-jar",
       "manifest": "pom.xml",
       "manifest_reference_verified": true,
+      "manifest_sha256": "43f9206448572daeb5c9a9eb1f9902b34c1c19757d0bc8a0abec7bedf5d11646",
       "package_identity_claimed": false,
       "repo": "zhaoyachao/zdh_web",
       "role": "Maven system-scope local JAR reference",
@@ -112,6 +113,7 @@
       "binary_sha256": "8eedc650cdb204ae8b1cf7f1c3b47e29d2617b875c10b48140b0e34381dfbeb3",
       "binary_size": 699392,
       "build_targets": "dev/Directory.Build.targets",
+      "build_targets_sha256": "bf6abd1cd2d6345201db43341aabf9883919571a17af032d313f0d1d30382bda",
       "build_variable_resolution": {
         "NetFolder": "netfx",
         "PyRevitDevLibsDir": "<repository-root>/dev/libs/netfx",
@@ -207,6 +209,7 @@
       "id": "pyrevit-local-dll",
       "manifest": "dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj",
       "manifest_reference_verified": true,
+      "manifest_sha256": "023c8ddaf739d23aea4480e64c0f399f4a7a8abf2e9aef98c755803cea58d703",
       "package_identity_claimed": false,
       "repo": "pyrevitlabs/pyRevit",
       "role": ".NET HintPath reference to checked-in managed DLL",
