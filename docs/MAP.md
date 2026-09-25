@@ -73,9 +73,8 @@ keys for future producers.
 | Component | `root`, `ecosystem`, `project_kind`; `language` is present only when attributed, with `language_basis`. Auxiliary paths may carry `role` and `role_basis=path_name`. Toolchain declarations that are not interface endpoints — npm `engines`, Python `requires-python`, Rust toolchain, build backends, and build scripts — are stored as component properties: `runtime_requirements` (semicolon-separated list), `build_backend`, and `build_script`. |
 | Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. Archive deployables (Maven WAR/EAR) also carry `format` (`war` or `ear`). |
 | Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. `owning_component` holds the ID of the declaring component node when determinable. |
-| Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. Maven and Gradle main-class declarations
-use `interface_kind: maven_main_class` and `gradle_main_class`; their node names
-are the statically declared class names. |
+| Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
+| Main-class interface | Maven and Gradle main-class declarations use `interface_kind: maven_main_class` and `gradle_main_class`; their node names are the statically declared class names. |
 | Package | `package_type` from the attached provider report. |
 
 ### Edge semantics

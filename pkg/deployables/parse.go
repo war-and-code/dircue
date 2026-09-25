@@ -15,11 +15,14 @@ import (
 )
 
 var (
-	tfBlock          = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
-	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
-	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
-	dockerCopy       = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
-	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-[a-zA-Z]+\s+)?(\S+)\s+(\S+)`)
+	tfBlock        = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
+	dockerFrom     = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
+	dockerCopyFrom = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
+	dockerCopy     = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
+	// Only a two-operand cp can establish a source-to-destination transfer.
+	// A third path makes the final operand a directory; matching the first two
+	// would invent a transfer that the command does not perform.
+	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-[a-zA-Z]+\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
 
