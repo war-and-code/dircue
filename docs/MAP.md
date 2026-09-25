@@ -41,11 +41,13 @@ and evidence establish. For example, a declaration can establish a local
 reference without proving that the project builds.
 
 A Dockerfile normally links to the component at its directory. When a static
-plain-form Dockerfile `COPY` source names exactly one recognized Maven WAR/EAR
-artifact, the `builds` edge instead points to that archive's component and
-cites the `COPY` source. This is still a partial attribution: it does not
-evaluate Docker build arguments, ignore rules, stages, or Maven output, and
-ambiguous or unresolved sources retain the directory-based behavior.
+plain-form `COPY` source is under a Maven module root and names its recognized
+WAR/EAR artifact, or a `COPY --from` source comes from a declared local build
+stage and uniquely names one recognized Maven archive, the `builds` edge
+instead points to that archive's component and cites the `COPY` source. This
+is still a partial attribution: it does not evaluate Docker build arguments,
+ignore rules, stage contents, or Maven output. Ambiguous or unresolved sources
+retain the directory-based behavior.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They

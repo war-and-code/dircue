@@ -613,6 +613,22 @@ func TestDockerfileRecordsStaticCopySources(t *testing.T) {
 	}
 }
 
+func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\nCOPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /usr/local/tomcat/webapps/openmrs.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source_stage" {
+			if ref.Value != "/openmrs/distribution/openmrs_core/openmrs.war" || ref.Qualification != "local" || ref.Evidence.Field != "COPY --from source" || ref.Evidence.Line != 2 {
+				t.Fatalf("unexpected stage-copy source: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing source path copied from declared stage")
+}
+
 func TestMavenWARDefaultName(t *testing.T) {
 	body := `<project xmlns="http://maven.apache.org/POM/4.0.0">
     <groupId>com.example</groupId>

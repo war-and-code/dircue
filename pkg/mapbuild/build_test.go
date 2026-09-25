@@ -590,10 +590,10 @@ func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
 	webapp.Properties = map[string]string{"root": "webapp"}
 	doc.Nodes = append(doc.Nodes, aggregator, webapp)
 	archiveEvidence := deployables.Evidence{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}
-	copyEvidence := deployables.Evidence{Field: "COPY source", Value: "webapp/target/openmrs.war", Line: 8, Basis: "dockerfile-instruction"}
+	copyEvidence := deployables.Evidence{Field: "COPY --from source", Value: "/openmrs/distribution/openmrs_core/openmrs.war", Line: 168, Basis: "dockerfile-instruction"}
 	definitions := []deployables.Definition{
 		{Provider: "maven", Kind: "archive", Format: "war", Name: "openmrs.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archiveEvidence}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source_stage", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
@@ -607,10 +607,35 @@ func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
 		if edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Coverage.Reasons) != 1 || edge.Coverage.Reasons[0] != "dockerfile_copy_source_matches_maven_archive" {
 			t.Fatalf("artifact attribution must remain qualified: %+v", edge)
 		}
-		if len(edge.Evidence) != 1 || edge.Evidence[0].Path != "Dockerfile" || edge.Evidence[0].Span == nil || edge.Evidence[0].Span.StartLine != 8 {
+		if len(edge.Evidence) != 1 || edge.Evidence[0].Path != "Dockerfile" || edge.Evidence[0].Span == nil || edge.Evidence[0].Span.StartLine != 168 {
 			t.Fatalf("edge must cite the COPY source: %+v", edge.Evidence)
 		}
 		return
+	}
+	t.Fatal("no root Dockerfile builds edge emitted")
+}
+
+func TestDockerfileUnrelatedCopyBasenameDoesNotSelectMavenModule(t *testing.T) {
+	doc := mapdoc.New()
+	aggregator := mapdoc.NewNode(mapdoc.NodeComponent, []string{"."}, "maven")
+	aggregator.Properties = map[string]string{"root": "."}
+	webapp := mapdoc.NewNode(mapdoc.NodeComponent, []string{"webapp", "webapp/pom.xml"}, "maven")
+	webapp.Properties = map[string]string{"root": "webapp"}
+	doc.Nodes = append(doc.Nodes, aggregator, webapp)
+	evidence := deployables.Evidence{Field: "COPY source", Value: "/tmp/openmrs.war", Line: 2, Basis: "dockerfile-instruction"}
+	definitions := []deployables.Definition{
+		{Provider: "maven", Kind: "archive", Format: "war", Name: "openmrs.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: evidence.Value, Qualification: "local", Evidence: evidence}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	for _, edge := range doc.Edges {
+		if edge.From == dockerID && edge.Type == mapdoc.EdgeBuilds {
+			if edge.To != aggregator.ID {
+				t.Fatalf("unrelated same-basename source selected %q; want fallback to aggregator %q", edge.To, aggregator.ID)
+			}
+			return
+		}
 	}
 	t.Fatal("no root Dockerfile builds edge emitted")
 }
