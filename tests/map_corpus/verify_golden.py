@@ -287,7 +287,9 @@ def match_capability(label: dict, node: dict) -> bool:
     return node_cap in allowed or node_cap == label_cap
 
 
-def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
+def node_matches_endpoint(
+    node: dict, endpoint_str: str, deployable_endpoint_ids: dict[str, set[str]] | None = None,
+) -> bool:
     """Check if a label edge endpoint string could refer to the given dircue node.
 
     Uses the same semantic keys as the per-kind node matchers so that an edge
@@ -310,6 +312,16 @@ def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
     # Direct name match works for all kinds
     if norm_ep == norm_name:
         return True
+
+    # Edge labels often use a human name for a root Dockerfile (for example,
+    # "api") while dircue calls the same deployable "(root)". Resolve those
+    # names through the already path-matched deployable labels in score_edges.
+    # This keeps edge matching consistent with score_deployables without
+    # guessing from a shared directory or compose file.
+    if kind == "deployable" and deployable_endpoint_ids:
+        node_id = node.get("id", "")
+        if node_id and node_id in deployable_endpoint_ids.get(norm_ep, set()):
+            return True
 
     if kind == "component":
         # Module-path normalisation applies to Go components only: an npm
@@ -406,7 +418,10 @@ def node_matches_endpoint(node: dict, endpoint_str: str) -> bool:
     return False
 
 
-def match_edge(label: dict, edge: dict, id_to_node: dict[str, dict]) -> bool:
+def match_edge(
+    label: dict, edge: dict, id_to_node: dict[str, dict],
+    deployable_endpoint_ids: dict[str, set[str]] | None = None,
+) -> bool:
     """Return True iff a label edge matches a dircue edge.
 
     Edge type must match exactly.  Both endpoints are resolved via
@@ -424,8 +439,8 @@ def match_edge(label: dict, edge: dict, id_to_node: dict[str, dict]) -> bool:
         return False
     label_from = label.get("from", "")
     label_to = label.get("to", "")
-    return (node_matches_endpoint(from_node, label_from) and
-            node_matches_endpoint(to_node, label_to))
+    return (node_matches_endpoint(from_node, label_from, deployable_endpoint_ids) and
+            node_matches_endpoint(to_node, label_to, deployable_endpoint_ids))
 
 
 # ---------------------------------------------------------------------------
@@ -650,6 +665,22 @@ def score_edges(label_entry: dict, map_doc: dict, oracle: set[str]) -> QuestionR
     scoped = oracle_edges(map_doc, oracle)
     id_to_node = {n["id"]: n for n in map_doc.get("nodes", [])}
 
+    # Build endpoint aliases only when a label deployable resolves to exactly
+    # one map node. match_deployable includes path matching for root Dockerfiles,
+    # so labels such as "api" can resolve to dircue's "(root)" node safely.
+    deployable_endpoint_candidates: dict[str, set[str]] = {}
+    deployable_nodes = [n for n in map_doc.get("nodes", []) if n.get("kind") == "deployable"]
+    for deployable_label in label_entry.get("deployables", []):
+        matches = [n for n in deployable_nodes if match_deployable(deployable_label, n)]
+        if len(matches) == 1:
+            endpoint = normalize(deployable_label.get("name", ""))
+            if endpoint:
+                deployable_endpoint_candidates.setdefault(endpoint, set()).add(matches[0].get("id", ""))
+    deployable_endpoint_ids = {
+        endpoint: ids for endpoint, ids in deployable_endpoint_candidates.items()
+        if len(ids) == 1
+    }
+
     # For precision, every edge of an evaluated type within oracle scope
     # counts, whether or not the labels mention that type. declares and
     # depends_on_local are evaluated only where a repository labels them,
@@ -660,7 +691,8 @@ def score_edges(label_entry: dict, map_doc: dict, oracle: set[str]) -> QuestionR
     matched_edges: set[int] = set()
     for lb in labels:
         found = next(
-            (i for i, e in enumerate(scoped) if match_edge(lb, e, id_to_node)), None
+            (i for i, e in enumerate(scoped)
+             if match_edge(lb, e, id_to_node, deployable_endpoint_ids)), None
         )
         if found is not None:
             r.tp += 1

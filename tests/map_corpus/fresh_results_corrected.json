@@ -245,23 +245,20 @@
         },
         {
           "question": "edges",
-          "tp": 4,
-          "fp": 1,
-          "fn": 1,
-          "precision": 0.8,
-          "recall": 0.8,
+          "tp": 5,
+          "fp": 0,
+          "fn": 0,
+          "precision": 1.0,
+          "recall": 1.0,
           "tp_items": [
+            "type=builds from=api to=@api/source",
             "type=uses_capability from=@api/source to=datastore:postgresql",
             "type=uses_capability from=@api/source to=auth:jwt",
             "type=uses_capability from=@api/source to=net:http-client",
             "type=uses_capability from=@api/source to=datastore:relational"
           ],
-          "fp_items": [
-            "type=builds from=(root) to=@api/source"
-          ],
-          "fn_items": [
-            "type=builds from=api to=@api/source"
-          ]
+          "fp_items": [],
+          "fn_items": []
         },
         {
           "question": "coverage",
@@ -441,11 +438,11 @@
       "recall": 1.0
     },
     "edges": {
-      "tp": 38,
-      "fp": 2,
-      "fn": 2,
-      "precision": 0.95,
-      "recall": 0.95
+      "tp": 39,
+      "fp": 1,
+      "fn": 1,
+      "precision": 0.975,
+      "recall": 0.975
     },
     "coverage": {
       "tp": 12,
