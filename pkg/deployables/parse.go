@@ -19,6 +19,7 @@ var (
 	dockerFrom     = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
 	dockerCopyFrom = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
 	dockerCopy     = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
+	dockerWorkdir  = regexp.MustCompile(`(?i)^\s*WORKDIR\s+(\S+)\s*$`)
 	// Only a two-operand cp can establish a source-to-destination transfer.
 	// A third path makes the final operand a directory; matching the first two
 	// would invent a transfer that the command does not perform.
@@ -83,10 +84,15 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	stageNamesByIndex := map[string]string{}
 	currentStage := ""
 	stageIndex := 0
+	workdir := ""
+	workdirKnown := false
 	inRunContinuation := false
 	for i, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
+			// The base image's WORKDIR is not available from Dockerfile syntax
+			// alone, so relative destinations stay unresolved until WORKDIR is set.
+			workdir, workdirKnown = "", false
 			currentStage = strconv.Itoa(stageIndex)
 			stages[currentStage] = true
 			stageIndex++
@@ -110,6 +116,8 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
 			}
+		} else if m := dockerWorkdir.FindStringSubmatch(line); m != nil {
+			workdir, workdirKnown = resolveDockerDestination(workdir, workdirKnown, m[1])
 		} else if m := dockerCopyFrom.FindStringSubmatch(line); m != nil {
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
@@ -138,13 +146,14 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				sources = append(sources, field)
 			}
 			if len(sources) >= 2 {
+				resolvedTarget, _ := resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
 				d.References[copyFromIndex].SourcePath = bounded(sources[0])
-				d.References[copyFromIndex].TargetPath = bounded(sources[len(sources)-1])
+				d.References[copyFromIndex].TargetPath = bounded(resolvedTarget)
 				for _, source := range sources[:len(sources)-1] {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
 						continue
 					}
-					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage, SourcePath: bounded(source), TargetPath: bounded(sources[len(sources)-1])})
+					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage, SourcePath: bounded(source), TargetPath: bounded(resolvedTarget)})
 				}
 			}
 		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
@@ -159,11 +168,12 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				sources = append(sources, field)
 			}
 			if len(sources) >= 2 {
+				resolvedTarget, _ := resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
 				for _, source := range sources[:len(sources)-1] {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
 						continue
 					}
-					ref := Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage}
+					ref := Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, TargetPath: bounded(resolvedTarget)}
 					d.References = append(d.References, ref)
 				}
 			}
@@ -1114,6 +1124,23 @@ func safeComposePath(filename, kind, value string) bool {
 func dynamic(s string) bool {
 	return strings.Contains(s, "${") || strings.Contains(s, "{{") || strings.Contains(s, "$[")
 }
+
+// resolveDockerDestination resolves a static Dockerfile destination against
+// the stage's known WORKDIR. A relative path cannot be resolved when the base
+// image's inherited WORKDIR is unknown.
+func resolveDockerDestination(workdir string, workdirKnown bool, destination string) (string, bool) {
+	if destination == "" || dynamic(destination) || strings.ContainsAny(destination, "[]{}\"'\\") {
+		return "", false
+	}
+	if path.IsAbs(destination) {
+		return path.Clean(destination), true
+	}
+	if !workdirKnown {
+		return "", false
+	}
+	return path.Clean(path.Join(workdir, destination)), true
+}
+
 func safeRelative(s string) bool {
 	return s != "" && !strings.HasPrefix(s, "/") && !strings.HasPrefix(s, "\\") && !strings.Contains(s, "\\") && !strings.HasPrefix(path.Clean(s), "../") && !regexp.MustCompile(`^[A-Za-z]:`).MatchString(s)
 }
