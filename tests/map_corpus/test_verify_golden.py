@@ -435,6 +435,27 @@ class TestEndpointNormalisationBoundaries(unittest.TestCase):
         result = score_edges(label_entry, {"nodes": [docker, component], "edges": [edge]}, {"Dockerfile"})
         self.assertEqual((result.tp, result.fp, result.fn), (1, 0, 0))
 
+    def test_root_dockerfile_alias_does_not_match_same_named_compose_service(self):
+        docker = {
+            "id": "docker", "kind": "deployable", "name": "(root)",
+            "paths": ["Dockerfile"], "evidence": [{"path": "Dockerfile"}],
+            "properties": {"kind": "container_build"},
+        }
+        compose = {
+            "id": "compose", "kind": "deployable", "name": "api",
+            "paths": ["compose.yml"], "evidence": [{"path": "compose.yml"}],
+            "properties": {"kind": "service"},
+        }
+        component = {"id": "component", "kind": "component", "name": "api", "properties": {}, "evidence": []}
+        wrong = _make_edge("builds", "compose", "component", evidence_paths=["Dockerfile"])
+        label_entry = {
+            "oracle_files": [{"path": "Dockerfile"}],
+            "deployables": [{"kind": "container_build", "name": "api", "path": "Dockerfile"}],
+            "edges": [{"type": "builds", "from": "api", "to": "api"}],
+        }
+        result = score_edges(label_entry, {"nodes": [docker, compose, component], "edges": [wrong]}, {"Dockerfile"})
+        self.assertEqual((result.tp, result.fp, result.fn), (0, 1, 1))
+
     def test_root_dockerfile_endpoint_alias_requires_unique_path_match(self):
         docker = {
             "id": "docker", "kind": "deployable", "name": "(root)",
