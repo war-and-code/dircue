@@ -191,7 +191,11 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 		isRunInstruction := strings.HasPrefix(strings.ToUpper(trimmedLine), "RUN ")
 		isRunContinuationLine := inRunContinuation && strings.HasPrefix(trimmedLine, "&&")
 		if isRunInstruction || isRunContinuationLine {
-			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			writeKind := "run_instruction"
+			if len(trimmedLine) > DefaultStringBytes {
+				writeKind = "run_instruction_opaque"
+			}
+			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: writeKind, Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
 				source, target := m[1], m[2]
 				loc := dockerRunCopy.FindStringIndex(trimmedLine)
