@@ -242,6 +242,43 @@ known deployable gap is Procfile support (#146). These repositories have
 informed development; their corrected scores are regression measurements,
 not a new independent accuracy estimate.
 
+## Independent source-first check
+
+`independent_labels/` contains two further pinned public source oracles,
+committed before the candidate binary was run on either checkout. The labeler
+read upstream source and the published map vocabulary, but did not inspect the
+implementation, tests, previous labels, or output. Each oracle file has a
+SHA-256 digest. The Spring Boot Docker sample covers every tracked file in its
+`complete/` subtree; the Flask-on-Docker sample is a bounded source slice.
+
+Reproduce the scored run after checking out the commits named in those files:
+
+```sh
+python3 tests/map_corpus/score_independent.py \
+  --binary ./dircue \
+  --flask-checkout /path/to/flask-on-docker \
+  --spring-checkout /path/to/gs-spring-boot-docker \
+  --output .cache/independent-map-results.json
+```
+
+The runner checks the commits and file hashes before scanning. For the
+exhaustive Spring subtree it also compares the oracle inventory with Git's
+tracked-file list. It reports precision only for categories labeled
+exhaustively. The first run found both Spring components and its Dockerfile
+deployable with no extra component or deployable observations: **3/3 found,
+3/3 observed correct**, within that small subtree. Other categories are
+targeted recall only; their extra observations are unadjudicated, not false
+positives. The Flask source slice found 2/3 labeled deployables, 2/2
+interfaces, 0/1 components, 0/3 capabilities, and 1/8 edges under the
+scorer's exact semantic keys. The Spring subtree found 0/3 labeled interfaces,
+0/2 capabilities, and 1/3 edges. Some misses are name or vocabulary
+disagreements (for example, `services/web` versus `web` and a qualified Java
+class name versus its short name); the receipt retains them instead of
+silently correcting the source-first labels. This is a small independent
+check with useful counterexamples, not a population accuracy estimate or a
+passing whole-map quality gate. `independent_results.json` records the first
+run, binary and label hashes, and every matched or missed fact.
+
 Two additional opt-in checks use bounded source slices from public projects
 with a checked-in binary referenced by a build declaration. The
 [zdh_web Maven POM](https://github.com/zhaoyachao/zdh_web/blob/1e420dcb3ec748011958a34e1d317ad58830c636/pom.xml#L1073-L1079)
