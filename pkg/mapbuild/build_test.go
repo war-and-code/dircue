@@ -593,7 +593,7 @@ func TestRootDockerfileCopyingMavenArchiveLinksArchiveModule(t *testing.T) {
 	copyEvidence := deployables.Evidence{Field: "COPY --from source", Value: "/openmrs/distribution/openmrs_core/openmrs.war", Line: 168, Basis: "dockerfile-instruction"}
 	definitions := []deployables.Definition{
 		{Provider: "maven", Kind: "archive", Format: "war", Name: "openmrs.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{archiveEvidence}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: "webapp/pom.xml", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: "webapp/pom.xml", Line: 38, Basis: "dockerfile-instruction"}, Stage: "compile"}, {Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 55, Basis: "dockerfile-instruction"}, Stage: "compile"}, {Kind: "copy_from", Value: "compile", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY --from", Value: "compile", Line: 105, Basis: "dockerfile-instruction"}, Stage: "dev", SourceStage: "compile", SourcePath: "/openmrs_core", TargetPath: "/openmrs_core/"}, {Kind: "copy_source_stage", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence, Stage: "final", SourceStage: "dev", SourcePath: copyEvidence.Value, TargetPath: "/openmrs/distribution/openmrs_core/openmrs.war"}}, DockerPathCopies: []deployables.Reference{{Kind: "run_copy", Value: "/openmrs_core/webapp/target/openmrs.war", Qualification: "local", Evidence: deployables.Evidence{Field: "RUN cp source", Value: "/openmrs_core/webapp/target/openmrs.war", Line: 108, Basis: "dockerfile-instruction"}, Stage: "dev", SourcePath: "/openmrs_core/webapp/target/openmrs.war", TargetPath: "/openmrs/distribution/openmrs_core/openmrs.war"}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: "webapp/pom.xml", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: "webapp/pom.xml", Line: 38, Basis: "dockerfile-instruction"}, Stage: "compile", TargetPath: "/openmrs_core/pom.xml"}, {Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 55, Basis: "dockerfile-instruction"}, Stage: "compile", TargetPath: "/openmrs_core/"}, {Kind: "copy_from", Value: "compile", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY --from", Value: "compile", Line: 105, Basis: "dockerfile-instruction"}, Stage: "dev", SourceStage: "compile", SourcePath: "/openmrs_core", TargetPath: "/openmrs_core/"}, {Kind: "copy_source_stage", Value: copyEvidence.Value, Qualification: "local", Evidence: copyEvidence, Stage: "final", SourceStage: "dev", SourcePath: copyEvidence.Value, TargetPath: "/openmrs/distribution/openmrs_core/openmrs.war"}}, DockerPathCopies: []deployables.Reference{{Kind: "run_copy", Value: "/openmrs_core/webapp/target/openmrs.war", Qualification: "local", Evidence: deployables.Evidence{Field: "RUN cp source", Value: "/openmrs_core/webapp/target/openmrs.war", Line: 108, Basis: "dockerfile-instruction"}, Stage: "dev", SourcePath: "/openmrs_core/webapp/target/openmrs.war", TargetPath: "/openmrs/distribution/openmrs_core/openmrs.war"}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
@@ -736,24 +736,44 @@ func TestDockerStageArtifactNeedsTraceToMavenTargetPath(t *testing.T) {
 	copyArtifact := func(source string) deployables.Reference {
 		return deployables.Reference{Kind: "copy_source_stage", Qualification: "local", Stage: "final", SourceStage: "build", SourcePath: source, TargetPath: "/usr/local/tomcat/webapps/ROOT.war", Evidence: deployables.Evidence{Field: "COPY --from source", Line: 20}}
 	}
-	contextCopy := deployables.Reference{Kind: "copy_source", Value: ".", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Field: "COPY source", Line: 2}}
+	contextCopy := deployables.Reference{Kind: "copy_source", Value: ".", Qualification: "local", Stage: "build", TargetPath: "/workspace", Evidence: deployables.Evidence{Field: "COPY source", Line: 2}}
 	tests := []struct {
 		name  string
 		refs  []deployables.Reference
 		paths []deployables.Reference
+		stage string
+		path  string
+		line  int
 		want  bool
 	}{
 		{name: "broad context then downloaded root war", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}},
 		{name: "context plus curl output", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/ROOT.war")}},
 		{name: "context plus multi-source cp from unrelated file", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/unrelated.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/tmp/unrelated.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
-		{name: "module target source copied into stage artifact", refs: []deployables.Reference{copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}, want: true},
+		{name: "target-shaped path without context copy", refs: []deployables.Reference{copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
+		{name: "module target path mapped by context copy", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}, want: true},
+		{name: "curl overwrites context path before cp", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_instruction", Value: "RUN curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war", Stage: "build", Evidence: deployables.Evidence{Line: 8}}, {Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
+		{name: "ADD overwrites context path before cp", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "add_source", Stage: "build", TargetPath: "/workspace/webapp/target/ROOT.war", Evidence: deployables.Evidence{Line: 8}}, {Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
+		{name: "combined cp and curl command is opaque", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cp /x /workspace/webapp/target/ROOT.war && curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war", Stage: "build", Evidence: deployables.Evidence{Line: 8}}, {Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 8}}}},
+		{name: "rm makes intervening output uncertain", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_instruction", Value: "RUN rm -f /workspace/webapp/target/ROOT.war", Stage: "build", Evidence: deployables.Evidence{Line: 8}}, {Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
+		{name: "receiving stage write blocks path transfer", refs: []deployables.Reference{{Kind: "copy_source", Value: ".", Qualification: "local", Stage: "compile", TargetPath: "/workspace", Evidence: deployables.Evidence{Line: 2}}, {Kind: "copy_from", Qualification: "local", Stage: "build", SourceStage: "compile", SourcePath: "/workspace", TargetPath: "/workspace", Evidence: deployables.Evidence{Line: 5}}, {Kind: "run_instruction", Value: "RUN curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Line: 8}}, {Kind: "copy_source_stage", Qualification: "local", Stage: "final", SourceStage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/usr/local/tomcat/ROOT.war", Evidence: deployables.Evidence{Field: "COPY --from source", Line: 20}}}, stage: "build", path: "/workspace/webapp/target/ROOT.war", line: 20},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := dockerContextIncludesModule(tt.refs, tt.paths, "webapp", "build", "/ROOT.war", 21); got != tt.want {
+			stage, artifact, line := tt.stage, tt.path, tt.line
+			if stage == "" {
+				stage, artifact, line = "build", "/ROOT.war", 21
+			}
+			if got := dockerContextIncludesModule(tt.refs, tt.paths, "webapp", stage, artifact, line); got != tt.want {
 				t.Fatalf("dockerContextIncludesModule() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDockerContextCopyMapsArchiveFileIntoDirectory(t *testing.T) {
+	refs := []deployables.Reference{{Kind: "copy_source", Value: "webapp/target/ROOT.war", Qualification: "local", Stage: "build", TargetPath: "/workspace/", Evidence: deployables.Evidence{Line: 2}}}
+	if !dockerContextIncludesModule(refs, nil, "webapp", "build", "/workspace/ROOT.war", 3) {
+		t.Fatal("file source copied into a directory should retain its source path")
 	}
 }
 

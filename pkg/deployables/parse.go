@@ -20,6 +20,7 @@ var (
 	dockerCopyFrom = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
 	dockerCopy     = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
 	dockerWorkdir  = regexp.MustCompile(`(?i)^\s*WORKDIR\s+(\S+)\s*$`)
+	dockerAdd      = regexp.MustCompile(`(?i)^\s*ADD\s+(.+)$`)
 	// Only a two-operand cp can establish a source-to-destination transfer.
 	// A third path makes the final operand a directory; matching the first two
 	// would invent a transfer that the command does not perform.
@@ -181,13 +182,25 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 					d.References = append(d.References, ref)
 				}
 			}
+		} else if m := dockerAdd.FindStringSubmatch(line); m != nil {
+			fields := strings.Fields(m[1])
+			if len(fields) >= 2 {
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "add_source", Qualification: "external", Evidence: Evidence{Field: "ADD", Value: bounded(strings.Join(fields[:len(fields)-1], " ")), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, TargetPath: bounded(fields[len(fields)-1])})
+			}
 		}
 		isRunInstruction := strings.HasPrefix(strings.ToUpper(trimmedLine), "RUN ")
 		isRunContinuationLine := inRunContinuation && strings.HasPrefix(trimmedLine, "&&")
 		if isRunInstruction || isRunContinuationLine {
+			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
 				source, target := m[1], m[2]
-				if strings.HasPrefix(source, "/") && strings.HasPrefix(target, "/") && !dynamic(source) && !dynamic(target) && !strings.ContainsAny(source+target, "[]{}\"'\\") {
+				loc := dockerRunCopy.FindStringIndex(trimmedLine)
+				remainder := strings.TrimSpace(trimmedLine[loc[1]:])
+				remainder = strings.ReplaceAll(remainder, "\\", "")
+				if and := strings.Index(remainder, "&&"); and >= 0 {
+					remainder = strings.TrimSpace(remainder[:and])
+				}
+				if remainder == "" && strings.HasPrefix(source, "/") && strings.HasPrefix(target, "/") && !dynamic(source) && !dynamic(target) && !strings.ContainsAny(source+target, "[]{}\"'\\") {
 					d.DockerPathCopies = append(d.DockerPathCopies, Reference{Kind: "run_copy", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "RUN cp source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourcePath: bounded(source), TargetPath: bounded(target)})
 				}
 			}

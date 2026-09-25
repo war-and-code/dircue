@@ -201,6 +201,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {
 			owners := componentsByRoot[path.Dir(def.Path)]
+			pathEvidence := append(append([]deployables.Reference(nil), def.DockerPathCopies...), def.DockerPathWrites...)
 			var artifactOwners []string
 			artifactOwnerSet := map[string]bool{}
 			var artifactEvidence mapdoc.Evidence
@@ -222,7 +223,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 						// here, so this path alone is insufficient ownership evidence.
 						pathIdentifiesModule = !def.DockerContextUnknown && ref.Kind == "copy_source" && path.Dir(def.Path) == "." && strings.HasPrefix(cleanSource, "target/")
 					}
-					stageIdentifiesArtifact := !def.DockerContextUnknown && ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && dockerContextIncludesModule(def.References, def.DockerPathCopies, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
+					stageIdentifiesArtifact := !def.DockerContextUnknown && ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && dockerContextIncludesModule(def.References, pathEvidence, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
 					if pathIdentifiesModule || stageIdentifiesArtifact {
 						if matchedOnce {
 							matchedOnce = false // duplicate artifact identities are ambiguous
@@ -353,20 +354,127 @@ func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, modul
 			if ref.Stage != current.name || ref.Evidence.Line >= current.beforeLine {
 				continue
 			}
+			if ref.Kind == "copy_source" && ref.Qualification == "local" && ref.TargetPath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				sourcePath := dockerCopyMappedSource(ref.Value, ref.TargetPath, current.artifactPath)
+				ident := dockerArtifactPathIdentifiesModule(sourcePath, moduleRoot)
+				clean := dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine)
+				if ident && clean {
+					return true
+				}
+			}
 			if ref.Kind == "copy_from" && ref.Qualification == "local" && ref.SourceStage != "" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				if !dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine) {
+					continue
+				}
 				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
 				queue = append(queue, stageAt{name: ref.SourceStage, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
 			if ref.Kind == "run_copy" && ref.Qualification == "local" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
-				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
-				if dockerArtifactPathIdentifiesModule(sourcePath, moduleRoot) {
-					return true
+				if !dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine) {
+					continue
 				}
+				if !dockerRunAtLineIsSafe(allRefs, current.name, current.artifactPath, ref.Evidence.Line) {
+					continue
+				}
+				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
 				queue = append(queue, stageAt{name: current.name, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
 		}
 	}
 	return false
+}
+
+func dockerNoInterveningWrites(refs []deployables.Reference, stage, artifactPath string, copyLine, artifactLine int) bool {
+	for _, ref := range refs {
+		if ref.Stage != stage || ref.Evidence.Line <= copyLine || ref.Evidence.Line >= artifactLine {
+			continue
+		}
+		switch ref.Kind {
+		case "add_source":
+			return false
+		case "run_instruction":
+			if !dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.Reference, artifactPath string) bool {
+	command := strings.TrimSpace(run.Value)
+	if strings.HasPrefix(strings.ToUpper(command), "RUN ") {
+		command = strings.TrimSpace(command[4:])
+	}
+	command = strings.TrimPrefix(command, "&& ")
+	command = strings.TrimSuffix(command, "\\")
+	if strings.ContainsAny(command, "|;") || strings.Contains(command, "||") {
+		return false
+	}
+	for _, segment := range strings.Split(command, "&&") {
+		segment = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(segment), "\\"))
+		fields := strings.Fields(segment)
+		if len(fields) == 0 {
+			return false
+		}
+		tool := strings.ToLower(path.Base(fields[0]))
+		switch tool {
+		case "mvn", "mvnw", "mvn.cmd", "mkdir":
+			continue
+		case "rm":
+			for _, field := range fields[1:] {
+				if strings.HasPrefix(field, "-") {
+					continue
+				}
+				if !strings.HasPrefix(field, "/") {
+					return false
+				}
+				if dockerPathsOverlap(field, artifactPath) {
+					return false
+				}
+			}
+			continue
+		case "cp":
+			var operands []string
+			for _, field := range fields[1:] {
+				if strings.HasPrefix(field, "-") {
+					continue
+				}
+				operands = append(operands, field)
+			}
+			if len(operands) != 2 {
+				return false
+			}
+			foundCopy := false
+			for _, ref := range refs {
+				if ref.Kind == "run_copy" && ref.Stage == run.Stage && ref.Evidence.Line == run.Evidence.Line && ref.SourcePath == operands[0] && ref.TargetPath == operands[1] {
+					foundCopy = true
+					break
+				}
+			}
+			if !foundCopy {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+func dockerRunAtLineIsSafe(refs []deployables.Reference, stage, artifactPath string, line int) bool {
+	for _, ref := range refs {
+		if ref.Kind == "run_instruction" && ref.Stage == stage && ref.Evidence.Line == line {
+			return dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath)
+		}
+	}
+	return true
+}
+
+func dockerPathsOverlap(a, b string) bool {
+	a = path.Clean(a)
+	b = path.Clean(b)
+	return a == b || strings.HasPrefix(a, strings.TrimSuffix(b, "/")+"/") || strings.HasPrefix(b, strings.TrimSuffix(a, "/")+"/")
 }
 
 func dockerArtifactPathIdentifiesModule(artifactPath, moduleRoot string) bool {
@@ -387,9 +495,13 @@ func dockerArtifactPathIdentifiesModule(artifactPath, moduleRoot string) bool {
 
 func dockerCopyMappedSource(source, destination, artifact string) string {
 	source = path.Clean(source)
+	destinationIsDir := strings.HasSuffix(destination, "/")
 	destination = path.Clean(destination)
 	artifact = path.Clean(artifact)
 	if artifact == destination {
+		return source
+	}
+	if destinationIsDir && path.Base(source) == path.Base(artifact) && (strings.HasSuffix(path.Base(source), ".war") || strings.HasSuffix(path.Base(source), ".ear")) {
 		return source
 	}
 	relative := strings.TrimPrefix(artifact, destination+"/")
