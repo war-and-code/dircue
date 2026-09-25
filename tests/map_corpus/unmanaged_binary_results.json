@@ -7,7 +7,7 @@
     "package_identity": "not inferred from the binary file role; any package nodes are reported as tool observations only",
     "repository_population": "not measured; only the referenced binary and its bounded declaration files per pinned repository are included"
   },
-  "dircue_binary_sha256": "56ca0172160aeb175e98403640331d608faeee16f613a541223c54560323f402",
+  "dircue_binary_sha256": "59faf4a4a70309eb944658a717936cca0c800712f1548c4dde73d70cbacc0894",
   "opt_in": true,
   "results": [
     {
