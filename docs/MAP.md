@@ -47,7 +47,8 @@ stage and uniquely names one recognized Maven archive, the `builds` edge
 instead points to that archive's component and cites the `COPY` source. This
 is still a partial attribution: it does not evaluate Docker build arguments,
 ignore rules, stage contents, or Maven output. Ambiguous or unresolved sources
-retain the directory-based behavior.
+do not establish an archive owner; the directory-based link remains when no
+other source establishes one.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
