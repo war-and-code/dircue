@@ -1,0 +1,131 @@
+{
+  "repo": "gs-spring-boot-docker-complete",
+  "commit": "8f42f5812e8b62bc31b092a8767a5073bbc786e0",
+  "oracle_files": [
+    {"path":".jdk8","sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    {"path":".mvn/wrapper/MavenWrapperDownloader.java","sha256":"875ba7fa5071e735f13447ddd25ff9f7fa93b9a9e1426922fb10c9a0b35ece5b"},
+    {"path":".mvn/wrapper/maven-wrapper.jar","sha256":"0f37e00f4a503f19cfb1b8100b1f251f241cd1981524761bb9454037cb97589d"},
+    {"path":".mvn/wrapper/maven-wrapper.properties","sha256":"1d90cb08a4bea3d720fe5ead37805b56323e10373729e3abf361a9b2b8a4b815"},
+    {"path":"Dockerfile","sha256":"a09a8b51fbf0cbe56ae874f2ba7f5c78cda40711e09f278650dc37136d823701"},
+    {"path":"build.gradle","sha256":"74e7f21f96dd8133c79b604cef6740b1c6785337c315759219b8e69fceed2b6e"},
+    {"path":"gradle.properties","sha256":"7515099d5d726d3473a737b10334518cf979c0e41a3814ec5556d5dd0fa2334d"},
+    {"path":"gradle/wrapper/gradle-wrapper.jar","sha256":"cb0da6751c2b753a16ac168bb354870ebb1e162e9083f116729cec9c781156b8"},
+    {"path":"gradle/wrapper/gradle-wrapper.properties","sha256":"9efd7948359a68d9c80aa8d5df1717af1415c440b59d493040d3cfbd13885383"},
+    {"path":"gradlew","sha256":"fc977a94723af68aaffa4e5d60496fb4aeed1884b6b19e5e2f2fd7612673313d"},
+    {"path":"gradlew.bat","sha256":"bdecf875b6868cbcbd36a1f85eedf0832f358ff28092c5797ed645f7edce77d9"},
+    {"path":"mvnw","sha256":"2744729bf853b76866b7c074b86ea7339dc170a2a067cbaa81da966e6a1bbd44"},
+    {"path":"mvnw.cmd","sha256":"d58f5e1a2bf0ccc6a6d3e0bd24f95bd6b60ff1dfe4d10f26c752621d5c4b1956"},
+    {"path":"pom.xml","sha256":"a4b65ab7f7d4a24fd67cb9b25efce9bb9e08b5bf0e82f81043b80e67a7b6f4dd"},
+    {"path":"settings.gradle","sha256":"2842ed8007ffc66c46ac3fd81c2438c07431c5371d0b88a43b83feb7cdc74a1f"},
+    {"path":"src/main/java/hello/Application.java","sha256":"ed54c593458207f2b0547424657133ccc806c6ab6f3ace9b64ec25ef1bfbd2c9"},
+    {"path":"src/main/resources/application.yml","sha256":"69e44623efcef1979f70316fae8a277e1e16f6f5e480971c92eba7e2aab2d937"},
+    {"path":"src/test/java/hello/HelloWorldConfigurationTests.java","sha256":"3ec77e9bfdc0f69a296d3c6e3b81dc9612836d95e37f11255ee87327ceacb674"}
+  ],
+  "components": [
+    {
+      "name":"spring-boot-docker-complete",
+      "root":".",
+      "ecosystem":"maven",
+      "why":"pom.xml:11-15 declares groupId com.example, artifactId spring-boot-docker-complete, version, and project name."
+    },
+    {
+      "name":"spring-boot-docker",
+      "root":".",
+      "ecosystem":"gradle",
+      "why":"settings.gradle:1 declares rootProject.name spring-boot-docker; build.gradle:1-10 applies Spring Boot and Java plugins and declares the Java source level."
+    }
+  ],
+  "deployables": [
+    {
+      "kind":"container_build",
+      "name":"Dockerfile",
+      "path":"Dockerfile",
+      "why":"Dockerfile:1-8 declares an Eclipse Temurin 17 image, copies packaged application files, and launches hello.Application."
+    }
+  ],
+  "interfaces": [
+    {
+      "kind":"spring_boot_application",
+      "name":"hello.Application",
+      "path":"src/main/java/hello/Application.java",
+      "why":"src/main/java/hello/Application.java:8-10 declares @SpringBootApplication on Application."
+    },
+    {
+      "kind":"main_class",
+      "name":"hello.Application",
+      "path":"src/main/java/hello/Application.java",
+      "why":"src/main/java/hello/Application.java:17-19 declares public static void main and starts SpringApplication."
+    },
+    {
+      "kind":"main_class",
+      "name":"MavenWrapperDownloader",
+      "path":".mvn/wrapper/MavenWrapperDownloader.java",
+      "why":".mvn/wrapper/MavenWrapperDownloader.java:21 and 48 declares a Java class with public static void main. It is a wrapper utility, not the application entry point."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability":"Spring Web MVC",
+      "owner":"spring-boot-docker-complete",
+      "path":"pom.xml",
+      "why":"pom.xml:20-23 declares spring-boot-starter-web; src/main/java/hello/Application.java:5-6 imports RequestMapping and RestController."
+    },
+    {
+      "capability":"Spring Web MVC",
+      "owner":"spring-boot-docker",
+      "path":"build.gradle",
+      "why":"build.gradle:15-18 declares spring-boot-starter-web; src/main/java/hello/Application.java:5-6 imports RequestMapping and RestController."
+    }
+  ],
+  "edges": [
+    {
+      "type":"builds",
+      "from":"Dockerfile",
+      "to":"spring-boot-docker-complete",
+      "why":"Dockerfile:4-7 copies target/dependency and packaged application content; pom.xml:32-39 declares the Maven build. This is a path/artifact association, not proof of a successful image build."
+    },
+    {
+      "type":"uses_capability",
+      "from":"spring-boot-docker-complete",
+      "to":"Spring Web MVC",
+      "why":"pom.xml:20-23 directly declares spring-boot-starter-web."
+    },
+    {
+      "type":"uses_capability",
+      "from":"spring-boot-docker",
+      "to":"Spring Web MVC",
+      "why":"build.gradle:15-18 directly declares spring-boot-starter-web."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status":"complete",
+      "why":"The complete/ subtree contains two project manifests, pom.xml and build.gradle, and the associated Gradle settings file. All files in this subtree were enumerated; both manifests declare projects rooted at the subtree root."
+    },
+    "deployables": {
+      "status":"complete",
+      "why":"The subtree contains one Dockerfile and no Compose, Kubernetes, Helm, Terraform, serverless, CI, or Maven WAR/EAR declaration. pom.xml omits packaging, so its Maven default is not a WAR/EAR archive of the documented deployable kind."
+    },
+    "interfaces": {
+      "status":"partial",
+      "why":"The Spring application and both Java main methods are source-backed. The standalone Maven wrapper main may or may not belong to the producer's narrower main-class interface catalog, so interface precision is intentionally not asserted. application.yml declares server.port=8080, but MAP.md only defines declared_port recognition for Dockerfile EXPOSE, Compose ports/expose, and Kubernetes containerPort."
+    },
+    "capabilities": {
+      "status":"partial",
+      "why":"The Spring Web dependency and imports are explicit, but capability recognition is bounded and the application source includes other framework and test dependencies not exhaustively classified here."
+    },
+    "edges": {
+      "status":"partial",
+      "why":"The Dockerfile-to-Maven build association and direct web dependency edges are source-backed. Both project manifests share the same root and source tree, leaving interface ownership and other inferred relationships ambiguous."
+    }
+  },
+  "evaluation_scope": {
+    "components":"exhaustive",
+    "deployables":"exhaustive",
+    "interfaces":"targeted_recall_only",
+    "capabilities":"targeted_recall_only",
+    "edges":"targeted_recall_only",
+    "coverage":"exhaustive"
+  },
+  "source_notes":"Repository: spring-guides/gs-spring-boot-docker at the exact commit above. The oracle root is the complete/ subtree; all 18 tracked files in that subtree are enumerated in oracle_files, with paths relative to that root and SHA256 hashes over raw bytes. The Maven and Gradle manifests overlap on the same source tree and are labeled as two project declarations. No dircue output, implementation, tests, receipts, or other labels were consulted."
+}
