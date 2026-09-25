@@ -309,19 +309,17 @@ def node_matches_endpoint(
     if not norm_ep or not kind:
         return False
 
-    # Direct name match works for all kinds
-    if norm_ep == norm_name:
-        return True
-
     # Edge labels often use a human name for a root Dockerfile (for example,
     # "api") while dircue calls the same deployable "(root)". Resolve those
     # names through the already path-matched deployable labels in score_edges.
-    # This keeps edge matching consistent with score_deployables without
-    # guessing from a shared directory or compose file.
-    if kind == "deployable" and deployable_endpoint_ids:
-        node_id = node.get("id", "")
-        if node_id and node_id in deployable_endpoint_ids.get(norm_ep, set()):
-            return True
+    # When an alias is unique, require its matched identity even if another
+    # deployable (such as a Compose service) has the same human-readable name.
+    if kind == "deployable" and deployable_endpoint_ids and norm_ep in deployable_endpoint_ids:
+        return node.get("id", "") in deployable_endpoint_ids[norm_ep]
+
+    # Direct name match works for all kinds without a resolved deployable alias.
+    if norm_ep == norm_name:
+        return True
 
     if kind == "component":
         # Module-path normalisation applies to Go components only: an npm
