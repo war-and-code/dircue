@@ -11,10 +11,13 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import posixpath
+import re
 import subprocess
 import tempfile
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -41,6 +44,13 @@ SLICES = (
         "commit": "6294cf9c477130eadd73b9d156784f7a5553b4cd",
         "manifest": "dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj",
         "manifest_contains": '<Reference Include="pyRevitLabs.Json" HintPath="$(PyRevitDevLibsDir)\\pyRevitLabs.Json.dll"',
+        "build_targets": "dev/Directory.Build.targets",
+        "build_targets_properties": {
+            "NetFolder": ("'$(TargetFramework)' == 'net48'", "netfx"),
+            "PyRevitRootDir": (None, "$(MSBuildThisFileDirectory).."),
+            "PyRevitDevDir": (None, "$(PyRevitRootDir)\\dev"),
+            "PyRevitDevLibsDir": (None, "$(PyRevitDevDir)\\libs\\$(NetFolder)"),
+        },
         "binary": "dev/libs/netfx/pyRevitLabs.Json.dll",
         "binary_size": 699392,
         "binary_sha256": "8eedc650cdb204ae8b1cf7f1c3b47e29d2617b875c10b48140b0e34381dfbeb3",
@@ -98,6 +108,44 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
     manifest_text = manifest_bytes.decode("utf-8")
     if spec["manifest_contains"] not in manifest_text:
         raise ValueError(f"{spec['id']}: pinned manifest no longer contains its binary reference")
+    build_targets_path = None
+    resolution = None
+    build_targets_bytes = None
+    if "build_targets" in spec:
+        build_targets_bytes = fetch(base + spec["build_targets"], MAX_SOURCE_BYTES)
+        try:
+            build_targets_root = ET.fromstring(build_targets_bytes)
+        except ET.ParseError as exc:
+            raise ValueError(f"{spec['id']}: pinned build targets are not valid XML: {exc}") from exc
+        properties: dict[str, list[tuple[str | None, str]]] = {}
+        for element in build_targets_root.iter():
+            name = re.sub(r"^\{[^}]+\}", "", element.tag)
+            if name in spec["build_targets_properties"]:
+                properties.setdefault(name, []).append((element.attrib.get("Condition"), (element.text or "").strip()))
+        for name, (expected_condition, expected_value) in spec["build_targets_properties"].items():
+            actual = properties.get(name, [])
+            if (expected_condition, expected_value) not in actual:
+                raise ValueError(f"{spec['id']}: {spec['build_targets']} {name} property mismatch: {actual!r}")
+        # Resolve these declarations symbolically for the pinned project location;
+        # do not invoke MSBuild or execute repository build logic.
+        repo_root = Path("<repository-root>")
+        build_targets_dir = repo_root / Path(spec["build_targets"]).parent
+        pyrevit_root = posixpath.normpath((build_targets_dir / "..").as_posix())
+        pyrevit_dev = f"{pyrevit_root}/dev"
+        pyrevit_libs = f"{pyrevit_dev}/libs/netfx"
+        expected_binary = f"{pyrevit_libs}/pyRevitLabs.Json.dll"
+        declared_binary = spec["binary"].replace("\\", "/")
+        if expected_binary.removeprefix("<repository-root>/") != declared_binary:
+            raise ValueError(f"{spec['id']}: static net48 property resolution does not select {declared_binary}")
+        build_targets_path = Path(spec["build_targets"])
+        resolution = {
+            "method": "static_property_substitution",
+            "build_logic_executed": False,
+            "target_framework": "net48",
+            "NetFolder": "netfx",
+            "PyRevitDevLibsDir": "<repository-root>/dev/libs/netfx",
+            "resolved_reference": f"<repository-root>/{declared_binary}",
+        }
     binary_bytes = fetch(base + spec["binary"], MAX_BINARY_BYTES)
     digest = hashlib.sha256(binary_bytes).hexdigest()
     if len(binary_bytes) != spec["binary_size"]:
@@ -111,6 +159,11 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     binary_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_bytes(manifest_bytes)
+    if build_targets_path is not None:
+        targets_path = root / build_targets_path
+        targets_path.parent.mkdir(parents=True, exist_ok=True)
+        assert build_targets_bytes is not None
+        targets_path.write_bytes(build_targets_bytes)
     binary_path.write_bytes(binary_bytes)
 
     result: dict[str, Any] = {
@@ -126,6 +179,9 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
         "whole_repository_coverage": False,
         "package_identity_claimed": False,
     }
+    if resolution is not None:
+        result["build_targets"] = spec["build_targets"]
+        result["build_variable_resolution"] = resolution
     if binary is not None:
         observed = map_slice(binary, root)
         if observed["content_roles"].get(spec["expected_content_role"], 0) < 1:
@@ -154,7 +210,7 @@ def main() -> int:
                 "results": [validate_slice(spec, Path(temp), binary) for spec in SLICES],
                 "dircue_binary_sha256": hashlib.sha256(binary.read_bytes()).hexdigest() if binary else None,
                 "claims": {
-                    "repository_population": "not measured; only one manifest/project file and one referenced binary per pinned repository are included",
+                    "repository_population": "not measured; only the referenced binary and its bounded declaration files per pinned repository are included",
                     "package_identity": "not inferred from the binary file role; any package nodes are reported as tool observations only",
                 },
             }
