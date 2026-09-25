@@ -85,6 +85,9 @@ type Definition struct {
 	Coverage     string      `json:"coverage"` // complete or qualified
 	Evidence     []Evidence  `json:"evidence"`
 	References   []Reference `json:"references"`
+	// DockerPathCopies keeps bounded RUN cp path evidence private while mapbuild
+	// checks whether a staged artifact could have reached its final COPY.
+	DockerPathCopies []Reference `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`

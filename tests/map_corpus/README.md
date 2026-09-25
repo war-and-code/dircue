@@ -208,14 +208,15 @@ See `fresh_labels/README.md` for selection and method.
 python3 tests/map_corpus/fetch_fresh.py --dest .cache/fresh-repos
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
   --repos .cache/fresh-repos --frozen \
-  --output tests/map_corpus/fresh_results_frozen.json
+  --output .cache/fresh-results-frozen-current.json
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
   --repos .cache/fresh-repos \
-  --output tests/map_corpus/fresh_results_corrected.json
+  --output .cache/fresh-results-corrected-current.json
 ```
 
-The two committed result files retain the per-fact matches and disagreements,
-not just the rounded figures below.
+The three committed result files retain the per-fact matches and disagreements,
+not just the rounded figures below. The commands write to `.cache/` so a
+reproduction does not overwrite a historical receipt.
 
 The first blind receipt is preserved separately in
 `fresh_results_first_blind.json`. It records the original main-binary/main-
@@ -238,7 +239,7 @@ results are regression evidence and do not replace the first-run measurement.
 
 The first blind frozen-label result is retained as measured; the labels were
 incomplete, so its precision is not a whole-repository estimate. The current
-frozen-label regression score is 0.42 / 1.00 after scorer changes and map
+frozen-label regression score is 0.425 / 1.00 after scorer changes and map
 changes, as detailed above.
 Most extra facts were real: compile-scope AWS S3 and Hibernate declarations,
 six other reactor modules, the OpenMRS WAR the labeler had noted but could
