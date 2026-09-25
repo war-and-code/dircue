@@ -225,8 +225,9 @@ not just the rounded figures below.
 | capabilities | 0.60 / 1.00 | 1.00 / 1.00 |
 | relationships | 0.42 / 1.00 | 1.00 / 1.00 |
 
-The frozen-label precision is the honest unseen number, but most of the
-extra facts were real: compile-scope AWS S3 and Hibernate declarations, the
+The frozen-label columns record the first blind comparison, but the labels
+were incomplete, so their precision is not a whole-repository estimate.
+Most extra facts were real: compile-scope AWS S3 and Hibernate declarations,
 six other reactor modules, the OpenMRS WAR the labeler had noted but could
 not name, and structural containment. Each correction cites the oracle-file
 line. The same review found real map errors. #143 fixed a Spring Security
