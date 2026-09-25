@@ -230,13 +230,13 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				for _, candidate := range matches {
 					cleanSource := strings.TrimPrefix(path.Clean(ref.Value), "/")
 					root := strings.TrimPrefix(path.Clean(candidate.root), "./")
-					pathIdentifiesModule := !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && strings.HasPrefix(cleanSource, root+"/")
+					pathIdentifiesModule := !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && cleanSource == path.Join(root, "target", path.Base(ref.Value))
 					if root == "." {
 						// A bare target/<artifact> source can only identify the root
 						// Maven module when the Dockerfile itself is at the repository
 						// root. For nested Dockerfiles the build context is not known
 						// here, so this path alone is insufficient ownership evidence.
-						pathIdentifiesModule = !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && path.Dir(def.Path) == "." && strings.HasPrefix(cleanSource, "target/")
+						pathIdentifiesModule = !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && path.Dir(def.Path) == "." && cleanSource == path.Join("target", path.Base(ref.Value))
 					}
 					if pathIdentifiesModule {
 						pathIdentifiesModule = dockerFinalCopySurvives(def.References, pathEvidence, ref, lastInstruction+1)
@@ -554,7 +554,7 @@ func dockerArtifactPathIdentifiesModule(artifactPath, moduleRoot string) bool {
 	if root != "" {
 		suffix = root + "/" + suffix
 	}
-	return artifact == suffix || strings.HasSuffix(artifact, "/"+suffix)
+	return artifact == suffix
 }
 
 func dockerCopyMappedSource(source, destination, artifact string) string {

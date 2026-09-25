@@ -642,11 +642,13 @@ func TestRootDockerfileTargetCopyCanIdentifyRootMavenArchive(t *testing.T) {
 func TestUnusedDockerStageCannotClaimMavenArchive(t *testing.T) {
 	for _, test := range []struct {
 		name, copyStage string
+		source          string
 		stageCopy       bool
 		writes          []deployables.Reference
 	}{
 		{name: "unused build stage", copyStage: "build"},
 		{name: "unused transferred stage", copyStage: "build", stageCopy: true},
+		{name: "downloaded archive within module directory", copyStage: "final", source: "webapp/download/ROOT.war"},
 		{name: "overwritten final stage", copyStage: "final", writes: []deployables.Reference{{Kind: "run_instruction", Value: "RUN curl -fsSL https://example.invalid/ROOT.war -o /app/ROOT.war", Stage: "final", Evidence: deployables.Evidence{Line: 8}}}},
 		{name: "copied-over final stage", copyStage: "final", writes: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cp /tmp/foreign/ROOT.war /app/ROOT.war", Stage: "final", Evidence: deployables.Evidence{Line: 8}}, {Kind: "run_copy", SourcePath: "/tmp/foreign/ROOT.war", TargetPath: "/app/ROOT.war", Stage: "final", Evidence: deployables.Evidence{Line: 8}}}},
 	} {
@@ -655,7 +657,11 @@ func TestUnusedDockerStageCannotClaimMavenArchive(t *testing.T) {
 			if test.copyStage == "final" {
 				copyLine = 5
 			}
-			copyRef := deployables.Reference{Kind: "copy_source", Value: "webapp/target/ROOT.war", Qualification: "local", Stage: test.copyStage, TargetPath: "/app/ROOT.war", Evidence: deployables.Evidence{Field: "COPY source", Line: copyLine}}
+			source := test.source
+			if source == "" {
+				source = "webapp/target/ROOT.war"
+			}
+			copyRef := deployables.Reference{Kind: "copy_source", Value: source, Qualification: "local", Stage: test.copyStage, TargetPath: "/app/ROOT.war", Evidence: deployables.Evidence{Field: "COPY source", Line: copyLine}}
 			refs := []deployables.Reference{{Kind: "base_image_or_stage", Stage: "build", Evidence: deployables.Evidence{Line: 1}}}
 			if test.copyStage == "build" {
 				refs = append(refs, copyRef)
@@ -807,6 +813,7 @@ func TestDockerStageArtifactNeedsTraceToMavenTargetPath(t *testing.T) {
 	}{
 		{name: "broad context then downloaded root war", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}},
 		{name: "context plus curl output", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/ROOT.war")}},
+		{name: "same module name under another context directory", refs: []deployables.Reference{{Kind: "copy_source", Value: "other/webapp", Qualification: "local", Stage: "build", TargetPath: "/workspace/webapp", Evidence: deployables.Evidence{Line: 2}}, copyArtifact("/workspace/webapp/target/ROOT.war")}},
 		{name: "context plus multi-source cp from unrelated file", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/unrelated.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/tmp/unrelated.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
 		{name: "target-shaped path without context copy", refs: []deployables.Reference{copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
 		{name: "module target path mapped by context copy", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cp /workspace/webapp/target/ROOT.war /ROOT.war", Stage: "build", Evidence: deployables.Evidence{Line: 10}}, {Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}, want: true},
