@@ -118,6 +118,10 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			}
 		} else if m := dockerWorkdir.FindStringSubmatch(line); m != nil {
 			workdir, workdirKnown = resolveDockerDestination(workdir, workdirKnown, m[1])
+		} else if strings.HasPrefix(strings.ToUpper(trimmedLine), "WORKDIR ") {
+			// An unsupported WORKDIR form changes later relative destinations,
+			// so retaining the previous value would invent a COPY path.
+			workdir, workdirKnown = "", false
 		} else if m := dockerCopyFrom.FindStringSubmatch(line); m != nil {
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
@@ -1129,16 +1133,28 @@ func dynamic(s string) bool {
 // the stage's known WORKDIR. A relative path cannot be resolved when the base
 // image's inherited WORKDIR is unknown.
 func resolveDockerDestination(workdir string, workdirKnown bool, destination string) (string, bool) {
-	if destination == "" || dynamic(destination) || strings.ContainsAny(destination, "[]{}\"'\\") {
+	if destination == "" || dynamic(destination) || strings.Contains(destination, "$") || strings.ContainsAny(destination, "[]{}\"'\\") {
 		return "", false
 	}
 	if path.IsAbs(destination) {
-		return path.Clean(destination), true
+		return dockerDestinationPath(destination), true
 	}
 	if !workdirKnown {
 		return "", false
 	}
-	return path.Clean(path.Join(workdir, destination)), true
+	resolved := path.Join(workdir, destination)
+	if strings.HasSuffix(destination, "/") {
+		resolved += "/"
+	}
+	return dockerDestinationPath(resolved), true
+}
+
+func dockerDestinationPath(destination string) string {
+	clean := path.Clean(destination)
+	if clean != "/" && strings.HasSuffix(destination, "/") {
+		return clean + "/"
+	}
+	return clean
 }
 
 func safeRelative(s string) bool {

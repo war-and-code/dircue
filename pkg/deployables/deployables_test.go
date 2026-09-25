@@ -743,6 +743,19 @@ func TestDockerfileContextCopyTargetTracksRelativeWorkdir(t *testing.T) {
 	t.Fatal("missing COPY source evidence")
 }
 
+func TestDockerfileCopyTargetRetainsDirectoryDestination(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nCOPY webapp/target/ROOT.war /workspace/\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" {
+			if ref.TargetPath != "/workspace/" {
+				t.Fatalf("COPY directory destination lost its trailing slash: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source")
+}
+
 func TestDockerfileCopyTargetRemainsUnknownForDynamicOrInheritedWorkdir(t *testing.T) {
 	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /known\nFROM ${BASE}\nCOPY . relative\nWORKDIR ${APP_DIR}\nCOPY . .\nCOPY . /absolute\n")
 	var relative, afterDynamic, absolute string
@@ -761,6 +774,15 @@ func TestDockerfileCopyTargetRemainsUnknownForDynamicOrInheritedWorkdir(t *testi
 	}
 	if relative != "" || afterDynamic != "" || absolute != "/absolute" {
 		t.Fatalf("unexpected target paths: relative=%q afterDynamic=%q absolute=%q", relative, afterDynamic, absolute)
+	}
+}
+
+func TestDockerfileUnsupportedWorkdirDoesNotReusePreviousDestination(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /known\nWORKDIR $APP_DIR\nCOPY . relative\nWORKDIR \"/quoted path\"\nCOPY . another\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.TargetPath != "" {
+			t.Fatalf("unsupported WORKDIR reused a stale destination: %+v", ref)
+		}
 	}
 }
 
