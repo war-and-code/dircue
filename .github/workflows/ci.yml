@@ -53,7 +53,7 @@ jobs:
       - name: Test atlas classification and map quality harnesses
         run: |
           python -m unittest discover -s tests/atlas -p 'test_*.py' -v
-          python -m unittest discover -s tests/map_corpus -p 'test_verify_public_quality.py' -v
+          python -m unittest discover -s tests/map_corpus -p 'test_*.py' -v
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
 
