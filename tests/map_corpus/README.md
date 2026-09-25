@@ -217,16 +217,29 @@ python3 tests/map_corpus/score_fresh.py --binary ./dircue \
 The two committed result files retain the per-fact matches and disagreements,
 not just the rounded figures below.
 
+The first blind receipt is preserved separately in
+`fresh_results_first_blind.json`. It records the original main-binary/main-
+scorer comparison before later source-label adjudication or scorer changes:
+relationships had 15 true positives, 25 false positives, and 2 false
+negatives (precision **0.38**, recall **0.88**). The current
+`fresh_results_frozen.json` is a regression run on the same frozen labels,
+not the original blind receipt. Its edge progression makes the attribution
+explicit: main binary + main scorer was 15/25/2; main binary + updated PR
+scorer was 16/24/1; PR binary + updated PR scorer was 17/23/0. The latter
+results are regression evidence and do not replace the first-run measurement.
+
 | Question | Frozen labels P / R | Corrected labels P / R |
 | --- | --- | --- |
 | components | 1.00 / 1.00 | 1.00 / 1.00 |
 | deployables | 0.80 / 0.80 | 1.00 / 0.83 |
 | interfaces | 1.00 / 1.00 | 1.00 / 1.00 |
 | capabilities | 0.60 / 1.00 | 1.00 / 1.00 |
-| relationships | 0.42 / 1.00 | 1.00 / 1.00 |
+| relationships | 0.38 / 0.88 (first blind run) | 1.00 / 1.00 |
 
-The frozen-label columns record the first blind comparison, but the labels
-were incomplete, so their precision is not a whole-repository estimate.
+The first blind frozen-label result is retained as measured; the labels were
+incomplete, so its precision is not a whole-repository estimate. The current
+frozen-label regression score is 0.42 / 1.00 after scorer changes and map
+changes, as detailed above.
 Most extra facts were real: compile-scope AWS S3 and Hibernate declarations,
 six other reactor modules, the OpenMRS WAR the labeler had noted but could
 not name, and structural containment. Each correction cites the oracle-file
@@ -241,6 +254,29 @@ fix matches root Dockerfile edge endpoints by unique path. The remaining
 known deployable gap is Procfile support (#146). These repositories have
 informed development; their corrected scores are regression measurements,
 not a new independent accuracy estimate.
+
+## Withdrawn blind holdout history
+
+The earlier `blind_holdout_v1/` artifact covered `gs-maven` and `flasky`.
+Commit `d3b8ae5` introduced it as frozen before either checkout was scored.
+Commit `299fd7b` then changed its labels to use the map's vocabulary without
+adding a `corrections` record. Commit `824aab1` removed the artifact and
+replaced it with `independent_labels/`. Because those changes broke the
+original blind-label provenance, the withdrawn holdout is not treated as a
+scored accuracy receipt; the commits preserve the original and revised
+source-only labels for audit.
+
+As a transparent post-hoc check, the PR binary was built from the current
+source and run against the pinned `gs-maven` `complete/` subtree at
+`c65883f80b35bac86bb2580944de9146e2c6a55a`. It emits a `maven_main_class`
+interface (`hello.HelloWorld`, sourced to `pom.xml:49`) and a `declares` edge
+from the component to that interface. The original frozen source labels
+explicitly marked both categories empty and complete, so both observations
+conflict with those labels. This is a reported counterexample, not a valid
+blind score: the artifact was withdrawn without a result receipt, and this
+run happened after implementation. To reproduce the observation, check out
+the pinned repository, build the PR source with `go build -o ./dircue .`, and
+run `./dircue map --json --source directory /path/to/gs-maven/complete`.
 
 ## Independent source-first check
 
