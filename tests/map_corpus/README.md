@@ -268,8 +268,8 @@ coverage stayed `unknown` without a provider report. This is an inventory
 smoke check, not a substitute for an SBOM tool or a test of whether a Syft
 report would identify either binary. It requires network access when invoked
 and is not part of ordinary CI. `unmanaged_binary_results.json` is the
-portable receipt, with the candidate binary hash and both upstream
-commits; no downloaded binary bytes are checked into this repository.
+portable receipt, with the candidate binary hash, source-file hashes, and both
+upstream commits; no downloaded binary bytes are checked into this repository.
 
 ## On-demand resource and compatibility evidence
 
