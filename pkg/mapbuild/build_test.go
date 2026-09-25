@@ -693,10 +693,10 @@ func TestDockerfileStageArchiveRequiresModuleBuildContextCopy(t *testing.T) {
 	webapp := mapdoc.NewNode(mapdoc.NodeComponent, []string{"webapp", "webapp/pom.xml"}, "maven")
 	webapp.Properties = map[string]string{"root": "webapp"}
 	doc.Nodes = append(doc.Nodes, root, webapp)
-	evidence := deployables.Evidence{Field: "COPY --from source", Value: "/webapp/target/ROOT.war", Line: 8, Basis: "dockerfile-instruction"}
+	evidence := deployables.Evidence{Field: "COPY --from source", Value: "/ROOT.war", Line: 8, Basis: "dockerfile-instruction"}
 	definitions := []deployables.Definition{
 		{Provider: "maven", Kind: "archive", Format: "war", Name: "ROOT.war", Path: "webapp/pom.xml", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "packaging", Value: "war", Line: 5, Basis: "maven-pom-field"}}},
-		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 2, Basis: "dockerfile-instruction"}, Stage: "unrelated"}, {Kind: "copy_from", Value: "curl", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY --from", Value: "curl", Line: 5, Basis: "dockerfile-instruction"}, Stage: "final", SourceStage: "curl", SourcePath: "/tmp/config", TargetPath: "/etc/config"}, {Kind: "copy_source_stage", Value: evidence.Value, Qualification: "local", Evidence: evidence, Stage: "final", SourceStage: "curl", SourcePath: evidence.Value, TargetPath: "/usr/local/tomcat/webapps/ROOT.war"}}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "(root)", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{{Kind: "copy_source", Value: ".", Qualification: "local", Evidence: deployables.Evidence{Field: "COPY source", Value: ".", Line: 2, Basis: "dockerfile-instruction"}, Stage: "build"}, {Kind: "copy_source_stage", Value: evidence.Value, Qualification: "local", Evidence: evidence, Stage: "final", SourceStage: "build", SourcePath: evidence.Value, TargetPath: "/usr/local/tomcat/webapps/ROOT.war"}}},
 	}
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: definitions})
 	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
@@ -709,6 +709,31 @@ func TestDockerfileStageArchiveRequiresModuleBuildContextCopy(t *testing.T) {
 		}
 	}
 	t.Fatal("no root Dockerfile builds edge emitted")
+}
+
+func TestDockerStageArtifactNeedsTraceToMavenTargetPath(t *testing.T) {
+	copyArtifact := func(source string) deployables.Reference {
+		return deployables.Reference{Kind: "copy_source_stage", Qualification: "local", Stage: "final", SourceStage: "build", SourcePath: source, TargetPath: "/usr/local/tomcat/webapps/ROOT.war", Evidence: deployables.Evidence{Field: "COPY --from source", Line: 20}}
+	}
+	contextCopy := deployables.Reference{Kind: "copy_source", Value: ".", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Field: "COPY source", Line: 2}}
+	tests := []struct {
+		name  string
+		refs  []deployables.Reference
+		paths []deployables.Reference
+		want  bool
+	}{
+		{name: "broad context then downloaded root war", refs: []deployables.Reference{contextCopy, copyArtifact("/ROOT.war")}},
+		{name: "context plus curl output", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/ROOT.war")}},
+		{name: "context plus multi-source cp from unrelated file", refs: []deployables.Reference{contextCopy, copyArtifact("/tmp/unrelated.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/tmp/unrelated.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}},
+		{name: "module target source copied into stage artifact", refs: []deployables.Reference{copyArtifact("/ROOT.war")}, paths: []deployables.Reference{{Kind: "run_copy", Qualification: "local", Stage: "build", SourcePath: "/workspace/webapp/target/ROOT.war", TargetPath: "/ROOT.war", Evidence: deployables.Evidence{Line: 10}}}, want: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := dockerContextIncludesModule(tt.refs, tt.paths, "webapp", "build", "/ROOT.war", 21); got != tt.want {
+				t.Fatalf("dockerContextIncludesModule() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }
 
 func TestGoModuleDisplayName(t *testing.T) {
