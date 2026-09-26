@@ -38,6 +38,9 @@ func parseGemfile(name string, content []byte) *Document {
 	}
 	AddRequirement(d, Requirement{Kind: "declaration-semantics", Value: "gemfile-static-v1", State: "declared", Evidence: name})
 	// Parse gem dependencies from simple `gem 'name'` or `gem "name"` lines.
+	// Track if/unless/case and group do...end blocks to mark conditional and
+	// group-scoped gems appropriately.
+	var blockStack []gemfileBlock
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	scanner.Buffer(make([]byte, 4096), MaxStringBytes+1)
 	for scanner.Scan() {
@@ -45,11 +48,49 @@ func parseGemfile(name string, content []byte) *Document {
 			break
 		}
 		text := strings.TrimSpace(scanner.Text())
+		// Strip inline comments before block-keyword detection.
+		if idx := strings.Index(text, " #"); idx > 0 {
+			text = strings.TrimSpace(text[:idx])
+		}
 		if text == "" || strings.HasPrefix(text, "#") {
 			continue
 		}
-		if dep, ok := parseGemDep(text); ok {
-			AddRequirement(d, Requirement{Kind: "ruby-gem-dependency", Value: dep, State: "declared", Evidence: name})
+		// Track block closers first.
+		if gemEndRE.MatchString(text) {
+			if len(blockStack) > 0 {
+				blockStack = blockStack[:len(blockStack)-1]
+			}
+			continue
+		}
+		// Try to recognise a block opener. A block opened and closed on the
+		// same line (for example `if x then gem "y" end`) leaves the stack
+		// unchanged, but its gem is still conditional.
+		oneLine := false
+		var lineBlock gemfileBlock
+		if blk, ok := parseGemfileBlock(text); ok {
+			if gemTrailingEndRE.MatchString(text) {
+				oneLine, lineBlock = true, blk
+			} else {
+				blockStack = append(blockStack, blk)
+			}
+		}
+		dep, ok := parseGemDep(text)
+		if !ok && oneLine {
+			if m := gemInlineRE.FindStringSubmatch(text); m != nil {
+				dep, ok = m[1], true
+			}
+		}
+		if ok {
+			state, condition := gemfileDepState(blockStack)
+			if oneLine {
+				// A one-line block applies its own condition to its gem.
+				state, condition = gemfileDepState(append(append([]gemfileBlock(nil), blockStack...), lineBlock))
+			}
+			if gemModifierRE.MatchString(text) {
+				// `gem "x" if cond` or `gem "x" unless cond`.
+				state, condition = "conditional", "if_modifier"
+			}
+			AddRequirement(d, Requirement{Kind: "ruby-gem-dependency", Value: dep, State: state, Evidence: name, Condition: condition})
 		}
 	}
 	return d
@@ -63,6 +104,117 @@ func parseGemDep(line string) (string, bool) {
 		return "", false
 	}
 	return m[1], true
+}
+
+// gemfileBlockKind classifies a Gemfile block for conditional tracking.
+type gemfileBlockKind int
+
+const (
+	gemfileBlockGroup    gemfileBlockKind = iota // group :name do ... end
+	gemfileBlockGroupOpt                         // group :name, optional: true do ... end
+	gemfileBlockIf                               // if/unless/case ... end
+	gemfileBlockDo                               // other do ... end blocks (e.g. source, platform)
+)
+
+type gemfileBlock struct {
+	kind      gemfileBlockKind
+	condition string // "gemfile-group:name", "if_block" or ""
+	optional  bool   // true for optional groups
+}
+
+// gemGroupRE matches `group :name, :other do` or `group "name" do`.
+// Captures the group name fragment (commas and quotes stripped later).
+var gemGroupRE = regexp.MustCompile(`^group\s+(.+?)(?:\s+do)?\s*(?:#.*)?$`)
+
+// gemGroupNameRE extracts individual group names from the group argument list.
+var gemGroupNameRE = regexp.MustCompile(`[:'""]([A-Za-z0-9_]+)`)
+
+// gemOptionalRE detects `optional: true` in a group line.
+var gemOptionalRE = regexp.MustCompile(`\boptional\s*:\s*true\b`)
+
+// gemBlockOpenRE matches lines that open a do...end block without a recognised keyword
+// (e.g. source "..." do, platform :... do). We track these to keep end-counts correct.
+var gemBlockOpenRE = regexp.MustCompile(`\bdo\s*(?:#.*)?$`)
+
+// gemIfRE matches `if`, `unless`, `case` at the start of a statement.
+var gemIfRE = regexp.MustCompile(`^(?:if|unless|case)\b`)
+
+// gemTrailingEndRE matches a line that closes its own block, such as
+// `if ENV["X"] then gem "y" end`.
+var gemTrailingEndRE = regexp.MustCompile(`[;\s]end\s*$`)
+
+// gemInlineRE finds a gem declared inside a one-line block.
+var gemInlineRE = regexp.MustCompile(`\bgem\s+['"]([A-Za-z0-9][A-Za-z0-9_.-]*)['"]`)
+
+// gemModifierRE matches a trailing `if` or `unless` modifier on a gem line.
+var gemModifierRE = regexp.MustCompile(`^gem\s.*\s(?:if|unless)\s`)
+
+// gemOtherBlockRE matches other statements that open a block closed by `end`.
+var gemOtherBlockRE = regexp.MustCompile(`^(?:begin|def|while|until|for|module|class)\b`)
+
+// gemEndRE matches a bare `end` statement.
+var gemEndRE = regexp.MustCompile(`^end\b`)
+
+// parseGemfileBlock tries to classify the current line as a block opener.
+// Returns (block, true) when a block starts on this line, or a zero-value and false.
+func parseGemfileBlock(line string) (gemfileBlock, bool) {
+	// group :name, :other do
+	if gm := gemGroupRE.FindStringSubmatch(line); gm != nil {
+		args := gm[1]
+		// Group names end at `do`; a one-line block continues with its body.
+		if idx := strings.Index(args, " do"); idx >= 0 {
+			args = args[:idx]
+		}
+		names := gemGroupNameRE.FindAllStringSubmatch(args, -1)
+		var nameList []string
+		for _, n := range names {
+			if n[1] != "" {
+				nameList = append(nameList, n[1])
+			}
+		}
+		cond := ""
+		if len(nameList) > 0 {
+			cond = "gemfile-group:" + strings.Join(nameList, ",")
+		} else {
+			cond = "gemfile-group:unknown"
+		}
+		opt := gemOptionalRE.MatchString(args)
+		kind := gemfileBlockGroup
+		if opt {
+			kind = gemfileBlockGroupOpt
+		}
+		return gemfileBlock{kind: kind, condition: cond, optional: opt}, true
+	}
+	// if / unless / case
+	if gemIfRE.MatchString(line) {
+		return gemfileBlock{kind: gemfileBlockIf, condition: "if_block"}, true
+	}
+	// Other Ruby constructs closed by `end` keep the stack balanced.
+	if gemOtherBlockRE.MatchString(line) {
+		return gemfileBlock{kind: gemfileBlockDo}, true
+	}
+	// other do...end blocks (source, platform, etc.)
+	if gemBlockOpenRE.MatchString(line) {
+		return gemfileBlock{kind: gemfileBlockDo}, true
+	}
+	return gemfileBlock{}, false
+}
+
+// gemfileDepState returns the State and Condition for a gem declaration
+// given the current block stack.
+func gemfileDepState(stack []gemfileBlock) (state, condition string) {
+	for i := len(stack) - 1; i >= 0; i-- {
+		b := stack[i]
+		switch b.kind {
+		case gemfileBlockIf:
+			return "conditional", b.condition
+		case gemfileBlockGroupOpt:
+			return "conditional", b.condition
+		case gemfileBlockGroup:
+			return "declared", b.condition
+		}
+	}
+	return "declared", ""
 }
 
 func parseGemspec(name string, content []byte) *Document {

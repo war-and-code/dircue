@@ -105,6 +105,33 @@ uvx --from \
 
 While the repository is private, `go install` also needs `GOPRIVATE=github.com/war-and-code` and Git credentials for GitHub.
 
+### Verifying release integrity
+
+Every release asset carries a GitHub build attestation (SLSA provenance). The `SHA256SUMS` manifest is also signed with keyless Sigstore via cosign. Verify before use:
+
+```sh
+# Install the GitHub CLI (https://cli.github.com) and cosign (https://docs.sigstore.dev/cosign/system_config/installation)
+
+# 1. Verify the SLSA build provenance attestation for any asset (example: the Linux amd64 archive)
+gh attestation verify dircue_1.0.0_linux_amd64.tar.gz --repo war-and-code/dircue
+
+# 2. Download the Sigstore bundle alongside SHA256SUMS
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
+curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS.sigstore.json
+
+# 3. Verify the cosign signature on SHA256SUMS
+cosign verify-blob \
+  --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+
+# 4. Verify the checksum of your downloaded asset
+sha256sum -c SHA256SUMS --ignore-missing
+```
+
+`gh attestation verify` talks to GitHub's attestation API and confirms the asset was built by the `release-candidate.yml` workflow at the tagged commit. The cosign verification confirms the `SHA256SUMS` manifest was signed by the same workflow run, with no long-lived key material.
+
 The [distribution guide](docs/DISTRIBUTION.md) covers the full archive/wheel matrix, offline installation, and how to build a local archive from source without publishing. The optional structural worker is packaged separately; see the [worker guide](docs/STRUCTURE.md#building-the-add-on).
 
 Building from source needs **Go 1.26.6** (the version pinned in `go.mod`; release archives are produced with exactly this toolchain):

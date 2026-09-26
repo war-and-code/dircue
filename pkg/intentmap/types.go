@@ -87,6 +87,11 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			if strings.HasPrefix(req.Condition, "group:") {
 				continue
 			}
+			// Gemfile groups made only of development and test gems describe
+			// tooling. Other groups, such as production, keep their gems.
+			if gemfileToolingGroup(req.Condition) {
+				continue
+			}
 			// dev_dependencies (Dart/Flutter and any future ecosystem using this
 			// convention) describe build/test tooling, not runtime capabilities.
 			if req.Condition == "dev_dependencies" {
@@ -133,4 +138,19 @@ func moduleBaseName(name string) string {
 		return path.Base(dir)
 	}
 	return base
+}
+
+// gemfileToolingGroup reports whether a Gemfile group condition names only
+// the development and test groups.
+func gemfileToolingGroup(condition string) bool {
+	groups, ok := strings.CutPrefix(condition, "gemfile-group:")
+	if !ok || groups == "" {
+		return false
+	}
+	for _, group := range strings.Split(groups, ",") {
+		if group != "development" && group != "test" {
+			return false
+		}
+	}
+	return true
 }
