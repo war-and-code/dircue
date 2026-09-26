@@ -18,7 +18,7 @@ SUITE = Path(__file__).resolve().parents[1]
 ROOT = Path(__file__).resolve().parents[3]
 AUDIT = SUITE / 'audit'
 NOW = datetime.datetime.now(datetime.timezone.utc).isoformat()
-SHA = '121027f44f014ac8d0a003a451a04b080a5ffe88'
+SHA = '29b57bd3c126e0f545f361d580b3c397625ce02a'
 
 
 def source_text(file):

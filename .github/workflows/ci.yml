@@ -57,7 +57,9 @@ jobs:
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
       - name: Test evidence archive manifest (no network)
-        run: python -m unittest discover -s tests/receipts -p 'test_evidence_archive.py' -v
+        run: |
+          python -m unittest discover -s tests/receipts -p 'test_evidence_archive.py' -v
+          python -m unittest discover -s tests/receipts -p 'test_fetch_receipts.py' -v
 
   test:
     needs: preflight

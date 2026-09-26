@@ -36,6 +36,11 @@ make fetch-receipts
 python3 scripts/fetch_receipts.py
 ```
 
+While the repository is private, the release download URLs need authentication.
+The script then retries through the GitHub API with a token from `GH_TOKEN`,
+`GITHUB_TOKEN` or `gh auth token`. The restored directories are listed in
+`.gitignore`, so the working tree stays clean.
+
 To verify files are present without downloading:
 
 ```sh

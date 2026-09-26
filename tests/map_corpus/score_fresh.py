@@ -22,7 +22,7 @@ import tempfile
 
 HERE = Path(__file__).resolve().parent
 LABEL_DIR = HERE / "fresh_labels"
-FREEZE_COMMIT = "c976461048b949a4e3b29f965d12ea0dabb32cc5"
+FREEZE_COMMIT = "810100db1f6f1bd148833c339ba062aa5bce9acd"
 
 
 def current_labels() -> list[dict]:

@@ -1,7 +1,7 @@
 # Independent result binary provenance
 
 The candidate binary recorded in `independent_results.json` is reproducible from
-source commit `bac6eb1e7e356ed5f62dfd245a3b54b6715d24e6` (the pre-fix source).
+source commit `8584720325ecba7e72dd1d0b2d694acda3a0744d` (the pre-fix source).
 Using Go `go1.26.6 darwin/arm64`, export that commit's source and run:
 
 ```sh

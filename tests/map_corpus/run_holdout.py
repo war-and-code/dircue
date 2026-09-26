@@ -19,7 +19,7 @@ import verify_golden
 
 
 LABEL_DIR = Path(__file__).resolve().parent / "holdout_labels"
-LABEL_FREEZE_COMMIT = "78fc5e1ea2ac642703ce4938f78bc007f10ec8eb"
+LABEL_FREEZE_COMMIT = "9fe9ceffed94598576e46b8d4c72b88951488975"
 IDS = ("owasp_java", "owasp_python", "dart", "cobol")
 # The first run against the frozen labels found 3, 0, 2 and 0 positives.
 # After the #143 map work and the recorded label corrections every labeled

@@ -141,7 +141,7 @@ golden-label projects: [OWASP BenchmarkJava](https://github.com/OWASP-Benchmark/
 [AppFlowy editor](https://github.com/AppFlowy-IO/appflowy-editor) for Dart, and
 [AWS CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo)
 for COBOL/JCL. Their labels in `holdout_labels/` were written from source and
-committed in `78fc5e1ea2ac642703ce4938f78bc007f10ec8eb` before dircue was
+committed in `9fe9ceffed94598576e46b8d4c72b88951488975` before dircue was
 run on the checkouts. A subsequent source-only review added three hashed
 supporting files and corrected the Java HSQLDB explanation and Python SQLite
 edge citation; it did not add or remove any scored positive fact. The original
@@ -172,7 +172,7 @@ The first source-first run found 5 of 18 labeled positives and made no
 `complete` coverage overclaims. The gaps it exposed were a Maven WAR and its
 build link, a Flask application and its SQLite use, and Dart HTTP-client and
 local-path relationships. PR #143 then implemented those as general map
-features. Against the labels exactly as frozen in `78fc5e1`, the new map
+features. Against the labels exactly as frozen in `9fe9cef`, the new map
 finds 12 of 18. Four labels named facts in terms the map contract does not
 use: a WAR `service` instead of an `archive`, a `builds` edge in the reverse
 direction, a README-derived name for an undeclared Python root, and a
@@ -191,7 +191,7 @@ proof of project relationship support (#144).
 
 Before the #143 map changes were run on them, four further repositories were
 labeled from source by a labeler who never ran dircue or read its output,
-and frozen in `c976461`:
+and frozen in `810100d`:
 [OpenMRS core](https://github.com/openmrs/openmrs-core) (Maven reactor
 with a WAR module), a
 [Flask application](https://github.com/gothinkster/flask-realworld-example-app),
@@ -259,10 +259,10 @@ not a new independent accuracy estimate.
 ## Withdrawn blind holdout history
 
 The earlier `blind_holdout_v1/` artifact covered `gs-maven` and `flasky`.
-Commit `d3b8ae5` introduced it as frozen before either checkout was scored.
-Commit `299fd7b` then changed its labels to use the map's vocabulary without
-adding a `corrections` record. Commit `a80a6be` added an implementation-aware
-flask-on-docker manifest to the same directory. Commit `824aab1` removed the
+Commit `7dadebc` introduced it as frozen before either checkout was scored.
+Commit `01175ec` then changed its labels to use the map's vocabulary without
+adding a `corrections` record. Commit `d9a12d2` added an implementation-aware
+flask-on-docker manifest to the same directory. Commit `50e14e9` removed the
 artifact and replaced it with `independent_labels/`. Because those changes
 broke the
 original blind-label provenance, the withdrawn holdout is not treated as a
@@ -386,7 +386,7 @@ On this corpus,
 `low-memory` traded roughly 38% more wall time for about half the maximum RSS.
 These are warm-cache observations on one machine, without approved thresholds;
 they are not portable performance or memory guarantees. The measured binary
-was built from commit `20bfd2077adf1dc595c181ff638be4f94606be47` and had
+was built from commit `1b567071f54c9b177f25ed9881923d649a3271cf` and had
 SHA-256 `020b9850fd9ce452d5b3ba9a1dd94a83cf9f4fc7ce5d41646268dabb7ea064a3`.
 
 Two optional compatibility harnesses exercise the same exact commits. The
@@ -409,7 +409,7 @@ python3 tests/map_corpus/compare_public_legacy.py \
 The 2026-09-23 runs matched Linguist's legacy JSON on 21 of 21 repositories and
 matched dircue 0.9.0 byte-for-byte in all 63 legacy checks: JSON, breakdown
 JSON, and breakdown with strategies. The Linguist differential used map-only
-precursor commit `0aa0cb924b3e2285f7ee505bb3b25e16a8cf0592` (binary SHA-256
+precursor commit `a5b8e35d9032cfb45bcf83c4fdcd2b19e78db5f5` (binary SHA-256
 `0c1187da1b0f09fcae1c723806424b36745a81359ccc1fbdecba5365b27fd64d`);
 the final 63-check run used the candidate commit and binary named above. Later
 changes did not touch the legacy language path. The existing kernel-slice
@@ -422,6 +422,6 @@ breakdown with strategy labels on all 21 pinned repositories. Its 2026-09-23
 run passed 62 of 63 comparisons exactly, with no unexplained differences. The
 one known difference is the four-line ASP.NET Core text display discrepancy
 recorded as DISC-009 in `tests/conformance/DISCREPANCIES.md`; both JSON modes
-match. That run used commit `6133519946ccf23ee5d478bd766a340c2a78139c`
+match. That run used commit `5c04f33bc38dd453f7a92bb4a1da217b3f3edc1b`
 and binary SHA-256
 `7bc6d72c4eb15c7fc6479eab977057f3136c514b0dc8c976fb3c8b2e6bfa6afd`.
