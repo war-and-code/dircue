@@ -1,0 +1,177 @@
+{
+  "repo": "flask-on-docker",
+  "commit": "c51257d182ad9c1e1b5f6addb633f74a358c0f71",
+  "oracle_files": [
+    {
+      "path": "docker-compose.yml",
+      "sha256": "285222e9b781182f27dd1bddbc6831cc6db69bc9841821e58b6d8370ffc05d4e"
+    },
+    {
+      "path": "services/web/Dockerfile",
+      "sha256": "a7ee70c736c3f62f60f4cc13e46b087ad0e8d8077bb997b8e6ebd72aec5abe57"
+    },
+    {
+      "path": "services/web/requirements.txt",
+      "sha256": "f8f99ff13f26d43ade0a3ec4f3a86cd16733a3dbb6270b3668f5d9c289462fc5"
+    },
+    {
+      "path": "services/web/project/__init__.py",
+      "sha256": "75d9f9fc142fee2b1016a76a681d98f40901407e3be8378d052199605815f61d"
+    },
+    {
+      "path": "services/web/project/config.py",
+      "sha256": "a2c89aecf832100889da848c57a35e2a3fd59ede194ed1f5ab8a22fdc046cc6f"
+    },
+    {
+      "path": "services/web/manage.py",
+      "sha256": "bd57083948a8b3831a3342f9ca85f11d319e1575480883ec297c04358260a11a"
+    },
+    {
+      "path": "services/web/entrypoint.sh",
+      "sha256": "293b50dd066d3a14aa6e5ffc887576c036ad35eed4b12eb6d79229f6b7a787a5"
+    }
+  ],
+  "components": [
+    {
+      "name": "services/web",
+      "root": "services/web",
+      "ecosystem": "python",
+      "why": "services/web/requirements.txt:1-4 declares Python dependencies; services/web/manage.py:1-3 imports the Flask application from the project package."
+    }
+  ],
+  "deployables": [
+    {
+      "kind": "service",
+      "name": "web",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml:3-14 declares service web, its build context, command, published port, and dependency."
+    },
+    {
+      "kind": "service",
+      "name": "db",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml:15-22 declares service db with image postgres:13 and persistent storage."
+    },
+    {
+      "kind": "container_build",
+      "name": "services/web",
+      "path": "services/web/Dockerfile",
+      "why": "services/web/Dockerfile:2 declares a Python base image; lines 16-20 copy requirements and application source into the image; line 23 selects the entrypoint."
+    }
+  ],
+  "interfaces": [
+    {
+      "kind": "flask_application",
+      "name": "app",
+      "path": "services/web/project/__init__.py",
+      "why": "services/web/project/__init__.py:13 assigns Flask(__name__) to module-level variable app."
+    },
+    {
+      "kind": "declared_port",
+      "name": "5000",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml:9-10 maps host port 5001 to the web container's declared port 5000. The label names the container-side port."
+    }
+  ],
+  "capabilities": [
+    {
+      "capability": "Flask web framework",
+      "owner": "services/web",
+      "path": "services/web/project/__init__.py",
+      "why": "services/web/project/__init__.py:3-8 imports Flask; services/web/requirements.txt:1 declares Flask==2.3.2."
+    },
+    {
+      "capability": "SQLAlchemy ORM",
+      "owner": "services/web",
+      "path": "services/web/project/__init__.py",
+      "why": "services/web/project/__init__.py:9 and 15 import and instantiate SQLAlchemy; services/web/requirements.txt:2 declares Flask-SQLAlchemy."
+    },
+    {
+      "capability": "PostgreSQL database",
+      "owner": "services/web",
+      "path": "docker-compose.yml",
+      "why": "docker-compose.yml:15-22 declares a postgres:13 service; services/web/requirements.txt:4 declares psycopg2-binary; services/web/entrypoint.sh:3-12 has a PostgreSQL readiness branch. The application config defaults to sqlite:// unless DATABASE_URL overrides it (services/web/project/config.py:8)."
+    }
+  ],
+  "edges": [
+    {
+      "type": "builds",
+      "from": "web",
+      "to": "services/web",
+      "why": "docker-compose.yml:4-5 directly sets service web's build context to ./services/web, matching the component root."
+    },
+    {
+      "type": "contains",
+      "from": "web",
+      "to": "services/web",
+      "why": "docker-compose.yml:4-5 makes the services/web component the path referenced by the web deployable's build context."
+    },
+    {
+      "type": "depends_on",
+      "from": "web",
+      "to": "db",
+      "why": "docker-compose.yml:13-14 declares web depends_on db. This records the declaration only."
+    },
+    {
+      "type": "declares",
+      "from": "services/web",
+      "to": "app",
+      "why": "services/web/project/__init__.py:13 declares the module-level Flask application object in the component source."
+    },
+    {
+      "type": "exposes",
+      "from": "web",
+      "to": "5000",
+      "why": "docker-compose.yml:9-10 declares the web service port mapping 5001:5000."
+    },
+    {
+      "type": "uses_capability",
+      "from": "services/web",
+      "to": "Flask web framework",
+      "why": "services/web/project/__init__.py:3-8 imports Flask and services/web/requirements.txt:1 declares the dependency."
+    },
+    {
+      "type": "uses_capability",
+      "from": "services/web",
+      "to": "SQLAlchemy ORM",
+      "why": "services/web/project/__init__.py:9,15 imports and instantiates SQLAlchemy."
+    },
+    {
+      "type": "uses_capability",
+      "from": "services/web",
+      "to": "PostgreSQL database",
+      "why": "services/web/requirements.txt:4 declares the PostgreSQL driver and services/web/entrypoint.sh:3-12 checks PostgreSQL readiness conditionally; config.py:8 defaults to sqlite://, so this is support evidence, not a claim that this configuration selects PostgreSQL."
+    }
+  ],
+  "coverage": {
+    "components": {
+      "status": "partial",
+      "why": "The oracle establishes the services/web Python project from its dependency manifest and launcher. Other project declarations elsewhere in the repository were outside the oracle."
+    },
+    "deployables": {
+      "status": "partial",
+      "why": "The oracle establishes two Compose services and one Dockerfile build. Other deployment definitions are outside the oracle."
+    },
+    "interfaces": {
+      "status": "partial",
+      "why": "The oracle establishes one module-level Flask application and the container-side port in the Compose mapping. Other interface declarations are outside the oracle."
+    },
+    "capabilities": {
+      "status": "partial",
+      "why": "The oracle establishes selected framework, ORM, and conditional PostgreSQL evidence from imports, dependencies, config, and entrypoint. This is not an exhaustive inventory of code or configuration capabilities."
+    },
+    "edges": {
+      "status": "partial",
+      "why": "Only relationships directly supported by the bounded oracle files are labeled; declarations elsewhere may add relationships."
+    }
+  },
+  "evaluation_scope": {
+    "components": "targeted_recall_only",
+    "deployables": "targeted_recall_only",
+    "interfaces": "targeted_recall_only",
+    "capabilities": "targeted_recall_only",
+    "edges": "targeted_recall_only",
+    "coverage": "targeted_recall_only"
+  },
+  "source_notes": "Hand labels were derived from the exact upstream commit named above. Evidence paths are scan-relative upstream paths and line numbers refer to that commit. SHA256 values are over the exact raw file bytes. The oracle is deliberately bounded to oracle_files; no claim of repository-wide completeness is made."
+}

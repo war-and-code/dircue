@@ -65,6 +65,12 @@ type Reference struct {
 	Value         string   `json:"value"`
 	Qualification string   `json:"qualification"` // local, external, unresolved, or declared
 	Evidence      Evidence `json:"evidence"`
+	// Stage is parser-only Dockerfile context used to bind COPY observations to
+	// the build stage in which they occur. It is intentionally not public output.
+	Stage       string `json:"-"`
+	SourceStage string `json:"-"`
+	SourcePath  string `json:"-"`
+	TargetPath  string `json:"-"`
 }
 
 // Definition is a declaration, not proof of a built image, executed workflow,
@@ -79,6 +85,17 @@ type Definition struct {
 	Coverage     string      `json:"coverage"` // complete or qualified
 	Evidence     []Evidence  `json:"evidence"`
 	References   []Reference `json:"references"`
+	// DockerPathCopies keeps bounded RUN cp path evidence private while mapbuild
+	// checks whether a staged artifact could have reached its final COPY.
+	DockerPathCopies []Reference `json:"-"`
+	// DockerContextUnknown marks a Dockerfile below the repository root whose
+	// build-context directory cannot be inferred from the Dockerfile path. COPY
+	// sources remain context-relative, so consumers must not treat them as
+	// repository-root paths without separate context evidence.
+	DockerContextUnknown bool `json:"-"`
+	// DockerPathWrites retains bounded opaque RUN/ADD instructions as private
+	// barriers while mapbuild traces staged artifact paths.
+	DockerPathWrites []Reference `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`

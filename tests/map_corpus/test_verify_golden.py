@@ -18,6 +18,7 @@ from verify_golden import (
     score_deployables,
     score_interfaces,
     score_capabilities,
+    score_edges,
     normalize,
     resolve_kind,
 )
@@ -414,6 +415,71 @@ if __name__ == "__main__":
 
 
 class TestEndpointNormalisationBoundaries(unittest.TestCase):
+    def test_root_dockerfile_edge_endpoint_uses_path_matched_label(self):
+        docker = {
+            "id": "docker", "kind": "deployable", "name": "(root)",
+            "paths": ["Dockerfile"], "evidence": [{"path": "Dockerfile"}],
+            "properties": {"kind": "container_build"},
+        }
+        component = {
+            "id": "component", "kind": "component", "name": "api",
+            "properties": {"root": ".", "ecosystem": "npm"},
+            "evidence": [{"path": "package.json"}],
+        }
+        edge = _make_edge("builds", "docker", "component", evidence_paths=["Dockerfile"])
+        label_entry = {
+            "oracle_files": [{"path": "Dockerfile"}],
+            "deployables": [{"kind": "container_build", "name": "api", "path": "Dockerfile"}],
+            "edges": [{"type": "builds", "from": "api", "to": "api"}],
+        }
+        result = score_edges(label_entry, {"nodes": [docker, component], "edges": [edge]}, {"Dockerfile"})
+        self.assertEqual((result.tp, result.fp, result.fn), (1, 0, 0))
+
+    def test_root_dockerfile_alias_does_not_match_same_named_compose_service(self):
+        docker = {
+            "id": "docker", "kind": "deployable", "name": "(root)",
+            "paths": ["Dockerfile"], "evidence": [{"path": "Dockerfile"}],
+            "properties": {"kind": "container_build"},
+        }
+        compose = {
+            "id": "compose", "kind": "deployable", "name": "api",
+            "paths": ["compose.yml"], "evidence": [{"path": "compose.yml"}],
+            "properties": {"kind": "service"},
+        }
+        component = {"id": "component", "kind": "component", "name": "api", "properties": {}, "evidence": []}
+        wrong = _make_edge("builds", "compose", "component", evidence_paths=["Dockerfile"])
+        label_entry = {
+            "oracle_files": [{"path": "Dockerfile"}],
+            "deployables": [{"kind": "container_build", "name": "api", "path": "Dockerfile"}],
+            "edges": [{"type": "builds", "from": "api", "to": "api"}],
+        }
+        result = score_edges(label_entry, {"nodes": [docker, compose, component], "edges": [wrong]}, {"Dockerfile"})
+        self.assertEqual((result.tp, result.fp, result.fn), (0, 1, 1))
+
+    def test_root_dockerfile_endpoint_alias_requires_unique_path_match(self):
+        docker = {
+            "id": "docker", "kind": "deployable", "name": "(root)",
+            "paths": ["Dockerfile"], "evidence": [{"path": "Dockerfile"}],
+            "properties": {"kind": "container_build"},
+        }
+        other = {
+            "id": "other", "kind": "deployable", "name": "(root)",
+            "paths": ["other/Dockerfile"], "evidence": [{"path": "other/Dockerfile"}],
+            "properties": {"kind": "container_build"},
+        }
+        component = {"id": "c", "kind": "component", "name": "api", "properties": {}, "evidence": []}
+        edge = _make_edge("builds", "other", "c", evidence_paths=["Dockerfile"])
+        label_entry = {
+            "oracle_files": [{"path": "Dockerfile"}],
+            "deployables": [
+                {"kind": "container_build", "name": "api", "path": "Dockerfile"},
+                {"kind": "container_build", "name": "api", "path": "other/Dockerfile"},
+            ],
+            "edges": [{"type": "builds", "from": "api", "to": "api"}],
+        }
+        result = score_edges(label_entry, {"nodes": [docker, other, component], "edges": [edge]}, {"Dockerfile"})
+        self.assertEqual((result.tp, result.fp, result.fn), (0, 1, 1))
+
     def test_npm_scoped_name_is_not_a_go_module_path(self):
         node = {"kind": "component", "name": "@mastodon/mastodon", "properties": {"ecosystem": "npm"}}
         self.assertFalse(node_matches_endpoint(node, "Mastodon"))
