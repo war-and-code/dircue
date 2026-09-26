@@ -492,12 +492,20 @@ func dockerCopyWrittenPath(ref deployables.Reference) string {
 	if !strings.HasSuffix(target, "/") {
 		return target
 	}
+	// A source ending in "/" is a directory. Otherwise only well-known file
+	// extensions are read as a single file; a name such as conf.d may be a
+	// directory whose contents land anywhere below the target.
+	if strings.HasSuffix(ref.Value, "/") {
+		return target
+	}
 	base := path.Base(path.Clean(ref.Value))
-	if ext := path.Ext(base); ext != "" && ext != base && base != "." && base != ".." && !strings.ContainsAny(base, "*?") {
+	if dockerFileExtensions[strings.ToLower(path.Ext(base))] && !strings.ContainsAny(base, "*?") {
 		return path.Join(target, base)
 	}
 	return target
 }
+
+var dockerFileExtensions = map[string]bool{".war": true, ".ear": true, ".jar": true, ".xml": true, ".properties": true, ".yml": true, ".yaml": true, ".json": true, ".conf": true, ".cfg": true, ".ini": true, ".sh": true, ".txt": true, ".md": true, ".toml": true, ".env": true, ".py": true, ".js": true}
 
 // dockerWriteAffects reports whether writing written can replace artifact:
 // the same path, or an ancestor directory whose contents are written. A write
@@ -515,15 +523,35 @@ func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.R
 	}
 	command = strings.TrimPrefix(command, "&& ")
 	command = strings.TrimSuffix(command, "\\")
-	if strings.ContainsAny(command, "|;`<>") || strings.Contains(command, "||") || strings.Contains(command, "$(") || strings.Contains(strings.ReplaceAll(command, "&&", ""), "&") {
+	if strings.ContainsAny(command, "|;`<>") || strings.Contains(command, "||") || strings.Contains(command, "$(") || dockerBackgroundJob.MatchString(strings.ReplaceAll(command, "&&", " ")) {
 		return false
 	}
 	for _, segment := range strings.Split(command, "&&") {
 		segment = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(segment), "\\"))
 		fields := strings.Fields(segment)
-		// Leading VAR=value assignments only set the command's environment.
+		// Leading VAR=value assignments only set the command's environment,
+		// but the command can read them, so substitute them into its words.
+		assigned := map[string]string{}
 		for len(fields) > 0 && dockerEnvAssignment.MatchString(fields[0]) {
+			name, value, _ := strings.Cut(fields[0], "=")
+			assigned[name] = strings.Trim(value, `"'`)
 			fields = fields[1:]
+		}
+		if len(assigned) > 0 {
+			for i, field := range fields {
+				fields[i] = dockerInlineVar.ReplaceAllStringFunc(field, func(ref string) string {
+					m := dockerInlineVar.FindStringSubmatch(ref)
+					name := m[1]
+					if name == "" {
+						name = m[2]
+					}
+					if value, ok := assigned[name]; ok {
+						return value
+					}
+					return ref
+				})
+			}
+			fields = strings.Fields(strings.Join(fields, " "))
 		}
 		if len(fields) == 0 {
 			return false
@@ -601,11 +629,17 @@ func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.R
 	return true
 }
 
-var dockerEnvAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+var (
+	dockerEnvAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	dockerInlineVar     = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+	dockerBackgroundJob = regexp.MustCompile(`(^|\s)&(\s|$)`)
+	dockerBareVariable  = regexp.MustCompile(`^\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)$`)
+	mavenPhases         = map[string]bool{"validate": true, "initialize": true, "generate-sources": true, "process-sources": true, "generate-resources": true, "process-resources": true, "compile": true, "process-classes": true, "generate-test-sources": true, "process-test-sources": true, "generate-test-resources": true, "process-test-resources": true, "test-compile": true, "process-test-classes": true, "test": true, "prepare-package": true, "package": true, "pre-integration-test": true, "integration-test": true, "post-integration-test": true, "verify": true, "install": true, "deploy": true, "pre-clean": true, "clean": true, "post-clean": true}
+)
 
-// dockerMavenBuildOnly accepts lifecycle phases, options and unresolved
-// variables. An explicit plugin goal (group:plugin:goal or prefix:goal), such
-// as dependency:copy, can place a downloaded artifact in target/ and fails
+// dockerMavenBuildOnly accepts lifecycle phases, options and variables that
+// have no static value. Any other word, including a plugin goal such as
+// dependency:copy that can place a downloaded artifact in target/, fails
 // closed.
 func dockerMavenBuildOnly(args []string) bool {
 	takesValue := map[string]bool{"-f": true, "--file": true, "-s": true, "--settings": true, "-gs": true, "--global-settings": true, "-pl": true, "--projects": true, "-rf": true, "--resume-from": true, "-P": true, "--activate-profiles": true, "-T": true, "--threads": true, "-t": true, "--toolchains": true, "-l": true, "--log-file": true, "-D": true, "--define": true}
@@ -615,10 +649,10 @@ func dockerMavenBuildOnly(args []string) bool {
 			i++
 			continue
 		}
-		if strings.HasPrefix(arg, "-") || strings.HasPrefix(arg, "$") {
+		if strings.HasPrefix(arg, "-") || dockerBareVariable.MatchString(arg) {
 			continue
 		}
-		if strings.Contains(arg, ":") {
+		if !mavenPhases[arg] {
 			return false
 		}
 	}

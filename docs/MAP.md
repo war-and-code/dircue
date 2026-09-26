@@ -56,20 +56,24 @@ two-operand `cp` forms. Any write that could replace the traced archive blocks
 attribution: a later `COPY` or `ADD` into the same path or a parent directory,
 a `COPY` with an unreadable source or destination, an unresolved path, or a
 `RUN` command outside a small vetted set. The vetted set is Maven lifecycle
-phases (a plugin goal such as `dependency:copy` blocks; Maven arguments given
-as unresolved variables are accepted unread), `mkdir`, `chmod`, `chown`, `rm`
+phases (any other word, such as the plugin goal `dependency:copy`, blocks;
+variables are expanded from static `ARG` and `ENV` defaults and inline
+assignments, and a variable with no static value, such as a build argument
+supplied at build time, is accepted unread), `mkdir`, `chmod`, `chown`, `rm`
 and `cp` on unrelated absolute paths, and OS package manager operations
 (`apt-get`, `apk`, `yum`, `dnf`), which are assumed not to write the build
-output being traced. A `RUN` line joined by `;`, `|`, `||`, a background `&`,
-redirection or command substitution is not vetted. When an archive is copied
-to a destination without a trailing slash, both the file and the directory
-reading of that destination must survive. Only the Maven component in the
-POM's directory can own its archive. This attribution remains partial: it does
-not interpret build arguments, ignore rules, arbitrary shell commands, or
-Maven output. Ambiguous or unresolved sources do not establish an archive
-owner; the directory-based link remains when no other source establishes one.
-The `copy_source` and `copy_source_stage` fact kinds record context and stage
-copy sources, respectively; the archive relationship uses the reason
+output being traced. A `RUN` command joined by `;`, `|`, `||`, a background
+`&`, redirection or command substitution is not vetted. A copied source ending
+in `/`, or without a common file extension, is treated as a directory that may
+write anywhere below its destination. When an archive is copied to a
+destination without a trailing slash, both the file and the directory reading
+of that destination must survive. Only the Maven component in the POM's
+directory can own its archive. This attribution remains partial: it does not
+interpret build arguments, ignore rules, arbitrary shell commands, or Maven
+output. Ambiguous or unresolved sources do not establish an archive owner; the
+directory-based link remains when no other source establishes one. The
+`copy_source` and `copy_source_stage` fact kinds record context and stage copy
+sources, respectively; the archive relationship uses the reason
 `dockerfile_copy_source_matches_maven_archive`.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
