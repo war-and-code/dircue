@@ -76,6 +76,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 ### Distribution
 - The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so no `replace` directives are needed. `go install github.com/war-and-code/dircue@v1.0.0` was validated against a local module proxy; fetching it from GitHub remains unverified until the tag is pushed and access is available.
 - Release archives for Linux, macOS and Windows (amd64 and arm64 where supported) come with `SHA256SUMS` and matching Python wheels. See `RELEASING.md`.
+- Every release asset carries a **GitHub SLSA build-provenance attestation** (`gh attestation verify <file> --repo war-and-code/dircue`). `SHA256SUMS` is additionally signed with keyless Sigstore cosign; the bundle (`SHA256SUMS.sigstore.json`) is attached to the release. See `README.md` for exact verification commands.
 
 ### Evidence
 - **Linguist parity.** Across the 38-repository atlas, dircue matches Linguist 9.7.0 exactly on all 355 language totals. Against scc 4.1.0, 261,081 of 262,575 shared per-file counters are identical. Every remaining difference is a file where dircue follows its Linguist language to a different scc grammar, recorded per file (`tests/atlas/results/1.0.0`).
