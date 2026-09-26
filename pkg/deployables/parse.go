@@ -21,6 +21,10 @@ var (
 	dockerCopy     = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
 	dockerWorkdir  = regexp.MustCompile(`(?i)^\s*WORKDIR\s+(\S+)\s*$`)
 	dockerAdd      = regexp.MustCompile(`(?i)^\s*ADD\s+(.+)$`)
+	dockerArg      = regexp.MustCompile(`(?i)^\s*ARG\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$`)
+	dockerEnv      = regexp.MustCompile(`(?i)^\s*ENV\s+(.+)$`)
+	dockerVarRef   = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+	dockerShellAmp = regexp.MustCompile(`(^|\s)&(\s|$)`)
 	// Only a two-operand cp can establish a source-to-destination transfer.
 	// A third path makes the final operand a directory; matching the first two
 	// would invent a transfer that the command does not perform.
@@ -86,6 +90,9 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	currentStage := ""
 	stageIndex := 0
 	workdir := ""
+	// Static ARG and ENV defaults let RUN checks see what a variable such as
+	// $MVN_ARGS holds. Values supplied only at build time stay unresolved.
+	vars := map[string]string{}
 	workdirKnown := false
 	inRunContinuation := false
 	lastRunWrite := -1
@@ -117,6 +124,12 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			if m[2] != "" {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
+			}
+		} else if m := dockerArg.FindStringSubmatch(line); m != nil {
+			vars[m[1]] = dockerUnquote(strings.TrimSpace(m[2]))
+		} else if m := dockerEnv.FindStringSubmatch(line); m != nil {
+			for name, value := range dockerEnvPairs(m[1]) {
+				vars[name] = value
 			}
 		} else if m := dockerWorkdir.FindStringSubmatch(line); m != nil {
 			workdir, workdirKnown = resolveDockerDestination(workdir, workdirKnown, m[1])
@@ -209,14 +222,14 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				// Docker drops blank and comment lines inside a continued
 				// instruction; the instruction continues on the next line.
 				continue
-			case strings.ContainsAny(trimmedLine, ";|&`<>") || strings.Contains(trimmedLine, "$("):
+			case strings.ContainsAny(trimmedLine, ";|`<>") || strings.Contains(trimmedLine, "$(") || dockerShellAmp.MatchString(trimmedLine):
 				// A separator starts a command this bounded reader does not vet.
 				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction_opaque", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			case lastRunWrite >= 0:
 				// Plain arguments continue the previous command, so its checks
 				// must see them (for example a Maven goal on the next line).
 				prev := &d.DockerPathWrites[lastRunWrite]
-				joined := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(prev.Value), "\\")) + " " + trimmedLine
+				joined := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(prev.Value), "\\")) + " " + expandDockerVars(trimmedLine, vars)
 				if len(joined) > DefaultStringBytes {
 					prev.Kind = "run_instruction_opaque"
 				}
@@ -226,11 +239,12 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			}
 		}
 		if isRunInstruction || isRunContinuationLine {
+			runText := expandDockerVars(trimmedLine, vars)
 			writeKind := "run_instruction"
-			if len(trimmedLine) > DefaultStringBytes {
+			if len(runText) > DefaultStringBytes {
 				writeKind = "run_instruction_opaque"
 			}
-			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: writeKind, Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: writeKind, Value: bounded(runText), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			lastRunWrite = len(d.DockerPathWrites) - 1
 			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
 				source, target := m[1], m[2]
@@ -1183,6 +1197,82 @@ func safeComposePath(filename, kind, value string) bool {
 }
 func dynamic(s string) bool {
 	return strings.Contains(s, "${") || strings.Contains(s, "{{") || strings.Contains(s, "$[")
+}
+
+// expandDockerVars substitutes statically known ARG and ENV values. Unknown
+// variables are left as written.
+func expandDockerVars(s string, vars map[string]string) string {
+	return dockerVarRef.ReplaceAllStringFunc(s, func(ref string) string {
+		m := dockerVarRef.FindStringSubmatch(ref)
+		name := m[1]
+		if name == "" {
+			name = m[2]
+		}
+		if value, ok := vars[name]; ok {
+			return value
+		}
+		return ref
+	})
+}
+
+// dockerEnvPairs reads ENV key=value pairs, or the legacy "ENV key value" form.
+func dockerEnvPairs(body string) map[string]string {
+	out := map[string]string{}
+	body = strings.TrimSpace(body)
+	fields := dockerSplitWords(body)
+	if len(fields) == 0 {
+		return out
+	}
+	if !strings.Contains(fields[0], "=") {
+		if name := fields[0]; len(fields) > 1 {
+			out[name] = dockerUnquote(strings.TrimSpace(strings.TrimPrefix(body, name)))
+		}
+		return out
+	}
+	for _, field := range fields {
+		name, value, ok := strings.Cut(field, "=")
+		if ok && name != "" {
+			out[name] = dockerUnquote(value)
+		}
+	}
+	return out
+}
+
+// dockerSplitWords splits on whitespace outside single or double quotes.
+func dockerSplitWords(s string) []string {
+	var words []string
+	var current strings.Builder
+	quote := rune(0)
+	for _, r := range s {
+		switch {
+		case quote != 0:
+			current.WriteRune(r)
+			if r == quote {
+				quote = 0
+			}
+		case r == '"' || r == '\'':
+			quote = r
+			current.WriteRune(r)
+		case r == ' ' || r == '\t':
+			if current.Len() > 0 {
+				words = append(words, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		words = append(words, current.String())
+	}
+	return words
+}
+
+func dockerUnquote(s string) string {
+	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') && s[len(s)-1] == s[0] {
+		return s[1 : len(s)-1]
+	}
+	return s
 }
 
 // dockerOpaqueCopy records a COPY whose sources could not all be read. It is a

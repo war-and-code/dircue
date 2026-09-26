@@ -90,6 +90,13 @@ func TestDockerAttributionFailsClosedOnUnvettedWrites(t *testing.T) {
 		{"Maven plugin goal downloads the archive", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn dependency:copy -Dartifact=com.example:webapp:1:war -DoutputDirectory=/src/webapp/target\n" + final},
 		{"Maven plugin goal on a continuation line", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn \\\n    dependency:copy -Dartifact=com.example:webapp:1:war -DoutputDirectory=/src/webapp/target\n" + final},
 		{"final-stage COPY replaces the archive", stagedBuild + final + "COPY vendor/ROOT.war /usr/local/tomcat/webapps/\n"},
+		{"plugin goal smuggled through an inline assignment", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN GOAL=\"dependency:copy\" mvn $GOAL -DoutputDirectory=/src/webapp/target/\n" + final},
+		{"plugin goal smuggled through an ARG default", "FROM maven:3.9 AS build\nARG GOAL=dependency:copy\nWORKDIR /src\nCOPY . .\nRUN mvn ${GOAL} -DoutputDirectory=/src/webapp/target/\n" + final},
+		{"plugin goal smuggled through an ENV value", "FROM maven:3.9 AS build\nENV GOALS=\"clean dependency:copy\"\nWORKDIR /src\nCOPY . .\nRUN mvn $GOALS -DoutputDirectory=/src/webapp/target/\n" + final},
+		{"variable glued to a plugin goal", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn $PLUGIN:copy -DoutputDirectory=/src/webapp/target/\n" + final},
+		{"unknown bare word passed to Maven", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn dependency package\n" + final},
+		{"directory source with a trailing slash", stagedBuild + "COPY vendor.d/ /src/webapp/target/\n" + final},
+		{"directory-like source without an extension allowlist", stagedBuild + "COPY vendor.d /src/webapp/target/\n" + final},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if got := attributeRootDockerfile(t, test.dockerfile, nil); got != "" {
@@ -106,6 +113,8 @@ func TestDockerAttributionKeepsKnownBuildSteps(t *testing.T) {
 		{"Maven options and variables", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn -B -pl org.example:webapp -am $MVN_ARGS clean package\n" + final},
 		{"Maven options on continuation lines", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn clean package \\\n    -DskipTests \\\n    -B\n" + final},
 		{"unrelated file copied beside the archive", stagedBuild + "COPY settings.xml /src/webapp/\n" + final},
+		{"static ARG default with lifecycle phases", "FROM maven:3.9 AS build\nARG MVN_ARGS='clean install -DskipTests'\nARG MVN_SETTINGS=\"-s /usr/share/maven/ref/settings-docker.xml\"\nWORKDIR /src\nCOPY . .\nRUN mvn $MVN_SETTINGS $MVN_ARGS\n" + final},
+		{"ampersand inside a continued URL argument", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn package \\\n    -Dsite.url=https://example.invalid/?a=1&b=2\n" + final},
 		{"later final-stage copy into a subdirectory", stagedBuild + "FROM tomcat:10\nRUN mkdir -p /opt/app\nCOPY --from=build /src/webapp/target/ROOT.war /opt/app\nCOPY conf /opt/app/conf\n"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
