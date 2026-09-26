@@ -44,20 +44,32 @@ A Dockerfile normally links to the component at its directory. A statically
 recognized `COPY` source can instead attribute its `builds` edge to a Maven
 WAR/EAR component when the source path identifies the module and the source
 uniquely names that module's archive. A direct context copy must occur in the
-final build stage and survive later writes. For `COPY --from`, attribution also
-requires a surviving copy in the final stage, a local source stage, and a
+final build stage and survive later writes. For `COPY --from`, attribution
+also requires a surviving copy in the final stage, a local source stage, and a
 tracked path back to the module's `target/` artifact. Docker build-context
 `COPY` paths are relative to the build-context root. A nested Dockerfile does
 not establish where that context begins, so its `COPY` paths do not establish
 Maven module ownership. Stage paths are relative to that stage's filesystem
-root. The bounded path trace follows static destinations and supported
-`WORKDIR` and `cp` forms; a later `ADD`, an unknown `RUN`, or unresolved path
-blocks attribution. This attribution remains partial: it does not interpret
-build arguments, ignore rules, arbitrary shell commands, or Maven output.
-Ambiguous or unresolved sources do not establish an archive owner; the
-directory-based link remains when no other source establishes one. The
-`copy_source` and `copy_source_stage` fact kinds record context and stage copy
-sources, respectively; the archive relationship uses the reason
+root. The final stage is the one whose `FROM` appears last in the file. The
+bounded path trace follows static destinations and supported `WORKDIR` and
+two-operand `cp` forms. Any write that could replace the traced archive blocks
+attribution: a later `COPY` or `ADD` into the same path or a parent directory,
+a `COPY` with an unreadable source or destination, an unresolved path, or a
+`RUN` command outside a small vetted set. The vetted set is Maven lifecycle
+phases (a plugin goal such as `dependency:copy` blocks; Maven arguments given
+as unresolved variables are accepted unread), `mkdir`, `chmod`, `chown`, `rm`
+and `cp` on unrelated absolute paths, and OS package manager operations
+(`apt-get`, `apk`, `yum`, `dnf`), which are assumed not to write the build
+output being traced. A `RUN` line joined by `;`, `|`, `||`, a background `&`,
+redirection or command substitution is not vetted. When an archive is copied
+to a destination without a trailing slash, both the file and the directory
+reading of that destination must survive. Only the Maven component in the
+POM's directory can own its archive. This attribution remains partial: it does
+not interpret build arguments, ignore rules, arbitrary shell commands, or
+Maven output. Ambiguous or unresolved sources do not establish an archive
+owner; the directory-based link remains when no other source establishes one.
+The `copy_source` and `copy_source_stage` fact kinds record context and stage
+copy sources, respectively; the archive relationship uses the reason
 `dockerfile_copy_source_matches_maven_archive`.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
