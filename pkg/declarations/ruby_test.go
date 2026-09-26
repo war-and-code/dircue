@@ -163,8 +163,8 @@ end
 		if r.Condition == "" {
 			t.Errorf("rspec-rails has no group condition")
 		}
-		if !strings.Contains(r.Condition, "group:") {
-			t.Errorf("rspec-rails condition = %q, want group:...", r.Condition)
+		if !strings.HasPrefix(r.Condition, "gemfile-group:") {
+			t.Errorf("rspec-rails condition = %q, want gemfile-group:...", r.Condition)
 		}
 	}
 
@@ -176,8 +176,8 @@ end
 		if r.State != "conditional" {
 			t.Errorf("sidekiq-pro state = %q, want conditional", r.State)
 		}
-		if !strings.Contains(r.Condition, "group:") {
-			t.Errorf("sidekiq-pro condition = %q, want group:...", r.Condition)
+		if !strings.HasPrefix(r.Condition, "gemfile-group:") {
+			t.Errorf("sidekiq-pro condition = %q, want gemfile-group:...", r.Condition)
 		}
 	}
 
@@ -208,5 +208,22 @@ gem "puma"
 		if r.State != "declared" || r.Condition != "" {
 			t.Errorf("gem %q: state=%q condition=%q, want state=declared condition=''", r.Value, r.State, r.Condition)
 		}
+	}
+}
+
+func TestGemfileOneLineAndModifierConditionals(t *testing.T) {
+	body := "source \"https://rubygems.org\"\nif ENV[\"X\"] then gem \"mysql2\" end\ngem \"tiny_tds\" if ENV[\"IMPORT\"]\ngem \"rails\"\n"
+	d := parseGemfile("Gemfile", []byte(body))
+	got := map[string][2]string{}
+	for _, r := range d.Project.Requirements {
+		if r.Kind == "ruby-gem-dependency" {
+			got[r.Value] = [2]string{r.State, r.Condition}
+		}
+	}
+	if got["mysql2"][0] != "conditional" || got["tiny_tds"][0] != "conditional" {
+		t.Fatalf("one-line and modifier gems must be conditional: %v", got)
+	}
+	if got["rails"] != [2]string{"declared", ""} {
+		t.Fatalf("a one-line block must not leave later gems conditional: %v", got)
 	}
 }

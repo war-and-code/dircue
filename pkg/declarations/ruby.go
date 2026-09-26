@@ -62,13 +62,29 @@ func parseGemfile(name string, content []byte) *Document {
 			}
 			continue
 		}
-		// Try to recognise a block opener.
+		// Try to recognise a block opener. A block opened and closed on the
+		// same line (for example `if x then gem "y" end`) leaves the stack
+		// unchanged, but its gem is still conditional.
+		oneLine := false
 		if blk, ok := parseGemfileBlock(text); ok {
-			blockStack = append(blockStack, blk)
-			// A group line may also contain a gem on the same line (rare but legal).
+			if gemTrailingEndRE.MatchString(text) {
+				oneLine = true
+			} else {
+				blockStack = append(blockStack, blk)
+			}
 		}
-		if dep, ok := parseGemDep(text); ok {
+		dep, ok := parseGemDep(text)
+		if !ok && oneLine {
+			if m := gemInlineRE.FindStringSubmatch(text); m != nil {
+				dep, ok = m[1], true
+			}
+		}
+		if ok {
 			state, condition := gemfileDepState(blockStack)
+			if oneLine || gemModifierRE.MatchString(text) {
+				// `gem "x" if cond` or a one-line if/unless block.
+				state, condition = "conditional", "if_modifier"
+			}
 			AddRequirement(d, Requirement{Kind: "ruby-gem-dependency", Value: dep, State: state, Evidence: name, Condition: condition})
 		}
 	}
@@ -97,7 +113,7 @@ const (
 
 type gemfileBlock struct {
 	kind      gemfileBlockKind
-	condition string // "group:name" or "if_block" or ""
+	condition string // "gemfile-group:name", "if_block" or ""
 	optional  bool   // true for optional groups
 }
 
@@ -118,6 +134,16 @@ var gemBlockOpenRE = regexp.MustCompile(`\bdo\s*(?:#.*)?$`)
 // gemIfRE matches `if`, `unless`, `case` at the start of a statement.
 var gemIfRE = regexp.MustCompile(`^(?:if|unless|case)\b`)
 
+// gemTrailingEndRE matches a line that closes its own block, such as
+// `if ENV["X"] then gem "y" end`.
+var gemTrailingEndRE = regexp.MustCompile(`[;\s]end\s*$`)
+
+// gemInlineRE finds a gem declared inside a one-line block.
+var gemInlineRE = regexp.MustCompile(`\bgem\s+['"]([A-Za-z0-9][A-Za-z0-9_.-]*)['"]`)
+
+// gemModifierRE matches a trailing `if` or `unless` modifier on a gem line.
+var gemModifierRE = regexp.MustCompile(`^gem\s.*\s(?:if|unless)\s`)
+
 // gemEndRE matches a bare `end` statement.
 var gemEndRE = regexp.MustCompile(`^end\b`)
 
@@ -136,9 +162,9 @@ func parseGemfileBlock(line string) (gemfileBlock, bool) {
 		}
 		cond := ""
 		if len(nameList) > 0 {
-			cond = "group:" + strings.Join(nameList, ",")
+			cond = "gemfile-group:" + strings.Join(nameList, ",")
 		} else {
-			cond = "group:unknown"
+			cond = "gemfile-group:unknown"
 		}
 		opt := gemOptionalRE.MatchString(args)
 		kind := gemfileBlockGroup
