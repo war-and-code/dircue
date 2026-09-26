@@ -219,6 +219,29 @@ also partial until content evidence verifies it. Nodes under common test,
 fixture, example, and vendor paths remain in JSON with a path-derived `role`
 hint; the summary and default route planner leave them out of headlines.
 
+### The `role` property
+
+The `role` property on component, interface, deployable, and content nodes
+classifies where a node sits in the repository tree. Consumers that want only
+production facts should filter on `role == "primary"` (or the absence of a
+`role` key, which is treated as primary). `--summary` already applies this
+filter to its headline list.
+
+| Value | Meaning |
+| --- | --- |
+| `primary` | Production source and entry points. |
+| `test` | Test code and test-only targets (e.g. Cargo `[[test]]` integration targets, `*_test.go`, paths under `test/`, `tests/`, `spec/`). |
+| `fixture` | Test-fixture data paths. |
+| `example` | Example code (e.g. Cargo `[[example]]` targets, paths under `examples/`). |
+| `docs` | Documentation source (paths under `docs/`, `doc/`). |
+| `tooling` | Build, benchmark, CI, and dev-tooling targets (e.g. Cargo `[[bench]]` targets, paths under `benchmarks/`, `bench/`, `scripts/`, `hack/`, `.devcontainer`). |
+| `vendored` | Vendored third-party code (paths under `vendor/`, `third_party/`). |
+
+The basis for the assignment is recorded in `role_basis`: `path_name` when
+derived from a path segment, `interface_kind` when derived from the declared
+target type (e.g. a Cargo bench or test target whose manifest path does not
+include a disambiguating directory segment).
+
 A `uses_capability` edge carries the reason `attributed_by_directory_containment`
 and coverage `partial` when the capability observation's project assignment was
 inferred from directory containment rather than an explicit manifest declaration.
