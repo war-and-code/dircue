@@ -88,6 +88,7 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	workdir := ""
 	workdirKnown := false
 	inRunContinuation := false
+	lastRunWrite := -1
 	for i, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
@@ -150,16 +151,22 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				}
 				sources = append(sources, field)
 			}
+			unparsed := len(sources) < 2
+			resolvedTarget := ""
 			if len(sources) >= 2 {
-				resolvedTarget, _ := resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
+				resolvedTarget, _ = resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
 				d.References[copyFromIndex].SourcePath = bounded(sources[0])
 				d.References[copyFromIndex].TargetPath = bounded(resolvedTarget)
 				for _, source := range sources[:len(sources)-1] {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						unparsed = true
 						continue
 					}
 					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage, SourcePath: bounded(source), TargetPath: bounded(resolvedTarget)})
 				}
+			}
+			if unparsed {
+				d.DockerPathWrites = append(d.DockerPathWrites, dockerOpaqueCopy(i+1, currentStage, resolvedTarget))
 			}
 		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
 			// Keep only ordinary, static source paths. Docker's JSON form and
@@ -172,15 +179,21 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				}
 				sources = append(sources, field)
 			}
+			unparsed := len(sources) < 2
+			resolvedTarget := ""
 			if len(sources) >= 2 {
-				resolvedTarget, _ := resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
+				resolvedTarget, _ = resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
 				for _, source := range sources[:len(sources)-1] {
 					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						unparsed = true
 						continue
 					}
 					ref := Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, TargetPath: bounded(resolvedTarget)}
 					d.References = append(d.References, ref)
 				}
+			}
+			if unparsed {
+				d.DockerPathWrites = append(d.DockerPathWrites, dockerOpaqueCopy(i+1, currentStage, resolvedTarget))
 			}
 		} else if m := dockerAdd.FindStringSubmatch(line); m != nil {
 			fields := strings.Fields(m[1])
@@ -190,12 +203,35 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 		}
 		isRunInstruction := strings.HasPrefix(strings.ToUpper(trimmedLine), "RUN ")
 		isRunContinuationLine := inRunContinuation && strings.HasPrefix(trimmedLine, "&&")
+		if inRunContinuation && !isRunInstruction && !isRunContinuationLine {
+			switch {
+			case trimmedLine == "" || strings.HasPrefix(trimmedLine, "#"):
+				// Docker drops blank and comment lines inside a continued
+				// instruction; the instruction continues on the next line.
+				continue
+			case strings.ContainsAny(trimmedLine, ";|&`<>") || strings.Contains(trimmedLine, "$("):
+				// A separator starts a command this bounded reader does not vet.
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction_opaque", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			case lastRunWrite >= 0:
+				// Plain arguments continue the previous command, so its checks
+				// must see them (for example a Maven goal on the next line).
+				prev := &d.DockerPathWrites[lastRunWrite]
+				joined := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(prev.Value), "\\")) + " " + trimmedLine
+				if len(joined) > DefaultStringBytes {
+					prev.Kind = "run_instruction_opaque"
+				}
+				prev.Value = bounded(joined)
+			default:
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction_opaque", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			}
+		}
 		if isRunInstruction || isRunContinuationLine {
 			writeKind := "run_instruction"
 			if len(trimmedLine) > DefaultStringBytes {
 				writeKind = "run_instruction_opaque"
 			}
 			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: writeKind, Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			lastRunWrite = len(d.DockerPathWrites) - 1
 			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
 				source, target := m[1], m[2]
 				loc := dockerRunCopy.FindStringIndex(trimmedLine)
@@ -210,6 +246,9 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			}
 		}
 		inRunContinuation = (isRunInstruction || inRunContinuation) && strings.HasSuffix(trimmedLine, "\\")
+		if !inRunContinuation {
+			lastRunWrite = -1
+		}
 	}
 	if len(d.References) == 0 {
 		return nil, false, nil
@@ -1144,6 +1183,13 @@ func safeComposePath(filename, kind, value string) bool {
 }
 func dynamic(s string) bool {
 	return strings.Contains(s, "${") || strings.Contains(s, "{{") || strings.Contains(s, "$[")
+}
+
+// dockerOpaqueCopy records a COPY whose sources could not all be read. It is a
+// private barrier: the copy may have written anywhere under its destination,
+// and an unknown destination may have written anywhere at all.
+func dockerOpaqueCopy(line int, stage, target string) Reference {
+	return Reference{Kind: "copy_opaque", Qualification: "local", Evidence: Evidence{Field: "COPY", Line: line, Basis: "dockerfile-instruction"}, Stage: stage, TargetPath: bounded(target)}
 }
 
 // resolveDockerDestination resolves a static Dockerfile destination against
