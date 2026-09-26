@@ -54,6 +54,45 @@ release-archives:
 	python3 scripts/release.py --version "$(VERSION)" --output "$(RELEASE_DIR)"
 
 # ---------------------------------------------------------------------------
+# Fuzz campaign (#87)
+# ---------------------------------------------------------------------------
+#
+# Run every Go fuzz target for FUZZ_TIME seconds each.
+# Invoked by .github/workflows/fuzz-campaign.yml and by engineers locally.
+#
+#   make fuzz-campaign                           # 60s per target, all packages
+#   make fuzz-campaign FUZZ_TIME=5               # 5s per target (quick smoke)
+#   make fuzz-campaign FUZZ_PKG=./pkg/mapdiff    # restrict to one package
+#   make fuzz-campaign FUZZ_CACHE=/tmp/fuzz-out  # store corpus in a known dir
+#
+# FUZZ_CACHE is passed as -test.fuzzcachedir so crashers are written there.
+# If FUZZ_CACHE is empty the Go default ($GOCACHE/fuzz) is used.
+
+FUZZ_TIME  ?= 60
+FUZZ_PKG   ?= ./...
+FUZZ_CACHE ?=
+
+.PHONY: fuzz-campaign
+
+fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... FUZZ_CACHE=dir)
+	@set -e; \
+	_flags="-fuzztime=$(FUZZ_TIME)s"; \
+	if [ -n "$(FUZZ_CACHE)" ]; then \
+	  mkdir -p "$(FUZZ_CACHE)"; \
+	  _flags="$$_flags -test.fuzzcachedir=$(FUZZ_CACHE)"; \
+	fi; \
+	_found=0; \
+	for _pkg in $$(CGO_ENABLED=0 go list $(FUZZ_PKG) 2>/dev/null | sort); do \
+	  _targets=$$(CGO_ENABLED=0 go test -list 'Fuzz' "$$_pkg" 2>/dev/null | grep '^Fuzz' || true); \
+	  for _t in $$_targets; do \
+	    _found=1; \
+	    echo "==> $$_pkg: $$_t ($(FUZZ_TIME)s)"; \
+	    CGO_ENABLED=0 go test -run='^$$' -fuzz='^'"$$_t"'$$' $$_flags "$$_pkg"; \
+	  done; \
+	done; \
+	if [ "$$_found" -eq 0 ]; then echo "No fuzz targets found in $(FUZZ_PKG)"; fi
+
+# ---------------------------------------------------------------------------
 # Atlas parity and accuracy targets
 # ---------------------------------------------------------------------------
 
