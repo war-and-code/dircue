@@ -66,9 +66,10 @@ func parseGemfile(name string, content []byte) *Document {
 		// same line (for example `if x then gem "y" end`) leaves the stack
 		// unchanged, but its gem is still conditional.
 		oneLine := false
+		var lineBlock gemfileBlock
 		if blk, ok := parseGemfileBlock(text); ok {
 			if gemTrailingEndRE.MatchString(text) {
-				oneLine = true
+				oneLine, lineBlock = true, blk
 			} else {
 				blockStack = append(blockStack, blk)
 			}
@@ -81,8 +82,12 @@ func parseGemfile(name string, content []byte) *Document {
 		}
 		if ok {
 			state, condition := gemfileDepState(blockStack)
-			if oneLine || gemModifierRE.MatchString(text) {
-				// `gem "x" if cond` or a one-line if/unless block.
+			if oneLine {
+				// A one-line block applies its own condition to its gem.
+				state, condition = gemfileDepState(append(append([]gemfileBlock(nil), blockStack...), lineBlock))
+			}
+			if gemModifierRE.MatchString(text) {
+				// `gem "x" if cond` or `gem "x" unless cond`.
 				state, condition = "conditional", "if_modifier"
 			}
 			AddRequirement(d, Requirement{Kind: "ruby-gem-dependency", Value: dep, State: state, Evidence: name, Condition: condition})
@@ -144,6 +149,9 @@ var gemInlineRE = regexp.MustCompile(`\bgem\s+['"]([A-Za-z0-9][A-Za-z0-9_.-]*)['
 // gemModifierRE matches a trailing `if` or `unless` modifier on a gem line.
 var gemModifierRE = regexp.MustCompile(`^gem\s.*\s(?:if|unless)\s`)
 
+// gemOtherBlockRE matches other statements that open a block closed by `end`.
+var gemOtherBlockRE = regexp.MustCompile(`^(?:begin|def|while|until|for|module|class)\b`)
+
 // gemEndRE matches a bare `end` statement.
 var gemEndRE = regexp.MustCompile(`^end\b`)
 
@@ -153,6 +161,10 @@ func parseGemfileBlock(line string) (gemfileBlock, bool) {
 	// group :name, :other do
 	if gm := gemGroupRE.FindStringSubmatch(line); gm != nil {
 		args := gm[1]
+		// Group names end at `do`; a one-line block continues with its body.
+		if idx := strings.Index(args, " do"); idx >= 0 {
+			args = args[:idx]
+		}
 		names := gemGroupNameRE.FindAllStringSubmatch(args, -1)
 		var nameList []string
 		for _, n := range names {
@@ -176,6 +188,10 @@ func parseGemfileBlock(line string) (gemfileBlock, bool) {
 	// if / unless / case
 	if gemIfRE.MatchString(line) {
 		return gemfileBlock{kind: gemfileBlockIf, condition: "if_block"}, true
+	}
+	// Other Ruby constructs closed by `end` keep the stack balanced.
+	if gemOtherBlockRE.MatchString(line) {
+		return gemfileBlock{kind: gemfileBlockDo}, true
 	}
 	// other do...end blocks (source, platform, etc.)
 	if gemBlockOpenRE.MatchString(line) {
