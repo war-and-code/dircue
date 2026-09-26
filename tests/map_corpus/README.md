@@ -187,15 +187,11 @@ outputs match Linguist exactly. COBOL/JCL has no positive map-graph label
 yet; its value is a language-parity and conservative-coverage probe, not
 proof of project relationship support (#144).
 
-## Fresh-label regression check
+## Fresh blind check
 
-Four further repositories were labeled from source and frozen in `c976461`.
-The Flask manifest was added by commit
-[`a80a6be`](https://github.com/war-and-code/dircue/commit/a80a6be608b2e5b4792c701c04780d1c661a6e58)
-after implementation-aware review. This set is therefore not wholly blind to
-the implementation. The other repository labels were written before their
-candidate runs. The set is useful for regression comparisons, with this
-limitation made explicit:
+Before the #143 map changes were run on them, four further repositories were
+labeled from source by a labeler who never ran dircue or read its output,
+and frozen in `c976461`:
 [OpenMRS core](https://github.com/openmrs/openmrs-core) (Maven reactor
 with a WAR module), a
 [Flask application](https://github.com/gothinkster/flask-realworld-example-app),
@@ -265,8 +261,10 @@ not a new independent accuracy estimate.
 The earlier `blind_holdout_v1/` artifact covered `gs-maven` and `flasky`.
 Commit `d3b8ae5` introduced it as frozen before either checkout was scored.
 Commit `299fd7b` then changed its labels to use the map's vocabulary without
-adding a `corrections` record. Commit `824aab1` removed the artifact and
-replaced it with `independent_labels/`. Because those changes broke the
+adding a `corrections` record. Commit `a80a6be` added an implementation-aware
+flask-on-docker manifest to the same directory. Commit `824aab1` removed the
+artifact and replaced it with `independent_labels/`. Because those changes
+broke the
 original blind-label provenance, the withdrawn holdout is not treated as a
 scored accuracy receipt; the commits preserve the original and revised
 source-only labels for audit.
