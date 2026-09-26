@@ -27,7 +27,7 @@ spec = importlib.util.spec_from_file_location('attrib', ROOT / 'tests/performanc
 a = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(a)
 a.GO_BINARY = args.go_binary
-rev = 'bf211aeb0ba272bf5819dd326c805b68011dac7a'
+rev = 'aa0492135186b84d3d34c57f0f27908dc73cfc24'
 if a.sha(ROOT / 'main.go') != a.digest(a.tracked_at(rev, 'main.go')):
     raise ValueError('main.go differs from the selected baseline')
 env = dict(os.environ, CGO_ENABLED='0', GOWORK='off', GOFLAGS='', GOPROXY='off', GOTOOLCHAIN='local', GOSUMDB='off')

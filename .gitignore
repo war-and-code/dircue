@@ -7,3 +7,8 @@
 /dist/
 /RELEASE_v*_DRAFT.md
 __pycache__/
+# Archived evidence restored by `make fetch-receipts` (tests/receipts/evidence-archive.json).
+/tests/enry-performance/results/
+/tests/profiling/results/
+/tests/release/results/
+/tests/stress/results/

@@ -63,7 +63,7 @@ Labels were written by an independent labeling agent from source files only. dir
 
 ## After the freeze
 
-The labels above were committed in `c976461048b949a4e3b29f965d12ea0dabb32cc5` before any #143 map change was run on these repositories. `score_fresh.py --frozen` scores them exactly as frozen; that is the unseen measurement.
+The labels above were committed in `810100db1f6f1bd148833c339ba062aa5bce9acd` before any #143 map change was run on these repositories. `score_fresh.py --frozen` scores them exactly as frozen; that is the unseen measurement.
 
 A source review of every disagreement followed. Where an oracle file establishes a fact the labels omitted, the label was added under the relationship definitions in `docs/MAP.md`, and each file's `corrections` list records the change and its source line. Examples are the OpenMRS WAR the labeler had noted but could not name, compile-scope AWS S3 and Hibernate dependencies, the six other reactor modules, and SQLAlchemy as a relational ORM. No label was removed because dircue missed it, and none was added without a source citation. The same review found real map errors, which #143 fixed. Scores for both label sets are in `../README.md`.
 

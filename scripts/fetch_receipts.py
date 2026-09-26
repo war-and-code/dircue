@@ -8,6 +8,9 @@ Usage:
   python3 scripts/fetch_receipts.py --path tests/enry-performance/results/final/evidence.tar.gz
 
 Files are written to their original in-tree paths relative to the repository root.
+Downloads use the public release URL. While the repository is private, or when
+that URL is refused, the script retries through the GitHub API with a token
+from GH_TOKEN, GITHUB_TOKEN or `gh auth token`.
 The script is idempotent: files already present with the correct sha256 are skipped.
 Network is only used when a file is missing or corrupt.
 
@@ -16,6 +19,9 @@ Exit codes: 0 = ok, 1 = error, 2 = offline / download failed (--check: missing f
 import argparse
 import hashlib
 import json
+import os
+import re
+import subprocess
 import sys
 import urllib.request
 import urllib.error
@@ -40,14 +46,68 @@ def load_manifest() -> dict:
     return json.loads(MANIFEST.read_text())
 
 
+RELEASE_URL = re.compile(r"^https://github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)$")
+_token_cache: list = []
+_asset_cache: dict = {}
+
+
+def github_token() -> str:
+    """Return a GitHub token from the environment or the gh CLI, or ""."""
+    if not _token_cache:
+        token = os.environ.get("GH_TOKEN") or os.environ.get("GITHUB_TOKEN") or ""
+        if not token:
+            try:
+                token = subprocess.run(["gh", "auth", "token"], capture_output=True, text=True, timeout=10).stdout.strip()
+            except (OSError, subprocess.SubprocessError):
+                token = ""
+        _token_cache.append(token)
+    return _token_cache[0]
+
+
+def api_asset_url(url: str, token: str) -> str:
+    """Resolve a release download URL to its API asset URL, or ""."""
+    m = RELEASE_URL.match(url)
+    if not m:
+        return ""
+    owner, repo, tag, name = m.groups()
+    key = (owner, repo, tag)
+    if key not in _asset_cache:
+        req = urllib.request.Request(f"https://api.github.com/repos/{owner}/{repo}/releases/tags/{tag}")
+        req.add_header("Accept", "application/vnd.github+json")
+        req.add_header("Authorization", f"Bearer {token}")
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            release = json.load(resp)
+        _asset_cache[key] = {a["name"]: a["url"] for a in release.get("assets", [])}
+    return _asset_cache[key].get(name, "")
+
+
+def fetch_bytes(url: str) -> bytes:
+    """Fetch a release asset, retrying through the API when the public URL is refused."""
+    try:
+        with urllib.request.urlopen(url, timeout=60) as resp:
+            return resp.read()
+    except urllib.error.HTTPError as exc:
+        token = github_token() if exc.code in (401, 403, 404) else ""
+        if not token:
+            raise
+        asset = api_asset_url(url, token)
+        if not asset:
+            raise
+        req = urllib.request.Request(asset)
+        req.add_header("Accept", "application/octet-stream")
+        # The API redirects to signed storage; the token must not follow.
+        req.add_unredirected_header("Authorization", f"Bearer {token}")
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            return resp.read()
+
+
 def download(url: str, dest: Path, expected_sha256: str, expected_size: int) -> bool:
     """Download url to dest, verify sha256 and size. Returns True on success."""
     dest.parent.mkdir(parents=True, exist_ok=True)
     try:
         print(f"  downloading {dest.relative_to(REPO_ROOT)} ...", end=" ", flush=True)
-        with urllib.request.urlopen(url, timeout=60) as resp:
-            data = resp.read()
-    except urllib.error.URLError as exc:
+        data = fetch_bytes(url)
+    except (urllib.error.URLError, OSError, ValueError) as exc:
         print(f"FAILED ({exc})")
         return False
     actual_sha256 = hashlib.sha256(data).hexdigest()

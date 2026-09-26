@@ -263,7 +263,7 @@ def main() -> None:
     parser.add_argument("--xml-root", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True, help="fresh ignored raw-artifact directory")
     parser.add_argument("--public-output", type=Path, required=True, help="fresh portable-export directory")
-    parser.add_argument("--baseline-ref", default="bf211aeb0ba272bf5819dd326c805b68011dac7a")
+    parser.add_argument("--baseline-ref", default="aa0492135186b84d3d34c57f0f27908dc73cfc24")
     parser.add_argument("--workers", type=int, default=8)
     parser.add_argument("--environment-note", required=True)
     args = parser.parse_args()

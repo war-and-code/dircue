@@ -8,7 +8,7 @@ if not __debug__: raise RuntimeError('Do not run measurement gates with Python -
 ROOT=Path(__file__).resolve().parents[3]
 OUT=Path(os.environ.get('V100_OUTPUT_DIR', ROOT/'tests/performance/v100_preparation')).resolve()
 CACHE=ROOT/'.cache/v100'
-EXPECTED='121027f44f014ac8d0a003a451a04b080a5ffe88'
+EXPECTED='29b57bd3c126e0f545f361d580b3c397625ce02a'
 spec=importlib.util.spec_from_file_location('prior', ROOT/'tests/performance/v060_candidate/benchmark.py')
 prior=importlib.util.module_from_spec(spec); spec.loader.exec_module(prior)
 digest, inventory=prior.digest,prior.inventory
