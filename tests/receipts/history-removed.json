@@ -1,0 +1,6 @@
+{
+  "description": "Paths that existed in git history but NOT at HEAD at the time evidence-archive-1 was created. These were also removed by the git-filter-repo history rewrite. They are not individually available in the evidence release, but the owner retains them in a backup bundle.",
+  "backup_note": "The lead created a full mirror bundle (git bundle --all) before the history rewrite. Contact the repository owner to retrieve specific files.",
+  "count": 0,
+  "entries": []
+}

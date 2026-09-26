@@ -40,8 +40,9 @@ on a mixed Go/C# project fixture. The complete CLI matrix also passed:
 404 exact matches, 16 verified expected
 differences, and zero failures. All five renamed archives passed integrity and
 payload checks. Native Linux arm64 Docker and emulated Linux amd64 smoke checks
-passed. See the [rename validation](../tests/release/results/rename/README.md)
-for raw outputs and source/binary identities. Local archives and extracted
+passed. See the rename validation (archived in
+[evidence-archive-1](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1);
+restore with `make fetch-receipts`) for raw outputs and source/binary identities. Local archives and extracted
 executables are under `dist/dircue-rc3/`; the ordinary local build is `bin/dircue`.
 
 The rename did not push source or tags, or publish a GitHub Release.
