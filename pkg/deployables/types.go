@@ -88,6 +88,14 @@ type Definition struct {
 	// DockerPathCopies keeps bounded RUN cp path evidence private while mapbuild
 	// checks whether a staged artifact could have reached its final COPY.
 	DockerPathCopies []Reference `json:"-"`
+	// DockerContextUnknown marks a Dockerfile below the repository root whose
+	// build-context directory cannot be inferred from the Dockerfile path. COPY
+	// sources remain context-relative, so consumers must not treat them as
+	// repository-root paths without separate context evidence.
+	DockerContextUnknown bool `json:"-"`
+	// DockerPathWrites retains bounded opaque RUN/ADD instructions as private
+	// barriers while mapbuild traces staged artifact paths.
+	DockerPathWrites []Reference `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`

@@ -613,6 +613,25 @@ func TestDockerfileRecordsStaticCopySources(t *testing.T) {
 	}
 }
 
+func TestNestedDockerfileMarksBuildContextAsUnknown(t *testing.T) {
+	r := observeOne(t, "services/api/Dockerfile", "FROM tomcat:10\nCOPY webapp/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 || !r.Definitions[0].DockerContextUnknown {
+		t.Fatalf("nested Dockerfile should retain context ambiguity: %+v", r.Definitions)
+	}
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value != "webapp/target/app.war" {
+			t.Fatalf("COPY source must remain raw and context-relative: %+v", ref)
+		}
+	}
+}
+
+func TestRootDockerfileBuildContextIsNotMarkedUnknown(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM tomcat:10\nCOPY webapp/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 || r.Definitions[0].DockerContextUnknown {
+		t.Fatalf("root Dockerfile context should retain existing default: %+v", r.Definitions)
+	}
+}
+
 func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
 	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\nCOPY --from=dev /openmrs/distribution/openmrs_core/openmrs.war /usr/local/tomcat/webapps/openmrs.war\n")
 	if len(r.Definitions) != 1 {
@@ -627,6 +646,22 @@ func TestDockerfileRecordsCopyFromStageArtifactSource(t *testing.T) {
 		}
 	}
 	t.Fatal("missing source path copied from declared stage")
+}
+
+func TestDockerfileCopyFromNumericIndexResolvesNamedStage(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nFROM alpine:3.20 AS runtime\nCOPY --from=0 /app/target/app.war /app/app.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source_stage" {
+			if ref.Value != "/app/target/app.war" || ref.Qualification != "local" || ref.SourceStage != "build" || ref.Stage != "runtime" {
+				t.Fatalf("numeric stage reference was not resolved: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing source path copied from numeric stage index 0")
 }
 
 func TestDockerfileCopyFromAllowsFlagsBeforeFrom(t *testing.T) {
@@ -667,6 +702,31 @@ func TestDockerfileBroadContextCopyRemainsPublicEvidence(t *testing.T) {
 	}
 }
 
+func TestDockerfileRetainsContextDestinationAndWriteBarriersPrivately(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /workspace\nCOPY . .\nADD https://example.invalid/ROOT.war /workspace/webapp/target/ROOT.war\nRUN curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war\n")
+	if len(r.Definitions) != 1 {
+		t.Fatalf("want one Dockerfile definition, got %+v", r.Definitions)
+	}
+	d := r.Definitions[0]
+	foundContext := false
+	for _, ref := range d.References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			foundContext = ref.TargetPath == "/workspace"
+		}
+	}
+	if !foundContext {
+		t.Fatalf("COPY destination was not retained: %+v", d.References)
+	}
+	foundAdd, foundRun := false, false
+	for _, ref := range d.DockerPathWrites {
+		foundAdd = foundAdd || ref.Kind == "add_source" && ref.Evidence.Line == 4
+		foundRun = foundRun || ref.Kind == "run_instruction" && strings.Contains(ref.Value, "curl") && ref.Evidence.Line == 5
+	}
+	if !foundAdd || !foundRun {
+		t.Fatalf("missing private overwrite barriers: %+v", d.DockerPathWrites)
+	}
+}
+
 func TestDockerfileRetainsBoundedRunCopyPathsForStageAttribution(t *testing.T) {
 	r := observeOne(t, "Dockerfile", `FROM maven:3.9 AS dev
 RUN mkdir -p /openmrs/distribution/openmrs_core/ \
@@ -682,11 +742,109 @@ RUN mkdir -p /openmrs/distribution/openmrs_core/ \
 	}
 }
 
+func TestDockerfileContextCopyTargetTracksAbsoluteWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /openmrs_core\nCOPY . .\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			if ref.TargetPath != "/openmrs_core" || ref.Evidence.Field != "COPY source" || ref.Evidence.Line != 3 {
+				t.Fatalf("unexpected resolved COPY target: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source evidence")
+}
+
+func TestDockerfileContextCopyTargetTracksRelativeWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /app\nWORKDIR build\nCOPY . output\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.Value == "." {
+			if ref.TargetPath != "/app/build/output" {
+				t.Fatalf("relative WORKDIR destination resolved incorrectly: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source evidence")
+}
+
+func TestDockerfileCopyTargetRetainsDirectoryDestination(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nCOPY webapp/target/ROOT.war /workspace/\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" {
+			if ref.TargetPath != "/workspace/" {
+				t.Fatalf("COPY directory destination lost its trailing slash: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing COPY source")
+}
+
+func TestDockerfileCopyTargetRemainsUnknownForDynamicOrInheritedWorkdir(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /known\nFROM ${BASE}\nCOPY . relative\nWORKDIR ${APP_DIR}\nCOPY . .\nCOPY . /absolute\n")
+	var relative, afterDynamic, absolute string
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind != "copy_source" || ref.Value != "." {
+			continue
+		}
+		switch ref.Evidence.Line {
+		case 4:
+			relative = ref.TargetPath
+		case 6:
+			afterDynamic = ref.TargetPath
+		case 7:
+			absolute = ref.TargetPath
+		}
+	}
+	if relative != "" || afterDynamic != "" || absolute != "/absolute" {
+		t.Fatalf("unexpected target paths: relative=%q afterDynamic=%q absolute=%q", relative, afterDynamic, absolute)
+	}
+}
+
+func TestDockerfileUnsupportedWorkdirDoesNotReusePreviousDestination(t *testing.T) {
+	r := observeOne(t, "Dockerfile", "FROM alpine:3.20\nWORKDIR /known\nWORKDIR $APP_DIR\nCOPY . relative\nWORKDIR \"/quoted path\"\nCOPY . another\n")
+	for _, ref := range r.Definitions[0].References {
+		if ref.Kind == "copy_source" && ref.TargetPath != "" {
+			t.Fatalf("unsupported WORKDIR reused a stale destination: %+v", ref)
+		}
+	}
+}
+
 func TestDockerfileCommentedOrEchoedRunCopyDoesNotCreatePathEvidence(t *testing.T) {
 	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS dev\n# RUN cp -a /webapp/target/app.war /download/app.war\nRUN echo cp -a /webapp/target/app.war /download/app.war\n")
 	if len(r.Definitions[0].DockerPathCopies) != 0 {
 		t.Fatalf("commented or echoed cp should not create path evidence: %+v", r.Definitions[0].DockerPathCopies)
 	}
+}
+
+func TestDockerfileMultiSourceRunCopyDoesNotInventAPathTransfer(t *testing.T) {
+	for _, command := range []string{
+		"RUN cp /webapp/target/ROOT.war /ROOT.war /tmp/output/",
+		"RUN true && cp -a /webapp/target/ROOT.war /ROOT.war /tmp/output/",
+		"RUN cp /workspace/webapp/target/ROOT.war /workspace/ROOT.war /tmp/extra.war",
+		"RUN cp -t /usr/local/tomcat/webapps/ /tmp/foreign/ROOT.war",
+		"RUN cp --target-directory=/usr/local/tomcat/webapps/ /tmp/foreign/ROOT.war",
+	} {
+		r := observeOne(t, "Dockerfile", "FROM alpine AS build\n"+command+"\n")
+		if len(r.Definitions) != 1 || len(r.Definitions[0].DockerPathCopies) != 0 {
+			t.Fatalf("multi-source cp must not imply first-to-second transfer: %q: %+v", command, r.Definitions)
+		}
+	}
+}
+
+func TestDockerfileOverlongRunWriteIsOpaque(t *testing.T) {
+	line := "RUN mvn clean install " + strings.Repeat("x", DefaultStringBytes) + " && curl -o /workspace/webapp/target/ROOT.war https://example.invalid/ROOT.war"
+	r := observeOne(t, "Dockerfile", "FROM maven:3.9 AS build\nWORKDIR /workspace\nCOPY . .\n"+line+"\n")
+	for _, ref := range r.Definitions[0].DockerPathWrites {
+		if strings.HasPrefix(ref.Evidence.Value, "RUN ") && ref.Evidence.Line == 4 {
+			if ref.Kind != "run_instruction_opaque" {
+				t.Fatalf("overlong RUN was retained as classifiable: %+v", ref)
+			}
+			return
+		}
+	}
+	t.Fatal("missing overlong RUN write marker")
 }
 
 func TestMavenWARDefaultName(t *testing.T) {

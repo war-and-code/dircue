@@ -3,6 +3,7 @@ package mapbuild
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,10 +27,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
+	mavenComponents := map[string]bool{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeComponent {
 			root := n.Properties["root"]
 			componentsByRoot[root] = append(componentsByRoot[root], n.ID)
+			if n.Properties["ecosystem"] == "maven" || n.Discriminator == "maven" {
+				mavenComponents[n.ID] = true
+			}
 			if n.Name != "" {
 				componentsByName[n.Name] = append(componentsByName[n.Name], n.ID)
 			}
@@ -59,7 +64,13 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if def.Provider != "maven" || def.Kind != "archive" || def.Name == "" {
 			continue
 		}
+		// Only the Maven component at the POM's directory can own the archive.
+		// Another ecosystem's manifest at the same root (for example a
+		// package.json beside pom.xml) must not make the owner ambiguous.
 		for _, owner := range componentsByRoot[path.Dir(def.Path)] {
+			if !mavenComponents[owner] {
+				continue
+			}
 			mavenArchives[path.Base(def.Name)] = append(mavenArchives[path.Base(def.Name)], mavenArchiveOwner{component: owner, root: path.Dir(def.Path)})
 		}
 	}
@@ -201,6 +212,25 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {
 			owners := componentsByRoot[path.Dir(def.Path)]
+			pathEvidence := append(append([]deployables.Reference(nil), def.DockerPathCopies...), def.DockerPathWrites...)
+			// References are sorted by kind and value, not by line, so the final
+			// stage is the one whose FROM instruction appears last in the file.
+			finalStage := ""
+			finalStageLine := 0
+			lastInstruction := 0
+			for _, item := range def.References {
+				if item.Kind == "base_image_or_stage" && item.Evidence.Line > finalStageLine {
+					finalStage, finalStageLine = item.Stage, item.Evidence.Line
+				}
+				if item.Evidence.Line > lastInstruction {
+					lastInstruction = item.Evidence.Line
+				}
+			}
+			for _, item := range def.DockerPathWrites {
+				if item.Evidence.Line > lastInstruction {
+					lastInstruction = item.Evidence.Line
+				}
+			}
 			var artifactOwners []string
 			artifactOwnerSet := map[string]bool{}
 			var artifactEvidence mapdoc.Evidence
@@ -214,11 +244,18 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				for _, candidate := range matches {
 					cleanSource := strings.TrimPrefix(path.Clean(ref.Value), "/")
 					root := strings.TrimPrefix(path.Clean(candidate.root), "./")
-					pathIdentifiesModule := ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, root+"/")
+					pathIdentifiesModule := !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && cleanSource == path.Join(root, "target", path.Base(ref.Value))
 					if root == "." {
-						pathIdentifiesModule = ref.Kind == "copy_source" && strings.HasPrefix(cleanSource, "target/")
+						// A bare target/<artifact> source can only identify the root
+						// Maven module when the Dockerfile itself is at the repository
+						// root. For nested Dockerfiles the build context is not known
+						// here, so this path alone is insufficient ownership evidence.
+						pathIdentifiesModule = !def.DockerContextUnknown && ref.Kind == "copy_source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && path.Dir(def.Path) == "." && cleanSource == path.Join("target", path.Base(ref.Value))
 					}
-					stageIdentifiesArtifact := ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && dockerContextIncludesModule(def.References, def.DockerPathCopies, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
+					if pathIdentifiesModule {
+						pathIdentifiesModule = dockerFinalCopySurvives(def.References, pathEvidence, ref, lastInstruction+1)
+					}
+					stageIdentifiesArtifact := !def.DockerContextUnknown && ref.Kind == "copy_source_stage" && ref.Evidence.Field == "COPY --from source" && ref.Stage != "" && ref.Stage == finalStage && ref.TargetPath != "" && dockerFinalCopySurvives(def.References, pathEvidence, ref, lastInstruction+1) && dockerContextIncludesModule(def.References, pathEvidence, candidate.root, ref.SourceStage, ref.SourcePath, ref.Evidence.Line)
 					if pathIdentifiesModule || stageIdentifiesArtifact {
 						if matchedOnce {
 							matchedOnce = false // duplicate artifact identities are ambiguous
@@ -318,15 +355,45 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	}
 }
 
-// dockerContextIncludesModule requires a stage artifact copy to be accompanied
-// by an earlier build-context COPY that includes the Maven module. A matching
-// archive basename from a stage alone is not enough: the stage may have
-// downloaded an unrelated artifact with the same name.
+func dockerFinalCopySurvives(refs, pathEvidence []deployables.Reference, copied deployables.Reference, endLine int) bool {
+	for _, artifactPath := range dockerCopiedArtifactPaths(copied) {
+		if !dockerNoInterveningWrites(pathEvidence, copied.Stage, artifactPath, copied.Evidence.Line, endLine) {
+			return false
+		}
+		if !dockerNoInterveningWrites(refs, copied.Stage, artifactPath, copied.Evidence.Line, endLine) {
+			return false
+		}
+	}
+	return true
+}
+
+// dockerCopiedArtifactPaths returns where a copied archive may land. A target
+// ending in "/" is a directory. A target without a slash is ambiguous when it
+// does not itself name an archive: Docker writes the file there, or into it
+// when it is an existing directory, so both locations must survive.
+func dockerCopiedArtifactPaths(copied deployables.Reference) []string {
+	target := copied.TargetPath
+	if strings.HasSuffix(target, "/") {
+		return []string{path.Join(target, path.Base(copied.Value))}
+	}
+	if dockerArchiveName(path.Base(copied.Value)) && !dockerArchiveName(path.Base(target)) {
+		return []string{target, path.Join(target, path.Base(copied.Value))}
+	}
+	return []string{target}
+}
+
+func dockerArchiveName(name string) bool {
+	return strings.HasSuffix(name, ".war") || strings.HasSuffix(name, ".ear")
+}
+
+// dockerContextIncludesModule traces a copied artifact backward through
+// explicit stage and RUN cp transfers. The trace must reach the Maven module's
+// target directory with the same archive basename. A broad build-context COPY
+// is not ownership evidence: a later ADD or RUN can replace the artifact.
 func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, moduleRoot, sourceStage, artifactPath string, stageCopyLine int) bool {
 	if sourceStage == "" || artifactPath == "" {
 		return false
 	}
-	root := strings.Trim(strings.TrimPrefix(path.Clean(moduleRoot), "./"), "/")
 	allRefs := append(append([]deployables.Reference(nil), refs...), pathCopies...)
 	// Walk only backward through explicit local COPY --from relationships. This
 	// handles staged builds such as OpenMRS (compile -> dev -> final) while
@@ -350,17 +417,28 @@ func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, modul
 			if ref.Stage != current.name || ref.Evidence.Line >= current.beforeLine {
 				continue
 			}
-			if ref.Kind == "copy_source" && ref.Qualification == "local" {
-				source := strings.Trim(strings.TrimPrefix(path.Clean(ref.Value), "./"), "/")
-				if source == "." || source == "" || (root == "" && source == "pom.xml") || (root != "" && (source == root || strings.HasPrefix(source, root+"/") || strings.HasPrefix(root, source+"/"))) {
+			if ref.Kind == "copy_source" && ref.Qualification == "local" && ref.TargetPath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				sourcePath := dockerCopyMappedSource(ref.Value, ref.TargetPath, current.artifactPath)
+				ident := dockerArtifactPathIdentifiesModule(sourcePath, moduleRoot)
+				clean := dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine)
+				if ident && clean {
 					return true
 				}
 			}
 			if ref.Kind == "copy_from" && ref.Qualification == "local" && ref.SourceStage != "" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				if !dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine) {
+					continue
+				}
 				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
 				queue = append(queue, stageAt{name: ref.SourceStage, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
 			if ref.Kind == "run_copy" && ref.Qualification == "local" && ref.SourcePath != "" && dockerCopyPathCarries(ref.TargetPath, current.artifactPath) {
+				if !dockerNoInterveningWrites(allRefs, current.name, current.artifactPath, ref.Evidence.Line, current.beforeLine) {
+					continue
+				}
+				if !dockerRunAtLineIsSafe(allRefs, current.name, current.artifactPath, ref.Evidence.Line) {
+					continue
+				}
 				sourcePath := dockerCopyMappedSource(ref.SourcePath, ref.TargetPath, current.artifactPath)
 				queue = append(queue, stageAt{name: current.name, artifactPath: sourcePath, beforeLine: ref.Evidence.Line})
 			}
@@ -369,11 +447,277 @@ func dockerContextIncludesModule(refs, pathCopies []deployables.Reference, modul
 	return false
 }
 
+func dockerNoInterveningWrites(refs []deployables.Reference, stage, artifactPath string, copyLine, artifactLine int) bool {
+	for _, ref := range refs {
+		if ref.Stage != stage || ref.Evidence.Line <= copyLine || ref.Evidence.Line >= artifactLine {
+			continue
+		}
+		switch ref.Kind {
+		case "add_source":
+			return false
+		case "run_instruction_opaque":
+			return false
+		case "copy_opaque":
+			if ref.TargetPath == "" || dockerWriteAffects(ref.TargetPath, artifactPath) {
+				return false
+			}
+		case "copy_source", "copy_source_stage":
+			// A later COPY in the same stage can replace the artifact.
+			if ref.TargetPath == "" || dockerWriteAffects(dockerCopyWrittenPath(ref), artifactPath) {
+				return false
+			}
+		case "copy_from":
+			if ref.TargetPath == "" {
+				return false
+			}
+		case "run_instruction":
+			if !dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath) {
+				return false
+			}
+			for _, write := range refs {
+				if write.Kind == "run_copy" && write.Stage == stage && write.Evidence.Line == ref.Evidence.Line && dockerWriteAffects(write.TargetPath, artifactPath) {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+// dockerCopyWrittenPath is the path a COPY source writes. A source that looks
+// like a single file copied into a directory writes only <dir>/<name>; any
+// other source may write anywhere below its target.
+func dockerCopyWrittenPath(ref deployables.Reference) string {
+	target := ref.TargetPath
+	if !strings.HasSuffix(target, "/") {
+		return target
+	}
+	// A source ending in "/", without an extension, or with a directory-like
+	// suffix (conf.d, lib-1.2) may be a directory whose contents land anywhere
+	// below the target. Other names are read as a single file.
+	if strings.HasSuffix(ref.Value, "/") {
+		return target
+	}
+	base := path.Base(path.Clean(ref.Value))
+	ext := path.Ext(base)
+	if ext == "" || ext == base || base == "." || base == ".." || strings.ContainsAny(base, "*?") || dockerDirectoryLikeExt.MatchString(ext) {
+		return target
+	}
+	return path.Join(target, base)
+}
+
+var dockerDirectoryLikeExt = regexp.MustCompile(`^\.(d|[0-9]+)$`)
+
+// dockerWriteAffects reports whether writing written can replace artifact:
+// the same path, or an ancestor directory whose contents are written. A write
+// strictly below artifact means artifact is a directory, not the archive file.
+func dockerWriteAffects(written, artifact string) bool {
+	written = path.Clean(written)
+	artifact = path.Clean(artifact)
+	return written == artifact || strings.HasPrefix(artifact, strings.TrimSuffix(written, "/")+"/")
+}
+
+func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.Reference, artifactPath string) bool {
+	command := strings.TrimSpace(run.Value)
+	if strings.HasPrefix(strings.ToUpper(command), "RUN ") {
+		command = strings.TrimSpace(command[4:])
+	}
+	command = strings.TrimPrefix(command, "&& ")
+	command = strings.TrimSuffix(command, "\\")
+	if strings.ContainsAny(command, "|;`<>") || strings.Contains(command, "||") || strings.Contains(command, "$(") || dockerBackgroundJob.MatchString(strings.ReplaceAll(command, "&&", " ")) {
+		return false
+	}
+	for _, segment := range strings.Split(command, "&&") {
+		segment = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(segment), "\\"))
+		fields := strings.Fields(segment)
+		// Leading VAR=value assignments only set the command's environment,
+		// but the command can read them, so substitute them into its words.
+		assigned := map[string]string{}
+		for len(fields) > 0 && dockerEnvAssignment.MatchString(fields[0]) {
+			name, value, _ := strings.Cut(fields[0], "=")
+			assigned[name] = strings.Trim(value, `"'`)
+			fields = fields[1:]
+		}
+		if len(assigned) > 0 {
+			for i, field := range fields {
+				fields[i] = dockerInlineVar.ReplaceAllStringFunc(field, func(ref string) string {
+					m := dockerInlineVar.FindStringSubmatch(ref)
+					name := m[1]
+					if name == "" {
+						name = m[2]
+					}
+					if value, ok := assigned[name]; ok {
+						return value
+					}
+					return ref
+				})
+			}
+			fields = strings.Fields(strings.Join(fields, " "))
+		}
+		if len(fields) == 0 {
+			return false
+		}
+		tool := strings.ToLower(path.Base(fields[0]))
+		switch tool {
+		case "mvn", "mvnw", "mvn.cmd":
+			if !dockerMavenBuildOnly(fields[1:]) {
+				return false
+			}
+			continue
+		case "mkdir", "chmod", "chown":
+			continue
+		case "apt-get", "apt", "apk", "yum", "dnf", "microdnf":
+			// OS package operations write system locations, not the build
+			// output being traced. Other subcommands stay unvetted.
+			if !dockerPackageManagerOnly(fields[1:]) {
+				return false
+			}
+			continue
+		case "rm":
+			for _, field := range fields[1:] {
+				if strings.HasPrefix(field, "-") {
+					continue
+				}
+				if !strings.HasPrefix(field, "/") {
+					return false
+				}
+				if dockerPathsOverlap(field, artifactPath) {
+					return false
+				}
+			}
+			continue
+		case "cp":
+			var operands []string
+			for _, field := range fields[1:] {
+				if strings.HasPrefix(field, "-") {
+					continue
+				}
+				operands = append(operands, field)
+			}
+			if len(operands) > 2 {
+				// GNU cp places each source under the final directory. Treat
+				// the command as harmless only when every concrete destination
+				// is disjoint from the artifact being traced. Multi-source cp is
+				// never itself path-transfer evidence.
+				destination := operands[len(operands)-1]
+				if !strings.HasPrefix(destination, "/") || strings.ContainsAny(destination, "*?[]{}$\\\"'") {
+					return false
+				}
+				for _, source := range operands[:len(operands)-1] {
+					if !strings.HasPrefix(source, "/") || strings.ContainsAny(source, "*?[]{}$\\\"'") || dockerPathsOverlap(path.Join(destination, path.Base(source)), artifactPath) {
+						return false
+					}
+				}
+				continue
+			}
+			if len(operands) != 2 {
+				return false
+			}
+			foundCopy := false
+			for _, ref := range refs {
+				if ref.Kind == "run_copy" && ref.Stage == run.Stage && ref.Evidence.Line == run.Evidence.Line && ref.SourcePath == operands[0] && ref.TargetPath == operands[1] {
+					foundCopy = true
+					break
+				}
+			}
+			if !foundCopy {
+				return false
+			}
+		default:
+			return false
+		}
+	}
+	return true
+}
+
+var (
+	dockerEnvAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	dockerInlineVar     = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+	dockerBackgroundJob = regexp.MustCompile(`(^|\s)&(\s|$)`)
+	dockerBareVariable  = regexp.MustCompile(`^\$(\{[A-Za-z_][A-Za-z0-9_]*\}|[A-Za-z_][A-Za-z0-9_]*)$`)
+	mavenPhases         = map[string]bool{"validate": true, "initialize": true, "generate-sources": true, "process-sources": true, "generate-resources": true, "process-resources": true, "compile": true, "process-classes": true, "generate-test-sources": true, "process-test-sources": true, "generate-test-resources": true, "process-test-resources": true, "test-compile": true, "process-test-classes": true, "test": true, "prepare-package": true, "package": true, "pre-integration-test": true, "integration-test": true, "post-integration-test": true, "verify": true, "install": true, "deploy": true, "pre-clean": true, "clean": true, "post-clean": true}
+)
+
+// dockerMavenBuildOnly accepts lifecycle phases, options and variables that
+// have no static value. Any other word, including a plugin goal such as
+// dependency:copy that can place a downloaded artifact in target/, fails
+// closed.
+func dockerMavenBuildOnly(args []string) bool {
+	takesValue := map[string]bool{"-f": true, "--file": true, "-s": true, "--settings": true, "-gs": true, "--global-settings": true, "-pl": true, "--projects": true, "-rf": true, "--resume-from": true, "-P": true, "--activate-profiles": true, "-T": true, "--threads": true, "-t": true, "--toolchains": true, "-l": true, "--log-file": true, "-D": true, "--define": true}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if takesValue[arg] {
+			i++
+			continue
+		}
+		if strings.HasPrefix(arg, "-") || dockerBareVariable.MatchString(arg) {
+			continue
+		}
+		if !mavenPhases[arg] {
+			return false
+		}
+	}
+	return true
+}
+
+func dockerPackageManagerOnly(args []string) bool {
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		switch arg {
+		case "update", "upgrade", "install", "add", "clean", "autoremove", "remove", "del", "purge", "makecache":
+			return true
+		}
+		return false
+	}
+	return false
+}
+
+func dockerRunAtLineIsSafe(refs []deployables.Reference, stage, artifactPath string, line int) bool {
+	found := false
+	for _, ref := range refs {
+		if ref.Kind == "run_instruction_opaque" && ref.Stage == stage && ref.Evidence.Line == line {
+			return false
+		}
+		if ref.Kind == "run_instruction" && ref.Stage == stage && ref.Evidence.Line == line {
+			found = dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath)
+		}
+	}
+	return found
+}
+
+func dockerPathsOverlap(a, b string) bool {
+	a = path.Clean(a)
+	b = path.Clean(b)
+	return a == b || strings.HasPrefix(a, strings.TrimSuffix(b, "/")+"/") || strings.HasPrefix(b, strings.TrimSuffix(a, "/")+"/")
+}
+
+func dockerArtifactPathIdentifiesModule(artifactPath, moduleRoot string) bool {
+	artifact := strings.Trim(strings.TrimPrefix(path.Clean(artifactPath), "./"), "/")
+	root := strings.Trim(strings.TrimPrefix(path.Clean(moduleRoot), "./"), "/")
+	if root == "." {
+		root = ""
+	}
+	if artifact == "" {
+		return false
+	}
+	suffix := "target/" + path.Base(artifact)
+	if root != "" {
+		suffix = root + "/" + suffix
+	}
+	return artifact == suffix
+}
+
 func dockerCopyMappedSource(source, destination, artifact string) string {
 	source = path.Clean(source)
+	destinationIsDir := strings.HasSuffix(destination, "/")
 	destination = path.Clean(destination)
 	artifact = path.Clean(artifact)
 	if artifact == destination {
+		return source
+	}
+	if destinationIsDir && path.Base(source) == path.Base(artifact) && (strings.HasSuffix(path.Base(source), ".war") || strings.HasSuffix(path.Base(source), ".ear")) {
 		return source
 	}
 	relative := strings.TrimPrefix(artifact, destination+"/")
