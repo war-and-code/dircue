@@ -227,3 +227,26 @@ func TestGemfileOneLineAndModifierConditionals(t *testing.T) {
 		t.Fatalf("a one-line block must not leave later gems conditional: %v", got)
 	}
 }
+
+func TestGemfileBlockBalanceAndOneLineGroup(t *testing.T) {
+	body := "group :production do\n  begin\n    gem \"pg\"\n  rescue LoadError\n  end\n  gem \"redis\"\nend\ngroup :test do gem \"rspec\" end\nif ENV[\"X\"]\n  def helper\n  end\n  gem \"mysql2\"\nend\ngem \"rails\"\n"
+	d := parseGemfile("Gemfile", []byte(body))
+	got := map[string][2]string{}
+	for _, r := range d.Project.Requirements {
+		if r.Kind == "ruby-gem-dependency" {
+			got[r.Value] = [2]string{r.State, r.Condition}
+		}
+	}
+	want := map[string][2]string{
+		"pg":     {"declared", "gemfile-group:production"},
+		"redis":  {"declared", "gemfile-group:production"},
+		"rspec":  {"declared", "gemfile-group:test"},
+		"mysql2": {"conditional", "if_block"},
+		"rails":  {"declared", ""},
+	}
+	for name, w := range want {
+		if got[name] != w {
+			t.Errorf("%s = %v, want %v (all: %v)", name, got[name], w, got)
+		}
+	}
+}
