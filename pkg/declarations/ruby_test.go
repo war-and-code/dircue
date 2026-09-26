@@ -1,6 +1,9 @@
 package declarations
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestParseRailsApp(t *testing.T) {
 	for _, tc := range []struct {
@@ -70,6 +73,140 @@ func TestIsManifestRailsApp(t *testing.T) {
 	for _, p := range shouldNotMatch {
 		if IsManifest(p) {
 			t.Errorf("IsManifest(%q) = true, want false", p)
+		}
+	}
+}
+
+// TestGemfileConditionalBlocks verifies that gems inside if/unless/case blocks
+// are marked conditional, group-scoped gems carry group conditions, and optional
+// groups carry both conditional state and group condition (#fix-3).
+// These tests fail on 427c2f8 (no block tracking) and pass after.
+func TestGemfileConditionalBlocks(t *testing.T) {
+	discourse := `source "https://rubygems.org"
+
+gem "rails", "~> 7.0"
+
+if ENV["IMPORT"] == "1"
+  gem "mysql2"
+  gem "sequel"
+end
+
+group :development, :test do
+  gem "rspec-rails"
+  gem "factory_bot_rails"
+end
+
+group :optional_feature, optional: true do
+  gem "sidekiq-pro"
+end
+
+unless RUBY_PLATFORM == "java"
+  gem "oj"
+end
+`
+	d := ParseRuby("Gemfile", []byte(discourse))
+	if d == nil {
+		t.Fatal("ParseRuby returned nil")
+	}
+
+	findReq := func(value string) *Requirement {
+		for i := range d.Project.Requirements {
+			if d.Project.Requirements[i].Kind == "ruby-gem-dependency" && d.Project.Requirements[i].Value == value {
+				return &d.Project.Requirements[i]
+			}
+		}
+		return nil
+	}
+
+	// rails is unconditional.
+	r := findReq("rails")
+	if r == nil {
+		t.Error("rails gem not found")
+	} else {
+		if r.State != "declared" {
+			t.Errorf("rails state = %q, want declared", r.State)
+		}
+		if r.Condition != "" {
+			t.Errorf("rails condition = %q, want empty", r.Condition)
+		}
+	}
+
+	// mysql2 is inside if ENV[...] → conditional.
+	r = findReq("mysql2")
+	if r == nil {
+		t.Error("mysql2 gem not found")
+	} else {
+		if r.State != "conditional" {
+			t.Errorf("mysql2 state = %q, want conditional", r.State)
+		}
+		if r.Condition != "if_block" {
+			t.Errorf("mysql2 condition = %q, want if_block", r.Condition)
+		}
+	}
+
+	// sequel is also inside the same if block.
+	r = findReq("sequel")
+	if r == nil {
+		t.Error("sequel gem not found")
+	} else if r.State != "conditional" {
+		t.Errorf("sequel state = %q, want conditional", r.State)
+	}
+
+	// rspec-rails is inside group :development, :test → declared with group condition.
+	r = findReq("rspec-rails")
+	if r == nil {
+		t.Error("rspec-rails gem not found")
+	} else {
+		if r.State != "declared" {
+			t.Errorf("rspec-rails state = %q, want declared", r.State)
+		}
+		if r.Condition == "" {
+			t.Errorf("rspec-rails has no group condition")
+		}
+		if !strings.Contains(r.Condition, "group:") {
+			t.Errorf("rspec-rails condition = %q, want group:...", r.Condition)
+		}
+	}
+
+	// sidekiq-pro is inside group :optional_feature, optional: true → conditional.
+	r = findReq("sidekiq-pro")
+	if r == nil {
+		t.Error("sidekiq-pro gem not found")
+	} else {
+		if r.State != "conditional" {
+			t.Errorf("sidekiq-pro state = %q, want conditional", r.State)
+		}
+		if !strings.Contains(r.Condition, "group:") {
+			t.Errorf("sidekiq-pro condition = %q, want group:...", r.Condition)
+		}
+	}
+
+	// oj is inside unless ... → conditional.
+	r = findReq("oj")
+	if r == nil {
+		t.Error("oj gem not found")
+	} else {
+		if r.State != "conditional" {
+			t.Errorf("oj state = %q, want conditional", r.State)
+		}
+	}
+}
+
+func TestGemfileUnconditionalUnaffected(t *testing.T) {
+	gemfile := `gem "rails"
+gem "pg"
+gem "puma"
+`
+	d := ParseRuby("Gemfile", []byte(gemfile))
+	if d == nil {
+		t.Fatal("ParseRuby returned nil")
+	}
+	for _, r := range d.Project.Requirements {
+		if r.Kind != "ruby-gem-dependency" {
+			continue
+		}
+		if r.State != "declared" || r.Condition != "" {
+			t.Errorf("gem %q: state=%q condition=%q, want state=declared condition=''", r.Value, r.State, r.Condition)
 		}
 	}
 }
