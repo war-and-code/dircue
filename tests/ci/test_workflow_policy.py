@@ -11,6 +11,8 @@ ACTION_SHA = re.compile(r"^[0-9a-f]{40}$")
 USES = re.compile(r"^\s*(?:- )?uses:\s*([^\s#]+)")
 USES_KEY = re.compile(r"(?:^|[\s,{])(?:uses|['\"]uses['\"])\s*:")
 
+RELEASE_WORKFLOW = WORKFLOWS / "release-candidate.yml"
+
 
 def workflow_events(source: str) -> set[str]:
     lines = source.splitlines()
@@ -128,6 +130,103 @@ class WorkflowPolicyTests(unittest.TestCase):
             action_revisions('      - uses: "actions/checkout@v7"\n')
         with self.assertRaises(AssertionError):
             action_revisions('      - { uses: actions/checkout@v7 }\n')
+
+
+class ReleaseWorkflowSigningTests(unittest.TestCase):
+    """Release workflow must contain build attestation and Sigstore signing steps."""
+
+    def setUp(self) -> None:
+        self.assertTrue(RELEASE_WORKFLOW.exists(), "release-candidate.yml not found")
+        self.text = RELEASE_WORKFLOW.read_text()
+
+    def test_attest_build_provenance_action_present(self) -> None:
+        """actions/attest-build-provenance must be used in the release workflow."""
+        self.assertIn(
+            "actions/attest-build-provenance@",
+            self.text,
+            "release workflow must use actions/attest-build-provenance",
+        )
+
+    def test_cosign_installer_action_present(self) -> None:
+        """sigstore/cosign-installer must be used in the release workflow."""
+        self.assertIn(
+            "sigstore/cosign-installer@",
+            self.text,
+            "release workflow must use sigstore/cosign-installer",
+        )
+
+    def test_cosign_sign_blob_step_present(self) -> None:
+        """The release workflow must sign SHA256SUMS with cosign sign-blob."""
+        self.assertIn(
+            "cosign sign-blob",
+            self.text,
+            "release workflow must include a cosign sign-blob step",
+        )
+
+    def test_attestation_verify_step_present(self) -> None:
+        """The release workflow must verify the attestation after upload."""
+        self.assertIn(
+            "gh attestation verify",
+            self.text,
+            "release workflow must include a 'gh attestation verify' step",
+        )
+
+    def test_cosign_verify_blob_step_present(self) -> None:
+        """The release workflow must verify the cosign signature after upload."""
+        self.assertIn(
+            "cosign verify-blob",
+            self.text,
+            "release workflow must include a 'cosign verify-blob' step",
+        )
+
+    def test_signing_bundle_uploaded_to_release(self) -> None:
+        """The Sigstore bundle (SHA256SUMS.sigstore.json) must be uploaded to the release."""
+        self.assertIn(
+            "SHA256SUMS.sigstore.json",
+            self.text,
+            "release workflow must reference SHA256SUMS.sigstore.json",
+        )
+
+    def test_draft_job_has_id_token_write(self) -> None:
+        """The draft job must declare id-token: write to obtain OIDC tokens for signing."""
+        self.assertIn(
+            "id-token: write",
+            self.text,
+            "draft job must have id-token: write permission",
+        )
+
+    def test_draft_job_has_attestations_write(self) -> None:
+        """The draft job must declare attestations: write to store build provenance."""
+        self.assertIn(
+            "attestations: write",
+            self.text,
+            "draft job must have attestations: write permission",
+        )
+
+    def test_top_level_permissions_still_read_only(self) -> None:
+        """The workflow's top-level permissions must remain contents: read."""
+        perms = top_level_permissions(self.text)
+        self.assertEqual(
+            perms.get("contents"),
+            "read",
+            "top-level contents permission must remain 'read'; write only at job scope",
+        )
+        self.assertNotIn(
+            "id-token",
+            perms,
+            "top-level permissions must not grant id-token; restrict to the draft job",
+        )
+        self.assertNotIn(
+            "attestations",
+            perms,
+            "top-level permissions must not grant attestations; restrict to the draft job",
+        )
+
+    def test_all_new_actions_pinned_by_sha(self) -> None:
+        """All actions in the release workflow, including new ones, must use full SHA pins."""
+        revisions = action_revisions(self.text)
+        self.assertTrue(revisions, "expected at least one pinned action")
+        # action_revisions raises if any action lacks a full SHA, so reaching here is the pass.
 
 
 if __name__ == "__main__":

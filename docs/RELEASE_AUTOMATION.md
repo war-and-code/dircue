@@ -104,7 +104,15 @@ The final job requires all five platform artifacts. It verifies:
 - All seven wheels' identities, hashes and provenance. Their uncompressed entries, including `RECORD`, notices and executable bytes, must match a fresh deterministic package of the verified core. ZIP compression bytes may differ across runner zlib versions.
 - Each native smoke receipt's executable hashes, fixture count, language count and test-source hashes, plus the required function-evidence receipt for 0.4.0 and later declaration/comparison receipt for 0.5.0 and later, targeted profiling receipt for 0.7.0 and later, and environment/planning/comparison receipt for 0.8.0 and later.
 
-The draft contains five core archives, five worker archives, seven wheels, per-platform core/wheel provenance and native smoke receipts (including function receipts for 0.4.0 and later, declaration receipts for 0.5.0 and later, targeted profiling receipts for 0.7.0 and later, and context receipts for 0.8.0 and later), an aggregate `release-candidate.json`, and `SHA256SUMS`. The aggregate records the assembly script/workflow hashes and release-note digest. The complete asset count is 39 for 0.4 and 44 for 0.5–0.6 with the five declaration receipts, 49 for 0.7 with five targeted profiling receipts, and 54 from 0.8 with five context receipts. These are build receipts and checksum checks, not signed attestations.
+The draft contains five core archives, five worker archives, seven wheels, per-platform core/wheel provenance and native smoke receipts (including function receipts for 0.4.0 and later, declaration receipts for 0.5.0 and later, targeted profiling receipts for 0.7.0 and later, and context receipts for 0.8.0 and later), an aggregate `release-candidate.json`, `SHA256SUMS`, and `SHA256SUMS.sigstore.json` (the Sigstore cosign bundle for `SHA256SUMS`). The aggregate records the assembly script/workflow hashes and release-note digest. The complete asset count is 39 for 0.4 and 44 for 0.5–0.6 with the five declaration receipts, 49 for 0.7 with five targeted profiling receipts, and 54 from 0.8 with five context receipts, plus one additional `SHA256SUMS.sigstore.json` bundle from 1.0 onward.
+
+From 1.0.0, the final job additionally:
+
+1. Creates a **GitHub SLSA build-provenance attestation** for every assembled asset using `actions/attest-build-provenance`. Attestations are stored in GitHub's trust store and verified by `gh attestation verify <file> --repo war-and-code/dircue`.
+2. Signs `SHA256SUMS` with **keyless Sigstore cosign** (no long-lived key), producing `SHA256SUMS.sigstore.json`. The identity is bound to the workflow URL via GitHub's OIDC issuer.
+3. Verifies both the attestation and the cosign signature before the job succeeds. The run fails if either check fails.
+
+The `draft` job requests only the minimum additional permissions required for signing: `id-token: write` (OIDC token for cosign) and `attestations: write` (store provenance). The top-level workflow permissions remain `contents: read`.
 
 After uploading, the workflow downloads every attached asset into a fresh directory, compares its filename and SHA-256 with the assembled files, and checks that the release remains a draft. A separate Actions artifact retains the download-verification receipt.
 
@@ -128,6 +136,8 @@ If uploading fails partway through, inspect the resulting draft. The workflow wi
 
 ```sh
 python3 -m unittest discover -s tests/release -p 'test_*.py'
+python3 -m unittest discover -s tests/ci -p 'test_*.py'
+# actionlint validates workflow YAML syntax; run it if already installed:
 actionlint .github/workflows/release-candidate.yml
 actionlint .github/workflows/structural-worker.yml
 ```
