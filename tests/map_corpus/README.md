@@ -261,8 +261,10 @@ not a new independent accuracy estimate.
 The earlier `blind_holdout_v1/` artifact covered `gs-maven` and `flasky`.
 Commit `d3b8ae5` introduced it as frozen before either checkout was scored.
 Commit `299fd7b` then changed its labels to use the map's vocabulary without
-adding a `corrections` record. Commit `824aab1` removed the artifact and
-replaced it with `independent_labels/`. Because those changes broke the
+adding a `corrections` record. Commit `a80a6be` added an implementation-aware
+flask-on-docker manifest to the same directory. Commit `824aab1` removed the
+artifact and replaced it with `independent_labels/`. Because those changes
+broke the
 original blind-label provenance, the withdrawn holdout is not treated as a
 scored accuracy receipt; the commits preserve the original and revised
 source-only labels for audit.
@@ -315,6 +317,15 @@ silently correcting the source-first labels. This is a small independent
 check with useful counterexamples, not a population accuracy estimate or a
 passing whole-map quality gate. `independent_results.json` records the first
 run, binary and label hashes, and every matched or missed fact.
+
+`independent_flask_triage.json` separately reviews all 12 Flask exact-key misses
+against the pinned source and the first-run map (4 equivalent under a different
+name or vocabulary, 6 real map misses, and 2 unresolved). It is a post-hoc
+qualitative review: the exact-key scores above remain unchanged, and these
+targeted categories do not estimate precision. A test checks ledger coverage,
+unique keys, allowed categories, citations, and the frozen receipt and label
+hashes. See [BUILD_PROVENANCE.md](BUILD_PROVENANCE.md) for reproduction details
+of the independent receipt.
 
 Two additional opt-in checks use bounded source slices from public projects
 with a checked-in binary referenced by a build declaration. The
