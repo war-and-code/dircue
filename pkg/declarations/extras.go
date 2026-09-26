@@ -235,3 +235,109 @@ func ParsePythonSetupCfg(name string, content []byte) *Document {
 
 // Match [metadata] section followed (possibly after blank/comment lines) by `name = value`.
 var setupCfgNameRE = regexp.MustCompile(`(?ms)\[metadata\][^\[]*\bname\s*=\s*([A-Za-z0-9][A-Za-z0-9._-]{0,254})`)
+
+// pyprojectIsToolOnly reports whether a parsed pyproject.toml TOML map is a
+// tool-configuration-only file that should not produce a Python component.
+//
+// The core signal is the presence of a [dependency-groups] table (PEP 735)
+// with actual entries alongside the ABSENCE of all distribution indicators.
+// A pyproject.toml used only for managing dev/lint/test tooling (like gitea's
+// root pyproject.toml in a Go repository) is suppressed; a minimal library
+// with just [project] name+version is kept because it has no dev-group signal.
+//
+// A pyproject.toml is tool-only when ALL of the following hold:
+//
+//  1. Has a non-empty [dependency-groups] table — the PEP 735 dev-group
+//     pattern is the distinguishing signal; without it a minimal [project]
+//     table is treated as a genuine Python project.
+//  2. No [build-system] — not used to build a Python distribution.
+//  3. No [project].dependencies — no runtime dependency list (static).
+//  4. No [project].dynamic — no dynamic fields (dynamic metadata implies
+//     build-time resolution, i.e. a distribution).
+//  5. No [project].optional-dependencies — no runtime extras.
+//  6. No [project].scripts or [project].gui-scripts — no installed commands.
+//  7. No packaging layout ([tool.setuptools.packages/find],
+//     [tool.hatch.build], [tool.flit.metadata], [tool.pdm] build config).
+//  8. Not a uv workspace coordinator ([tool.uv.workspace] absent).
+//
+// This is the pyproject.toml analogue of ParsePythonSetupCfg returning nil
+// for a setup.cfg that has no [metadata] or [options] sections.
+func pyprojectIsToolOnly(raw map[string]any) bool {
+	// 1. Require a non-empty [dependency-groups] table as the positive signal.
+	//    Without it a bare [project] table is a genuine (if minimal) library.
+	groups, hasGroups := raw["dependency-groups"].(map[string]any)
+	if !hasGroups || len(groups) == 0 {
+		return false
+	}
+
+	// 2. [build-system] means this pyproject builds a Python package.
+	if _, hasBuildSystem := raw["build-system"]; hasBuildSystem {
+		return false
+	}
+
+	// 3–6. Check [project] for distribution indicators.
+	if p, ok := raw["project"].(map[string]any); ok {
+		// Runtime dependency list (static).
+		if deps, ok := p["dependencies"].([]any); ok && len(deps) > 0 {
+			return false
+		}
+		// Dynamic metadata fields imply build-time resolution.
+		if dynList, ok := p["dynamic"].([]any); ok && len(dynList) > 0 {
+			return false
+		}
+		// Optional extras (runtime dependency groups).
+		if _, ok := p["optional-dependencies"]; ok {
+			return false
+		}
+		// Console or GUI entry-point scripts.
+		if _, ok := p["scripts"]; ok {
+			return false
+		}
+		if _, ok := p["gui-scripts"]; ok {
+			return false
+		}
+	}
+
+	// 7–8. Inspect [tool.*] for packaging or workspace indicators.
+	if tool, ok := raw["tool"].(map[string]any); ok {
+		// uv workspace coordinator — manages Python member projects.
+		if uv, ok := tool["uv"].(map[string]any); ok {
+			if _, hasWS := uv["workspace"]; hasWS {
+				return false
+			}
+		}
+		// setuptools packaging layout.
+		if st, ok := tool["setuptools"].(map[string]any); ok {
+			if _, ok := st["packages"]; ok {
+				return false
+			}
+			if _, ok := st["find"]; ok {
+				return false
+			}
+			if _, ok := st["find-namespace"]; ok {
+				return false
+			}
+		}
+		// Hatch build configuration.
+		if hatch, ok := tool["hatch"].(map[string]any); ok {
+			if _, ok := hatch["build"]; ok {
+				return false
+			}
+		}
+		// Flit metadata (legacy; implies a distributable library).
+		if flit, ok := tool["flit"].(map[string]any); ok {
+			if _, ok := flit["metadata"]; ok {
+				return false
+			}
+		}
+		// PDM build configuration.
+		if pdm, ok := tool["pdm"].(map[string]any); ok {
+			if build, ok := pdm["build"].(map[string]any); ok {
+				if _, ok := build["package-includes"]; ok {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
