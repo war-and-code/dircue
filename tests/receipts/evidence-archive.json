@@ -1,0 +1,1247 @@
+{
+  "description": "Evidence archive manifest. Files listed here have been removed from the repository working tree and git history. They are stored as assets of the GitHub release tagged evidence-archive-1. Use scripts/fetch_receipts.py (or make fetch-receipts) to restore them locally.",
+  "release_tag": "evidence-archive-1",
+  "release_url": "https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1",
+  "base_download_url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1",
+  "entries": [
+    {
+      "path": "tests/enry-performance/results/final/README.md",
+      "sha256": "5a10a1778cba72de734f21764200f65d327a472de887e1794ba40d2cf3a49ad6",
+      "size": 11031,
+      "asset": "enry-performance-results-final-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-README.md"
+    },
+    {
+      "path": "tests/enry-performance/results/final/SHA256SUMS.json",
+      "sha256": "a87187813c5fede2d31ea8e389c8ee71d14b70d473e0a450db37f9ad4c24ecbc",
+      "size": 445,
+      "asset": "enry-performance-results-final-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/enry-performance/results/final/audit.json",
+      "sha256": "03317c60d4f5c29833dd30f22c8272c2caa3e5236c652a8200cb2bf672fcfbc7",
+      "size": 47929038,
+      "asset": "enry-performance-results-final-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-audit.json"
+    },
+    {
+      "path": "tests/enry-performance/results/final/evidence.tar.gz",
+      "sha256": "5431ba1fd20e888e1546cf8357442c2f48bac2c94ba44e0ec876da34e3b73243",
+      "size": 66606847,
+      "asset": "enry-performance-results-final-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-evidence.tar.gz"
+    },
+    {
+      "path": "tests/enry-performance/results/final/honest-gate.json",
+      "sha256": "08987e744c98166b7b149d835d59ab38145b961c07cb178e2b6c0cacf26e0840",
+      "size": 1364,
+      "asset": "enry-performance-results-final-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-honest-gate.json"
+    },
+    {
+      "path": "tests/enry-performance/results/final/independent-audit.json",
+      "sha256": "8d9499da385f5f400bdfd4488df70820e1e6d84dcdc3775b5b29c5c22b911df0",
+      "size": 500,
+      "asset": "enry-performance-results-final-independent-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-final-independent-audit.json"
+    },
+    {
+      "path": "tests/enry-performance/results/go.mod",
+      "sha256": "de671802b266c5cbce09831b5179403a0007d6c78e9de329753e1da4e44a5167",
+      "size": 83,
+      "asset": "enry-performance-results-go.mod",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-go.mod"
+    },
+    {
+      "path": "tests/enry-performance/results/library-rc1/README.md",
+      "sha256": "6a8e7ddb2df38f80d33a8d0fdb8c55f8d7aabe7d5aa5d37c6696f68c86e0665f",
+      "size": 3929,
+      "asset": "enry-performance-results-library-rc1-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-library-rc1-README.md"
+    },
+    {
+      "path": "tests/enry-performance/results/library-rc1/SHA256SUMS.json",
+      "sha256": "24c00a0b8e1574c7c6f40a9046098e80c1ef11f952736a6ee60f385766032393",
+      "size": 349,
+      "asset": "enry-performance-results-library-rc1-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-library-rc1-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/enry-performance/results/library-rc1/audit.json",
+      "sha256": "6f1b9b174c0e12d7306c08ea432c751f9c5de7a8ceedb7e7855de172c2209a76",
+      "size": 46274,
+      "asset": "enry-performance-results-library-rc1-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-library-rc1-audit.json"
+    },
+    {
+      "path": "tests/enry-performance/results/library-rc1/evidence.tar.gz",
+      "sha256": "9b10089e1a01aeb9dd7218fc477bcf0c711b0a45bfed31f020aaec9deafd77f0",
+      "size": 1024507,
+      "asset": "enry-performance-results-library-rc1-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-library-rc1-evidence.tar.gz"
+    },
+    {
+      "path": "tests/enry-performance/results/library-rc1/honest-gate.json",
+      "sha256": "93420b2771292a59b78ca9874a91609f47fb366a903e1d3239a60467f4ea069e",
+      "size": 2300,
+      "asset": "enry-performance-results-library-rc1-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/enry-performance-results-library-rc1-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/README.md",
+      "sha256": "18bbdb48c9b89cb7fbfd63538b7c543b96ae4e2419235c80028690a890f43778",
+      "size": 3915,
+      "asset": "profiling-results-centroid-wire-opt4-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-README.md"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/SHA256SUMS.json",
+      "sha256": "faccdfcc23c5fb378af56bc090d291560b5cf53886acf3c93bae65b2469f7e1b",
+      "size": 349,
+      "asset": "profiling-results-centroid-wire-opt4-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/audit.json",
+      "sha256": "078cf100c0c31a1092012eec3dc06f429005f0816b14ea83e9a8c286e7e8e5d6",
+      "size": 16696,
+      "asset": "profiling-results-centroid-wire-opt4-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/evidence.tar.gz",
+      "sha256": "86776e17813a0d1504a446528f59ca9beca78a27049413194cbc1a6684017fb6",
+      "size": 10969751,
+      "asset": "profiling-results-centroid-wire-opt4-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/honest-gate.json",
+      "sha256": "6545cf57814840eed3748849f14e08af884064086664013a73fc75f5d4570e26",
+      "size": 1582,
+      "asset": "profiling-results-centroid-wire-opt4-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/centroid-wire-opt4/independent-audit.json",
+      "sha256": "5fd07ba408f469718b517cad7b0d8eec6c38e55fcebab9e90d9378c8a8821c5e",
+      "size": 523,
+      "asset": "profiling-results-centroid-wire-opt4-independent-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-centroid-wire-opt4-independent-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/README.md",
+      "sha256": "aedda0f958ea34fd12e9462971deb1bff294c4fb2a617ae3035b41f8d7c2cc32",
+      "size": 3581,
+      "asset": "profiling-results-getlines-opt3-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-README.md"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/SHA256SUMS.json",
+      "sha256": "465694e7d5da0b8c93a6c157454f1340ed71ff713faa046c461848cee722adb5",
+      "size": 549,
+      "asset": "profiling-results-getlines-opt3-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/audit.json",
+      "sha256": "0fcc3f0f1a90d452d1d467a207b73b34c7d2a4750454d40be68986455c334d8e",
+      "size": 16397,
+      "asset": "profiling-results-getlines-opt3-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/evidence.tar.gz",
+      "sha256": "36f4f9fe3affd1acd75725ca2856eacdf6d6862f88ca5c3227fcca509cf1b608",
+      "size": 3711447,
+      "asset": "profiling-results-getlines-opt3-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/honest-gate.json",
+      "sha256": "5a4d8456625a019440f08668403c732657ceeea04852b41cacb751f83c034387",
+      "size": 1407,
+      "asset": "profiling-results-getlines-opt3-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/independent-readback.json",
+      "sha256": "3ed9d9d660156990e8e2b305aee922b2a43c3d98948fb9f24dfef7b00068863e",
+      "size": 521,
+      "asset": "profiling-results-getlines-opt3-independent-readback.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-independent-readback.json"
+    },
+    {
+      "path": "tests/profiling/results/getlines-opt3/integration-validation.json",
+      "sha256": "c8898e5f57836a911ba0d291c8b0bac07ce2b508d36f6c1e235ba422765a354b",
+      "size": 1580,
+      "asset": "profiling-results-getlines-opt3-integration-validation.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-getlines-opt3-integration-validation.json"
+    },
+    {
+      "path": "tests/profiling/results/go.mod",
+      "sha256": "a84ab682415900608282d1442920ec42448c3e95699c4970fb9bb5f7d2196976",
+      "size": 76,
+      "asset": "profiling-results-go.mod",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-go.mod"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/README.md",
+      "sha256": "4482f33adee4ed24b68964322edcd9c05e58716acffc1c88c7299b3c1f250808",
+      "size": 3389,
+      "asset": "profiling-results-identifier-opt1-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-README.md"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/SHA256SUMS.json",
+      "sha256": "3ae02592f1d7c7373b8fba3dbf282f3f91af704110897c089913fd9a94c6cd7f",
+      "size": 349,
+      "asset": "profiling-results-identifier-opt1-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/audit.json",
+      "sha256": "a897ade59c9b09de9d65d77b7973e94c4133a0d8a845cf47a0de522f68c59635",
+      "size": 51528,
+      "asset": "profiling-results-identifier-opt1-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/evidence.tar.gz",
+      "sha256": "fd23f7ecb51bb90cf9f57ecf77064881fa6239f051e03ae295667865b7c2d239",
+      "size": 1321425,
+      "asset": "profiling-results-identifier-opt1-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/honest-gate.json",
+      "sha256": "1c1dfc0730de433e6dbfa127771de77fe2813f3020d9a950e33c643ca197c50d",
+      "size": 2320,
+      "asset": "profiling-results-identifier-opt1-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/identifier-opt1/regeneration.json",
+      "sha256": "c5d759a2051bb7741f4777579f7ccdcd1b24648b35c0ad5ed5aaa928c94dfa0f",
+      "size": 540,
+      "asset": "profiling-results-identifier-opt1-regeneration.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-identifier-opt1-regeneration.json"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/README.md",
+      "sha256": "8a28bdb57be0a91f2ac85ddb2c41ae3f59f94fcd392d9a8b8142be35b00baaff",
+      "size": 4232,
+      "asset": "profiling-results-lexer-subset-opt2-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-README.md"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/SHA256SUMS.json",
+      "sha256": "90215831cb3c2f0546ade4c6463ebfc08c9bbaec630e1998658ed449cad9db77",
+      "size": 349,
+      "asset": "profiling-results-lexer-subset-opt2-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/audit.json",
+      "sha256": "6c794e799dd11d47fae439559847b390140c2cd4340d2ef28495671a483f974a",
+      "size": 81009,
+      "asset": "profiling-results-lexer-subset-opt2-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/evidence.tar.gz",
+      "sha256": "9d7a84cc0769f5f4280276007e43f00c99ed70fc3241d5935939ab3f8b952b89",
+      "size": 1771537,
+      "asset": "profiling-results-lexer-subset-opt2-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/honest-gate.json",
+      "sha256": "194d522e63c8aafbe03e5144267521dc00ee825fb8ddb43d382842782fe49206",
+      "size": 2274,
+      "asset": "profiling-results-lexer-subset-opt2-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/independent-audit.json",
+      "sha256": "1241f1f1fd610b29f8e6108a94d4e8492820d0a8f6eb96ab8ad5efd3dcb2735e",
+      "size": 1696,
+      "asset": "profiling-results-lexer-subset-opt2-independent-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-independent-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/lexer-subset-opt2/regeneration.json",
+      "sha256": "3e2796a1c9b7cf49e9a942a1b925b17739968445ef04ad19b88f8add4719edfa",
+      "size": 608,
+      "asset": "profiling-results-lexer-subset-opt2-regeneration.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-lexer-subset-opt2-regeneration.json"
+    },
+    {
+      "path": "tests/profiling/results/rc1/README.md",
+      "sha256": "6a20fbe85bf6d01c409a20f278b0b916800fb02b38d30a6dc5a3a3aae4990b84",
+      "size": 4669,
+      "asset": "profiling-results-rc1-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-rc1-README.md"
+    },
+    {
+      "path": "tests/profiling/results/rc1/archive-audit.json",
+      "sha256": "cf2e8b69d365de9b8c5009e4f576afc41a4bc6e43670761b333a338c62b328a3",
+      "size": 409,
+      "asset": "profiling-results-rc1-archive-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-rc1-archive-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/rc1/evidence.tar.gz",
+      "sha256": "ed322339aeafc6ffcc93f68f792e18637b491ce00661fd8f3c5562a95fee4ebe",
+      "size": 371907,
+      "asset": "profiling-results-rc1-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-rc1-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/rc1/honest-gate.json",
+      "sha256": "e710e9cad7764ae4b55f573be164c19ef4c37e786080a3d9db16acb7c676de5d",
+      "size": 2316,
+      "asset": "profiling-results-rc1-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-rc1-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/rc1/independent-audit.json",
+      "sha256": "830d767091cf9853cbbc34697aaa65b07813d2d5bf1825c412b5803b59b3a079",
+      "size": 2309,
+      "asset": "profiling-results-rc1-independent-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-rc1-independent-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/README.md",
+      "sha256": "e0193fa7b22483e63989f002d9109815428c88ae02176714a6c49a59cfbd9185",
+      "size": 3000,
+      "asset": "profiling-results-scanner-opt2-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-README.md"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/SHA256SUMS.json",
+      "sha256": "b77c5f5e0b06a8ba053d1bf70780b5cafcae0a55738c8ef949e07a1e94abfeb0",
+      "size": 456,
+      "asset": "profiling-results-scanner-opt2-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/archive-audit.json",
+      "sha256": "2923cf9a6234c85525327379de93528ae1bb9d8fea76d099efc9692f76212d86",
+      "size": 645,
+      "asset": "profiling-results-scanner-opt2-archive-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-archive-audit.json"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/evidence.tar.gz",
+      "sha256": "ec2e00ba6e1cd1aa03fd91dca11f7b04e0519fd00d3f35fbb9472da38a0e2be8",
+      "size": 2195683,
+      "asset": "profiling-results-scanner-opt2-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-evidence.tar.gz"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/honest-gate.json",
+      "sha256": "c52d5643241e9ca47ba8be8cf707f4c7a65f55477a8bc94170098c9646a3a5f2",
+      "size": 1561,
+      "asset": "profiling-results-scanner-opt2-honest-gate.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-honest-gate.json"
+    },
+    {
+      "path": "tests/profiling/results/scanner-opt2/independent-readback.json",
+      "sha256": "500cf82670f34cb4349973413a777af4e319533f677745b655d1845c376351d9",
+      "size": 352,
+      "asset": "profiling-results-scanner-opt2-independent-readback.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/profiling-results-scanner-opt2-independent-readback.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/README.md",
+      "sha256": "770c87e55f47721773ac12444344c874a774e435b4317887be563626fd16dc7f",
+      "size": 6000,
+      "asset": "release-results-0.2.0-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-README.md"
+    },
+    {
+      "path": "tests/release/results/0.2.0/SHA256SUMS.json",
+      "sha256": "59e34802ec8062cc3228bcb855f8f4a1a2d264f194f8ed23b6b1e767ffde2e1d",
+      "size": 1788,
+      "asset": "release-results-0.2.0-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/archive-SHA256SUMS",
+      "sha256": "d838c511d1abd21a674de0388dec0247f224c996de57dbf7f7392a3e6c7a60ba",
+      "size": 491,
+      "asset": "release-results-0.2.0-archive-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-archive-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.2.0/archive-audit.json",
+      "sha256": "2ff816b3bcfe4207d6495a890a719be97a2a2591e5af4860b92cfd815fc05567",
+      "size": 3477,
+      "asset": "release-results-0.2.0-archive-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-archive-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/archive.Dockerfile",
+      "sha256": "23da186693a68035e64c10ed68337bf61bdb9a4ca25a0423223b25d1eb1f689f",
+      "size": 128,
+      "asset": "release-results-0.2.0-archive.Dockerfile",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-archive.Dockerfile"
+    },
+    {
+      "path": "tests/release/results/0.2.0/compatibility-v010.json",
+      "sha256": "633cf4ed1cac9530f46b8740daf60bd77db151aaddecb6e24879f1f2ad0cd52a",
+      "size": 58848,
+      "asset": "release-results-0.2.0-compatibility-v010.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-compatibility-v010.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/compatibility-v010.py",
+      "sha256": "dcb1dd0674753c61fb97ba617d7a0c7f9e775bc3924509c38f3092b286b47338",
+      "size": 4916,
+      "asset": "release-results-0.2.0-compatibility-v010.py",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-compatibility-v010.py"
+    },
+    {
+      "path": "tests/release/results/0.2.0/corpus-output-equivalence.json",
+      "sha256": "f82afd8c8747a4b1f2f8229b738092ff1c9f73496814a03a2d1eba50b5f6a268",
+      "size": 1542,
+      "asset": "release-results-0.2.0-corpus-output-equivalence.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-corpus-output-equivalence.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/docker-smoke-amd64.json",
+      "sha256": "20cd1f664b9a254d670bd8f4fbf5a797da8777e511bb20a82abc2ed358663286",
+      "size": 6504,
+      "asset": "release-results-0.2.0-docker-smoke-amd64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-docker-smoke-amd64.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/docker-smoke-arm64.json",
+      "sha256": "02e4e9a5e6b5a1cf00f85125119f2778974fbacdbfb6be86bd5c0400ef6a32f6",
+      "size": 5709,
+      "asset": "release-results-0.2.0-docker-smoke-arm64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-docker-smoke-arm64.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/independent-artifact-audit.json",
+      "sha256": "bb83d51abfd4befbd517ab75c987b1e219b309e1f084ecedf411ceded8d3bf40",
+      "size": 54440,
+      "asset": "release-results-0.2.0-independent-artifact-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-independent-artifact-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/macos-amd64-smoke.json",
+      "sha256": "56981ecda97de79ff0e8654679ca7fd5ec9913634a5e914741617ee1d0855f90",
+      "size": 3567,
+      "asset": "release-results-0.2.0-macos-amd64-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-macos-amd64-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/packaging-ci.json",
+      "sha256": "1889f928722445ce04c2350705f0d2b342f3f24404d7ecd66af737153ac8d402",
+      "size": 10063,
+      "asset": "release-results-0.2.0-packaging-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-packaging-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/release-provenance.json",
+      "sha256": "8a51cacb2a4d02062646ca9dcaacf5944a920f1dd80f19abd9947e2b047e0147",
+      "size": 3044,
+      "asset": "release-results-0.2.0-release-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-release-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/reproducibility.json",
+      "sha256": "4b1bcb4ae410e38e26f31647434f63d98c62b26511ff305a25b3785328032365",
+      "size": 455,
+      "asset": "release-results-0.2.0-reproducibility.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-reproducibility.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/runtime-ci.json",
+      "sha256": "a02e4c29dafdbe409f3d5d24b0a8f613c295644d835700d9c38772803cb8c5bb",
+      "size": 1445,
+      "asset": "release-results-0.2.0-runtime-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-runtime-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/twine-check.log",
+      "sha256": "577413d609a54c705665f7997f3cae7644d211b3723116243bc9c3e6174c4e8f",
+      "size": 562,
+      "asset": "release-results-0.2.0-twine-check.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-twine-check.log"
+    },
+    {
+      "path": "tests/release/results/0.2.0/wheel-SHA256SUMS",
+      "sha256": "9143fbf8cf9cf4dd7ce7ec78221bb33bbaf79668078391edc5f6b1d285cc366a",
+      "size": 779,
+      "asset": "release-results-0.2.0-wheel-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-wheel-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.2.0/wheel-provenance.json",
+      "sha256": "da4400427b69ede9b3c2ee86c59257684cc12d8515545d0be7b303a9dcf04bac",
+      "size": 4287,
+      "asset": "release-results-0.2.0-wheel-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-wheel-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.2.0/wheel-smoke.json",
+      "sha256": "cccf8abe42512df7e38d185032290415eabb5ca70465cca15d00de91a7d750d4",
+      "size": 64749,
+      "asset": "release-results-0.2.0-wheel-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.2.0-wheel-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/README.md",
+      "sha256": "6eb0f583c5c80a99a013e5410e15747b6b4a94b602d51ab9562e0ddfaee2eccc",
+      "size": 5137,
+      "asset": "release-results-0.3.0-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-README.md"
+    },
+    {
+      "path": "tests/release/results/0.3.0/SHA256SUMS",
+      "sha256": "ebea894a5799ec25b651f3cff5f03905364e9ab965c141a3eea4d3d9883642b5",
+      "size": 1355,
+      "asset": "release-results-0.3.0-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/archive-SHA256SUMS",
+      "sha256": "ce8f693c804896702da1628fccd776898955e9610acef1e7d610e400099591a2",
+      "size": 491,
+      "asset": "release-results-0.3.0-archive-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-archive-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/archive-audit.json",
+      "sha256": "4a9a6d263e0bd4abcfd20215b574fe884144b1861cb339deaa2b03b3524474a9",
+      "size": 24572,
+      "asset": "release-results-0.3.0-archive-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-archive-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/archive-smoke.json",
+      "sha256": "d1e4a06a2fbf7e6d038aa1ff6268ed0b976c1772baa4d6bcd0cf069b48636940",
+      "size": 73437,
+      "asset": "release-results-0.3.0-archive-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-archive-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/PARSER_LIMITATIONS.md",
+      "sha256": "13fd11e76c6677fe1cce876937634c12d199c9a0129c055dd3fa63913b51064b",
+      "size": 1007,
+      "asset": "release-results-0.3.0-breadth-PARSER_LIMITATIONS.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-PARSER_LIMITATIONS.md"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/README.md",
+      "sha256": "a8095d2f6c1d158414735ced941c996a0b7c37666122ff2e19e1b9adcdde0006",
+      "size": 6360,
+      "asset": "release-results-0.3.0-breadth-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-README.md"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/SHA256SUMS",
+      "sha256": "c0b31557119de19fe373e8838788a62a37b273f401f635a8ecf3ad90f242f534",
+      "size": 2412,
+      "asset": "release-results-0.3.0-breadth-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/archive-SHA256SUMS",
+      "sha256": "f1f282c2d4a0945940ef6c1920c8c035a69a97e8ef56e25ee10064bbf44c76b8",
+      "size": 491,
+      "asset": "release-results-0.3.0-breadth-archive-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-archive-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/archive-audit.json",
+      "sha256": "0ebbbadf5117410696fb0fbb41442fb38c7ca9ab2899a82ea098e58ccf754b13",
+      "size": 24652,
+      "asset": "release-results-0.3.0-breadth-archive-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-archive-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/archive-smoke.json",
+      "sha256": "a4aacdc3f0287e04946d18c443f41c107710eff0810e7453d09fc8cde54b0589",
+      "size": 73885,
+      "asset": "release-results-0.3.0-breadth-archive-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-archive-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/breadth-darwin-amd64.json",
+      "sha256": "b86f2b028b7e3a7da01111f2557948f5802e436dee7f422bb2418a17817a2167",
+      "size": 16740,
+      "asset": "release-results-0.3.0-breadth-breadth-darwin-amd64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-breadth-darwin-amd64.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/breadth-darwin-arm64.json",
+      "sha256": "a549f67757b370d817a08cdab956bc7253f8d5d05096d87b55e4f6ce5cf71f38",
+      "size": 16738,
+      "asset": "release-results-0.3.0-breadth-breadth-darwin-arm64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-breadth-darwin-arm64.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/breadth-linux-amd64.json",
+      "sha256": "92ce9738bfe2650a767ada78a24c96d48d00c521e5618103b3aa12ada9b6c8d3",
+      "size": 16754,
+      "asset": "release-results-0.3.0-breadth-breadth-linux-amd64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-breadth-linux-amd64.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/breadth-linux-arm64.json",
+      "sha256": "3c81c3bfcc0d99ea6509c1bdf9656092d5319d00f7a5bdd859836deea96b7040",
+      "size": 16756,
+      "asset": "release-results-0.3.0-breadth-breadth-linux-arm64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-breadth-linux-arm64.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/breadth-windows-amd64.json",
+      "sha256": "ec50a500ab148434d3692b7b953f70f7dc1c4f3be8893e50c2f11ea32de46ed1",
+      "size": 16743,
+      "asset": "release-results-0.3.0-breadth-breadth-windows-amd64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-breadth-windows-amd64.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/cargo-audit.json",
+      "sha256": "7a2f10bdcf0ed3cae45383d783ee24d54f17108b512fdb4f9163a2abf68cba94",
+      "size": 374,
+      "asset": "release-results-0.3.0-breadth-cargo-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-cargo-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/compatibility.json",
+      "sha256": "57952005127c68892252e079ab6625ff86242a9483ea650b9d6bc5461f2a0c98",
+      "size": 263908,
+      "asset": "release-results-0.3.0-breadth-compatibility.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-compatibility.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/core-provenance.json",
+      "sha256": "9a0456ddf2c129c60908aeef2c7b37bf0ed46315fd3855fb7faa00900ae41ec8",
+      "size": 3044,
+      "asset": "release-results-0.3.0-breadth-core-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-core-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/java-csharp-corpus.json",
+      "sha256": "cb1d3220609c55ad7ec8f494ad6d0dd8c3b21b0cc984d31755142d7b4cfcc78f",
+      "size": 38971,
+      "asset": "release-results-0.3.0-breadth-java-csharp-corpus.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-java-csharp-corpus.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/native-race-tests.log",
+      "sha256": "2c775649264bc19c6cba1b022f0a3b0e61872c95096e9e40de266d5bbda6f131",
+      "size": 449,
+      "asset": "release-results-0.3.0-breadth-native-race-tests.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-native-race-tests.log"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/offline-combined.json",
+      "sha256": "5131727d8da55b1dde1c4b14aedf7c7c75f7a9fbcb77e44635ea3e6240882a6c",
+      "size": 104241,
+      "asset": "release-results-0.3.0-breadth-offline-combined.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-offline-combined.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/parser-limitations.json",
+      "sha256": "076ed610f461933355ea1c3bf54a63d539d4779d5882746b5922af252490a362",
+      "size": 16110,
+      "asset": "release-results-0.3.0-breadth-parser-limitations.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-parser-limitations.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/performance.json",
+      "sha256": "6e76870737e2cb128f46f4ebd9be81ca776bb0c137b15993e030d0368c25348d",
+      "size": 22890,
+      "asset": "release-results-0.3.0-breadth-performance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-performance.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/prototype-ci.json",
+      "sha256": "1a1b238dedb64c944a343c90dec2e118ce9cba06ed3a9e58f3ff19b05d06c88a",
+      "size": 6938,
+      "asset": "release-results-0.3.0-breadth-prototype-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-prototype-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/prototype.json",
+      "sha256": "d338c9e08f44757756383710a9e8e0dbe5d4e781615049283af43053a8554988",
+      "size": 2898,
+      "asset": "release-results-0.3.0-breadth-prototype.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-prototype.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/runtime-ci.json",
+      "sha256": "37c815cf4d724ba8851f76f4ab132adab585c109bfb00004ebeddff6046242f2",
+      "size": 14987,
+      "asset": "release-results-0.3.0-breadth-runtime-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-runtime-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/twine-check.log",
+      "sha256": "34ad0e4e10be602fd2c28d49552ff4d901e939c771b5a6a6bf7dbd5b2ae53cbc",
+      "size": 629,
+      "asset": "release-results-0.3.0-breadth-twine-check.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-twine-check.log"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/wheel-SHA256SUMS",
+      "sha256": "fc586945c19143c6ec359d96b0c67cb28b2229c7fc4d32c2eb7c6aee172c1272",
+      "size": 779,
+      "asset": "release-results-0.3.0-breadth-wheel-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-wheel-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/wheel-provenance.json",
+      "sha256": "25cd4604ab1568cd1ea0ff67a4395e518241d868ebc469a483c500383119bd16",
+      "size": 4287,
+      "asset": "release-results-0.3.0-breadth-wheel-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-wheel-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/wheel-smoke.json",
+      "sha256": "e18539bbb258e123776a5beac003c59e2959b6823619fe1493a65f3e4e756764",
+      "size": 113215,
+      "asset": "release-results-0.3.0-breadth-wheel-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-wheel-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/worker-artifact-audit.json",
+      "sha256": "b1757c7b5b1ee31d00fb55f4abb7a7a8f4203881867ad3088d54bd0f1de810a6",
+      "size": 38459,
+      "asset": "release-results-0.3.0-breadth-worker-artifact-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-worker-artifact-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/worker-ci.json",
+      "sha256": "00f4bc9692e3fd5c8a891a103ee32a4a4e41ffe39072dab0a3c6f28156272ade",
+      "size": 20213,
+      "asset": "release-results-0.3.0-breadth-worker-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-worker-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/breadth/worker-cost.json",
+      "sha256": "5dfa5915488a4fb2a60de4b54529ce66d92ae32c0d8ef6558f1740f1f8c4fc32",
+      "size": 2469,
+      "asset": "release-results-0.3.0-breadth-worker-cost.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-breadth-worker-cost.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/cargo-audit.json",
+      "sha256": "084ceb0312354c6406036f5d9323bb407cc338db08a381c98c173f3d98b15e5a",
+      "size": 374,
+      "asset": "release-results-0.3.0-cargo-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-cargo-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/core-provenance.json",
+      "sha256": "40b9d1f10edbb8c9d42b3a9be5b9c07540f4d18d8a043ab76b628b415bd317f0",
+      "size": 3044,
+      "asset": "release-results-0.3.0-core-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-core-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/govulncheck.txt",
+      "sha256": "ab22aef411866c1aa583cfd8a7261953d4fe967ad8722b6bd8ebf81d2b5f65d4",
+      "size": 3490,
+      "asset": "release-results-0.3.0-govulncheck.txt",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-govulncheck.txt"
+    },
+    {
+      "path": "tests/release/results/0.3.0/offline-production-combined.json",
+      "sha256": "140b5cb30c6e213dc3066b22cd030db67f2f6b287b1c93f429ca7cc6b8d378c2",
+      "size": 20243,
+      "asset": "release-results-0.3.0-offline-production-combined.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-offline-production-combined.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/race-tests.log",
+      "sha256": "743a22d7103dbc6c99996304a3d36c5ed51da21d9fca00e92b84a3d07f17a269",
+      "size": 451,
+      "asset": "release-results-0.3.0-race-tests.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-race-tests.log"
+    },
+    {
+      "path": "tests/release/results/0.3.0/runtime-ci.json",
+      "sha256": "344774005aace207e1bc8601710c1fd1da16883a48cdd83d00fe82fb9d03b3f7",
+      "size": 2277,
+      "asset": "release-results-0.3.0-runtime-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-runtime-ci.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/staged/README.md",
+      "sha256": "8a2db30d21e3d84b1b0269594b013d74b0c5e750ff1ec2742fda15af5bea3595",
+      "size": 3490,
+      "asset": "release-results-0.3.0-staged-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-staged-README.md"
+    },
+    {
+      "path": "tests/release/results/0.3.0/twine-check.log",
+      "sha256": "97b563a3a173ae1c1f5173cf85cafad425c96ee27ef246424383b97b625bacd8",
+      "size": 676,
+      "asset": "release-results-0.3.0-twine-check.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-twine-check.log"
+    },
+    {
+      "path": "tests/release/results/0.3.0/wheel-SHA256SUMS",
+      "sha256": "3a2c31b529e1287ce51aa05eb9c33c73b759954be90b7f356a3fae62b87f2548",
+      "size": 779,
+      "asset": "release-results-0.3.0-wheel-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-wheel-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/0.3.0/wheel-provenance.json",
+      "sha256": "831fac090d2ccd18bc0d21a21b1aa4cae096eb5b28c1667335d1ee34744ad06d",
+      "size": 4287,
+      "asset": "release-results-0.3.0-wheel-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-wheel-provenance.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/wheel-smoke.json",
+      "sha256": "90c698846f698aecb7776b6bb681b36d6448ec8e0091b2a9d805d082862feeb0",
+      "size": 113215,
+      "asset": "release-results-0.3.0-wheel-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-wheel-smoke.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/worker-artifact-audit.json",
+      "sha256": "c44009cec0f09db9cbf447773ae8e134bec7a9d12233789b58a70cda29dcb227",
+      "size": 14489,
+      "asset": "release-results-0.3.0-worker-artifact-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-worker-artifact-audit.json"
+    },
+    {
+      "path": "tests/release/results/0.3.0/worker-ci.json",
+      "sha256": "433b8479492e9a38c0b412e86ccacd108a2e47b376b65854fd741840b98bb312",
+      "size": 12574,
+      "asset": "release-results-0.3.0-worker-ci.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-0.3.0-worker-ci.json"
+    },
+    {
+      "path": "tests/release/results/README.md",
+      "sha256": "4e121548c2dd2ff0ae4eca1346ae3e56b65a915517acd9388b636e83257da48f",
+      "size": 1770,
+      "asset": "release-results-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-README.md"
+    },
+    {
+      "path": "tests/release/results/checks.json",
+      "sha256": "99d28f0b8cac753708ad639492fbf787f5b140d7cae43b5381242db984f346b0",
+      "size": 1402,
+      "asset": "release-results-checks.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-checks.json"
+    },
+    {
+      "path": "tests/release/results/cross-builds.json",
+      "sha256": "619970f4ca392988c1eb835451a56d8b02a7ffc113741fbb8244fe0c720085c1",
+      "size": 2287,
+      "asset": "release-results-cross-builds.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-cross-builds.json"
+    },
+    {
+      "path": "tests/release/results/docker-smoke.json",
+      "sha256": "f458ed89f2732ac9788ec199ae654f0e67502977c884359ca121d5607ee78e68",
+      "size": 3757,
+      "asset": "release-results-docker-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-docker-smoke.json"
+    },
+    {
+      "path": "tests/release/results/final/README.md",
+      "sha256": "74ec4d38dc9f26d728e294bca6980e0aae6a3b0a2695f65766390a949757fa31",
+      "size": 4357,
+      "asset": "release-results-final-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-final-README.md"
+    },
+    {
+      "path": "tests/release/results/final/SHA256SUMS.json",
+      "sha256": "c51940c86ebbb025f066cd95fc81cd8902d75ea639a3c291edcc212a1bbe4120",
+      "size": 30711,
+      "asset": "release-results-final-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-final-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/release/results/final/audit.json",
+      "sha256": "dbf0dc84932783d1ca189d92406232bb2ce3f3a3a21bbafcf15e23c1504221f4",
+      "size": 2463,
+      "asset": "release-results-final-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-final-audit.json"
+    },
+    {
+      "path": "tests/release/results/final/evidence.tar.gz",
+      "sha256": "0d10d5f99ac12ac8c143cc61cec4057deb7e104f107d4eb823bbc5a26e88bdbb",
+      "size": 4173134,
+      "asset": "release-results-final-evidence.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-final-evidence.tar.gz"
+    },
+    {
+      "path": "tests/release/results/final/portability.json",
+      "sha256": "3891b30ac8371e31a201d16eb102a11e75b67e302269faa6136e06ecc4f641ea",
+      "size": 1283,
+      "asset": "release-results-final-portability.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-final-portability.json"
+    },
+    {
+      "path": "tests/release/results/functions-darwin-arm64-breadth.json",
+      "sha256": "a1d55dece2bc5547e70b2d026a38d449ea10d5e665bcf02453c4644897fb8953",
+      "size": 16738,
+      "asset": "release-results-functions-darwin-arm64-breadth.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-functions-darwin-arm64-breadth.json"
+    },
+    {
+      "path": "tests/release/results/functions-darwin-arm64-functions-with-old-worker.json",
+      "sha256": "c1a7363282ea2177fdb65da72b30999721e07a76e5c374594c82f9cd1799af49",
+      "size": 6973,
+      "asset": "release-results-functions-darwin-arm64-functions-with-old-worker.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-functions-darwin-arm64-functions-with-old-worker.json"
+    },
+    {
+      "path": "tests/release/results/functions-darwin-arm64-functions.json",
+      "sha256": "41921a2ab080c57a50041b6db1e90838409a665b1a927f3f270cb12531ed6f1f",
+      "size": 6777,
+      "asset": "release-results-functions-darwin-arm64-functions.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-functions-darwin-arm64-functions.json"
+    },
+    {
+      "path": "tests/release/results/functions-v030-darwin-arm64.json",
+      "sha256": "f9d88f263a2f5f956aacc686c1e42f4a453cea0f24e2007c8590cb7e36c92be6",
+      "size": 3742,
+      "asset": "release-results-functions-v030-darwin-arm64.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-functions-v030-darwin-arm64.json"
+    },
+    {
+      "path": "tests/release/results/linux-amd64-smoke.json",
+      "sha256": "2e411a1544133babff8cffaf22bbb8a0f28ebb7caa910a8d991bfefb640fb48a",
+      "size": 1367,
+      "asset": "release-results-linux-amd64-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-linux-amd64-smoke.json"
+    },
+    {
+      "path": "tests/release/results/linux-race.txt",
+      "sha256": "e35e0b3e45633654649b290305e5f8f367f4b4da6e8993ec331762fb2d056de8",
+      "size": 427,
+      "asset": "release-results-linux-race.txt",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-linux-race.txt"
+    },
+    {
+      "path": "tests/release/results/rc1-archives.json",
+      "sha256": "52d700dcafd039fad6990a523f8a8a66f2f7d6ef193ecd8eb7148793206155d7",
+      "size": 1792,
+      "asset": "release-results-rc1-archives.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rc1-archives.json"
+    },
+    {
+      "path": "tests/release/results/rename/README.md",
+      "sha256": "3a3d2d89c4d026cbf30b94e5d8b61cbc19df4dc82c6469fb168dfc5c60b6a303",
+      "size": 1312,
+      "asset": "release-results-rename-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-README.md"
+    },
+    {
+      "path": "tests/release/results/rename/SHA256SUMS.json",
+      "sha256": "2e8f8c76513a8aae2de8210b4fd6d4bd179f4a3280c7e190f64a62c6f54422db",
+      "size": 812,
+      "asset": "release-results-rename-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/release/results/rename/amd64-smoke.json",
+      "sha256": "8f24c9b9792d4eec78277d5cdbb9dad92e25516bb4895aaa36498b51d6ca5b09",
+      "size": 1532,
+      "asset": "release-results-rename-amd64-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-amd64-smoke.json"
+    },
+    {
+      "path": "tests/release/results/rename/archive-SHA256SUMS",
+      "sha256": "8e4a5ac4172e0946b1fe7e7196b06381a0cd53a803e6f47115748fb69253a192",
+      "size": 491,
+      "asset": "release-results-rename-archive-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-archive-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/rename/conformance-review.json",
+      "sha256": "94d16fc1f0e954885c6ba428e5d1a9183cfe10087aa12dfe96cbd09d753af69d",
+      "size": 971,
+      "asset": "release-results-rename-conformance-review.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-conformance-review.json"
+    },
+    {
+      "path": "tests/release/results/rename/conformance.json",
+      "sha256": "dcbf7d66c9746b4fb5d818dcd68209035c2f07aa9b4c900a08b1dab0fa0d7c48",
+      "size": 356506,
+      "asset": "release-results-rename-conformance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-conformance.json"
+    },
+    {
+      "path": "tests/release/results/rename/conformance.md",
+      "sha256": "f380f14f3f0b2a1f3ec871987ad04ce1122746904d3726519ed1151fd7d4a6be",
+      "size": 3683,
+      "asset": "release-results-rename-conformance.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-conformance.md"
+    },
+    {
+      "path": "tests/release/results/rename/docker-smoke.json",
+      "sha256": "7f61c2c1957e1e06c2b8095065b20dbf03bf2d522d927fbeefee412bd0415f71",
+      "size": 3747,
+      "asset": "release-results-rename-docker-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-docker-smoke.json"
+    },
+    {
+      "path": "tests/release/results/rename/provenance.json",
+      "sha256": "869456e5e2a7f793974c906e6882554649f2012e27b039ba7c6ce7f6dc95e46a",
+      "size": 2947,
+      "asset": "release-results-rename-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-provenance.json"
+    },
+    {
+      "path": "tests/release/results/rename/validation.json",
+      "sha256": "e57751e7312b13ee87f61de240dc325c0ad2fc9b111d72c26800edc3d6721b08",
+      "size": 1418,
+      "asset": "release-results-rename-validation.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-rename-validation.json"
+    },
+    {
+      "path": "tests/release/results/scaffold-checks.json",
+      "sha256": "6764b941b7b2fb8082d353d32de33f5311cf55c61646d6f9868ce6a27511b75d",
+      "size": 1311,
+      "asset": "release-results-scaffold-checks.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-scaffold-checks.json"
+    },
+    {
+      "path": "tests/release/results/v040-local-gates/v040-clippy-pinned.log",
+      "sha256": "8a2318ddd71ac31fd7727ffd960afab4325c42dc80e301e2586f679d131894ba",
+      "size": 176,
+      "asset": "release-results-v040-local-gates-v040-clippy-pinned.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-v040-local-gates-v040-clippy-pinned.log"
+    },
+    {
+      "path": "tests/release/results/v040-local-gates/v040-clippy.log",
+      "sha256": "44a811547850b2e6b49ef3067d0dabfc0b41d147f3c7f9a6ed9050577e7be577",
+      "size": 558,
+      "asset": "release-results-v040-local-gates-v040-clippy.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-v040-local-gates-v040-clippy.log"
+    },
+    {
+      "path": "tests/release/results/v040-local-gates/v040-final-source-race.log",
+      "sha256": "012472eab86e6fd9bc602556ae82a3ae583de15382c42d6b98bf2ebe357890ee",
+      "size": 705,
+      "asset": "release-results-v040-local-gates-v040-final-source-race.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-v040-local-gates-v040-final-source-race.log"
+    },
+    {
+      "path": "tests/release/results/v040-local-gates/v040-release-contracts.log",
+      "sha256": "3ff955ed995703d1e69107d2d949def49b37065f7a9a8a5d3e4029d78b5ea3e6",
+      "size": 166,
+      "asset": "release-results-v040-local-gates-v040-release-contracts.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-v040-local-gates-v040-release-contracts.log"
+    },
+    {
+      "path": "tests/release/results/v040-local-gates/validation.json",
+      "sha256": "7a98ebd636c9b409c09c7b57afd22d5e28de18515f06ff5a0d0f37d5bc0136e8",
+      "size": 1614,
+      "asset": "release-results-v040-local-gates-validation.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-v040-local-gates-validation.json"
+    },
+    {
+      "path": "tests/release/results/wheels/README.md",
+      "sha256": "e0ee53d2b012525c6957432af0b03a6012d0541c402e975404fef94e0a940bdf",
+      "size": 2258,
+      "asset": "release-results-wheels-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-README.md"
+    },
+    {
+      "path": "tests/release/results/wheels/SHA256SUMS",
+      "sha256": "6fce2ade906630ce838013092d1f8548a96a062e5c4952ef0215e3208243a264",
+      "size": 779,
+      "asset": "release-results-wheels-SHA256SUMS",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-SHA256SUMS"
+    },
+    {
+      "path": "tests/release/results/wheels/evidence-SHA256SUMS.json",
+      "sha256": "4be0a50c772f72a401b25d85be66d5f98dfa1c36b78c009fe01f84142c2a0227",
+      "size": 1077,
+      "asset": "release-results-wheels-evidence-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-evidence-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/release/results/wheels/linux-smoke.json",
+      "sha256": "4fa17d194bef1e8246af2e94c999a807054859621c458778e6aea24facfe257b",
+      "size": 5386,
+      "asset": "release-results-wheels-linux-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-linux-smoke.json"
+    },
+    {
+      "path": "tests/release/results/wheels/linux-smoke.py",
+      "sha256": "c0f16dbb27dd1a0071c1b81a248e6382916c744ac8204e522894e4436edd72ff",
+      "size": 2476,
+      "asset": "release-results-wheels-linux-smoke.py",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-linux-smoke.py"
+    },
+    {
+      "path": "tests/release/results/wheels/native-smoke.json",
+      "sha256": "2a61cf21f535269b627bef035c5b73c4b9ee4f8738e2d05b6e199d1936cb3009",
+      "size": 10679,
+      "asset": "release-results-wheels-native-smoke.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-native-smoke.json"
+    },
+    {
+      "path": "tests/release/results/wheels/native-smoke.py",
+      "sha256": "30958b7a324aa4d8db68f274498a39d08a08660b4d75c7553abe8d9aed3f5c3d",
+      "size": 3306,
+      "asset": "release-results-wheels-native-smoke.py",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-native-smoke.py"
+    },
+    {
+      "path": "tests/release/results/wheels/release-provenance.json",
+      "sha256": "869456e5e2a7f793974c906e6882554649f2012e27b039ba7c6ce7f6dc95e46a",
+      "size": 2947,
+      "asset": "release-results-wheels-release-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-release-provenance.json"
+    },
+    {
+      "path": "tests/release/results/wheels/twine-check.log",
+      "sha256": "178dbedf21a90bfc6be79aedf0698112ab2e9ffd34a4cac22cbc5b1b7b942369",
+      "size": 596,
+      "asset": "release-results-wheels-twine-check.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-twine-check.log"
+    },
+    {
+      "path": "tests/release/results/wheels/twine-version.txt",
+      "sha256": "723a42f52c7064b70573e0d8ee0953ec5fb4ba18df583d43e33610b4afe79aa0",
+      "size": 126,
+      "asset": "release-results-wheels-twine-version.txt",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-twine-version.txt"
+    },
+    {
+      "path": "tests/release/results/wheels/unit-tests.log",
+      "sha256": "1260c0a98a49b6f7dafeeb222c58e69d49ad271419562a84fc6f2045dbc3b539",
+      "size": 106,
+      "asset": "release-results-wheels-unit-tests.log",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-unit-tests.log"
+    },
+    {
+      "path": "tests/release/results/wheels/validation.json",
+      "sha256": "3b77c437435e24f7d50f5a33a21aac72c813564c44863a1cd027985be629785e",
+      "size": 888,
+      "asset": "release-results-wheels-validation.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-validation.json"
+    },
+    {
+      "path": "tests/release/results/wheels/wheel-provenance.json",
+      "sha256": "c9959ec2426909d7337b9169ab26136e9b945e60e598f2fa950a54398211bb47",
+      "size": 4287,
+      "asset": "release-results-wheels-wheel-provenance.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/release-results-wheels-wheel-provenance.json"
+    },
+    {
+      "path": "tests/stress/results/README.md",
+      "sha256": "f92abf5488ef71109d789ef53df7fd544813e32dd4b70d140078f516cc43b3f7",
+      "size": 8248,
+      "asset": "stress-results-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-README.md"
+    },
+    {
+      "path": "tests/stress/results/archive-sha256.json",
+      "sha256": "b2917822588f240bb9f7137d683922983bb503f64a90ff5be32dadcf539b4830",
+      "size": 203,
+      "asset": "stress-results-archive-sha256.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-archive-sha256.json"
+    },
+    {
+      "path": "tests/stress/results/audit-receipt.json",
+      "sha256": "ab0f48857b04b17520ceade9b83ed6b5909facf7e649137dbe4d1c441349f741",
+      "size": 2096,
+      "asset": "stress-results-audit-receipt.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-audit-receipt.json"
+    },
+    {
+      "path": "tests/stress/results/comparison.json",
+      "sha256": "06b8979612b232460f89e77ec15f02482bf2d1a135228b7a9969f1b06843b620",
+      "size": 245231,
+      "asset": "stress-results-comparison.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-comparison.json"
+    },
+    {
+      "path": "tests/stress/results/correctness-artifacts.tar.gz",
+      "sha256": "2f6bef6f39056c48a8642b3ea7c237792b210aea264c19be2353b29ce1f75d3f",
+      "size": 848919,
+      "asset": "stress-results-correctness-artifacts.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-correctness-artifacts.tar.gz"
+    },
+    {
+      "path": "tests/stress/results/final/README.md",
+      "sha256": "7b73630887e7a7a699a8df6c4ce587a30726624f3e730fb10d08ee4208f85359",
+      "size": 9332,
+      "asset": "stress-results-final-README.md",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-README.md"
+    },
+    {
+      "path": "tests/stress/results/final/SHA256SUMS.json",
+      "sha256": "7cd251cfc90a4b3b6b39960739ef0c7ba07d9571a4d381a035d1e00e55197818",
+      "size": 667,
+      "asset": "stress-results-final-SHA256SUMS.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-SHA256SUMS.json"
+    },
+    {
+      "path": "tests/stress/results/final/archive-sha256.json",
+      "sha256": "73516f8bdaf484350c17cefefdce1664c75c5e1bb6d2d2e1f331f7180d3b7d7d",
+      "size": 203,
+      "asset": "stress-results-final-archive-sha256.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-archive-sha256.json"
+    },
+    {
+      "path": "tests/stress/results/final/comparison.json",
+      "sha256": "a8d68656e59b7136328e2db53175f2f6f76a179b9a30820ad13ce4e203c4e2e3",
+      "size": 248073,
+      "asset": "stress-results-final-comparison.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-comparison.json"
+    },
+    {
+      "path": "tests/stress/results/final/correctness-artifacts.tar.gz",
+      "sha256": "0081cce92327450ef896ddc7b141673f1dfb835be32ca258e1d19ac7fb3d6522",
+      "size": 848934,
+      "asset": "stress-results-final-correctness-artifacts.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-correctness-artifacts.tar.gz"
+    },
+    {
+      "path": "tests/stress/results/final/fixture-manifest.json.gz",
+      "sha256": "4454b3ef793580e738e871822a763cd197a5335fdfb98e9d126b7be75e0ea55c",
+      "size": 9677312,
+      "asset": "stress-results-final-fixture-manifest.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-fixture-manifest.json.gz"
+    },
+    {
+      "path": "tests/stress/results/final/independent-audit.json",
+      "sha256": "eb9869edf43f7484c1cf5d404fb7d0e9940173078177c0058340033378cc220d",
+      "size": 2144,
+      "asset": "stress-results-final-independent-audit.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-independent-audit.json"
+    },
+    {
+      "path": "tests/stress/results/final/packaging-source-binding.json",
+      "sha256": "f8e721010924bf3d910892b699b8204012de4518ef41fc581af25348bdb5df5d",
+      "size": 9747,
+      "asset": "stress-results-final-packaging-source-binding.json",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-final-packaging-source-binding.json"
+    },
+    {
+      "path": "tests/stress/results/fixture-manifest.json.gz",
+      "sha256": "4454b3ef793580e738e871822a763cd197a5335fdfb98e9d126b7be75e0ea55c",
+      "size": 9677312,
+      "asset": "stress-results-fixture-manifest.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-fixture-manifest.json.gz"
+    },
+    {
+      "path": "tests/stress/results/go.mod",
+      "sha256": "7e3a566fbbb49797350c92ea20c29dc7babe872581872547e9ee7c3a933d7e83",
+      "size": 73,
+      "asset": "stress-results-go.mod",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/stress-results-go.mod"
+    }
+  ]
+}

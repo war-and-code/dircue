@@ -473,9 +473,9 @@ Note that this project was renamed from **auragaze** to **dircue** before public
 
 The 0.1 release candidate matched Linguist 9.7.0 language totals and file breakdowns on all 11 pinned public projects. In the recorded Linux arm64 Docker run, median execution was **5.38–14.66× faster**: **9.99×** for Spring Framework, **7.05×** for Roslyn, and **8.21×** for ASP.NET Core. These are measurements of those checkouts and commands, not a guarantee for every repository or host. Peak memory was higher on several large projects; Roslyn used about 345 MiB versus Linguist's 223 MiB.
 
-See the [final public-project evidence](tests/performance/results/final/README.md), [final scale evidence](tests/stress/results/final/README.md), and [release validation](tests/release/results/final/README.md) for raw measurements, source identities, checks and limitations. Historical RC1 results remain available separately.
+The final public-project evidence, final scale evidence, and release validation record raw measurements, source identities, checks and limitations. These files are archived in the [evidence-archive-1 release](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1); restore them locally with `make fetch-receipts`. Historical RC1 results remain available separately.
 
-The maintained classifier's `GetLanguage` calls were **1.64× faster** on full sample contents and **1.71× faster** on 128 KiB prefixes than upstream Enry v2.9.6 in the controlled library comparison. The [Enry comparison](tests/enry-performance/results/final/README.md) also records CLI timings, differing language policies, and memory costs. Three comparisons against the published Enry CLI were inconclusive, and many scenarios produce different outputs under Enry's defaults.
+The maintained classifier's `GetLanguage` calls were **1.64× faster** on full sample contents and **1.71× faster** on 128 KiB prefixes than upstream Enry v2.9.6 in the controlled library comparison. The Enry comparison also records CLI timings, differing language policies, and memory costs. Three comparisons against the published Enry CLI were inconclusive, and many scenarios produce different outputs under Enry's defaults.
 
 ```sh
 go test -race ./...

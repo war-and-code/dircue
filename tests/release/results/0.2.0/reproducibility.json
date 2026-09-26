@@ -1,9 +1,0 @@
-{
-  "git_revision": "4e6c46d3558f57711cde7034ce0b73df8a2f25ff",
-  "git_tree": "e0aef431b0b40bd2de1d3e838445e270725ab20c",
-  "archive": "dircue_0.2.0_linux_arm64.tar.gz",
-  "sha256": "10d0fb645b9c503204e28fc10cf279e09ea02f102a8b252edbf2a40556d6240a",
-  "identical_archive_bytes": true,
-  "separate_fresh_module_and_build_caches": true,
-  "command": "python3 scripts/release.py --version 0.2.0 --target linux/arm64 --output dist/release-0.2.0-reproduced"
-}

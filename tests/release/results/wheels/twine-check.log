@@ -1,8 +1,0 @@
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_arm64.whl: PASSED
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-macosx_12_0_x86_64.whl: PASSED
-Checking 
-dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-manylinux_2_17_aarch64.whl: PASSED
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-manylinux_2_17_x86_64.whl:PASSED
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-musllinux_1_2_aarch64.whl:PASSED
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-musllinux_1_2_x86_64.whl: PASSED
-Checking dist/dircue-wheels-rc3/dircue-0.1.0-py3-none-win_amd64.whl: PASSED

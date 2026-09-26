@@ -1,9 +1,0 @@
-{
-  "schema_version": "1.0.0",
-  "complete": true,
-  "source_revision": "30adb1e7ad8f5fa09bbcfeb4122d1665df07fa0a",
-  "archive_sha256": "ed322339aeafc6ffcc93f68f792e18637b491ce00661fd8f3c5562a95fee4ebe",
-  "files": 1013,
-  "uncompressed_bytes": 1900865,
-  "verification": "Every archived member read back and compared byte-for-byte; manifest records individual hashes. No benchmark rerun during packaging."
-}
