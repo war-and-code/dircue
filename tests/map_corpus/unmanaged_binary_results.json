@@ -5,9 +5,9 @@
   },
   "claims": {
     "package_identity": "not inferred from the binary file role; any package nodes are reported as tool observations only",
-    "repository_population": "not measured; only one manifest/project file and one referenced binary per pinned repository are included"
+    "repository_population": "not measured; only the referenced binary and its bounded declaration files per pinned repository are included"
   },
-  "dircue_binary_sha256": "56ca0172160aeb175e98403640331d608faeee16f613a541223c54560323f402",
+  "dircue_binary_sha256": "59faf4a4a70309eb944658a717936cca0c800712f1548c4dde73d70cbacc0894",
   "opt_in": true,
   "results": [
     {
@@ -102,6 +102,7 @@
       "id": "zdh-web-local-jar",
       "manifest": "pom.xml",
       "manifest_reference_verified": true,
+      "manifest_sha256": "43f9206448572daeb5c9a9eb1f9902b34c1c19757d0bc8a0abec7bedf5d11646",
       "package_identity_claimed": false,
       "repo": "zhaoyachao/zdh_web",
       "role": "Maven system-scope local JAR reference",
@@ -111,6 +112,16 @@
       "binary": "dev/libs/netfx/pyRevitLabs.Json.dll",
       "binary_sha256": "8eedc650cdb204ae8b1cf7f1c3b47e29d2617b875c10b48140b0e34381dfbeb3",
       "binary_size": 699392,
+      "build_targets": "dev/Directory.Build.targets",
+      "build_targets_sha256": "bf6abd1cd2d6345201db43341aabf9883919571a17af032d313f0d1d30382bda",
+      "build_variable_resolution": {
+        "NetFolder": "netfx",
+        "PyRevitDevLibsDir": "<repository-root>/dev/libs/netfx",
+        "build_logic_executed": false,
+        "method": "static_property_substitution",
+        "resolved_reference": "<repository-root>/dev/libs/netfx/pyRevitLabs.Json.dll",
+        "target_framework": "net48"
+      },
       "commit": "6294cf9c477130eadd73b9d156784f7a5553b4cd",
       "dircue_map": {
         "content_roles": {
@@ -198,6 +209,7 @@
       "id": "pyrevit-local-dll",
       "manifest": "dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj",
       "manifest_reference_verified": true,
+      "manifest_sha256": "023c8ddaf739d23aea4480e64c0f399f4a7a8abf2e9aef98c755803cea58d703",
       "package_identity_claimed": false,
       "repo": "pyrevitlabs/pyRevit",
       "role": ".NET HintPath reference to checked-in managed DLL",

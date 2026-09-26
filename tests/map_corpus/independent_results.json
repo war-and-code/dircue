@@ -1,0 +1,201 @@
+{
+  "binary_sha256": "59faf4a4a70309eb944658a717936cca0c800712f1548c4dde73d70cbacc0894",
+  "method": "source-first labels committed before first candidate map; precision only for exhaustive oracle categories",
+  "repos": [
+    {
+      "label_sha256": "fc72b58deb7034fa0c025108d29cee5f931a51584500e9642f1035e8a642a91f",
+      "map_sha256": "40371ed1be948eecc0e0db6e1bf1ff970b2c3844815ac27d1f8c2312afe9746f",
+      "oracle_file_count": 7,
+      "questions": {
+        "capabilities": {
+          "found": 0,
+          "found_items": [],
+          "missed": 3,
+          "missed_items": [
+            "capability=Flask web framework owner=services/web path=services/web/project/__init__.py",
+            "capability=SQLAlchemy ORM owner=services/web path=services/web/project/__init__.py",
+            "capability=PostgreSQL database owner=services/web path=docker-compose.yml"
+          ],
+          "question": "capabilities",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.0,
+          "unadjudicated_extra_observations": 1
+        },
+        "components": {
+          "found": 0,
+          "found_items": [],
+          "missed": 1,
+          "missed_items": [
+            "name=services/web eco=python root=services/web"
+          ],
+          "question": "components",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.0,
+          "unadjudicated_extra_observations": 1
+        },
+        "coverage": {
+          "found": 4,
+          "found_items": [
+            "question=components status=partial",
+            "question=deployables status=partial",
+            "question=interfaces status=partial",
+            "question=capabilities status=partial"
+          ],
+          "missed": 0,
+          "missed_items": [],
+          "question": "coverage",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 1.0
+        },
+        "deployables": {
+          "found": 2,
+          "found_items": [
+            "kind=service name=web",
+            "kind=service name=db"
+          ],
+          "missed": 1,
+          "missed_items": [
+            "kind=container_build name=services/web path=services/web/Dockerfile"
+          ],
+          "question": "deployables",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.6667,
+          "unadjudicated_extra_observations": 1
+        },
+        "edges": {
+          "found": 1,
+          "found_items": [
+            "type=depends_on from=web to=db"
+          ],
+          "missed": 7,
+          "missed_items": [
+            "type=builds from=web to=services/web",
+            "type=contains from=web to=services/web",
+            "type=declares from=services/web to=app",
+            "type=exposes from=web to=5000",
+            "type=uses_capability from=services/web to=Flask web framework",
+            "type=uses_capability from=services/web to=SQLAlchemy ORM",
+            "type=uses_capability from=services/web to=PostgreSQL database"
+          ],
+          "question": "edges",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.125,
+          "unadjudicated_extra_observations": 5
+        },
+        "interfaces": {
+          "found": 2,
+          "found_items": [
+            "kind=flask_application name=app",
+            "kind=declared_port name=5000"
+          ],
+          "missed": 0,
+          "missed_items": [],
+          "question": "interfaces",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 1.0,
+          "unadjudicated_extra_observations": 0
+        }
+      },
+      "repo": "flask-on-docker",
+      "scan_subdirectory": ".",
+      "upstream_commit": "c51257d182ad9c1e1b5f6addb633f74a358c0f71"
+    },
+    {
+      "label_sha256": "4684cdefbbe360066164438833be850b631e06ba88467bfd7816fceb160c1df8",
+      "map_sha256": "8941bf482954af353f995c421e5a8f9a9e15d60396b367835deb1164efe61584",
+      "oracle_file_count": 18,
+      "questions": {
+        "capabilities": {
+          "found": 0,
+          "found_items": [],
+          "missed": 2,
+          "missed_items": [
+            "capability=Spring Web MVC owner=spring-boot-docker-complete path=pom.xml",
+            "capability=Spring Web MVC owner=spring-boot-docker path=build.gradle"
+          ],
+          "question": "capabilities",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.0,
+          "unadjudicated_extra_observations": 0
+        },
+        "components": {
+          "false_positive_items": [],
+          "false_positives": 0,
+          "found": 2,
+          "found_items": [
+            "name=spring-boot-docker-complete eco=maven",
+            "name=spring-boot-docker eco=gradle"
+          ],
+          "missed": 0,
+          "missed_items": [],
+          "precision": 1.0,
+          "question": "components",
+          "scope": "exhaustive",
+          "targeted_recall": 1.0
+        },
+        "coverage": {
+          "found": 2,
+          "found_items": [
+            "question=interfaces status=partial",
+            "question=capabilities status=partial"
+          ],
+          "missed": 2,
+          "missed_items": [
+            "question=components: label=complete but dircue=partial (conservative)",
+            "question=deployables: label=complete but dircue=partial (conservative)"
+          ],
+          "question": "coverage",
+          "scope": "exhaustive",
+          "targeted_recall": 0.5
+        },
+        "deployables": {
+          "false_positive_items": [],
+          "false_positives": 0,
+          "found": 1,
+          "found_items": [
+            "kind=container_build name=Dockerfile"
+          ],
+          "missed": 0,
+          "missed_items": [],
+          "precision": 1.0,
+          "question": "deployables",
+          "scope": "exhaustive",
+          "targeted_recall": 1.0
+        },
+        "edges": {
+          "found": 1,
+          "found_items": [
+            "type=builds from=Dockerfile to=spring-boot-docker-complete"
+          ],
+          "missed": 2,
+          "missed_items": [
+            "type=uses_capability from=spring-boot-docker-complete to=Spring Web MVC",
+            "type=uses_capability from=spring-boot-docker to=Spring Web MVC"
+          ],
+          "question": "edges",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.3333,
+          "unadjudicated_extra_observations": 1
+        },
+        "interfaces": {
+          "found": 0,
+          "found_items": [],
+          "missed": 3,
+          "missed_items": [
+            "kind=spring_boot_application name=hello.Application path=src/main/java/hello/Application.java",
+            "kind=main_class name=hello.Application path=src/main/java/hello/Application.java",
+            "kind=main_class name=MavenWrapperDownloader path=.mvn/wrapper/MavenWrapperDownloader.java"
+          ],
+          "question": "interfaces",
+          "scope": "targeted_recall_only",
+          "targeted_recall": 0.0,
+          "unadjudicated_extra_observations": 2
+        }
+      },
+      "repo": "gs-spring-boot-docker-complete",
+      "scan_subdirectory": "complete",
+      "upstream_commit": "8f42f5812e8b62bc31b092a8767a5073bbc786e0"
+    }
+  ],
+  "schema": "dircue-independent-source-holdout-0.1"
+}

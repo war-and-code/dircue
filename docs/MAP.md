@@ -40,6 +40,42 @@ containment, and provider analysis. A relationship means only what its type
 and evidence establish. For example, a declaration can establish a local
 reference without proving that the project builds.
 
+A Dockerfile normally links to the component at its directory. A statically
+recognized `COPY` source can instead attribute its `builds` edge to a Maven
+WAR/EAR component when the source path identifies the module and the source
+uniquely names that module's archive. A direct context copy must occur in the
+final build stage and survive later writes. For `COPY --from`, attribution
+also requires a surviving copy in the final stage, a local source stage, and a
+tracked path back to the module's `target/` artifact. Docker build-context
+`COPY` paths are relative to the build-context root. A nested Dockerfile does
+not establish where that context begins, so its `COPY` paths do not establish
+Maven module ownership. Stage paths are relative to that stage's filesystem
+root. The final stage is the one whose `FROM` appears last in the file. The
+bounded path trace follows static destinations and supported `WORKDIR` and
+two-operand `cp` forms. Any write that could replace the traced archive blocks
+attribution: a later `COPY` or `ADD` into the same path or a parent directory,
+a `COPY` with an unreadable source or destination, an unresolved path, or a
+`RUN` command outside a small vetted set. The vetted set is Maven lifecycle
+phases (any other word, such as the plugin goal `dependency:copy`, blocks;
+variables are expanded from static `ARG` and `ENV` defaults and inline
+assignments, and a variable with no static value, such as a build argument
+supplied at build time, is accepted unread), `mkdir`, `chmod`, `chown`, `rm`
+and `cp` on unrelated absolute paths, and OS package manager operations
+(`apt-get`, `apk`, `yum`, `dnf`), which are assumed not to write the build
+output being traced. A `RUN` command joined by `;`, `|`, `||`, a background
+`&`, redirection or command substitution is not vetted. A copied source ending
+in `/`, without an extension, or with a directory-like suffix such as `.d` is
+treated as a directory that may write anywhere below its destination. When an
+archive is copied to a destination without a trailing slash, both the file and
+the directory reading of that destination must survive. Only the Maven
+component in the POM's directory can own its archive. This attribution remains
+partial: it does not interpret build arguments, ignore rules, arbitrary shell
+commands, or Maven output. Ambiguous or unresolved sources do not establish an
+archive owner; the directory-based link remains when no other source
+establishes one. The `copy_source` and `copy_source_stage` fact kinds record
+context and stage copy sources, respectively; the archive relationship uses
+the reason `dockerfile_copy_source_matches_maven_archive`.
+
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
 can be compared across maps of the same logical content, but an ID is not a
@@ -57,6 +93,7 @@ keys for future producers.
 | Deployable | `kind`, `provider`, `source_sha256`; auxiliary path roles use the same `role` keys. Archive deployables (Maven WAR/EAR) also carry `format` (`war` or `ear`). |
 | Interface or capability | `observation_kind`, `state`, `basis`; detector-specific structural keys identify the declaration without storing configuration values. `owning_component` holds the ID of the declaring component node when determinable. |
 | Capability | In addition to the interface/capability keys: `evidence_path_count` is the total number of source paths that contributed observations, capped display at 20 in `evidence`; `declared_port` is set to the port string for `interface_kind: declared_port` nodes. |
+| Main-class interface | Maven and Gradle main-class declarations use `interface_kind: maven_main_class` and `gradle_main_class`; their node names are the statically declared class names. |
 | Package | `package_type` from the attached provider report. |
 
 ### Edge semantics

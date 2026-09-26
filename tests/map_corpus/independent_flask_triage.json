@@ -1,0 +1,105 @@
+{
+  "schema": "dircue-independent-flask-triage-0.1",
+  "repo": "flask-on-docker",
+  "upstream_commit": "c51257d182ad9c1e1b5f6addb633f74a358c0f71",
+  "receipt": "independent_results.json",
+  "map_sha256": "40371ed1be948eecc0e0db6e1bf1ff970b2c3844815ac27d1f8c2312afe9746f",
+  "entries": [
+    {
+      "question": "components",
+      "missed_fact": "name=services/web eco=python root=services/web",
+      "category": "equivalent_observation_under_different_name_or_vocabulary",
+      "source": [{"path": "services/web/requirements.txt", "lines": "1-4"}, {"path": "services/web/manage.py", "lines": "1-3"}],
+      "map_observations": [{"selector": "node kind=component name=web discriminator=python paths includes services/web", "evidence": "services/web/requirements.txt"}],
+      "rationale": "The map component has the labeled Python ecosystem and root; only its display name is web rather than services/web."
+    },
+    {
+      "question": "deployables",
+      "missed_fact": "kind=container_build name=services/web path=services/web/Dockerfile",
+      "category": "equivalent_observation_under_different_name_or_vocabulary",
+      "source": [{"path": "services/web/Dockerfile", "lines": "2,16-20,23"}],
+      "map_observations": [{"selector": "node kind=deployable name=web properties.kind=container_build paths includes services/web/Dockerfile", "evidence": "services/web/Dockerfile"}],
+      "rationale": "The same Dockerfile and deployable kind are observed; the map names the build web, not services/web."
+    },
+    {
+      "question": "capabilities",
+      "missed_fact": "capability=Flask web framework owner=services/web path=services/web/project/__init__.py",
+      "category": "real_map_miss",
+      "source": [{"path": "services/web/project/__init__.py", "lines": "3-8"}, {"path": "services/web/requirements.txt", "lines": "1"}],
+      "map_observations": [],
+      "rationale": "The map records declared requirements as component facts but emits no Flask framework capability observation."
+    },
+    {
+      "question": "capabilities",
+      "missed_fact": "capability=SQLAlchemy ORM owner=services/web path=services/web/project/__init__.py",
+      "category": "real_map_miss",
+      "source": [{"path": "services/web/project/__init__.py", "lines": "9,15"}, {"path": "services/web/requirements.txt", "lines": "2"}],
+      "map_observations": [],
+      "rationale": "The map records Flask-SQLAlchemy as a declared requirement fact but emits no SQLAlchemy ORM capability observation."
+    },
+    {
+      "question": "capabilities",
+      "missed_fact": "capability=PostgreSQL database owner=services/web path=docker-compose.yml",
+      "category": "unresolved",
+      "source": [{"path": "docker-compose.yml", "lines": "15-22"}, {"path": "services/web/requirements.txt", "lines": "4"}, {"path": "services/web/entrypoint.sh", "lines": "3-12"}, {"path": "services/web/project/config.py", "lines": "8"}],
+      "map_observations": [{"selector": "node kind=capability name=datastore:postgresql paths includes services/web/requirements.txt", "evidence": "services/web/requirements.txt"}],
+      "rationale": "The label is anchored to the Compose postgres:13 service, but the map capability is anchored to the psycopg2-binary requirement. Config defaults to SQLite and env samples are outside the oracle, so the two observations may describe supported PostgreSQL capability without proving the same declaration or default runtime selection."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=builds from=web to=services/web",
+      "category": "equivalent_observation_under_different_name_or_vocabulary",
+      "source": [{"path": "docker-compose.yml", "lines": "4-5"}],
+      "map_observations": [{"selector": "edge type=builds from deployable web to component web discriminator begins build_context:services/web"}],
+      "rationale": "The Compose build context is services/web and the map records that build edge; the component display name is shortened to web."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=contains from=web to=services/web",
+      "category": "real_map_miss",
+      "source": [{"path": "docker-compose.yml", "lines": "4-5"}],
+      "map_observations": [],
+      "rationale": "The map records builds and runs relations for the context, but no contains relation. Those edge types are not treated as equivalent because they express different relations."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=declares from=services/web to=app",
+      "category": "equivalent_observation_under_different_name_or_vocabulary",
+      "source": [{"path": "services/web/project/__init__.py", "lines": "13"}],
+      "map_observations": [{"selector": "edge type=declares from component web to interface app discriminator=interface:services/web/project/__init__.py", "evidence": "services/web/project/__init__.py:13"}],
+      "rationale": "The declared interface and source are the same; only the component's display name differs."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=exposes from=web to=5000",
+      "category": "real_map_miss",
+      "source": [{"path": "docker-compose.yml", "lines": "9-10"}],
+      "map_observations": [],
+      "rationale": "The map emits the declared_port interface for 5000 but no edge connecting the web service to that port."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=uses_capability from=services/web to=Flask web framework",
+      "category": "real_map_miss",
+      "source": [{"path": "services/web/project/__init__.py", "lines": "3-8"}, {"path": "services/web/requirements.txt", "lines": "1"}],
+      "map_observations": [],
+      "rationale": "No Flask capability node or uses_capability edge is present in the map."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=uses_capability from=services/web to=SQLAlchemy ORM",
+      "category": "real_map_miss",
+      "source": [{"path": "services/web/project/__init__.py", "lines": "9,15"}, {"path": "services/web/requirements.txt", "lines": "2"}],
+      "map_observations": [],
+      "rationale": "No SQLAlchemy ORM capability node or uses_capability edge is present in the map."
+    },
+    {
+      "question": "edges",
+      "missed_fact": "type=uses_capability from=services/web to=PostgreSQL database",
+      "category": "unresolved",
+      "source": [{"path": "services/web/requirements.txt", "lines": "4"}, {"path": "services/web/entrypoint.sh", "lines": "3-12"}, {"path": "services/web/project/config.py", "lines": "8"}],
+      "map_observations": [{"selector": "edge type=uses_capability from component web to capability datastore:postgresql discriminator=capability:datastore:postgresql:services/web/requirements.txt", "evidence": "services/web/requirements.txt"}],
+      "rationale": "The map links the component to a datastore:postgresql capability based on the driver requirement, while the label's edge is grounded in the Compose service and conditional entrypoint. Config defaults to SQLite; the available evidence does not establish these as the same capability assertion."
+    }
+  ]
+}

@@ -8,15 +8,27 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 
 	yaml "go.yaml.in/yaml/v2"
 )
 
 var (
-	tfBlock          = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
-	dockerFrom       = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
-	dockerCopyFrom   = regexp.MustCompile(`(?i)^\s*COPY\s+--from=(\S+)\s+`)
+	tfBlock        = regexp.MustCompile(`(?m)^\s*(resource|data|module|provider|terraform)\s+"([^"]+)"(?:\s+"([^"]+)")?\s*\{`)
+	dockerFrom     = regexp.MustCompile(`(?i)^\s*FROM(?:\s+--platform=\S+)?\s+(\S+)(?:\s+AS\s+(\S+))?\s*$`)
+	dockerCopyFrom = regexp.MustCompile(`(?i)^\s*COPY\s+(?:--\S+\s+)*--from=(\S+)\s+`)
+	dockerCopy     = regexp.MustCompile(`(?i)^\s*COPY\s+(.+)$`)
+	dockerWorkdir  = regexp.MustCompile(`(?i)^\s*WORKDIR\s+(\S+)\s*$`)
+	dockerAdd      = regexp.MustCompile(`(?i)^\s*ADD\s+(.+)$`)
+	dockerArg      = regexp.MustCompile(`(?i)^\s*ARG\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$`)
+	dockerEnv      = regexp.MustCompile(`(?i)^\s*ENV\s+(.+)$`)
+	dockerVarRef   = regexp.MustCompile(`\$\{([A-Za-z_][A-Za-z0-9_]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)`)
+	dockerShellAmp = regexp.MustCompile(`(^|\s)&(\s|$)`)
+	// Only a two-operand cp can establish a source-to-destination transfer.
+	// A third path makes the final operand a directory; matching the first two
+	// would invent a transfer that the command does not perform.
+	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-a\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
 	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
 )
 
@@ -72,9 +84,31 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	// displays as "api [container_build]" rather than the opaque "default".
 	lines := strings.Split(string(content), "\n")
 	d := Definition{Kind: "container_build", Provider: "dockerfile", Name: dockerfileDisplayName(name), Coverage: "complete", Evidence: []Evidence{}, References: []Reference{}}
+	d.DockerContextUnknown = path.Dir(name) != "." && path.Dir(name) != ""
 	stages := map[string]bool{}
+	stageNamesByIndex := map[string]string{}
+	currentStage := ""
+	stageIndex := 0
+	workdir := ""
+	// Static ARG and ENV defaults let RUN checks see what a variable such as
+	// $MVN_ARGS holds. Values supplied only at build time stay unresolved.
+	vars := map[string]string{}
+	workdirKnown := false
+	inRunContinuation := false
+	lastRunWrite := -1
 	for i, line := range lines {
+		trimmedLine := strings.TrimSpace(line)
 		if m := dockerFrom.FindStringSubmatch(line); m != nil {
+			// The base image's WORKDIR is not available from Dockerfile syntax
+			// alone, so relative destinations stay unresolved until WORKDIR is set.
+			workdir, workdirKnown = "", false
+			currentStage = strconv.Itoa(stageIndex)
+			stages[currentStage] = true
+			stageIndex++
+			if m[2] != "" {
+				currentStage = strings.ToLower(m[2])
+				stageNamesByIndex[strconv.Itoa(stageIndex-1)] = currentStage
+			}
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
 				qual = "local"
@@ -83,7 +117,7 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				qual = "unresolved"
 				d.Coverage = "qualified"
 			}
-			d.References = append(d.References, Reference{Kind: "base_image_or_stage", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			d.References = append(d.References, Reference{Kind: "base_image_or_stage", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
 			// Always record the FROM line as evidence so the node is never dropped
 			// even when the build has no named stages.
 			d.Evidence = append(d.Evidence, Evidence{Field: "FROM", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"})
@@ -91,6 +125,24 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
 			}
+		} else if m := dockerArg.FindStringSubmatch(line); m != nil {
+			// Expand at declaration so chained defaults (B=$A) resolve.
+			vars[m[1]] = expandDockerVars(dockerUnquote(strings.TrimSpace(m[2])), vars)
+		} else if m := dockerEnv.FindStringSubmatch(line); m != nil {
+			pairs := dockerEnvPairs(m[1])
+			resolved := make(map[string]string, len(pairs))
+			for name, value := range pairs {
+				resolved[name] = expandDockerVars(value, vars)
+			}
+			for name, value := range resolved {
+				vars[name] = value
+			}
+		} else if m := dockerWorkdir.FindStringSubmatch(line); m != nil {
+			workdir, workdirKnown = resolveDockerDestination(workdir, workdirKnown, m[1])
+		} else if strings.HasPrefix(strings.ToUpper(trimmedLine), "WORKDIR ") {
+			// An unsupported WORKDIR form changes later relative destinations,
+			// so retaining the previous value would invent a COPY path.
+			workdir, workdirKnown = "", false
 		} else if m := dockerCopyFrom.FindStringSubmatch(line); m != nil {
 			qual := "external"
 			if stages[strings.ToLower(m[1])] {
@@ -100,7 +152,122 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				qual = "unresolved"
 				d.Coverage = "qualified"
 			}
-			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}})
+			copyFromIndex := len(d.References)
+			sourceStage := strings.ToLower(m[1])
+			if namedStage, ok := stageNamesByIndex[sourceStage]; ok {
+				sourceStage = namedStage
+			}
+			d.References = append(d.References, Reference{Kind: "copy_from", Value: bounded(m[1]), Qualification: qual, Evidence: Evidence{Field: "COPY --from", Value: bounded(m[1]), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage})
+			// A source copied from a declared build stage is stronger artifact
+			// evidence than an arbitrary path in the build context. Retain it
+			// separately so consumers can apply stricter matching rules.
+			remainder := strings.TrimSpace(strings.TrimPrefix(line, m[0]))
+			fields := strings.Fields(remainder)
+			var sources []string
+			for _, field := range fields {
+				if strings.HasPrefix(field, "--") && len(sources) == 0 {
+					continue
+				}
+				sources = append(sources, field)
+			}
+			unparsed := len(sources) < 2
+			resolvedTarget := ""
+			if len(sources) >= 2 {
+				resolvedTarget, _ = resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
+				d.References[copyFromIndex].SourcePath = bounded(sources[0])
+				d.References[copyFromIndex].TargetPath = bounded(resolvedTarget)
+				for _, source := range sources[:len(sources)-1] {
+					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						unparsed = true
+						continue
+					}
+					d.References = append(d.References, Reference{Kind: "copy_source_stage", Value: bounded(source), Qualification: qual, Evidence: Evidence{Field: "COPY --from source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourceStage: sourceStage, SourcePath: bounded(source), TargetPath: bounded(resolvedTarget)})
+				}
+			}
+			if unparsed {
+				d.DockerPathWrites = append(d.DockerPathWrites, dockerOpaqueCopy(i+1, currentStage, resolvedTarget))
+			}
+		} else if m := dockerCopy.FindStringSubmatch(line); m != nil {
+			// Keep only ordinary, static source paths. Docker's JSON form and
+			// quoted shell form are intentionally outside this bounded parser.
+			fields := strings.Fields(m[1])
+			var sources []string
+			for _, field := range fields {
+				if strings.HasPrefix(field, "--") && len(sources) == 0 {
+					continue
+				}
+				sources = append(sources, field)
+			}
+			unparsed := len(sources) < 2
+			resolvedTarget := ""
+			if len(sources) >= 2 {
+				resolvedTarget, _ = resolveDockerDestination(workdir, workdirKnown, sources[len(sources)-1])
+				for _, source := range sources[:len(sources)-1] {
+					if dynamic(source) || strings.ContainsAny(source, "[]{}\"'\\") {
+						unparsed = true
+						continue
+					}
+					ref := Reference{Kind: "copy_source", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "COPY source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, TargetPath: bounded(resolvedTarget)}
+					d.References = append(d.References, ref)
+				}
+			}
+			if unparsed {
+				d.DockerPathWrites = append(d.DockerPathWrites, dockerOpaqueCopy(i+1, currentStage, resolvedTarget))
+			}
+		} else if m := dockerAdd.FindStringSubmatch(line); m != nil {
+			fields := strings.Fields(m[1])
+			if len(fields) >= 2 {
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "add_source", Qualification: "external", Evidence: Evidence{Field: "ADD", Value: bounded(strings.Join(fields[:len(fields)-1], " ")), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, TargetPath: bounded(fields[len(fields)-1])})
+			}
+		}
+		isRunInstruction := strings.HasPrefix(strings.ToUpper(trimmedLine), "RUN ")
+		isRunContinuationLine := inRunContinuation && strings.HasPrefix(trimmedLine, "&&")
+		if inRunContinuation && !isRunInstruction && !isRunContinuationLine {
+			switch {
+			case trimmedLine == "" || strings.HasPrefix(trimmedLine, "#"):
+				// Docker drops blank and comment lines inside a continued
+				// instruction; the instruction continues on the next line.
+				continue
+			case strings.ContainsAny(trimmedLine, ";|`<>") || strings.Contains(trimmedLine, "$(") || dockerShellAmp.MatchString(trimmedLine):
+				// A separator starts a command this bounded reader does not vet.
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction_opaque", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			case lastRunWrite >= 0:
+				// Plain arguments continue the previous command, so its checks
+				// must see them (for example a Maven goal on the next line).
+				prev := &d.DockerPathWrites[lastRunWrite]
+				joined := strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(prev.Value), "\\")) + " " + expandDockerVars(trimmedLine, vars)
+				if len(joined) > DefaultStringBytes {
+					prev.Kind = "run_instruction_opaque"
+				}
+				prev.Value = bounded(joined)
+			default:
+				d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: "run_instruction_opaque", Value: bounded(trimmedLine), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			}
+		}
+		if isRunInstruction || isRunContinuationLine {
+			runText := expandDockerVars(trimmedLine, vars)
+			writeKind := "run_instruction"
+			if len(runText) > DefaultStringBytes {
+				writeKind = "run_instruction_opaque"
+			}
+			d.DockerPathWrites = append(d.DockerPathWrites, Reference{Kind: writeKind, Value: bounded(runText), Qualification: "local", Evidence: Evidence{Field: "RUN", Value: bounded(trimmedLine), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage})
+			lastRunWrite = len(d.DockerPathWrites) - 1
+			if m := dockerRunCopy.FindStringSubmatch(trimmedLine); m != nil {
+				source, target := m[1], m[2]
+				loc := dockerRunCopy.FindStringIndex(trimmedLine)
+				remainder := strings.TrimSpace(trimmedLine[loc[1]:])
+				remainder = strings.ReplaceAll(remainder, "\\", "")
+				if and := strings.Index(remainder, "&&"); and >= 0 {
+					remainder = strings.TrimSpace(remainder[:and])
+				}
+				if remainder == "" && strings.HasPrefix(source, "/") && strings.HasPrefix(target, "/") && !dynamic(source) && !dynamic(target) && !strings.ContainsAny(source+target, "[]{}\"'\\") {
+					d.DockerPathCopies = append(d.DockerPathCopies, Reference{Kind: "run_copy", Value: bounded(source), Qualification: "local", Evidence: Evidence{Field: "RUN cp source", Value: bounded(source), Line: i + 1, Basis: "dockerfile-instruction"}, Stage: currentStage, SourcePath: bounded(source), TargetPath: bounded(target)})
+				}
+			}
+		}
+		inRunContinuation = (isRunInstruction || inRunContinuation) && strings.HasSuffix(trimmedLine, "\\")
+		if !inRunContinuation {
+			lastRunWrite = -1
 		}
 	}
 	if len(d.References) == 0 {
@@ -1037,6 +1204,118 @@ func safeComposePath(filename, kind, value string) bool {
 func dynamic(s string) bool {
 	return strings.Contains(s, "${") || strings.Contains(s, "{{") || strings.Contains(s, "$[")
 }
+
+// expandDockerVars substitutes statically known ARG and ENV values. Unknown
+// variables are left as written.
+func expandDockerVars(s string, vars map[string]string) string {
+	return dockerVarRef.ReplaceAllStringFunc(s, func(ref string) string {
+		m := dockerVarRef.FindStringSubmatch(ref)
+		name := m[1]
+		if name == "" {
+			name = m[2]
+		}
+		if value, ok := vars[name]; ok {
+			return value
+		}
+		return ref
+	})
+}
+
+// dockerEnvPairs reads ENV key=value pairs, or the legacy "ENV key value" form.
+func dockerEnvPairs(body string) map[string]string {
+	out := map[string]string{}
+	body = strings.TrimSpace(body)
+	fields := dockerSplitWords(body)
+	if len(fields) == 0 {
+		return out
+	}
+	if !strings.Contains(fields[0], "=") {
+		if name := fields[0]; len(fields) > 1 {
+			out[name] = dockerUnquote(strings.TrimSpace(strings.TrimPrefix(body, name)))
+		}
+		return out
+	}
+	for _, field := range fields {
+		name, value, ok := strings.Cut(field, "=")
+		if ok && name != "" {
+			out[name] = dockerUnquote(value)
+		}
+	}
+	return out
+}
+
+// dockerSplitWords splits on whitespace outside single or double quotes.
+func dockerSplitWords(s string) []string {
+	var words []string
+	var current strings.Builder
+	quote := rune(0)
+	for _, r := range s {
+		switch {
+		case quote != 0:
+			current.WriteRune(r)
+			if r == quote {
+				quote = 0
+			}
+		case r == '"' || r == '\'':
+			quote = r
+			current.WriteRune(r)
+		case r == ' ' || r == '\t':
+			if current.Len() > 0 {
+				words = append(words, current.String())
+				current.Reset()
+			}
+		default:
+			current.WriteRune(r)
+		}
+	}
+	if current.Len() > 0 {
+		words = append(words, current.String())
+	}
+	return words
+}
+
+func dockerUnquote(s string) string {
+	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') && s[len(s)-1] == s[0] {
+		return s[1 : len(s)-1]
+	}
+	return s
+}
+
+// dockerOpaqueCopy records a COPY whose sources could not all be read. It is a
+// private barrier: the copy may have written anywhere under its destination,
+// and an unknown destination may have written anywhere at all.
+func dockerOpaqueCopy(line int, stage, target string) Reference {
+	return Reference{Kind: "copy_opaque", Qualification: "local", Evidence: Evidence{Field: "COPY", Line: line, Basis: "dockerfile-instruction"}, Stage: stage, TargetPath: bounded(target)}
+}
+
+// resolveDockerDestination resolves a static Dockerfile destination against
+// the stage's known WORKDIR. A relative path cannot be resolved when the base
+// image's inherited WORKDIR is unknown.
+func resolveDockerDestination(workdir string, workdirKnown bool, destination string) (string, bool) {
+	if destination == "" || dynamic(destination) || strings.Contains(destination, "$") || strings.ContainsAny(destination, "[]{}\"'\\") {
+		return "", false
+	}
+	if path.IsAbs(destination) {
+		return dockerDestinationPath(destination), true
+	}
+	if !workdirKnown {
+		return "", false
+	}
+	resolved := path.Join(workdir, destination)
+	if strings.HasSuffix(destination, "/") {
+		resolved += "/"
+	}
+	return dockerDestinationPath(resolved), true
+}
+
+func dockerDestinationPath(destination string) string {
+	clean := path.Clean(destination)
+	if clean != "/" && strings.HasSuffix(destination, "/") {
+		return clean + "/"
+	}
+	return clean
+}
+
 func safeRelative(s string) bool {
 	return s != "" && !strings.HasPrefix(s, "/") && !strings.HasPrefix(s, "\\") && !strings.Contains(s, "\\") && !strings.HasPrefix(path.Clean(s), "../") && !regexp.MustCompile(`^[A-Za-z]:`).MatchString(s)
 }

@@ -208,14 +208,26 @@ See `fresh_labels/README.md` for selection and method.
 python3 tests/map_corpus/fetch_fresh.py --dest .cache/fresh-repos
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
   --repos .cache/fresh-repos --frozen \
-  --output tests/map_corpus/fresh_results_frozen.json
+  --output .cache/fresh-results-frozen-current.json
 python3 tests/map_corpus/score_fresh.py --binary ./dircue \
   --repos .cache/fresh-repos \
-  --output tests/map_corpus/fresh_results_corrected.json
+  --output .cache/fresh-results-corrected-current.json
 ```
 
-The two committed result files retain the per-fact matches and disagreements,
-not just the rounded figures below.
+The three committed result files retain the per-fact matches and disagreements,
+not just the rounded figures below. The commands write to `.cache/` so a
+reproduction does not overwrite a historical receipt.
+
+The first blind receipt is preserved separately in
+`fresh_results_first_blind.json`. It records the original main-binary/main-
+scorer comparison before later source-label adjudication or scorer changes:
+relationships had 15 true positives, 25 false positives, and 2 false
+negatives (precision **0.38**, recall **0.88**). The current
+`fresh_results_frozen.json` is a regression run on the same frozen labels,
+not the original blind receipt. Its edge progression makes the attribution
+explicit: main binary + main scorer was 15/25/2; main binary + updated PR
+scorer was 16/24/1; PR binary + updated PR scorer was 17/23/0. The latter
+results are regression evidence and do not replace the first-run measurement.
 
 | Question | Frozen labels P / R | Corrected labels P / R |
 | --- | --- | --- |
@@ -223,22 +235,97 @@ not just the rounded figures below.
 | deployables | 0.80 / 0.80 | 1.00 / 0.83 |
 | interfaces | 1.00 / 1.00 | 1.00 / 1.00 |
 | capabilities | 0.60 / 1.00 | 1.00 / 1.00 |
-| relationships | 0.38 / 0.88 | 0.95 / 0.95 |
+| relationships | 0.38 / 0.88 (first blind run) | 1.00 / 1.00 |
 
-The frozen-label precision is the honest unseen number, but most of the
-extra facts were real: compile-scope AWS S3 and Hibernate declarations, the
+The first blind frozen-label result is retained as measured; the labels were
+incomplete, so its precision is not a whole-repository estimate. The current
+frozen-label regression score is 0.425 / 1.00 after scorer changes and map
+changes, as detailed above.
+Most extra facts were real: compile-scope AWS S3 and Hibernate declarations,
 six other reactor modules, the OpenMRS WAR the labeler had noted but could
 not name, and structural containment. Each correction cites the oracle-file
-line. The same review found real map errors, which #143 fixed before the
-corrected scores above: a Spring Security prefix that called password
-hashing OAuth2, Hibernate Search's Elasticsearch backend missing from the
-catalog, unfollowed `-r` includes, unsupported Pipfiles, a tool-only
+line. The same review found real map errors. #143 fixed a Spring Security
+prefix that called password hashing OAuth2, a missing Hibernate Search
+Elasticsearch backend in the catalog, unfollowed `-r` includes, unsupported
+Pipfiles, a tool-only
 `setup.cfg` that created a second Python root, and unlinked Maven sibling
-modules. What remains: no Procfile deployable (#146); a root Dockerfile
-linked to the reactor aggregator rather than the WAR module it ships (#147);
-and a scorer naming mismatch for root Dockerfiles in edges (#149). Once
-corrected, these repositories also informed development, so a later release
-needs new unseen repositories for the next independent check.
+modules. The follow-up to #147 now links OpenMRS's root Dockerfile to the WAR
+module through a partial, source-cited `COPY --from` edge. The #149 scorer
+fix matches root Dockerfile edge endpoints by unique path. The remaining
+known deployable gap is Procfile support (#146). These repositories have
+informed development; their corrected scores are regression measurements,
+not a new independent accuracy estimate.
+
+## Withdrawn blind holdout history
+
+The earlier `blind_holdout_v1/` artifact covered `gs-maven` and `flasky`.
+Commit `d3b8ae5` introduced it as frozen before either checkout was scored.
+Commit `299fd7b` then changed its labels to use the map's vocabulary without
+adding a `corrections` record. Commit `a80a6be` added an implementation-aware
+flask-on-docker manifest to the same directory. Commit `824aab1` removed the
+artifact and replaced it with `independent_labels/`. Because those changes
+broke the
+original blind-label provenance, the withdrawn holdout is not treated as a
+scored accuracy receipt; the commits preserve the original and revised
+source-only labels for audit.
+
+As a transparent post-hoc check, the PR binary was built from the current
+source and run against the pinned `gs-maven` `complete/` subtree at
+`c65883f80b35bac86bb2580944de9146e2c6a55a`. It emits a `maven_main_class`
+interface (`hello.HelloWorld`, sourced to `pom.xml:49`) and a `declares` edge
+from the component to that interface. The original frozen source labels
+explicitly marked both categories empty and complete, so both observations
+conflict with those labels. This is a reported counterexample, not a valid
+blind score: the artifact was withdrawn without a result receipt, and this
+run happened after implementation. To reproduce the observation, check out
+the pinned repository, build the PR source with `go build -o ./dircue .`, and
+run `./dircue map --json --source directory /path/to/gs-maven/complete`.
+
+## Independent source-first check
+
+`independent_labels/` contains two further pinned public source oracles,
+committed before the candidate binary was run on either checkout. The labeler
+read upstream source and the published map vocabulary, but did not inspect the
+implementation, tests, previous labels, or output. Each oracle file has a
+SHA-256 digest. The Spring Boot Docker sample covers every tracked file in its
+`complete/` subtree; the Flask-on-Docker sample is a bounded source slice.
+
+Reproduce the scored run after checking out the commits named in those files:
+
+```sh
+python3 tests/map_corpus/score_independent.py \
+  --binary ./dircue \
+  --flask-checkout /path/to/flask-on-docker \
+  --spring-checkout /path/to/gs-spring-boot-docker \
+  --output .cache/independent-map-results.json
+```
+
+The runner checks the commits and file hashes before scanning. For the
+exhaustive Spring subtree it also compares the oracle inventory with Git's
+tracked-file list. It reports precision only for categories labeled
+exhaustively. The first run found both Spring components and its Dockerfile
+deployable with no extra component or deployable observations: **3/3 found,
+3/3 observed correct**, within that small subtree. Other categories are
+targeted recall only; their extra observations are unadjudicated, not false
+positives. The Flask source slice found 2/3 labeled deployables, 2/2
+interfaces, 0/1 components, 0/3 capabilities, and 1/8 edges under the
+scorer's exact semantic keys. The Spring subtree found 0/3 labeled interfaces,
+0/2 capabilities, and 1/3 edges. Some misses are name or vocabulary
+disagreements (for example, `services/web` versus `web` and a qualified Java
+class name versus its short name); the receipt retains them instead of
+silently correcting the source-first labels. This is a small independent
+check with useful counterexamples, not a population accuracy estimate or a
+passing whole-map quality gate. `independent_results.json` records the first
+run, binary and label hashes, and every matched or missed fact.
+
+`independent_flask_triage.json` separately reviews all 12 Flask exact-key misses
+against the pinned source and the first-run map (4 equivalent under a different
+name or vocabulary, 6 real map misses, and 2 unresolved). It is a post-hoc
+qualitative review: the exact-key scores above remain unchanged, and these
+targeted categories do not estimate precision. A test checks ledger coverage,
+unique keys, allowed categories, citations, and the frozen receipt and label
+hashes. See [BUILD_PROVENANCE.md](BUILD_PROVENANCE.md) for reproduction details
+of the independent receipt.
 
 Two additional opt-in checks use bounded source slices from public projects
 with a checked-in binary referenced by a build declaration. The
@@ -246,10 +333,14 @@ with a checked-in binary referenced by a build declaration. The
 references a local JAR through `systemPath`; the
 [pyRevit project file](https://github.com/pyrevitlabs/pyRevit/blob/6294cf9c477130eadd73b9d156784f7a5553b4cd/dev/pyRevitLabs/pyRevitLabs.Common/pyRevitLabs.Common.csproj#L8)
 references a checked-in DLL through `HintPath`. `unmanaged_binary_slice.py`
-fetches only each cited project file and binary from pinned commits, limits
-response sizes, verifies the binary digests and declared references, and
-deletes the files after the run. It does not vendor binaries or make a claim
-about the complete source repositories:
+fetches the cited declaration files and binary from pinned commits, limits
+response sizes, verifies the binary digests and references, and deletes the
+files after the run. For pyRevit it also reads the pinned
+`dev/Directory.Build.targets`, checks its `net48` to `netfx` property mapping,
+and statically substitutes the path properties to show that
+`$(PyRevitDevLibsDir)` selects `dev/libs/netfx/pyRevitLabs.Json.dll`. It does
+not invoke MSBuild or run repository build logic, vendor binaries, or make a
+claim about the complete source repositories:
 
 ```sh
 python3 tests/map_corpus/unmanaged_binary_slice.py --binary ./dircue \
@@ -262,8 +353,8 @@ coverage stayed `unknown` without a provider report. This is an inventory
 smoke check, not a substitute for an SBOM tool or a test of whether a Syft
 report would identify either binary. It requires network access when invoked
 and is not part of ordinary CI. `unmanaged_binary_results.json` is the
-portable receipt, with the candidate binary hash and both upstream
-commits; no downloaded binary bytes are checked into this repository.
+portable receipt, with the candidate binary hash, source-file hashes, and both
+upstream commits; no downloaded binary bytes are checked into this repository.
 
 ## On-demand resource and compatibility evidence
 
