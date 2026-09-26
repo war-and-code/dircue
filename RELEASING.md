@@ -64,12 +64,31 @@ The workflow:
 Download and inspect the draft assets. Run:
 
 ```sh
+# Download all draft assets (requires GH_TOKEN with read access)
+gh release download v1.0.0 --repo war-and-code/dircue --dir /tmp/dircue-review
+
+cd /tmp/dircue-review
+
+# Verify the SLSA build-provenance attestation for every asset
+for f in *.tar.gz *.zip *.whl SHA256SUMS; do
+  gh attestation verify "$f" --repo war-and-code/dircue
+done
+
+# Verify the cosign signature on SHA256SUMS
+cosign verify-blob \
+  --bundle SHA256SUMS.sigstore.json \
+  --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  SHA256SUMS
+
 # Verify archive checksums
 sha256sum --check SHA256SUMS
 
 # Verify the version string
 ./dircue-linux-amd64 --version
 ```
+
+`cosign` can be installed via `brew install cosign`, `go install github.com/sigstore/cosign/v2/cmd/cosign@latest`, or from the [Sigstore release page](https://docs.sigstore.dev/cosign/system_config/installation).
 
 ### Step 4: Publish
 

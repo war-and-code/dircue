@@ -1077,3 +1077,111 @@ Flask = "*"
 		t.Fatalf("expected Pipfile to win dedup, got %s", components[0].Project.ID)
 	}
 }
+
+// TestPyprojectToolOnly verifies that a pyproject.toml containing only
+// tool configuration and/or dev dependency groups does not produce a
+// Python component (#fix-2). Analogous to ParsePythonSetupCfg returning nil
+// for a setup.cfg with only [flake8]/[mypy] sections.
+func TestPyprojectToolOnly(t *testing.T) {
+	// --- Cases that must return nil (tool-only) ---
+	toolOnlyCases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name: "dev-groups-only (gitea-like Go repo)",
+			content: `[project]
+name = "gitea"
+
+[dependency-groups]
+dev = ["djlint", "yamllint", "zizmor"]
+
+[tool.djlint]
+profile = "jinja"
+`,
+		},
+		{
+			name: "tool-sections-only (no project table)",
+			content: `[tool.ruff]
+line-length = 88
+
+[dependency-groups]
+dev = ["ruff>=0.3"]
+`,
+		},
+		{
+			name: "empty-dependencies-list (no runtime deps)",
+			content: `[project]
+name = "my-tool-config"
+
+[dependency-groups]
+lint = ["flake8"]
+`,
+		},
+	}
+	for _, tc := range toolOnlyCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := ParsePython("pyproject.toml", []byte(tc.content))
+			if d != nil {
+				t.Errorf("expected nil (tool-only), got component: kind=%s name=%s",
+					d.Project.Kind, d.Project.Name)
+			}
+		})
+	}
+
+	// --- Cases that must NOT return nil (genuine Python projects) ---
+	genuineCases := []struct {
+		name    string
+		content string
+	}{
+		{
+			name: "with build-system",
+			content: `[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "my-pkg"
+`,
+		},
+		{
+			name: "with runtime dependencies",
+			content: `[project]
+name = "my-app"
+dependencies = ["flask>=2.0"]
+`,
+		},
+		{
+			name: "with scripts",
+			content: `[project]
+name = "my-cli"
+
+[project.scripts]
+my-cli = "my_cli:main"
+`,
+		},
+		{
+			name: "uv workspace",
+			content: `[tool.uv.workspace]
+members = ["packages/*"]
+`,
+		},
+		{
+			name: "with optional-dependencies",
+			content: `[project]
+name = "my-lib"
+
+[project.optional-dependencies]
+dev = ["pytest"]
+`,
+		},
+	}
+	for _, tc := range genuineCases {
+		t.Run(tc.name, func(t *testing.T) {
+			d := ParsePython("pyproject.toml", []byte(tc.content))
+			if d == nil {
+				t.Errorf("expected non-nil (genuine Python project), got nil")
+			}
+		})
+	}
+}

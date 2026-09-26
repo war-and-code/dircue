@@ -867,3 +867,62 @@ func TestGoModuleDisplayName(t *testing.T) {
 		}
 	}
 }
+
+// TestCargoAuxTargetsGetNonPrimaryRole verifies that Cargo [[bench]], [[test]],
+// and [[example]] interface observations receive a non-primary role even when
+// the evidence path is the containing Cargo.toml (so mapPathRole returns "").
+// These tests fail on 427c2f8 (no interfaceKindRole fallback) and pass after
+// (#fix-5).
+func TestCargoAuxTargetsGetNonPrimaryRole(t *testing.T) {
+	for _, tc := range []struct {
+		ikind    string
+		wantRole string
+	}{
+		{"cargo-bench", "tooling"},
+		{"cargo-test", "test"},
+		{"cargo-example", "example"},
+	} {
+		doc := mapdoc.New()
+		// A Rust component with a path-only Cargo.toml at the repo root.
+		component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"Cargo.toml"}, "rust")
+		component.Properties = map[string]string{"root": "."}
+		doc.Nodes = append(doc.Nodes, component)
+
+		obs := intentmap.Observation{
+			Kind:      intentmap.KindInterface,
+			Name:      "my_bench",
+			ProjectID: "Cargo.toml",
+			State:     "declared",
+			Basis:     "declared_manifest",
+			// Path is the containing Cargo.toml, not a benches/* source file.
+			Path: "Cargo.toml",
+			Properties: map[string]string{
+				"interface_kind": tc.ikind,
+			},
+		}
+		report := &intentmap.Report{
+			Coverage:     intentmap.Coverage{Status: "complete"},
+			Observations: []intentmap.Observation{obs},
+		}
+		addIntent(&doc, report)
+
+		var found bool
+		for _, n := range doc.Nodes {
+			if n.Kind != mapdoc.NodeInterface || n.Name != "my_bench" {
+				continue
+			}
+			found = true
+			role := n.Properties["role"]
+			if role != tc.wantRole {
+				t.Errorf("ikind=%q: node role = %q, want %q", tc.ikind, role, tc.wantRole)
+			}
+			basis := n.Properties["role_basis"]
+			if basis != "interface_kind" {
+				t.Errorf("ikind=%q: role_basis = %q, want interface_kind", tc.ikind, basis)
+			}
+		}
+		if !found {
+			t.Errorf("ikind=%q: no interface node named my_bench created", tc.ikind)
+		}
+	}
+}

@@ -68,6 +68,16 @@ func ParsePython(name string, content []byte) *Document {
 		AddDiagnostic(d, "invalid-python-manifest", "Python manifest could not be parsed within the TOML limits.")
 		return d
 	}
+	// A pyproject.toml whose only content is tool configuration and/or dev
+	// dependency groups — no [build-system], no runtime dependencies, no
+	// entry-point scripts, no packaging layout — is a tool-configuration file
+	// analogous to a setup.cfg with only [flake8]/[mypy] sections.  Return nil
+	// to suppress a spurious Python component (gitea, for example, keeps a
+	// root pyproject.toml with only [project.name] and [dependency-groups.dev]
+	// for linting tools but is a Go project, not a Python distribution).
+	if pyprojectIsToolOnly(raw) {
+		return nil
+	}
 	data := &pythonData{managed: true, sources: map[string][]pythonSource{}}
 	d.Data = data
 	AddRequirement(d, Requirement{Kind: "declaration-semantics", Value: "pyproject+uv-0.12.17", State: "declared", Evidence: name})

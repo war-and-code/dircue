@@ -446,6 +446,9 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	// Deduplicate summary labels: a solution and its only member project often
 	// share the same name. Show each distinct "name [ecosystem]" once.
+	// When multiple components share a display name and ecosystem, disambiguate
+	// by appending the component's root-directory base name in parentheses so
+	// that callers can tell them apart (e.g. "api (:modules/api) [gradle]").
 	// Shallow roots first: the repository's own projects lead, nested ones follow.
 	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int {
 		if da, db := componentDepth(a), componentDepth(b); da != db {
@@ -453,17 +456,40 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		}
 		return strings.Compare(mapNodeLabel(a), mapNodeLabel(b))
 	})
-	seenLabels := map[string]bool{}
-	uniquePrimaryComponents := make([]mapdoc.Node, 0, len(primaryComponents))
+	// Count how many components share each (name, ecosystem) pair.
+	labelCount := map[string]int{}
 	for _, n := range primaryComponents {
 		lbl := fmt.Sprintf("%s\x00%s", mapNodeLabel(n), n.Properties["ecosystem"])
-		if !seenLabels[lbl] {
-			seenLabels[lbl] = true
-			uniquePrimaryComponents = append(uniquePrimaryComponents, n)
+		labelCount[lbl]++
+	}
+	type displayComponent struct {
+		node  mapdoc.Node
+		label string
+	}
+	seenDisplayLabels := map[string]bool{}
+	uniquePrimaryComponents := make([]displayComponent, 0, len(primaryComponents))
+	for _, n := range primaryComponents {
+		nameEcosystem := fmt.Sprintf("%s\x00%s", mapNodeLabel(n), n.Properties["ecosystem"])
+		displayLabel := mapNodeLabel(n)
+		if labelCount[nameEcosystem] > 1 {
+			// Disambiguate with the root-directory base name.
+			root := n.Properties["root"]
+			if root == "" || root == "." {
+				root = "(root)"
+			} else {
+				root = path.Base(root)
+			}
+			displayLabel = fmt.Sprintf("%s (%s)", mapNodeLabel(n), root)
+		}
+		// Dedup on the full display label so we don't repeat identical entries.
+		fullKey := fmt.Sprintf("%s\x00%s", displayLabel, n.Properties["ecosystem"])
+		if !seenDisplayLabels[fullKey] {
+			seenDisplayLabels[fullKey] = true
+			uniquePrimaryComponents = append(uniquePrimaryComponents, displayComponent{node: n, label: displayLabel})
 		}
 	}
-	for _, n := range uniquePrimaryComponents[:min(4, len(uniquePrimaryComponents))] {
-		line("  %s [%s]", mapNodeLabel(n), safeMapLabel(n.Properties["ecosystem"]))
+	for _, dc := range uniquePrimaryComponents[:min(4, len(uniquePrimaryComponents))] {
+		line("  %s [%s]", safeMapLabel(dc.label), safeMapLabel(dc.node.Properties["ecosystem"]))
 	}
 	if len(uniquePrimaryComponents) > 4 {
 		line("  (+%d more components)", len(uniquePrimaryComponents)-4)
