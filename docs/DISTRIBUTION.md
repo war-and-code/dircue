@@ -208,9 +208,9 @@ The 0.1 validation prepared seven wheels under `dist/dircue-wheels-rc3/`, using
 the exact RC3 release executables. All passed strict Twine metadata checks. Actual offline
 installation/execution passed on macOS arm64 (uvx, uv tool install, pip) and
 Linux arm64 glibc/musl (uvx in Docker). Windows, Intel macOS, and Linux amd64
-wheel installations were not executed in that round. See the
-[retained wheel validation](../tests/release/results/wheels/README.md) for
-platform scope, commands, outputs, and checksums.
+wheel installations were not executed in that round. See the retained wheel validation (archived in
+[evidence-archive-1](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1);
+restore with `make fetch-receipts`) for platform scope, commands, outputs, and checksums.
 
 ## 0.2 candidate validation
 
@@ -223,7 +223,8 @@ native CI, but the packaged Windows executable and wheel have not been executed
 on Windows in this round.
 
 Two independent fresh-cache Linux arm64 builds produced byte-identical archives.
-See the [0.2 release validation](../tests/release/results/0.2.0/README.md) for
-source commits, checksums, commands, and platform limits. These are local
+See the 0.2 release validation (archived in
+[evidence-archive-1](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1);
+restore with `make fetch-receipts`) for source commits, checksums, commands, and platform limits. These are local
 candidate checks. Final release assets carry their own source and checksum
 provenance on the [release page](https://github.com/war-and-code/dircue/releases/tag/v0.2.0).

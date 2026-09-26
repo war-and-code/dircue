@@ -5,7 +5,7 @@ WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden fetch-receipts
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -95,6 +95,12 @@ fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... 
 # ---------------------------------------------------------------------------
 # Atlas parity and accuracy targets
 # ---------------------------------------------------------------------------
+
+# Restore bulky evidence receipt files from the GitHub evidence-archive-1 release.
+# Requires network access. The files are listed in tests/receipts/evidence-archive.json.
+# Each file is verified by sha256 after download; already-correct files are skipped.
+fetch-receipts: ## Restore archived evidence receipts from GitHub release evidence-archive-1
+	python3 scripts/fetch_receipts.py
 
 # Fetch the full corpus (~50 repos) into the cache directory.
 # Requires network access; dircue itself never fetches.

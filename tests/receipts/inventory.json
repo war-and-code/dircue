@@ -11,7 +11,10 @@
       "active_fence": false,
       "reason": "Performance measurements are hardware-dependent; results would differ on any other machine. The optimization is already shipped. The 66 MB evidence.tar.gz and 48 MB audit.json are the largest items in the repository.",
       "action": "move-to-release-asset",
-      "priority": "high"
+      "priority": "high",
+      "migration_status": "moved-to-evidence-archive-1",
+      "migration_manifest": "tests/receipts/evidence-archive.json",
+      "migration_date": "2026-09-26"
     },
     {
       "path": "tests/enry-performance/results/library-rc1/",
@@ -20,7 +23,10 @@
       "claim": "Intermediate measurements for the library release candidate.",
       "active_fence": false,
       "action": "move-to-release-asset",
-      "priority": "high"
+      "priority": "high",
+      "migration_status": "moved-to-evidence-archive-1",
+      "migration_manifest": "tests/receipts/evidence-archive.json",
+      "migration_date": "2026-09-26"
     },
     {
       "path": "tests/stress/results/",
@@ -30,7 +36,10 @@
       "active_fence": false,
       "reason": "Stress results are hardware-dependent and not deterministic.",
       "action": "move-to-release-asset",
-      "priority": "medium"
+      "priority": "medium",
+      "migration_status": "moved-to-evidence-archive-1",
+      "migration_manifest": "tests/receipts/evidence-archive.json",
+      "migration_date": "2026-09-26"
     },
     {
       "path": "tests/profiling/",
@@ -40,7 +49,10 @@
       "active_fence": false,
       "reason": "Raw profiling data from a specific host; no re-runnable claim.",
       "action": "move-to-release-asset",
-      "priority": "medium"
+      "priority": "medium",
+      "migration_status": "moved-to-evidence-archive-1",
+      "migration_manifest": "tests/receipts/evidence-archive.json",
+      "migration_date": "2026-09-26"
     },
     {
       "path": "tests/performance/",
@@ -48,7 +60,7 @@
       "classification": "partial-fence",
       "claim": "Per-version performance comparisons (wall time and RSS) for released candidates.",
       "active_fence": false,
-      "note": "tests/performance/bounded_reader/ has a Python test harness (test_*.py) that verifies the harness format but does NOT re-run the performance measurement. The per-version subdirectories (v040_candidate, v050_candidate, …) are archives.",
+      "note": "tests/performance/bounded_reader/ has a Python test harness (test_*.py) that verifies the harness format but does NOT re-run the performance measurement. The per-version subdirectories (v040_candidate, v050_candidate, \u2026) are archives.",
       "action": "add-fence-for-bounded-reader; archive-per-version-directories",
       "priority": "medium"
     },
@@ -59,7 +71,10 @@
       "claim": "Archive-smoke and compatibility checks for released versions.",
       "active_fence": true,
       "note": "tests/release/test_*.py runs in CI (preflight job) but checks harness structure, not live binary output.",
-      "action": "current-fence-is-adequate-for-schema"
+      "action": "current-fence-is-adequate-for-schema",
+      "migration_status": "moved-to-evidence-archive-1",
+      "migration_manifest": "tests/receipts/evidence-archive.json",
+      "migration_date": "2026-09-26"
     },
     {
       "path": "tests/compatibility_next/",
@@ -163,27 +178,37 @@
         {
           "path": "tests/enry-performance/results/final/evidence.tar.gz",
           "size_mb": 66,
-          "action": "Attach to v0.6.0 release as an asset named 'enry-performance-evidence-final.tar.gz'. Remove from history with git-filter-repo. Keep the README.md and manifest JSON in-tree."
+          "action": "Attach to v0.6.0 release as an asset named 'enry-performance-evidence-final.tar.gz'. Remove from history with git-filter-repo. Keep the README.md and manifest JSON in-tree.",
+          "migration_status": "completed",
+          "migration_manifest": "tests/receipts/evidence-archive.json"
         },
         {
           "path": "tests/enry-performance/results/final/audit.json",
           "size_mb": 48,
-          "action": "Attach to v0.6.0 release as an asset. Remove from history."
+          "action": "Attach to v0.6.0 release as an asset. Remove from history.",
+          "migration_status": "completed",
+          "migration_manifest": "tests/receipts/evidence-archive.json"
         },
         {
           "path": "tests/enry-performance/results/library-rc1/evidence.tar.gz",
           "size_mb": 40,
-          "action": "Attach to the library-rc1 pre-release or to v0.6.0. Remove from history."
+          "action": "Attach to the library-rc1 pre-release or to v0.6.0. Remove from history.",
+          "migration_status": "completed",
+          "migration_manifest": "tests/receipts/evidence-archive.json"
         },
         {
           "path": "tests/stress/results/",
           "size_mb": 21,
-          "action": "Archive to a tagged release artifact; remove from repository history."
+          "action": "Archive to a tagged release artifact; remove from repository history.",
+          "migration_status": "completed",
+          "migration_manifest": "tests/receipts/evidence-archive.json"
         },
         {
           "path": "tests/profiling/",
           "size_mb": 20,
-          "action": "Archive to a tagged release artifact; remove from repository history."
+          "action": "Archive to a tagged release artifact; remove from repository history.",
+          "migration_status": "completed",
+          "migration_manifest": "tests/receipts/evidence-archive.json"
         }
       ],
       "expected_size_reduction_mb": 195,
