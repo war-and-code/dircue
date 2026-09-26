@@ -332,3 +332,53 @@ func TestMapFileByteLimitQualifiesContentCoverage(t *testing.T) {
 	}
 	t.Fatal("missing content coverage")
 }
+
+// TestMapSummaryDisambiguatesDuplicateComponentNames verifies that when
+// multiple components share a display name and ecosystem, the summary text
+// appends the root-directory basename in parentheses to distinguish them (#fix-4).
+// This test fails on 427c2f8 (dedup drops duplicates silently) and passes after.
+func TestMapSummaryDisambiguatesDuplicateComponentNames(t *testing.T) {
+	d := mapdoc.New()
+	d.Status = mapdoc.CoverageComplete
+
+	// Simulate a Gradle multi-project with five "api" sub-modules.
+	apiRoots := []string{
+		"modules/core/api",
+		"modules/auth/api",
+		"modules/payment/api",
+		"modules/user/api",
+		"modules/notification/api",
+	}
+	for i, root := range apiRoots {
+		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{root + "/build.gradle"}, "comp-api-"+root)
+		n.Name = "api"
+		n.Properties = map[string]string{
+			"ecosystem": "gradle",
+			"role":      "primary",
+			"root":      root,
+		}
+		_ = i
+		d.Nodes = append(d.Nodes, n)
+	}
+
+	// Add one component with a unique name to confirm it is displayed as-is.
+	unique := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app/build.gradle"}, "comp-app")
+	unique.Name = "app"
+	unique.Properties = map[string]string{"ecosystem": "gradle", "role": "primary", "root": "app"}
+	d.Nodes = append(d.Nodes, unique)
+
+	var output bytes.Buffer
+	if err := writeMapSummary(&output, d); err != nil {
+		t.Fatal(err)
+	}
+	summary := output.String()
+
+	// Each of the first four api modules must appear disambiguated.
+	if !strings.Contains(summary, "api (") {
+		t.Errorf("duplicate api modules should be disambiguated; summary:\n%s", summary)
+	}
+	// The unique "app" component must not be parenthesized.
+	if strings.Contains(summary, "app (") {
+		t.Errorf("unique component 'app' should not be disambiguated; summary:\n%s", summary)
+	}
+}

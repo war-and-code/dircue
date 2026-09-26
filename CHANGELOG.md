@@ -90,6 +90,13 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - Committed fixtures from pinned Syft, OWASP Noir, ruff and Semgrep exercise attachment, routing and location behavior (`tests/syft-oracle`, `tests/tools`).
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 
+### Pre-release fixes
+- **`make fuzz-campaign`** target runs each Go fuzz function for a configurable duration (`FUZZ_TIME`, default 60 s); accepts `FUZZ_PKG` and `FUZZ_CACHE` overrides. Replaces ad-hoc per-function invocations.
+- **`pyproject.toml` tool-only files** (those with `[dependency-groups]` but no `[build-system]`, runtime dependencies, or packaging layout) are now treated as non-component manifests, consistent with how `setup.cfg` tool-only files were already handled.
+- **Gemfile conditional gems**: gems inside `if`/`unless`/`case` blocks, one-line blocks, trailing `if`/`unless` modifiers and `optional: true` groups are marked `conditional`, so a capability they alone support is no longer reported as `complete`. Gems in `group` blocks carry a `gemfile-group:<names>` condition; groups made only of `development` and `test` do not contribute capabilities, while other groups (such as `production`) still do.
+- **`--summary` duplicate component names** are now disambiguated by appending the nearest parent directory in parentheses (e.g. `api (frontend)`) instead of silently dropping duplicates.
+- **Cargo auxiliary target roles**: `[[bench]]` targets receive `role: tooling`, `[[test]]` integration targets receive `role: test`, and `[[example]]` targets receive `role: example`, consistent with path-segment-derived roles for other ecosystems. The `role` property and its allowed values are now documented in `docs/MAP.md`.
+
 ### Compatibility
 - Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Eighteen cases expose a new warning when an unborn Git repository falls back to directory mode in structured analysis. Eighteen add a Gradle root name from `settings.gradle.kts`. Fifteen reflect declaration changes: wider ecosystem support, Maven names, uv manifest classification, and removal of Go-version and npm developer-task interfaces. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 - `dircue compare` (saved profiles) and `dircue map compare` (maps) reject each other's documents with a pointer to the right command.
