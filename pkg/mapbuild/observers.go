@@ -1222,6 +1222,13 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		if role := mapPathRole(o.Path); role != "" {
 			n.Properties["role"] = role
 			n.Properties["role_basis"] = "path_name"
+		} else if role, basis := interfaceKindRole(o.Properties["interface_kind"]); role != "" {
+			// Path-based role was not available; fall back to the interface kind
+			// so that known auxiliary targets (Cargo benchmarks, tests, examples)
+			// receive a non-primary role even when their evidence path is the
+			// containing Cargo.toml rather than the target source file.
+			n.Properties["role"] = role
+			n.Properties["role_basis"] = basis
 		}
 		for k, v := range o.Properties {
 			n.Properties[k] = v
@@ -1271,6 +1278,27 @@ func capPathRole(paths ...string) string {
 		return ""
 	}
 	return mapPathRole(paths[0])
+}
+
+// interfaceKindRole returns a (role, basis) hint for interface_kind values
+// that represent auxiliary targets rather than primary entry points.
+// Used as a fallback when mapPathRole does not derive a role from the evidence
+// path (e.g. the evidence path is the containing Cargo.toml, not the source).
+//
+// Cargo [[bench]] → "tooling" (benchmarks are build/perf tooling).
+// Cargo [[test]]  → "test"    (integration-test targets).
+// Cargo [[example]] → "example".
+// All other kinds return ("", "").
+func interfaceKindRole(ikind string) (role, basis string) {
+	switch ikind {
+	case "cargo-bench":
+		return "tooling", "interface_kind"
+	case "cargo-test":
+		return "test", "interface_kind"
+	case "cargo-example":
+		return "example", "interface_kind"
+	}
+	return "", ""
 }
 
 func cloneProps(m map[string]string) map[string]string {
