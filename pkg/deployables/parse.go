@@ -126,9 +126,15 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
 			}
 		} else if m := dockerArg.FindStringSubmatch(line); m != nil {
-			vars[m[1]] = dockerUnquote(strings.TrimSpace(m[2]))
+			// Expand at declaration so chained defaults (B=$A) resolve.
+			vars[m[1]] = expandDockerVars(dockerUnquote(strings.TrimSpace(m[2])), vars)
 		} else if m := dockerEnv.FindStringSubmatch(line); m != nil {
-			for name, value := range dockerEnvPairs(m[1]) {
+			pairs := dockerEnvPairs(m[1])
+			resolved := make(map[string]string, len(pairs))
+			for name, value := range pairs {
+				resolved[name] = expandDockerVars(value, vars)
+			}
+			for name, value := range resolved {
 				vars[name] = value
 			}
 		} else if m := dockerWorkdir.FindStringSubmatch(line); m != nil {

@@ -492,20 +492,21 @@ func dockerCopyWrittenPath(ref deployables.Reference) string {
 	if !strings.HasSuffix(target, "/") {
 		return target
 	}
-	// A source ending in "/" is a directory. Otherwise only well-known file
-	// extensions are read as a single file; a name such as conf.d may be a
-	// directory whose contents land anywhere below the target.
+	// A source ending in "/", without an extension, or with a directory-like
+	// suffix (conf.d, lib-1.2) may be a directory whose contents land anywhere
+	// below the target. Other names are read as a single file.
 	if strings.HasSuffix(ref.Value, "/") {
 		return target
 	}
 	base := path.Base(path.Clean(ref.Value))
-	if dockerFileExtensions[strings.ToLower(path.Ext(base))] && !strings.ContainsAny(base, "*?") {
-		return path.Join(target, base)
+	ext := path.Ext(base)
+	if ext == "" || ext == base || base == "." || base == ".." || strings.ContainsAny(base, "*?") || dockerDirectoryLikeExt.MatchString(ext) {
+		return target
 	}
-	return target
+	return path.Join(target, base)
 }
 
-var dockerFileExtensions = map[string]bool{".war": true, ".ear": true, ".jar": true, ".xml": true, ".properties": true, ".yml": true, ".yaml": true, ".json": true, ".conf": true, ".cfg": true, ".ini": true, ".sh": true, ".txt": true, ".md": true, ".toml": true, ".env": true, ".py": true, ".js": true}
+var dockerDirectoryLikeExt = regexp.MustCompile(`^\.(d|[0-9]+)$`)
 
 // dockerWriteAffects reports whether writing written can replace artifact:
 // the same path, or an ancestor directory whose contents are written. A write

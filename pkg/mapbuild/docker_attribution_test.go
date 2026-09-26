@@ -96,7 +96,9 @@ func TestDockerAttributionFailsClosedOnUnvettedWrites(t *testing.T) {
 		{"variable glued to a plugin goal", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn $PLUGIN:copy -DoutputDirectory=/src/webapp/target/\n" + final},
 		{"unknown bare word passed to Maven", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn dependency package\n" + final},
 		{"directory source with a trailing slash", stagedBuild + "COPY vendor.d/ /src/webapp/target/\n" + final},
-		{"directory-like source without an extension allowlist", stagedBuild + "COPY vendor.d /src/webapp/target/\n" + final},
+		{"directory-like source name", stagedBuild + "COPY vendor.d /src/webapp/target/\n" + final},
+		{"versioned directory-like source name", stagedBuild + "COPY lib-1.2 /src/webapp/target/\n" + final},
+		{"plugin goal through chained ARG defaults", "FROM maven:3.9 AS build\nARG PHASE=dependency:copy\nARG MVN_CMD=$PHASE\nWORKDIR /src\nCOPY . .\nRUN mvn $MVN_CMD -DoutputDirectory=/src/webapp/target/\n" + final},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			if got := attributeRootDockerfile(t, test.dockerfile, nil); got != "" {
@@ -115,6 +117,7 @@ func TestDockerAttributionKeepsKnownBuildSteps(t *testing.T) {
 		{"unrelated file copied beside the archive", stagedBuild + "COPY settings.xml /src/webapp/\n" + final},
 		{"static ARG default with lifecycle phases", "FROM maven:3.9 AS build\nARG MVN_ARGS='clean install -DskipTests'\nARG MVN_SETTINGS=\"-s /usr/share/maven/ref/settings-docker.xml\"\nWORKDIR /src\nCOPY . .\nRUN mvn $MVN_SETTINGS $MVN_ARGS\n" + final},
 		{"ampersand inside a continued URL argument", "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn package \\\n    -Dsite.url=https://example.invalid/?a=1&b=2\n" + final},
+		{"unrelated file with an uncommon extension beside the archive", stagedBuild + "FROM tomcat:10\nCOPY --from=build /src/webapp/target/ROOT.war /usr/local/tomcat/webapps/\nCOPY config.gz /usr/local/tomcat/webapps/\n"},
 		{"later final-stage copy into a subdirectory", stagedBuild + "FROM tomcat:10\nRUN mkdir -p /opt/app\nCOPY --from=build /src/webapp/target/ROOT.war /opt/app\nCOPY conf /opt/app/conf\n"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
