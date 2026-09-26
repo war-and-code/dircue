@@ -3,6 +3,7 @@ package mapbuild
 import (
 	"fmt"
 	"path"
+	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,10 +27,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
+	mavenComponents := map[string]bool{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeComponent {
 			root := n.Properties["root"]
 			componentsByRoot[root] = append(componentsByRoot[root], n.ID)
+			if n.Properties["ecosystem"] == "maven" || n.Discriminator == "maven" {
+				mavenComponents[n.ID] = true
+			}
 			if n.Name != "" {
 				componentsByName[n.Name] = append(componentsByName[n.Name], n.ID)
 			}
@@ -59,7 +64,13 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if def.Provider != "maven" || def.Kind != "archive" || def.Name == "" {
 			continue
 		}
+		// Only the Maven component at the POM's directory can own the archive.
+		// Another ecosystem's manifest at the same root (for example a
+		// package.json beside pom.xml) must not make the owner ambiguous.
 		for _, owner := range componentsByRoot[path.Dir(def.Path)] {
+			if !mavenComponents[owner] {
+				continue
+			}
 			mavenArchives[path.Base(def.Name)] = append(mavenArchives[path.Base(def.Name)], mavenArchiveOwner{component: owner, root: path.Dir(def.Path)})
 		}
 	}
@@ -202,11 +213,14 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		if def.Provider == "dockerfile" && def.Kind == "container_build" {
 			owners := componentsByRoot[path.Dir(def.Path)]
 			pathEvidence := append(append([]deployables.Reference(nil), def.DockerPathCopies...), def.DockerPathWrites...)
+			// References are sorted by kind and value, not by line, so the final
+			// stage is the one whose FROM instruction appears last in the file.
 			finalStage := ""
+			finalStageLine := 0
 			lastInstruction := 0
 			for _, item := range def.References {
-				if item.Kind == "base_image_or_stage" {
-					finalStage = item.Stage
+				if item.Kind == "base_image_or_stage" && item.Evidence.Line > finalStageLine {
+					finalStage, finalStageLine = item.Stage, item.Evidence.Line
 				}
 				if item.Evidence.Line > lastInstruction {
 					lastInstruction = item.Evidence.Line
@@ -342,22 +356,34 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 }
 
 func dockerFinalCopySurvives(refs, pathEvidence []deployables.Reference, copied deployables.Reference, endLine int) bool {
-	artifactPath := copied.TargetPath
-	if strings.HasSuffix(artifactPath, "/") {
-		artifactPath = path.Join(artifactPath, path.Base(copied.Value))
-	}
-	if !dockerNoInterveningWrites(pathEvidence, copied.Stage, artifactPath, copied.Evidence.Line, endLine) {
-		return false
-	}
-	for _, ref := range refs {
-		if ref.Stage != copied.Stage || ref.Evidence.Line <= copied.Evidence.Line || ref.Evidence.Line >= endLine {
-			continue
+	for _, artifactPath := range dockerCopiedArtifactPaths(copied) {
+		if !dockerNoInterveningWrites(pathEvidence, copied.Stage, artifactPath, copied.Evidence.Line, endLine) {
+			return false
 		}
-		if (ref.Kind == "copy_source" || ref.Kind == "copy_from") && (ref.TargetPath == "" || dockerPathsOverlap(ref.TargetPath, artifactPath)) {
+		if !dockerNoInterveningWrites(refs, copied.Stage, artifactPath, copied.Evidence.Line, endLine) {
 			return false
 		}
 	}
 	return true
+}
+
+// dockerCopiedArtifactPaths returns where a copied archive may land. A target
+// ending in "/" is a directory. A target without a slash is ambiguous when it
+// does not itself name an archive: Docker writes the file there, or into it
+// when it is an existing directory, so both locations must survive.
+func dockerCopiedArtifactPaths(copied deployables.Reference) []string {
+	target := copied.TargetPath
+	if strings.HasSuffix(target, "/") {
+		return []string{path.Join(target, path.Base(copied.Value))}
+	}
+	if dockerArchiveName(path.Base(copied.Value)) && !dockerArchiveName(path.Base(target)) {
+		return []string{target, path.Join(target, path.Base(copied.Value))}
+	}
+	return []string{target}
+}
+
+func dockerArchiveName(name string) bool {
+	return strings.HasSuffix(name, ".war") || strings.HasSuffix(name, ".ear")
 }
 
 // dockerContextIncludesModule traces a copied artifact backward through
@@ -431,18 +457,55 @@ func dockerNoInterveningWrites(refs []deployables.Reference, stage, artifactPath
 			return false
 		case "run_instruction_opaque":
 			return false
+		case "copy_opaque":
+			if ref.TargetPath == "" || dockerWriteAffects(ref.TargetPath, artifactPath) {
+				return false
+			}
+		case "copy_source", "copy_source_stage":
+			// A later COPY in the same stage can replace the artifact.
+			if ref.TargetPath == "" || dockerWriteAffects(dockerCopyWrittenPath(ref), artifactPath) {
+				return false
+			}
+		case "copy_from":
+			if ref.TargetPath == "" {
+				return false
+			}
 		case "run_instruction":
 			if !dockerRunIsKnownBuildOrCopy(refs, ref, artifactPath) {
 				return false
 			}
 			for _, write := range refs {
-				if write.Kind == "run_copy" && write.Stage == stage && write.Evidence.Line == ref.Evidence.Line && dockerPathsOverlap(write.TargetPath, artifactPath) {
+				if write.Kind == "run_copy" && write.Stage == stage && write.Evidence.Line == ref.Evidence.Line && dockerWriteAffects(write.TargetPath, artifactPath) {
 					return false
 				}
 			}
 		}
 	}
 	return true
+}
+
+// dockerCopyWrittenPath is the path a COPY source writes. A source that looks
+// like a single file copied into a directory writes only <dir>/<name>; any
+// other source may write anywhere below its target.
+func dockerCopyWrittenPath(ref deployables.Reference) string {
+	target := ref.TargetPath
+	if !strings.HasSuffix(target, "/") {
+		return target
+	}
+	base := path.Base(path.Clean(ref.Value))
+	if ext := path.Ext(base); ext != "" && ext != base && base != "." && base != ".." && !strings.ContainsAny(base, "*?") {
+		return path.Join(target, base)
+	}
+	return target
+}
+
+// dockerWriteAffects reports whether writing written can replace artifact:
+// the same path, or an ancestor directory whose contents are written. A write
+// strictly below artifact means artifact is a directory, not the archive file.
+func dockerWriteAffects(written, artifact string) bool {
+	written = path.Clean(written)
+	artifact = path.Clean(artifact)
+	return written == artifact || strings.HasPrefix(artifact, strings.TrimSuffix(written, "/")+"/")
 }
 
 func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.Reference, artifactPath string) bool {
@@ -452,18 +515,34 @@ func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.R
 	}
 	command = strings.TrimPrefix(command, "&& ")
 	command = strings.TrimSuffix(command, "\\")
-	if strings.ContainsAny(command, "|;") || strings.Contains(command, "||") {
+	if strings.ContainsAny(command, "|;`<>") || strings.Contains(command, "||") || strings.Contains(command, "$(") || strings.Contains(strings.ReplaceAll(command, "&&", ""), "&") {
 		return false
 	}
 	for _, segment := range strings.Split(command, "&&") {
 		segment = strings.TrimSpace(strings.TrimSuffix(strings.TrimSpace(segment), "\\"))
 		fields := strings.Fields(segment)
+		// Leading VAR=value assignments only set the command's environment.
+		for len(fields) > 0 && dockerEnvAssignment.MatchString(fields[0]) {
+			fields = fields[1:]
+		}
 		if len(fields) == 0 {
 			return false
 		}
 		tool := strings.ToLower(path.Base(fields[0]))
 		switch tool {
-		case "mvn", "mvnw", "mvn.cmd", "mkdir", "chmod", "chown":
+		case "mvn", "mvnw", "mvn.cmd":
+			if !dockerMavenBuildOnly(fields[1:]) {
+				return false
+			}
+			continue
+		case "mkdir", "chmod", "chown":
+			continue
+		case "apt-get", "apt", "apk", "yum", "dnf", "microdnf":
+			// OS package operations write system locations, not the build
+			// output being traced. Other subcommands stay unvetted.
+			if !dockerPackageManagerOnly(fields[1:]) {
+				return false
+			}
 			continue
 		case "rm":
 			for _, field := range fields[1:] {
@@ -520,6 +599,44 @@ func dockerRunIsKnownBuildOrCopy(refs []deployables.Reference, run deployables.R
 		}
 	}
 	return true
+}
+
+var dockerEnvAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+
+// dockerMavenBuildOnly accepts lifecycle phases, options and unresolved
+// variables. An explicit plugin goal (group:plugin:goal or prefix:goal), such
+// as dependency:copy, can place a downloaded artifact in target/ and fails
+// closed.
+func dockerMavenBuildOnly(args []string) bool {
+	takesValue := map[string]bool{"-f": true, "--file": true, "-s": true, "--settings": true, "-gs": true, "--global-settings": true, "-pl": true, "--projects": true, "-rf": true, "--resume-from": true, "-P": true, "--activate-profiles": true, "-T": true, "--threads": true, "-t": true, "--toolchains": true, "-l": true, "--log-file": true, "-D": true, "--define": true}
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		if takesValue[arg] {
+			i++
+			continue
+		}
+		if strings.HasPrefix(arg, "-") || strings.HasPrefix(arg, "$") {
+			continue
+		}
+		if strings.Contains(arg, ":") {
+			return false
+		}
+	}
+	return true
+}
+
+func dockerPackageManagerOnly(args []string) bool {
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			continue
+		}
+		switch arg {
+		case "update", "upgrade", "install", "add", "clean", "autoremove", "remove", "del", "purge", "makecache":
+			return true
+		}
+		return false
+	}
+	return false
 }
 
 func dockerRunAtLineIsSafe(refs []deployables.Reference, stage, artifactPath string, line int) bool {
