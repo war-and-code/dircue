@@ -44,6 +44,14 @@ def match_component(doc, label):
     # the map retains as a property. A single component at the expected root
     # is not enough to establish that it is the labeled component.
     exact = [n for n in cs if n["name"] == label["name"] or n["properties"].get("go_module") == label["name"]]
+    # Apply normalized ecosystem filter for all three calling paths (component
+    # assertions, capability-owner resolution, and edge endpoint resolution).
+    # pypi→python is the only declared label/map vocabulary pair; all other
+    # ecosystems must match exactly. Raw-exact semantics are computed separately
+    # in main() against the original label ecosystem value.
+    if "ecosystem" in label and exact:
+        normalized_eco = {"pypi": "python"}.get(label["ecosystem"], label["ecosystem"])
+        exact = [n for n in exact if n["properties"].get("ecosystem") == normalized_eco]
     return exact[0] if len(exact) == 1 else None
 
 
@@ -233,10 +241,9 @@ def main():
                 else: got = match_edge(doc, fact, label)
                 changes = []
                 if got and cat == "components":
-                    expected_ecosystem = {"pypi": "python"}.get(fact["ecosystem"], fact["ecosystem"])
-                    if got["properties"].get("ecosystem") != expected_ecosystem:
-                        got = None
-                    elif got["properties"].get("ecosystem") != fact["ecosystem"]:
+                    # Ecosystem normalization is enforced in match_component; any
+                    # pypi→python vocabulary drift is reported here for transparency.
+                    if got["properties"].get("ecosystem") != fact["ecosystem"]:
                         changes.append(f"ecosystem label {fact['ecosystem']} emitted as {got['properties'].get('ecosystem')}")
                     if got and got["name"] != fact["name"] and got["properties"].get("go_module") != fact["name"]:
                         changes.append(f"name {fact['name']} emitted as {got['name']}")

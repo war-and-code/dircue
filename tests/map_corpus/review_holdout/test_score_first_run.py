@@ -51,6 +51,51 @@ class IdentityMatchingTests(unittest.TestCase):
             with self.assertRaises(SystemExit):
                 scorer.verify_frozen_label(path, HERE.parents[2])
 
+    def test_wrong_ecosystem_component_rejected_in_capability_matching(self):
+        """Capability matching must reject a component whose ecosystem does not match.
+
+        Before the P4 fix, match_component was called without ecosystem checking in
+        the capability owner resolution path.  A component node with the right name
+        but a different ecosystem (e.g. ``npm`` instead of the expected ``python``)
+        would silently match.  This test verifies that the check now lives inside
+        match_component and rejects the wrong-ecosystem node when matching a
+        capability owner.
+        """
+        label_data = json.loads((HERE / "changedetection.json").read_text())
+        label = next(c for c in label_data["capabilities"] if c["capability"] == "net:http-client")
+        doc = load("changedetection")
+        # Baseline: capability matches with the correct component.
+        capability = scorer.match_capability(doc, label, label_data)
+        self.assertIsNotNone(capability)
+        # Corrupt the owning component's ecosystem so it no longer matches the
+        # label (label says pypi, normalised to python; flip the emitted node to
+        # a different ecosystem to confirm the check fires).
+        owner = next(n for n in doc["nodes"] if n["kind"] == "component" and n["name"] == "changedetection.io")
+        original_eco = owner["properties"]["ecosystem"]
+        owner["properties"]["ecosystem"] = "go"
+        self.assertIsNone(scorer.match_capability(doc, label, label_data))
+        owner["properties"]["ecosystem"] = original_eco
+
+    def test_wrong_ecosystem_component_rejected_in_edge_matching(self):
+        """Edge matching must reject a source/target component with wrong ecosystem.
+
+        Before the P4 fix, the component lookups inside match_edge bypassed the
+        ecosystem check, so a wrong-ecosystem component could be accepted as the
+        edge source or target.
+        """
+        label_data = json.loads((HERE / "umami.json").read_text())
+        uc_label = next(e for e in label_data["edges"] if e["type"] == "uses_capability"
+                        and e["to"] == "auth:jwt")
+        doc = load("umami")
+        # Baseline: edge matches with the correct component.
+        edge = scorer.match_edge(doc, uc_label, label_data)
+        self.assertIsNotNone(edge)
+        # Flip the owning component's ecosystem to something wrong.
+        owner = next(n for n in doc["nodes"] if n["kind"] == "component" and n["name"] == "umami")
+        owner["properties"]["ecosystem"] = "go"
+        self.assertIsNone(scorer.match_edge(doc, uc_label, label_data))
+        owner["properties"]["ecosystem"] = "npm"  # restore
+
 
 if __name__ == "__main__":
     unittest.main()
