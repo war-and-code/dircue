@@ -150,7 +150,8 @@ func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
 }
 
 // withCheckout records on a working-directory reference the innermost
-// checkout path that contains it.
+// checkout path that contains it. Every matching path is an ancestor of dir,
+// so the longest one is the innermost.
 func withCheckout(ref Reference, dir string, checkouts []workflowCheckout) Reference {
 	dir = path.Clean(dir)
 	for _, c := range checkouts {
