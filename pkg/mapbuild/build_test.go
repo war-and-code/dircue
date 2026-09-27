@@ -971,3 +971,363 @@ func TestCargoAuxTargetsGetNonPrimaryRole(t *testing.T) {
 		}
 	}
 }
+
+// --- P1: silent suppression tests ---
+
+// TestBuildContextAmbiguousExactRootRecordsReason verifies that when a
+// build_context resolves to a path with more than one component, the
+// deployable_reference fact is marked partial/ambiguous_component_root and
+// no edge is emitted.
+func TestBuildContextAmbiguousExactRootRecordsReason(t *testing.T) {
+	doc := mapdoc.New()
+	for _, src := range [][]string{{"svc/go.mod"}, {"svc/package.json"}} {
+		c := mapdoc.NewNode(mapdoc.NodeComponent, src, "test")
+		c.Properties = map[string]string{"root": "svc"}
+		c.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		c.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: src[0], SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+		doc.Nodes = append(doc.Nodes, c)
+	}
+	ev := deployables.Evidence{Field: "build", Value: "svc", Line: 2, Basis: "compose-build-field"}
+	def := deployables.Definition{
+		Provider: "compose", Kind: "service", Name: "svc", Path: "docker-compose.yaml",
+		Coverage: "complete", Evidence: []deployables.Evidence{{Field: "image", Value: "svc:latest", Line: 1, Basis: "compose-build-field"}},
+		References: []deployables.Reference{{Kind: "build_context", Value: "svc", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	// No builds edge should be emitted.
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("unexpected builds edge for ambiguous build_context exact root: %+v", e)
+		}
+	}
+	// The deployable_reference fact must be partial with ambiguous_component_root reason.
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "build_context" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "ambiguous_component_root" {
+					t.Errorf("fact coverage reasons = %v, want [ambiguous_component_root]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no deployable_reference fact for build_context found")
+	}
+}
+
+// TestCodeUriAmbiguousExactRootRecordsReason verifies that a code_uri whose
+// resolved path has multiple components records ambiguous_component_root on the
+// deployable_reference fact.
+func TestCodeUriAmbiguousExactRootRecordsReason(t *testing.T) {
+	doc := mapdoc.New()
+	for _, src := range [][]string{{"svc/go.mod"}, {"svc/package.json"}} {
+		c := mapdoc.NewNode(mapdoc.NodeComponent, src, "test")
+		c.Properties = map[string]string{"root": "svc"}
+		c.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		c.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: src[0], SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+		doc.Nodes = append(doc.Nodes, c)
+	}
+	ev := deployables.Evidence{Field: "CodeUri", Value: "svc", Line: 3, Basis: "sam-function-code-uri"}
+	def := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "fn", Path: "template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "Type", Value: "AWS::Serverless::Function", Line: 2, Basis: "cloudformation-resource"}},
+		References: []deployables.Reference{{Kind: "code_uri", Value: "svc", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("unexpected builds edge for ambiguous code_uri exact root: %+v", e)
+		}
+	}
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "code_uri" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "ambiguous_component_root" {
+					t.Errorf("fact coverage reasons = %v, want [ambiguous_component_root]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no deployable_reference fact for code_uri found")
+	}
+}
+
+// TestCodeUriAmbiguousNearestAncestorRecordsReason verifies that when the
+// nearest ancestor of a code_uri path has multiple components, the fact is
+// partial/ambiguous_component_root even though a more distant ancestor (the
+// repo root) has a unique component.
+func TestCodeUriAmbiguousNearestAncestorRecordsReason(t *testing.T) {
+	doc := mapdoc.New()
+	// Repo root: one component.
+	rootC := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	rootC.Properties = map[string]string{"root": "."}
+	rootC.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	rootC.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc.Nodes = append(doc.Nodes, rootC)
+	// services/api: two components (ambiguous).
+	for _, src := range [][]string{{"services/api/go.mod"}, {"services/api/package.json"}} {
+		c := mapdoc.NewNode(mapdoc.NodeComponent, src, "test")
+		c.Properties = map[string]string{"root": "services/api"}
+		c.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+		c.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: src[0], SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+		doc.Nodes = append(doc.Nodes, c)
+	}
+	// code_uri points to an artifact nested under services/api.
+	ev := deployables.Evidence{Field: "CodeUri", Value: "services/api/target/app.jar", Line: 4, Basis: "sam-function-code-uri"}
+	def := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "fn", Path: "template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "Type", Value: "AWS::Serverless::Function", Line: 2, Basis: "cloudformation-resource"}},
+		References: []deployables.Reference{{Kind: "code_uri", Value: "services/api/target/app.jar", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("ambiguous nearest ancestor incorrectly fell back to repo root: %+v", e)
+		}
+	}
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "code_uri" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "ambiguous_component_root" {
+					t.Errorf("fact coverage reasons = %v, want [ambiguous_component_root]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no deployable_reference fact for code_uri found")
+	}
+}
+
+// --- P2: root-escape tests ---
+
+// TestCodeUriRootEscapeIsNotAttributed verifies that CodeUri: ".." from a
+// root-level template.yaml resolves to ".." (outside the repository) and is
+// neither attributed to any component nor granted complete coverage.
+func TestCodeUriRootEscapeIsNotAttributed(t *testing.T) {
+	doc := mapdoc.New()
+	rootC := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	rootC.Properties = map[string]string{"root": "."}
+	rootC.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	rootC.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc.Nodes = append(doc.Nodes, rootC)
+
+	// template.yaml at repo root with CodeUri: ".." resolves to ".."
+	ev := deployables.Evidence{Field: "CodeUri", Value: "..", Line: 3, Basis: "sam-function-code-uri"}
+	def := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "fn", Path: "template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "Type", Value: "AWS::Serverless::Function", Line: 2, Basis: "cloudformation-resource"}},
+		References: []deployables.Reference{{Kind: "code_uri", Value: "..", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	// No builds edge should be emitted.
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("out-of-repo code_uri incorrectly produced a builds edge to %v", e.To)
+		}
+	}
+	// The fact must be partial with path_outside_repository reason.
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "code_uri" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "path_outside_repository" {
+					t.Errorf("fact coverage reasons = %v, want [path_outside_repository]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("no deployable_reference fact for code_uri found")
+	}
+}
+
+// TestCodeUriInfraSubdirDoesNotEscape verifies that infra/template.yaml with
+// CodeUri: ".." correctly resolves to "." (the repo root) and IS attributed to
+// the root component. This is the canonical valid use case.
+func TestCodeUriInfraSubdirDoesNotEscape(t *testing.T) {
+	doc := mapdoc.New()
+	rootC := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	rootC.Properties = map[string]string{"root": "."}
+	rootC.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	rootC.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc.Nodes = append(doc.Nodes, rootC)
+
+	// infra/template.yaml with CodeUri: ".." resolves to "." (valid).
+	ev := deployables.Evidence{Field: "CodeUri", Value: "..", Line: 3, Basis: "sam-function-code-uri"}
+	def := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "fn", Path: "infra/template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "Type", Value: "AWS::Serverless::Function", Line: 2, Basis: "cloudformation-resource"}},
+		References: []deployables.Reference{{Kind: "code_uri", Value: "..", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	found := false
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds && e.To == rootC.ID {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("infra/template.yaml CodeUri:..(→.) must build the root component; edges=%+v", doc.Edges)
+	}
+}
+
+// TestWorkflowAmbiguousExactRootRecordsReason verifies that a workflow
+// working-directory that matches multiple component roots records
+// ambiguous_component_root on the deployable_reference fact.
+func TestWorkflowAmbiguousExactRootRecordsReason(t *testing.T) {
+	doc, r := workflowEdgesDoc(t, "services/api")
+	// Add a second component at services/api to make it ambiguous.
+	dup := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/package.json"}, "npm")
+	dup.Name = "api-npm"
+	dup.Properties = map[string]string{"root": "services/api"}
+	dup.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	dup.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "services/api/package.json", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc.Nodes = append(doc.Nodes, dup)
+
+	addDeployables(doc, r)
+	addWorkflowComponentEdges(doc, r)
+
+	// No edge should be emitted.
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("ambiguous exact working-directory produced a builds edge: %+v", e)
+		}
+	}
+	// The deployable_reference fact must record ambiguous_component_root.
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "working_directory" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "ambiguous_component_root" {
+					t.Errorf("fact coverage reasons = %v, want [ambiguous_component_root]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("no deployable_reference fact for working_directory found")
+	}
+}
+
+// TestWorkflowRootEscapeIsNotAttributed verifies that a workflow
+// working-directory of ".." (escaping the repository root) produces no edge
+// and marks the fact partial/path_outside_repository.
+func TestWorkflowRootEscapeIsNotAttributed(t *testing.T) {
+	doc, r := workflowEdgesDoc(t, "..")
+	addDeployables(doc, r)
+	addWorkflowComponentEdges(doc, r)
+
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("out-of-repo working-directory produced a builds edge: %+v", e)
+		}
+	}
+	found := false
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "working_directory" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial {
+					t.Errorf("fact coverage status = %v, want partial", f.Coverage.Status)
+				}
+				if len(f.Coverage.Reasons) == 0 || f.Coverage.Reasons[0] != "path_outside_repository" {
+					t.Errorf("fact coverage reasons = %v, want [path_outside_repository]", f.Coverage.Reasons)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Error("no deployable_reference fact for working_directory with '..' found")
+	}
+}
+
+// TestBuildContextRootEscapeIsNotAttributed verifies that a build_context of
+// "../other" from a root-level Compose file resolves outside the repository
+// and is not attributed.
+func TestBuildContextRootEscapeIsNotAttributed(t *testing.T) {
+	doc := mapdoc.New()
+	rootC := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	rootC.Properties = map[string]string{"root": "."}
+	rootC.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	rootC.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	doc.Nodes = append(doc.Nodes, rootC)
+
+	ev := deployables.Evidence{Field: "build", Value: "../other", Line: 2, Basis: "compose-build-field"}
+	def := deployables.Definition{
+		Provider: "compose", Kind: "service", Name: "other", Path: "docker-compose.yaml",
+		Coverage: "complete", Evidence: []deployables.Evidence{{Field: "image", Value: "other:latest", Line: 1, Basis: "compose-build-field"}},
+		References: []deployables.Reference{{Kind: "build_context", Value: "../other", Qualification: "local", Evidence: ev}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{def}})
+
+	for _, e := range doc.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("out-of-repo build_context produced a builds edge: %+v", e)
+		}
+	}
+	// Check for path_outside_repository on the fact.
+	var factReason string
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, f := range n.Facts {
+			if f.Kind == "deployable_reference" && f.Name == "build_context" {
+				if len(f.Coverage.Reasons) > 0 {
+					factReason = f.Coverage.Reasons[0]
+				}
+			}
+		}
+	}
+	if !strings.Contains(factReason, "outside_repository") {
+		t.Errorf("expected path_outside_repository reason; got %q", factReason)
+	}
+}
