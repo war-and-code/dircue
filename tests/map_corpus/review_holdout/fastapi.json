@@ -1,0 +1,28 @@
+{
+  "repo": "fastapi",
+  "source": "https://github.com/fastapi/fastapi",
+  "commit": "192b12197eb04c2b4a691cce7d87261b21716714",
+  "oracle_files": [
+    {"path": "pyproject.toml", "sha256": "395f878bb3b90bcc946b9058c596c48ea3fba7c6a9f725c10ca4fb3b9b8b3508"},
+    {"path": "fastapi/applications.py", "sha256": "38dccb19b2a0b0b984c8d7541263842954a37c087cf96b4463aea17873c6183c"}
+  ],
+  "components": [
+    {"name": "fastapi", "root": ".", "ecosystem": "pypi", "why": "pyproject.toml:5-6 declares [project] name = fastapi; fastapi/applications.py:42 defines FastAPI as the framework's application class."}
+  ],
+  "deployables": [],
+  "interfaces": [],
+  "capabilities": [],
+  "edges": [],
+  "bounded_negative_facts": [
+    {"fact": "The base runtime dependency list does not establish a catalog capability or outbound HTTP-client capability.", "scope": ["pyproject.toml:44-50"], "why": "The direct base requirements are starlette, pydantic, typing-extensions, typing-inspection, and annotated-doc; none names a catalog capability library. Optional extras are explicitly excluded from this bounded claim."},
+    {"fact": "No local component dependency edge is declared by the base runtime dependency list.", "scope": ["pyproject.toml:44-50"], "why": "Each listed requirement is a named package/version specifier; no path, file, or local workspace reference appears in the base dependency array."},
+    {"fact": "No deployable definition is established by these source files.", "scope": ["pyproject.toml:1-50", "fastapi/applications.py:42-55"], "why": "The reviewed build and project metadata plus the FastAPI class declaration do not declare a container, function, or service deployment object."}
+  ],
+  "coverage": {
+    "asserted_scope": "The PyPI package identity plus base runtime requirements and FastAPI class declaration.",
+    "positive_facts": 1,
+    "negative_facts": 3,
+    "relation_scope": "The bounded check covers only local-component and catalog-capability relations inferable from the base requirements; optional extras and source-wide imports are excluded.",
+    "unknown": ["optional dependency groups and development dependencies", "console script interface coverage", "all source imports and capability use", "deployment files outside the two oracle files", "full repository content populations"]
+  }
+}
