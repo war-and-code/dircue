@@ -15,6 +15,13 @@ A harness exception does not authorize breaking an established CLI or report
 contract: those changes require the versioning and migration described below.
 Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
 
+- **Command names.** `dircue` and `dirq` are the same program. Every
+  documented invocation works under either name with the same flags, exit
+  statuses and machine-readable output; help and usage text show the name
+  that was invoked. Both names ship on every install route: release
+  archives, wheels, `go install` (`github.com/war-and-code/dircue` for
+  `dircue`, `github.com/war-and-code/dircue/cmd/dirq` for `dirq`) and the
+  container image.
 - **The directory map.** `dircue map` and its subcommands (`map compare`,
   `map locate`, `map route`, `map settings`), with their documented flags,
   `--preset` names, `--set` setting names, and `--attach` report kinds. The
@@ -133,11 +140,13 @@ default runtime behavior and is not classified as an error.
 - **The structural worker protocol.** The wire format between the Go
   CLI and the native structural worker is not a public integration
   surface. Third-party workers are unsupported.
-- **Internal Go packages.** `internal/` is not importable from
-  outside the module and its APIs are not part of the contract.
-  `pkg/` packages remain importable, but embedding callers must
-  accept that we may refine their signatures within 1.x if the
-  refinement preserves the CLI contract above.
+- **Go packages.** dircue 1.x is a command-line tool; it has no supported
+  Go API. `internal/` is not importable from outside the module. `pkg/`
+  packages are importable but unsupported: any 1.x release may rename them,
+  change their signatures or move them under `internal/`. A supported Go
+  entry point is planned in
+  [#178](https://github.com/war-and-code/dircue/issues/178) and
+  [#179](https://github.com/war-and-code/dircue/issues/179).
 - **Text output for non-`--json` invocations of new subcommands.**
   Legacy `dircue` (no subcommand) text output is frozen; text
   rendering of `analyze all`, `plan`, `compare`, and `capabilities`
