@@ -113,7 +113,10 @@ Every release asset carries a GitHub build attestation (SLSA provenance). The `S
 # Install the GitHub CLI (https://cli.github.com) and cosign (https://docs.sigstore.dev/cosign/system_config/installation)
 
 # 1. Verify the SLSA build provenance attestation for any asset (example: the Linux amd64 archive)
-gh attestation verify dircue_1.0.0_linux_amd64.tar.gz --repo war-and-code/dircue
+gh attestation verify dircue_1.0.0_linux_amd64.tar.gz \
+  --repo war-and-code/dircue \
+  --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml \
+  --source-ref refs/heads/main
 
 # 2. Download the Sigstore bundle alongside SHA256SUMS
 curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
@@ -122,7 +125,7 @@ curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SH
 # 3. Verify the cosign signature on SHA256SUMS
 cosign verify-blob \
   --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+  --certificate-identity 'https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   SHA256SUMS
 
@@ -130,7 +133,7 @@ cosign verify-blob \
 sha256sum -c SHA256SUMS --ignore-missing
 ```
 
-`gh attestation verify` talks to GitHub's attestation API and confirms the asset was built by the `release-candidate.yml` workflow at the tagged commit. The cosign verification confirms the `SHA256SUMS` manifest was signed by the same workflow run, with no long-lived key material.
+`gh attestation verify` checks GitHub's attestation API and confirms the asset was produced by the named signer workflow running on `refs/heads/main`; the provenance record includes the source commit, which you can inspect with `--format json`. The release workflow additionally enforces that the dispatch originates from `main`, that the selected commit equals the `main` head at dispatch time, and that an annotated version tag on that commit exists. The cosign verification confirms the `SHA256SUMS` manifest was signed by that same workflow file running on `refs/heads/main`, with no long-lived key material; it does not pin a specific run or commit on its own.
 
 The [distribution guide](docs/DISTRIBUTION.md) covers the full archive/wheel matrix, offline installation, and how to build a local archive from source without publishing. The optional structural worker is packaged separately; see the [worker guide](docs/STRUCTURE.md#building-the-add-on).
 

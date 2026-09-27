@@ -74,7 +74,10 @@ cd /tmp/dircue-review
 
 # Verify the SLSA build-provenance attestation for every asset
 for f in *.tar.gz *.zip *.whl SHA256SUMS; do
-  gh attestation verify "$f" --repo war-and-code/dircue
+  gh attestation verify "$f" \
+    --repo war-and-code/dircue \
+    --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml \
+    --source-ref refs/heads/main
 done
 
 # Verify the cosign signature on SHA256SUMS
@@ -96,7 +99,7 @@ On another host, use that host's matching archive and executable. For example,
 macOS uses `dircue` from the Darwin archive and Windows uses `dircue.exe` from
 the Windows archive.
 
-`cosign` can be installed via `brew install cosign`, `go install github.com/sigstore/cosign/v2/cmd/cosign@latest`, or from the [Sigstore release page](https://docs.sigstore.dev/cosign/system_config/installation).
+`cosign` can be installed via `brew install cosign`, `go install github.com/sigstore/cosign/v3/cmd/cosign@latest`, or from the [Sigstore release page](https://docs.sigstore.dev/cosign/system_config/installation).
 
 ### Step 4: Publish
 

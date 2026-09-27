@@ -66,9 +66,8 @@ without telemetry.
 
 Protect supported CLI invocations, JSON layouts, exit semantics, and the
 documented Linguist compatibility contract. The
-[proposed 1.0 compatibility policy](COMPATIBILITY.md) describes intended stability
-for the 1.x line and how additive changes and deprecations would be
-versioned. Its final scope remains under review. Keep diagnostics separate from machine-readable stdout. Test
+[1.x compatibility policy](COMPATIBILITY.md) defines the stable surfaces for
+the 1.x line and how additive changes and deprecations are versioned. Keep diagnostics separate from machine-readable stdout. Test
 changes against independent references and representative inputs, including
 awkward and large cases.
 
