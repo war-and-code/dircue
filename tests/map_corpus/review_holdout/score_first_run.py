@@ -4,9 +4,30 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import subprocess
 
 HERE = Path(__file__).resolve().parent
 RECEIPTS = HERE / "receipts"
+LABEL_COMMIT = "0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf"
+
+
+def verify_frozen_label(path, repo_root):
+    relpath = path.relative_to(repo_root)
+    try:
+        frozen = subprocess.run(
+            ["git", "show", f"{LABEL_COMMIT}:{relpath.as_posix()}"],
+            cwd=repo_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise SystemExit(f"cannot read frozen label {relpath} from {LABEL_COMMIT}") from exc
+    current = path.read_bytes()
+    require_frozen_label(current, frozen, relpath)
+    return current
+
+
+def require_frozen_label(current, frozen, relpath):
+    if current != frozen:
+        raise SystemExit(f"working label differs from frozen Git blob: {relpath}")
 
 
 def evpaths(node):
@@ -19,14 +40,25 @@ def allpaths(node):
 
 def match_component(doc, label):
     cs = [n for n in doc["nodes"] if n["kind"] == "component" and n["properties"].get("root") == label["root"]]
+    # Accept only the emitted component name or the Go module identity that
+    # the map retains as a property. A single component at the expected root
+    # is not enough to establish that it is the labeled component.
     exact = [n for n in cs if n["name"] == label["name"] or n["properties"].get("go_module") == label["name"]]
-    return exact[0] if len(exact) == 1 else (cs[0] if len(cs) == 1 else None)
+    return exact[0] if len(exact) == 1 else None
 
 
 def match_deployable(doc, label):
     xs = [n for n in doc["nodes"] if n["kind"] == "deployable" and n["properties"].get("kind") == label["kind"] and label["path"] in allpaths(n)]
     exact = [n for n in xs if n["name"] == label["name"]]
-    return exact[0] if len(exact) == 1 else (xs[0] if len(xs) == 1 else None)
+    # Dockerfile roots serialize as "(root)"; other unexpected names are
+    # unresolved rather than silently treated as semantic matches.
+    if len(exact) == 1:
+        return exact[0]
+    root_alias = [n for n in xs if label["kind"] == "container_build"
+                  and label["path"] == "Dockerfile"
+                  and n["properties"].get("provider") == "dockerfile"
+                  and n["name"] == "(root)"]
+    return root_alias[0] if len(root_alias) == 1 else None
 
 
 def match_interface(doc, label):
@@ -41,8 +73,16 @@ def match_interface(doc, label):
     return xs[0] if len(xs) == 1 else None
 
 
-def match_capability(doc, label):
+def match_capability(doc, label, label_data):
     xs = [n for n in doc["nodes"] if n["kind"] == "capability" and n["name"] == label["capability"] and label["path"] in allpaths(n)]
+    owner_label = next((c for c in label_data.get("components", [])
+                        if c["name"] == label.get("owner")), None)
+    if owner_label is None:
+        return None
+    owner = match_component(doc, owner_label)
+    if owner is None:
+        return None
+    xs = [n for n in xs if n.get("properties", {}).get("owning_component") == owner["id"]]
     return xs[0] if len(xs) == 1 else None
 
 
@@ -82,7 +122,7 @@ def match_edge(doc, label, label_data):
             comp_label = next((c for c in comps if c["name"] == label["from"]), None)
             cap_label = next((c for c in caps if c["capability"] == label["to"]), None)
             comp = match_component(doc, comp_label) if comp_label else None
-            cap = match_capability(doc, cap_label) if cap_label else None
+            cap = match_capability(doc, cap_label, label_data) if cap_label else None
             if comp and cap and src["id"] == comp["id"] and dst["id"] == cap["id"]:
                 return edge
         elif label["type"] == "declares":
@@ -152,8 +192,16 @@ def main():
     args = ap.parse_args()
     report, hit_count, pos_count = [], 0, 0
     build = json.loads((RECEIPTS / "build.json").read_text())
+    try:
+        repo_root = Path(subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"], cwd=HERE,
+            check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        ).stdout.strip())
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise SystemExit("cannot resolve Git root for frozen label verification") from exc
     for label_file in sorted(HERE.glob("*.json")):
-        label = json.loads(label_file.read_text())
+        label_bytes = verify_frozen_label(label_file, repo_root)
+        label = json.loads(label_bytes)
         receipt = json.loads((RECEIPTS / f"{label['repo']}.receipt.json").read_text())
         raw_path = RECEIPTS / receipt["stdout_file"]
         stderr_path = RECEIPTS / receipt["stderr_file"]
@@ -164,9 +212,13 @@ def main():
             raise SystemExit(f"{label['repo']}: stderr hash/size does not match first-run receipt")
         if receipt["exit_status"] != 0 or not receipt.get("stdout_json_valid"):
             raise SystemExit(f"{label['repo']}: first-run receipt is not successful valid JSON")
+        if receipt.get("binary_sha256") != build.get("binary_sha256"):
+            raise SystemExit(f"{label['repo']}: receipt binary hash differs from build metadata")
+        if receipt.get("source_commit") != receipt.get("expected_commit"):
+            raise SystemExit(f"{label['repo']}: receipt source commit differs from its expected pin")
         if label["repo"] != receipt["repo"] or label["commit"] != receipt["expected_commit"]:
             raise SystemExit(f"{label['repo']}: frozen source pin differs from first-run receipt")
-        if build["label_commit"] != "0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf":
+        if build["label_commit"] != LABEL_COMMIT:
             raise SystemExit("receipt build metadata does not name the committed label freeze")
         doc = json.loads(raw_bytes)
         if doc.get("source", {}).get("commit") != label["commit"] or doc.get("source", {}).get("tree") != receipt["source_tree"]:
@@ -177,7 +229,7 @@ def main():
                 if cat == "components": got = match_component(doc, fact)
                 elif cat == "deployables": got = match_deployable(doc, fact)
                 elif cat == "interfaces": got = match_interface(doc, fact)
-                elif cat == "capabilities": got = match_capability(doc, fact)
+                elif cat == "capabilities": got = match_capability(doc, fact, label)
                 else: got = match_edge(doc, fact, label)
                 changes = []
                 if got and cat == "components":

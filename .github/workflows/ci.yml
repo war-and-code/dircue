@@ -54,6 +54,7 @@ jobs:
         run: |
           python -m unittest discover -s tests/atlas -p 'test_*.py' -v
           python -m unittest discover -s tests/map_corpus -p 'test_*.py' -v
+          python -m unittest discover -s tests/map_corpus/review_holdout -p 'test_*.py' -v
       - name: Test workflow concurrency contracts
         run: python -m unittest discover -s tests/ci -p 'test_*.py' -v
       - name: Test evidence archive manifest (no network)

@@ -828,7 +828,10 @@ func goNetHTTPClientUsage(file *ast.File, fset *token.FileSet, spec *ast.ImportS
 			return true
 		}
 		pkg, ok := selector.X.(*ast.Ident)
-		if ok && pkg.Name == localName {
+		if ok && pkg.Name == localName && pkg.Obj == nil {
+			// Package qualifiers are unresolved identifiers; a local variable or
+			// parameter with the same name has an Obj binding and is not the
+			// imported package.
 			switch selector.Sel.Name {
 			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "NewRequest", "NewRequestWithContext", "Transport", "DefaultTransport", "RoundTripper":
 				line = fset.Position(selector.Pos()).Line

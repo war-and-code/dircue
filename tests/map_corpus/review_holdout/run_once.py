@@ -59,6 +59,8 @@ def main() -> int:
         root = repos / repo
         if git(root, "rev-parse", "HEAD") != commit:
             raise SystemExit(f"{repo}: checkout HEAD does not match frozen pin {commit}")
+        if git(root, "status", "--porcelain"):
+            raise SystemExit(f"{repo}: working tree is dirty; refusing non-frozen input")
     receipts.mkdir(parents=True)
     raw_dir = receipts / "raw"
     raw_dir.mkdir()
@@ -79,9 +81,6 @@ def main() -> int:
         root = repos / repo
         source_commit = git(root, "rev-parse", "HEAD")
         source_tree = git(root, "rev-parse", "HEAD^{tree}")
-        dirty = git(root, "status", "--porcelain")
-        if dirty:
-            raise SystemExit(f"{repo}: working tree is dirty; refusing non-frozen input")
         exec_argv = [str(binary), "map", "--source", "git", "--rev", "HEAD", "--json", "."]
         receipt_argv = ["$BINARY", "map", "--source", "git", "--rev", "HEAD", "--json", "."]
         started = now()

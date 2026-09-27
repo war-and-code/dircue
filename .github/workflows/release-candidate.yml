@@ -183,7 +183,7 @@ jobs:
             --repo "${{ github.repository }}"
           cosign verify-blob \
             --bundle .cache/draft-release/SHA256SUMS.sigstore.json \
-            --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+            --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main$' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             .cache/draft-release/assets/SHA256SUMS
       - name: Retain download verification receipt

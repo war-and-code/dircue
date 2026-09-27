@@ -117,8 +117,10 @@ func TestGoNetHTTPOnlyAttributesOutboundClientUse(t *testing.T) {
 	}{
 		{name: "server handler", source: "package p\nimport \"net/http\"\nfunc handle(w http.ResponseWriter, r *http.Request) {}\n"},
 		{name: "aliased server handler", source: "package p\nimport web \"net/http\"\nfunc handle(w web.ResponseWriter, r *web.Request) {}\n"},
+		{name: "dot import is not attributed", source: "package p\nimport . \"net/http\"\nfunc fetch() { _ = Get }\n"},
 		{name: "client type", source: "package p\nimport \"net/http\"\nvar client *http.Client\n", wantClient: true, wantLine: 3},
 		{name: "aliased client function", source: "package p\nimport web \"net/http\"\nfunc fetch() {\n _, _ = web.Get(\"https://example.test\")\n}\n", wantClient: true, wantLine: 4},
+		{name: "shadowed alias is not package use", source: "package p\nimport web \"net/http\"\nfunc handler(w web.ResponseWriter) {}\nfunc fetch(web struct{ Get func(string) }) {\n web.Get(\"not http\")\n}\n"},
 		{name: "client transport", source: "package p\nimport \"net/http\"\nvar transport http.RoundTripper\n", wantClient: true, wantLine: 3},
 	}
 	for _, tt := range tests {
