@@ -127,7 +127,7 @@ def write_archive(path, payload, windows=False):
                             # Relative symlink: executable holds the link target name.
                             info.type = tarfile.SYMTYPE
                             info.linkname = executable
-                            info.mtime = 0
+                            info.mode, info.mtime = 0o777, 0
                             info.uid = info.gid = 0
                             info.uname = info.gname = ''
                             output.addfile(info)
