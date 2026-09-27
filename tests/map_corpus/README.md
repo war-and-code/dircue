@@ -34,10 +34,14 @@ creation-order portability, documentation non-interference, honest byte/file
 budget coverage, absence of absolute source paths, and self-comparison. It uses
 temporary copies and leaves no corpus output in the repository.
 
-`robustness.py` feeds 80 deterministic combinations of repeated Terraform
-provider declarations, punctuation-heavy workflows, and multi-document YAML
-through the full CLI. Each must return a parseable map; a declaration identity
-collision or parser failure must not discard the entire document.
+`robustness.py` feeds 90 deterministic combinations through the full CLI.
+The first 80 cover repeated Terraform provider declarations, punctuation-heavy
+workflows, and multi-document YAML.  Variants 80–89 cover doc-named config
+files: workflows and Kubernetes manifests whose basenames start with
+`readme`, `changelog`, or `contributing` (e.g. `.github/workflows/changelog.yml`,
+`deploy/changelog-service.yaml`).  Each variant must return a parseable map;
+a declaration identity collision, path mis-classification, or parser failure
+must not discard the entire document.
 
 An already-materialized pinned public corpus can be checked without downloads:
 
