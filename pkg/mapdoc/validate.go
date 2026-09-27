@@ -295,39 +295,18 @@ func validateEvidence(values []Evidence, documentationFact, directoryAllowed boo
 	return nil
 }
 
-// isDocumentationPath reports whether a file path represents a documentation
-// file that should not be used as evidence for non-documentation facts.
-//
-// A path is documentation-shaped when:
-//   - Its extension is a well-known prose markup extension (.md, .mdx,
-//     .markdown, .rst, .adoc, .asciidoc), OR
-//   - Its basename has one of the conventional readme/changelog/contributing
-//     prefixes AND the file carries no extension (bare prose files common in
-//     older repositories, e.g. README, CHANGELOG, CONTRIBUTING).
-//
-// Files that carry those prefixes but have a non-documentation extension are
-// NOT documentation: .github/workflows/changelog.yml is a CI workflow, not a
-// changelog; deploy/changelog-service.yaml is a Kubernetes manifest;
-// contributing.json is a configuration file.
-//
-// Note: .txt is intentionally excluded even though it can hold prose, because
-// it is also used for configuration (requirements.txt, constraints.txt) and
-// classifying it as documentation would block those files from evidencing
-// non-documentation facts.
+// isDocumentationPath reports whether a path is prose that must not evidence a
+// non-documentation fact: a markup file, or a README, CHANGELOG or CONTRIBUTING
+// file that is plain text. A name such as .github/workflows/changelog.yml or
+// deploy/changelog-service.yaml is configuration, not documentation.
 func isDocumentationPath(p string) bool {
 	base := strings.ToLower(pathBase(p))
 	ext := strings.ToLower(filepath.Ext(base))
-	// Files with a recognised prose markup extension are always documentation.
 	if slices.Contains([]string{".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc"}, ext) {
 		return true
 	}
-	// The readme/changelog/contributing prefix rule applies only when the file
-	// has no extension — config and code files that happen to share the prefix
-	// (changelog.yml, readme.yaml, contributing.json) are not documentation.
-	if ext != "" {
-		return false
-	}
-	return strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing")
+	prose := strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing")
+	return prose && (ext == "" || ext == ".txt")
 }
 func pathBase(p string) string {
 	if i := strings.LastIndexByte(p, '/'); i >= 0 {

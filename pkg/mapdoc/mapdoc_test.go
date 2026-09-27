@@ -287,6 +287,9 @@ func TestDocumentationPathClassifier(t *testing.T) {
 		"README",
 		"CHANGELOG",
 		"CONTRIBUTING",
+		// Plain-text prose.
+		"README.txt",
+		"CHANGELOG.txt",
 		// Nested paths.
 		"docs/README.md",
 		".github/CONTRIBUTING.md",
@@ -307,14 +310,9 @@ func TestDocumentationPathClassifier(t *testing.T) {
 		"changelog.toml",
 		"README.yaml",
 		"CHANGELOG.yml",
-		// .txt files are intentionally NOT documentation: requirements.txt,
-		// constraints.txt, AUTHORS.txt, etc. are configuration/package-management
-		// files and must be able to evidence non-documentation facts.
+		// Plain-text manifests without a prose prefix.
 		"requirements.txt",
 		"constraints.txt",
-		"README.txt",
-		"CONTRIBUTING.txt",
-		"CHANGELOG.txt",
 	}
 
 	// Build a documentation content node that references the doc path — must pass.
