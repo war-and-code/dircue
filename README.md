@@ -7,13 +7,13 @@ together. It works deterministically and offline, without running anything in
 the directory.
 
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
-- **components:** projects across 26 ecosystems;
+- **components:** projects from 36 component kinds, reported under 27 `ecosystem` values;
 - **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
 - **interfaces:** binaries, ports, gRPC and OpenAPI;
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
 - **relationships:** what builds, runs, depends on and contains what.
 
-Every fact carries its evidence (file, line, rule), and every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
+Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
 
 The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) says what 1.0 freezes. What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 
@@ -67,11 +67,12 @@ dircue map --forest /disk                               # nested repositories, d
 
 Attached reports contribute facts and run coverage, never findings or verdicts. Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
 
-The classic Linguist-compatible output is unchanged:
+The classic Linguist-compatible output is unchanged. In a directory holding one small Go file:
 
 ```sh
+$ printf 'package main\n\nfunc main() {}\n' > main.go
 $ dircue --json .
-{"Go":{"size":77,"percentage":"100.00"}}
+{"Go":{"size":29,"percentage":"100.00"}}
 ```
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
@@ -113,7 +114,10 @@ Every release asset carries a GitHub build attestation (SLSA provenance). The `S
 # Install the GitHub CLI (https://cli.github.com) and cosign (https://docs.sigstore.dev/cosign/system_config/installation)
 
 # 1. Verify the SLSA build provenance attestation for any asset (example: the Linux amd64 archive)
-gh attestation verify dircue_1.0.0_linux_amd64.tar.gz --repo war-and-code/dircue
+gh attestation verify dircue_1.0.0_linux_amd64.tar.gz \
+  --repo war-and-code/dircue \
+  --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml \
+  --source-ref refs/heads/main
 
 # 2. Download the Sigstore bundle alongside SHA256SUMS
 curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SHA256SUMS
@@ -122,7 +126,7 @@ curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/SH
 # 3. Verify the cosign signature on SHA256SUMS
 cosign verify-blob \
   --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+  --certificate-identity 'https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   SHA256SUMS
 
@@ -130,7 +134,7 @@ cosign verify-blob \
 sha256sum -c SHA256SUMS --ignore-missing
 ```
 
-`gh attestation verify` talks to GitHub's attestation API and confirms the asset was built by the `release-candidate.yml` workflow at the tagged commit. The cosign verification confirms the `SHA256SUMS` manifest was signed by the same workflow run, with no long-lived key material.
+`gh attestation verify` checks GitHub's attestation API and confirms the asset was produced by the named signer workflow running on `refs/heads/main`; the provenance record includes the source commit, which you can inspect with `--format json`. The release workflow additionally enforces that the dispatch originates from `main`, that the selected commit equals the `main` head at dispatch time, and that an annotated version tag on that commit exists. The cosign verification confirms the `SHA256SUMS` manifest was signed by that same workflow file running on `refs/heads/main`, with no long-lived key material; it does not pin a specific run or commit on its own.
 
 The [distribution guide](docs/DISTRIBUTION.md) covers the full archive/wheel matrix, offline installation, and how to build a local archive from source without publishing. The optional structural worker is packaged separately; see the [worker guide](docs/STRUCTURE.md#building-the-add-on).
 

@@ -1,0 +1,5 @@
+{
+  "name": "svc",
+  "version": "1.0.0",
+  "description": "polyglot svc: go.mod and package.json share the same root, making attribution ambiguous"
+}

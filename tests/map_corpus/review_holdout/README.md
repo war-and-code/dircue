@@ -1,0 +1,15 @@
+# Review holdout labels, frozen before map execution
+
+This is a small, bounded source-first evaluation slice for the 1.0 candidate. It has two library negative controls (`go-chi/chi` and `fastapi/fastapi`) and two application/deployment repositories (`umami-software/umami` and `dgtlmoon/changedetection.io`). The latter pair was added to exercise component, deployable, interface, capability, and build/run/dependency relationships. Each repository is pinned to a full upstream commit. Every label file records SHA-256 hashes for the exact oracle files read, positive facts, bounded negative facts, relation scope, and explicit unknown areas.
+
+The repositories are absent from the recorded golden, fresh, public, independent, and holdout map-corpus labels and from `tests/atlas/corpus.json`. Repositories were shallow-cloned under the local `$HOLDOUT/repos/` scratch directory; commits were recorded with `git rev-parse HEAD`. Labels were authored from the listed source/manifests/deployment files only, using `docs/MAP.md` to interpret the map vocabulary. The candidate binary for this evaluation was built and first run on these repositories after the labels were committed; no map output, JSON, or summary from these inputs was inspected before labeling.
+
+This corpus does not claim whole-repository precision or recall. For the application repos, only the explicitly enumerated observations are scored; capabilities, components, interfaces, or relationships beyond the cited oracle scope remain unknown. Commented Compose examples are not treated as active services. The two library controls add bounded tests of component classification and negative relation boundaries but contribute little positive relation coverage.
+
+After these labels are committed, run the map once per pinned checkout and preserve command, binary hash, raw JSON hash, stdout/stderr, exit status, and source identity in a separate first-run receipt. Score only the frozen assertions and their declared scopes. Do not revise these labels after seeing output. If source adjudication later changes them, retain this first-blind result and use a new holdout for any later candidate.
+
+**Labels and detector come from the same team.** The labels were written from source before the first map run on these repositories, which guards against fitting labels to output. They are not an independent review. "Holdout" means the repositories were absent from every earlier corpus.
+
+**Merge with a merge commit.** The scorer verifies each label file against its blob in the label-freeze commit `0fb6277`. Squash and rebase merges drop that commit from history. The Linux CI job checks out full history and reruns the scorer against the committed receipts, so a merge that loses the commit fails CI.
+
+Later source-cited corrections live in `adjudications.json`. They never edit the frozen label files, and the scorer reports them separately from the first-run score.

@@ -790,11 +790,93 @@ func parseGoImports(name string, content []byte) []Observation {
 			line = fset.Position(spec.Pos()).Line
 		}
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
+		// net/http serves both inbound handlers and outbound requests, so its
+		// import alone is not evidence of an HTTP client. Sub-packages are
+		// classified individually and unknown ones fail closed.
+		capabilityLine := line
+		capabilityBasis := "imported"
+		switch {
+		case value == "net/http":
+			clientLine := goPackageSymbolUse(f, fset, spec, "http", goNetHTTPClientSymbols)
+			if clientLine == 0 {
+				continue
+			}
+			capabilityLine = clientLine
+			capabilityBasis = "code_syntax"
+		case value == "net/http/cookiejar" || value == "net/http/httptrace":
+			// Client-side packages: the import is the evidence.
+		case value == "net/http/httputil":
+			// Mixed client and server helpers: require a client-side reference.
+			clientLine := goPackageSymbolUse(f, fset, spec, "httputil", goHTTPUtilClientSymbols)
+			if clientLine == 0 {
+				continue
+			}
+			capabilityLine = clientLine
+			capabilityBasis = "code_syntax"
+		case strings.HasPrefix(value, "net/http/"):
+			// pprof, httptest, fcgi, cgi and any unknown sub-package.
+			continue
+		}
 		for _, capability := range capabilitiesFor("go-import", value) {
-			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"import": value}})
+			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: capabilityBasis, Path: name, StartLine: capabilityLine, EndLine: capabilityLine, Properties: map[string]string{"import": value}})
 		}
 	}
 	return out
+}
+
+// goNetHTTPClientSymbols are net/http references that establish outbound
+// client use. NewRequest and NewRequestWithContext are deliberately absent:
+// they construct *http.Request values that server-side tests pass to
+// handler.ServeHTTP. Code that sends such a request also references a client
+// symbol below, so component-level evidence is kept.
+var goNetHTTPClientSymbols = map[string]bool{
+	"Client": true, "DefaultClient": true, "Get": true, "Head": true, "Post": true, "PostForm": true,
+	"Transport": true, "DefaultTransport": true, "RoundTripper": true,
+}
+
+// goHTTPUtilClientSymbols are net/http/httputil references that make or
+// serialize outbound requests: the reverse proxy forwards to a backend,
+// DumpRequestOut renders a client request, and ClientConn is the deprecated
+// low-level client. DumpRequest, ServerConn and the chunked readers are
+// server-side or neutral and are not evidence of a client.
+var goHTTPUtilClientSymbols = map[string]bool{
+	"ReverseProxy": true, "NewSingleHostReverseProxy": true, "DumpRequestOut": true,
+	"ClientConn": true, "NewClientConn": true, "NewProxyClientConn": true,
+}
+
+// goPackageSymbolUse returns the first line where file references one of
+// symbols through the import spec's package qualifier, or 0. Blank and dot
+// imports are never attributed.
+//
+// Package qualifiers are unresolved identifiers in a single-file parse, while
+// a local variable or parameter with the same name has an Obj binding and is
+// not the imported package. ast.Ident.Obj is deprecated but still populated by
+// parser mode 0; the shadowed-alias case in
+// TestGoNetHTTPOnlyAttributesOutboundClientUse fails if that ever changes.
+func goPackageSymbolUse(file *ast.File, fset *token.FileSet, spec *ast.ImportSpec, defaultName string, symbols map[string]bool) int {
+	localName := defaultName
+	if spec.Name != nil {
+		localName = spec.Name.Name
+	}
+	if localName == "_" || localName == "." {
+		return 0
+	}
+	line := 0
+	ast.Inspect(file, func(node ast.Node) bool {
+		if line != 0 {
+			return false
+		}
+		selector, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		if pkg, ok := selector.X.(*ast.Ident); ok && pkg.Name == localName && pkg.Obj == nil && symbols[selector.Sel.Name] {
+			line = fset.Position(selector.Pos()).Line
+			return false
+		}
+		return true
+	})
+	return line
 }
 
 // parsePythonImports scans Python source files for import statements and infers

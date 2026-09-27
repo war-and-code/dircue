@@ -1,0 +1,36 @@
+{
+  "repo": "fastapi",
+  "source_commit": "192b12197eb04c2b4a691cce7d87261b21716714",
+  "expected_commit": "192b12197eb04c2b4a691cce7d87261b21716714",
+  "source_tree": "305ecf090d56d322ff3e385eb9311236d1baacd2",
+  "source_dirty": false,
+  "binary_sha256": "eea45058364ef25557b510e35371e97b79244e5e0f0375017b87234ef3d97b7b",
+  "argv": [
+    "$BINARY",
+    "map",
+    "--source",
+    "git",
+    "--rev",
+    "HEAD",
+    "--json",
+    "."
+  ],
+  "cwd": "$REPOS/fastapi",
+  "started_utc": "2026-09-27T11:37:36.522434+00:00",
+  "ended_utc": "2026-09-27T11:37:36.895479+00:00",
+  "exit_status": 0,
+  "stdout_file": "raw/fastapi.json",
+  "stdout_bytes": 250358,
+  "stdout_sha256": "9ceb0d0c6786db90bf4e14bd556d0627c09d9ab0c9fd205a179ae2772dece8b4",
+  "stderr_file": "raw/fastapi.stderr",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_json_valid": true,
+  "path_placeholders": {
+    "$BINARY": "the binary identified by binary_sha256 in build.json",
+    "$REPOS": "pinned checkout collection under $HOLDOUT"
+  },
+  "timeout_seconds": null,
+  "timed_out": false,
+  "timeout_note": "The recorded first-run invocation had no subprocess timeout and completed normally."
+}

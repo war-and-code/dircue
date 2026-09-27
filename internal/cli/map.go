@@ -444,48 +444,49 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	} else {
 		line("Components: %d%s", len(primaryComponents), auxSuffix)
 	}
-	// Deduplicate summary labels: a solution and its only member project often
-	// share the same name. Show each distinct "name [ecosystem]" once.
-	// When multiple components share a display name and ecosystem, disambiguate
-	// by appending the component's root-directory base name in parentheses so
-	// that callers can tell them apart (e.g. "api (:modules/api) [gradle]").
+	// A solution and its member project often share a name and nest one inside
+	// the other; show such a group once, at its shallowest root. Components
+	// that still share a name and ecosystem are labeled with their root path,
+	// e.g. "api (modules/billing/api) [gradle]".
 	// Shallow roots first: the repository's own projects lead, nested ones follow.
 	slices.SortFunc(primaryComponents, func(a, b mapdoc.Node) int {
 		if da, db := componentDepth(a), componentDepth(b); da != db {
 			return da - db
 		}
-		return strings.Compare(mapNodeLabel(a), mapNodeLabel(b))
+		if c := strings.Compare(mapNodeLabel(a), mapNodeLabel(b)); c != 0 {
+			return c
+		}
+		return strings.Compare(a.Properties["root"], b.Properties["root"])
 	})
-	// Count how many components share each (name, ecosystem) pair.
-	labelCount := map[string]int{}
-	for _, n := range primaryComponents {
-		lbl := fmt.Sprintf("%s\x00%s", mapNodeLabel(n), n.Properties["ecosystem"])
-		labelCount[lbl]++
-	}
 	type displayComponent struct {
 		node  mapdoc.Node
 		label string
 	}
-	seenDisplayLabels := map[string]bool{}
+	shownRoots := map[string][]string{}
 	uniquePrimaryComponents := make([]displayComponent, 0, len(primaryComponents))
 	for _, n := range primaryComponents {
-		nameEcosystem := fmt.Sprintf("%s\x00%s", mapNodeLabel(n), n.Properties["ecosystem"])
-		displayLabel := mapNodeLabel(n)
-		if labelCount[nameEcosystem] > 1 {
-			// Disambiguate with the root-directory base name.
-			root := n.Properties["root"]
-			if root == "" || root == "." {
-				root = "(root)"
-			} else {
-				root = path.Base(root)
+		key := mapNodeLabel(n) + "\x00" + n.Properties["ecosystem"]
+		root := componentRoot(n)
+		nested := false
+		for _, shown := range shownRoots[key] {
+			if shown == "." || root == shown || strings.HasPrefix(root, shown+"/") {
+				nested = true
+				break
 			}
-			displayLabel = fmt.Sprintf("%s (%s)", mapNodeLabel(n), root)
 		}
-		// Dedup on the full display label so we don't repeat identical entries.
-		fullKey := fmt.Sprintf("%s\x00%s", displayLabel, n.Properties["ecosystem"])
-		if !seenDisplayLabels[fullKey] {
-			seenDisplayLabels[fullKey] = true
-			uniquePrimaryComponents = append(uniquePrimaryComponents, displayComponent{node: n, label: displayLabel})
+		if nested {
+			continue
+		}
+		shownRoots[key] = append(shownRoots[key], root)
+		uniquePrimaryComponents = append(uniquePrimaryComponents, displayComponent{node: n, label: mapNodeLabel(n)})
+	}
+	for i, dc := range uniquePrimaryComponents {
+		if len(shownRoots[mapNodeLabel(dc.node)+"\x00"+dc.node.Properties["ecosystem"]]) > 1 {
+			root := componentRoot(dc.node)
+			if root == "." {
+				root = "(root)"
+			}
+			uniquePrimaryComponents[i].label = fmt.Sprintf("%s (%s)", mapNodeLabel(dc.node), root)
 		}
 	}
 	for _, dc := range uniquePrimaryComponents[:min(4, len(uniquePrimaryComponents))] {
@@ -831,4 +832,14 @@ func runnableDeployableKind(kind, provider string) bool {
 		return false
 	}
 	return true
+}
+
+// componentRoot returns a component's clean root directory, "." for the
+// repository root.
+func componentRoot(n mapdoc.Node) string {
+	root := n.Properties["root"]
+	if root == "" {
+		return "."
+	}
+	return path.Clean(root)
 }

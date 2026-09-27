@@ -91,7 +91,10 @@ def validate_source(root, version, commit, notes):
     wheels.python_version(version)
     checked(re.fullmatch(r'[0-9a-f]{40}', commit) is not None, 'commit must be a full lowercase Git SHA-1')
     release.clean_revision(root, commit)
-    tagged = release.git(root, 'rev-parse', '--verify', 'refs/tags/v' + version + '^{commit}').decode().strip()
+    tag_ref = 'refs/tags/v' + version
+    tag_type = release.git(root, 'cat-file', '-t', tag_ref).decode().strip()
+    checked(tag_type == 'tag', 'version tag must be annotated')
+    tagged = release.git(root, 'rev-parse', '--verify', tag_ref + '^{commit}').decode().strip()
     checked(tagged == commit, 'existing version tag must point to the exact requested commit')
     safe_name(notes)
     checked(notes.endswith('.md'), 'release notes must be a committed Markdown file')
@@ -135,6 +138,7 @@ def ensure_remote_unused(repo, version, commit):
     else:
         raise ValueError('release inventory exceeds bounded lookup; cannot establish unused version')
     obj = api(f'repos/{repo}/git/ref/tags/v{version}')['object']
+    checked(obj.get('type') == 'tag', 'remote version tag must be annotated')
     for _ in range(8):
         if obj['type'] == 'commit':
             checked(obj['sha'] == commit, 'remote tag no longer matches requested commit')

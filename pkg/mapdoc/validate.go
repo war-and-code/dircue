@@ -294,10 +294,19 @@ func validateEvidence(values []Evidence, documentationFact, directoryAllowed boo
 	}
 	return nil
 }
+
+// isDocumentationPath reports whether a path is prose that must not evidence a
+// non-documentation fact: a markup file, or a README, CHANGELOG or CONTRIBUTING
+// file that is plain text. A name such as .github/workflows/changelog.yml or
+// deploy/changelog-service.yaml is configuration, not documentation.
 func isDocumentationPath(p string) bool {
 	base := strings.ToLower(pathBase(p))
 	ext := strings.ToLower(filepath.Ext(base))
-	return strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing") || slices.Contains([]string{".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc"}, ext)
+	if slices.Contains([]string{".md", ".mdx", ".markdown", ".rst", ".adoc", ".asciidoc"}, ext) {
+		return true
+	}
+	prose := strings.HasPrefix(base, "readme") || strings.HasPrefix(base, "changelog") || strings.HasPrefix(base, "contributing")
+	return prose && (ext == "" || ext == ".txt")
 }
 func pathBase(p string) string {
 	if i := strings.LastIndexByte(p, '/'); i >= 0 {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
@@ -98,6 +99,26 @@ func TestWorkflowEdgesAncestorLookup(t *testing.T) {
 	}
 	if !found {
 		t.Errorf("expected ancestor-resolved workflow→api edge; edges=%+v", d.Edges)
+	}
+}
+
+// An ambiguous nearer root blocks attribution to a broader ancestor. The
+// workflow path is inside services/api, whose duplicate component roots make
+// ownership unclear even though the repository root has a single component.
+func TestWorkflowEdgesAmbiguousNearestRootDoesNotFallBack(t *testing.T) {
+	d, r := workflowEdgesDoc(t, "services/api/cmd")
+	duplicate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/package.json"}, "npm")
+	duplicate.Name = "api-package"
+	duplicate.Properties = map[string]string{"root": "services/api"}
+	duplicate.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	d.Nodes = append(d.Nodes, duplicate)
+	addDeployables(d, r)
+	addWorkflowComponentEdges(d, r)
+
+	for _, e := range d.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Errorf("ambiguous nearest root incorrectly fell back to broader component: %+v", e)
+		}
 	}
 }
 
@@ -229,4 +250,166 @@ func entry2size(e os.DirEntry) int64 {
 		return 0
 	}
 	return info.Size()
+}
+
+// A working directory inside a directory the workflow fills with
+// actions/checkout is a run-time checkout, not the committed tree. With a
+// single root component, the ancestor walk used to attribute it to that
+// component.
+func TestWorkflowCheckoutPathIsNotAttributed(t *testing.T) {
+	d, _ := workflowEdgesDoc(t, "unused")
+	d.Nodes = d.Nodes[:1] // only the root component
+	content := []byte("name: Docs\non: [push]\njobs:\n  publish:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: example/docs\n          path: other-docs\n      - run: make\n        working-directory: other-docs/site\n")
+	files := []deployables.Candidate{{Path: ".github/workflows/docs.yml", Size: int64(len(content)),
+		Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}
+	r, err := deployables.Observe(context.Background(), files, deployables.Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	addDeployables(d, r)
+	addWorkflowComponentEdges(d, r)
+	for _, e := range d.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("working directory inside a checkout path was attributed: %+v", e)
+		}
+	}
+	found := false
+	for _, n := range d.Nodes {
+		for _, f := range n.Facts {
+			if f.Name == "working_directory" && f.Value == "other-docs/site" {
+				found = true
+				if f.Coverage.Status != mapdoc.CoveragePartial || !slices.Contains(f.Coverage.Reasons, "named_repository_checkout") {
+					t.Errorf("working_directory fact coverage = %+v, want partial named_repository_checkout", f.Coverage)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("working_directory fact missing")
+	}
+}
+
+// A working directory absent from a completely inventoried tree is created at
+// run time (here by git clone) and is not attributed to the enclosing project.
+// A directory that exists still resolves to its nearest component root.
+func TestWorkflowWorkingDirectoryMustExistInTree(t *testing.T) {
+	for _, tc := range []struct {
+		dir, reason string
+		wantEdge    bool
+	}{
+		{dir: "tooling", reason: "path_not_in_repository"},
+		{dir: "cmd/tool", wantEdge: true},
+	} {
+		t.Run(tc.dir, func(t *testing.T) {
+			d, _ := workflowEdgesDoc(t, "unused")
+			d.Nodes = d.Nodes[:1] // only the root component
+			d.Coverage = []mapdoc.QuestionCoverage{{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete}}}
+			content := []byte("name: Tools\non: [push]\njobs:\n  run:\n    steps:\n      - run: git clone https://example.test/tooling.git tooling\n      - run: make\n        working-directory: " + tc.dir + "\n")
+			read := func(b []byte) func(context.Context, int64) ([]byte, int64, error) {
+				return func(context.Context, int64) ([]byte, int64, error) { return b, int64(len(b)), nil }
+			}
+			files := []deployables.Candidate{
+				{Path: ".github/workflows/tools.yml", Size: int64(len(content)), Read: read(content)},
+				{Path: "go.mod", Size: 1, Read: read([]byte("m"))},
+				{Path: "cmd/tool/main.go", Size: 1, Read: read([]byte("p"))},
+			}
+			r, err := deployables.Observe(context.Background(), files, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			addDeployables(d, r)
+			addWorkflowComponentEdges(d, r)
+			edges := 0
+			for _, e := range d.Edges {
+				if e.Type == mapdoc.EdgeBuilds {
+					edges++
+				}
+			}
+			if (edges > 0) != tc.wantEdge {
+				t.Fatalf("builds edges = %d, want edge %v", edges, tc.wantEdge)
+			}
+			for _, n := range d.Nodes {
+				for _, f := range n.Facts {
+					if f.Name == "working_directory" && tc.reason != "" && !slices.Contains(f.Coverage.Reasons, tc.reason) {
+						t.Errorf("working_directory coverage = %+v, want reason %s", f.Coverage, tc.reason)
+					}
+				}
+			}
+		})
+	}
+}
+
+// A checkout of this repository below the workspace keeps its layout, so a
+// working directory inside it names the repository path after the checkout
+// prefix.
+func TestWorkflowSelfCheckoutPathMapsIntoRepository(t *testing.T) {
+	for _, tc := range []struct{ checkout, dir, wantRoot string }{
+		{checkout: "path: pr", dir: "./pr", wantRoot: "."},
+		{checkout: "path: pr", dir: "pr/services/api", wantRoot: "services/api"},
+		{checkout: "path: pr\n          repository: ${{ github.repository }}", dir: "pr/services/api", wantRoot: "services/api"},
+	} {
+		t.Run(tc.checkout+" "+tc.dir, func(t *testing.T) {
+			d, _ := workflowEdgesDoc(t, "unused")
+			content := []byte("name: Size\non: [pull_request]\njobs:\n  size:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          " + tc.checkout + "\n      - run: npm ci\n        working-directory: " + tc.dir + "\n")
+			files := []deployables.Candidate{{Path: ".github/workflows/size.yml", Size: int64(len(content)),
+				Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}
+			r, err := deployables.Observe(context.Background(), files, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			addDeployables(d, r)
+			addWorkflowComponentEdges(d, r)
+			roots := map[string]string{}
+			for _, n := range d.Nodes {
+				if n.Kind == mapdoc.NodeComponent {
+					roots[n.ID] = n.Properties["root"]
+				}
+			}
+			var got []string
+			for _, e := range d.Edges {
+				if e.Type == mapdoc.EdgeBuilds {
+					got = append(got, roots[e.To])
+				}
+			}
+			if len(got) != 1 || got[0] != tc.wantRoot {
+				t.Fatalf("builds edge roots = %v, want [%s]", got, tc.wantRoot)
+			}
+		})
+	}
+}
+
+// Checkout paths belong to the job that declares them, and only to steps after
+// the checkout. A named-repository checkout in one job must not affect a
+// working directory in another job.
+func TestWorkflowCheckoutPathsAreScopedToTheirJob(t *testing.T) {
+	for _, tc := range []struct {
+		name, workflow string
+		wantEdge       bool
+	}{
+		{"other job", "jobs:\n  tools:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n  build:\n    steps:\n      - uses: actions/checkout@v4\n      - run: make\n        working-directory: services/api\n", true},
+		{"same job", "jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n      - run: make\n        working-directory: services/api\n", false},
+		{"later step", "jobs:\n  build:\n    steps:\n      - run: make\n        working-directory: services/api\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d, _ := workflowEdgesDoc(t, "unused")
+			content := []byte("name: Build\non: [push]\n" + tc.workflow)
+			files := []deployables.Candidate{{Path: ".github/workflows/build.yml", Size: int64(len(content)),
+				Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}
+			r, err := deployables.Observe(context.Background(), files, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			addDeployables(d, r)
+			addWorkflowComponentEdges(d, r)
+			edges := 0
+			for _, e := range d.Edges {
+				if e.Type == mapdoc.EdgeBuilds {
+					edges++
+				}
+			}
+			if (edges == 1) != tc.wantEdge {
+				t.Fatalf("builds edges = %d, want edge %v", edges, tc.wantEdge)
+			}
+		})
+	}
 }

@@ -165,26 +165,36 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			composeServiceByID[def.Name] = n.ID
 		}
 		for _, ref := range def.References {
+			factIndex := len(n.Facts)
 			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
 			if ref.Kind == "service_dependency" && ref.Qualification == "local" {
 				composeDeps = append(composeDeps, composeDep{fromID: n.ID, toName: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
 			}
-			if (ref.Kind == "build_context" || ref.Kind == "code_uri") && ref.Qualification == "local" {
+			if (ref.Kind == "build_context" || ref.Kind == "code_uri" || ref.Kind == "working_directory") && ref.Qualification == "local" {
+				// A workflow working-directory resolves from the repository root;
+				// other references resolve from the declaring file's directory.
+				// CodeUri may name a build artifact (e.g. target/app.jar), so it
+				// and working-directory fall back to the nearest ancestor root.
 				resolved := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
-				owners := componentsByRoot[resolved]
-				if len(owners) == 0 && ref.Kind == "code_uri" {
-					// CodeUri may point to a build artifact (e.g. target/app.jar).
-					// Walk up to find the nearest ancestor that is a component root.
-					owners = componentAncestorOwners(componentsByRoot, resolved)
+				if ref.Kind == "working_directory" {
+					resolved = path.Clean(ref.Value)
 				}
-				if len(owners) == 1 {
-					localComponent = owners[0]
+				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
+				if ref.Kind == "working_directory" {
+					owner, reason = workingDirectoryOwner(d, r, ref, componentsByRoot, resolved)
+				}
+				if reason != "" {
+					n.Facts[factIndex].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
+				}
+				// Workflow edges are added by addWorkflowComponentEdges.
+				if owner != "" && ref.Kind != "working_directory" {
+					localComponent = owner
 					localEvidence = deployableEvidence(def.Path, ref.Evidence)
 					if def.Provider != "skaffold" {
-						addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
+						addRelationship(mapdoc.EdgeBuilds, n.ID, owner, ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
 					}
 					if def.Provider == "compose" && def.Kind == "service" {
-						addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
 					}
 				}
 			}
@@ -927,27 +937,116 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 	return ""
 }
 
+// Reasons recorded on a local path reference that is not attributed.
+const (
+	reasonPathOutsideRepository  = "path_outside_repository"
+	reasonAmbiguousComponentRoot = "ambiguous_component_root"
+	reasonNamedRepository        = "named_repository_checkout"
+	reasonPathNotInRepository    = "path_not_in_repository"
+)
+
+// workingDirectoryOwner attributes a workflow working directory, which
+// resolves from the workspace root. Below an actions/checkout `path:` of this
+// repository in the same job it names that path inside the repository. Below a
+// checkout that names a repository it is not attributed: the map cannot tell
+// offline whether that repository is this one. Any other directory the committed
+// tree lacks is created at run time and is not attributed to the project that
+// encloses it; absence is only asserted when the content inventory saw every
+// file.
+func workingDirectoryOwner(d *mapdoc.Document, r *deployables.Report, ref deployables.Reference, componentsByRoot map[string][]string, dir string) (string, string) {
+	if dir == ".." || strings.HasPrefix(dir, "../") {
+		return localPathOwner(componentsByRoot, dir, true)
+	}
+	if ref.Checkout != "" {
+		if ref.CheckoutNamed {
+			return "", reasonNamedRepository
+		}
+		dir = strings.TrimPrefix(strings.TrimPrefix(dir, ref.Checkout), "/")
+		if dir == "" {
+			dir = "."
+		}
+	} else if dir != "." && r.Directories != nil && !r.Directories[dir] && contentComplete(d) {
+		return "", reasonPathNotInRepository
+	}
+	return localPathOwner(componentsByRoot, dir, true)
+}
+
+// contentComplete reports whether the content inventory saw every committed
+// file, so every committed directory is known. Incomplete format observation
+// does not affect the file set; any other content reason does.
+func contentComplete(d *mapdoc.Document) bool {
+	for _, q := range d.Coverage {
+		if q.Question != "content" {
+			continue
+		}
+		if q.Coverage.Status == mapdoc.CoverageComplete {
+			return true
+		}
+		for _, reason := range q.Coverage.Reasons {
+			if reason != "format_observations_incomplete" {
+				return false
+			}
+		}
+		return q.Coverage.Status == mapdoc.CoveragePartial && len(q.Coverage.Reasons) > 0
+	}
+	return false
+}
+
+// localPathOwner returns the unique component whose root is resolved or, when
+// walkAncestors is set, its nearest ancestor root. When attribution is refused
+// it returns a coverage reason instead: the path leaves the repository, or the
+// nearest root with components holds more than one. Both empty means no
+// component root matched.
+func localPathOwner(componentsByRoot map[string][]string, resolved string, walkAncestors bool) (string, string) {
+	if resolved == ".." || strings.HasPrefix(resolved, "../") {
+		return "", reasonPathOutsideRepository
+	}
+	owners := componentsByRoot[resolved]
+	ambiguous := len(owners) > 1
+	if len(owners) == 0 && walkAncestors {
+		owners, ambiguous = componentAncestorOwners(componentsByRoot, resolved)
+	}
+	if ambiguous {
+		return "", reasonAmbiguousComponentRoot
+	}
+	if len(owners) == 1 {
+		return owners[0], ""
+	}
+	return "", ""
+}
+
 // componentAncestorOwners walks up the directory tree from resolvedPath and
 // returns the IDs of components whose root is an ancestor. Returns non-empty
 // only when exactly one unique component root matches at the closest level.
+// The second return value is true when the walk was stopped by an ambiguous
+// (>1 component) nearest root, distinguishing "ambiguous" from "no match".
 // This is used for CodeUri references that point to build artifacts rather
 // than source directories (e.g. target/app.jar).
-func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath string) []string {
+//
+// Paths that resolve outside the repository (resolvedPath == ".." or starting
+// with "../") are never attributed and return (nil, false).
+func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath string) ([]string, bool) {
+	if resolvedPath == ".." || strings.HasPrefix(resolvedPath, "../") {
+		return nil, false
+	}
 	p := resolvedPath
 	for {
+		if ids := componentsByRoot[p]; len(ids) > 0 {
+			// A nearer root is authoritative even when its ownership is
+			// ambiguous. Falling through would incorrectly attribute the path
+			// to a broader component.
+			if len(ids) == 1 {
+				return ids, false
+			}
+			return nil, true // ambiguous nearest root
+		}
 		parent := path.Dir(p)
 		if parent == p {
 			break
 		}
 		p = parent
-		if ids := componentsByRoot[p]; len(ids) == 1 {
-			return ids
-		}
-		if p == "." {
-			break
-		}
 	}
-	return nil
+	return nil, false
 }
 
 // aspireProjectOwners resolves an Aspire Projects.X identifier to a component.

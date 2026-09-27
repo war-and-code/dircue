@@ -108,7 +108,7 @@ The draft contains five core archives, five worker archives, seven wheels, per-p
 
 From 1.0.0, the final job additionally:
 
-1. Creates a **GitHub SLSA build-provenance attestation** for every assembled asset using `actions/attest-build-provenance`. Attestations are stored in GitHub's trust store and verified by `gh attestation verify <file> --repo war-and-code/dircue`.
+1. Creates a **GitHub SLSA build-provenance attestation** for every assembled asset using `actions/attest-build-provenance`. Attestations are stored in GitHub's trust store and verified by `gh attestation verify <file> --repo war-and-code/dircue --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml --source-ref refs/heads/main`.
 2. Signs `SHA256SUMS` with **keyless Sigstore cosign** (no long-lived key), producing `SHA256SUMS.sigstore.json`. The identity is bound to the workflow URL via GitHub's OIDC issuer.
 3. Verifies both the attestation and the cosign signature before the job succeeds. The run fails if either check fails.
 

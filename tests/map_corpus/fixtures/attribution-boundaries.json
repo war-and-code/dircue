@@ -1,0 +1,51 @@
+{
+  "questions": [
+    {
+      "id": "components-and-deployables",
+      "oracle": {
+        "source": "Go module, npm package.json, and AWS SAM template declarations",
+        "url": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html",
+        "fixture_evidence": "go.mod declares the root component; svc/go.mod and svc/package.json each declare a component at the same root (making svc ambiguous); infra/template.yaml and template.yaml each declare a serverless function; docker-compose.yaml declares a service with a build context pointing to the ambiguous svc directory"
+      },
+      "must_include": [
+        {"kind": "component", "path": "go.mod"},
+        {"kind": "deployable", "name": "ValidFunction", "path": "infra/template.yaml"},
+        {"kind": "deployable", "name": "EscapeFunction", "path": "template.yaml"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": []
+    },
+    {
+      "id": "attribution-rules",
+      "oracle": {
+        "source": "AWS SAM CodeUri path resolution and component attribution rules",
+        "url": "https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/sam-resource-function.html#sam-function-codeuri",
+        "fixture_evidence": "infra/template.yaml CodeUri:..(→ repo root) must produce a builds edge to the root component; template.yaml CodeUri:..(→ '..', outside the repository) must NOT be attributed; docker-compose.yaml build:./svc must NOT be attributed because svc/ has two component roots (go.mod and package.json)"
+      },
+      "must_include": [
+        {
+          "kind": "edge",
+          "type": "builds",
+          "from_path": "infra/template.yaml",
+          "from_name": "ValidFunction",
+          "to_path": "go.mod"
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "edge",
+          "type": "builds",
+          "from_path": "template.yaml",
+          "from_name": "EscapeFunction"
+        },
+        {
+          "kind": "edge",
+          "type": "builds",
+          "from_path": "docker-compose.yaml",
+          "from_name": "svc"
+        }
+      ],
+      "allowed_unknown": []
+    }
+  ]
+}

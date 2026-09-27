@@ -76,6 +76,23 @@ establishes one. The `copy_source` and `copy_source_stage` fact kinds record
 context and stage copy sources, respectively; the archive relationship uses
 the reason `dockerfile_copy_source_matches_maven_archive`.
 
+A local `build_context` is attributed to the component whose root is that
+directory. A `code_uri` or workflow `working_directory` may name a file or
+subdirectory (e.g. `target/app.jar`), so it is attributed to the nearest
+enclosing component root. The nearest root is authoritative: when it holds
+more than one component, no edge is emitted and the `deployable_reference`
+fact is `partial` with reason `ambiguous_component_root`, rather than falling
+back to a broader ancestor. A reference that resolves outside the repository
+is never attributed; its fact is `partial` with reason
+`path_outside_repository`. Workflow working directories resolve from the
+workspace. Below an `actions/checkout` `path:` made earlier in the same job,
+the directory names the repository path inside that checkout; when that
+checkout names a `repository:` it is not attributed (`named_repository_checkout`),
+because the map cannot tell offline whether that repository is this one. Any
+other directory the committed tree lacks is created at run time and is not
+attributed (`path_not_in_repository`); absence is only asserted when the
+content inventory saw every file.
+
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
 can be compared across maps of the same logical content, but an ID is not a
@@ -416,7 +433,7 @@ Current capability categories:
 | `messaging:nats` | NATS messaging client libraries |
 | `messaging:event-bus` | Higher-level message-bus frameworks |
 | `storage:object` | Object / blob storage (S3, GCS, Azure Blob) |
-| `net:http-client` | Outbound HTTP client libraries |
+| `net:http-client` | Outbound HTTP client libraries (Go `net/http`: see [below](#go-nethttp-rule)) |
 | `auth:oidc` | OpenID Connect / OAuth2 provider clients |
 | `auth:jwt` | JWT signing and verification libraries |
 | `auth:oauth2` | OAuth2 server-side authentication frameworks |
@@ -439,12 +456,35 @@ Evidence levels (stored in the `basis` property of a capability node or
 | `declared_dependency` | The package coordinate appears in a parsed manifest (requirements.txt, go.mod, package.json, etc.). |
 | `declared_config` | A recognized configuration key or declaration in a config file (e.g. `DATABASE_URL`, `spring.datasource.*`, or a Prisma `schema.prisma` datasource `provider`) names the capability. Key names and provider strings only; connection strings and runtime values are never stored. |
 | `imported` | A top-level import statement in a source file names a package in the catalog. Only column-0 import statements are parsed; indented/conditional imports inside function bodies are not evidence. |
+| `code_syntax` | A referenced symbol in source code establishes the capability, cited at the first reference. Used where an import alone is ambiguous, such as Go `net/http`. |
 
 A `declared_dependency` with no corroborating import is still valid evidence.
 An `imported` observation without a matching declaration means the import was
 found in source but not in a parsed manifest (possible in lock-file-only or
 vendor setups). The map records both and lets consumers decide how to weight
 agreement vs. single-path evidence.
+
+### Go `net/http` rule
+
+Go's `net/http` serves both inbound handlers and outbound requests, so its
+import alone is not evidence of an HTTP client. The `net/http` family is
+classified per package:
+
+| Import | `net:http-client` when | Basis |
+| --- | --- | --- |
+| `net/http` | the file references `Client`, `DefaultClient`, `Get`, `Head`, `Post`, `PostForm`, `Transport`, `DefaultTransport` or `RoundTripper` through the unshadowed package name | `code_syntax`, at the first reference |
+| `net/http/httputil` | the file references `ReverseProxy`, `NewSingleHostReverseProxy`, `DumpRequestOut`, `ClientConn`, `NewClientConn` or `NewProxyClientConn` | `code_syntax`, at the first reference |
+| `net/http/cookiejar`, `net/http/httptrace` | always (client-side packages) | `imported` |
+| `net/http/pprof`, `httptest`, `fcgi`, `cgi` and any other sub-package | never | — |
+
+`http.NewRequest` and `http.NewRequestWithContext` do not count: server tests
+use them to build requests for `handler.ServeHTTP`. Dot and blank imports are
+never attributed.
+
+Import evidence is read from every source file of a component, including its
+tests. A test that calls a local test server with `http.Get` still gives the
+component `net:http-client`; distinguishing test-only capabilities is tracked in
+[#177](https://github.com/war-and-code/dircue/issues/177).
 
 ### Contributing a new catalog entry
 
@@ -568,7 +608,12 @@ dircue capabilities --schema forest --json > forest.schema.json
 
 ```sh
 dircue map compare --json before.json after.json > map-change.json
+dircue map compare --format markdown before.json after.json >> "$GITHUB_STEP_SUMMARY"
 ```
+
+Without `--json`, `--format text` (the default) prints a plain summary and
+`--format markdown` a pull-request-ready one; `--json` writes the full
+comparison document and takes precedence over `--format`.
 
 Comparison uses stable IDs and opens neither source tree. It separates material
 source changes, provider observations, evidence changes, and coverage changes.

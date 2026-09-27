@@ -8,6 +8,48 @@ import (
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
+// componentKinds lists the declaration kinds that form component roots, sorted
+// for binary search. Its length and the number of distinct ecosystem() values
+// are pinned by TestComponentKindCounts and stated in README.md and CHANGELOG.md.
+var componentKinds = []string{
+	"autoconf",
+	"bazel-module",
+	"bazel-workspace",
+	"cargo",
+	"cargo-workspace",
+	"clojure-deps",
+	"clojure-leiningen",
+	"cmake",
+	"dart-pub",
+	"deno",
+	"dotnet",
+	"elixir-mix",
+	"erlang-rebar",
+	"go",
+	"go-workspace",
+	"gradle",
+	"haskell-cabal",
+	"haskell-stack",
+	"julia-project",
+	"kbuild-kconfig",
+	"maven",
+	"meson",
+	"npm",
+	"perl-cpanfile",
+	"perl-extutils",
+	"php-composer",
+	"python",
+	"python-uv",
+	"python-workspace",
+	"r-package",
+	"ruby-bundler",
+	"ruby-gem",
+	"scala-sbt",
+	"solution",
+	"swift-package",
+	"zig-build",
+}
+
 // Build converts the declaration report into a deterministic component graph.
 // It uses only retained declaration facts and performs no I/O.
 func Build(report *declarations.Report) Fragment {
@@ -203,31 +245,8 @@ func packageRequirementKind(kind string) bool {
 }
 
 func componentKind(kind string) bool {
-	switch kind {
-	case "npm", "go", "go-workspace", "cargo", "cargo-workspace",
-		"python", "python-uv", "python-workspace",
-		"kbuild-kconfig", "maven", "gradle", "solution", "dotnet",
-		// New ecosystems
-		"ruby-bundler", "ruby-gem",
-		"php-composer",
-		"swift-package",
-		"dart-pub",
-		"elixir-mix",
-		"erlang-rebar",
-		"scala-sbt",
-		"haskell-cabal", "haskell-stack",
-		"cmake", "meson", "autoconf",
-		"deno",
-		"bazel-module", "bazel-workspace",
-		"zig-build",
-		"julia-project",
-		"r-package",
-		"clojure-deps", "clojure-leiningen",
-		"perl-cpanfile", "perl-extutils":
-		return true
-	default:
-		return false
-	}
+	_, found := slices.BinarySearch(componentKinds, kind)
+	return found
 }
 
 func relationshipKind(kind string) (typ string, reverse, relevant bool) {

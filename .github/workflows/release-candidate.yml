@@ -180,10 +180,12 @@ jobs:
         run: |
           gh attestation verify \
             .cache/draft-release/assets/SHA256SUMS \
-            --repo "${{ github.repository }}"
+            --repo "${{ github.repository }}" \
+            --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml \
+            --source-ref refs/heads/main
           cosign verify-blob \
             --bundle .cache/draft-release/SHA256SUMS.sigstore.json \
-            --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@' \
+            --certificate-identity 'https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main' \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
             .cache/draft-release/assets/SHA256SUMS
       - name: Retain download verification receipt

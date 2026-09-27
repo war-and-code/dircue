@@ -1,0 +1,49 @@
+{
+  "repo": "umami",
+  "source": "https://github.com/umami-software/umami",
+  "commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+  "oracle_files": [
+    {"path": "package.json", "sha256": "2421b7f082e7809c2d0820311dd9c610f2b9ee6b5483cf4fa845a3d36f6cd63c"},
+    {"path": "docker-compose.yml", "sha256": "fb542a641c14fc2b1ff0d59558a197ed4f607b6608bf812afd20dad662ae0e8c"},
+    {"path": "Dockerfile", "sha256": "dedbb8593c7a9ca097ab95dce26267ea33cb68ef1f05d5974f3d9b3857b25006"},
+    {"path": "prisma/schema.prisma", "sha256": "9b27b84576c2f9fea31fd68d5c0ad23a6ea9384e946f18934a78761c9eaeedd6"}
+  ],
+  "components": [
+    {"name": "umami", "root": ".", "ecosystem": "npm", "why": "package.json:2 names the root project umami and declares its Node package metadata; package.json:19 has the start script."}
+  ],
+  "deployables": [
+    {"kind": "container_build", "name": "umami", "path": "Dockerfile", "why": "Dockerfile is the production multi-stage container build and its final stage declares EXPOSE 3000 and a start command at lines 47-104."},
+    {"kind": "service", "name": "umami", "path": "docker-compose.yml", "why": "docker-compose.yml:3-21 declares the umami service using ghcr.io/umami-software/umami:latest, exposes 3000:3000, and depends_on db."},
+    {"kind": "service", "name": "db", "path": "docker-compose.yml", "why": "docker-compose.yml:22-35 declares the db service using postgres:15-alpine and a persistent volume."}
+  ],
+  "interfaces": [
+    {"kind": "declared_port", "name": "3000", "path": "Dockerfile", "why": "Dockerfile:99 declares EXPOSE 3000."},
+    {"kind": "declared_port", "name": "3000", "path": "docker-compose.yml", "why": "docker-compose.yml:5-6 declares host/container port mapping 3000:3000 for umami."},
+    {"kind": "npm_start", "name": "umami", "path": "package.json", "why": "package.json:19 declares scripts.start = next start."}
+  ],
+  "capabilities": [
+    {"capability": "datastore:postgresql", "owner": "umami", "path": "prisma/schema.prisma", "why": "prisma/schema.prisma:7-9 declares datasource provider = postgresql."},
+    {"capability": "net:http-client", "owner": "umami", "path": "package.json", "why": "package.json:112 declares the direct node-fetch runtime dependency, which is an outbound HTTP client."},
+    {"capability": "auth:jwt", "owner": "umami", "path": "package.json", "why": "package.json:104 declares the direct jsonwebtoken runtime dependency."}
+  ],
+  "edges": [
+    {"type": "builds", "from": "Dockerfile:umami", "to": "umami", "why": "docs/MAP.md states a Dockerfile normally links to the component at its directory; the root Dockerfile builds the root package context."},
+    {"type": "runs", "from": "docker-compose.yml:umami", "to": "umami", "why": "docker-compose.yml:4 image repository ends in umami, matching the root component name."},
+    {"type": "depends_on", "from": "docker-compose.yml:umami", "to": "docker-compose.yml:db", "why": "docker-compose.yml:12-14 declares umami depends_on db with service_healthy condition."},
+    {"type": "uses_capability", "from": "umami", "to": "datastore:postgresql", "why": "prisma/schema.prisma:7-9 declares PostgreSQL as the datasource provider."},
+    {"type": "uses_capability", "from": "umami", "to": "net:http-client", "why": "package.json:112 declares node-fetch as a direct runtime dependency."},
+    {"type": "uses_capability", "from": "umami", "to": "auth:jwt", "why": "package.json:104 declares jsonwebtoken as a direct runtime dependency."}
+  ],
+  "bounded_negative_facts": [
+    {"fact": "The Compose umami service has no local build context, so it does not itself establish a builds edge.", "scope": ["docker-compose.yml:3-21"], "why": "The service has image, ports, environment, depends_on, init, restart, and healthcheck keys; no build key."},
+    {"fact": "The Compose db service declares no published port or local build context.", "scope": ["docker-compose.yml:22-35"], "why": "Its active keys are image, environment, volumes, restart, and healthcheck; there is no ports or build key."},
+    {"fact": "No Compose dependency edge from db back to umami is declared.", "scope": ["docker-compose.yml:22-35"], "why": "The db service block has no depends_on key."}
+  ],
+  "coverage": {
+    "asserted_scope": "Root npm package identity/start command; root Dockerfile; two active Compose services; selected database provider and three direct runtime dependencies.",
+    "positive_facts": 16,
+    "negative_facts": 3,
+    "relation_scope": "The asserted edges cover only root Dockerfile/component build, Compose image/component run, Compose startup dependency, and the three listed capability relations.",
+    "unknown": ["other workspace package components and local workspace edges", "capabilities from dependencies not enumerated above", "additional interfaces beyond the selected root start and port declarations", "all map coverage dimensions outside the oracle files"]
+  }
+}

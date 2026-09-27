@@ -21,6 +21,24 @@ python3 tests/map_corpus/metamorphic.py --binary ./dircue
 python3 tests/map_corpus/robustness.py --binary ./dircue
 ```
 
+To check that the binary exits 0 and returns a valid 1.0.0 JSON map document
+for every repository in a corpus directory, use `verify_corpus_availability.py`:
+
+```sh
+python3 tests/map_corpus/verify_corpus_availability.py \
+    --binary ./dircue \
+    --root .cache/corpus
+# or via make:
+make corpus-availability CORPUS_ROOT=.cache/corpus
+```
+
+The script maps each immediate subdirectory of `--root`, writes a per-repo
+summary (exit code, duration, first stderr line, schema_version validity), and
+exits 1 if any repo fails.  Pass multiple `--root` flags to cover several
+corpus directories in one run.  Unit tests in
+`test_verify_corpus_availability.py` cover the helper functions using fake
+binaries (no network required).
+
 The runner uses the intended one-shot shape, `dircue map --json PATH`, and
 stores one JSON document per fixture. It does not execute files in fixtures or
 fetch repositories. `verify.py` also checks root-relative evidence paths,
@@ -34,10 +52,14 @@ creation-order portability, documentation non-interference, honest byte/file
 budget coverage, absence of absolute source paths, and self-comparison. It uses
 temporary copies and leaves no corpus output in the repository.
 
-`robustness.py` feeds 80 deterministic combinations of repeated Terraform
-provider declarations, punctuation-heavy workflows, and multi-document YAML
-through the full CLI. Each must return a parseable map; a declaration identity
-collision or parser failure must not discard the entire document.
+`robustness.py` feeds 90 deterministic combinations through the full CLI.
+The first 80 cover repeated Terraform provider declarations, punctuation-heavy
+workflows, and multi-document YAML.  Variants 80–89 cover doc-named config
+files: workflows and Kubernetes manifests whose basenames start with
+`readme`, `changelog`, or `contributing` (e.g. `.github/workflows/changelog.yml`,
+`deploy/changelog-service.yaml`).  Each variant must return a parseable map;
+a declaration identity collision, path mis-classification, or parser failure
+must not discard the entire document.
 
 An already-materialized pinned public corpus can be checked without downloads:
 

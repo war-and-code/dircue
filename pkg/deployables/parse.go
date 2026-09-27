@@ -835,11 +835,13 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 			}
 			d.Evidence = append(d.Evidence, Evidence{Field: "job." + bounded(jobName) + ".defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"})
 			if !jobWDDynamic {
-				d.References = append(d.References, Reference{Kind: "working_directory", Value: bounded(jobWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"}})
+				ref := Reference{Kind: "working_directory", Value: bounded(jobWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"}}
+				d.References = append(d.References, withCheckout(ref, jobWDVal, jobCheckouts(job)))
 			}
 		}
 
 		if steps, ok := sequence(job, "steps"); ok {
+			var earlier []workflowCheckout
 			for _, raw := range steps {
 				step, ok := asObject(raw)
 				if !ok {
@@ -850,10 +852,13 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 				}
 				// Record checkout path declarations (#48): actions/checkout with an explicit
 				// path: input establishes a checkout-relative coordinate for subsequent steps.
-				if checkPath, hasPath := checkoutPath(step); hasPath {
+				// A checkout that names a repository is outside the scanned tree.
+				if checkPath, namedRepository, hasPath := checkoutPath(step); hasPath {
 					q := "local"
 					if !safeRelative(checkPath) {
 						q = "unresolved"
+					} else if namedRepository {
+						q = "external"
 					}
 					d.References = append(d.References, Reference{Kind: "checkout_path", Value: bounded(checkPath), Qualification: q, Evidence: Evidence{Field: "with.path", Value: bounded(checkPath), Line: lineOf(content, "path:"), Basis: "github-checkout-path"}})
 				}
@@ -880,7 +885,11 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 					if prec.expressionBlocked {
 						val = "unresolved"
 					}
-					d.References = append(d.References, Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}})
+					ref := Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}}
+					d.References = append(d.References, withCheckout(ref, prec.dir, earlier))
+				}
+				if p, named, found := checkoutPath(step); found && safeRelative(p) && path.Clean(p) != "." {
+					earlier = append(earlier, workflowCheckout{path: path.Clean(p), named: named})
 				}
 			}
 		}

@@ -1,0 +1,28 @@
+{
+  "repo": "chi",
+  "source": "https://github.com/go-chi/chi",
+  "commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+  "oracle_files": [
+    {"path": "go.mod", "sha256": "7eb620f0fce870d93eaba87bf6f8c36284db786108030ca229a5016461797090"},
+    {"path": "chi.go", "sha256": "47c70ececcbb9d71f973eda3cbadad0a46c8cc2261b285f7049b5261f337d678"}
+  ],
+  "components": [
+    {"name": "github.com/go-chi/chi/v5", "root": ".", "ecosystem": "go", "why": "go.mod:1 declares module github.com/go-chi/chi/v5; chi.go:1 declares package chi and its package comment describes an HTTP router library."}
+  ],
+  "deployables": [],
+  "interfaces": [],
+  "capabilities": [],
+  "edges": [],
+  "bounded_negative_facts": [
+    {"fact": "No declared non-standard module dependency in the root module manifest; no uses_capability edge is supported by these oracle files.", "scope": ["go.mod"], "why": "The complete go.mod contains only the module path and Go version declarations; it has no require or replace directives."},
+    {"fact": "No root Go executable entry point is asserted.", "scope": ["chi.go"], "why": "chi.go declares package chi, not package main; this does not make a claim about nested examples."},
+    {"fact": "No local component dependency edge is asserted.", "scope": ["go.mod"], "why": "The root module file declares no replace directive or local module path."}
+  ],
+  "coverage": {
+    "asserted_scope": "One root Go module and its root package declaration, based on the complete go.mod and chi.go only.",
+    "positive_facts": 1,
+    "negative_facts": 3,
+    "relation_scope": "Only local module declarations and capability edges inferable from go.mod are scored; no claim is made about imports in every package.",
+    "unknown": ["nested examples or command packages", "full repository content populations", "all external imports and capabilities", "deployment configuration outside these oracle files"]
+  }
+}

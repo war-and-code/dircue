@@ -1,0 +1,36 @@
+{
+  "repo": "changedetection",
+  "source_commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+  "expected_commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+  "source_tree": "88f600f949b206c21750983d91ab500210d72588",
+  "source_dirty": false,
+  "binary_sha256": "eea45058364ef25557b510e35371e97b79244e5e0f0375017b87234ef3d97b7b",
+  "argv": [
+    "$BINARY",
+    "map",
+    "--source",
+    "git",
+    "--rev",
+    "HEAD",
+    "--json",
+    "."
+  ],
+  "cwd": "$REPOS/changedetection",
+  "started_utc": "2026-09-27T11:37:36.989480+00:00",
+  "ended_utc": "2026-09-27T11:37:37.242899+00:00",
+  "exit_status": 0,
+  "stdout_file": "raw/changedetection.json",
+  "stdout_bytes": 221135,
+  "stdout_sha256": "d1a01b71fa285a6a799f25fab9aa85c3da49ff6a8fabb2fe9bc2eae32cc0ec14",
+  "stderr_file": "raw/changedetection.stderr",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_json_valid": true,
+  "path_placeholders": {
+    "$BINARY": "the binary identified by binary_sha256 in build.json",
+    "$REPOS": "pinned checkout collection under $HOLDOUT"
+  },
+  "timeout_seconds": null,
+  "timed_out": false,
+  "timeout_note": "The recorded first-run invocation had no subprocess timeout and completed normally."
+}

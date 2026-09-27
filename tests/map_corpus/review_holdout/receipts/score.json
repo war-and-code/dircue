@@ -1,0 +1,899 @@
+{
+  "method": "Semantic matching uses frozen source paths, node category, and relationship endpoints. A second raw-exact measure requires emitted names/ecosystem/interface-kind and resolved endpoint names to equal frozen label values. Python pypi→python, npm_start→script, Dockerfile root name and port names are reported as label/map vocabulary drift. Missing positives are raw first-run discrepancies, not automatically adjudicated defects. Negative facts are explicitly not contradicted, contradicted, or unscored when output evidence lies outside frozen oracle scope.",
+  "positive_assertions": {
+    "total": 29,
+    "raw_exact_matches": 15,
+    "raw_exact_recall": 0.5172413793103449,
+    "semantic_matches_after_vocabulary_normalization": 27,
+    "semantic_recall": 0.9310344827586207,
+    "absent_after_semantic_matching": 2
+  },
+  "negative_assertions": {
+    "total": 12,
+    "not_contradicted_by_map": 10,
+    "contradicted_by_map": 0,
+    "unscored_scope_mismatch": 2,
+    "per_fact": "See repositories[].negative_checks. Non-contradiction is not proof of absence; output evidence must fit the frozen oracle scope."
+  },
+  "review_flags": [
+    "Both app repositories lack the frozen Compose runs edge. docs/MAP.md:111 requires a matching declared image identity; the labels inferred identity from repository/package-name similarity. Treat both raw mismatches as source-label adjudication questions, not proven map defects.",
+    "Chi's map output attaches net:http-client to the root component from imports including net/http in chi.go, and attaches nested _examples binaries to the root component. These are separate semantic/ownership concerns; the frozen negative checks are scoped to go.mod or chi.go and are marked unscored where the output evidence falls outside that scope."
+  ],
+  "adjudicated_score": {
+    "note": "Adjudicated score removes assertions whose source labels are incorrect per source-cited adjudications.json; the frozen first-run numbers above are unchanged and remain the primary measurement.",
+    "adjudications_applied": [
+      {
+        "id": "adj-001",
+        "decision": "drop",
+        "frozen_status": "absent",
+        "frozen_raw_exact": false
+      },
+      {
+        "id": "adj-002",
+        "decision": "drop",
+        "frozen_status": "absent",
+        "frozen_raw_exact": false
+      },
+      {
+        "id": "adj-003",
+        "decision": "cite_erratum",
+        "frozen_status": "matched",
+        "frozen_raw_exact": false
+      }
+    ],
+    "dropped_assertion_count": 2,
+    "positive_assertions": {
+      "total": 27,
+      "raw_exact_matches": 15,
+      "raw_exact_recall": 0.5555555555555556,
+      "semantic_matches_after_vocabulary_normalization": 27,
+      "semantic_recall": 1.0
+    }
+  },
+  "repositories": [
+    {
+      "repo": "changedetection",
+      "map_source_commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+      "label_commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+      "source_pin_match": true,
+      "map_status": "partial",
+      "positive_checks": [
+        {
+          "category": "components",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "name": "changedetection.io",
+            "root": ".",
+            "ecosystem": "pypi",
+            "why": "setup.py:42-45 declares package name changedetection.io; requirements.txt is its install_requires input at setup.py:40 and 57."
+          },
+          "observed_name": "changedetection.io",
+          "drift": [
+            "ecosystem label pypi emitted as python"
+          ]
+        },
+        {
+          "category": "deployables",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "container_build",
+            "name": "changedetection.io",
+            "path": "Dockerfile",
+            "why": "Dockerfile builds the application image; it labels the image changedetection.io at lines 79-86, declares EXPOSE 5000 at line 142, and sets the runtime command at lines 172-175."
+          },
+          "observed_name": "(root)",
+          "drift": [
+            "name changedetection.io emitted as (root)"
+          ]
+        },
+        {
+          "category": "deployables",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "kind": "service",
+            "name": "changedetection",
+            "path": "docker-compose.yml",
+            "why": "docker-compose.yml:1-7 and 118-120 declare the changedetection service using ghcr.io/dgtlmoon/changedetection.io, a datastore volume, port mapping, and restart policy."
+          },
+          "observed_name": "changedetection",
+          "drift": []
+        },
+        {
+          "category": "interfaces",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "declared_port",
+            "name": "5000",
+            "path": "Dockerfile",
+            "why": "Dockerfile:142 declares EXPOSE 5000."
+          },
+          "observed_name": "port:5000",
+          "drift": [
+            "port label 5000 emitted as node name port:5000 (port property agrees)"
+          ]
+        },
+        {
+          "category": "interfaces",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "declared_port",
+            "name": "5000",
+            "path": "docker-compose.yml",
+            "why": "docker-compose.yml:118-119 declares 127.0.0.1:5000:5000."
+          },
+          "observed_name": "port:5000",
+          "drift": [
+            "port label 5000 emitted as node name port:5000 (port property agrees)"
+          ]
+        },
+        {
+          "category": "interfaces",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "kind": "flask_application",
+            "name": "app",
+            "path": "changedetectionio/flask_app.py",
+            "why": "changedetectionio/flask_app.py:86 declares module-level app = Flask(...)."
+          },
+          "observed_name": "app",
+          "drift": []
+        },
+        {
+          "category": "capabilities",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "capability": "net:http-client",
+            "owner": "changedetection.io",
+            "path": "requirements.txt",
+            "why": "requirements.txt:23 directly declares requests[socks], the Python outbound HTTP client package."
+          },
+          "observed_name": "net:http-client",
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": false,
+          "expected": {
+            "type": "builds",
+            "from": "Dockerfile:changedetection.io",
+            "to": "changedetection.io",
+            "why": "docs/MAP.md states a Dockerfile normally links to the component at its directory; Dockerfile is at the root beside setup.py."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "absent",
+          "raw_exact": false,
+          "expected": {
+            "type": "runs",
+            "from": "docker-compose.yml:changedetection",
+            "to": "changedetection.io",
+            "why": "docker-compose.yml:3 image repository ends in changedetection.io, matching the root package name."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "uses_capability",
+            "from": "changedetection.io",
+            "to": "net:http-client",
+            "why": "requirements.txt:23 directly declares requests[socks]."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "declares",
+            "from": "changedetection.io",
+            "to": "app",
+            "why": "changedetectionio/flask_app.py:86 declares the module-level Flask app object."
+          },
+          "observed_name": null,
+          "drift": []
+        }
+      ],
+      "positive_count": 11,
+      "positive_matched": 10,
+      "positive_raw_exact": 5,
+      "negative_checks": [
+        {
+          "fact": "The Compose service has no local build context; it does not establish a Compose builds edge.",
+          "status": "not_contradicted_by_map",
+          "note": "The only builds edge originates at Dockerfile; no Compose build edge appears."
+        },
+        {
+          "fact": "The active Compose configuration has no service dependency edge.",
+          "status": "not_contradicted_by_map",
+          "note": "No Compose depends_on edge appears."
+        },
+        {
+          "fact": "No Compose-published database or browser service is declared in the active configuration.",
+          "status": "not_contradicted_by_map",
+          "note": "One active Compose service node, changedetection, appears; commented examples produced no service nodes."
+        }
+      ],
+      "map_coverage": {
+        "analyzer_coverage": {
+          "status": "unknown",
+          "reasons": [
+            "no_analyzer_report_attached"
+          ]
+        },
+        "capabilities": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "components": {
+          "status": "partial",
+          "reasons": [
+            "bounded_declaration_catalog",
+            "declarations_incomplete_or_local_references_unresolved"
+          ]
+        },
+        "content": {
+          "status": "complete",
+          "reasons": []
+        },
+        "deployables": {
+          "status": "partial",
+          "reasons": [
+            "bounded_deployable_catalog"
+          ]
+        },
+        "interfaces": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "packages": {
+          "status": "unknown",
+          "reasons": [
+            "no_package_report_attached"
+          ]
+        },
+        "routing": {
+          "status": "unknown",
+          "reasons": [
+            "no_route_plan_evaluated"
+          ]
+        },
+        "source_binding": {
+          "status": "complete",
+          "reasons": []
+        }
+      },
+      "output_node_counts": {
+        "component": 3,
+        "deployable": 8,
+        "interface": 3,
+        "capability": 2
+      },
+      "unscored_output_names_sample": {
+        "component": [
+          "changedetection-api-docs",
+          "changedetection.io-theme"
+        ],
+        "deployable": [
+          "(root)",
+          "Build and push containers",
+          "ChangeDetection.io App Test",
+          "ChangeDetection.io Container Build Test",
+          "CodeQL",
+          "Publish Python 🐍distribution 📦 to PyPI and TestPyPI"
+        ],
+        "interface": [
+          "port:5000"
+        ],
+        "capability": [
+          "crypto:library"
+        ]
+      }
+    },
+    {
+      "repo": "chi",
+      "map_source_commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "label_commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+      "source_pin_match": true,
+      "map_status": "partial",
+      "positive_checks": [
+        {
+          "category": "components",
+          "status": "matched",
+          "raw_exact": false,
+          "expected": {
+            "name": "github.com/go-chi/chi/v5",
+            "root": ".",
+            "ecosystem": "go",
+            "why": "go.mod:1 declares module github.com/go-chi/chi/v5; chi.go:1 declares package chi and its package comment describes an HTTP router library."
+          },
+          "observed_name": "chi",
+          "drift": []
+        }
+      ],
+      "positive_count": 1,
+      "positive_matched": 1,
+      "positive_raw_exact": 0,
+      "negative_checks": [
+        {
+          "fact": "No declared non-standard module dependency in the root module manifest; no uses_capability edge is supported by these oracle files.",
+          "status": "unscored_scope_mismatch",
+          "note": "Frozen scope is go.mod, while the observed net:http-client edge cites Go source imports. This cannot contradict the manifest-only negative. Separately, the root capability assignment may conflate inbound net/http server use with outbound client use."
+        },
+        {
+          "fact": "No root Go executable entry point is asserted.",
+          "status": "unscored_scope_mismatch",
+          "note": "The map attributes binary interfaces from nested _examples paths to the root component, but the frozen oracle chi.go is package chi and is not the source of those interfaces. This is outside the frozen negative's source scope and merits ownership/role review."
+        },
+        {
+          "fact": "No local component dependency edge is asserted.",
+          "status": "not_contradicted_by_map",
+          "note": "No depends_on_local edge leaves the root component."
+        }
+      ],
+      "map_coverage": {
+        "analyzer_coverage": {
+          "status": "unknown",
+          "reasons": [
+            "no_analyzer_report_attached"
+          ]
+        },
+        "capabilities": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "components": {
+          "status": "partial",
+          "reasons": [
+            "bounded_declaration_catalog"
+          ]
+        },
+        "content": {
+          "status": "complete",
+          "reasons": []
+        },
+        "deployables": {
+          "status": "partial",
+          "reasons": [
+            "bounded_deployable_catalog"
+          ]
+        },
+        "interfaces": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "packages": {
+          "status": "unknown",
+          "reasons": [
+            "no_package_report_attached"
+          ]
+        },
+        "routing": {
+          "status": "unknown",
+          "reasons": [
+            "no_route_plan_evaluated"
+          ]
+        },
+        "source_binding": {
+          "status": "complete",
+          "reasons": []
+        }
+      },
+      "output_node_counts": {
+        "component": 3,
+        "deployable": 1,
+        "interface": 12,
+        "capability": 3
+      },
+      "unscored_output_names_sample": {
+        "component": [
+          "chi",
+          "rest-example",
+          "versions"
+        ],
+        "deployable": [
+          "Test"
+        ],
+        "interface": [
+          "custom-handler",
+          "custom-method",
+          "fileserver",
+          "graceful",
+          "hello-world",
+          "limits",
+          "logging",
+          "pathvalue",
+          "rest-example",
+          "router-walk",
+          "todos-resource",
+          "versions"
+        ],
+        "capability": [
+          "net:http-client"
+        ]
+      }
+    },
+    {
+      "repo": "fastapi",
+      "map_source_commit": "192b12197eb04c2b4a691cce7d87261b21716714",
+      "label_commit": "192b12197eb04c2b4a691cce7d87261b21716714",
+      "source_pin_match": true,
+      "map_status": "partial",
+      "positive_checks": [
+        {
+          "category": "components",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "name": "fastapi",
+            "root": ".",
+            "ecosystem": "pypi",
+            "why": "pyproject.toml:5-6 declares [project] name = fastapi; fastapi/applications.py:42 defines FastAPI as the framework's application class."
+          },
+          "observed_name": "fastapi",
+          "drift": [
+            "ecosystem label pypi emitted as python"
+          ]
+        }
+      ],
+      "positive_count": 1,
+      "positive_matched": 1,
+      "positive_raw_exact": 0,
+      "negative_checks": [
+        {
+          "fact": "The base runtime dependency list does not establish a catalog capability or outbound HTTP-client capability.",
+          "status": "not_contradicted_by_map",
+          "note": "The map's httpx observation is tagged extra:all, not base dependencies; test-only SQLAlchemy is also outside the base requirements claim."
+        },
+        {
+          "fact": "No local component dependency edge is declared by the base runtime dependency list.",
+          "status": "not_contradicted_by_map",
+          "note": "No depends_on_local edges occur in the map."
+        },
+        {
+          "fact": "No deployable definition is established by these source files.",
+          "status": "not_contradicted_by_map",
+          "note": "The map's deployment nodes come from workflow files, outside the two cited oracle paths."
+        }
+      ],
+      "map_coverage": {
+        "analyzer_coverage": {
+          "status": "unknown",
+          "reasons": [
+            "no_analyzer_report_attached"
+          ]
+        },
+        "capabilities": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "components": {
+          "status": "partial",
+          "reasons": [
+            "bounded_declaration_catalog"
+          ]
+        },
+        "content": {
+          "status": "complete",
+          "reasons": []
+        },
+        "deployables": {
+          "status": "partial",
+          "reasons": [
+            "bounded_deployable_catalog"
+          ]
+        },
+        "interfaces": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "packages": {
+          "status": "unknown",
+          "reasons": [
+            "no_package_report_attached"
+          ]
+        },
+        "routing": {
+          "status": "unknown",
+          "reasons": [
+            "no_route_plan_evaluated"
+          ]
+        },
+        "source_binding": {
+          "status": "complete",
+          "reasons": []
+        }
+      },
+      "output_node_counts": {
+        "component": 1,
+        "deployable": 20,
+        "interface": 2,
+        "capability": 4
+      },
+      "unscored_output_names_sample": {
+        "component": [],
+        "deployable": [
+          "Add to Project",
+          "Build Docs",
+          "Bump pre-commit hooks",
+          "Conflict detector",
+          "Create Draft Release",
+          "Deploy Docs",
+          "FastAPI People Sponsors",
+          "Guard Dependencies",
+          "Issue Manager",
+          "Label Approved",
+          "Notify Translations",
+          "Prepare Release"
+        ],
+        "interface": [
+          "fastapi",
+          "flask_app"
+        ],
+        "capability": [
+          "auth:jwt",
+          "datastore:relational",
+          "net:http-client",
+          "serialization:yaml"
+        ]
+      }
+    },
+    {
+      "repo": "umami",
+      "map_source_commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+      "label_commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+      "source_pin_match": true,
+      "map_status": "partial",
+      "positive_checks": [
+        {
+          "category": "components",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "name": "umami",
+            "root": ".",
+            "ecosystem": "npm",
+            "why": "package.json:2 names the root project umami and declares its Node package metadata; package.json:19 has the start script."
+          },
+          "observed_name": "umami",
+          "drift": []
+        },
+        {
+          "category": "deployables",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "container_build",
+            "name": "umami",
+            "path": "Dockerfile",
+            "why": "Dockerfile is the production multi-stage container build and its final stage declares EXPOSE 3000 and a start command at lines 47-104."
+          },
+          "observed_name": "(root)",
+          "drift": [
+            "name umami emitted as (root)"
+          ]
+        },
+        {
+          "category": "deployables",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "kind": "service",
+            "name": "umami",
+            "path": "docker-compose.yml",
+            "why": "docker-compose.yml:3-21 declares the umami service using ghcr.io/umami-software/umami:latest, exposes 3000:3000, and depends_on db."
+          },
+          "observed_name": "umami",
+          "drift": []
+        },
+        {
+          "category": "deployables",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "kind": "service",
+            "name": "db",
+            "path": "docker-compose.yml",
+            "why": "docker-compose.yml:22-35 declares the db service using postgres:15-alpine and a persistent volume."
+          },
+          "observed_name": "db",
+          "drift": []
+        },
+        {
+          "category": "interfaces",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "declared_port",
+            "name": "3000",
+            "path": "Dockerfile",
+            "why": "Dockerfile:99 declares EXPOSE 3000."
+          },
+          "observed_name": "port:3000",
+          "drift": [
+            "port label 3000 emitted as node name port:3000 (port property agrees)"
+          ]
+        },
+        {
+          "category": "interfaces",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "declared_port",
+            "name": "3000",
+            "path": "docker-compose.yml",
+            "why": "docker-compose.yml:5-6 declares host/container port mapping 3000:3000 for umami."
+          },
+          "observed_name": "port:3000",
+          "drift": [
+            "port label 3000 emitted as node name port:3000 (port property agrees)"
+          ]
+        },
+        {
+          "category": "interfaces",
+          "status": "matched_with_label_map_drift",
+          "raw_exact": false,
+          "expected": {
+            "kind": "npm_start",
+            "name": "umami",
+            "path": "package.json",
+            "why": "package.json:19 declares scripts.start = next start."
+          },
+          "observed_name": "start",
+          "drift": [
+            "interface kind npm_start emitted as script",
+            "name umami emitted as start"
+          ]
+        },
+        {
+          "category": "capabilities",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "capability": "datastore:postgresql",
+            "owner": "umami",
+            "path": "prisma/schema.prisma",
+            "why": "prisma/schema.prisma:7-9 declares datasource provider = postgresql."
+          },
+          "observed_name": "datastore:postgresql",
+          "drift": []
+        },
+        {
+          "category": "capabilities",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "capability": "net:http-client",
+            "owner": "umami",
+            "path": "package.json",
+            "why": "package.json:112 declares the direct node-fetch runtime dependency, which is an outbound HTTP client."
+          },
+          "observed_name": "net:http-client",
+          "drift": []
+        },
+        {
+          "category": "capabilities",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "capability": "auth:jwt",
+            "owner": "umami",
+            "path": "package.json",
+            "why": "package.json:104 declares the direct jsonwebtoken runtime dependency."
+          },
+          "observed_name": "auth:jwt",
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": false,
+          "expected": {
+            "type": "builds",
+            "from": "Dockerfile:umami",
+            "to": "umami",
+            "why": "docs/MAP.md states a Dockerfile normally links to the component at its directory; the root Dockerfile builds the root package context."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "absent",
+          "raw_exact": false,
+          "expected": {
+            "type": "runs",
+            "from": "docker-compose.yml:umami",
+            "to": "umami",
+            "why": "docker-compose.yml:4 image repository ends in umami, matching the root component name."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "depends_on",
+            "from": "docker-compose.yml:umami",
+            "to": "docker-compose.yml:db",
+            "why": "docker-compose.yml:12-14 declares umami depends_on db with service_healthy condition."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "uses_capability",
+            "from": "umami",
+            "to": "datastore:postgresql",
+            "why": "prisma/schema.prisma:7-9 declares PostgreSQL as the datasource provider."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "uses_capability",
+            "from": "umami",
+            "to": "net:http-client",
+            "why": "package.json:112 declares node-fetch as a direct runtime dependency."
+          },
+          "observed_name": null,
+          "drift": []
+        },
+        {
+          "category": "edges",
+          "status": "matched",
+          "raw_exact": true,
+          "expected": {
+            "type": "uses_capability",
+            "from": "umami",
+            "to": "auth:jwt",
+            "why": "package.json:104 declares jsonwebtoken as a direct runtime dependency."
+          },
+          "observed_name": null,
+          "drift": []
+        }
+      ],
+      "positive_count": 16,
+      "positive_matched": 15,
+      "positive_raw_exact": 10,
+      "negative_checks": [
+        {
+          "fact": "The Compose umami service has no local build context, so it does not itself establish a builds edge.",
+          "status": "not_contradicted_by_map",
+          "note": "No Compose builds edge appears; the observed builds edge originates at Dockerfile."
+        },
+        {
+          "fact": "The Compose db service declares no published port or local build context.",
+          "status": "not_contradicted_by_map",
+          "note": "The db deployable has no published-port/exposes edge; port 3000 is attached to the app component."
+        },
+        {
+          "fact": "No Compose dependency edge from db back to umami is declared.",
+          "status": "not_contradicted_by_map",
+          "note": "The only Compose depends_on edge is umami → db."
+        }
+      ],
+      "map_coverage": {
+        "analyzer_coverage": {
+          "status": "unknown",
+          "reasons": [
+            "no_analyzer_report_attached"
+          ]
+        },
+        "capabilities": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "components": {
+          "status": "partial",
+          "reasons": [
+            "bounded_declaration_catalog",
+            "declarations_incomplete_or_local_references_unresolved"
+          ]
+        },
+        "content": {
+          "status": "complete",
+          "reasons": []
+        },
+        "deployables": {
+          "status": "partial",
+          "reasons": [
+            "bounded_deployable_catalog"
+          ]
+        },
+        "interfaces": {
+          "status": "partial",
+          "reasons": [
+            "bounded_interface_and_capability_catalog"
+          ]
+        },
+        "packages": {
+          "status": "unknown",
+          "reasons": [
+            "no_package_report_attached"
+          ]
+        },
+        "routing": {
+          "status": "unknown",
+          "reasons": [
+            "no_route_plan_evaluated"
+          ]
+        },
+        "source_binding": {
+          "status": "complete",
+          "reasons": []
+        }
+      },
+      "output_node_counts": {
+        "component": 3,
+        "deployable": 8,
+        "interface": 5,
+        "capability": 6
+      },
+      "unscored_output_names_sample": {
+        "component": [
+          "@umami/api-client",
+          "@umami/mcp"
+        ],
+        "deployable": [
+          "(root)",
+          "Close stale issues",
+          "Create docker images",
+          "Create docker images (cloud)",
+          "Gitleaks",
+          "Node.js CI"
+        ],
+        "interface": [
+          "port:3000",
+          "start",
+          "umami-mcp"
+        ],
+        "capability": [
+          "cache:redis",
+          "datastore:relational",
+          "messaging:kafka"
+        ]
+      }
+    }
+  ]
+}

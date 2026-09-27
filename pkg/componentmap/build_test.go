@@ -395,3 +395,22 @@ func TestMavenReactorSiblingDependencyAmbiguous(t *testing.T) {
 		}
 	}
 }
+
+// The counts are stated in README.md, CHANGELOG.md and docs/releases/1.0.0.md;
+// tests/ci/test_doc_counts.py checks those statements. Update them together.
+func TestComponentKindCounts(t *testing.T) {
+	if !slices.IsSorted(componentKinds) || len(slices.Compact(slices.Clone(componentKinds))) != len(componentKinds) {
+		t.Fatalf("componentKinds must be sorted and unique: %v", componentKinds)
+	}
+	ecosystems := map[string]bool{}
+	for _, kind := range componentKinds {
+		e := ecosystem(kind)
+		if e == "unknown" {
+			t.Errorf("component kind %q has no ecosystem", kind)
+		}
+		ecosystems[e] = true
+	}
+	if len(componentKinds) != 36 || len(ecosystems) != 27 {
+		t.Errorf("component kinds = %d, ecosystem values = %d; want 36 and 27", len(componentKinds), len(ecosystems))
+	}
+}

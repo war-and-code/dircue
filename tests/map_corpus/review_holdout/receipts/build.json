@@ -1,0 +1,16 @@
+{
+  "command": "CGO_ENABLED=0 go build -buildvcs=false -trimpath -o \"$HOLDOUT/dircue\" .",
+  "source_commit": "0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf",
+  "go_version": "go version go1.26.6 darwin/arm64",
+  "binary_path": "$HOLDOUT/dircue",
+  "binary_sha256": "eea45058364ef25557b510e35371e97b79244e5e0f0375017b87234ef3d97b7b",
+  "label_commit": "0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf",
+  "map_invocations": 4,
+  "note": "One invocation per pinned repository. No retries or reruns are performed.",
+  "path_placeholders": {
+    "$HOLDOUT": "ephemeral local scratch root, not included in this artifact",
+    "$REPOS": "pinned checkout collection under $HOLDOUT"
+  },
+  "map_timeout_seconds": null,
+  "timeout_note": "No subprocess timeout was applied to the recorded first run; run_once.py now applies 300 seconds to future invocations."
+}

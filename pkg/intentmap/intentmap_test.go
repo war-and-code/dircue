@@ -109,6 +109,129 @@ func TestGoImportEvidenceUsesSourceLine(t *testing.T) {
 	}
 }
 
+func TestGoNetHTTPOnlyAttributesOutboundClientUse(t *testing.T) {
+	tests := []struct {
+		name, source string
+		wantClient   bool
+		wantLine     int
+	}{
+		{name: "server handler", source: "package p\nimport \"net/http\"\nfunc handle(w http.ResponseWriter, r *http.Request) {}\n"},
+		{name: "aliased server handler", source: "package p\nimport web \"net/http\"\nfunc handle(w web.ResponseWriter, r *web.Request) {}\n"},
+		{name: "dot import is not attributed", source: "package p\nimport . \"net/http\"\nfunc fetch() { _ = Get }\n"},
+		{name: "client type", source: "package p\nimport \"net/http\"\nvar client *http.Client\n", wantClient: true, wantLine: 3},
+		{name: "aliased client function", source: "package p\nimport web \"net/http\"\nfunc fetch() {\n _, _ = web.Get(\"https://example.test\")\n}\n", wantClient: true, wantLine: 4},
+		{name: "shadowed alias is not package use", source: "package p\nimport web \"net/http\"\nfunc handler(w web.ResponseWriter) {}\nfunc fetch(web struct{ Get func(string) }) {\n web.Get(\"not http\")\n}\n"},
+		{name: "client transport", source: "package p\nimport \"net/http\"\nvar transport http.RoundTripper\n", wantClient: true, wantLine: 3},
+		// NewRequest and NewRequestWithContext construct *http.Request values
+		// heavily used in server-side test helpers (httptest recorder +
+		// handler.ServeHTTP). They are not evidence of an outbound client at the
+		// component level: any component making genuine outbound requests also
+		// references http.Client, http.DefaultClient, or a method shortcut.
+		{name: "NewRequest alone is not client evidence", source: "package p\nimport \"net/http\"\nfunc makeReq() {\n r, _ := http.NewRequest(\"GET\", \"/\", nil)\n _ = r\n}\n"},
+		{name: "NewRequestWithContext alone is not client evidence", source: "package p\nimport \"net/http\"\nimport \"context\"\nfunc makeReq(ctx context.Context) {\n r, _ := http.NewRequestWithContext(ctx, \"GET\", \"/\", nil)\n _ = r\n}\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			foundClient := false
+			// foundImport is a positive-edge latch: set to true when we see the
+			// import observation at line 2, never reset to false by a subsequent
+			// observation. The previous assignment pattern ("foundImport = cond")
+			// would overwrite true with false if multiple observations appeared.
+			foundImport := false
+			for _, observation := range parseGoImports("http.go", []byte(tt.source)) {
+				if observation.Kind == KindImport && observation.Name == "net/http" {
+					if observation.StartLine == 2 && observation.EndLine == 2 {
+						foundImport = true
+					}
+				}
+				if observation.Kind == KindCapability && observation.Name == "net:http-client" {
+					foundClient = true
+					if observation.Basis != "code_syntax" || observation.StartLine != tt.wantLine || observation.EndLine != tt.wantLine {
+						t.Errorf("client capability evidence = basis %q lines %d-%d, want code_syntax at line %d", observation.Basis, observation.StartLine, observation.EndLine, tt.wantLine)
+					}
+				}
+			}
+			if !foundImport {
+				t.Errorf("net/http import observation should remain on line 2")
+			}
+			if foundClient != tt.wantClient {
+				t.Fatalf("outbound HTTP client capability = %v, want %v", foundClient, tt.wantClient)
+			}
+		})
+	}
+}
+
+// TestGoNetHTTPSubpackageRouting verifies that net/http sub-packages are handled
+// per-policy: excluded sub-packages (pprof, httptest, fcgi, cgi) never emit
+// net:http-client; client-only sub-packages (cookiejar, httptrace) emit it with
+// basis "imported"; httputil requires a client-side symbol; unknown sub-packages
+// fail closed.
+func TestGoNetHTTPSubpackageRouting(t *testing.T) {
+	tests := []struct {
+		name       string
+		importPath string
+		source     string // package body after the import line
+		wantClient bool
+		wantBasis  string // "code_syntax" or "imported"; ignored when !wantClient
+		wantLine   int    // capability line; ignored when !wantClient
+	}{
+		// Excluded: server-side or tool-only sub-packages.
+		{name: "pprof never client", importPath: "net/http/pprof",
+			source: "package p\nimport _ \"net/http/pprof\"\n"},
+		{name: "httptest never client", importPath: "net/http/httptest",
+			source: "package p\nimport \"net/http/httptest\"\nfunc h(w httptest.ResponseRecorder) {}\n"},
+		{name: "fcgi never client", importPath: "net/http/fcgi",
+			source: "package p\nimport \"net/http/fcgi\"\nvar _ = fcgi.Serve\n"},
+		{name: "cgi never client", importPath: "net/http/cgi",
+			source: "package p\nimport \"net/http/cgi\"\nvar _ = cgi.Serve\n"},
+		// Client-side sub-packages: import alone is sufficient.
+		{name: "cookiejar is client", importPath: "net/http/cookiejar",
+			source:     "package p\nimport \"net/http/cookiejar\"\nvar _ *cookiejar.Jar\n",
+			wantClient: true, wantBasis: "imported", wantLine: 2},
+		{name: "httptrace is client", importPath: "net/http/httptrace",
+			source:     "package p\nimport \"net/http/httptrace\"\nvar _ *httptrace.ClientTrace\n",
+			wantClient: true, wantBasis: "imported", wantLine: 2},
+		// httputil: client-side symbol triggers; server-only usage does not.
+		{name: "httputil ReverseProxy is client", importPath: "net/http/httputil",
+			source:     "package p\nimport \"net/http/httputil\"\nvar _ *httputil.ReverseProxy\n",
+			wantClient: true, wantBasis: "code_syntax", wantLine: 3},
+		{name: "httputil NewSingleHostReverseProxy is client", importPath: "net/http/httputil",
+			source:     "package p\nimport \"net/http/httputil\"\nvar _ = httputil.NewSingleHostReverseProxy\n",
+			wantClient: true, wantBasis: "code_syntax", wantLine: 3},
+		{name: "httputil DumpRequestOut is client", importPath: "net/http/httputil",
+			source:     "package p\nimport \"net/http/httputil\"\nvar _ = httputil.DumpRequestOut\n",
+			wantClient: true, wantBasis: "code_syntax", wantLine: 3},
+		{name: "httputil DumpRequest alone is not client", importPath: "net/http/httputil",
+			source: "package p\nimport \"net/http/httputil\"\nvar _ = httputil.DumpRequest\n"},
+		{name: "httputil ServerConn alone is not client", importPath: "net/http/httputil",
+			source: "package p\nimport \"net/http/httputil\"\nvar _ *httputil.ServerConn\n"},
+		// Unknown sub-package: fail closed.
+		{name: "unknown subpackage fails closed", importPath: "net/http/internal",
+			source: "package p\nimport \"net/http/internal\"\n"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			foundClient := false
+			for _, observation := range parseGoImports("http.go", []byte(tt.source)) {
+				if observation.Kind == KindCapability && observation.Name == "net:http-client" {
+					foundClient = true
+					if tt.wantClient {
+						if observation.Basis != tt.wantBasis {
+							t.Errorf("client capability basis = %q, want %q", observation.Basis, tt.wantBasis)
+						}
+						if observation.StartLine != tt.wantLine || observation.EndLine != tt.wantLine {
+							t.Errorf("client capability lines = %d-%d, want %d", observation.StartLine, observation.EndLine, tt.wantLine)
+						}
+					}
+				}
+			}
+			if foundClient != tt.wantClient {
+				t.Fatalf("outbound HTTP client capability = %v, want %v (import: %s)", foundClient, tt.wantClient, tt.importPath)
+			}
+		})
+	}
+}
+
 func TestGoBinaryRequiresPackageMainAndMainFunction(t *testing.T) {
 	observations := parseGoImports("cmd/tool/main.go", []byte("package main\n\nfunc main() {}\n"))
 	found := false

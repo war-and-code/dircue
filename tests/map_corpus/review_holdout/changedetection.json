@@ -1,0 +1,45 @@
+{
+  "repo": "changedetection",
+  "source": "https://github.com/dgtlmoon/changedetection.io",
+  "commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+  "oracle_files": [
+    {"path": "setup.py", "sha256": "3791e438911096726efeff40ebabd56220a79e655935046b1a73b91690b6e67d"},
+    {"path": "requirements.txt", "sha256": "d62d9ab228851fb2626cba31e73fb3481eec4a3d4ddaa2cd5ac21f5f62d83eba"},
+    {"path": "docker-compose.yml", "sha256": "9720bdc3c890f7cb3097fbe7530aac7ae5f81965ce32c526af1c7d47eb3f667a"},
+    {"path": "Dockerfile", "sha256": "d78a83439ba820bbd000d14a872befe51381fe067a6e5672cc4708b6de66a423"},
+    {"path": "changedetectionio/flask_app.py", "sha256": "539276b5e841e6cc55d00e0e00c1388757db9cd3e208287b67bdeff83a098d41"}
+  ],
+  "components": [
+    {"name": "changedetection.io", "root": ".", "ecosystem": "pypi", "why": "setup.py:42-45 declares package name changedetection.io; requirements.txt is its install_requires input at setup.py:40 and 57."}
+  ],
+  "deployables": [
+    {"kind": "container_build", "name": "changedetection.io", "path": "Dockerfile", "why": "Dockerfile builds the application image; it labels the image changedetection.io at lines 79-86, declares EXPOSE 5000 at line 142, and sets the runtime command at lines 172-175."},
+    {"kind": "service", "name": "changedetection", "path": "docker-compose.yml", "why": "docker-compose.yml:1-7 and 118-120 declare the changedetection service using ghcr.io/dgtlmoon/changedetection.io, a datastore volume, port mapping, and restart policy."}
+  ],
+  "interfaces": [
+    {"kind": "declared_port", "name": "5000", "path": "Dockerfile", "why": "Dockerfile:142 declares EXPOSE 5000."},
+    {"kind": "declared_port", "name": "5000", "path": "docker-compose.yml", "why": "docker-compose.yml:118-119 declares 127.0.0.1:5000:5000."},
+    {"kind": "flask_application", "name": "app", "path": "changedetectionio/flask_app.py", "why": "changedetectionio/flask_app.py:86 declares module-level app = Flask(...)."}
+  ],
+  "capabilities": [
+    {"capability": "net:http-client", "owner": "changedetection.io", "path": "requirements.txt", "why": "requirements.txt:23 directly declares requests[socks], the Python outbound HTTP client package."}
+  ],
+  "edges": [
+    {"type": "builds", "from": "Dockerfile:changedetection.io", "to": "changedetection.io", "why": "docs/MAP.md states a Dockerfile normally links to the component at its directory; Dockerfile is at the root beside setup.py."},
+    {"type": "runs", "from": "docker-compose.yml:changedetection", "to": "changedetection.io", "why": "docker-compose.yml:3 image repository ends in changedetection.io, matching the root package name."},
+    {"type": "uses_capability", "from": "changedetection.io", "to": "net:http-client", "why": "requirements.txt:23 directly declares requests[socks]."},
+    {"type": "declares", "from": "changedetection.io", "to": "app", "why": "changedetectionio/flask_app.py:86 declares the module-level Flask app object."}
+  ],
+  "bounded_negative_facts": [
+    {"fact": "The Compose service has no local build context; it does not establish a Compose builds edge.", "scope": ["docker-compose.yml:1-120"], "why": "The active changedetection service declares image and volumes; its port and restart keys are at lines 118-120, and no active build key exists."},
+    {"fact": "The active Compose configuration has no service dependency edge.", "scope": ["docker-compose.yml:1-120"], "why": "The sole active service is changedetection; it has no depends_on key. Commented example settings and services are not active declarations."},
+    {"fact": "No Compose-published database or browser service is declared in the active configuration.", "scope": ["docker-compose.yml:1-120"], "why": "The active services mapping contains only changedetection; optional browser settings in comments do not declare another service."}
+  ],
+  "coverage": {
+    "asserted_scope": "Python distribution identity, one direct HTTP-client dependency, one module-level Flask app, root Dockerfile, and the active changedetection Compose service.",
+    "positive_facts": 11,
+    "negative_facts": 3,
+    "relation_scope": "The asserted edges cover only root Dockerfile/component build, Compose image/component run, direct HTTP-client use, and Flask app declaration.",
+    "unknown": ["other package dependencies and capability categories", "interfaces outside the cited Flask application and port declarations", "runtime behavior and actual image build/run success", "all map coverage dimensions outside the oracle files"]
+  }
+}
