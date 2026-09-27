@@ -180,6 +180,9 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 					resolved = path.Clean(ref.Value)
 				}
 				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
+				if ref.Kind == "working_directory" {
+					owner, reason = workingDirectoryOwner(d, r, def, componentsByRoot, resolved)
+				}
 				if reason != "" {
 					n.Facts[factIndex].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
 				}
@@ -938,7 +941,65 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 const (
 	reasonPathOutsideRepository  = "path_outside_repository"
 	reasonAmbiguousComponentRoot = "ambiguous_component_root"
+	reasonOtherRepository        = "other_repository_checkout"
+	reasonPathNotInRepository    = "path_not_in_repository"
 )
+
+// workingDirectoryOwner attributes a workflow working directory, which
+// resolves from the workspace root. Below an actions/checkout `path:` of this
+// repository it names that path inside the repository; below a checkout of
+// another repository it is not attributed. Any other directory the committed
+// tree lacks is created at run time and is not attributed to the project that
+// encloses it; absence is only asserted when the content inventory saw every
+// file.
+func workingDirectoryOwner(d *mapdoc.Document, r *deployables.Report, def deployables.Definition, componentsByRoot map[string][]string, dir string) (string, string) {
+	if dir == ".." || strings.HasPrefix(dir, "../") {
+		return localPathOwner(componentsByRoot, dir, true)
+	}
+	checkout, external := "", false
+	for _, ref := range def.References {
+		if ref.Kind != "checkout_path" || (ref.Qualification != "local" && ref.Qualification != "external") {
+			continue
+		}
+		p := path.Clean(ref.Value)
+		if p != "." && (dir == p || strings.HasPrefix(dir, p+"/")) && len(p) > len(checkout) {
+			checkout, external = p, ref.Qualification == "external"
+		}
+	}
+	if checkout != "" {
+		if external {
+			return "", reasonOtherRepository
+		}
+		dir = strings.TrimPrefix(strings.TrimPrefix(dir, checkout), "/")
+		if dir == "" {
+			dir = "."
+		}
+	} else if dir != "." && r.Directories != nil && !r.Directories[dir] && contentComplete(d) {
+		return "", reasonPathNotInRepository
+	}
+	return localPathOwner(componentsByRoot, dir, true)
+}
+
+// contentComplete reports whether the content inventory saw every committed
+// file, so every committed directory is known. Incomplete format observation
+// does not affect the file set; any other content reason does.
+func contentComplete(d *mapdoc.Document) bool {
+	for _, q := range d.Coverage {
+		if q.Question != "content" {
+			continue
+		}
+		if q.Coverage.Status == mapdoc.CoverageComplete {
+			return true
+		}
+		for _, reason := range q.Coverage.Reasons {
+			if reason != "format_observations_incomplete" {
+				return false
+			}
+		}
+		return q.Coverage.Status == mapdoc.CoveragePartial && len(q.Coverage.Reasons) > 0
+	}
+	return false
+}
 
 // localPathOwner returns the unique component whose root is resolved or, when
 // walkAncestors is set, its nearest ancestor root. When attribution is refused

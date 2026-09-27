@@ -20,8 +20,10 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		Selection: "supported-static-declarations-in-selected-regular-files", Limits: limits,
 		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}
 	r.Coverage.SelectedFiles = int64(len(files))
+	r.Directories = map[string]bool{}
 	candidates := make([]Candidate, 0)
 	for _, f := range files {
+		addDirectories(r.Directories, f.Path)
 		if IsCandidate(f.Path) {
 			r.Coverage.CandidateFiles++
 			candidates = append(candidates, f)

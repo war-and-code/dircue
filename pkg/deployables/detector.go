@@ -21,6 +21,7 @@ type Collector struct {
 	pendingBytes int64
 	budgetDrops  int64
 	cutoff       string
+	dirs         map[string]bool
 }
 
 type pendingFile struct {
@@ -32,7 +33,7 @@ func NewCollector(options Options) *Collector {
 	limits := normalizedLimits(options)
 	return &Collector{report: Report{Provider: "dircue", ProviderVersion: ProviderVersion, Status: "complete", Source: options.Source,
 		Selection: "supported-static-declarations-in-selected-regular-files", Limits: limits,
-		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}}
+		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}}
 }
 
 func (*Collector) Name() string { return "deployables" }
@@ -41,6 +42,9 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	c.mu.Lock()
+	addDirectories(c.dirs, file.Path)
+	c.mu.Unlock()
 	if !IsCandidate(file.Path) {
 		c.mu.Lock()
 		c.report.Coverage.SelectedFiles++
@@ -96,6 +100,7 @@ func (c *Collector) Finish() *Report {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	out := c.report
+	out.Directories = c.dirs
 	out.Definitions = slices.Clone(c.report.Definitions)
 	out.Diagnostics = slices.Clone(c.report.Diagnostics)
 	out.Omissions = make(map[string]int64, len(c.report.Omissions))

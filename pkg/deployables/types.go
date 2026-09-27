@@ -3,7 +3,10 @@
 // or fetches referenced content.
 package deployables
 
-import "context"
+import (
+	"context"
+	"path"
+)
 
 const (
 	ProviderVersion    = "1.0.0"
@@ -126,6 +129,16 @@ type Report struct {
 	Definitions     []Definition     `json:"definitions"`
 	Diagnostics     []Diagnostic     `json:"diagnostics"`
 	Omissions       map[string]int64 `json:"omissions"`
+	// Directories holds every directory above a selected file, so path
+	// references can be checked against the scanned tree. Not serialized.
+	Directories map[string]bool `json:"-"`
+}
+
+// addDirectories records every ancestor directory of a file path.
+func addDirectories(dirs map[string]bool, file string) {
+	for dir := path.Dir(file); dir != "." && dir != "/" && !dirs[dir]; dir = path.Dir(dir) {
+		dirs[dir] = true
+	}
 }
 
 type Options struct {

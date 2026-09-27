@@ -14,6 +14,11 @@ package deployables
 // All observations are static declarations. No scripts are run, no environment
 // variables are expanded, and no network fetches occur.
 
+import (
+	"regexp"
+	"strings"
+)
+
 // workdirPrec records the resolved working-directory declaration for a step,
 // with the precedence level that provided it and whether an expression at any
 // higher-precedence level blocked fallback to a literal.
@@ -66,32 +71,32 @@ func resolveWorkdir(
 	return workdirPrec{basis: "workspace"}
 }
 
-// checkoutPath extracts the `path` input from an `actions/checkout` step, if
-// present and literal. It returns ("", false) for expressions, missing values,
-// or non-checkout steps.
-func checkoutPath(step map[interface{}]interface{}) (string, bool) {
-	usesVal, ok := stringValue(step, "uses")
-	if !ok {
-		return "", false
-	}
+// checkoutPath extracts the literal `path` input from an `actions/checkout`
+// step and reports whether the step checks out another repository. A
+// `repository` input other than `${{ github.repository }}`, including any other
+// expression, counts as another repository. It returns ok=false for
+// expressions, missing values, or non-checkout steps.
+func checkoutPath(step map[interface{}]interface{}) (p string, otherRepository, ok bool) {
+	usesVal, found := stringValue(step, "uses")
 	// Match actions/checkout@* (any version tag or SHA).
-	if len(usesVal) < 16 || usesVal[:16] != "actions/checkout" {
-		return "", false
+	if !found || !strings.HasPrefix(usesVal, "actions/checkout@") {
+		return "", false, false
 	}
-	// Extract the `with.path` input.
-	withMap, ok := object(step, "with")
-	if !ok {
-		return "", false
+	withMap, found := object(step, "with")
+	if !found {
+		return "", false, false
 	}
-	p, ok := stringValue(withMap, "path")
-	if !ok {
-		return "", false
+	p, found = stringValue(withMap, "path")
+	if !found || dynamic(p) {
+		return "", false, false
 	}
-	if dynamic(p) {
-		return "", false
+	if repository, set := stringValue(withMap, "repository"); set && strings.TrimSpace(repository) != "" {
+		otherRepository = !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
 	}
-	return p, true
+	return p, otherRepository, true
 }
+
+var selfRepositoryExpr = regexp.MustCompile(`^\$\{\{\s*github\.repository\s*\}\}$`)
 
 // jobDefaultsWorkdir returns the declared literal working-directory from a
 // job's `defaults.run` block, and whether it contains an expression.

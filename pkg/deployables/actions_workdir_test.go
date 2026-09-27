@@ -284,3 +284,32 @@ func containsStr(slice []string, target string) bool {
 	}
 	return false
 }
+
+// A checkout of another repository is qualified external; a checkout of this
+// repository, with or without an explicit ${{ github.repository }}, is local.
+func TestCheckoutPathQualifiesOtherRepository(t *testing.T) {
+	for _, tc := range []struct{ with, want string }{
+		{"path: docs", "local"},
+		{"path: docs\n          repository: ${{ github.repository }}", "local"},
+		{"path: docs\n          repository: example/docs", "external"},
+		{"path: docs\n          repository: ${{ inputs.repo }}", "external"},
+	} {
+		content := []byte("name: Docs\non: [push]\njobs:\n  docs:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          " + tc.with + "\n")
+		r, err := Observe(context.Background(), []Candidate{{Path: ".github/workflows/docs.yml", Size: int64(len(content)),
+			Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}, Options{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		got := ""
+		for _, def := range r.Definitions {
+			for _, ref := range def.References {
+				if ref.Kind == "checkout_path" {
+					got = ref.Qualification
+				}
+			}
+		}
+		if got != tc.want {
+			t.Errorf("%q: checkout_path qualification = %q, want %q", tc.with, got, tc.want)
+		}
+	}
+}
