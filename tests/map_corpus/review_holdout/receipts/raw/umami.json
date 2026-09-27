@@ -1,0 +1,5917 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "map",
+  "status": "partial",
+  "source": {
+    "mode": "git",
+    "revision": "HEAD",
+    "commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+    "tree": "d796d65cc1cb09fd6712c4b4707877bfc40daf17"
+  },
+  "coverage": [
+    {
+      "question": "analyzer_coverage",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_analyzer_report_attached"
+      ]
+    },
+    {
+      "question": "capabilities",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_interface_and_capability_catalog"
+      ]
+    },
+    {
+      "question": "components",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_declaration_catalog",
+        "declarations_incomplete_or_local_references_unresolved"
+      ]
+    },
+    {
+      "question": "content",
+      "scope": ".",
+      "status": "complete",
+      "reasons": []
+    },
+    {
+      "question": "deployables",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_deployable_catalog"
+      ]
+    },
+    {
+      "question": "interfaces",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_interface_and_capability_catalog"
+      ]
+    },
+    {
+      "question": "packages",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_package_report_attached"
+      ]
+    },
+    {
+      "question": "routing",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_route_plan_evaluated"
+      ]
+    },
+    {
+      "question": "source_binding",
+      "scope": ".",
+      "status": "complete",
+      "reasons": []
+    }
+  ],
+  "coverage_ledger": [],
+  "analyzer_coverage": [
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:f0f784ca9e255d1e94e691010110a240",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    }
+  ],
+  "analyzer_blind_spots": [
+    {
+      "reason": "unknown",
+      "entries": 18
+    }
+  ],
+  "nodes": [
+    {
+      "id": "capability:a9ba3a61e97f5b64edc7a17d0da57b76",
+      "kind": "capability",
+      "name": "net:http-client",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "capability:net:http-client:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_dependency",
+        "condition": "dependencies",
+        "evidence_path_count": "1",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "requirement": "node-fetch@^3.2.8",
+        "requirement_kind": "npm-dependency",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "capability:be0ffda3333a8a20b4b84c128e7b69e4",
+      "kind": "capability",
+      "name": "datastore:relational",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "capability:datastore:relational:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_dependency",
+        "condition": "dependencies",
+        "evidence_path_count": "2",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "requirement": "@prisma/client@^7.10.0",
+        "requirement_kind": "npm-dependency",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "capability:c1d2ec1dcf2513536eabc4b964e3369c",
+      "kind": "capability",
+      "name": "cache:redis",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "capability:cache:redis:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_dependency",
+        "condition": "dependencies",
+        "evidence_path_count": "1",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "requirement": "redis@^5.12.1",
+        "requirement_kind": "npm-dependency",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "capability:c7f126020bbbe2910480428bea79588a",
+      "kind": "capability",
+      "name": "messaging:kafka",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "capability:messaging:kafka:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_dependency",
+        "condition": "dependencies",
+        "evidence_path_count": "1",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "requirement": "kafkajs@^2.1.0",
+        "requirement_kind": "npm-dependency",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "capability:dd24f28002c8805ab4193906b1a3c50e",
+      "kind": "capability",
+      "name": "auth:jwt",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "capability:auth:jwt:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_dependency",
+        "condition": "dependencies",
+        "evidence_path_count": "1",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "requirement": "jsonwebtoken@^9.0.3",
+        "requirement_kind": "npm-dependency",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "capability:fab23d20474719fe1d7ede237269daec",
+      "kind": "capability",
+      "name": "datastore:postgresql",
+      "paths": [
+        "prisma/schema.prisma"
+      ],
+      "discriminator": "capability:datastore:postgresql:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "prisma/schema.prisma",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_config",
+        "evidence_path_count": "1",
+        "observation_kind": "capability",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "provider": "postgresql",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "component:6b8c542e023762c80978dad3f6a216c7",
+      "kind": "component",
+      "name": "@umami/mcp",
+      "paths": [
+        "packages/mcp",
+        "packages/mcp/package.json"
+      ],
+      "discriminator": "npm",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "declaration input was incomplete"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "npm",
+        "project_kind": "npm",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": "packages/mcp",
+        "runtime_requirements": "node \u003e=20",
+        "version": "0.2.0"
+      },
+      "facts": [
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@modelcontextprotocol/client@^2.0.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@modelcontextprotocol/server@^2.0.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/node@^26.4.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@umami/api-client@^0.81.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "tsup@^8.5.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "typescript@^6.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "vitest@^4.1.11",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "zod@^4.4.3",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/mcp/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "kind": "component",
+      "name": "@umami/api-client",
+      "paths": [
+        "packages/api-client",
+        "packages/api-client/package.json"
+      ],
+      "discriminator": "npm",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "declaration input was incomplete"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/api-client/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "npm",
+        "project_kind": "npm",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": "packages/api-client",
+        "version": "0.81.0"
+      },
+      "facts": [
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/node@^26.4.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/api-client/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "tsup@^8.5.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/api-client/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "typescript@^6.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/api-client/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "vitest@^4.1.11",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "packages/api-client/package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component:f0f784ca9e255d1e94e691010110a240",
+      "kind": "component",
+      "name": "umami",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "npm",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "declaration input was incomplete"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "npm",
+        "project_kind": "npm",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": ".",
+        "runtime_requirements": "pnpm 12.3.4",
+        "version": "3.4.0"
+      },
+      "facts": [
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@biomejs/biome@^2.5.13",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@clickhouse/client@^1.23.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@dicebear/collection@^9.4.3",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@dicebear/core@^9.4.3",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@netlify/plugin-nextjs@^5.15.13",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@playwright/test@^1.63.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@prisma/adapter-pg@^7.10.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@prisma/client@^7.10.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@prisma/extension-read-replicas@^0.5.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@rollup/plugin-commonjs@^29.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@rollup/plugin-node-resolve@^16.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@rollup/plugin-replace@^6.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@rollup/plugin-terser@^1.0.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@rollup/plugin-typescript@^12.3.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@svgr/cli@^8.1.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@tanstack/react-query@^5.102.8",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@testing-library/jest-dom@^7.0.1",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@testing-library/react@^16.3.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@testing-library/user-event@^14.6.7",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/jest@^30.0.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/node@^26.5.1",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/qrcode@^1.5.6",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/react-dom@^19.3.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@types/react@^19.3.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "@umami/react-zen@^0.254.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "babel-plugin-react-compiler@19.1.0-rc.2",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "bcryptjs@^3.0.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "chalk@^5.6.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "chart.js@^4.5.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "chartjs-adapter-date-fns@^3.0.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "colord@^2.10.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "date-fns-tz@^3.2.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "date-fns@^4.4.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "debug@^4.4.3",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "detect-browser@^5.2.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "dotenv-cli@^11.0.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "dotenv@^17.4.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "esbuild@^0.28.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "immer@^11.1.18",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "ipaddr.js@^2.5.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "is-ci@^4.1.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "is-docker@^4.0.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "is-localhost-ip@^3.0.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "isbot@^5.2.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "jsdom@^30.0.1",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "jsonwebtoken@^9.0.3",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "jszip@^3.10.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "kafkajs@^2.1.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "lucide-react@^1.44.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "maxmind@^5.0.7",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "motion@^12.43.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "msw@^2.15.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "next-intl@4.13.4",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "next@16.3.4",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "node-fetch@^3.2.8",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "npm-run-all@^4.1.5",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "openapi-typescript@^7.13.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "otplib@^13.5.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "papaparse@^5.7.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "postcss-flexbugs-fixes@^5.0.2",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "postcss-preset-env@11.3.2",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "postcss@^8.5.28",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "prisma@^7.10.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "prop-types@^15.8.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "punycode@^2.3.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "qrcode@^1.5.4",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react-dom@^19.3.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react-error-boundary@^6.1.5",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react-resizable-panels@^4.12.4",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react-simple-maps@^3.0.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react-window@^2.3.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "react@^19.3.0",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "redis@^5.12.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "rollup@^4.63.1",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "rrweb-player@2.0.0-alpha.20",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "rrweb@^2.0.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "semver@^7.8.5",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "serialize-error@^13.0.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "tar@^7.5.22",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "thenby@^1.4.1",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "tsup@^8.5.0",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "tsx@^4.23.13",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "typescript@^6.0.3",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "ua-parser-js@^2.0.10",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "uuid@^14.0.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "vitest@^4.1.11",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "zod-openapi@^6.0.2",
+          "state": "declared",
+          "condition": "devDependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "zod@^4.6.2",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "npm-dependency",
+          "value": "zustand@^5.0.15",
+          "state": "declared",
+          "condition": "dependencies",
+          "properties": {
+            "ecosystem": "npm"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "qualified_local_reference",
+          "value": "@umami/api-client",
+          "state": "unresolved",
+          "condition": "dependencies",
+          "properties": {
+            "declaration_kind": "npm-workspace-dependency",
+            "reason": "reference_unresolved",
+            "target_status": "unresolved"
+          },
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "qualified_local_reference",
+          "value": "@umami/mcp",
+          "state": "unresolved",
+          "condition": "dependencies",
+          "properties": {
+            "declaration_kind": "npm-workspace-dependency",
+            "reason": "reference_unresolved",
+            "target_status": "unresolved"
+          },
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "package.json",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "content:154d0edad3478d50c0b71ece339b4600",
+      "kind": "content",
+      "name": "data population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:data",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "3572947",
+        "files": "232",
+        "role": "data",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:409e4120d8714de2dcc10bb667adcc79",
+      "kind": "content",
+      "name": "TypeScript",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:TypeScript",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "4737033",
+        "files": "1370",
+        "language": "TypeScript",
+        "percentage": "98.7773",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:4960e9051b9d0033338b3efbab5d0f43",
+      "kind": "content",
+      "name": "test population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:test",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "347106",
+        "files": "65",
+        "role": "test",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:647186451298d9ea5f8c9444228140e5",
+      "kind": "content",
+      "name": "JavaScript",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:JavaScript",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "37488",
+        "files": "18",
+        "language": "JavaScript",
+        "percentage": "0.7817",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:688814d78159f8bb07257571fc600cf6",
+      "kind": "content",
+      "name": "vendored population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:vendored",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "14833",
+        "files": "13",
+        "role": "vendored",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:73b9e404c40840931b8a4e85c4d72f96",
+      "kind": "content",
+      "name": "CSS",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:CSS",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "16453",
+        "files": "12",
+        "language": "CSS",
+        "percentage": "0.3431",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:7d07b8c989b13ba30a251d3df5e676b0",
+      "kind": "content",
+      "name": "Shell",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:Shell",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "922",
+        "files": "2",
+        "language": "Shell",
+        "percentage": "0.0192",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:802c1b2783650fba031b5735f8e47528",
+      "kind": "content",
+      "name": "documentation population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:documentation",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "31133",
+        "files": "9",
+        "role": "documentation",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:95e931be40cfaa41c98dbd61f56e33c1",
+      "kind": "content",
+      "name": "Dockerfile",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:Dockerfile",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "3776",
+        "files": "1",
+        "language": "Dockerfile",
+        "percentage": "0.0787",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:bf838df02efea017ec7707d7070e0413",
+      "kind": "content",
+      "name": "source population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:source",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "58395",
+        "files": "32",
+        "role": "source",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "deployable:573389c7a65d634f295d3e06c7ae0d42",
+      "kind": "deployable",
+      "name": "Create docker images (cloud)",
+      "paths": [
+        ".github/workflows/cd-cloud.yml"
+      ],
+      "discriminator": "github-actions:workflow:Create docker images (cloud)",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/cd-cloud.yml",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/cd-cloud.yml",
+          "span": {
+            "start_line": 9,
+            "end_line": 9
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "41bb55973ae08b7b5de4f666499fac37ad16319597e36cd32e3016654e3ef9bd"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/checkout@v3",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd-cloud.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "mr-smithers-excellent/docker-build-push@v6",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd-cloud.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "expression",
+          "value": "unresolved",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd-cloud.yml",
+              "span": {
+                "start_line": 25,
+                "end_line": 25
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/unexpanded-expression",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:74c549ff91bf3007e5d4022dcf94ae1d",
+      "kind": "deployable",
+      "name": "Node.js CI",
+      "paths": [
+        ".github/workflows/ci.yml"
+      ],
+      "discriminator": "github-actions:workflow:Node.js CI",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/ci.yml",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/ci.yml",
+          "span": {
+            "start_line": 9,
+            "end_line": 9
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "942a8a96645ebdedfd229137dd6b2e323655a518200733c204df66af5f652a58"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/checkout@v4",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/setup-node@v4",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "pnpm/action-setup@v4",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:ab885adb6bb277b1399d96814767fea7",
+      "kind": "deployable",
+      "name": "db",
+      "paths": [
+        "docker-compose.yml"
+      ],
+      "discriminator": "compose:service:db",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "docker-compose.yml",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/compose-services-map",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "service",
+        "provider": "compose",
+        "source_sha256": "fb542a641c14fc2b1ff0d59558a197ed4f607b6608bf812afd20dad662ae0e8c"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "image",
+          "value": "postgres:15-alpine",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "docker-compose.yml",
+              "span": {
+                "start_line": 4,
+                "end_line": 4
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/compose-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:cb15bc1863095644f8018d192d6035a4",
+      "kind": "deployable",
+      "name": "Create docker images",
+      "paths": [
+        ".github/workflows/cd.yml"
+      ],
+      "discriminator": "github-actions:workflow:Create docker images",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/cd.yml",
+          "span": {
+            "start_line": 19,
+            "end_line": 19
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/cd.yml",
+          "span": {
+            "start_line": 23,
+            "end_line": 23
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/cd.yml",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "e3f90848256d8adb328c9e0375a83796b5d9c7b1bd2e2b8357516d7018063f0a"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/checkout@v5",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/build-push-action@v5",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/build-push-action@v5",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/login-action@v3",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/login-action@v3",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/setup-buildx-action@v3",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "docker/setup-qemu-action@v3",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 28,
+                "end_line": 28
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "expression",
+          "value": "unresolved",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/cd.yml",
+              "span": {
+                "start_line": 40,
+                "end_line": 40
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/unexpanded-expression",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:d4fbce9aa034824adecc2707b3664efa",
+      "kind": "deployable",
+      "name": "(root)",
+      "paths": [
+        "Dockerfile"
+      ],
+      "discriminator": "dockerfile:container_build:(root)",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 25,
+            "end_line": 25
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 25,
+            "end_line": 25
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 48,
+            "end_line": 48
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 48,
+            "end_line": 48
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "container_build",
+        "provider": "dockerfile",
+        "source_sha256": "dedbb8593c7a9ca097ab95dce26267ea33cb68ef1f05d5974f3d9b3857b25006"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "base_image_or_stage",
+          "value": "node:${NODE_IMAGE_VERSION}",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 25,
+                "end_line": 25
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "base_image_or_stage",
+          "value": "node:${NODE_IMAGE_VERSION}",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 48,
+                "end_line": 48
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "base_image_or_stage",
+          "value": "node:${NODE_IMAGE_VERSION}",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 7,
+                "end_line": 7
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 86,
+                "end_line": 86
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 87,
+                "end_line": 87
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 88,
+                "end_line": 88
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 89,
+                "end_line": 89
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 90,
+                "end_line": 90
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 94,
+                "end_line": 94
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "builder",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 95,
+                "end_line": 95
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "deps",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 30,
+                "end_line": 30
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "deps",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 31,
+                "end_line": 31
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_from",
+          "value": "deps",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 32,
+                "end_line": 32
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": ".",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 33,
+                "end_line": 33
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "docker/proxy.ts",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 34,
+                "end_line": 34
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "package.json",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 13,
+                "end_line": 13
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "packages/api-client/package.json",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "packages/mcp/bin",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 17,
+                "end_line": 17
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "packages/mcp/package.json",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 16,
+                "end_line": 16
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "pnpm-lock.yaml",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 13,
+                "end_line": 13
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source",
+          "value": "pnpm-workspace.yaml",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 13,
+                "end_line": 13
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/.next/standalone",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 94,
+                "end_line": 94
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/.next/static",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 95,
+                "end_line": 95
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/generated",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 90,
+                "end_line": 90
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/node_modules",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 30,
+                "end_line": 30
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/packages/api-client/node_modules",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 31,
+                "end_line": 31
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/packages/mcp/node_modules",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 32,
+                "end_line": 32
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/prisma",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 87,
+                "end_line": 87
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/prisma.config.ts",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 88,
+                "end_line": 88
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/public",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 86,
+                "end_line": 86
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "copy_source_stage",
+          "value": "/app/scripts",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "Dockerfile",
+              "span": {
+                "start_line": 89,
+                "end_line": 89
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/dockerfile-instruction",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:e9b4980d466d757c921292fe0fabe0bd",
+      "kind": "deployable",
+      "name": "umami",
+      "paths": [
+        "docker-compose.yml"
+      ],
+      "discriminator": "compose:service:umami",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "docker-compose.yml",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/compose-services-map",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "service",
+        "provider": "compose",
+        "source_sha256": "fb542a641c14fc2b1ff0d59558a197ed4f607b6608bf812afd20dad662ae0e8c"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "image",
+          "value": "ghcr.io/umami-software/umami:latest",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "docker-compose.yml",
+              "span": {
+                "start_line": 4,
+                "end_line": 4
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/compose-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "service_dependency",
+          "value": "db",
+          "state": "local",
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "docker-compose.yml",
+              "span": {
+                "start_line": 12,
+                "end_line": 12
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/compose-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:ec1cbc408492945f31d65080dfe9cd93",
+      "kind": "deployable",
+      "name": "Gitleaks",
+      "paths": [
+        ".github/workflows/gitleaks.yml"
+      ],
+      "discriminator": "github-actions:workflow:Gitleaks",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/gitleaks.yml",
+          "span": {
+            "start_line": 11,
+            "end_line": 11
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/gitleaks.yml",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/gitleaks.yml",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "6cbd87d698f25d8d378e30b46765238cde933fd1776076edd28834c7ad570a1d"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/checkout@v6",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/gitleaks.yml",
+              "span": {
+                "start_line": 17,
+                "end_line": 17
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/gitleaks.yml",
+              "span": {
+                "start_line": 17,
+                "end_line": 17
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "expression",
+          "value": "unresolved",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/gitleaks.yml",
+              "span": {
+                "start_line": 24,
+                "end_line": 24
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/unexpanded-expression",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deployable:eec4b20d9df228d66461a84650540fef",
+      "kind": "deployable",
+      "name": "Close stale issues",
+      "paths": [
+        ".github/workflows/stale-issues.yml"
+      ],
+      "discriminator": "github-actions:workflow:Close stale issues",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/stale-issues.yml",
+          "span": {
+            "start_line": 2,
+            "end_line": 2
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/stale-issues.yml",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/stale-issues.yml",
+          "span": {
+            "start_line": 9,
+            "end_line": 9
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "97825c6f468f02f805daf1f53d9659b05d96ba2521df994b9ab214f17534d26d"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/stale@v8",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/stale-issues.yml",
+              "span": {
+                "start_line": 13,
+                "end_line": 13
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "expression",
+          "value": "unresolved",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/stale-issues.yml",
+              "span": {
+                "start_line": 24,
+                "end_line": 24
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/unexpanded-expression",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interface:3f1413d8be4e9955566ae8c76bb6c7be",
+      "kind": "interface",
+      "name": "start",
+      "paths": [
+        "packages/mcp/package.json"
+      ],
+      "discriminator": "interface:start:packages/mcp/package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_manifest",
+        "interface_kind": "script",
+        "observation_kind": "interface",
+        "owning_component": "component:6b8c542e023762c80978dad3f6a216c7",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:46a0a0380ece3f721d4064e73a444c8d",
+      "kind": "interface",
+      "name": "umami-mcp",
+      "paths": [
+        "packages/mcp/package.json"
+      ],
+      "discriminator": "interface:umami-mcp:packages/mcp/package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_manifest",
+        "interface_kind": "entrypoint",
+        "observation_kind": "interface",
+        "owning_component": "component:6b8c542e023762c80978dad3f6a216c7",
+        "state": "declared",
+        "target": "packages/mcp/bin/umami-mcp.js"
+      }
+    },
+    {
+      "id": "interface:8013210dbeea263667e395f4d5345f75",
+      "kind": "interface",
+      "name": "port:3000",
+      "paths": [
+        "Dockerfile"
+      ],
+      "discriminator": "interface:port:3000:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 99,
+            "end_line": 99
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_config",
+        "interface_kind": "declared_port",
+        "observation_kind": "interface",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "port": "3000",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:a05572b6cb44b5dfd98ee32e600d279e",
+      "kind": "interface",
+      "name": "port:3000",
+      "paths": [
+        "docker-compose.yml"
+      ],
+      "discriminator": "interface:port:3000:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "docker-compose.yml",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_config",
+        "interface_kind": "declared_port",
+        "observation_kind": "interface",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "port": "3000",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:c6699cccd1d220533e66764547b78d2c",
+      "kind": "interface",
+      "name": "start",
+      "paths": [
+        "package.json"
+      ],
+      "discriminator": "interface:start:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "declared_manifest",
+        "interface_kind": "script",
+        "observation_kind": "interface",
+        "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+        "state": "declared"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-builds:fc40b0fd42e0048bbdb088fa8373a297",
+      "type": "builds",
+      "from": "deployable:d4fbce9aa034824adecc2707b3664efa",
+      "to": "component:f0f784ca9e255d1e94e691010110a240",
+      "discriminator": "dockerfile:Dockerfile:component:f0f784ca9e255d1e94e691010110a240",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "dockerfile_co_located_with_component"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/dockerfile-instruction",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-contains:0422cca070e894f90397b02c28c12315",
+      "type": "contains",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "component:e9ee3680d831b31642d5e6fe8a5aaa42",
+      "discriminator": "root-containment\u0000packages/api-client/package.json\u0000inferred\u0000",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "packages/api-client/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "declaration_kind": "root-containment",
+        "state": "inferred"
+      }
+    },
+    {
+      "id": "edge-contains:9c919d9cb8b49202091e7a3401936d30",
+      "type": "contains",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "component:6b8c542e023762c80978dad3f6a216c7",
+      "discriminator": "root-containment\u0000packages/mcp/package.json\u0000inferred\u0000",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "declaration_kind": "root-containment",
+        "state": "inferred"
+      }
+    },
+    {
+      "id": "edge-declares:54147d5fdafb7915b5c2ab2b7f6a1236",
+      "type": "declares",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "interface:c6699cccd1d220533e66764547b78d2c",
+      "discriminator": "interface:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:afccba6023eeb29b1a0c9ce170451374",
+      "type": "declares",
+      "from": "component:6b8c542e023762c80978dad3f6a216c7",
+      "to": "interface:3f1413d8be4e9955566ae8c76bb6c7be",
+      "discriminator": "interface:packages/mcp/package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:b0ace42a76dae173433eda0e90eee865",
+      "type": "declares",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "interface:8013210dbeea263667e395f4d5345f75",
+      "discriminator": "interface:Dockerfile",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "Dockerfile",
+          "span": {
+            "start_line": 99,
+            "end_line": 99
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:ef1b3aad4d9ad48d95c7b73f443933e5",
+      "type": "declares",
+      "from": "component:6b8c542e023762c80978dad3f6a216c7",
+      "to": "interface:46a0a0380ece3f721d4064e73a444c8d",
+      "discriminator": "interface:packages/mcp/package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "packages/mcp/package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_manifest",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:f1eda76cfe36b819c71a7e031925871d",
+      "type": "declares",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "interface:a05572b6cb44b5dfd98ee32e600d279e",
+      "discriminator": "interface:docker-compose.yml",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "docker-compose.yml",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-depends_on:ace55042c3217d93b11a3d049a1d6ca9",
+      "type": "depends_on",
+      "from": "deployable:e9b4980d466d757c921292fe0fabe0bd",
+      "to": "deployable:ab885adb6bb277b1399d96814767fea7",
+      "discriminator": "compose-depends_on:db",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "docker-compose.yml",
+          "span": {
+            "start_line": 12,
+            "end_line": 12
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/compose-field",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:2c3635fd58adb540d64db589e7a4faaa",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:dd24f28002c8805ab4193906b1a3c50e",
+      "discriminator": "capability:auth:jwt:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:2d60e9a558d04f537ea89fb86837069f",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:be0ffda3333a8a20b4b84c128e7b69e4",
+      "discriminator": "capability:datastore:relational:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:49b0ff5a2ca55eb37ece1c4b095a1eeb",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:c1d2ec1dcf2513536eabc4b964e3369c",
+      "discriminator": "capability:cache:redis:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:6d73be0f4ec334d080e2573b4baa3ef5",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:c7f126020bbbe2910480428bea79588a",
+      "discriminator": "capability:messaging:kafka:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:9eadad010d1631d3338a3528885a93cb",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:a9ba3a61e97f5b64edc7a17d0da57b76",
+      "discriminator": "capability:net:http-client:package.json",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "package.json",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_dependency",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:a5b9c0551bf04554a2303075409ba68f",
+      "type": "uses_capability",
+      "from": "component:f0f784ca9e255d1e94e691010110a240",
+      "to": "capability:fab23d20474719fe1d7ede237269daec",
+      "discriminator": "capability:datastore:postgresql:package.json",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "prisma/schema.prisma",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/intent/declared_config",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    }
+  ]
+}

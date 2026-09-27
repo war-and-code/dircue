@@ -1,0 +1,36 @@
+{
+  "repo": "chi",
+  "source_commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+  "expected_commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+  "source_tree": "7c01dddb05b4c19847a3d6259a3f4d519e3b27fb",
+  "source_dirty": false,
+  "binary_sha256": "eea45058364ef25557b510e35371e97b79244e5e0f0375017b87234ef3d97b7b",
+  "argv": [
+    "$BINARY",
+    "map",
+    "--source",
+    "git",
+    "--rev",
+    "HEAD",
+    "--json",
+    "."
+  ],
+  "cwd": "$REPOS/chi",
+  "started_utc": "2026-09-27T11:37:35.980254+00:00",
+  "ended_utc": "2026-09-27T11:37:36.027508+00:00",
+  "exit_status": 0,
+  "stdout_file": "raw/chi.json",
+  "stdout_bytes": 70989,
+  "stdout_sha256": "57c5cdec36b1065627851b3bf1a15d464a56bb96b63dabbf2d1da75e996a15fc",
+  "stderr_file": "raw/chi.stderr",
+  "stderr_bytes": 0,
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_json_valid": true,
+  "path_placeholders": {
+    "$BINARY": "the binary identified by binary_sha256 in build.json",
+    "$REPOS": "pinned checkout collection under $HOLDOUT"
+  },
+  "timeout_seconds": null,
+  "timed_out": false,
+  "timeout_note": "The recorded first-run invocation had no subprocess timeout and completed normally."
+}

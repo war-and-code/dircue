@@ -1,0 +1,2622 @@
+{
+  "schema_version": "1.0.0",
+  "kind": "map",
+  "status": "partial",
+  "source": {
+    "mode": "git",
+    "revision": "HEAD",
+    "commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+    "tree": "7c01dddb05b4c19847a3d6259a3f4d519e3b27fb"
+  },
+  "coverage": [
+    {
+      "question": "analyzer_coverage",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_analyzer_report_attached"
+      ]
+    },
+    {
+      "question": "capabilities",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_interface_and_capability_catalog"
+      ]
+    },
+    {
+      "question": "components",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_declaration_catalog"
+      ]
+    },
+    {
+      "question": "content",
+      "scope": ".",
+      "status": "complete",
+      "reasons": []
+    },
+    {
+      "question": "deployables",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_deployable_catalog"
+      ]
+    },
+    {
+      "question": "interfaces",
+      "scope": ".",
+      "status": "partial",
+      "reasons": [
+        "bounded_interface_and_capability_catalog"
+      ]
+    },
+    {
+      "question": "packages",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_package_report_attached"
+      ]
+    },
+    {
+      "question": "routing",
+      "scope": ".",
+      "status": "unknown",
+      "reasons": [
+        "no_route_plan_evaluated"
+      ]
+    },
+    {
+      "question": "source_binding",
+      "scope": ".",
+      "status": "complete",
+      "reasons": []
+    }
+  ],
+  "coverage_ledger": [],
+  "analyzer_coverage": [
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:cf20678fa7b328238995e76f56198081",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bca",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://dekobon.github.io/big-code-analysis/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "bifrost",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://bifrost.brokk.ai/capabilities/",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "noir",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/owasp-noir/noir",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "opentaint",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/seqra/opentaint",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "scc",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/boyter/scc",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    },
+    {
+      "component_id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "language": "unknown",
+      "language_basis": "unattributed",
+      "tool": "syft",
+      "descriptor_version": "1.0.0",
+      "descriptor_source": "https://github.com/anchore/syft",
+      "expected_applicable": false,
+      "ran": false,
+      "covered_files": [],
+      "not_covered": "unknown",
+      "reason": "component_language_not_exactly_attributed"
+    }
+  ],
+  "analyzer_blind_spots": [
+    {
+      "reason": "unknown",
+      "entries": 18
+    }
+  ],
+  "nodes": [
+    {
+      "id": "capability:47685238cbda99dfb491fe8c6390c52f",
+      "kind": "capability",
+      "name": "net:http-client",
+      "paths": [
+        "_examples/versions/data/errors.go",
+        "_examples/versions/main.go",
+        "_examples/versions/presenter/v1/article.go",
+        "_examples/versions/presenter/v2/article.go",
+        "_examples/versions/presenter/v3/article.go"
+      ],
+      "discriminator": "capability:net:http-client:_examples/versions/go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/data/errors.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v1/article.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v2/article.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v3/article.go",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "imported",
+        "evidence_path_count": "5",
+        "import": "net/http",
+        "observation_kind": "capability",
+        "owning_component": "component:c5463b2882f72e959bcde5e4c0700ab9",
+        "state": "observed"
+      }
+    },
+    {
+      "id": "capability:4cb29edb11551c5b1fc5ee496c7e391a",
+      "kind": "capability",
+      "name": "net:http-client",
+      "paths": [
+        "_examples/rest/main.go"
+      ],
+      "discriminator": "capability:net:http-client:_examples/rest/go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/rest/main.go",
+          "span": {
+            "start_line": 44,
+            "end_line": 44
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "imported",
+        "evidence_path_count": "1",
+        "import": "net/http",
+        "observation_kind": "capability",
+        "owning_component": "component:cf20678fa7b328238995e76f56198081",
+        "state": "observed"
+      }
+    },
+    {
+      "id": "capability:cca0a5f455208a105b6a3124628b5e80",
+      "kind": "capability",
+      "name": "net:http-client",
+      "paths": [
+        "_examples/custom-handler/main.go",
+        "_examples/custom-method/main.go",
+        "_examples/fileserver/main.go",
+        "_examples/graceful/main.go",
+        "_examples/hello-world/main.go",
+        "_examples/limits/main.go",
+        "_examples/pathvalue/main.go",
+        "_examples/router-walk/main.go",
+        "_examples/todos-resource/main.go",
+        "_examples/todos-resource/todos.go",
+        "_examples/todos-resource/users.go",
+        "chain.go",
+        "chi.go",
+        "context.go",
+        "middleware/basic_auth.go",
+        "middleware/basic_auth_test.go",
+        "middleware/clean_path.go",
+        "middleware/clean_path_test.go"
+      ],
+      "discriminator": "capability:net:http-client:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/custom-handler/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/custom-method/main.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/fileserver/main.go",
+          "span": {
+            "start_line": 19,
+            "end_line": 19
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/graceful/main.go",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/hello-world/main.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/limits/main.go",
+          "span": {
+            "start_line": 14,
+            "end_line": 14
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/pathvalue/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/router-walk/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/main.go",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/todos.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/users.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "chain.go",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "chi.go",
+          "span": {
+            "start_line": 59,
+            "end_line": 59
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "context.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth.go",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth_test.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth_test.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path_test.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path_test.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "imported",
+        "evidence_path_count": "99",
+        "import": "net/http",
+        "observation_kind": "capability",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "state": "observed"
+      }
+    },
+    {
+      "id": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "kind": "component",
+      "name": "versions",
+      "paths": [
+        "_examples/versions",
+        "_examples/versions/go.mod"
+      ],
+      "discriminator": "go",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "_examples/versions/go.mod",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "go",
+        "project_kind": "go",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": "_examples/versions"
+      },
+      "facts": [
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/ajg/form@v1.5.1",
+          "state": "declared",
+          "condition": "indirect declaration",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/versions/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/go-chi/chi/v5@v5.1.0",
+          "state": "declared",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/versions/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/go-chi/render@v1.0.3",
+          "state": "declared",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/versions/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component:cf20678fa7b328238995e76f56198081",
+      "kind": "component",
+      "name": "rest-example",
+      "paths": [
+        "_examples/rest",
+        "_examples/rest/go.mod"
+      ],
+      "discriminator": "go",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "_examples/rest/go.mod",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "go",
+        "project_kind": "go",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": "_examples/rest"
+      },
+      "facts": [
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/go-chi/chi/v5@v5.0.1",
+          "state": "declared",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/rest/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/go-chi/docgen@v1.2.0",
+          "state": "declared",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/rest/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "declared_requirement",
+          "name": "go-require",
+          "value": "github.com/go-chi/render@v1.0.1",
+          "state": "declared",
+          "properties": {
+            "ecosystem": "go"
+          },
+          "coverage": {
+            "status": "complete",
+            "reasons": []
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": "_examples/rest/go.mod",
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/component-declarations",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "component:e4e4cb862fff15272db223b0b951c52a",
+      "kind": "component",
+      "name": "chi",
+      "paths": [
+        "go.mod"
+      ],
+      "discriminator": "go",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": "go.mod",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "ecosystem": "go",
+        "go_module": "github.com/go-chi/chi/v5",
+        "project_kind": "go",
+        "role": "primary",
+        "role_basis": "path_name",
+        "root": "."
+      }
+    },
+    {
+      "id": "content:154d0edad3478d50c0b71ece339b4600",
+      "kind": "content",
+      "name": "data population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:data",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "15692",
+        "files": "5",
+        "role": "data",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:4960e9051b9d0033338b3efbab5d0f43",
+      "kind": "content",
+      "name": "test population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:test",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "194196",
+        "files": "30",
+        "role": "test",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:5090f793489c38bf5302cd75ff91deb5",
+      "kind": "content",
+      "name": "Makefile",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:Makefile",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "490",
+        "files": "1",
+        "language": "Makefile",
+        "percentage": "0.1382",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:549cba4956e80cd50feef3b2152068c7",
+      "kind": "content",
+      "name": "Go",
+      "paths": [
+        "."
+      ],
+      "discriminator": "language:Go",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/linguist-language-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "354064",
+        "files": "84",
+        "language": "Go",
+        "percentage": "99.8618",
+        "role": "language_population"
+      }
+    },
+    {
+      "id": "content:688814d78159f8bb07257571fc600cf6",
+      "kind": "content",
+      "name": "vendored population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:vendored",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "4501",
+        "files": "5",
+        "role": "vendored",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:802c1b2783650fba031b5735f8e47528",
+      "kind": "content",
+      "name": "documentation population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:documentation",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "47056",
+        "files": "5",
+        "role": "documentation",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:bf838df02efea017ec7707d7070e0413",
+      "kind": "content",
+      "name": "source population",
+      "paths": [
+        "."
+      ],
+      "discriminator": "population:source",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": ".",
+          "source_kind": "directory",
+          "rule": {
+            "id": "dircue/discovery-population",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "354554",
+        "files": "85",
+        "role": "source",
+        "scope": "inventory_population"
+      }
+    },
+    {
+      "id": "content:d61cc3167eb6f574021bfdfeae2b72d6",
+      "kind": "content",
+      "name": "key.pem",
+      "paths": [
+        "testdata/key.pem"
+      ],
+      "discriminator": "role:certificate",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "filename_hint_unverified"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "filename_hint",
+          "path": "testdata/key.pem",
+          "source_kind": "file",
+          "rule": {
+            "id": "dircue/content-role",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "1678",
+        "format": "certificate_candidate",
+        "role": "certificate"
+      }
+    },
+    {
+      "id": "content:e150bedc08843058e365eaa6e0da13b6",
+      "kind": "content",
+      "name": "cert.pem",
+      "paths": [
+        "testdata/cert.pem"
+      ],
+      "discriminator": "role:certificate",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "filename_hint_unverified"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "filename_hint",
+          "path": "testdata/cert.pem",
+          "source_kind": "file",
+          "rule": {
+            "id": "dircue/content-role",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "bytes": "1098",
+        "format": "certificate_candidate",
+        "role": "certificate"
+      }
+    },
+    {
+      "id": "deployable:82c7f1550e7cbe97908ed59e32cf5633",
+      "kind": "deployable",
+      "name": "Test",
+      "paths": [
+        ".github/workflows/ci.yml"
+      ],
+      "discriminator": "github-actions:workflow:Test",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "static_declaration_not_evaluated"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/ci.yml",
+          "span": {
+            "start_line": 1,
+            "end_line": 1
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-field",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/ci.yml",
+          "span": {
+            "start_line": 12,
+            "end_line": 12
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-workflow-map",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "declared_config",
+          "path": ".github/workflows/ci.yml",
+          "span": {
+            "start_line": 19,
+            "end_line": 19
+          },
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/deployables/github-job-default",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "kind": "workflow",
+        "provider": "github-actions",
+        "source_sha256": "ec5831a35b9d99ff5b63f3189e2efc8690af4b67810e22659a1f9bf577b59c78"
+      },
+      "facts": [
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 30,
+                "end_line": 30
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "action",
+          "value": "actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff",
+          "state": "external",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_external"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 30,
+                "end_line": 30
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/github-workflow-field",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        },
+        {
+          "kind": "deployable_reference",
+          "name": "expression",
+          "value": "unresolved",
+          "state": "unresolved",
+          "coverage": {
+            "status": "unknown",
+            "reasons": [
+              "reference_unresolved"
+            ]
+          },
+          "evidence": [
+            {
+              "basis": "declared_config",
+              "path": ".github/workflows/ci.yml",
+              "span": {
+                "start_line": 15,
+                "end_line": 15
+              },
+              "source_kind": "configuration",
+              "rule": {
+                "id": "dircue/deployables/unexpanded-expression",
+                "version": "1.0.0"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "interface:26162c7b1598f3b226ca33e1acaed95a",
+      "kind": "interface",
+      "name": "hello-world",
+      "paths": [
+        "_examples/hello-world/main.go"
+      ],
+      "discriminator": "interface:hello-world:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/hello-world/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:2666475ac31ad76b0efe0358dab189ba",
+      "kind": "interface",
+      "name": "pathvalue",
+      "paths": [
+        "_examples/pathvalue/main.go"
+      ],
+      "discriminator": "interface:pathvalue:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/pathvalue/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:303969822af4dc313bf570d1a36f9aa0",
+      "kind": "interface",
+      "name": "todos-resource",
+      "paths": [
+        "_examples/todos-resource/main.go"
+      ],
+      "discriminator": "interface:todos-resource:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/todos-resource/main.go",
+          "span": {
+            "start_line": 14,
+            "end_line": 14
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:385bea3fb0023acebb143cd5d536f07b",
+      "kind": "interface",
+      "name": "rest-example",
+      "paths": [
+        "_examples/rest/main.go"
+      ],
+      "discriminator": "interface:rest-example:_examples/rest/go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/rest/main.go",
+          "span": {
+            "start_line": 55,
+            "end_line": 55
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:cf20678fa7b328238995e76f56198081",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:4156f99f91d4c0d3ca5a79fe5a263d38",
+      "kind": "interface",
+      "name": "fileserver",
+      "paths": [
+        "_examples/fileserver/main.go"
+      ],
+      "discriminator": "interface:fileserver:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/fileserver/main.go",
+          "span": {
+            "start_line": 28,
+            "end_line": 28
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:5de6b40b352f33522c6db1f83832b297",
+      "kind": "interface",
+      "name": "versions",
+      "paths": [
+        "_examples/versions/main.go"
+      ],
+      "discriminator": "interface:versions:_examples/versions/go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/versions/main.go",
+          "span": {
+            "start_line": 22,
+            "end_line": 22
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:c5463b2882f72e959bcde5e4c0700ab9",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:774e303f36888cafdd0bd5262f17959c",
+      "kind": "interface",
+      "name": "custom-handler",
+      "paths": [
+        "_examples/custom-handler/main.go"
+      ],
+      "discriminator": "interface:custom-handler:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/custom-handler/main.go",
+          "span": {
+            "start_line": 20,
+            "end_line": 20
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:7c5b55310943e71be90d8756bc6a6656",
+      "kind": "interface",
+      "name": "limits",
+      "paths": [
+        "_examples/limits/main.go"
+      ],
+      "discriminator": "interface:limits:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/limits/main.go",
+          "span": {
+            "start_line": 21,
+            "end_line": 21
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:9f47259b5153daf7f196d689128e5915",
+      "kind": "interface",
+      "name": "graceful",
+      "paths": [
+        "_examples/graceful/main.go"
+      ],
+      "discriminator": "interface:graceful:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/graceful/main.go",
+          "span": {
+            "start_line": 17,
+            "end_line": 17
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:aa6ef6580ee65a6cd936c3c8d9d223b6",
+      "kind": "interface",
+      "name": "logging",
+      "paths": [
+        "_examples/logging/main.go"
+      ],
+      "discriminator": "interface:logging:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/logging/main.go",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:ac879ca071c0fb97059128a8d61ceca0",
+      "kind": "interface",
+      "name": "router-walk",
+      "paths": [
+        "_examples/router-walk/main.go"
+      ],
+      "discriminator": "interface:router-walk:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/router-walk/main.go",
+          "span": {
+            "start_line": 11,
+            "end_line": 11
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    },
+    {
+      "id": "interface:d20db8a8fe779c49dcab2dd2f40d6ec3",
+      "kind": "interface",
+      "name": "custom-method",
+      "paths": [
+        "_examples/custom-method/main.go"
+      ],
+      "discriminator": "interface:custom-method:go.mod",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/custom-method/main.go",
+          "span": {
+            "start_line": 16,
+            "end_line": 16
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "basis": "code_syntax",
+        "interface_kind": "binary",
+        "observation_kind": "interface",
+        "owning_component": "component:e4e4cb862fff15272db223b0b951c52a",
+        "package": "main",
+        "state": "declared"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-contains:089cb29a720d10a444467f6e9cd9dba9",
+      "type": "contains",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "component:cf20678fa7b328238995e76f56198081",
+      "discriminator": "root-containment\u0000_examples/rest/go.mod\u0000inferred\u0000",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/rest/go.mod",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "declaration_kind": "root-containment",
+        "state": "inferred"
+      }
+    },
+    {
+      "id": "edge-contains:09c902994dfa10e4df7cd79a0efe3cec",
+      "type": "contains",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "discriminator": "root-containment\u0000_examples/versions/go.mod\u0000inferred\u0000",
+      "coverage": {
+        "status": "complete",
+        "reasons": []
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/go.mod",
+          "source_kind": "configuration",
+          "rule": {
+            "id": "dircue/component-declarations",
+            "version": "1.0.0"
+          }
+        }
+      ],
+      "properties": {
+        "declaration_kind": "root-containment",
+        "state": "inferred"
+      }
+    },
+    {
+      "id": "edge-declares:16ff8a4427d2ed5b0b482f3332347dab",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:4156f99f91d4c0d3ca5a79fe5a263d38",
+      "discriminator": "interface:_examples/fileserver/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/fileserver/main.go",
+          "span": {
+            "start_line": 28,
+            "end_line": 28
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:28b8dcd314c9aa6d7af9a843b1e63fb2",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:7c5b55310943e71be90d8756bc6a6656",
+      "discriminator": "interface:_examples/limits/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/limits/main.go",
+          "span": {
+            "start_line": 21,
+            "end_line": 21
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:533c5fab9a491bb04d50980e52802a59",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:aa6ef6580ee65a6cd936c3c8d9d223b6",
+      "discriminator": "interface:_examples/logging/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/logging/main.go",
+          "span": {
+            "start_line": 7,
+            "end_line": 7
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:5543a951fdea72d6b7e197ba474a97ab",
+      "type": "declares",
+      "from": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "to": "interface:5de6b40b352f33522c6db1f83832b297",
+      "discriminator": "interface:_examples/versions/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/versions/main.go",
+          "span": {
+            "start_line": 22,
+            "end_line": 22
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:72cf47579e4028e84fd22451e76de309",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:303969822af4dc313bf570d1a36f9aa0",
+      "discriminator": "interface:_examples/todos-resource/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/todos-resource/main.go",
+          "span": {
+            "start_line": 14,
+            "end_line": 14
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:7d98fb435b99d83b7470031429964f16",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:9f47259b5153daf7f196d689128e5915",
+      "discriminator": "interface:_examples/graceful/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/graceful/main.go",
+          "span": {
+            "start_line": 17,
+            "end_line": 17
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:88f96f4ec0103f09dbd9c740a6270243",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:774e303f36888cafdd0bd5262f17959c",
+      "discriminator": "interface:_examples/custom-handler/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/custom-handler/main.go",
+          "span": {
+            "start_line": 20,
+            "end_line": 20
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:935ce6a7d1840e8a51216a0042779170",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:d20db8a8fe779c49dcab2dd2f40d6ec3",
+      "discriminator": "interface:_examples/custom-method/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/custom-method/main.go",
+          "span": {
+            "start_line": 16,
+            "end_line": 16
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:a56b8bb201c2a2827a1d3215828c0064",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:26162c7b1598f3b226ca33e1acaed95a",
+      "discriminator": "interface:_examples/hello-world/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/hello-world/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:bd8dc6664aa5acde8d9fd173141463d3",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:ac879ca071c0fb97059128a8d61ceca0",
+      "discriminator": "interface:_examples/router-walk/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/router-walk/main.go",
+          "span": {
+            "start_line": 11,
+            "end_line": 11
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:de03895d1d1a2e7a537be8376ff2f224",
+      "type": "declares",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "interface:2666475ac31ad76b0efe0358dab189ba",
+      "discriminator": "interface:_examples/pathvalue/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/pathvalue/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-declares:e006cf33408248441c8d4fe0fda7d697",
+      "type": "declares",
+      "from": "component:cf20678fa7b328238995e76f56198081",
+      "to": "interface:385bea3fb0023acebb143cd5d536f07b",
+      "discriminator": "interface:_examples/rest/main.go",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "code_syntax",
+          "path": "_examples/rest/main.go",
+          "span": {
+            "start_line": 55,
+            "end_line": 55
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/code_syntax",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:29a4113ece923e26d8aa34ae2c0fa90b",
+      "type": "uses_capability",
+      "from": "component:cf20678fa7b328238995e76f56198081",
+      "to": "capability:4cb29edb11551c5b1fc5ee496c7e391a",
+      "discriminator": "capability:net:http-client:_examples/rest/go.mod",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/rest/main.go",
+          "span": {
+            "start_line": 44,
+            "end_line": 44
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:6a68705800db426a244cf755a1ea4a59",
+      "type": "uses_capability",
+      "from": "component:e4e4cb862fff15272db223b0b951c52a",
+      "to": "capability:cca0a5f455208a105b6a3124628b5e80",
+      "discriminator": "capability:net:http-client:go.mod",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/custom-handler/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/custom-method/main.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/fileserver/main.go",
+          "span": {
+            "start_line": 19,
+            "end_line": 19
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/graceful/main.go",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/hello-world/main.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/limits/main.go",
+          "span": {
+            "start_line": 14,
+            "end_line": 14
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/pathvalue/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/router-walk/main.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/main.go",
+          "span": {
+            "start_line": 8,
+            "end_line": 8
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/todos.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/todos-resource/users.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "chain.go",
+          "span": {
+            "start_line": 3,
+            "end_line": 3
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "chi.go",
+          "span": {
+            "start_line": 59,
+            "end_line": 59
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "context.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth.go",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth_test.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/basic_auth_test.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path_test.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "middleware/clean_path_test.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "edge-uses_capability:e35ef810bbcd807fe46b5889df26b668",
+      "type": "uses_capability",
+      "from": "component:c5463b2882f72e959bcde5e4c0700ab9",
+      "to": "capability:47685238cbda99dfb491fe8c6390c52f",
+      "discriminator": "capability:net:http-client:_examples/versions/go.mod",
+      "coverage": {
+        "status": "partial",
+        "reasons": [
+          "attributed_by_directory_containment"
+        ]
+      },
+      "evidence": [
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/data/errors.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/main.go",
+          "span": {
+            "start_line": 10,
+            "end_line": 10
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v1/article.go",
+          "span": {
+            "start_line": 4,
+            "end_line": 4
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v2/article.go",
+          "span": {
+            "start_line": 5,
+            "end_line": 5
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        },
+        {
+          "basis": "rule_inferred",
+          "path": "_examples/versions/presenter/v3/article.go",
+          "span": {
+            "start_line": 6,
+            "end_line": 6
+          },
+          "source_kind": "code",
+          "rule": {
+            "id": "dircue/intent/imported",
+            "version": "1.0.0"
+          }
+        }
+      ]
+    }
+  ]
+}
