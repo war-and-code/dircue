@@ -2,6 +2,7 @@
 import json
 import unittest
 from pathlib import Path
+from unittest import mock
 
 import score_first_run as scorer
 
@@ -43,10 +44,12 @@ class IdentityMatchingTests(unittest.TestCase):
 
     def test_label_bytes_must_match_frozen_git_blob(self):
         path = HERE / "chi.json"
-        frozen = scorer.verify_frozen_label(path, HERE.parents[2])
-        scorer.require_frozen_label(frozen, frozen, "chi.json")
-        with self.assertRaises(SystemExit):
-            scorer.require_frozen_label(frozen + b" ", frozen, "chi.json")
+        current = path.read_bytes()
+        with mock.patch.object(scorer.subprocess, "run", return_value=mock.Mock(stdout=current)):
+            self.assertEqual(scorer.verify_frozen_label(path, HERE.parents[2]), current)
+        with mock.patch.object(scorer.subprocess, "run", return_value=mock.Mock(stdout=current + b" ")):
+            with self.assertRaises(SystemExit):
+                scorer.verify_frozen_label(path, HERE.parents[2])
 
 
 if __name__ == "__main__":
