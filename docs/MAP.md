@@ -76,6 +76,20 @@ establishes one. The `copy_source` and `copy_source_stage` fact kinds record
 context and stage copy sources, respectively; the archive relationship uses
 the reason `dockerfile_copy_source_matches_maven_archive`.
 
+For `build_context`, `code_uri`, and `working_directory` references the
+attribution rule is: the nearest ancestor directory that contains any component
+root is authoritative. When that nearest root has exactly one component, a
+`builds` edge is emitted. When it has more than one component, ownership is
+ambiguous — no edge is emitted and the corresponding `deployable_reference`
+fact on the deployable node is marked `partial` with reason
+`ambiguous_component_root`. A `code_uri` that resolves to a build artifact
+(e.g. `target/app.jar`) walks up from the artifact path to find the nearest
+ancestor component root; the same ambiguity rule applies. Paths that resolve
+outside the repository after joining with the declaring file's directory — that
+is, paths whose cleaned form is `..` or starts with `../` — are never attributed
+to any component; their `deployable_reference` fact is marked `partial` with
+reason `path_outside_repository`.
+
 Paths are clean, root-relative paths. Node and edge IDs are deterministic
 hash-based identities derived from their kind, paths, and discriminator. They
 can be compared across maps of the same logical content, but an ID is not a
