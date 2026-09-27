@@ -33,19 +33,49 @@ on PyPI. A configured private index or a local wheel collection supplied with
 publication is announced, use GitHub wheels as shown below. The package name and executable
 name are both `dircue`.
 
+## Two names, one binary
+
+Starting with 1.0.0, the binary answers to both `dircue` and `dirq`. The two
+names behave identically; help and usage text shows the name that was invoked.
+
+- **Archive extract** — the tar archives ship `dircue` plus a relative symlink
+  `dirq -> dircue`. After extracting on Linux or macOS you can call either name
+  from the same directory:
+  ```sh
+  tar -xzf dircue_1.0.0_linux_amd64.tar.gz
+  ./dircue --version
+  ./dirq --version
+  ```
+  The Windows zip ships `dircue.exe` and a byte-identical `dirq.exe` copy.
+
+- **Go install** — two entry points are published:
+  ```sh
+  go install github.com/war-and-code/dircue@v1.0.0        # installs dircue
+  go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0  # installs dirq
+  ```
+
+- **Wheel** — both console scripts are included in every wheel:
+  ```sh
+  uvx --offline --no-index \
+    --from ./dist/wheels-1.0.0/dircue-1.0.0-py3-none-macosx_12_0_arm64.whl \
+    dirq map /path/to/checkout
+  ```
+  `dircue` and `dirq` are both installed by pip and call the same bundled binary.
+
 ## Go module installation
 
 The root module embeds its maintained Enry and go-git packages beneath
 `github.com/war-and-code/dircue/third_party/...`; it uses no local module
 `replace` directives. After the repository is public and a version tag exists,
-the expected installation form is:
+the expected installation forms are:
 
 ```sh
-go install github.com/war-and-code/dircue@v1.0.0
+go install github.com/war-and-code/dircue@v1.0.0        # installs dircue
+go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0  # installs dirq
 ```
 
-Verify this command against a clean module cache and the actual public tag as a
-release gate. While the repository is private, a maintainer can clone with
+Verify these commands against a clean module cache and the actual public tag as
+a release gate. While the repository is private, a maintainer can clone with
 authenticated GitHub access and build from that checkout. A versioned `go
 install module@version` cannot be confirmed in a clean anonymous environment
 until the tag is publicly fetchable; local `go install .` does not prove the

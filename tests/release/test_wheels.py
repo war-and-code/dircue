@@ -65,6 +65,11 @@ def fixture_release(directory):
         payload = {binary: (content, True), 'LICENSE': (b'MIT\n', False),
                    'THIRD_PARTY_NOTICES.md': (b'Dependency licenses\n', False),
                    'README.md': (b'# dircue\n', False)}
+        # Windows: byte-identical copy; Unix: relative symlink dirq -> dircue.
+        if windows:
+            payload['dirq.exe'] = (content, True)
+        else:
+            payload['dirq'] = (None, 'dircue')
         release.write_archive(directory / name, payload, windows)
         records.append({'name': name, 'os': target[0], 'arch': target[1],
                         'sha256': wheels.sha((directory / name).read_bytes()),
@@ -117,6 +122,9 @@ class WheelTests(unittest.TestCase):
                     self.assertIn('Requires-Python: >=3.10\n', metadata)
                     self.assertIn('Root-Is-Purelib: false\n', entries[info + '/WHEEL'].decode())
                     self.assertIn('Tag: py3-none-' + row['platform'], entries[info + '/WHEEL'].decode())
+                    entry_points = entries[info + '/entry_points.txt'].decode()
+                    self.assertIn('dircue = dircue:main', entry_points)
+                    self.assertIn('dirq = dircue:main', entry_points)
                     self.assertEqual(json.loads(entries[info + '/release-provenance.json']), provenance)
                     self.assertTrue(all(member.date_time == (1980, 1, 1, 0, 0, 0) for member in archive.infolist()))
 
@@ -155,15 +163,52 @@ class WheelTests(unittest.TestCase):
             wheels.validate_binary(b'MZ', ('windows', 'amd64'))
 
     def test_archive_paths_and_symlinks_are_rejected(self):
-        for name, kind in (('../dircue', tarfile.REGTYPE), ('dircue', tarfile.SYMTYPE)):
-            with self.subTest(name=name, kind=kind):
-                buffer = io.BytesIO()
-                with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
-                    member = tarfile.TarInfo(name)
-                    member.type = kind
-                    archive.addfile(member, io.BytesIO())
+        # Path traversal always rejected regardless of entry type.
+        buffer = io.BytesIO()
+        with tarfile.open(fileobj=buffer, mode='w:gz') as archive:
+            member = tarfile.TarInfo('../dircue')
+            archive.addfile(member, io.BytesIO())
+        with self.assertRaises(ValueError):
+            wheels.archive_payload(buffer.getvalue(), False)
+
+        # Symlinks that do not match the single allowed form are rejected.
+        for name, linkname in (
+            ('dircue', 'dirq'),          # wrong name (canonical is dirq -> dircue)
+            ('dirq', '../dircue'),        # path traversal in link target
+            ('dirq', 'dircue.exe'),       # wrong target extension
+            ('other', 'dircue'),          # wrong symlink name
+        ):
+            with self.subTest(name=name, linkname=linkname):
+                buf = io.BytesIO()
+                with tarfile.open(fileobj=buf, mode='w:gz') as archive:
+                    sym = tarfile.TarInfo(name)
+                    sym.type = tarfile.SYMTYPE
+                    sym.linkname = linkname
+                    archive.addfile(sym)
                 with self.assertRaises(ValueError):
-                    wheels.archive_payload(buffer.getvalue(), False)
+                    wheels.archive_payload(buf.getvalue(), False)
+
+    def test_allowed_symlink_dirq_to_dircue(self):
+        """The one permitted tar symlink dirq -> dircue is accepted and resolves to the binary."""
+        binary_bytes = b'\x00binary\xff'
+        buf = io.BytesIO()
+        with tarfile.open(fileobj=buf, mode='w:gz') as archive:
+            for text, data in (('LICENSE', b'MIT\n'), ('README.md', b'# r\n'),
+                               ('THIRD_PARTY_NOTICES.md', b'notices\n')):
+                m = tarfile.TarInfo(text)
+                m.size = len(data)
+                archive.addfile(m, io.BytesIO(data))
+            m = tarfile.TarInfo('dircue')
+            m.size = len(binary_bytes)
+            archive.addfile(m, io.BytesIO(binary_bytes))
+            sym = tarfile.TarInfo('dirq')
+            sym.type = tarfile.SYMTYPE
+            sym.linkname = 'dircue'
+            archive.addfile(sym)
+        payload = wheels.archive_payload(buf.getvalue(), False)
+        self.assertIn('dirq', payload)
+        self.assertEqual(payload['dirq'], payload['dircue'])
+        self.assertEqual(payload['dircue'], binary_bytes)
 
     def test_versions_and_output_safety(self):
         self.assertEqual(wheels.python_version('0.1.0-rc.3'), '0.1.0rc3')
@@ -177,16 +222,26 @@ class WheelTests(unittest.TestCase):
 
     def test_launcher_import_and_windows_exit_and_error(self):
         namespace = {'__file__': '/installed with spaces/dircue/__init__.py'}
+        binary_path = '/installed with spaces/dircue/bin/dircue.exe'
         with mock.patch('os.execv') as execute, mock.patch('subprocess.Popen') as child:
             exec(wheels.LAUNCHER.format(binary='dircue.exe'), namespace)
             execute.assert_not_called()
             child.assert_not_called()
+            # When invoked as "dircue", argv[0] is the binary path (unchanged).
             with mock.patch('sys.platform', 'win32'), mock.patch('sys.argv', ['dircue', 'path with spaces', '--json']):
                 child.return_value.wait.return_value = 23
                 with self.assertRaises(SystemExit) as status:
                     namespace['main']()
                 self.assertEqual(status.exception.code, 23)
-                child.assert_called_once_with(['/installed with spaces/dircue/bin/dircue.exe', 'path with spaces', '--json'])
+                child.assert_called_once_with([binary_path, 'path with spaces', '--json'])
+            child.reset_mock()
+            # When invoked as "dirq", argv[0] is "dirq" and executable= separates
+            # the command-line name from the actual binary path.
+            with mock.patch('sys.platform', 'win32'), mock.patch('sys.argv', ['dirq', '--version']):
+                child.return_value.wait.return_value = 0
+                with self.assertRaises(SystemExit):
+                    namespace['main']()
+                child.assert_called_once_with(['dirq', '--version'], executable=binary_path)
             for number, expected in ((errno.ENOENT, 127), (errno.EACCES, 126)):
                 with mock.patch('sys.platform', 'linux'), mock.patch('sys.stderr', io.StringIO()):
                     execute.side_effect = OSError(number, 'test execution failure')
@@ -220,6 +275,37 @@ class WheelTests(unittest.TestCase):
             result = subprocess.run([sys.executable, str(wrapper), *arguments], capture_output=True, text=True)
             self.assertEqual(result.returncode, 19, result.stderr)
             self.assertEqual(json.loads(result.stdout), arguments)
+
+    def test_dirq_launcher_passes_dirq_as_argv0(self):
+        """When invoked as 'dirq', execv receives 'dirq' as argv[0]; 'dircue' keeps the binary path."""
+        namespace = {'__file__': '/installed/dircue/__init__.py'}
+        exec(wheels.LAUNCHER.format(binary='dircue'), namespace)
+        binary = '/installed/dircue/bin/dircue'
+        with mock.patch('os.execv') as execv:
+            # dircue invocation: argv[0] stays as the binary path (unchanged behavior).
+            with mock.patch('sys.platform', 'linux'), mock.patch('sys.argv', ['/usr/local/bin/dircue', '--version']):
+                namespace['main']()
+                execv.assert_called_once_with(binary, [binary, '--version'])
+            execv.reset_mock()
+            # dirq invocation: argv[0] is the basename 'dirq'.
+            with mock.patch('sys.platform', 'linux'), mock.patch('sys.argv', ['/usr/local/bin/dirq', '--version']):
+                namespace['main']()
+                execv.assert_called_once_with(binary, ['dirq', '--version'])
+            execv.reset_mock()
+            # A script path with a .exe extension (e.g. Windows case via dirq.exe) is stripped.
+            with mock.patch('sys.platform', 'win32'), mock.patch('sys.argv', ['C:/Scripts/dirq.EXE', 'map', '.']):
+                # On Windows the code path goes through Popen, not execv.
+                pass
+        # Windows: verify argv[0] handling via Popen.
+        with mock.patch('subprocess.Popen') as popen:
+            popen.return_value.wait.return_value = 0
+            namespace2 = {'__file__': '/installed/dircue/__init__.py'}
+            exec(wheels.LAUNCHER.format(binary='dircue.exe'), namespace2)
+            binary2 = '/installed/dircue/bin/dircue.exe'
+            with mock.patch('sys.platform', 'win32'), mock.patch('sys.argv', ['C:/Scripts/dirq.EXE', 'map', '.']):
+                with self.assertRaises(SystemExit):
+                    namespace2['main']()
+                popen.assert_called_once_with(['dirq', 'map', '.'], executable=binary2)
 
 
 if __name__ == '__main__':
