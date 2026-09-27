@@ -97,6 +97,9 @@ jobs:
       - run: go test -race ./...
       - run: go test ./...
       - run: go build -trimpath -o bin/ .
+      - name: Run offline core release smokes against a stamped binary
+        if: runner.os == 'Linux'
+        run: make release-smoke
         env:
           CGO_ENABLED: '0'
       - name: Cross-compile for Windows, Linux/arm64 and Darwin/amd64

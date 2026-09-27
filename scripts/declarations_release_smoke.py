@@ -19,7 +19,7 @@ DECLARATION_CHECKS = {'six_ecosystem_facts', 'workspace_relationships', 'named_i
                       'malformed_report_rejection', 'partial_coverage_qualified'}
 SCRIPT_SENTINEL = 'DIRCUE_RELEASE_SMOKE_SCRIPT_BODY_DO_NOT_EXECUTE'
 FIXTURES = {
-    'npm/package.json': '{"name":"suite","version":"1.0.0","workspaces":["packages/*"],"scripts":{"check":"echo ' + SCRIPT_SENTINEL + ' > EXECUTED"}}\n',
+    'npm/package.json': '{"name":"suite","version":"1.0.0","workspaces":["packages/*"],"scripts":{"start":"node server.js","check":"echo ' + SCRIPT_SENTINEL + ' > EXECUTED"}}\n',
     'npm/packages/lib/package.json': '{"name":"library","version":"1.0.0"}\n',
     'go/go.work': 'go 1.24.0\nuse ./app\n',
     'go/app/go.mod': 'module example.org/release-smoke\ngo 1.24.0\n',
@@ -144,7 +144,10 @@ def check_facts(report):
     for manifest, kind, target in edges:
         state = 'declared' if kind == 'cargo-workspace-member' else 'resolved'
         require(contains(projects[manifest]['references'], kind=kind, target=target, state=state, target_status='present'), 'missing selected relationship: ' + manifest + '/' + kind)
-    require(contains(projects['npm/package.json']['interfaces'], kind='script', name='check', state='declared') and
+    # Only conventional entry-point scripts (start, serve) are interfaces; a
+    # developer task such as `check` is not.
+    require(not contains(projects['npm/package.json']['interfaces'], name='check'), 'developer script reported as an interface')
+    require(contains(projects['npm/package.json']['interfaces'], kind='script', name='start', state='declared') and
             contains(projects['python/pyproject.toml']['interfaces'], name='suite', target='suite.cli:main', state='declared') and
             contains(cargo['interfaces'], name='smoke-app', target='cargo/crates/app/src/main.rs'), 'named interfaces differ')
     require(SCRIPT_SENTINEL not in json.dumps(report), 'raw script body disclosed')
