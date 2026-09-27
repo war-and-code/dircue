@@ -3,10 +3,59 @@ package componentmap
 import (
 	"path"
 	"slices"
+	"sort"
 	"strings"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
+
+// ComponentKinds is the sorted list of all manifest kinds that dircue recognises
+// as component roots. Its length equals the number of manifest kinds (36).
+// The ecosystem function maps each kind to its ecosystem label.
+var ComponentKinds = func() []string {
+	kinds := []string{
+		"autoconf",
+		"bazel-module",
+		"bazel-workspace",
+		"cargo",
+		"cargo-workspace",
+		"clojure-deps",
+		"clojure-leiningen",
+		"cmake",
+		"dart-pub",
+		"deno",
+		"dotnet",
+		"elixir-mix",
+		"erlang-rebar",
+		"go",
+		"go-workspace",
+		"gradle",
+		"haskell-cabal",
+		"haskell-stack",
+		"julia-project",
+		"kbuild-kconfig",
+		"maven",
+		"meson",
+		"npm",
+		"perl-cpanfile",
+		"perl-extutils",
+		"php-composer",
+		"python",
+		"python-uv",
+		"python-workspace",
+		"r-package",
+		"ruby-bundler",
+		"ruby-gem",
+		"scala-sbt",
+		"solution",
+		"swift-package",
+		"zig-build",
+	}
+	sorted := make([]string, len(kinds))
+	copy(sorted, kinds)
+	sort.Strings(sorted)
+	return sorted
+}()
 
 // Build converts the declaration report into a deterministic component graph.
 // It uses only retained declaration facts and performs no I/O.
@@ -203,31 +252,8 @@ func packageRequirementKind(kind string) bool {
 }
 
 func componentKind(kind string) bool {
-	switch kind {
-	case "npm", "go", "go-workspace", "cargo", "cargo-workspace",
-		"python", "python-uv", "python-workspace",
-		"kbuild-kconfig", "maven", "gradle", "solution", "dotnet",
-		// New ecosystems
-		"ruby-bundler", "ruby-gem",
-		"php-composer",
-		"swift-package",
-		"dart-pub",
-		"elixir-mix",
-		"erlang-rebar",
-		"scala-sbt",
-		"haskell-cabal", "haskell-stack",
-		"cmake", "meson", "autoconf",
-		"deno",
-		"bazel-module", "bazel-workspace",
-		"zig-build",
-		"julia-project",
-		"r-package",
-		"clojure-deps", "clojure-leiningen",
-		"perl-cpanfile", "perl-extutils":
-		return true
-	default:
-		return false
-	}
+	_, found := slices.BinarySearch(ComponentKinds, kind)
+	return found
 }
 
 func relationshipKind(kind string) (typ string, reverse, relevant bool) {
@@ -315,6 +341,25 @@ func ecosystem(kind string) string {
 		return "unknown"
 	}
 }
+
+// ComponentEcosystems is the sorted list of distinct ecosystem labels produced
+// by applying ecosystem() to every entry in ComponentKinds. Its length equals
+// the number of distinct ecosystems (27).
+var ComponentEcosystems = func() []string {
+	seen := make(map[string]struct{})
+	for _, k := range ComponentKinds {
+		e := ecosystem(k)
+		if e != "unknown" {
+			seen[e] = struct{}{}
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for e := range seen {
+		out = append(out, e)
+	}
+	sort.Strings(out)
+	return out
+}()
 
 func cleanRoot(root string) string {
 	if root == "" || root == "/" {

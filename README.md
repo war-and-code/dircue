@@ -7,7 +7,7 @@ together. It works deterministically and offline, without running anything in
 the directory.
 
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
-- **components:** projects across 26 ecosystems;
+- **components:** projects across 27 ecosystems;
 - **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
 - **interfaces:** binaries, ports, gRPC and OpenAPI;
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
