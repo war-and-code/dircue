@@ -790,18 +790,39 @@ func parseGoImports(name string, content []byte) []Observation {
 			line = fset.Position(spec.Pos()).Line
 		}
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
-		// net/http serves both inbound handlers and outbound requests. Its
-		// import alone is not evidence of an HTTP client; require a client API
-		// reference before assigning the outbound-client capability.
+		// net/http and its sub-packages serve both inbound handlers and outbound
+		// requests. Each sub-package requires separate treatment before emitting
+		// the outbound-client capability.
 		capabilityLine := line
 		capabilityBasis := "imported"
-		if value == "net/http" {
+		switch {
+		case value == "net/http":
+			// net/http is imported for both servers and clients. Require a
+			// client API reference before emitting the outbound-client capability.
 			clientLine := goNetHTTPClientUsage(f, fset, spec)
 			if clientLine == 0 {
 				continue
 			}
 			capabilityLine = clientLine
 			capabilityBasis = "code_syntax"
+		case value == "net/http/cookiejar" || value == "net/http/httptrace":
+			// These sub-packages are client-side; the import itself is reasonable
+			// evidence. capabilityBasis stays "imported".
+		case value == "net/http/httputil":
+			// httputil is mixed: ReverseProxy, NewSingleHostReverseProxy, and
+			// DumpRequestOut are client-side; DumpRequest, ServerConn, and
+			// NewServerConn are server-side. Require a client-side reference.
+			clientLine := goNetHTTPUtilClientUsage(f, fset, spec)
+			if clientLine == 0 {
+				continue
+			}
+			capabilityLine = clientLine
+			capabilityBasis = "code_syntax"
+		case strings.HasPrefix(value, "net/http/"):
+			// All other net/http sub-packages — including pprof, httptest, fcgi,
+			// and cgi — do not establish an outbound HTTP client capability. Any
+			// unknown future sub-package also fails closed: no capability emitted.
+			continue
 		}
 		for _, capability := range capabilitiesFor("go-import", value) {
 			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: capabilityBasis, Path: name, StartLine: capabilityLine, EndLine: capabilityLine, Properties: map[string]string{"import": value}})
@@ -829,11 +850,67 @@ func goNetHTTPClientUsage(file *ast.File, fset *token.FileSet, spec *ast.ImportS
 		}
 		pkg, ok := selector.X.(*ast.Ident)
 		if ok && pkg.Name == localName && pkg.Obj == nil {
-			// Package qualifiers are unresolved identifiers; a local variable or
-			// parameter with the same name has an Obj binding and is not the
-			// imported package.
+			// Package qualifiers are unresolved identifiers in a single-file
+			// parse (parser mode 0 performs single-file object resolution). A
+			// local variable or parameter with the same name has an Obj binding
+			// and is therefore not the imported package.
+			//
+			// NOTE: ast.Ident.Obj is deprecated in Go 1.22+. The assumption
+			// that parser mode 0 sets Obj for local bindings but leaves package
+			// qualifiers as nil is the pragmatic tripwire: if a future parser
+			// change sets Obj on package references or stops setting it on
+			// locals, the shadowed-alias test in
+			// TestGoNetHTTPOnlyAttributesOutboundClientUse will fail.
+			//
+			// NewRequest and NewRequestWithContext are deliberately excluded:
+			// they construct *http.Request values used heavily in server-side
+			// test helpers (httptest recorder + handler.ServeHTTP). Any
+			// component that calls these to make a genuine outbound request will
+			// also reference http.Client, http.DefaultClient, http.Get, or
+			// another client symbol — those symbols are sufficient evidence at
+			// the component level.
 			switch selector.Sel.Name {
-			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "NewRequest", "NewRequestWithContext", "Transport", "DefaultTransport", "RoundTripper":
+			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "Transport", "DefaultTransport", "RoundTripper":
+				line = fset.Position(selector.Pos()).Line
+				return false
+			}
+		}
+		return true
+	})
+	return line
+}
+
+// goNetHTTPUtilClientUsage scans for net/http/httputil symbols that establish
+// outbound HTTP client use. ReverseProxy and NewSingleHostReverseProxy make
+// outbound requests to backend servers; DumpRequestOut serialises a request as
+// it would appear on the wire (the "Out" suffix distinguishes it from
+// DumpRequest, which is a server-side debug helper); ClientConn, NewClientConn,
+// and NewProxyClientConn are the deprecated low-level client connection API.
+// ServerConn, NewServerConn, DumpRequest, NewChunkedReader, NewChunkedWriter,
+// and ProxyRequest are server-side or neutral and are not evidence of a client.
+func goNetHTTPUtilClientUsage(file *ast.File, fset *token.FileSet, spec *ast.ImportSpec) int {
+	localName := "httputil"
+	if spec.Name != nil {
+		localName = spec.Name.Name
+	}
+	if localName == "_" || localName == "." {
+		return 0
+	}
+	line := 0
+	ast.Inspect(file, func(node ast.Node) bool {
+		if line != 0 {
+			return false
+		}
+		selector, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		pkg, ok := selector.X.(*ast.Ident)
+		// See goNetHTTPClientUsage for the ast.Ident.Obj assumption.
+		if ok && pkg.Name == localName && pkg.Obj == nil {
+			switch selector.Sel.Name {
+			case "ReverseProxy", "NewSingleHostReverseProxy", "DumpRequestOut",
+				"ClientConn", "NewClientConn", "NewProxyClientConn":
 				line = fset.Position(selector.Pos()).Line
 				return false
 			}
