@@ -73,6 +73,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Linux keeps full history so the holdout scorer can read the frozen
+          # labels from the label-freeze commit.
+          fetch-depth: ${{ matrix.os == 'ubuntu-latest' && 0 || 1 }}
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
@@ -146,23 +150,13 @@ jobs:
           python3 tests/map_corpus/metamorphic.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
-      - name: Verify holdout score is reproducible from committed receipts (Linux only)
-        # Runs the full holdout scorer offline against the committed first-run
-        # receipts and checks that the output matches receipts/score.json exactly.
-        # The scorer calls `git show 0fb6277:<path>` to verify frozen labels; it
-        # requires the label-freeze commit 0fb62770 to be reachable from HEAD.
-        # A squash or rebase merge would drop that commit from history, causing
-        # the scorer to fail and CI to catch the regression.  The fetch below
-        # unshallows only on Linux, so Windows and macOS CI stay fast.
+      - name: Reproduce the review holdout score from committed receipts
+        # Offline. The scorer checks the labels against the frozen blobs in
+        # 0fb6277, so a squash or rebase merge that drops that commit fails here.
         if: runner.os == 'Linux'
         run: |
-          git fetch --unshallow 2>/dev/null || true
-          python3 tests/map_corpus/review_holdout/score_first_run.py > "$RUNNER_TEMP/score-regen.json"
-          if ! diff -q tests/map_corpus/review_holdout/receipts/score.json "$RUNNER_TEMP/score-regen.json" > /dev/null; then
-            echo "FAIL: regenerated holdout score differs from receipts/score.json"
-            diff tests/map_corpus/review_holdout/receipts/score.json "$RUNNER_TEMP/score-regen.json" || true
-            exit 1
-          fi
+          python3 tests/map_corpus/review_holdout/score_first_run.py > "$RUNNER_TEMP/review-holdout-score.json"
+          diff -u tests/map_corpus/review_holdout/receipts/score.json "$RUNNER_TEMP/review-holdout-score.json"
       - name: Test staged-analysis consumer against the built CLI
         run: python examples/staged_analysis/test_route.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Hostile-filesystem conformance (quick, POSIX only)
