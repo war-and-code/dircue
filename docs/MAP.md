@@ -608,7 +608,12 @@ dircue capabilities --schema forest --json > forest.schema.json
 
 ```sh
 dircue map compare --json before.json after.json > map-change.json
+dircue map compare --format markdown before.json after.json >> "$GITHUB_STEP_SUMMARY"
 ```
+
+Without `--json`, `--format text` (the default) prints a plain summary and
+`--format markdown` a pull-request-ready one; `--json` writes the full
+comparison document and takes precedence over `--format`.
 
 Comparison uses stable IDs and opens neither source tree. It separates material
 source changes, provider observations, evidence changes, and coverage changes.

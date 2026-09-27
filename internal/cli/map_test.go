@@ -334,9 +334,8 @@ func TestMapFileByteLimitQualifiesContentCoverage(t *testing.T) {
 }
 
 // TestMapSummaryDisambiguatesDuplicateComponentNames verifies that when
-// multiple components share a display name and ecosystem, the summary text
-// appends the root-directory basename in parentheses to distinguish them (#fix-4).
-// This test fails on 427c2f8 (dedup drops duplicates silently) and passes after.
+// sibling components share a display name and ecosystem, the summary labels
+// each with its root path.
 func TestMapSummaryDisambiguatesDuplicateComponentNames(t *testing.T) {
 	d := mapdoc.New()
 	d.Status = mapdoc.CoverageComplete
@@ -373,12 +372,38 @@ func TestMapSummaryDisambiguatesDuplicateComponentNames(t *testing.T) {
 	}
 	summary := output.String()
 
-	// Each of the first four api modules must appear disambiguated.
-	if !strings.Contains(summary, "api (") {
-		t.Errorf("duplicate api modules should be disambiguated; summary:\n%s", summary)
+	// Sibling api modules are labeled with their distinct root paths.
+	for _, root := range []string{"modules/auth/api", "modules/core/api", "modules/notification/api"} {
+		if !strings.Contains(summary, "api ("+root+") [gradle]") {
+			t.Errorf("api module at %s should be labeled with its root; summary:\n%s", root, summary)
+		}
 	}
 	// The unique "app" component must not be parenthesized.
 	if strings.Contains(summary, "app (") {
 		t.Errorf("unique component 'app' should not be disambiguated; summary:\n%s", summary)
+	}
+}
+
+// A solution and its member project with the same name nest one inside the
+// other and are shown once, without a disambiguating label.
+func TestMapSummaryShowsNestedSameNameComponentOnce(t *testing.T) {
+	d := mapdoc.New()
+	d.Status = mapdoc.CoverageComplete
+	for _, source := range []struct{ file, root string }{
+		{"src/cartservice/cartservice.sln", "src/cartservice"},
+		{"src/cartservice/src/cartservice.csproj", "src/cartservice/src"},
+	} {
+		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{source.file}, "dotnet")
+		n.Name = "cartservice"
+		n.Properties = map[string]string{"ecosystem": "dotnet", "role": "primary", "root": source.root}
+		d.Nodes = append(d.Nodes, n)
+	}
+	var output bytes.Buffer
+	if err := writeMapSummary(&output, d); err != nil {
+		t.Fatal(err)
+	}
+	summary := output.String()
+	if strings.Count(summary, "cartservice") != 1 || !strings.Contains(summary, "  cartservice [dotnet]\n") {
+		t.Errorf("nested same-name components should be shown once; summary:\n%s", summary)
 	}
 }

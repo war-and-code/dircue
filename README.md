@@ -67,11 +67,12 @@ dircue map --forest /disk                               # nested repositories, d
 
 Attached reports contribute facts and run coverage, never findings or verdicts. Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
 
-The classic Linguist-compatible output is unchanged:
+The classic Linguist-compatible output is unchanged. In a directory holding one small Go file:
 
 ```sh
+$ printf 'package main\n\nfunc main() {}\n' > main.go
 $ dircue --json .
-{"Go":{"size":77,"percentage":"100.00"}}
+{"Go":{"size":29,"percentage":"100.00"}}
 ```
 
 Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
