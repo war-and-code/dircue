@@ -12,7 +12,7 @@ These files **must remain committed** because CI re-runs the harness and compare
 
 | Directory | CI job | Purpose |
 |-----------|--------|---------|
-| `tests/map_corpus/` | `test` | Golden map-corpus expected outputs (141 repos) |
+| `tests/map_corpus/` | `test` | Map fixture assertions and scorer inputs |
 | `tests/compatibility_next/composition/results/canonical/` | `preflight` | Composition golden expectations |
 | `tests/conformance/` | `linguist-conformance` | Linguist 9.7.0 differential |
 | `tests/focus_v070/` | `preflight` | Focused-analysis receipt contracts |
