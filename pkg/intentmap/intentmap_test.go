@@ -109,6 +109,31 @@ func TestGoImportEvidenceUsesSourceLine(t *testing.T) {
 	}
 }
 
+func TestGoNetHTTPOnlyAttributesOutboundClientUse(t *testing.T) {
+	tests := []struct {
+		name, source string
+		wantClient   bool
+	}{
+		{name: "server handler", source: "package p\nimport \"net/http\"\nfunc handle(w http.ResponseWriter, r *http.Request) {}\n"},
+		{name: "aliased server handler", source: "package p\nimport web \"net/http\"\nfunc handle(w web.ResponseWriter, r *web.Request) {}\n"},
+		{name: "client type", source: "package p\nimport \"net/http\"\nvar client *http.Client\n", wantClient: true},
+		{name: "client function", source: "package p\nimport web \"net/http\"\nfunc fetch() { _, _ = web.Get(\"https://example.test\") }\n", wantClient: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			foundClient := false
+			for _, observation := range parseGoImports("http.go", []byte(tt.source)) {
+				if observation.Kind == KindCapability && observation.Name == "net:http-client" {
+					foundClient = true
+				}
+			}
+			if foundClient != tt.wantClient {
+				t.Fatalf("outbound HTTP client capability = %v, want %v", foundClient, tt.wantClient)
+			}
+		})
+	}
+}
+
 func TestGoBinaryRequiresPackageMainAndMainFunction(t *testing.T) {
 	observations := parseGoImports("cmd/tool/main.go", []byte("package main\n\nfunc main() {}\n"))
 	found := false

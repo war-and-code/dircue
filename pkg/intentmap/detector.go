@@ -790,11 +790,47 @@ func parseGoImports(name string, content []byte) []Observation {
 			line = fset.Position(spec.Pos()).Line
 		}
 		out = append(out, Observation{Kind: KindImport, Name: value, State: "observed", Basis: "code_syntax", Path: name, StartLine: line, EndLine: line})
+		// net/http serves both inbound handlers and outbound requests. Its
+		// import alone is not evidence of an HTTP client; require a client API
+		// reference before assigning the outbound-client capability.
+		if value == "net/http" && !goNetHTTPClientUsage(f, spec) {
+			continue
+		}
 		for _, capability := range capabilitiesFor("go-import", value) {
 			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"import": value}})
 		}
 	}
 	return out
+}
+
+func goNetHTTPClientUsage(file *ast.File, spec *ast.ImportSpec) bool {
+	localName := "http"
+	if spec.Name != nil {
+		localName = spec.Name.Name
+	}
+	if localName == "_" || localName == "." {
+		return false
+	}
+	used := false
+	ast.Inspect(file, func(node ast.Node) bool {
+		if used {
+			return false
+		}
+		selector, ok := node.(*ast.SelectorExpr)
+		if !ok {
+			return true
+		}
+		pkg, ok := selector.X.(*ast.Ident)
+		if ok && pkg.Name == localName {
+			switch selector.Sel.Name {
+			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "NewRequest", "NewRequestWithContext":
+				used = true
+				return false
+			}
+		}
+		return true
+	})
+	return used
 }
 
 // parsePythonImports scans Python source files for import statements and infers
