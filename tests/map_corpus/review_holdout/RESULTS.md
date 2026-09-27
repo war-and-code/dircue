@@ -17,7 +17,9 @@ Every map reports `partial` overall status. Component, deployable, interface, an
 Reproduce scoring without rerunning maps with:
 
 ```sh
-python3 tests/map_corpus/review_holdout/score_first_run.py --write
+python3 tests/map_corpus/review_holdout/score_first_run.py
 ```
+
+The scorer requires a Git checkout containing the label-freeze commit `0fb6277`; a default shallow PR checkout does not contain it. CI runs the scorer's mutation unit tests, while the full receipt-and-label verification is run from a checkout with that commit.
 
 `run_once.py` refuses to overwrite an existing receipt directory, verifies pinned commits and clean checkouts, and applies a 300-second timeout to future invocations. The recorded first run completed before that timeout was added; its receipts reflect the actual first-run return values and hashes.

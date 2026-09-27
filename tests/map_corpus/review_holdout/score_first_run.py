@@ -19,7 +19,7 @@ def verify_frozen_label(path, repo_root):
             cwd=repo_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise SystemExit(f"cannot read frozen label {relpath} from {LABEL_COMMIT}") from exc
+        raise SystemExit(f"cannot read frozen label {relpath} from {LABEL_COMMIT}; use a checkout containing that commit") from exc
     current = path.read_bytes()
     require_frozen_label(current, frozen, relpath)
     return current
