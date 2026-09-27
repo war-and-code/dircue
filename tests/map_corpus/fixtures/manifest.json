@@ -61,6 +61,11 @@
       "id": "python-manifest-extras",
       "description": "Pipfile runtime and dev packages; -r include resolution; tool-only setup.cfg does not create a component; Pipfile+requirements.txt deduplication",
       "expectations": "python-manifest-extras.json"
+    },
+    {
+      "id": "go-http-subpackage",
+      "description": "net/http sub-package routing: pprof-only server never emits net:http-client; httputil.ReverseProxy does",
+      "expectations": "go-http-subpackage.json"
     }
   ]
 }

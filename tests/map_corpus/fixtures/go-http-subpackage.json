@@ -1,0 +1,33 @@
+{
+  "questions": [
+    {
+      "id": "go-http-pprof-no-client",
+      "oracle": {
+        "source": "net/http/pprof Go stdlib documentation: register HTTP handlers for profiling",
+        "url": "https://pkg.go.dev/net/http/pprof",
+        "fixture_evidence": "server.go imports net/http for server handlers and _ \"net/http/pprof\" for profiling endpoints only; no outbound client API is referenced"
+      },
+      "must_include": [
+        {"kind": "component", "path": "go.mod", "properties": {"ecosystem": "go"}}
+      ],
+      "must_not_include": [
+        {"kind": "capability", "name": "net:http-client", "path": "server.go"}
+      ],
+      "allowed_unknown": ["whether the profiling endpoints are reachable at runtime"]
+    },
+    {
+      "id": "go-httputil-reverseproxy-is-client",
+      "oracle": {
+        "source": "net/http/httputil Go stdlib documentation: ReverseProxy makes outbound requests to backend servers",
+        "url": "https://pkg.go.dev/net/http/httputil#ReverseProxy",
+        "fixture_evidence": "proxy.go imports net/http/httputil and references httputil.NewSingleHostReverseProxy, which makes outbound HTTP requests to a backend"
+      },
+      "must_include": [
+        {"kind": "capability", "name": "net:http-client", "path": "proxy.go", "properties": {"basis": "code_syntax", "state": "observed"}},
+        {"kind": "edge", "type": "uses_capability", "from_path": "go.mod", "to_path": "proxy.go"}
+      ],
+      "must_not_include": [],
+      "allowed_unknown": ["whether the reverse proxy backend is reachable at runtime"]
+    }
+  ]
+}
