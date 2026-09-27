@@ -171,20 +171,50 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			}
 			if (ref.Kind == "build_context" || ref.Kind == "code_uri") && ref.Qualification == "local" {
 				resolved := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
-				owners := componentsByRoot[resolved]
-				if len(owners) == 0 && ref.Kind == "code_uri" {
-					// CodeUri may point to a build artifact (e.g. target/app.jar).
-					// Walk up to find the nearest ancestor that is a component root.
-					owners = componentAncestorOwners(componentsByRoot, resolved)
-				}
-				if len(owners) == 1 {
-					localComponent = owners[0]
-					localEvidence = deployableEvidence(def.Path, ref.Evidence)
-					if def.Provider != "skaffold" {
-						addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
+				// P2: Paths resolving outside the repository are never attributed.
+				if resolved == ".." || strings.HasPrefix(resolved, "../") {
+					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"path_outside_repository"}}
+				} else {
+					owners := componentsByRoot[resolved]
+					if len(owners) > 1 {
+						// P1: Ambiguous exact root — record reason and skip attribution.
+						n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
+					} else if len(owners) == 0 && ref.Kind == "code_uri" {
+						// CodeUri may point to a build artifact (e.g. target/app.jar).
+						// Walk up to find the nearest ancestor that is a component root.
+						var ambiguous bool
+						owners, ambiguous = componentAncestorOwners(componentsByRoot, resolved)
+						if ambiguous {
+							// P1: Ambiguous nearest ancestor — record reason.
+							n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
+						}
 					}
-					if def.Provider == "compose" && def.Kind == "service" {
-						addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+					if len(owners) == 1 {
+						localComponent = owners[0]
+						localEvidence = deployableEvidence(def.Path, ref.Evidence)
+						if def.Provider != "skaffold" {
+							addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
+						}
+						if def.Provider == "compose" && def.Kind == "service" {
+							addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						}
+					}
+				}
+			}
+			// P1/P2: Workflow working-directory references need fact updates when
+			// attribution would silently fail (ambiguous root or out-of-repo path).
+			// Edge building is handled by addWorkflowComponentEdges; this block
+			// only updates the deployable_reference fact while n.Facts is mutable.
+			if ref.Kind == "working_directory" && ref.Qualification == "local" {
+				resolved := path.Clean(ref.Value)
+				if resolved == ".." || strings.HasPrefix(resolved, "../") {
+					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"path_outside_repository"}}
+				} else if wdOwners := componentsByRoot[resolved]; len(wdOwners) > 1 {
+					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
+				} else if len(wdOwners) == 0 {
+					_, ambiguous := componentAncestorOwners(componentsByRoot, resolved)
+					if ambiguous {
+						n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
 					}
 				}
 			}
@@ -930,9 +960,17 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 // componentAncestorOwners walks up the directory tree from resolvedPath and
 // returns the IDs of components whose root is an ancestor. Returns non-empty
 // only when exactly one unique component root matches at the closest level.
+// The second return value is true when the walk was stopped by an ambiguous
+// (>1 component) nearest root, distinguishing "ambiguous" from "no match".
 // This is used for CodeUri references that point to build artifacts rather
 // than source directories (e.g. target/app.jar).
-func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath string) []string {
+//
+// Paths that resolve outside the repository (resolvedPath == ".." or starting
+// with "../") are never attributed and return (nil, false).
+func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath string) ([]string, bool) {
+	if resolvedPath == ".." || strings.HasPrefix(resolvedPath, "../") {
+		return nil, false
+	}
 	p := resolvedPath
 	for {
 		if ids := componentsByRoot[p]; len(ids) > 0 {
@@ -940,9 +978,9 @@ func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath 
 			// ambiguous. Falling through would incorrectly attribute the path
 			// to a broader component.
 			if len(ids) == 1 {
-				return ids
+				return ids, false
 			}
-			return nil
+			return nil, true // ambiguous nearest root
 		}
 		parent := path.Dir(p)
 		if parent == p {
@@ -950,7 +988,7 @@ func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath 
 		}
 		p = parent
 	}
-	return nil
+	return nil, false
 }
 
 // aspireProjectOwners resolves an Aspire Projects.X identifier to a component.

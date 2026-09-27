@@ -15,6 +15,7 @@ package mapbuild
 
 import (
 	"path"
+	"strings"
 
 	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
@@ -81,13 +82,18 @@ func addWorkflowComponentEdges(d *mapdoc.Document, r *deployables.Report) {
 			// .github/workflows/, so its directory is not the resolution base.
 			resolved := path.Clean(ref.Value)
 
+			// P2: Paths that escape the repository are never attributed.
+			if resolved == ".." || strings.HasPrefix(resolved, "../") {
+				continue
+			}
+
 			// Exact match at the resolved path.
 			if owners := componentsByRoot[resolved]; len(owners) == 1 {
 				addWorkflowEdge(d, seenEdges, workflowID, owners[0], resolved, def.Path, ref.Evidence)
 				continue
 			}
 			// Walk up to find the nearest ancestor component root.
-			if owners := componentAncestorOwners(componentsByRoot, resolved); len(owners) == 1 {
+			if owners, _ := componentAncestorOwners(componentsByRoot, resolved); len(owners) == 1 {
 				addWorkflowEdge(d, seenEdges, workflowID, owners[0], resolved, def.Path, ref.Evidence)
 			}
 		}
