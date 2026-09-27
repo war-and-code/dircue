@@ -86,7 +86,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - **Map accuracy** is measured per question against hand-written labels for seven repositories (`docs/GOLDEN.md`). The labeled set also informed map development, so these results are not an independent evaluation. Every question meets the gate of precision ≥ 0.90 and recall ≥ 0.80:
   - components, deployables and capabilities: 1.00 / 1.00;
   - interfaces: 1.00 / 0.98;
-  - relationships: 1.00 / 0.98.
+  - relationships: 0.995 / 0.98 (216 matched, 1 extra, 4 missed).
 
   The map never claimed `complete` where the labels did not.
 - **Holdouts labeled before dircue ran.** Four repositories were labeled from source before any map run: OWASP BenchmarkJava and BenchmarkPython, AppFlowy editor (Dart) and AWS CardDemo (COBOL). The first run found 5 of 18 labeled facts. The map work they prompted finds 12 of 18 against those original labels, and 18 of 18 after the labels were restated in the map's documented vocabulary, with each change citing the source (`tests/map_corpus/holdout_labels`).
