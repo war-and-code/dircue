@@ -80,7 +80,7 @@ done
 # Verify the cosign signature on SHA256SUMS
 cosign verify-blob \
   --bundle SHA256SUMS.sigstore.json \
-  --certificate-identity-regexp '^https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main$' \
+  --certificate-identity 'https://github.com/war-and-code/dircue/.github/workflows/release-candidate.yml@refs/heads/main' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   SHA256SUMS
 
