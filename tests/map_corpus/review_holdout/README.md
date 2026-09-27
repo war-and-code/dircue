@@ -8,6 +8,8 @@ This corpus does not claim whole-repository precision or recall. For the applica
 
 After these labels are committed, run the map once per pinned checkout and preserve command, binary hash, raw JSON hash, stdout/stderr, exit status, and source identity in a separate first-run receipt. Score only the frozen assertions and their declared scopes. Do not revise these labels after seeing output. If source adjudication later changes them, retain this first-blind result and use a new holdout for any later candidate.
 
-**Labels and detector are from the same team.**  These labels were authored from source files by the same team that develops the detector; they are not an independent review.  The labels were written before the first map run on these repositories (source-first), which controls for output-fitting, but does not provide independence.
+**Labels and detector come from the same team.** The labels were written from source before the first map run on these repositories, which guards against fitting labels to output. They are not an independent review. "Holdout" means the repositories were absent from every earlier corpus.
 
-**Merge this using a merge commit.**  The scorer calls `git show 0fb6277:<path>` to verify frozen labels against the Git object that recorded them.  A squash or rebase merge drops that commit from history, breaking the full scorer while the mutation tests (which mock the call) remain green.  CI unshallows the Linux checkout and runs the scorer as a regression fence to detect this.
+**Merge with a merge commit.** The scorer verifies each label file against its blob in the label-freeze commit `0fb6277`. Squash and rebase merges drop that commit from history. The Linux CI job checks out full history and reruns the scorer against the committed receipts, so a merge that loses the commit fails CI.
+
+Later source-cited corrections live in `adjudications.json`. They never edit the frozen label files, and the scorer reports them separately from the first-run score.

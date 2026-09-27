@@ -1,6 +1,6 @@
 # Frozen review holdout: first-run results
 
-**These labels were authored by the same team that develops the detector.**  Labels were written from source files before the first map run (source-first), which controls for output-fitting but does not constitute independence.  The holdout title refers to the repositories being held out from earlier corpus sets, not to independent authorship.
+The labels were authored from source by the same team that develops the detector, before the first map run on these repositories. They are source-first, not independent.
 
 Labels were frozen in commit `0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf` before the candidate was built or run on any target repository. The candidate source was `0fb62770cc7faa80ab04c195dfc0e3d6f473bbaf`; it was built with Go 1.26.6 as `CGO_ENABLED=0 go build -buildvcs=false -trimpath`. The binary SHA-256 is recorded in `receipts/build.json`. A fresh build from `git archive` of that commit with the recorded command reproduced the binary hash `eea45058364ef25557b510e35371e97b79244e5e0f0375017b87234ef3d97b7b`. One Git-source map invocation ran for each pinned commit. All four exited 0 and emitted valid JSON. `receipts/*.receipt.json` records pins, tree IDs, commands, times, stdout/stderr hashes, and exit statuses; `receipts/raw/` preserves the byte-exact JSON and stderr.
 
@@ -22,6 +22,15 @@ Reproduce scoring without rerunning maps with:
 python3 tests/map_corpus/review_holdout/score_first_run.py
 ```
 
-The scorer calls `git show 0fb6277:<path>` to verify that each label file matches its frozen Git blob.  **This PR must be merged with a merge commit.**  A squash or rebase merge drops the label-freeze commit `0fb62770` from the branch history, silently breaking the full scorer even though CI's mutation tests (which mock that call) stay green.  The `test` job unshallows its checkout on Linux and runs the full scorer as a regression fence; if `0fb6277` is not reachable from HEAD the step fails with an explicit message.
+The scorer verifies each label file against its blob in the label-freeze commit `0fb6277`, so it needs a checkout containing that commit. Merge this work with a merge commit, because squash and rebase merges drop it. The Linux CI job keeps full history, reruns the scorer, and requires its output to equal `receipts/score.json`.
+
+## Adjudication after the first run
+
+`adjudications.json` records three source-cited corrections made after the first run was inspected. Each correction cites file and line at a pinned commit; the scorer rejects an entry without pinned citations or one that names no scored assertion, and checks this repository's own citations against the cited commit.
+
+- **Both Compose `runs` positives are dropped as label errors.** `runs` requires an image matching the component's declared image identity, and neither repository declares one for the local component. The labels inferred it from name similarity.
+- **Chi's package-clause citation is corrected** from `chi.go:1` to `chi.go:57`. No score changes.
+
+The adjudicated score is 27/27 source-fact matches and 15/27 raw-exact matches. It is not an accuracy estimate: the only assertions removed were the two first-run misses, and the adjudication was made after seeing output. The frozen first-run score above remains the measurement.
 
 `run_once.py` refuses to overwrite an existing receipt directory, verifies pinned commits and clean checkouts, and applies a 300-second timeout to future invocations. The recorded first run completed before that timeout was added; its receipts reflect the actual first-run return values and hashes.

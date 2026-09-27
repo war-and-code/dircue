@@ -90,13 +90,13 @@ class IdentityMatchingTests(unittest.TestCase):
                         "identifier": {"type": "runs", "from": "no-such:file", "to": "no-such-component"},
                     },
                     "decision": "drop",
-                    "citations": [{"repo": "dircue", "file": "docs/MAP.md", "line": 111, "text": "runs: ..."}],
+                    "citations": [{"repo": "chi", "commit": "3d1777a1ef" + "0" * 30, "file": "chi.go", "line": 57, "text": "package chi"}],
                 }
             ]
         }
         # Build a minimal all_checks_by_key that does not contain the bad key.
         real_checks = {}
-        with self.assertRaises(SystemExit):
+        with self.assertRaisesRegex(SystemExit, "does not exist in the scored label set"):
             with mock.patch.object(scorer, "ADJUDICATIONS_FILE",
                                    new=mock.Mock(exists=lambda: True,
                                                  read_text=lambda: __import__("json").dumps(bad_adj))):
@@ -119,7 +119,7 @@ class IdentityMatchingTests(unittest.TestCase):
             ]
         }
         stub_key = ("chi.json", "components", ("github.com/go-chi/chi/v5", "."))
-        with self.assertRaises(SystemExit):
+        with self.assertRaisesRegex(SystemExit, "no citations"):
             with mock.patch.object(scorer, "ADJUDICATIONS_FILE",
                                    new=mock.Mock(exists=lambda: True,
                                                  read_text=lambda: __import__("json").dumps(uncited_adj))):
@@ -144,6 +144,18 @@ class IdentityMatchingTests(unittest.TestCase):
         owner["properties"]["ecosystem"] = "go"
         self.assertIsNone(scorer.match_edge(doc, uc_label, label_data))
         owner["properties"]["ecosystem"] = "npm"  # restore
+
+
+    def test_citations_must_be_pinned_and_match_their_text(self):
+        """A citation needs a full commit, and a dircue citation must quote its line."""
+        pinned = {"repo": "dircue", "commit": "a" * 40, "file": "docs/MAP.md", "line": 2, "text": "runs"}
+        with self.assertRaisesRegex(SystemExit, "needs a full commit"):
+            scorer.check_citation("adj-x", dict(pinned, commit="4eaa58f"))
+        shown = mock.Mock(returncode=0, stdout=b"first line\nsecond line\n")
+        with mock.patch.object(scorer.subprocess, "run", return_value=shown):
+            with self.assertRaisesRegex(SystemExit, "does not contain the cited text"):
+                scorer.check_citation("adj-x", pinned)
+            scorer.check_citation("adj-x", dict(pinned, text="second"))
 
 
 if __name__ == "__main__":

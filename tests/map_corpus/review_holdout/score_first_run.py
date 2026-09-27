@@ -14,6 +14,26 @@ ADJUDICATIONS_FILE = HERE / "adjudications.json"
 ALLOWED_DECISIONS = {"drop", "cite_erratum"}
 
 
+def check_citation(adj_id, citation):
+    """Require a pinned file:line citation; verify dircue citations offline.
+
+    Upstream citations name the pinned commit of the labeled repository and were
+    checked against that checkout; this repository's own citations are checked
+    here against the cited commit.
+    """
+    commit = citation.get("commit", "")
+    if len(commit) != 40 or any(c not in "0123456789abcdef" for c in commit):
+        raise SystemExit(f"adjudication {adj_id}: citation {citation.get('file')!r} needs a full commit")
+    if not citation.get("file") or not isinstance(citation.get("line"), int) or citation["line"] < 1 or not citation.get("text"):
+        raise SystemExit(f"adjudication {adj_id}: citation needs file, line and text")
+    if citation.get("repo") != "dircue":
+        return
+    shown = subprocess.run(["git", "-C", str(HERE), "show", f"{commit}:{citation['file']}"], capture_output=True)
+    lines = shown.stdout.decode("utf-8", "replace").splitlines()
+    if shown.returncode != 0 or citation["line"] > len(lines) or citation["text"] not in lines[citation["line"] - 1]:
+        raise SystemExit(f"adjudication {adj_id}: {citation['file']}:{citation['line']} at {commit[:7]} does not contain the cited text")
+
+
 def load_and_validate_adjudications(all_checks_by_key):
     """Load adjudications.json and validate each entry against the scored facts.
 
@@ -37,6 +57,8 @@ def load_and_validate_adjudications(all_checks_by_key):
                 f"adjudication {adj_id}: no citations; every adjudication must "
                 "include at least one source-file citation"
             )
+        for citation in adj["citations"]:
+            check_citation(adj_id, citation)
         fa = adj.get("frozen_assertion", {})
         label_file = fa.get("label_file", "")
         category = fa.get("category", "")
