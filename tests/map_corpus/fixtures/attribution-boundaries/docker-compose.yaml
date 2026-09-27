@@ -1,0 +1,6 @@
+services:
+  svc:
+    # build context ./svc has both go.mod and package.json at its root,
+    # making component ownership ambiguous. No builds edge should be emitted.
+    build: ./svc
+    image: svc:latest

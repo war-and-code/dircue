@@ -66,6 +66,11 @@
       "id": "go-http-subpackage",
       "description": "net/http sub-package routing: pprof-only server never emits net:http-client; httputil.ReverseProxy does",
       "expectations": "go-http-subpackage.json"
+    },
+    {
+      "id": "attribution-boundaries",
+      "description": "SAM CodeUri path resolution: out-of-repository paths not attributed, infra-subdirectory parent-ref attributed, ambiguous component roots not attributed",
+      "expectations": "attribution-boundaries.json"
     }
   ]
 }
