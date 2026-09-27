@@ -21,6 +21,7 @@ These files **must remain committed** because CI re-runs the harness and compare
 | `tests/compatibility_next/` | `preflight` | Compatibility matrix harness |
 | `tests/metrics/` | `metrics-conformance` | scc 4.1.0 differential |
 | `tests/registries/` | `preflight` | Registry evidence fences |
+| `tests/map_corpus/review_holdout/` | `test` (Linux) | Source-first holdout raw receipts and frozen score; scorer verified against `receipts/score.json` |
 
 **Rule:** If a CI job or `make test` imports a file from `tests/`, that file is a fence and stays in-tree. Never move a fence to the evidence archive.
 
