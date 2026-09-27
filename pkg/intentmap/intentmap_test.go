@@ -113,19 +113,31 @@ func TestGoNetHTTPOnlyAttributesOutboundClientUse(t *testing.T) {
 	tests := []struct {
 		name, source string
 		wantClient   bool
+		wantLine     int
 	}{
 		{name: "server handler", source: "package p\nimport \"net/http\"\nfunc handle(w http.ResponseWriter, r *http.Request) {}\n"},
 		{name: "aliased server handler", source: "package p\nimport web \"net/http\"\nfunc handle(w web.ResponseWriter, r *web.Request) {}\n"},
-		{name: "client type", source: "package p\nimport \"net/http\"\nvar client *http.Client\n", wantClient: true},
-		{name: "client function", source: "package p\nimport web \"net/http\"\nfunc fetch() { _, _ = web.Get(\"https://example.test\") }\n", wantClient: true},
+		{name: "client type", source: "package p\nimport \"net/http\"\nvar client *http.Client\n", wantClient: true, wantLine: 3},
+		{name: "aliased client function", source: "package p\nimport web \"net/http\"\nfunc fetch() {\n _, _ = web.Get(\"https://example.test\")\n}\n", wantClient: true, wantLine: 4},
+		{name: "client transport", source: "package p\nimport \"net/http\"\nvar transport http.RoundTripper\n", wantClient: true, wantLine: 3},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			foundClient := false
+			foundImport := false
 			for _, observation := range parseGoImports("http.go", []byte(tt.source)) {
+				if observation.Kind == KindImport && observation.Name == "net/http" {
+					foundImport = observation.StartLine == 2 && observation.EndLine == 2
+				}
 				if observation.Kind == KindCapability && observation.Name == "net:http-client" {
 					foundClient = true
+					if observation.Basis != "code_syntax" || observation.StartLine != tt.wantLine || observation.EndLine != tt.wantLine {
+						t.Errorf("client capability evidence = basis %q lines %d-%d, want code_syntax at line %d", observation.Basis, observation.StartLine, observation.EndLine, tt.wantLine)
+					}
 				}
+			}
+			if !foundImport {
+				t.Errorf("net/http import observation should remain on line 2")
 			}
 			if foundClient != tt.wantClient {
 				t.Fatalf("outbound HTTP client capability = %v, want %v", foundClient, tt.wantClient)

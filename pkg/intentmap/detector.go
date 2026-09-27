@@ -793,27 +793,34 @@ func parseGoImports(name string, content []byte) []Observation {
 		// net/http serves both inbound handlers and outbound requests. Its
 		// import alone is not evidence of an HTTP client; require a client API
 		// reference before assigning the outbound-client capability.
-		if value == "net/http" && !goNetHTTPClientUsage(f, spec) {
-			continue
+		capabilityLine := line
+		capabilityBasis := "imported"
+		if value == "net/http" {
+			clientLine := goNetHTTPClientUsage(f, fset, spec)
+			if clientLine == 0 {
+				continue
+			}
+			capabilityLine = clientLine
+			capabilityBasis = "code_syntax"
 		}
 		for _, capability := range capabilitiesFor("go-import", value) {
-			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: line, Properties: map[string]string{"import": value}})
+			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: capabilityBasis, Path: name, StartLine: capabilityLine, EndLine: capabilityLine, Properties: map[string]string{"import": value}})
 		}
 	}
 	return out
 }
 
-func goNetHTTPClientUsage(file *ast.File, spec *ast.ImportSpec) bool {
+func goNetHTTPClientUsage(file *ast.File, fset *token.FileSet, spec *ast.ImportSpec) int {
 	localName := "http"
 	if spec.Name != nil {
 		localName = spec.Name.Name
 	}
 	if localName == "_" || localName == "." {
-		return false
+		return 0
 	}
-	used := false
+	line := 0
 	ast.Inspect(file, func(node ast.Node) bool {
-		if used {
+		if line != 0 {
 			return false
 		}
 		selector, ok := node.(*ast.SelectorExpr)
@@ -823,14 +830,14 @@ func goNetHTTPClientUsage(file *ast.File, spec *ast.ImportSpec) bool {
 		pkg, ok := selector.X.(*ast.Ident)
 		if ok && pkg.Name == localName {
 			switch selector.Sel.Name {
-			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "NewRequest", "NewRequestWithContext":
-				used = true
+			case "Client", "DefaultClient", "Get", "Head", "Post", "PostForm", "NewRequest", "NewRequestWithContext", "Transport", "DefaultTransport", "RoundTripper":
+				line = fset.Position(selector.Pos()).Line
 				return false
 			}
 		}
 		return true
 	})
-	return used
+	return line
 }
 
 // parsePythonImports scans Python source files for import statements and infers

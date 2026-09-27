@@ -9,7 +9,7 @@
       },
       "must_include": [
         {"kind":"component", "path":"go.mod", "properties":{"ecosystem":"go"}},
-        {"kind":"capability", "name":"net:http-client", "path":"main.go", "properties":{"basis":"imported", "state":"observed"}},
+        {"kind":"capability", "name":"net:http-client", "path":"main.go", "properties":{"basis":"code_syntax", "state":"observed"}},
         {"kind":"edge", "type":"uses_capability", "from_path":"go.mod", "to_path":"main.go"}
       ],
       "must_not_include": [
