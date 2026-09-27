@@ -32,7 +32,7 @@ class SourceContracts(unittest.TestCase):
         self.git('add', '.')
         self.git('-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', 'commit', '-qm', 'fixture')
         self.commit = self.git('rev-parse', 'HEAD').strip()
-        self.git('tag', 'v1.2.3')
+        self.git('tag', '-a', '-m', 'Fixture release', 'v1.2.3')
 
     def git(self, *args):
         return subprocess.check_output(['git', *args], cwd=self.root, stderr=subprocess.PIPE).decode()
@@ -58,6 +58,12 @@ class SourceContracts(unittest.TestCase):
         with self.assertRaises(subprocess.CalledProcessError):
             draft.validate_source(self.root, '1.2.4', self.commit, 'NOTES.md')
         self.assertEqual('v1.2.3\n', self.git('tag', '--list'))
+
+    def test_lightweight_tag_rejected(self):
+        self.git('tag', '-d', 'v1.2.3')
+        self.git('tag', 'v1.2.3', self.commit)
+        with self.assertRaisesRegex(ValueError, 'tag must be annotated'):
+            draft.validate_source(self.root, '1.2.3', self.commit, 'NOTES.md')
 
 
 class ArchiveContracts(unittest.TestCase):
@@ -553,6 +559,11 @@ class RemoteContracts(unittest.TestCase):
                 else:
                     with self.assertRaisesRegex(ValueError, 'remote tag'):
                         draft.ensure_remote_unused('owner/project', '1.2.3', 'a' * 40)
+
+    def test_remote_lightweight_tag_rejected(self):
+        with mock.patch.object(draft, 'api', side_effect=[[], {'object': {'type': 'commit', 'sha': 'a' * 40}}]):
+            with self.assertRaisesRegex(ValueError, 'must be annotated'):
+                draft.ensure_remote_unused('owner/project', '1.2.3', 'a' * 40)
 
 
 if __name__ == '__main__':

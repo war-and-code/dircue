@@ -5,9 +5,12 @@ This document describes how a maintainer cuts a versioned release.
 ## Prerequisites
 
 - You have write access to `war-and-code/dircue`.
-- The commit you intend to release is on `main` and has a signed, annotated tag
-  (e.g. `v1.0.0`). The tag must exist in the remote before dispatching the
-  release workflow.
+- The commit you intend to release is on `main` and has an annotated tag
+  (e.g. `v1.0.0`). The release validator checks that it is annotated and
+  points to the exact commit; it does not verify a local GPG/SSH signature.
+  Asset attestations and the Sigstore-signed checksum manifest provide the
+  release's workflow provenance. The tag must exist in the remote before
+  dispatching the release workflow.
 - Committed Markdown release notes exist at a path you control (e.g.
   `docs/releases/1.0.0.md`).
 
@@ -84,9 +87,14 @@ cosign verify-blob \
 # Verify archive checksums
 sha256sum --check SHA256SUMS
 
-# Verify the version string
-./dircue-linux-amd64 --version
+# Verify the version string on Linux amd64 after checking its archive
+tar -xzf dircue_1.0.0_linux_amd64.tar.gz
+./dircue --version
 ```
+
+On another host, use that host's matching archive and executable. For example,
+macOS uses `dircue` from the Darwin archive and Windows uses `dircue.exe` from
+the Windows archive.
 
 `cosign` can be installed via `brew install cosign`, `go install github.com/sigstore/cosign/v2/cmd/cosign@latest`, or from the [Sigstore release page](https://docs.sigstore.dev/cosign/system_config/installation).
 
