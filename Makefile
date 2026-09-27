@@ -102,6 +102,21 @@ fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... 
 fetch-receipts: ## Restore archived evidence receipts from GitHub release evidence-archive-1
 	python3 scripts/fetch_receipts.py
 
+# Run the release smokes that need only the core binary (declarations, formats,
+# targeted analysis, context) against a version-stamped build. The release
+# workflow runs them on packaged artifacts; running them here catches drift
+# before a release. Offline.
+RELEASE_SMOKE_VERSION ?= 1.0.0-rc.1
+RELEASE_SMOKE_DIR ?= .cache/release-smoke
+.PHONY: release-smoke
+release-smoke: ## Run the offline core release smokes against a stamped binary
+	@mkdir -p "$(RELEASE_SMOKE_DIR)"
+	CGO_ENABLED=0 go build -mod=readonly -buildvcs=false -trimpath -ldflags "-X github.com/war-and-code/dircue/internal/cli.Version=$(RELEASE_SMOKE_VERSION)" -o "$(RELEASE_SMOKE_DIR)/dircue" .
+	python3 scripts/declarations_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/declarations.json"
+	python3 scripts/formats_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/formats.json"
+	python3 scripts/targeted_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/targeted.json"
+	python3 scripts/context_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --platform "$$(go env GOOS)-$$(go env GOARCH)" --output "$(RELEASE_SMOKE_DIR)/context.json"
+
 # Fetch the full corpus (~50 repos) into the cache directory.
 # Requires network access; dircue itself never fetches.
 atlas-fetch: ## Fetch all pinned corpus repos into ATLAS_CACHE
