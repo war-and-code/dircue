@@ -15,6 +15,7 @@ package deployables
 // variables are expanded, and no network fetches occur.
 
 import (
+	"path"
 	"regexp"
 	"strings"
 )
@@ -121,4 +122,41 @@ func jobDefaultsWorkdir(job map[interface{}]interface{}) (val string, present bo
 // expression.
 func workflowDefaultsWorkdir(doc map[interface{}]interface{}) (val string, present bool, isDynamic bool) {
 	return jobDefaultsWorkdir(doc) // identical field path
+}
+
+// workflowCheckout is an actions/checkout step's literal path in a job.
+type workflowCheckout struct {
+	path  string
+	named bool
+}
+
+// jobCheckouts lists the literal, safe checkout paths of a job's steps, in
+// step order.
+func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
+	var out []workflowCheckout
+	steps, _ := sequence(job, "steps")
+	for _, raw := range steps {
+		step, ok := asObject(raw)
+		if !ok {
+			continue
+		}
+		if p, named, found := checkoutPath(step); found && safeRelative(p) {
+			if clean := path.Clean(p); clean != "." {
+				out = append(out, workflowCheckout{path: clean, named: named})
+			}
+		}
+	}
+	return out
+}
+
+// withCheckout records on a working-directory reference the innermost
+// checkout path that contains it.
+func withCheckout(ref Reference, dir string, checkouts []workflowCheckout) Reference {
+	dir = path.Clean(dir)
+	for _, c := range checkouts {
+		if (dir == c.path || strings.HasPrefix(dir, c.path+"/")) && len(c.path) > len(ref.Checkout) {
+			ref.Checkout, ref.CheckoutNamed = c.path, c.named
+		}
+	}
+	return ref
 }

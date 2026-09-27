@@ -85,9 +85,9 @@ fact is `partial` with reason `ambiguous_component_root`, rather than falling
 back to a broader ancestor. A reference that resolves outside the repository
 is never attributed; its fact is `partial` with reason
 `path_outside_repository`. Workflow working directories resolve from the
-workspace. Below an `actions/checkout` `path:` of this repository, the
-directory names the repository path inside that checkout. Below a checkout
-that names a `repository:` it is not attributed (`named_repository_checkout`),
+workspace. Below an `actions/checkout` `path:` made earlier in the same job,
+the directory names the repository path inside that checkout; when that
+checkout names a `repository:` it is not attributed (`named_repository_checkout`),
 because the map cannot tell offline whether that repository is this one. Any
 other directory the committed tree lacks is created at run time and is not
 attributed (`path_not_in_repository`); absence is only asserted when the

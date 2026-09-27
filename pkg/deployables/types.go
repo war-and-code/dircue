@@ -72,8 +72,13 @@ type Reference struct {
 	// the build stage in which they occur. It is intentionally not public output.
 	Stage       string `json:"-"`
 	SourceStage string `json:"-"`
-	SourcePath  string `json:"-"`
-	TargetPath  string `json:"-"`
+	// Checkout is parser-only GitHub Actions context for a working directory:
+	// the actions/checkout path that contains it in the same job, and whether
+	// that checkout names a repository. Empty when no checkout contains it.
+	Checkout      string `json:"-"`
+	CheckoutNamed bool   `json:"-"`
+	SourcePath    string `json:"-"`
+	TargetPath    string `json:"-"`
 }
 
 // Definition is a declaration, not proof of a built image, executed workflow,

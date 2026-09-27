@@ -377,3 +377,39 @@ func TestWorkflowSelfCheckoutPathMapsIntoRepository(t *testing.T) {
 		})
 	}
 }
+
+// Checkout paths belong to the job that declares them, and only to steps after
+// the checkout. A named-repository checkout in one job must not affect a
+// working directory in another job.
+func TestWorkflowCheckoutPathsAreScopedToTheirJob(t *testing.T) {
+	for _, tc := range []struct {
+		name, workflow string
+		wantEdge       bool
+	}{
+		{"other job", "jobs:\n  tools:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n  build:\n    steps:\n      - uses: actions/checkout@v4\n      - run: make\n        working-directory: services/api\n", true},
+		{"same job", "jobs:\n  build:\n    steps:\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n      - run: make\n        working-directory: services/api\n", false},
+		{"later step", "jobs:\n  build:\n    steps:\n      - run: make\n        working-directory: services/api\n      - uses: actions/checkout@v4\n        with:\n          repository: example/tools\n          path: services\n", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d, _ := workflowEdgesDoc(t, "unused")
+			content := []byte("name: Build\non: [push]\n" + tc.workflow)
+			files := []deployables.Candidate{{Path: ".github/workflows/build.yml", Size: int64(len(content)),
+				Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}
+			r, err := deployables.Observe(context.Background(), files, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			addDeployables(d, r)
+			addWorkflowComponentEdges(d, r)
+			edges := 0
+			for _, e := range d.Edges {
+				if e.Type == mapdoc.EdgeBuilds {
+					edges++
+				}
+			}
+			if (edges == 1) != tc.wantEdge {
+				t.Fatalf("builds edges = %d, want edge %v", edges, tc.wantEdge)
+			}
+		})
+	}
+}

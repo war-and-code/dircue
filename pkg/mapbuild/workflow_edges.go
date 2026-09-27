@@ -81,7 +81,7 @@ func addWorkflowComponentEdges(d *mapdoc.Document, r *deployables.Report) {
 			// .github/workflows/, so its directory is not the resolution base.
 			resolved := path.Clean(ref.Value)
 
-			if owner, _ := workingDirectoryOwner(d, r, def, componentsByRoot, resolved); owner != "" {
+			if owner, _ := workingDirectoryOwner(d, r, ref, componentsByRoot, resolved); owner != "" {
 				addWorkflowEdge(d, seenEdges, workflowID, owner, resolved, def.Path, ref.Evidence)
 			}
 		}

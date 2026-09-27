@@ -181,7 +181,7 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				}
 				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
 				if ref.Kind == "working_directory" {
-					owner, reason = workingDirectoryOwner(d, r, def, componentsByRoot, resolved)
+					owner, reason = workingDirectoryOwner(d, r, ref, componentsByRoot, resolved)
 				}
 				if reason != "" {
 					n.Facts[factIndex].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
@@ -947,31 +947,21 @@ const (
 
 // workingDirectoryOwner attributes a workflow working directory, which
 // resolves from the workspace root. Below an actions/checkout `path:` of this
-// repository it names that path inside the repository. Below a checkout that
-// names a repository it is not attributed: the map cannot tell offline whether
-// that repository is this one. Any other directory the committed
+// repository in the same job it names that path inside the repository. Below a
+// checkout that names a repository it is not attributed: the map cannot tell
+// offline whether that repository is this one. Any other directory the committed
 // tree lacks is created at run time and is not attributed to the project that
 // encloses it; absence is only asserted when the content inventory saw every
 // file.
-func workingDirectoryOwner(d *mapdoc.Document, r *deployables.Report, def deployables.Definition, componentsByRoot map[string][]string, dir string) (string, string) {
+func workingDirectoryOwner(d *mapdoc.Document, r *deployables.Report, ref deployables.Reference, componentsByRoot map[string][]string, dir string) (string, string) {
 	if dir == ".." || strings.HasPrefix(dir, "../") {
 		return localPathOwner(componentsByRoot, dir, true)
 	}
-	checkout, external := "", false
-	for _, ref := range def.References {
-		if ref.Kind != "checkout_path" || (ref.Qualification != "local" && ref.Qualification != "external") {
-			continue
-		}
-		p := path.Clean(ref.Value)
-		if p != "." && (dir == p || strings.HasPrefix(dir, p+"/")) && len(p) > len(checkout) {
-			checkout, external = p, ref.Qualification == "external"
-		}
-	}
-	if checkout != "" {
-		if external {
+	if ref.Checkout != "" {
+		if ref.CheckoutNamed {
 			return "", reasonNamedRepository
 		}
-		dir = strings.TrimPrefix(strings.TrimPrefix(dir, checkout), "/")
+		dir = strings.TrimPrefix(strings.TrimPrefix(dir, ref.Checkout), "/")
 		if dir == "" {
 			dir = "."
 		}
