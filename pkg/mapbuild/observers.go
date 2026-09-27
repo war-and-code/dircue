@@ -941,14 +941,15 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 const (
 	reasonPathOutsideRepository  = "path_outside_repository"
 	reasonAmbiguousComponentRoot = "ambiguous_component_root"
-	reasonOtherRepository        = "other_repository_checkout"
+	reasonNamedRepository        = "named_repository_checkout"
 	reasonPathNotInRepository    = "path_not_in_repository"
 )
 
 // workingDirectoryOwner attributes a workflow working directory, which
 // resolves from the workspace root. Below an actions/checkout `path:` of this
-// repository it names that path inside the repository; below a checkout of
-// another repository it is not attributed. Any other directory the committed
+// repository it names that path inside the repository. Below a checkout that
+// names a repository it is not attributed: the map cannot tell offline whether
+// that repository is this one. Any other directory the committed
 // tree lacks is created at run time and is not attributed to the project that
 // encloses it; absence is only asserted when the content inventory saw every
 // file.
@@ -968,7 +969,7 @@ func workingDirectoryOwner(d *mapdoc.Document, r *deployables.Report, def deploy
 	}
 	if checkout != "" {
 		if external {
-			return "", reasonOtherRepository
+			return "", reasonNamedRepository
 		}
 		dir = strings.TrimPrefix(strings.TrimPrefix(dir, checkout), "/")
 		if dir == "" {

@@ -278,8 +278,8 @@ func TestWorkflowCheckoutPathIsNotAttributed(t *testing.T) {
 		for _, f := range n.Facts {
 			if f.Name == "working_directory" && f.Value == "other-docs/site" {
 				found = true
-				if f.Coverage.Status != mapdoc.CoveragePartial || !slices.Contains(f.Coverage.Reasons, "other_repository_checkout") {
-					t.Errorf("working_directory fact coverage = %+v, want partial other_repository_checkout", f.Coverage)
+				if f.Coverage.Status != mapdoc.CoveragePartial || !slices.Contains(f.Coverage.Reasons, "named_repository_checkout") {
+					t.Errorf("working_directory fact coverage = %+v, want partial named_repository_checkout", f.Coverage)
 				}
 			}
 		}

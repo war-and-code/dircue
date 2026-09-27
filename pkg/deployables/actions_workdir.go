@@ -72,11 +72,11 @@ func resolveWorkdir(
 }
 
 // checkoutPath extracts the literal `path` input from an `actions/checkout`
-// step and reports whether the step checks out another repository. A
-// `repository` input other than `${{ github.repository }}`, including any other
-// expression, counts as another repository. It returns ok=false for
+// step and reports whether the step names a repository to check out. A
+// `repository` input other than `${{ github.repository }}` names one; the map
+// cannot tell offline whether it is this repository. It returns ok=false for
 // expressions, missing values, or non-checkout steps.
-func checkoutPath(step map[interface{}]interface{}) (p string, otherRepository, ok bool) {
+func checkoutPath(step map[interface{}]interface{}) (p string, namedRepository, ok bool) {
 	usesVal, found := stringValue(step, "uses")
 	// Match actions/checkout@* (any version tag or SHA).
 	if !found || !strings.HasPrefix(usesVal, "actions/checkout@") {
@@ -91,9 +91,9 @@ func checkoutPath(step map[interface{}]interface{}) (p string, otherRepository, 
 		return "", false, false
 	}
 	if repository, set := stringValue(withMap, "repository"); set && strings.TrimSpace(repository) != "" {
-		otherRepository = !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
+		namedRepository = !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
 	}
-	return p, otherRepository, true
+	return p, namedRepository, true
 }
 
 var selfRepositoryExpr = regexp.MustCompile(`^\$\{\{\s*github\.repository\s*\}\}$`)

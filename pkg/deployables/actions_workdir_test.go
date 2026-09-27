@@ -285,7 +285,7 @@ func containsStr(slice []string, target string) bool {
 	return false
 }
 
-// A checkout of another repository is qualified external; a checkout of this
+// A checkout that names a repository is qualified external; a checkout of this
 // repository, with or without an explicit ${{ github.repository }}, is local.
 func TestCheckoutPathQualifiesOtherRepository(t *testing.T) {
 	for _, tc := range []struct{ with, want string }{

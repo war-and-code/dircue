@@ -850,12 +850,12 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 				}
 				// Record checkout path declarations (#48): actions/checkout with an explicit
 				// path: input establishes a checkout-relative coordinate for subsequent steps.
-				// A checkout of another repository is qualified external.
-				if checkPath, otherRepository, hasPath := checkoutPath(step); hasPath {
+				// A checkout that names a repository is outside the scanned tree.
+				if checkPath, namedRepository, hasPath := checkoutPath(step); hasPath {
 					q := "local"
 					if !safeRelative(checkPath) {
 						q = "unresolved"
-					} else if otherRepository {
+					} else if namedRepository {
 						q = "external"
 					}
 					d.References = append(d.References, Reference{Kind: "checkout_path", Value: bounded(checkPath), Qualification: q, Evidence: Evidence{Field: "with.path", Value: bounded(checkPath), Line: lineOf(content, "path:"), Basis: "github-checkout-path"}})
