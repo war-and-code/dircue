@@ -19,6 +19,37 @@
     "Both app repositories lack the frozen Compose runs edge. docs/MAP.md:111 requires a matching declared image identity; the labels inferred identity from repository/package-name similarity. Treat both raw mismatches as source-label adjudication questions, not proven map defects.",
     "Chi's map output attaches net:http-client to the root component from imports including net/http in chi.go, and attaches nested _examples binaries to the root component. These are separate semantic/ownership concerns; the frozen negative checks are scoped to go.mod or chi.go and are marked unscored where the output evidence falls outside that scope."
   ],
+  "adjudicated_score": {
+    "note": "Adjudicated score removes assertions whose source labels are incorrect per source-cited adjudications.json; the frozen first-run numbers above are unchanged and remain the primary measurement.",
+    "adjudications_applied": [
+      {
+        "id": "adj-001",
+        "decision": "drop",
+        "frozen_status": "absent",
+        "frozen_raw_exact": false
+      },
+      {
+        "id": "adj-002",
+        "decision": "drop",
+        "frozen_status": "absent",
+        "frozen_raw_exact": false
+      },
+      {
+        "id": "adj-003",
+        "decision": "cite_erratum",
+        "frozen_status": "matched",
+        "frozen_raw_exact": false
+      }
+    ],
+    "dropped_assertion_count": 2,
+    "positive_assertions": {
+      "total": 27,
+      "raw_exact_matches": 15,
+      "raw_exact_recall": 0.5555555555555556,
+      "semantic_matches_after_vocabulary_normalization": 27,
+      "semantic_recall": 1.0
+    }
+  },
   "repositories": [
     {
       "repo": "changedetection",

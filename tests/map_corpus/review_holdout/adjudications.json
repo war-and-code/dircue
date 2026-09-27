@@ -1,0 +1,113 @@
+{
+  "adjudications": [
+    {
+      "id": "adj-001",
+      "frozen_assertion": {
+        "label_file": "changedetection.json",
+        "category": "edges",
+        "identifier": {
+          "type": "runs",
+          "from": "docker-compose.yml:changedetection",
+          "to": "changedetection.io"
+        }
+      },
+      "decision": "drop",
+      "rationale": "docs/MAP.md:111 defines `runs` as requiring the deployable to name an image that matches the target component's declared image identity.  The label's why cites only that the image repository path ends in 'changedetection.io', which is the package name (setup.py:43).  That is a name-similarity inference, not a declared image identity for the local component.  The compose service uses a pre-built external image from GHCR (docker-compose.yml:3); the component source contains no explicit declaration of a registry image path (the Dockerfile OCI labels at Dockerfile:83 give a human-readable title, not a registry-path identity).  The MAP.md definition is not satisfied by name similarity alone.",
+      "citations": [
+        {
+          "repo": "dircue",
+          "file": "docs/MAP.md",
+          "line": 111,
+          "text": "runs: A deployable definition names an image that matches the target component's declared image identity."
+        },
+        {
+          "repo": "changedetection",
+          "commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+          "file": "docker-compose.yml",
+          "line": 3,
+          "text": "image: ghcr.io/dgtlmoon/changedetection.io"
+        },
+        {
+          "repo": "changedetection",
+          "commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+          "file": "setup.py",
+          "line": 43,
+          "text": "name='changedetection.io',"
+        },
+        {
+          "repo": "changedetection",
+          "commit": "d789fe3ea5809eef0134943917ef50f47259121b",
+          "file": "Dockerfile",
+          "line": 83,
+          "text": "LABEL org.opencontainers.image.title=\"changedetection.io\""
+        }
+      ]
+    },
+    {
+      "id": "adj-002",
+      "frozen_assertion": {
+        "label_file": "umami.json",
+        "category": "edges",
+        "identifier": {
+          "type": "runs",
+          "from": "docker-compose.yml:umami",
+          "to": "umami"
+        }
+      },
+      "decision": "drop",
+      "rationale": "docs/MAP.md:111 defines `runs` as requiring the deployable to name an image that matches the target component's declared image identity.  The label's why cites only that the image repository path ends in 'umami', which matches the package name (package.json name field).  That is a name-similarity inference, not a declared image identity for the local component.  The compose service uses a pre-built external image from GHCR (docker-compose.yml:4); the component source has no Dockerfile LABEL declaring an image title or registry path, and package.json (package.json:1) declares only a package name, not an image identity.  The MAP.md definition is not satisfied by name similarity alone.",
+      "citations": [
+        {
+          "repo": "dircue",
+          "file": "docs/MAP.md",
+          "line": 111,
+          "text": "runs: A deployable definition names an image that matches the target component's declared image identity."
+        },
+        {
+          "repo": "umami",
+          "commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+          "file": "docker-compose.yml",
+          "line": 4,
+          "text": "image: ghcr.io/umami-software/umami:latest"
+        },
+        {
+          "repo": "umami",
+          "commit": "ec0ff50388c264ed8ce46f00967e92f7e71476ae",
+          "file": "package.json",
+          "line": 1,
+          "text": "{\"name\": \"umami\", ...}"
+        }
+      ],
+      "notes": "The umami Dockerfile has no LABEL declarations of any kind, further confirming no declared image identity exists in the component source."
+    },
+    {
+      "id": "adj-003",
+      "frozen_assertion": {
+        "label_file": "chi.json",
+        "category": "components",
+        "identifier": {
+          "name": "github.com/go-chi/chi/v5",
+          "root": "."
+        }
+      },
+      "decision": "cite_erratum",
+      "rationale": "The component assertion is correct; only the why citation is wrong.  The why says 'chi.go:1 declares package chi' but chi.go line 1 is a package comment (// Package chi is a small...), not the package clause.  The package clause 'package chi' is at chi.go:57.  The assertion itself stands; this records the erroneous line citation without removing or replacing the frozen positive.",
+      "citations": [
+        {
+          "repo": "chi",
+          "commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+          "file": "chi.go",
+          "line": 1,
+          "text": "// Package chi is a small, idiomatic and composable router for building HTTP services."
+        },
+        {
+          "repo": "chi",
+          "commit": "3d1777a1ef8881f7d1da0b02c76ca8f0a29cd2bc",
+          "file": "chi.go",
+          "line": 57,
+          "text": "package chi"
+        }
+      ]
+    }
+  ]
+}

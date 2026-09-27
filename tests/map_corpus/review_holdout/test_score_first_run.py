@@ -76,6 +76,55 @@ class IdentityMatchingTests(unittest.TestCase):
         self.assertIsNone(scorer.match_capability(doc, label, label_data))
         owner["properties"]["ecosystem"] = original_eco
 
+    def test_adjudication_referencing_nonexistent_assertion_fails_closed(self):
+        """An adjudication that names an assertion not in the scored label set must
+        raise SystemExit rather than silently succeed or produce a wrong score.
+        """
+        bad_adj = {
+            "adjudications": [
+                {
+                    "id": "adj-bad",
+                    "frozen_assertion": {
+                        "label_file": "chi.json",
+                        "category": "edges",
+                        "identifier": {"type": "runs", "from": "no-such:file", "to": "no-such-component"},
+                    },
+                    "decision": "drop",
+                    "citations": [{"repo": "dircue", "file": "docs/MAP.md", "line": 111, "text": "runs: ..."}],
+                }
+            ]
+        }
+        # Build a minimal all_checks_by_key that does not contain the bad key.
+        real_checks = {}
+        with self.assertRaises(SystemExit):
+            with mock.patch.object(scorer, "ADJUDICATIONS_FILE",
+                                   new=mock.Mock(exists=lambda: True,
+                                                 read_text=lambda: __import__("json").dumps(bad_adj))):
+                scorer.load_and_validate_adjudications(real_checks)
+
+    def test_adjudication_without_citations_is_rejected(self):
+        """An adjudication entry with no citations must be rejected."""
+        uncited_adj = {
+            "adjudications": [
+                {
+                    "id": "adj-nocite",
+                    "frozen_assertion": {
+                        "label_file": "chi.json",
+                        "category": "components",
+                        "identifier": {"name": "github.com/go-chi/chi/v5", "root": "."},
+                    },
+                    "decision": "cite_erratum",
+                    "citations": [],  # empty — must be rejected
+                }
+            ]
+        }
+        stub_key = ("chi.json", "components", ("github.com/go-chi/chi/v5", "."))
+        with self.assertRaises(SystemExit):
+            with mock.patch.object(scorer, "ADJUDICATIONS_FILE",
+                                   new=mock.Mock(exists=lambda: True,
+                                                 read_text=lambda: __import__("json").dumps(uncited_adj))):
+                scorer.load_and_validate_adjudications({stub_key: {}})
+
     def test_wrong_ecosystem_component_rejected_in_edge_matching(self):
         """Edge matching must reject a source/target component with wrong ecosystem.
 
