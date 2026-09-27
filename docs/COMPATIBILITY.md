@@ -20,8 +20,8 @@ Diagnostic-text exceptions apply only to wording explicitly left unfrozen.
   statuses and machine-readable output; help and usage text show the name
   that was invoked. Both names ship on every install route: release
   archives, wheels, `go install` (`github.com/war-and-code/dircue` for
-  `dircue`, `github.com/war-and-code/dircue/cmd/dirq` for `dirq`) and the
-  container image.
+  `dircue`, `github.com/war-and-code/dircue/cmd/dirq` for `dirq`) and images
+  built from the `Dockerfile`.
 - **The directory map.** `dircue map` and its subcommands (`map compare`,
   `map locate`, `map route`, `map settings`), with their documented flags,
   `--preset` names, `--set` setting names, and `--attach` report kinds. The
