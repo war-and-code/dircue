@@ -5,7 +5,7 @@ WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden fetch-receipts
+.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden corpus-availability fetch-receipts
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -181,6 +181,16 @@ golden: build ## Run golden map-corpus gate (needs pinned repo clones in GOLDEN_
 	  --binary bin/dircue \
 	  --repos "$(GOLDEN_REPOS)" \
 	  --output tests/map_corpus/golden_results.json
+
+# Check that dircue map exits 0 and emits a valid JSON map document for every
+# immediate subdirectory under CORPUS_ROOT.  Run after building.
+# Example: make corpus-availability CORPUS_ROOT=.cache/corpus
+CORPUS_ROOT ?= .cache/corpus
+corpus-availability: build ## Check map availability over every repo in CORPUS_ROOT
+	@echo "==> Running corpus availability gate (root: $(CORPUS_ROOT))"
+	@python3 tests/map_corpus/verify_corpus_availability.py \
+	  --binary bin/dircue \
+	  --root "$(CORPUS_ROOT)"
 
 # ---------------------------------------------------------------------------
 # Issue #84: Syft oracle (independent package-coverage oracle)
