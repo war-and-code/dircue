@@ -474,6 +474,11 @@ classified per package:
 use them to build requests for `handler.ServeHTTP`. Dot and blank imports are
 never attributed.
 
+Import evidence is read from every source file of a component, including its
+tests. A test that calls a local test server with `http.Get` still gives the
+component `net:http-client`; distinguishing test-only capabilities is tracked in
+[#177](https://github.com/war-and-code/dircue/issues/177).
+
 ### Contributing a new catalog entry
 
 The catalog is in `pkg/intentmap/catalog.go`. Entries are per-ecosystem exact
