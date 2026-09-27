@@ -262,3 +262,116 @@ func TestUnmarshalStrict(t *testing.T) {
 		t.Fatal("trailing JSON accepted")
 	}
 }
+
+// TestDocumentationPathClassifier verifies that isDocumentationPath (exercised
+// through the validator) classifies paths correctly so that config/workflow
+// files whose basenames share the readme/changelog/contributing prefix are not
+// mistaken for documentation files.
+//
+// A deployable node uses SourceConfiguration evidence.  If the evidence path
+// is classified as documentation the validator rejects the whole document with
+// "documentation cannot evidence a non-documentation fact".  This was the root
+// cause of dircue aborting on repos containing
+// .github/workflows/changelog.yml or similar files.
+func TestDocumentationPathClassifier(t *testing.T) {
+	// docPaths must be accepted as documentation evidence on a documentation
+	// content node and must be rejected as evidence on a non-documentation node.
+	docPaths := []string{
+		"README.md",
+		"readme.md",
+		"CHANGELOG.md",
+		"CONTRIBUTING.md",
+		"docs/CHANGELOG.rst",
+		"CONTRIBUTING.adoc",
+		// Bare files with no extension.
+		"README",
+		"CHANGELOG",
+		"CONTRIBUTING",
+		// Nested paths.
+		"docs/README.md",
+		".github/CONTRIBUTING.md",
+	}
+	// nonDocPaths must be accepted as non-documentation evidence
+	// (SourceConfiguration) on a non-documentation node (component).
+	nonDocPaths := []string{
+		// Workflows and manifests whose basenames share the readme/changelog/contributing prefix.
+		".github/workflows/changelog.yml",
+		".github/workflows/readme.yml",
+		".github/workflows/contributing-check.yaml",
+		"deploy/changelog-service.yaml",
+		"deploy/readme-init.yaml",
+		"config/contributing.json",
+		"changelog.yaml",
+		"readme.yaml",
+		"contributing.json",
+		"changelog.toml",
+		"README.yaml",
+		"CHANGELOG.yml",
+		// .txt files are intentionally NOT documentation: requirements.txt,
+		// constraints.txt, AUTHORS.txt, etc. are configuration/package-management
+		// files and must be able to evidence non-documentation facts.
+		"requirements.txt",
+		"constraints.txt",
+		"README.txt",
+		"CONTRIBUTING.txt",
+		"CHANGELOG.txt",
+	}
+
+	// Build a documentation content node that references the doc path — must pass.
+	buildDocNode := func(path string) func(*mapdoc.Document) {
+		return func(d *mapdoc.Document) {
+			n := mapdoc.NewNode(mapdoc.NodeContent, []string{path}, "documentation")
+			n.Name = path
+			n.Properties = map[string]string{"role": "documentation"}
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+			n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisFilenameHint, Path: path, SourceKind: mapdoc.SourceDocumentation, Rule: &mapdoc.Producer{ID: "content", Version: "1"}}}
+			d.Nodes = append(d.Nodes, n)
+		}
+	}
+	// Build a component node that references the path as SourceConfiguration — must pass for nonDocPaths.
+	buildConfigNode := func(path string) func(*mapdoc.Document) {
+		return func(d *mapdoc.Document) {
+			n := mapdoc.NewNode(mapdoc.NodeComponent, []string{path}, "npm")
+			n.Name = "cfg"
+			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+			n.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: path, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "manifest", Version: "1.0.0"}}}
+			d.Nodes = append(d.Nodes, n)
+		}
+	}
+
+	t.Run("doc_paths_accepted_on_documentation_nodes", func(t *testing.T) {
+		for _, p := range docPaths {
+			t.Run(p, func(t *testing.T) {
+				d := document()
+				buildDocNode(p)(&d)
+				if _, err := mapdoc.Marshal(d); err != nil {
+					t.Fatalf("path %q rejected on documentation node: %v", p, err)
+				}
+			})
+		}
+	})
+
+	t.Run("doc_paths_rejected_on_non_documentation_nodes", func(t *testing.T) {
+		for _, p := range docPaths {
+			t.Run(p, func(t *testing.T) {
+				d := document()
+				d.Nodes[0].Evidence[0].Path = p
+				if _, err := mapdoc.Marshal(d); err == nil {
+					t.Fatalf("doc path %q accepted on non-documentation component node", p)
+				}
+			})
+		}
+	})
+
+	t.Run("non_doc_config_paths_accepted_on_component_nodes", func(t *testing.T) {
+		for _, p := range nonDocPaths {
+			t.Run(p, func(t *testing.T) {
+				d := document()
+				buildConfigNode(p)(&d)
+				if _, err := mapdoc.Marshal(d); err != nil {
+					t.Fatalf("config path %q rejected on component node: %v", p, err)
+				}
+			})
+		}
+	})
+}
