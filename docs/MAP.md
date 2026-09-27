@@ -416,7 +416,7 @@ Current capability categories:
 | `messaging:nats` | NATS messaging client libraries |
 | `messaging:event-bus` | Higher-level message-bus frameworks |
 | `storage:object` | Object / blob storage (S3, GCS, Azure Blob) |
-| `net:http-client` | Outbound HTTP client libraries |
+| `net:http-client` | Outbound HTTP client libraries. See [Go `net/http` rule](#go-nethttp-rule) below. |
 | `auth:oidc` | OpenID Connect / OAuth2 provider clients |
 | `auth:jwt` | JWT signing and verification libraries |
 | `auth:oauth2` | OAuth2 server-side authentication frameworks |
@@ -439,12 +439,38 @@ Evidence levels (stored in the `basis` property of a capability node or
 | `declared_dependency` | The package coordinate appears in a parsed manifest (requirements.txt, go.mod, package.json, etc.). |
 | `declared_config` | A recognized configuration key or declaration in a config file (e.g. `DATABASE_URL`, `spring.datasource.*`, or a Prisma `schema.prisma` datasource `provider`) names the capability. Key names and provider strings only; connection strings and runtime values are never stored. |
 | `imported` | A top-level import statement in a source file names a package in the catalog. Only column-0 import statements are parsed; indented/conditional imports inside function bodies are not evidence. |
+| `code_syntax` | A named symbol, type, or API pattern in source code establishes the capability at the file and line of the first match. |
 
 A `declared_dependency` with no corroborating import is still valid evidence.
 An `imported` observation without a matching declaration means the import was
 found in source but not in a parsed manifest (possible in lock-file-only or
 vendor setups). The map records both and lets consumers decide how to weight
 agreement vs. single-path evidence.
+
+### Go `net/http` rule
+
+Go's `net/http` package is used for both inbound (server) handlers and outbound
+(client) requests. Because an import alone does not distinguish the two roles,
+the map applies a per-package routing rule to the `net/http` family:
+
+| Import path | Capability emitted | Basis | Condition |
+| --- | --- | --- | --- |
+| `net/http` | `net:http-client` | `code_syntax` | File references at least one client API symbol via the (unshadowed) package qualifier: `Client`, `DefaultClient`, `Get`, `Head`, `Post`, `PostForm`, `Transport`, `DefaultTransport`, or `RoundTripper`. The capability is cited at the first matching symbol's line. Files that reference only server-side APIs (e.g. `ResponseWriter`, `Request`, `HandleFunc`, `ListenAndServe`) produce no capability. |
+| `net/http/cookiejar` | `net:http-client` | `imported` | The import itself is client-side evidence; no symbol check is required. |
+| `net/http/httptrace` | `net:http-client` | `imported` | The import itself is client-side evidence; no symbol check is required. |
+| `net/http/httputil` | `net:http-client` | `code_syntax` | File references a client-side `httputil` symbol: `ReverseProxy`, `NewSingleHostReverseProxy` (outbound proxy), `DumpRequestOut` (outbound wire dump), `ClientConn`, `NewClientConn`, or `NewProxyClientConn` (deprecated client API). Server-side symbols (`DumpRequest`, `ServerConn`, `NewServerConn`) are not evidence. |
+| `net/http/pprof` | — | — | Profiling endpoint handler; never evidence of an outbound client. |
+| `net/http/httptest` | — | — | Testing helper; never evidence of an outbound client. |
+| `net/http/fcgi` | — | — | FastCGI server adapter; never evidence of an outbound client. |
+| `net/http/cgi` | — | — | CGI server adapter; never evidence of an outbound client. |
+| any other `net/http/...` | — | — | Fails closed: unknown sub-packages do not emit a capability. |
+
+`http.NewRequest` and `http.NewRequestWithContext` are not treated as client
+evidence for `net/http` because they are used heavily in server-side test
+helpers (constructing synthetic requests for `handler.ServeHTTP`). Any
+component that genuinely makes outbound requests also references `http.Client`,
+`http.DefaultClient`, or a method shortcut such as `http.Get` — those symbols
+are sufficient evidence at the component level.
 
 ### Contributing a new catalog entry
 
