@@ -396,39 +396,21 @@ func TestMavenReactorSiblingDependencyAmbiguous(t *testing.T) {
 	}
 }
 
-func TestComponentKindCountIsThirtySix(t *testing.T) {
-	// ComponentKinds is the authoritative list; its length pins the
-	// "36 manifest kinds" claim in README.md and related docs.
-	// If a kind is added or removed, update that claim before adjusting this test.
-	const want = 36
-	if len(ComponentKinds) != want {
-		t.Errorf("ComponentKinds length = %d, want %d; update the manifest-kind count in README.md and docs", len(ComponentKinds), want)
+// The counts are stated in README.md, CHANGELOG.md and docs/releases/1.0.0.md;
+// tests/ci/test_doc_counts.py checks those statements. Update them together.
+func TestComponentKindCounts(t *testing.T) {
+	if !slices.IsSorted(componentKinds) || len(slices.Compact(slices.Clone(componentKinds))) != len(componentKinds) {
+		t.Fatalf("componentKinds must be sorted and unique: %v", componentKinds)
 	}
-}
-
-func TestComponentKindsAreSortedAndUnique(t *testing.T) {
-	for i := 1; i < len(ComponentKinds); i++ {
-		if ComponentKinds[i] <= ComponentKinds[i-1] {
-			t.Errorf("ComponentKinds[%d]=%q is not strictly after ComponentKinds[%d]=%q; list must be sorted and deduplicated", i, ComponentKinds[i], i-1, ComponentKinds[i-1])
+	ecosystems := map[string]bool{}
+	for _, kind := range componentKinds {
+		e := ecosystem(kind)
+		if e == "unknown" {
+			t.Errorf("component kind %q has no ecosystem", kind)
 		}
+		ecosystems[e] = true
 	}
-}
-
-func TestEcosystemCountIsTwentySeven(t *testing.T) {
-	// ComponentEcosystems is derived from ComponentKinds via ecosystem();
-	// its length pins the "27 ecosystems" claim in README.md and related docs.
-	// If the ecosystem() function changes, update that claim before adjusting this test.
-	const want = 27
-	if len(ComponentEcosystems) != want {
-		t.Errorf("ComponentEcosystems length = %d, want %d; update the ecosystem count in README.md and docs", len(ComponentEcosystems), want)
-	}
-}
-
-func TestComponentKindConsistentWithEcosystem(t *testing.T) {
-	// Every kind in ComponentKinds must map to a known (non-"unknown") ecosystem.
-	for _, k := range ComponentKinds {
-		if e := ecosystem(k); e == "unknown" {
-			t.Errorf("ComponentKinds entry %q maps to ecosystem %q; add a case to ecosystem()", k, e)
-		}
+	if len(componentKinds) != 36 || len(ecosystems) != 27 {
+		t.Errorf("component kinds = %d, ecosystem values = %d; want 36 and 27", len(componentKinds), len(ecosystems))
 	}
 }

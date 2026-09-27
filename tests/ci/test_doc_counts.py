@@ -1,60 +1,46 @@
-"""Assert that the manifest-kind and ecosystem counts stated in README and docs
-match the authoritative values derived from pkg/componentmap/build.go.
+"""The component-kind and ecosystem counts stated in public docs must match the code.
 
-The authoritative source is:
-  - ComponentKinds slice: 36 manifest kinds
-  - ComponentEcosystems slice: 27 ecosystems (derived from ecosystem() applied
-    to ComponentKinds)
-
-Fail-before evidence (base 4eaa58f):
-  README.md said "26 ecosystems" (wrong; correct is 27).
-  No doc tests existed to catch the 34→36 kind discrepancy.
+pkg/componentmap/build.go lists the component kinds in componentKinds;
+TestComponentKindCounts pins its length and the number of distinct ecosystem()
+values. This check keeps README.md, CHANGELOG.md and the 1.0.0
+release notes in step with them.
 """
 
 import re
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-README = REPO_ROOT / "README.md"
+ROOT = Path(__file__).resolve().parents[2]
+BUILD_GO = ROOT / "pkg" / "componentmap" / "build.go"
+DOCS = [ROOT / "README.md", ROOT / "CHANGELOG.md", ROOT / "docs" / "releases" / "1.0.0.md"]
+# Pinned on the Go side by TestComponentKindCounts.
+ECOSYSTEM_VALUES = 27
+CLAIM = re.compile(r"(\d+) component kinds, reported under (\d+) `ecosystem` values")
 
-# These constants must match the values in ComponentKinds and ComponentEcosystems
-# in pkg/componentmap/build.go, and the Go tests TestComponentKindCountIsThirtySix
-# and TestEcosystemCountIsTwentySeven enforce the same values on the Go side.
-EXPECTED_MANIFEST_KINDS = 36
-EXPECTED_ECOSYSTEMS = 27
+
+def component_kinds() -> list[str]:
+    source = BUILD_GO.read_text()
+    match = re.search(r"var componentKinds = \[\]string\{(.*?)\n\}", source, re.S)
+    if match is None:
+        raise AssertionError("componentKinds not found in pkg/componentmap/build.go")
+    return re.findall(r'"([^"]+)"', match.group(1))
 
 
 class DocCountTests(unittest.TestCase):
-    """README.md must state the correct manifest-kind and ecosystem counts."""
+    def test_docs_state_the_code_counts(self) -> None:
+        kinds = len(component_kinds())
+        for doc in DOCS:
+            with self.subTest(doc=doc.name):
+                claims = CLAIM.findall(doc.read_text())
+                self.assertTrue(claims, f"{doc.name} must state the component-kind and ecosystem counts")
+                for stated_kinds, stated_ecosystems in claims:
+                    self.assertEqual(int(stated_kinds), kinds)
+                    self.assertEqual(int(stated_ecosystems), ECOSYSTEM_VALUES)
 
-    def setUp(self) -> None:
-        self.assertTrue(README.exists(), "README.md not found")
-        self.text = README.read_text()
-
-    def test_readme_states_correct_ecosystem_count(self) -> None:
-        """README.md 'components: projects across N ecosystems' must say 27."""
-        m = re.search(r"projects across (\d+) ecosystems", self.text)
-        self.assertIsNotNone(
-            m,
-            "README.md must contain 'projects across N ecosystems'",
-        )
-        count = int(m.group(1))
-        self.assertEqual(
-            count,
-            EXPECTED_ECOSYSTEMS,
-            f"README.md says {count} ecosystems; expected {EXPECTED_ECOSYSTEMS} "
-            f"(derived from pkg/componentmap/build.go ComponentEcosystems). "
-            f"Update README.md and this constant together with the Go test.",
-        )
-
-    def test_readme_does_not_state_stale_34_manifest_kinds(self) -> None:
-        """README.md must not state '34 manifest kinds' (the stale count)."""
-        self.assertNotIn(
-            "34 manifest kinds",
-            self.text,
-            "README.md must not state '34 manifest kinds'; update to 36",
-        )
+    def test_no_stale_count_wording(self) -> None:
+        for doc in DOCS:
+            with self.subTest(doc=doc.name):
+                self.assertNotRegex(doc.read_text(), r"\d+ manifest kinds|across \d+ ecosystems")
 
 
 if __name__ == "__main__":
