@@ -20,6 +20,6 @@ Reproduce scoring without rerunning maps with:
 python3 tests/map_corpus/review_holdout/score_first_run.py
 ```
 
-The scorer requires a Git checkout containing the label-freeze commit `0fb6277`; a default shallow PR checkout does not contain it. CI runs the scorer's mutation unit tests, while the full receipt-and-label verification is run from a checkout with that commit.
+The scorer calls `git show 0fb6277:<path>` to verify that each label file matches its frozen Git blob.  **This PR must be merged with a merge commit.**  A squash or rebase merge drops the label-freeze commit `0fb62770` from the branch history, silently breaking the full scorer even though CI's mutation tests (which mock that call) stay green.  The `test` job unshallows its checkout on Linux and runs the full scorer as a regression fence; if `0fb6277` is not reachable from HEAD the step fails with an explicit message.
 
 `run_once.py` refuses to overwrite an existing receipt directory, verifies pinned commits and clean checkouts, and applies a 300-second timeout to future invocations. The recorded first run completed before that timeout was added; its receipts reflect the actual first-run return values and hashes.

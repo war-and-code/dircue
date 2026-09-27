@@ -19,7 +19,13 @@ def verify_frozen_label(path, repo_root):
             cwd=repo_root, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
-        raise SystemExit(f"cannot read frozen label {relpath} from {LABEL_COMMIT}; use a checkout containing that commit") from exc
+        raise SystemExit(
+            f"cannot read frozen label {relpath} from {LABEL_COMMIT[:7]}; "
+            "the label-freeze commit is not reachable from HEAD. "
+            "This PR must be merged with a merge commit: squash and rebase "
+            "merges drop the label-freeze commit from history, breaking this "
+            "verification. Use 'Create a merge commit' when merging on GitHub."
+        ) from exc
     current = path.read_bytes()
     require_frozen_label(current, frozen, relpath)
     return current
