@@ -13,7 +13,7 @@ the directory.
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
 - **relationships:** what builds, runs, depends on and contains what.
 
-Every fact carries its evidence (file, line, rule), and every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
+Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
 
 The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) says what 1.0 freezes. What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
 

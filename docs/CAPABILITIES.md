@@ -120,10 +120,9 @@ behavior on those inputs, not exhaustive dialect or metric correctness. See the
 
 ## Current boundaries
 
-These limitations describe the current implementation, not a feature freeze
-for 1.0. Each has an open issue; [#81](https://github.com/war-and-code/dircue/issues/81)
-sets the revised release scope. The [proposed compatibility policy](COMPATIBILITY.md)
-is still subject to that work.
+These are known boundaries of the 1.0 implementation. The 1.x compatibility
+policy is documented in [COMPATIBILITY.md](COMPATIBILITY.md); it does not imply
+that the analysis layers below cover every ecosystem or repository shape.
 
 - **Git repository shapes:** bare and unborn repositories, SHA-256 object
   format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery
