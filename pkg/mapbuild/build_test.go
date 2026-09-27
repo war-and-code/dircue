@@ -60,6 +60,51 @@ func TestDeclaredBuildAndRunLinksHaveEvidence(t *testing.T) {
 	}
 }
 
+func TestCodeUriAmbiguousNearestRootDoesNotFallBack(t *testing.T) {
+	doc := mapdoc.New()
+	for _, source := range [][]string{{"go.mod"}, {"services/api/go.mod"}, {"services/api/package.json"}} {
+		component := mapdoc.NewNode(mapdoc.NodeComponent, source, "test")
+		root := "."
+		if strings.HasPrefix(source[0], "services/") {
+			root = "services/api"
+		}
+		component.Properties = map[string]string{"root": root}
+		doc.Nodes = append(doc.Nodes, component)
+	}
+	evidence := deployables.Evidence{Field: "CodeUri", Value: "services/api/target/app.jar", Line: 4, Basis: "static-field"}
+	definition := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "function", Path: "template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{evidence},
+		References: []deployables.Reference{{Kind: "code_uri", Value: evidence.Value, Qualification: "local", Evidence: evidence}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}})
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("ambiguous nearest CodeUri root incorrectly fell back to repository component: %+v", edge)
+		}
+	}
+}
+
+func TestCodeUriAncestorLookupIncludesRepositoryRoot(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	component.Properties = map[string]string{"root": "."}
+	doc.Nodes = append(doc.Nodes, component)
+	evidence := deployables.Evidence{Field: "CodeUri", Value: "build/app.jar", Line: 4, Basis: "static-field"}
+	definition := deployables.Definition{
+		Provider: "cloudformation", Kind: "infrastructure", Name: "function", Path: "template.yaml",
+		Coverage: "qualified", Evidence: []deployables.Evidence{evidence},
+		References: []deployables.Reference{{Kind: "code_uri", Value: evidence.Value, Qualification: "local", Evidence: evidence}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}})
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeBuilds && edge.To == component.ID {
+			return
+		}
+	}
+	t.Fatalf("CodeUri below repository root did not associate to its unique component: %+v", doc.Edges)
+}
+
 func TestKubernetesImageDoesNotInferRunFromDockerfileAndBasename(t *testing.T) {
 	doc := mapdoc.New()
 	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"src/emailservice", "src/emailservice/go.mod"}, "go")

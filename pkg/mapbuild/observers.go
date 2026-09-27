@@ -935,17 +935,20 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath string) []string {
 	p := resolvedPath
 	for {
+		if ids := componentsByRoot[p]; len(ids) > 0 {
+			// A nearer root is authoritative even when its ownership is
+			// ambiguous. Falling through would incorrectly attribute the path
+			// to a broader component.
+			if len(ids) == 1 {
+				return ids
+			}
+			return nil
+		}
 		parent := path.Dir(p)
 		if parent == p {
 			break
 		}
 		p = parent
-		if ids := componentsByRoot[p]; len(ids) == 1 {
-			return ids
-		}
-		if p == "." {
-			break
-		}
 	}
 	return nil
 }

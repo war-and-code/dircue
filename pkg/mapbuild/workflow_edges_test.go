@@ -101,6 +101,26 @@ func TestWorkflowEdgesAncestorLookup(t *testing.T) {
 	}
 }
 
+// An ambiguous nearer root blocks attribution to a broader ancestor. The
+// workflow path is inside services/api, whose duplicate component roots make
+// ownership unclear even though the repository root has a single component.
+func TestWorkflowEdgesAmbiguousNearestRootDoesNotFallBack(t *testing.T) {
+	d, r := workflowEdgesDoc(t, "services/api/cmd")
+	duplicate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api/package.json"}, "npm")
+	duplicate.Name = "api-package"
+	duplicate.Properties = map[string]string{"root": "services/api"}
+	duplicate.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	d.Nodes = append(d.Nodes, duplicate)
+	addDeployables(d, r)
+	addWorkflowComponentEdges(d, r)
+
+	for _, e := range d.Edges {
+		if e.Type == mapdoc.EdgeBuilds {
+			t.Errorf("ambiguous nearest root incorrectly fell back to broader component: %+v", e)
+		}
+	}
+}
+
 // TestWorkflowEdgesUnresolvedNotEmitted verifies that an expression-bearing
 // working-directory never produces a component association.
 func TestWorkflowEdgesUnresolvedNotEmitted(t *testing.T) {
