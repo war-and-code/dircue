@@ -165,56 +165,33 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			composeServiceByID[def.Name] = n.ID
 		}
 		for _, ref := range def.References {
+			factIndex := len(n.Facts)
 			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
 			if ref.Kind == "service_dependency" && ref.Qualification == "local" {
 				composeDeps = append(composeDeps, composeDep{fromID: n.ID, toName: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
 			}
-			if (ref.Kind == "build_context" || ref.Kind == "code_uri") && ref.Qualification == "local" {
+			if (ref.Kind == "build_context" || ref.Kind == "code_uri" || ref.Kind == "working_directory") && ref.Qualification == "local" {
+				// A workflow working-directory resolves from the repository root;
+				// other references resolve from the declaring file's directory.
+				// CodeUri may name a build artifact (e.g. target/app.jar), so it
+				// and working-directory fall back to the nearest ancestor root.
 				resolved := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
-				// P2: Paths resolving outside the repository are never attributed.
-				if resolved == ".." || strings.HasPrefix(resolved, "../") {
-					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"path_outside_repository"}}
-				} else {
-					owners := componentsByRoot[resolved]
-					if len(owners) > 1 {
-						// P1: Ambiguous exact root — record reason and skip attribution.
-						n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
-					} else if len(owners) == 0 && ref.Kind == "code_uri" {
-						// CodeUri may point to a build artifact (e.g. target/app.jar).
-						// Walk up to find the nearest ancestor that is a component root.
-						var ambiguous bool
-						owners, ambiguous = componentAncestorOwners(componentsByRoot, resolved)
-						if ambiguous {
-							// P1: Ambiguous nearest ancestor — record reason.
-							n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
-						}
-					}
-					if len(owners) == 1 {
-						localComponent = owners[0]
-						localEvidence = deployableEvidence(def.Path, ref.Evidence)
-						if def.Provider != "skaffold" {
-							addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
-						}
-						if def.Provider == "compose" && def.Kind == "service" {
-							addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "compose-service:"+resolved, "service_declares_build_context", localEvidence)
-						}
-					}
+				if ref.Kind == "working_directory" {
+					resolved = path.Clean(ref.Value)
 				}
-			}
-			// P1/P2: Workflow working-directory references need fact updates when
-			// attribution would silently fail (ambiguous root or out-of-repo path).
-			// Edge building is handled by addWorkflowComponentEdges; this block
-			// only updates the deployable_reference fact while n.Facts is mutable.
-			if ref.Kind == "working_directory" && ref.Qualification == "local" {
-				resolved := path.Clean(ref.Value)
-				if resolved == ".." || strings.HasPrefix(resolved, "../") {
-					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"path_outside_repository"}}
-				} else if wdOwners := componentsByRoot[resolved]; len(wdOwners) > 1 {
-					n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
-				} else if len(wdOwners) == 0 {
-					_, ambiguous := componentAncestorOwners(componentsByRoot, resolved)
-					if ambiguous {
-						n.Facts[len(n.Facts)-1].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"ambiguous_component_root"}}
+				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
+				if reason != "" {
+					n.Facts[factIndex].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{reason}}
+				}
+				// Workflow edges are added by addWorkflowComponentEdges.
+				if owner != "" && ref.Kind != "working_directory" {
+					localComponent = owner
+					localEvidence = deployableEvidence(def.Path, ref.Evidence)
+					if def.Provider != "skaffold" {
+						addRelationship(mapdoc.EdgeBuilds, n.ID, owner, ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
+					}
+					if def.Provider == "compose" && def.Kind == "service" {
+						addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
 					}
 				}
 			}
@@ -955,6 +932,35 @@ func k8sComponentScope(componentsByRoot map[string][]string, dir string) string 
 		}
 	}
 	return ""
+}
+
+// Reasons recorded on a local path reference that is not attributed.
+const (
+	reasonPathOutsideRepository  = "path_outside_repository"
+	reasonAmbiguousComponentRoot = "ambiguous_component_root"
+)
+
+// localPathOwner returns the unique component whose root is resolved or, when
+// walkAncestors is set, its nearest ancestor root. When attribution is refused
+// it returns a coverage reason instead: the path leaves the repository, or the
+// nearest root with components holds more than one. Both empty means no
+// component root matched.
+func localPathOwner(componentsByRoot map[string][]string, resolved string, walkAncestors bool) (string, string) {
+	if resolved == ".." || strings.HasPrefix(resolved, "../") {
+		return "", reasonPathOutsideRepository
+	}
+	owners := componentsByRoot[resolved]
+	ambiguous := len(owners) > 1
+	if len(owners) == 0 && walkAncestors {
+		owners, ambiguous = componentAncestorOwners(componentsByRoot, resolved)
+	}
+	if ambiguous {
+		return "", reasonAmbiguousComponentRoot
+	}
+	if len(owners) == 1 {
+		return owners[0], ""
+	}
+	return "", ""
 }
 
 // componentAncestorOwners walks up the directory tree from resolvedPath and
