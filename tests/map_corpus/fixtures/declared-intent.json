@@ -3,9 +3,9 @@
     {
       "id": "go-import-capability",
       "oracle": {
-        "source": "Go language specification: Import declarations",
-        "url": "https://go.dev/ref/spec#Import_declarations",
-        "fixture_evidence": "main.go imports net/http"
+        "source": "Go net/http package documentation: Get",
+        "url": "https://pkg.go.dev/net/http#Get",
+        "fixture_evidence": "main.go imports net/http and references the outbound http.Get client API"
       },
       "must_include": [
         {"kind":"component", "path":"go.mod", "properties":{"ecosystem":"go"}},

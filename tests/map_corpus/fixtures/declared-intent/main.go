@@ -2,4 +2,4 @@ package main
 
 import "net/http"
 
-func main() { _ = http.MethodGet }
+func main() { _ = http.Get }
