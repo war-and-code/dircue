@@ -48,7 +48,7 @@ func automationGuide(root *cobra.Command) cliGuide {
 				if command.Example != "" {
 					guidance += "\nExamples:\n" + command.Example
 				}
-				guide.Sections = append(guide.Sections, guideSection{canonicalCommandPath(command), guidance, [][]string{}})
+				guide.Sections = append(guide.Sections, guideSection{command.CommandPath(), guidance, [][]string{}})
 			}
 		case "map":
 			for _, command := range group.Commands() {
@@ -62,7 +62,7 @@ func automationGuide(root *cobra.Command) cliGuide {
 				if command.Example != "" {
 					guidance += "\nExamples:\n" + command.Example
 				}
-				guide.Sections = append(guide.Sections, guideSection{canonicalCommandPath(command), guidance, [][]string{}})
+				guide.Sections = append(guide.Sections, guideSection{command.CommandPath(), guidance, [][]string{}})
 			}
 		}
 	}
@@ -79,6 +79,9 @@ func writeAutomationGuide(out io.Writer, guide cliGuide, displayName string) err
 			return err
 		}
 		for _, argv := range section.Examples {
+			if len(argv) > 0 && argv[0] == "dircue" {
+				argv = append([]string{displayName}, argv[1:]...)
+			}
 			if _, err := fmt.Fprintf(out, "  %s\n", strings.Join(argv, " ")); err != nil {
 				return err
 			}

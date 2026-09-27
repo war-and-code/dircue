@@ -110,6 +110,15 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 	if args == nil {
 		args = []string{}
 	}
+	root := newRootCommand(name, out, errOut)
+	root.SetArgs(args)
+	return safeCLIError(root.ExecuteContext(ctx))
+}
+
+// newRootCommand builds the complete command tree under the given display
+// name. capabilities --cli describes a tree built as "dircue", so its JSON is
+// the same whichever name was invoked.
+func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 	opts := &options{displayName: name}
 	root := &cobra.Command{
 		Use:           name + " [path]",
@@ -129,7 +138,6 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 	root.SetOut(out)
 	root.SetErr(errOut)
 	root.SetFlagErrorFunc(flagErrorWithHint)
-	root.SetArgs(args)
 	flags := root.PersistentFlags()
 	flags.BoolVarP(&opts.json, "json", "j", false, "Emit JSON")
 	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results (no effect on other profilers)")
@@ -204,7 +212,7 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 	mapCommand := newMapCommand(opts)
 	mapCommand.AddCommand(newMapCompareCommand(opts))
 	root.AddCommand(mapCommand)
-	return safeCLIError(root.ExecuteContext(ctx))
+	return root
 }
 
 func pathArgs(cmd *cobra.Command, args []string) error {

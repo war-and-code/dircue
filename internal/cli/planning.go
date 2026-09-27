@@ -40,15 +40,21 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 		if cmd.Flags().Changed("cli") && !cliView || cmd.Flags().Changed("guide") && !guideView || cmd.Flags().Changed("accuracy") && !accuracyView {
 			return fmt.Errorf("capabilities view selectors require true; omit --cli, --guide, or --accuracy for planner modules")
 		}
+		// JSON describes a tree built as "dircue", so it is the same under
+		// either command name; text describes the invoked tree.
+		described := cmd.Root()
+		if opts.json {
+			described = newRootCommand("dircue", io.Discard, io.Discard)
+		}
 		if cliView {
-			d := describeCLI(cmd.Root())
+			d := describeCLI(described)
 			if opts.json {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 			}
 			return writeCLIContract(cmd.OutOrStdout(), d, opts.displayName)
 		}
 		if guideView {
-			d := automationGuide(cmd.Root())
+			d := automationGuide(described)
 			if opts.json {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 			}
