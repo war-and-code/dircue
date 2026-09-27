@@ -57,9 +57,9 @@ type resolvedMapSettings struct {
 	Report                mapSettingsReport
 }
 
-func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags) {
+func addMapSettingsFlags(command *cobra.Command, flags *mapSettingsFlags, name string) {
 	command.Flags().StringVar(&flags.Preset, "preset", "balanced", "Resource preset: balanced, low-memory, or thorough")
-	command.Flags().StringArrayVar(&flags.Overrides, "set", nil, "Override a map setting as NAME=VALUE (repeatable; see: dircue map settings --json)")
+	command.Flags().StringArrayVar(&flags.Overrides, "set", nil, "Override a map setting as NAME=VALUE (repeatable; see: "+name+" map settings --json)")
 	command.Flags().IntVar(&flags.CPULimit, "cpu-limit", 0, "Cooperative Go scheduler limit in logical CPUs; 0 inherits the process setting")
 	command.Flags().StringVar(&flags.MemoryLimit, "memory-limit", "0", "Cooperative Go memory limit in bytes or KiB/MiB/GiB; 0 inherits the process setting")
 }
@@ -90,7 +90,7 @@ func resolveMapSettings(cmd *cobra.Command, opts *options, budgetFiles int, flag
 		name, value, ok := strings.Cut(override, "=")
 		name, value = strings.TrimSpace(name), strings.TrimSpace(value)
 		if !ok || name == "" || value == "" {
-			return resolvedMapSettings{}, fmt.Errorf("--set requires NAME=VALUE; see: dircue map settings --json")
+			return resolvedMapSettings{}, fmt.Errorf("--set requires NAME=VALUE; see: %s map settings --json", opts.displayName)
 		}
 		switch name {
 		case "workers":
@@ -293,7 +293,7 @@ func newMapSettingsCommand(opts *options) *cobra.Command {
 		Use:     "settings",
 		Short:   "Show effective map resource settings",
 		Long:    "Resolve a map preset and fine-grained overrides without scanning. Categories distinguish answer-preserving execution controls from coverage-affecting limits. No preset claims a hard memory or CPU ceiling.",
-		Example: "  dircue map settings --preset low-memory\n  dircue map settings --set workers=8 --set git.object_cache_bytes=128MiB --json\n  dircue map settings --cpu-limit 2 --memory-limit 512MiB --json",
+		Example: "  " + opts.displayName + " map settings --preset low-memory\n  " + opts.displayName + " map settings --set workers=8 --set git.object_cache_bytes=128MiB --json\n  " + opts.displayName + " map settings --cpu-limit 2 --memory-limit 512MiB --json",
 		Args:    cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			for _, flag := range analysisFlagNames {
@@ -311,7 +311,7 @@ func newMapSettingsCommand(opts *options) *cobra.Command {
 			return writeMapSettings(cmd.OutOrStdout(), resolved.Report)
 		},
 	}
-	addMapSettingsFlags(command, &flags)
+	addMapSettingsFlags(command, &flags, opts.displayName)
 	setSavedReportHelp(command)
 	return command
 }

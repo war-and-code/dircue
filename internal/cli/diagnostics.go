@@ -162,11 +162,12 @@ func abs(v int) int {
 }
 
 // savedReportOpenErrorMessage returns the shared "cannot open saved report"
-// diagnostic used by plan, compare, and explain. The role names which side of
-// the invocation the caller referred to; the hint tells the caller how to
-// produce a valid input.
-func savedReportOpenErrorMessage(role string) string {
-	return fmt.Sprintf("cannot open %s; supply a readable regular aggregate JSON report, for example one saved by: dircue analyze discovery --json /checkout", role)
+// diagnostic used by plan, compare, and explain. The displayName is the
+// binary's invoked name ("dircue" or "dirq"); role names which side of the
+// invocation the caller referred to; the hint tells the caller how to produce
+// a valid input.
+func savedReportOpenErrorMessage(displayName, role string) string {
+	return fmt.Sprintf("cannot open %s; supply a readable regular aggregate JSON report, for example one saved by: %s analyze discovery --json /checkout", role, displayName)
 }
 
 // enumValueError composes the "must be one of ..." rejection for finite-choice
@@ -224,16 +225,17 @@ func savedReportFlagRejected(cmd *cobra.Command, name string) bool {
 }
 
 func analysisSelectionError(cmd *cobra.Command, args []string) error {
+	name := contextName(cmd.Context())
 	if len(args) > 0 {
 		var names []string
 		for _, child := range cmd.Commands() {
 			names = append(names, child.Name())
 		}
 		if suggestion := nearbyName(args[0], names); suggestion != "" {
-			return fmt.Errorf("unknown analysis %q; did you mean: dircue analyze %s --json /path/to/source", diagnosticValue(args[0]), suggestion)
+			return fmt.Errorf("unknown analysis %q; did you mean: %s analyze %s --json /path/to/source", diagnosticValue(args[0]), name, suggestion)
 		}
 	}
-	return fmt.Errorf("choose an analysis; for a metadata inventory use: dircue analyze discovery --json /path/to/source; for language statistics use: dircue analyze languages --json /path/to/source; list profilers with: dircue analyze --help")
+	return fmt.Errorf("choose an analysis; for a metadata inventory use: %s analyze discovery --json /path/to/source; for language statistics use: %s analyze languages --json /path/to/source; list profilers with: %s analyze --help", name, name, name)
 }
 
 func missingPathCommandHint(cmd *cobra.Command, args []string, err error) error {
@@ -247,13 +249,14 @@ func missingPathCommandHint(cmd *cobra.Command, args []string, err error) error 
 	if _, pathErr := os.Lstat(token); !errors.Is(pathErr, os.ErrNotExist) {
 		return err
 	}
+	name := contextName(cmd.Context())
 	for _, child := range cmd.Commands() {
 		if child.Name() != "analyze" {
 			continue
 		}
 		for _, mode := range child.Commands() {
 			if token == mode.Name() {
-				return fmt.Errorf("%w; if you intended the profiler, use: dircue analyze %s --json /path/to/source", err, mode.Name())
+				return fmt.Errorf("%w; if you intended the profiler, use: %s analyze %s --json /path/to/source", err, name, mode.Name())
 			}
 		}
 	}

@@ -69,12 +69,47 @@ type cliContract struct {
 	Behavior        []string            `json:"behavior"`
 }
 
+// canonicalCommandPath returns the command path with the first component
+// replaced by "dircue", ensuring machine-readable JSON output is identical
+// regardless of whether the binary is invoked as "dircue" or "dirq".
+func canonicalCommandPath(cmd *cobra.Command) string {
+	parts := strings.SplitN(cmd.CommandPath(), " ", 2)
+	if len(parts) == 1 {
+		return "dircue"
+	}
+	return "dircue " + parts[1]
+}
+
+// canonicalizeText replaces occurrences of rootName with "dircue" in s when
+// rootName appears as a word (preceded by space or at start, or followed by
+// space, punctuation, or at end). Used for machine-readable output that must
+// be byte-identical across dircue and dirq invocations.
+func canonicalizeText(s, rootName string) string {
+	if rootName == "dircue" || rootName == "" {
+		return s
+	}
+	// Replace "rootName " (mid-string or at start followed by space)
+	s = strings.ReplaceAll(s, rootName+" ", "dircue ")
+	// Replace " rootName" (at end or followed by non-alpha, handles "help for dirq")
+	s = strings.ReplaceAll(s, " "+rootName, " dircue")
+	// Replace rootName at start of string when not followed by a letter
+	if strings.HasPrefix(s, rootName) && (len(s) == len(rootName) || !isAlpha(rune(s[len(rootName)]))) {
+		s = "dircue" + s[len(rootName):]
+	}
+	return s
+}
+
+func isAlpha(r rune) bool {
+	return (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' || r == '_'
+}
+
 // describeCLI traverses the actual completed Cobra tree only when requested.
 // Framework declarations supply command names, options, types and defaults;
 // semantic qualifications below describe constraints Cobra cannot introspect.
 func describeCLI(root *cobra.Command) cliContract {
 	root.InitDefaultHelpCmd()
 	root.InitDefaultVersionFlag()
+	rootName := strings.SplitN(root.Use, " ", 2)[0]
 	d := cliContract{SchemaVersion: "1.0.0", Kind: "dircue-cli-capabilities", ProviderVersion: Version,
 		Commands: []cliCommandContract{}, SchemaResources: []cliSchemaResource{}}
 	var visit func(*cobra.Command)
@@ -83,11 +118,12 @@ func describeCLI(root *cobra.Command) cliContract {
 			return
 		}
 		cmd.InitDefaultHelpFlag()
-		entry := cliCommandContract{Path: strings.Split(cmd.CommandPath(), " "), Usage: cmd.UseLine(), Summary: cmd.Short, Description: cmd.Long,
+		canonical := canonicalCommandPath(cmd)
+		entry := cliCommandContract{Path: strings.Split(canonical, " "), Usage: canonicalizeText(cmd.UseLine(), rootName), Summary: cmd.Short, Description: canonicalizeText(cmd.Long, rootName),
 			Examples: []string{}, Flags: []cliFlagContract{}, RejectedFlags: []string{}, Restrictions: commandRestrictions(cmd), OutputContracts: commandOutputContracts(cmd)}
 		for _, line := range strings.Split(cmd.Example, "\n") {
 			if strings.TrimSpace(line) != "" {
-				entry.Examples = append(entry.Examples, strings.TrimSpace(line))
+				entry.Examples = append(entry.Examples, canonicalizeText(strings.TrimSpace(line), rootName))
 			}
 		}
 		flags := map[string]cliFlagContract{}
@@ -100,12 +136,12 @@ func describeCLI(root *cobra.Command) cliContract {
 					entry.RejectedFlags = append(entry.RejectedFlags, "--"+flag.Name)
 					return
 				}
-				description := flag.Usage
-				if inherited && cmd.CommandPath() == "dircue help" {
+				description := canonicalizeText(flag.Usage, rootName)
+				if inherited && canonical == "dircue help" {
 					if flag.Name == "json" {
 						description = "Ignored by help; help always emits plain text. Use dircue capabilities --guide --json or dircue capabilities --cli --json for structured guidance. Retained only for parser compatibility."
 					} else {
-						description = "Ignored by help; retained only for parser compatibility. Analysis-command meaning: " + flag.Usage
+						description = "Ignored by help; retained only for parser compatibility. Analysis-command meaning: " + canonicalizeText(flag.Usage, rootName)
 					}
 				}
 				flags[flag.Name] = cliFlagContract{flag.Name, flag.Shorthand, flag.Value.Type(), flag.DefValue, description, inherited, flagAllowedValues(cmd, flag.Name)}
@@ -187,7 +223,8 @@ func describeCLI(root *cobra.Command) cliContract {
 }
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
-	if name == "preset" && (cmd.CommandPath() == "dircue map" || cmd.CommandPath() == "dircue map settings") {
+	canonical := canonicalCommandPath(cmd)
+	if name == "preset" && (canonical == "dircue map" || canonical == "dircue map settings") {
 		return slices.Clone(mapPresetNames)
 	}
 	scanCommand := cmd.Parent() == nil || cmd.Name() == "analyze" || cmd.Name() == "map" || cmd.Parent() != nil && cmd.Parent().Name() == "analyze"
@@ -199,13 +236,13 @@ func flagAllowedValues(cmd *cobra.Command, name string) []string {
 			return []string{"fail", "continue"}
 		}
 	}
-	if slices.Contains([]string{"dircue analyze all", "dircue analyze focus", "dircue analyze metrics"}, cmd.CommandPath()) && name == "metrics-scope" {
+	if slices.Contains([]string{"dircue analyze all", "dircue analyze focus", "dircue analyze metrics"}, canonical) && name == "metrics-scope" {
 		return []string{"source", "text"}
 	}
-	if cmd.CommandPath() == "dircue capabilities" && name == "schema" {
+	if canonical == "dircue capabilities" && name == "schema" {
 		return schema.Names()
 	}
-	if cmd.CommandPath() == "dircue plan" {
+	if canonical == "dircue plan" {
 		registry := capabilities.Dircue(Version)
 		values := []string{}
 		for _, module := range registry.Modules {
@@ -229,7 +266,7 @@ func flagAllowedValues(cmd *cobra.Command, name string) []string {
 }
 
 func commandOutputContracts(cmd *cobra.Command) []string {
-	switch cmd.CommandPath() {
+	switch canonicalCommandPath(cmd) {
 	case "dircue", "dircue analyze languages":
 		return []string{"languages-directory", "languages-file"}
 	case "dircue analyze ecosystems", "dircue analyze frameworks":
@@ -263,14 +300,15 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 }
 
 func commandRestrictions(cmd *cobra.Command) []string {
+	canonical := canonicalCommandPath(cmd)
 	r := []string{}
 	if cmd.Parent() == nil || (cmd.Parent() != nil && cmd.Parent().Name() == "analyze") {
 		r = append(r, "At most one source path. --rev and --tree are mutually exclusive. --rev requires a Git source.")
 	}
-	if cmd.CommandPath() == "dircue map compare" {
+	if canonical == "dircue map compare" {
 		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. A zero exit status means the comparison completed, not that the maps are identical.")
 	}
-	if cmd.CommandPath() == "dircue map settings" {
+	if canonical == "dircue map settings" {
 		return append(r, "No source is scanned. --preset and repeatable --set resolve effective values; inherited analysis flags are rejected. Resource notes are contractual qualifications, not measured ceiling claims.")
 	}
 	switch cmd.Name() {
@@ -306,8 +344,8 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	return r
 }
 
-func writeCLIContract(out io.Writer, d cliContract) error {
-	if _, err := fmt.Fprintf(out, "CLI capabilities: dircue %s (contract %s)\nUse --json for command flags, output contracts, schema resources, and restrictions.\n", d.ProviderVersion, d.SchemaVersion); err != nil {
+func writeCLIContract(out io.Writer, d cliContract, displayName string) error {
+	if _, err := fmt.Fprintf(out, "CLI capabilities: %s %s (contract %s)\nUse --json for command flags, output contracts, schema resources, and restrictions.\n", displayName, d.ProviderVersion, d.SchemaVersion); err != nil {
 		return err
 	}
 	for _, command := range d.Commands {

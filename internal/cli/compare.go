@@ -13,34 +13,35 @@ import (
 )
 
 func newCompareCommand(opts *options) *cobra.Command {
+	n := opts.displayName
 	command := &cobra.Command{
 		Use:     "compare <base.json> <head.json>",
 		Short:   "Compare two saved profiles without rescanning their sources",
-		Long:    "Compare explicitly selected aggregate dircue JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
-		Example: "  dircue compare base.json head.json --json\n  dircue analyze discovery --json /checkout > profile.json",
+		Long:    "Compare explicitly selected aggregate " + n + " JSON reports. Compatibility is checked per module; missing provenance and partial coverage limit conclusions. Evidence paths are never opened. Successful comparisons return zero even when observations differ.",
+		Example: "  " + n + " compare base.json head.json --json\n  " + n + " analyze discovery --json /checkout > profile.json",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
-				return fmt.Errorf("compare requires two saved aggregate reports; use: dircue compare base.json head.json --json")
+				return fmt.Errorf("compare requires two saved aggregate reports; use: %s compare base.json head.json --json", n)
 			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, flag := range analysisFlagNames {
 				if cmd.Flags().Changed(flag) {
-					return fmt.Errorf("--%s does not apply to saved-report comparison; set scan options when creating a report with dircue analyze discovery --json /checkout", flag)
+					return fmt.Errorf("--%s does not apply to saved-report comparison; set scan options when creating a report with %s analyze discovery --json /checkout", flag, n)
 				}
 			}
 			if err := cmd.Context().Err(); err != nil {
 				return err
 			}
-			base, err := loadComparisonFile(args[0], "base")
+			base, err := loadComparisonFile(args[0], "base", n)
 			if err != nil {
 				return err
 			}
 			if err := cmd.Context().Err(); err != nil {
 				return err
 			}
-			head, err := loadComparisonFile(args[1], "head")
+			head, err := loadComparisonFile(args[1], "head", n)
 			if err != nil {
 				return err
 			}
@@ -61,10 +62,10 @@ func newCompareCommand(opts *options) *cobra.Command {
 	return command
 }
 
-func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
-	file, err := openInputFile(name, role+" report")
+func loadComparisonFile(path, role, displayName string) (*reportdiff.Snapshot, error) {
+	file, err := openInputFile(path, role+" report")
 	if err != nil {
-		return nil, &diagnosticError{message: savedReportOpenErrorMessage(role + " report"), cause: err}
+		return nil, &diagnosticError{message: savedReportOpenErrorMessage(displayName, role+" report"), cause: err}
 	}
 	defer file.Close()
 	opened, err := file.Stat()
@@ -79,7 +80,7 @@ func loadComparisonFile(name, role string) (*reportdiff.Snapshot, error) {
 		return nil, fmt.Errorf("read %s report: %w", role, err)
 	}
 	if documentKind(data) == "map" {
-		return nil, fmt.Errorf("%s report is a map document (kind: \"map\"); use: dircue map compare", role)
+		return nil, fmt.Errorf("%s report is a map document (kind: \"map\"); use: %s map compare", role, displayName)
 	}
 	snapshot, err := reportdiff.Load(bytes.NewReader(data))
 	if err != nil {

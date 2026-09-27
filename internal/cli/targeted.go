@@ -13,7 +13,7 @@ import (
 func addFocusFlags(command *cobra.Command, opts *options) {
 	command.Short = "Profile a declared project with its original-root context"
 	command.Long = "Select a .NET or Python/uv project by its root-relative manifest path. The plan uses static declarations and directory ownership, not evaluated compiler inputs. Shared declarations remain context; metrics count only the primary project and separately requested related projects. The original root inventory is still traversed."
-	command.Example = "  dircue analyze focus --project services/app/app.csproj --metrics --json .\n  dircue analyze focus --affected-by Directory.Build.props --json ."
+	command.Example = "  " + opts.displayName + " analyze focus --project services/app/app.csproj --metrics --json .\n  " + opts.displayName + " analyze focus --affected-by Directory.Build.props --json ."
 	command.Flags().StringVar(&opts.focusProject, "project", "", "Primary root-relative .NET or Python/uv manifest path")
 	command.Flags().StringArrayVar(&opts.focusRelated, "related-project", nil, "Explicit additional project to profile separately (repeatable)")
 	command.Flags().StringVar(&opts.focusAffectedBy, "affected-by", "", "Query projects with retained context evidence for this root-relative input")

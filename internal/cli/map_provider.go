@@ -92,14 +92,15 @@ func mergeQuestionCoverage(base, extra []mapdoc.QuestionCoverage) []mapdoc.Quest
 }
 
 func newMapRouteCommand(opts *options) *cobra.Command {
+	n := opts.displayName
 	cmd := &cobra.Command{
 		Use:     "route <map.json>",
 		Short:   "Create inert analyzer follow-up plans from a saved map",
-		Long:    "Read a saved dircue map and emit deterministic, non-executable routing plans. Plans contain placeholders and declared prerequisites; dircue does not inspect PATH, download tools, or execute any plan.",
-		Example: "  dircue map --json /checkout > map.json\n  dircue map route map.json --json",
+		Long:    "Read a saved " + n + " map and emit deterministic, non-executable routing plans. Plans contain placeholders and declared prerequisites; " + n + " does not inspect PATH, download tools, or execute any plan.",
+		Example: "  " + n + " map --json /checkout > map.json\n  " + n + " map route map.json --json",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 1 {
-				return fmt.Errorf("map route requires one saved map file; see: dircue map route --help")
+				return fmt.Errorf("map route requires one saved map file; see: %s map route --help", n)
 			}
 			return nil
 		},
@@ -107,7 +108,7 @@ func newMapRouteCommand(opts *options) *cobra.Command {
 			if err := rejectMapSavedInputFlags(cmd, opts); err != nil {
 				return err
 			}
-			doc, err := loadMapDocument(args[0], "map document")
+			doc, err := loadMapDocument(args[0], "map document", n)
 			if err != nil {
 				return err
 			}
@@ -128,17 +129,18 @@ func newMapRouteCommand(opts *options) *cobra.Command {
 }
 
 func newMapLocateCommand(opts *options) *cobra.Command {
+	n := opts.displayName
 	var sourceURI, digestSpec string
 	var uriBases []string
 	var summary bool
 	cmd := &cobra.Command{
 		Use:     "locate <map.json> <results.sarif>",
 		Short:   "Annotate SARIF locations with map ownership",
-		Long:    "Read a saved dircue map and SARIF 2.1.0 log, then add dircue.map ownership properties to result locations. The inputs are treated as data and are never executed. The annotated SARIF is written to stdout; --summary emits bounded resolution counts instead.",
-		Example: "  dircue map locate map.json results.sarif > located.sarif\n  dircue map locate --summary map.json results.sarif\n  dircue map locate --source-uri /checkout map.json results.sarif",
+		Long:    "Read a saved " + n + " map and SARIF 2.1.0 log, then add dircue.map ownership properties to result locations. The inputs are treated as data and are never executed. The annotated SARIF is written to stdout; --summary emits bounded resolution counts instead.",
+		Example: "  " + n + " map locate map.json results.sarif > located.sarif\n  " + n + " map locate --summary map.json results.sarif\n  " + n + " map locate --source-uri /checkout map.json results.sarif",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
-				return fmt.Errorf("map locate requires a saved map and SARIF report; see: dircue map locate --help")
+				return fmt.Errorf("map locate requires a saved map and SARIF report; see: %s map locate --help", n)
 			}
 			return nil
 		},
@@ -146,7 +148,7 @@ func newMapLocateCommand(opts *options) *cobra.Command {
 			if err := rejectMapSavedInputFlags(cmd, opts); err != nil {
 				return err
 			}
-			doc, err := loadMapDocument(args[0], "map document")
+			doc, err := loadMapDocument(args[0], "map document", n)
 			if err != nil {
 				return err
 			}

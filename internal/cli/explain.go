@@ -15,7 +15,7 @@ import (
 func newExplainCommand(opts *options) *cobra.Command {
 	var file, project, saved string
 	command := &cobra.Command{Use: "explain [path]", Short: "Explain one file decision or retained project relationship", Long: "Inspect one language decision in its original source context, or explain retained evidence from an explicitly supplied aggregate report. Fresh file inspection traverses selected-source metadata for attribute context. Saved-report queries never open the recorded source directory or evidence paths.", Args: pathArgs}
-	command.Example = "  dircue analyze explain --file src/main.go --json /checkout\n  dircue analyze explain --report profile.json --project app/app.csproj --json"
+	command.Example = "  " + opts.displayName + " analyze explain --file src/main.go --json /checkout\n  " + opts.displayName + " analyze explain --report profile.json --project app/app.csproj --json"
 	command.Flags().StringVar(&file, "file", "", "Root-relative file whose language decision or retained evidence should be explained")
 	command.Flags().StringVar(&project, "project", "", "Root-relative project manifest whose recorded declarations should be explained")
 	command.Flags().StringVar(&saved, "report", "", "Read a saved aggregate report instead of inspecting a directory")
