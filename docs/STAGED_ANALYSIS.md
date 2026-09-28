@@ -2,14 +2,7 @@
 
 Start with a profile of the directory, then decide which additional work its contents justify. Metrics, structural parsing, and external package inventories answer different questions; none needs to run merely because another ran.
 
-The consumer example below uses the schema 1.2.0 project contract introduced in
-0.3.0, which existing commands still support. For a pass limited to metadata,
-[`analyze discovery`](DISCOVERY.md) inventories selected files without reading their
-source payloads. Its manifest and artifact candidates can
-help choose whether to request project declarations, language analysis, or
-another inventory. Filename hints cannot validate content formats or establish
-that follow-up work is unnecessary. Its schema `1.3.0` is not accepted by the
-0.3.0 routing example below.
+The consumer example below uses the schema 1.2.0 project contract introduced in 0.3.0, which existing commands still support. For a pass limited to metadata, [`analyze discovery`](DISCOVERY.md) inventories selected files without reading their source payloads. Its manifest and artifact candidates can help choose whether to request project declarations, language analysis, or another inventory. Filename hints cannot validate content formats or establish that follow-up work is unnecessary. Its schema `1.3.0` is not accepted by the 0.3.0 routing example below.
 
 ## First pass
 
@@ -29,18 +22,9 @@ For supported manifest details in 0.5.0, request a separate bounded pass:
 dircue analyze declarations --source directory --json /path/to/checkout
 ```
 
-This command reads supported manifests while avoiding language classification of
-unrelated contents. It can establish declared workspace membership, requirements,
-local references and named interfaces for supported ecosystems. Check its states,
-diagnostics and coverage before interpreting missing relationships. It does not
-run the declared interfaces or determine which package-manager invocation succeeds.
-See [project declarations](DECLARATIONS.md).
+This command reads supported manifests while avoiding language classification of unrelated contents. It can establish declared workspace membership, requirements, local references and named interfaces for supported ecosystems. Check its states, diagnostics and coverage before interpreting missing relationships. It does not run the declared interfaces or determine which package-manager invocation succeeds. See [project declarations](DECLARATIONS.md).
 
-For bounded format evidence on mixed data or artifact directories, use
-[`analyze formats`](FORMATS.md). For measured function distributions after selecting
-source for deeper parsing, use [`analyze structure --hotspots`](HOTSPOTS.md) with
-an explicitly supplied worker. Both are separate choices; metadata discovery
-stays free of source-payload reads.
+For bounded format evidence on mixed data or artifact directories, use [`analyze formats`](FORMATS.md). For measured function distributions after selecting source for deeper parsing, use [`analyze structure --hotspots`](HOTSPOTS.md) with an explicitly supplied worker. Both are separate choices; metadata discovery stays free of source-payload reads.
 
 ## Read evidence before selecting work
 
@@ -102,12 +86,7 @@ dircue analyze structure --source directory --json --files \
 
 A pipeline may also run its installed Syft executable. Dircue does not invoke Syft; an explicit execution option remains planned in [#21](https://github.com/war-and-code/dircue/issues/21).
 
-Dircue 0.4.0 can [import an existing Syft report](PACKAGE_EVIDENCE.md)
-with `analyze packages --syft-report FILE`. Importing is separate from choosing
-or executing Syft. Match the cataloged source to the dircue inventory explicitly;
-a plausible path match alone does not establish that both describe the same
-contents. [Project-reference graphs](GRAPH.md) are another optional follow-up
-for parsed .NET declarations.
+Dircue 0.4.0 can [import an existing Syft report](PACKAGE_EVIDENCE.md) with `analyze packages --syft-report FILE`. Importing is separate from choosing or executing Syft. Match the cataloged source to the dircue inventory explicitly; a plausible path match alone does not establish that both describe the same contents. [Project-reference graphs](GRAPH.md) are another optional follow-up for parsed .NET declarations.
 
 Project roots can help narrow follow-ups, but keep shared parent manifests, workspace files, imports, and artifacts in view. `project_root_hints` in the example are observed locations, not a list of guaranteed self-contained scan targets. The paths are report data and must never be treated as executable shell fragments.
 
@@ -124,6 +103,4 @@ The language-only CLI, default aggregate report, and module opt-ins retain their
 
 Dircue 0.4.0 also provides [metadata-only discovery](DISCOVERY.md). Further whole-workflow evaluation remains in [#22](https://github.com/war-and-code/dircue/issues/22); 0.5.0 adds [offline comparison of saved reports](COMPARISON.md). Comparison does not cache inventories or avoid the scans that produced its inputs; incremental reuse remains tracked in [#10](https://github.com/war-and-code/dircue/issues/10). See the [project guide](PROJECTS.md) for current parser and attribution limits.
 
-The [roadmap](https://github.com/war-and-code/dircue/issues/41) connects those foundations to proposed entry-point
-mapping, optional semantic providers, and portable context for caller-selected
-analysis. It keeps observations separate from the policy that selects follow-ups.
+The [roadmap](https://github.com/war-and-code/dircue/issues/41) connects those foundations to proposed entry-point mapping, optional semantic providers, and portable context for caller-selected analysis. It keeps observations separate from the policy that selects follow-ups.

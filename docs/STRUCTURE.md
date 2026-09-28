@@ -1,29 +1,12 @@
 # Optional structural analysis
 
-Structural analysis extracts syntax observations and aggregate BCA metrics from
-20 source languages through pinned BCA grammars. It is an explicit addition to dircue's ordinary language and
-line-counting paths. Neither the existing commands nor the core Go executable
-need a native parser installation.
+Structural analysis extracts syntax observations and aggregate BCA metrics from 20 source languages through pinned BCA grammars. It is an explicit addition to dircue's ordinary language and line-counting paths. Neither the existing commands nor the core Go executable need a native parser installation.
 
-The adapter requires an explicit path to a prebuilt `dircue-structural-worker`.
-It does not search `PATH`, download grammars, restore dependencies, or execute
-build scripts from the directory being profiled. The selected worker is an
-executable: obtain it from a source you trust, and pass its actual filesystem
-path. Filenames and source text are delivered through standard input, not shell
-commands.
+The adapter requires an explicit path to a prebuilt `dircue-structural-worker`. It does not search `PATH`, download grammars, restore dependencies, or execute build scripts from the directory being profiled. The selected worker is an executable: obtain it from a source you trust, and pass its actual filesystem path. Filenames and source text are delivered through standard input, not shell commands.
 
-The worker is trusted code selected by the caller. It inherits dircue's working
-directory and process environment, which custom workers may need for locale,
-temporary-directory, dynamic-loader, or license configuration. This interface
-is not a sandbox and does not protect environment credentials from the worker.
-Executable symlinks are followed normally.
+The worker is trusted code selected by the caller. It inherits dircue's working directory and process environment, which custom workers may need for locale, temporary-directory, dynamic-loader, or license configuration. This interface is not a sandbox and does not protect environment credentials from the worker. Executable symlinks are followed normally.
 
-The [`--functions`](FUNCTIONS.md) option adds bounded function-space metrics.
-It requires a worker with that capability, introduced in 0.4.0, and makes one
-bounded capability probe before scanning.
-The independent [`--hotspots`](HOTSPOTS.md) option adds distributions and top-ten
-evidence over measured function populations. It requires a 0.6.0-capable worker
-and makes one bounded capability probe before scanning.
+The [`--functions`](FUNCTIONS.md) option adds bounded function-space metrics. It requires a worker with that capability, introduced in 0.4.0, and makes one bounded capability probe before scanning. The independent [`--hotspots`](HOTSPOTS.md) option adds distributions and top-ten evidence over measured function populations. It requires a 0.6.0-capable worker and makes one bounded capability probe before scanning.
 
 ## Commands
 
@@ -33,46 +16,19 @@ dircue analyze structure --structural-worker ./dircue-structural-worker --files 
 dircue analyze all --structure --structural-worker ./dircue-structural-worker --files --json .
 ```
 
-`analyze structure` reports structural coverage and declaration totals. Add
-`--files` for each file's BCA metrics, provenance, and status. BCA metrics are
-kept per file because many are not meaningfully additive. In `analyze all`,
-`--structure` is required to opt in. Its `--files` flag applies to both metrics
-and structure when both modules are requested.
+`analyze structure` reports structural coverage and declaration totals. Add `--files` for each file's BCA metrics, provenance, and status. BCA metrics are kept per file because many are not meaningfully additive. In `analyze all`, `--structure` is required to opt in. Its `--files` flag applies to both metrics and structure when both modules are requested.
 
-`--structural-max-file-bytes` accepts values from 1 through 8388608, with
-8388608 as the default. `--structural-timeout` sets a positive per-file duration
-such as `10s` or `500ms`.
+`--structural-max-file-bytes` accepts values from 1 through 8388608, with 8388608 as the default. `--structural-timeout` sets a positive per-file duration such as `10s` or `500ms`.
 
-Structural analysis uses the scanner's selected inventory and Linguist-style
-source selection, including `.gitattributes` overrides. Its default source mode
-uses the selected committed Git snapshot when available; `--source directory`
-reads working files. `--source git --rev <revision>` selects a committed revision.
-Generated, vendored, documentation, and data exclusions remain visible as
-omissions. Unsupported selected source languages, configured input-size limits, and
-non-regular-file omissions make coverage partial; ordinary out-of-scope content
-does not.
+Structural analysis uses the scanner's selected inventory and Linguist-style source selection, including `.gitattributes` overrides. Its default source mode uses the selected committed Git snapshot when available; `--source directory` reads working files. `--source git --rev <revision>` selects a committed revision. Generated, vendored, documentation, and data exclusions remain visible as omissions. Unsupported selected source languages, configured input-size limits, and non-regular-file omissions make coverage partial; ordinary out-of-scope content does not.
 
 ## What the result means
 
-Each eligible file is parsed once. The same BCA-owned Tree-sitter tree supplies
-both syntax observations and BCA metrics. Every enabled language reports syntax
-node and recovery counts. Java and C# additionally report classes, interfaces,
-records, structs, enums, methods, constructors, properties, imports, lambdas,
-and local functions. Those custom declaration fields are absent for other
-languages; absence is not a count of zero. These are syntax observations;
-there is no compiler name resolution, type checking, project evaluation, or
-cross-file call graph.
+Each eligible file is parsed once. The same BCA-owned Tree-sitter tree supplies both syntax observations and BCA metrics. Every enabled language reports syntax node and recovery counts. Java and C# additionally report classes, interfaces, records, structs, enums, methods, constructors, properties, imports, lambdas, and local functions. Those custom declaration fields are absent for other languages; absence is not a count of zero. These are syntax observations; there is no compiler name resolution, type checking, project evaluation, or cross-file call graph.
 
-`supported_languages` lists the pinned grammar and available observation fields
-for each production language. `observation_files` gives the analyzed-file coverage
-for each aggregate observation key. Consumers can distinguish measured zeroes
-from unavailable declarations. BCA metric groups differ by language and are
-preserved as supplied by upstream.
+`supported_languages` lists the pinned grammar and available observation fields for each production language. `observation_files` gives the analyzed-file coverage for each aggregate observation key. Consumers can distinguish measured zeroes from unavailable declarations. BCA metric groups differ by language and are preserved as supplied by upstream.
 
-The Go adapter preserves only deterministic results. Parser timings remain in
-the standalone experimental worker protocol for benchmark use but do not enter
-production reports. Results include the source byte count, parse count, parser
-provenance, and one of these statuses:
+The Go adapter preserves only deterministic results. Parser timings remain in the standalone experimental worker protocol for benchmark use but do not enter production reports. Results include the source byte count, parse count, parser provenance, and one of these statuses:
 
 | Status | Meaning |
 | --- | --- |
@@ -80,121 +36,50 @@ provenance, and one of these statuses:
 | `partial` | Both consumers finished, but the grammar recovered from missing or unrecognized syntax. Counts and metrics need that qualification. |
 | `skipped` | Unsupported language, oversized input, invalid UTF-8, NUL-containing source, or invalid display path. No parse occurred. |
 
-Process failures, deadlines, malformed responses, unexpected parser versions,
-and excessive worker output are errors. They must not silently become a
-successful complete analysis. A parser partial result is distinct from a worker
-failure. Under `--on-error continue` a per-file worker timeout or process crash
-degrades that specific file to a skipped omission (`structural_timeout` or
-`structural_worker_failure`) and lets the rest of the scan proceed; protocol
-violations (identity, provenance, single-parse contract, malformed responses,
-unsupported capability advertisement) remain fatal in every mode because they
-mean the worker cannot be trusted for any file. The default `--on-error fail`
-still aborts on any worker error.
+Process failures, deadlines, malformed responses, unexpected parser versions, and excessive worker output are errors. They must not silently become a successful complete analysis. A parser partial result is distinct from a worker failure. Under `--on-error continue` a per-file worker timeout or process crash degrades that specific file to a skipped omission (`structural_timeout` or `structural_worker_failure`) and lets the rest of the scan proceed; protocol violations (identity, provenance, single-parse contract, malformed responses, unsupported capability advertisement) remain fatal in every mode because they mean the worker cannot be trusted for any file. The default `--on-error fail` still aborts on any worker error.
 
-Cancellation terminates the worker process group on Unix. On Windows dircue
-requests recursive termination with the system `taskkill` utility and falls
-back to terminating the direct worker if that utility is unavailable; descendant
-cleanup is therefore best effort on Windows.
+Cancellation terminates the worker process group on Unix. On Windows dircue requests recursive termination with the system `taskkill` utility and falls back to terminating the direct worker if that utility is unavailable; descendant cleanup is therefore best effort on Windows.
 
-The current C# grammar has known limitations on parts of the Roslyn corpus,
-including modern syntax. The prototype's
-[parser limitation report](../prototypes/structural/tests/results/parser-limitations-macos-arm64.json)
-records those examples. XML logs and other data are not admitted merely because
-they are text. Parser acceptance does not establish support for every language
-version or dialect. See the [capability matrix](CAPABILITIES.md) for the distinction
-between language detection, counting, parsing, and project mapping.
+The current C# grammar has known limitations on parts of the Roslyn corpus, including modern syntax. The prototype's [parser limitation report](../prototypes/structural/tests/results/parser-limitations-macos-arm64.json) records those examples. XML logs and other data are not admitted merely because they are text. Parser acceptance does not establish support for every language version or dialect. See the [capability matrix](CAPABILITIES.md) for the distinction between language detection, counting, parsing, and project mapping.
 
 ## Enabled languages
 
-The production adapter accepts C, C++, C#, Elixir, Go, Groovy, Java, JavaScript
-(including JSX), Kotlin, Lua, Objective-C, Perl, PHP, Python, Ruby, Rust, Shell,
-Tcl, TSX, and TypeScript. Shell uses BCA's Bash grammar; it is not a promise to
-parse every shell dialect. TSX has its own grammar alongside TypeScript.
+The production adapter accepts C, C++, C#, Elixir, Go, Groovy, Java, JavaScript (including JSX), Kotlin, Lua, Objective-C, Perl, PHP, Python, Ruby, Rust, Shell, Tcl, TSX, and TypeScript. Shell uses BCA's Bash grammar; it is not a promise to parse every shell dialect. TSX has its own grammar alongside TypeScript.
 
-BCA supplies the metric groups for each enabled parser. Their definitions and
-applicability vary by language; an upstream zero or null is not evidence that
-an equivalent language feature was measured. Dircue preserves these per-file
-metrics instead of presenting one cross-language quality score. As one visible
-example of that variance, BCA's cognitive-complexity walker adds `+1` for a
-bare `else` in Rust and Python but not in Go, JavaScript, Java, or C, so the
-same syntactic pattern earns different upstream scores across languages.
+BCA supplies the metric groups for each enabled parser. Their definitions and applicability vary by language; an upstream zero or null is not evidence that an equivalent language feature was measured. Dircue preserves these per-file metrics instead of presenting one cross-language quality score. As one visible example of that variance, BCA's cognitive-complexity walker adds `+1` for a bare `else` in Rust and Python but not in Go, JavaScript, Java, or C, so the same syntactic pattern earns different upstream scores across languages.
 
-[Hotspot distributions](HOTSPOTS.md) inspect eligible function spaces before
-evidence retention. The existing [function entries](FUNCTIONS.md) remain a
-bounded sample and are not used as the ranking population. Cross-file dependency
-graphs cannot be inferred from file totals.
+[Hotspot distributions](HOTSPOTS.md) inspect eligible function spaces before evidence retention. The existing [function entries](FUNCTIONS.md) remain a bounded sample and are not used as the ranking population. Cross-file dependency graphs cannot be inferred from file totals.
 
-The [breadth harness](../tests/structural_breadth/README.md) covers every enabled
-language with small source fixtures, direct-worker comparison, and deterministic
-combined reports. Java and C# also retain the larger real-project corpus checks.
-That deeper corpus validation is not implied for all other languages.
+The [breadth harness](../tests/structural_breadth/README.md) covers every enabled language with small source fixtures, direct-worker comparison, and deterministic combined reports. Java and C# also retain the larger real-project corpus checks. That deeper corpus validation is not implied for all other languages.
 
-BCA's F5 iRules parser is available in the standalone worker, but the current
-Enry catalog has no F5 iRules language identity. The production scanner therefore
-does not claim iRules coverage. It does not silently treat arbitrary Tcl files
-as iRules. Firefox-specific C++/JavaScript parser variants are not enabled.
+BCA's F5 iRules parser is available in the standalone worker, but the current Enry catalog has no F5 iRules language identity. The production scanner therefore does not claim iRules coverage. It does not silently treat arbitrary Tcl files as iRules. Firefox-specific C++/JavaScript parser variants are not enabled.
 
 ## Resource boundaries
 
-The adapter admits one worker process at a time. Each worker handles one file
-and exits, releasing its tree before another file is admitted. The default and
-maximum source size are both 8 MiB; callers may select a smaller limit. The
-default deadline is 10 seconds per worker invocation. Waiting for admission
-respects caller cancellation. The worker recognizes only `--capabilities` as
-a discriminating argument, so a `--help` or `--version` invocation falls
-through to the ordinary stdin request path and blocks waiting for a JSON
-envelope rather than printing usage text.
+The adapter admits one worker process at a time. Each worker handles one file and exits, releasing its tree before another file is admitted. The default and maximum source size are both 8 MiB; callers may select a smaller limit. The default deadline is 10 seconds per worker invocation. Waiting for admission respects caller cancellation. The worker recognizes only `--capabilities` as a discriminating argument, so a `--help` or `--version` invocation falls through to the ordinary stdin request path and blocks waiting for a JSON envelope rather than printing usage text.
 
-The source limit is **not a process memory limit**. Parse trees, JSON buffers,
-metrics, and native allocator overhead can exceed source size substantially.
-Use an operating-system or container memory limit when a hard ceiling is
-required. Worker standard output is limited to 16 MiB and standard error to
-64 KiB; either overflow cancels the invocation. The prototype demonstrated a
-small offline workload under a 256 MiB container limit, not an upper bound for
-all supported inputs.
+The source limit is **not a process memory limit**. Parse trees, JSON buffers, metrics, and native allocator overhead can exceed source size substantially. Use an operating-system or container memory limit when a hard ceiling is required. Worker standard output is limited to 16 MiB and standard error to 64 KiB; either overflow cancels the invocation. The prototype demonstrated a small offline workload under a 256 MiB container limit, not an upper bound for all supported inputs.
 
 ## Building the add-on
 
-The native worker's canonical source remains in
-[`prototypes/structural/worker`](../prototypes/structural/worker). Keeping one
-implementation lets the existing parse-reuse and grammar regression fixtures
-exercise exactly what the adapter invokes. Its separate Cargo manifest does not
-add cgo or Rust requirements to ordinary `go build`.
+The native worker's canonical source remains in [`prototypes/structural/worker`](../prototypes/structural/worker). Keeping one implementation lets the existing parse-reuse and grammar regression fixtures exercise exactly what the adapter invokes. Its separate Cargo manifest does not add cgo or Rust requirements to ordinary `go build`.
 
-Use Python 3.12 or newer for packaging. Install Rust 1.94.0 and the relevant
-target, then build a local archive in a fresh output location:
+Use Python 3.12 or newer for packaging. Install Rust 1.94.0 and the relevant target, then build a local archive in a fresh output location:
 
 ```sh
 rustup toolchain install 1.94.0 --profile minimal
 python3 scripts/structural_worker_release.py --version 0.4.0 --platform darwin-arm64 --smoke-test
 ```
 
-Use the platform matching the build host unless its native cross-compilation
-requirements have been installed. Supported packaging targets are
-`darwin-arm64`, `darwin-amd64`, `linux-amd64`, `linux-arm64`, and
-`windows-amd64`. The separate Structural worker workflow builds and tests each
-on its corresponding runner and uploads workflow artifacts. It does not create
-a tag or publish a release.
+Use the platform matching the build host unless its native cross-compilation requirements have been installed. Supported packaging targets are `darwin-arm64`, `darwin-amd64`, `linux-amd64`, `linux-arm64`, and `windows-amd64`. The separate Structural worker workflow builds and tests each on its corresponding runner and uploads workflow artifacts. It does not create a tag or publish a release.
 
-Unlike the core Go executable, Linux add-on artifacts use glibc: the build
-runners are Ubuntu 22.04 for amd64 and Ubuntu 24.04 for arm64. These artifacts
-are not promised to run on Alpine/musl or older Linux distributions. Package
-provenance records each Linux binary's required glibc symbol versions and linked
-libraries. The macOS deployment target is pinned to 11.0; packaging checks that
-its dynamic dependencies are system libraries. This is a deployment target,
-not a claim that CI ran on macOS 11.
+Unlike the core Go executable, Linux add-on artifacts use glibc: the build runners are Ubuntu 22.04 for amd64 and Ubuntu 24.04 for arm64. These artifacts are not promised to run on Alpine/musl or older Linux distributions. Package provenance records each Linux binary's required glibc symbol versions and linked libraries. The macOS deployment target is pinned to 11.0; packaging checks that its dynamic dependencies are system libraries. This is a deployment target, not a claim that CI ran on macOS 11.
 
-Windows packaging requests static MSVC C runtime linkage and inspects the
-executable to reject Visual C++ Redistributable DLL dependencies. The Rust
-Windows target requires Windows 10 or Windows Server 2016 and later. The worker
-still uses operating-system DLLs. See Rust's [Windows target support](https://doc.rust-lang.org/rustc/platform-support/windows-msvc.html)
-and [C runtime linkage](https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes).
+Windows packaging requests static MSVC C runtime linkage and inspects the executable to reject Visual C++ Redistributable DLL dependencies. The Rust Windows target requires Windows 10 or Windows Server 2016 and later. The worker still uses operating-system DLLs. See Rust's [Windows target support](https://doc.rust-lang.org/rustc/platform-support/windows-msvc.html) and [C runtime linkage](https://doc.rust-lang.org/reference/linkage.html#static-and-dynamic-c-runtimes).
 
-Portable add-on packaging is validated separately from the existing core
-archives and Python wheels; the worker is not bundled into those wheels.
+Portable add-on packaging is validated separately from the existing core archives and Python wheels; the worker is not bundled into those wheels.
 
-Builds fetch pinned dependencies. Executing a built worker requires no network,
-Cargo installation, grammar cache, or writeable source directory.
+Builds fetch pinned dependencies. Executing a built worker requires no network, Cargo installation, grammar cache, or writeable source directory.
 
 ## Dependencies and redistribution
 
@@ -204,20 +89,9 @@ Cargo installation, grammar cache, or writeable source directory.
 | Tree-sitter | 0.26.12 | MIT |
 | Language grammars and BCA helper grammars | Pinned in Cargo.lock | See each dependency's included license and notices |
 
-The packaging script verifies each dependency's original crate archive against
-Cargo.lock, and includes every resolved dependency's complete crate source
-(including its licenses and notices). In particular, the complete unmodified
-BCA source is `source/crates/big-code-analysis-2.2.0.crate`. Each package also
-contains the worker's source, Cargo manifest and lockfile, a third-party notice,
-provenance, and SHA-256 checksums. Preserve those files when redistributing the
-add-on. Its dependency licenses remain distinct from dircue's MIT license.
+The packaging script verifies each dependency's original crate archive against Cargo.lock, and includes every resolved dependency's complete crate source (including its licenses and notices). In particular, the complete unmodified BCA source is `source/crates/big-code-analysis-2.2.0.crate`. Each package also contains the worker's source, Cargo manifest and lockfile, a third-party notice, provenance, and SHA-256 checksums. Preserve those files when redistributing the add-on. Its dependency licenses remain distinct from dircue's MIT license.
 
-The [dependency inventory](../prototypes/structural/DEPENDENCIES.md) lists the
-enabled grammar versions. BCA and the grammar versions form a tested set. The Go adapter rejects a worker
-claiming another BCA, runtime, or grammar version. Upgrade them together, rerun
-real-worker tests and syntax fixtures, and compare corpus reports. A grammar
-with the same language name is not automatically compatible with BCA's metric
-implementation.
+The [dependency inventory](../prototypes/structural/DEPENDENCIES.md) lists the enabled grammar versions. BCA and the grammar versions form a tested set. The Go adapter rejects a worker claiming another BCA, runtime, or grammar version. Upgrade them together, rerun real-worker tests and syntax fixtures, and compare corpus reports. A grammar with the same language name is not automatically compatible with BCA's metric implementation.
 
 The selected executable may be a symlink to a trusted installation. The worker inherits the caller process environment and working directory; it is not sandboxed. Its language-support matrix is included even for an empty source so consumers can distinguish unsupported languages from absent input. None of these declarations prove that an arbitrary third-party worker reports truthfully.
 

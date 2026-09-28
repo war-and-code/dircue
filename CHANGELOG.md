@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-09-28)
 
 dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question has a coverage status. The strict Linguist-compatible language commands remain available with their 0.9 output contract; changes to other commands are listed below.
 
@@ -77,7 +77,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 
 ### Distribution
 - **Two command names.** `dirq` is a shorter name for `dircue`: the same program, flags, exit statuses and machine-readable output, with help text showing the invoked name. Release archives include `dirq` (a symlink on Linux and macOS, a copy of the executable on Windows), wheels install both commands, an image built from the `Dockerfile` has both, and `go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0` installs `dirq`.
-- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so no `replace` directives are needed. `go install github.com/war-and-code/dircue@v1.0.0` was validated against a local module proxy; fetching it from GitHub remains unverified until the tag is pushed and access is available.
+- The module path is now `github.com/war-and-code/dircue`. The maintained Enry, go-git and scc snapshots are embedded in the module with recorded provenance, so no `replace` directives are needed.
 - Release archives for Linux, macOS and Windows (amd64 and arm64 where supported) come with `SHA256SUMS` and matching Python wheels. See `RELEASING.md`.
 - Every release asset carries a **GitHub SLSA build-provenance attestation** (`gh attestation verify <file> --repo war-and-code/dircue`). `SHA256SUMS` is additionally signed with keyless Sigstore cosign; the bundle (`SHA256SUMS.sigstore.json`) is attached to the release. See `README.md` for exact verification commands.
 - Bulky evidence receipt files from prior performance and release runs are assets of the `evidence-archive-1` prerelease; `make fetch-receipts` restores them. No test or CI job reads them from the working tree.
@@ -96,7 +96,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 - **A source-first review slice.** Four more repositories (chi, FastAPI, changedetection.io and Umami) were labeled from source before the candidate ran on them, by the team that develops dircue (`tests/map_corpus/review_holdout`). On its first run the map matched 27 of 29 selected positive facts after vocabulary normalization (15 raw-exact) and contradicted none of the 10 scorable bounded negatives (2 fell outside their oracle scope). Source review later dropped the two misses, both Compose `runs` labels inferred from name similarity, as label errors; the first-run score remains the measurement. CI reproduces the score from the committed receipts.
 - **Test strength.** The suites include 14 metamorphic invariants, mutation-testing baselines, on-demand fuzz campaigns (including dircue's Git index reader) and executable regression checks from committed receipts.
 
-### Pre-release fixes
+### Fixes
 - **`make fuzz-campaign`** target runs each Go fuzz function for a configurable duration (`FUZZ_TIME`, default 60 s); accepts `FUZZ_PKG` and `FUZZ_CACHE` overrides. Replaces ad-hoc per-function invocations.
 - **`pyproject.toml` tool-only files** (those with `[dependency-groups]` but no `[build-system]`, runtime dependencies, or packaging layout) are now treated as non-component manifests, consistent with how `setup.cfg` tool-only files were already handled.
 - **Gemfile conditional gems**: gems inside `if`/`unless`/`case` blocks, one-line blocks, trailing `if`/`unless` modifiers and `optional: true` groups are marked `conditional`, so a capability they alone support is no longer reported as `complete`. Gems in `group` blocks carry a `gemfile-group:<names>` condition; groups made only of `development` and `test` do not contribute capabilities, while other groups (such as `production`) still do.
@@ -112,113 +112,24 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 
 ## 0.9.0 (2026-09-22)
 
-- Match pinned Linguist 9.7.0 candidate narrowing for filename and extension
-  strategies, defer its 23 generic extensions to later strategies, and limit
-  content heuristics to the first 50 KiB. These corrections intentionally change
-  affected language labels and totals, including Perl scripts and headers in
-  the Linux kernel. Generate generic-extension rules from upstream data rather
-  than a separate maintained list. Verify the classifier's existing 50 KiB
-  window with a regression test. Metadata-only discovery retains its filename
-  hints; those hints do not claim content-confirmed language detection.
-- Treat pattern-only `.gitattributes` lines as silent no-ops, accept Cargo's
-  edition-aware inherited `default-features` forms with precise diagnostics,
-  and report added or removed languages when a warning-free comparison input
-  proves the language population ran. Present compound comparison IDs as
-  readable quoted components in text while retaining their JSON identities.
-- Enforce event-only GitHub Actions triggers and full commit-hash pins for
-  external Actions with a lightweight CI contract test.
-- Publish a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) for
-  discussion. The legacy Linguist CLI remains a compatibility target; whether
-  existing `analyze` reports become a frozen legacy profile in 1.x remains an
-  owner decision under [#81](https://github.com/war-and-code/dircue/issues/81).
-  The proposal covers JSON schema families and their `schema_version` semantics,
-  exit statuses, and boundary guarantees. Publish a [security policy](SECURITY.md), a
-  [contribution guide](CONTRIBUTING.md), issue templates, and a pull request
-  template. Rewrite the README front matter to lead with a quick example
-  and a real install story (release archives with checksums, clone-and-build,
-  Python wheel from a GitHub Release URL; `go install` is unsupported because
-  go.mod carries replace directives for the maintained forks). Document the current boundaries
-  (`--source auto` fallback disclosure, absent-focus-query, registry adapter
-  coverage, environment adapter breadth, structural worker isolation) in
-  [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and
-  cross-link from the relevant module docs.
-- Move the CLI ergonomics evidence tree from `agent_ergonomics_audit/` (a
-  repository-root directory) to `tests/ergonomics_v100/`. Redact captured
-  absolute home paths in the audit transcripts. No shipped module reads from
-  the audit tree; the regression harness continues to work against a
-  caller-supplied dircue binary.
-- Add an offline CLI guide, a command and option catalog, and standalone JSON
-  Schema export through explicit `capabilities` views. Keep the original planner
-  descriptor and existing analysis output contracts.
-- Improve command help, bounded spelling hints, saved-report diagnostics, and
-  plain-text plans. Suggested corrections never execute automatically; plans
-  remain inert argument templates requiring caller revalidation.
-- Escape terminal controls in final CLI errors while preserving underlying
-  error causes and ordinary diagnostic text. Retain causes behind privacy-safe
-  saved-report errors, and publish finite option choices in the CLI catalog.
-  Explain which inherited flags framework help ignores. Reject invalid
-  explanation error policies and explicitly empty tree selectors before scanning.
-- Correct the directory-language schema to accept the existing `"NaN"` string
-  percentage for attributed zero-byte files, without changing language output.
-  Reject undefined percentages for nonempty entries and numeric values outside
-  the emitted 0–100 range.
-- Accept the existing `focus_scope_partial` metrics marker when validating saved
-  profiles, so partial focused reports can be read back for explanation.
-- Bound retained Git pack readers and close them on success, failure and
-  cancellation. An [earlier cache-only experiment](tests/performance/v100_preparation/OPTIMIZATION.md)
-  showed 20–43% lower elapsed time on five selected Git workloads; its XML
-  directory control was unchanged. Preserve classification, output and
-  source-selection behavior. Fix a maintained go-git descriptor leak on cache
-  insertion failure.
-- Avoid replaying seekable Git delta bases in the maintained go-git fork, and
-  decode blobs through up to three independent object lanes when workers can
-  use them. A one-worker scan retains the prior eight-reader cache; concurrent
-  lanes retain at most two pack readers each. The retained-reader limit does not
-  cap transient readers during nested delta resolution. On a pinned Linux
-  kernel tree, [final-source measurements](tests/performance/kernel_git/README.md)
-  put Git-source code metrics at 10.07 seconds versus 6.99 seconds from the
-  same tree as a directory, and language profiling at 8.13 versus 6.87 seconds
-  (16 workers, three runs per Git command, case-sensitive APFS). Output hashes
-  remained stable across each Git run. Opt-in read counters and regression tests
-  make future Git-read changes measurable without changing report JSON.
-- Preserve the directory tree-size preflight and per-file regular-file check.
-  Add regressions for unreadable attributes, detector calls on oversized trees,
-  and symlinks to regular files; reject proposed optimizations that weakened
-  these behaviors.
-- Honor `--on-error continue` uniformly. Previously a single unreadable manifest
-  aborted the whole `analyze all` run even under `continue`, because formats,
-  declarations, registries and the environments `global.json` selection
-  returned plain read errors. Under `continue` the unreadable file is now a
-  per-module omission (`file_read_error`) plus the same-shaped top-level
-  warning, the module reports `partial`, and the remaining modules keep their
-  evidence. Under `continue` only, a per-file structural worker timeout or
-  non-zero exit becomes a `structural_timeout` or `structural_worker_failure`
-  omission instead of ending the scan. Cancellation, worker startup failures,
-  and protocol violations remain fatal. Recoverable worker warnings omit raw
-  worker stderr. Cache failed global.json selections once per analysis and
-  deduplicate file-read warnings without quadratic scans.
-- Preserve Linguist-compatible `--tree-size` edge behavior: nonpositive values
-  behave as 1 for directory scans, while single-file inspection ignores the
-  directory-only limit.
-- Suggest nearby values for finite option choices (`--source`, `--on-error`,
-  `--metrics-scope`, `--module`), two-edit typos of longer command names, and
-  an unknown first token that is not a path. Give `analyze explain --report` the
-  same unreadable-report hint as `plan` and `compare`. Name the object kind
-  when `--tree` resolves to a commit or blob. Advertise the `--guide`, `--cli`
-  and `--schema` capability views through explicit help, record signal
-  termination (SIGPIPE on a closed stdout) truthfully in
-  the CLI catalog exit codes, and add a catalog drift test so a new flag cannot
-  ship without its documented semantics.
-- Report a `global.json` accepted through the JSONC path (comments, trailing
-  commas) with a `global-json-lenient-syntax` diagnostic. Allow complete environment
-  coverage only when all upstream gaps are independently resolved strict-JSON
-  rejections; retain partial status for omitted or malformed project requirements.
-  Consider only `global.json` files that are
-  nearest ancestors of a modeled .NET invocation context, so a Jekyll or Hugo
-  `_data/global.json` no longer receives a .NET diagnostic.
-- Add fuzz targets with seed corpora for the gitattributes parser, the
-  `global.json` and `requires-python` readers, saved-report planning input and
-  the capability descriptor, asserting bounded output and determinism.
+- Match pinned Linguist 9.7.0 candidate narrowing for filename and extension strategies, defer its 23 generic extensions to later strategies, and limit content heuristics to the first 50 KiB. These corrections intentionally change affected language labels and totals, including Perl scripts and headers in the Linux kernel. Generate generic-extension rules from upstream data rather than a separate maintained list. Verify the classifier's existing 50 KiB window with a regression test. Metadata-only discovery retains its filename hints; those hints do not claim content-confirmed language detection.
+- Treat pattern-only `.gitattributes` lines as silent no-ops, accept Cargo's edition-aware inherited `default-features` forms with precise diagnostics, and report added or removed languages when a warning-free comparison input proves the language population ran. Present compound comparison IDs as readable quoted components in text while retaining their JSON identities.
+- Enforce event-only GitHub Actions triggers and full commit-hash pins for external Actions with a lightweight CI contract test.
+- Publish a [proposed 1.0 compatibility policy](docs/COMPATIBILITY.md) for discussion. The legacy Linguist CLI remains a compatibility target; whether existing `analyze` reports become a frozen legacy profile in 1.x remains an owner decision under [#81](https://github.com/war-and-code/dircue/issues/81). The proposal covers JSON schema families and their `schema_version` semantics, exit statuses, and boundary guarantees. Publish a [security policy](SECURITY.md), a [contribution guide](CONTRIBUTING.md), issue templates, and a pull request template. Rewrite the README front matter to lead with a quick example and a real install story (release archives with checksums, clone-and-build, Python wheel from a GitHub Release URL; `go install` is unsupported because go.mod carries replace directives for the maintained forks). Document the current boundaries (`--source auto` fallback disclosure, absent-focus-query, registry adapter coverage, environment adapter breadth, structural worker isolation) in [docs/CAPABILITIES.md](docs/CAPABILITIES.md#known-boundaries-at-10) and cross-link from the relevant module docs.
+- Move the CLI ergonomics evidence tree from `agent_ergonomics_audit/` (a repository-root directory) to `tests/ergonomics_v100/`. Redact captured absolute home paths in the audit transcripts. No shipped module reads from the audit tree; the regression harness continues to work against a caller-supplied dircue binary.
+- Add an offline CLI guide, a command and option catalog, and standalone JSON Schema export through explicit `capabilities` views. Keep the original planner descriptor and existing analysis output contracts.
+- Improve command help, bounded spelling hints, saved-report diagnostics, and plain-text plans. Suggested corrections never execute automatically; plans remain inert argument templates requiring caller revalidation.
+- Escape terminal controls in final CLI errors while preserving underlying error causes and ordinary diagnostic text. Retain causes behind privacy-safe saved-report errors, and publish finite option choices in the CLI catalog. Explain which inherited flags framework help ignores. Reject invalid explanation error policies and explicitly empty tree selectors before scanning.
+- Correct the directory-language schema to accept the existing `"NaN"` string percentage for attributed zero-byte files, without changing language output. Reject undefined percentages for nonempty entries and numeric values outside the emitted 0–100 range.
+- Accept the existing `focus_scope_partial` metrics marker when validating saved profiles, so partial focused reports can be read back for explanation.
+- Bound retained Git pack readers and close them on success, failure and cancellation. An [earlier cache-only experiment](tests/performance/v100_preparation/OPTIMIZATION.md) showed 20–43% lower elapsed time on five selected Git workloads; its XML directory control was unchanged. Preserve classification, output and source-selection behavior. Fix a maintained go-git descriptor leak on cache insertion failure.
+- Avoid replaying seekable Git delta bases in the maintained go-git fork, and decode blobs through up to three independent object lanes when workers can use them. A one-worker scan retains the prior eight-reader cache; concurrent lanes retain at most two pack readers each. The retained-reader limit does not cap transient readers during nested delta resolution. On a pinned Linux kernel tree, [final-source measurements](tests/performance/kernel_git/README.md) put Git-source code metrics at 10.07 seconds versus 6.99 seconds from the same tree as a directory, and language profiling at 8.13 versus 6.87 seconds (16 workers, three runs per Git command, case-sensitive APFS). Output hashes remained stable across each Git run. Opt-in read counters and regression tests make future Git-read changes measurable without changing report JSON.
+- Preserve the directory tree-size preflight and per-file regular-file check. Add regressions for unreadable attributes, detector calls on oversized trees, and symlinks to regular files; reject proposed optimizations that weakened these behaviors.
+- Honor `--on-error continue` uniformly. Previously a single unreadable manifest aborted the whole `analyze all` run even under `continue`, because formats, declarations, registries and the environments `global.json` selection returned plain read errors. Under `continue` the unreadable file is now a per-module omission (`file_read_error`) plus the same-shaped top-level warning, the module reports `partial`, and the remaining modules keep their evidence. Under `continue` only, a per-file structural worker timeout or non-zero exit becomes a `structural_timeout` or `structural_worker_failure` omission instead of ending the scan. Cancellation, worker startup failures, and protocol violations remain fatal. Recoverable worker warnings omit raw worker stderr. Cache failed global.json selections once per analysis and deduplicate file-read warnings without quadratic scans.
+- Preserve Linguist-compatible `--tree-size` edge behavior: nonpositive values behave as 1 for directory scans, while single-file inspection ignores the directory-only limit.
+- Suggest nearby values for finite option choices (`--source`, `--on-error`, `--metrics-scope`, `--module`), two-edit typos of longer command names, and an unknown first token that is not a path. Give `analyze explain --report` the same unreadable-report hint as `plan` and `compare`. Name the object kind when `--tree` resolves to a commit or blob. Advertise the `--guide`, `--cli` and `--schema` capability views through explicit help, record signal termination (SIGPIPE on a closed stdout) truthfully in the CLI catalog exit codes, and add a catalog drift test so a new flag cannot ship without its documented semantics.
+- Report a `global.json` accepted through the JSONC path (comments, trailing commas) with a `global-json-lenient-syntax` diagnostic. Allow complete environment coverage only when all upstream gaps are independently resolved strict-JSON rejections; retain partial status for omitted or malformed project requirements. Consider only `global.json` files that are nearest ancestors of a modeled .NET invocation context, so a Jekyll or Hugo `_data/global.json` no longer receives a .NET diagnostic.
+- Add fuzz targets with seed corpora for the gitattributes parser, the `global.json` and `requires-python` readers, saved-report planning input and the capability descriptor, asserting bounded output and determinism.
 
 ## 0.8.0 (2026-09-21)
 
@@ -261,10 +172,7 @@ dircue 1.0 adds **the map**. One deterministic, offline command answers what an 
 
 ## 0.4.0 (2026-09-20)
 
-This release extends the optional profilers while preserving existing command
-contracts. The [validation report](docs/releases/0.4.0-validation.md) records candidate
-evidence. The [release preparation](https://github.com/war-and-code/dircue/actions/runs/35478628605)
-passed all seven jobs and verified all 39 assets before publication.
+This release extends the optional profilers while preserving existing command contracts. The [validation report](docs/releases/0.4.0-validation.md) records candidate evidence. The [release preparation](https://github.com/war-and-code/dircue/actions/runs/35478628605) passed all seven jobs and verified all 39 assets before publication.
 
 - Add explicit metadata discovery that includes regular files outside language statistics, with candidate manifest/artifact hints and declared omissions.
 - Add static .NET project-graph components, cycles, and degrees while keeping conditional and unresolved references separate.
