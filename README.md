@@ -2,9 +2,9 @@
 
 Profile source code repos and other directories of computer content.
 
-Handed a repository you didn't write, you first need to know what's in it: its languages and projects, what gets built and deployed, what it exposes and depends on, and which deeper tools are worth running where. Answering that usually means reading around by hand, then running several tools that each cover one slice, such as Linguist for languages, scc for line counts and Syft for packages.
+If/when faced with an unfamiliar repository, you want to know what's in it — programming languages and projects, what gets built and deployed, what it exposes and depends on, and perhaps which deeper tools are worth running where. Answering *all that* usually means reading around willy-nilly and/or running *several* tools that each cover one "slice", like Linguist for languages, scc for line counts and Syft for packages.
 
-`dircue map` answers it in one deterministic, offline pass, without running anything in the directory. It reads a committed Git tree or an ordinary directory and writes one portable document covering:
+`dircue map` answers *all that* in one deterministic, offline pass, without running anything in the directory. It conditionally reads a committed Git tree, or just the ordinary directory. Then it writes one portable document covering:
 
 - **components:** projects from 36 component kinds, reported under 27 `ecosystem` values;
 - **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
@@ -330,13 +330,13 @@ The [CI guide](docs/CI.md) covers local checks and release preparation.
 
 ## FAQ
 
-**Do I need Go, Ruby, or Git installed?** The core executable needs none of them. Building it needs Go; a wheel's launcher needs Python 3.10+. Optional structural analysis needs a prebuilt native worker, and building that worker needs Rust.
+**Do I need Go, Ruby, or Git installed?** The core executable needs none of those. But *building* it needs Go; a wheel's launcher needs Python 3.10+. Optional structural analysis needs a prebuilt native worker, and building that worker needs Rust.
 
 **Can it profile an extracted archive?** Yes. Point it at the extracted directory; Git metadata is optional.
 
 **Will it pick up upstream detection improvements?** The maintained fork has a reproducible [update procedure](third_party/README.md). Updates are pinned and compared against Linguist before adoption; scans never download rules.
 
-**Is there a Go library API?** Not a supported one in 1.x; `pkg/` packages may change in any release. See the [compatibility policy](docs/COMPATIBILITY.md).
+**Is there a Go library API?** Not yet a supported one in 1.x; `pkg/` packages may change in any release. See the [compatibility policy](docs/COMPATIBILITY.md).
 
 ## Contributions
 
