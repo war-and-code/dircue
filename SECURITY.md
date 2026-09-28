@@ -1,7 +1,6 @@
-
 # Security policy
 
-Dircue profiles unfamiliar directories, which *could* hypothetically contain hostile inputs.
+Dircue profiles unfamiliar directories, which could contain hostile inputs.
 
 Please report any defects that let inspected content escape the documented analysis boundaries, expose credentials, or exhaust resources unexpectedly.
 
@@ -12,7 +11,7 @@ Please report any defects that let inspected content escape the documented analy
     - Do not attach credentials, private source code, or sensitive reports to a public issue.
 - Include the dircue version, operating system, exact command, expected and observed behavior, and a minimal reproduction if it can be shared.
 - Maintainers will coordinate a fix and disclosure with the reporter.
-   - Response times and backports are not guaranteed; fixes normally target the latest release.
+    - Response times and backports are not guaranteed; fixes normally target the latest release.
 
 ## Analysis boundaries
 
@@ -22,7 +21,7 @@ Optional structural analysis executes the worker selected by the caller. It is n
 
 Reports can contain source paths, project names, package coordinates, and other repository metadata. Supported credential fields are redacted, but reports are not guaranteed free of confidential information. Review them before sharing.
 
-Useful reports include —
+Useful reports include:
 
 - Reads that escape documented directory containment or resolve references from a saved report into unintended filesystem or network access.
 - Execution of inspected content, including build scripts or commands inferred from project declarations.

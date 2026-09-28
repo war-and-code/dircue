@@ -26,7 +26,7 @@ With uv's default index settings, these commands require the matching version on
 
 Starting with 1.0.0, the binary answers to both `dircue` and `dirq`. The two names behave identically; help and usage text shows the name that was invoked.
 
-- **Archive extract** — the tar archives ship `dircue` plus a relative symlink `dirq -> dircue`. After extracting on Linux or macOS you can call either name from the same directory:
+- **Archive extract:** the tar archives ship `dircue` plus a relative symlink `dirq -> dircue`. After extracting on Linux or macOS you can call either name from the same directory:
   ```sh
   tar -xzf dircue_1.0.0_linux_amd64.tar.gz
   ./dircue --version
@@ -34,13 +34,13 @@ Starting with 1.0.0, the binary answers to both `dircue` and `dirq`. The two nam
   ```
   The Windows zip ships `dircue.exe` and a byte-identical `dirq.exe` copy.
 
-- **Go install** — two entry points are published:
+- **Go install:** two entry points are published:
   ```sh
   go install github.com/war-and-code/dircue@v1.0.0        # installs dircue
   go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0  # installs dirq
   ```
 
-- **Wheel** — both console scripts are included in every wheel:
+- **Wheel:** both console scripts are included in every wheel:
   ```sh
   uvx --offline --no-index \
     --from ./dist/wheels-1.0.0/dircue-1.0.0-py3-none-macosx_12_0_arm64.whl \

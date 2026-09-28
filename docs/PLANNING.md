@@ -12,7 +12,7 @@ dircue plan first-pass.json --module structure --input structural-worker --json
 
 `plan` reads one bounded, schema-validated aggregate profile and creates an inspectable follow-up plan. It does not rescan the declared root, read evidence paths, inspect `PATH`, probe a structural worker, contact a service, or run any planned command. The caller selects questions or modules; repository text cannot add requests or change planner policy.
 
-The initial questions are `content-inventory`, `project-declarations`, `environments`, `project-scope`, `source-availability`, `content-formats`, `code-metrics`, and `source-structure`. `dircue capabilities --json` returns the versioned registry used by the planner. This descriptor covers planner-supported modules only. It is not a complete inventory of every dircue command or flag.
+The initial questions are `content-inventory`, `project-declarations`, `environments`, `project-scope`, `source-availability`, `content-formats`, `code-metrics`, and `source-structure`. `dircue capabilities --json` returns the versioned registry used by the planner. This descriptor covers planner-supported modules only, not every dircue command or flag.
 
 For the complete CLI catalog, use `dircue capabilities --cli --json`. The separate `--guide` view explains workflows in text or JSON, and `dircue capabilities --schema planning` exports the plan's JSON Schema for offline validation. These sibling views are listed by `dircue capabilities --help`; the default planner descriptor remains byte-compatible with 0.8.0. Use `dircue plan --help` for currently supported questions, modules, and examples without consulting this document.
 

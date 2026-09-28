@@ -14,7 +14,7 @@ Develop locally and keep the pull request in draft while it is changing. Mark it
 | Push to `main` | Lightweight checks, Linux Go and native-worker suites, and both conformance suites |
 | Explicit workflow dispatch | Full checks for that workflow on the selected ref |
 
-There are no feature-branch push runs duplicating PR checks. Each workflow has a separate draft and full concurrency lanes per PR or ref, and cancels superseded runs within each lane. Ready PRs use the full suite even for documentation-only updates: an earlier successful commit is not evidence for a later one. Returning to draft before another editing cycle keeps that cycle inexpensive. Workflows use `pull_request`, not privileged `pull_request_target` execution.
+Each workflow has separate draft and full concurrency lanes per PR or ref, and cancels superseded runs within each lane. Ready PRs use the full suite even for documentation-only updates: an earlier successful commit is not evidence for a later one. Returning to draft before another editing cycle keeps that cycle inexpensive. Workflows use `pull_request`, not privileged `pull_request_target` execution.
 
 All workflows remain event-driven or manually dispatched. Scheduled Actions require a separate maintainer decision, including after the repository becomes public. The [CI policy test](../tests/ci/test_workflow_policy.py) rejects schedule triggers and external Actions without full commit-hash pins.
 

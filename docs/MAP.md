@@ -299,7 +299,7 @@ Current route descriptors cover Syft, scc, BCA, Noir, OpenTaint, and Bifrost whe
 
 ## Forests
 
-`dircue map --forest PATH` scans a directory that may contain multiple Git repositories — a developer laptop, an archive drive, a CI workspace — and produces a single forest document that covers every nested root plus the remaining unrooted content.
+`dircue map --forest PATH` scans a directory that may contain multiple Git repositories (a developer laptop, an archive drive, a CI workspace) and produces a single forest document that covers every nested root plus the remaining unrooted content.
 
 ```sh
 dircue map --forest --json /path/to/drive > forest.json

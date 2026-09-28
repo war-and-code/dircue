@@ -1,4 +1,3 @@
-
 # Releasing dircue
 
 This document describes how a maintainer cuts a versioned release.

@@ -294,7 +294,7 @@ generated/**/*.java linguist-generated=false
 
 Root and nested `.gitattributes` support Linguist's language, vendor, generated, documentation, detectable and LFS attributes, with Git's precedence, macros and glob syntax. An analysis accepts at most 10,000 compiled attribute rules, a limit Linguist doesn't have. The [conformance scope](tests/conformance/COVERAGE.md) lists what's tested.
 
-dircue reads files and Git objects without invoking hooks, package managers, Git or build scripts. Directory reads use `os.Root`, skip symlinks and special files, and on Unix can't be hung by a file swapped for a FIFO. Neither filesystem nor Git mode is an atomic snapshot of a directory that's changing, so use a stable checkout.
+dircue reads files and Git objects without invoking project hooks, package managers, Git or build scripts. Directory reads use `os.Root`, skip symlinks and special files, and on Unix can't be hung by a file swapped for a FIFO. Neither filesystem nor Git mode is an atomic snapshot of a directory that's changing, so use a stable checkout.
 
 Read failures fail the run by default; `--on-error continue` turns recoverable per-file read errors into reported omissions. Some limits produce skipped or partial results with exit status `0`, so check coverage as well as the exit status. Use JSON for pipelines: text output escapes control characters in filenames.
 
