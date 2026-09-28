@@ -69,6 +69,12 @@ type cliContract struct {
 	Behavior        []string            `json:"behavior"`
 }
 
+// canonicalCommandPath names a command as it appears under dircue, whichever
+// name the tree was built with, so contract lookups match both names.
+func canonicalCommandPath(cmd *cobra.Command) string {
+	return "dircue" + strings.TrimPrefix(cmd.CommandPath(), cmd.Root().Name())
+}
+
 // describeCLI traverses the actual completed Cobra tree only when requested.
 // Framework declarations supply command names, options, types and defaults;
 // semantic qualifications below describe constraints Cobra cannot introspect.
@@ -83,8 +89,8 @@ func describeCLI(root *cobra.Command) cliContract {
 			return
 		}
 		cmd.InitDefaultHelpFlag()
-		canonical := cmd.CommandPath()
-		entry := cliCommandContract{Path: strings.Split(canonical, " "), Usage: cmd.UseLine(), Summary: cmd.Short, Description: cmd.Long,
+		canonical := canonicalCommandPath(cmd)
+		entry := cliCommandContract{Path: strings.Split(cmd.CommandPath(), " "), Usage: cmd.UseLine(), Summary: cmd.Short, Description: cmd.Long,
 			Examples: []string{}, Flags: []cliFlagContract{}, RejectedFlags: []string{}, Restrictions: commandRestrictions(cmd), OutputContracts: commandOutputContracts(cmd)}
 		for _, line := range strings.Split(cmd.Example, "\n") {
 			if strings.TrimSpace(line) != "" {
@@ -188,7 +194,7 @@ func describeCLI(root *cobra.Command) cliContract {
 }
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
-	canonical := cmd.CommandPath()
+	canonical := canonicalCommandPath(cmd)
 	if name == "preset" && (canonical == "dircue map" || canonical == "dircue map settings") {
 		return slices.Clone(mapPresetNames)
 	}
@@ -231,7 +237,7 @@ func flagAllowedValues(cmd *cobra.Command, name string) []string {
 }
 
 func commandOutputContracts(cmd *cobra.Command) []string {
-	switch cmd.CommandPath() {
+	switch canonicalCommandPath(cmd) {
 	case "dircue", "dircue analyze languages":
 		return []string{"languages-directory", "languages-file"}
 	case "dircue analyze ecosystems", "dircue analyze frameworks":
@@ -265,7 +271,7 @@ func commandOutputContracts(cmd *cobra.Command) []string {
 }
 
 func commandRestrictions(cmd *cobra.Command) []string {
-	canonical := cmd.CommandPath()
+	canonical := canonicalCommandPath(cmd)
 	r := []string{}
 	if cmd.Parent() == nil || (cmd.Parent() != nil && cmd.Parent().Name() == "analyze") {
 		r = append(r, "At most one source path. --rev and --tree are mutually exclusive. --rev requires a Git source.")

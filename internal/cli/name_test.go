@@ -21,6 +21,7 @@ func TestDetectNameForOS(t *testing.T) {
 		{"/usr/local/bin/dirq", "linux", "dirq"},
 		{"/usr/local/bin/dirq", "darwin", "dirq"},
 		{"dirq.exe", "windows", "dirq"},
+		{"dirq.exe", "linux", "dirq"},
 		{"DIRQ.EXE", "windows", "dirq"},
 		{"DIRQ", "windows", "dirq"},
 		{"Dirq", "windows", "dirq"}, // case-insensitive on Windows
