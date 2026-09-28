@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (unreleased)
+## 1.0.0 (2026-09-28)
 
 dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question has a coverage status. The strict Linguist-compatible language commands remain available with their 0.9 output contract; changes to other commands are listed below.
 

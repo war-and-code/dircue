@@ -87,9 +87,7 @@ Check the exit status before consuming stdout:
 
 ## Install
 
-Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. There is no PyPI package or published container image. While the repository is private, fetch assets with authenticated `gh release download` (see the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads)), and give `go install` `GOPRIVATE=github.com/war-and-code` plus Git credentials for GitHub.
-
-The commands below target `v1.0.0`, which isn't tagged yet as of this writing.
+Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. There is no PyPI package or published container image.
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
