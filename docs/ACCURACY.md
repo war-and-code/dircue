@@ -6,26 +6,15 @@
 
 ## Scope and honesty
 
-These cards measure precision and recall for map questions over a
-**bounded, path-scoped subset** of the corpus in `public_quality_expectations.json`.
-For each repository, only nodes whose evidence paths overlap the `oracle_files`
-set are evaluated. Other map output — nodes evidenced by files outside that set —
-is outside the evaluated universe and is neither a true positive nor a false positive.
+These cards measure precision and recall for map questions over a **bounded, path-scoped subset** of the corpus in `public_quality_expectations.json`. For each repository, only nodes whose evidence paths overlap the `oracle_files` set are evaluated. Other map output — nodes evidenced by files outside that set — is outside the evaluated universe and is neither a true positive nor a false positive.
 
-**Precision** = TP / (TP + FP): of the nodes dircue reported in the evaluated set,
-what fraction was expected?
+**Precision** = TP / (TP + FP): of the nodes dircue reported in the evaluated set, what fraction was expected?
 
-**Recall** = TP / (TP + FN): of the nodes in the expected set, what fraction did
-dircue find?
+**Recall** = TP / (TP + FN): of the nodes in the expected set, what fraction did dircue find?
 
-Confidence intervals use the Wilson score at 95%. A question with zero labels
-reports N/A — not a score of zero or one.
+Confidence intervals use the Wilson score at 95%. A question with zero labels reports N/A — not a score of zero or one.
 
-A kind is marked **`insufficient_labels`** when it has fewer than 30 labels.
-These results are directional only; the confidence intervals are wide.
-A larger regression corpus, initially labeled without seeing dircue output,
-is documented in [GOLDEN.md](GOLDEN.md). The map was subsequently improved
-against those labels, so its final score is not a held-out measurement.
+A kind is marked **`insufficient_labels`** when it has fewer than 30 labels. These results are directional only; the confidence intervals are wide. A larger regression corpus, initially labeled without seeing dircue output, is documented in [GOLDEN.md](GOLDEN.md). The map was subsequently improved against those labels, so its final score is not a held-out measurement.
 
 ## Per-question accuracy
 
