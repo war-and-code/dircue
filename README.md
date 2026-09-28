@@ -1,12 +1,11 @@
+
 # `dircue`
 
 Profile source code repos and other directories of computer content.
 
-`dircue map` describes what an unfamiliar directory contains and how it fits
-together. It works deterministically and offline, without running anything in
-the directory.
+`dircue map` describes what an unfamiliar directory contains and how it fits together. It works deterministically and offline, without running anything in the directory.
 
-`dirq` is a shorter name for the same command. Every example below works with either name.
+`dirq` is a shorter name for the same command. `dircue` and `dirq` are synonymous/aliased CLI commands.
 
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
 - **components:** projects from 36 component kinds, reported under 27 `ecosystem` values;
@@ -15,9 +14,13 @@ the directory.
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
 - **relationships:** what builds, runs, depends on and contains what.
 
-Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why. The Linguist-compatible language profiler that dircue started as is unchanged and still available.
+Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why.
 
-The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) says what 1.0 freezes. What's new in 1.0.0 is in the [CHANGELOG](CHANGELOG.md).
+`dircue` started as "just" a Linguist-compatible language profiler, and that's still a supported use case.
+
+The [design principles](docs/DESIGN_PRINCIPLES.md) explain the trade-offs behind defaults, user control and evidence honesty, and the [compatibility policy](docs/COMPATIBILITY.md) explains freezes and what-not.
+
+What's new in whatever versions is in the [CHANGELOG](CHANGELOG.md).
 
 ## Quick example
 
@@ -59,17 +62,19 @@ Use --json for evidence and full coverage details.
 Common next steps:
 
 ```sh
-dircue map --json . > map.json                          # the full evidence graph (schema/map.schema.json)
-dircue map --attach syft-json=sbom.json --json . > map.json   # join saved Syft, SARIF, Noir or Bifrost reports
-dircue map route --json map.json                        # inert follow-up plans for deeper analyzers
-dircue map compare --format markdown base.json head.json   # what changed between two maps
+dircue map --json . > map.json                               # the full evidence graph (schema/map.schema.json)
+dircue map --attach syft-json=sbom.json --json . > map.json  # join saved Syft, SARIF, Noir or Bifrost reports
+dircue map route --json map.json                             # inert follow-up plans for deeper analyzers
+dircue map compare --format markdown base.json head.json     # what changed between two maps
 dircue map locate map.json results.sarif > located.sarif     # which component owns each SARIF location
-dircue map --forest /disk                               # nested repositories, dependency trees and the rest
+dircue map --forest /disk                                    # nested repositories, dependency trees and the rest
 ```
 
-Attached reports contribute facts and run coverage, never findings or verdicts. Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
+Attached reports strive for objectivity, contributing facts and run coverage.
 
-The classic Linguist-compatible output is unchanged. In a directory holding one small Go file:
+Results against hand-written labels for seven repositories, which also informed map development, are in [GOLDEN.md](docs/GOLDEN.md); Linguist and scc parity across 38 repositories is in the [atlas](tests/atlas/README.md).
+
+The more-classic Linguist-compatible output is unchanged. In a directory holding one small Go file:
 
 ```sh
 $ printf 'package main\n\nfunc main() {}\n' > main.go
@@ -77,16 +82,16 @@ $ dircue --json .
 {"Go":{"size":29,"percentage":"100.00"}}
 ```
 
-Success exits `0` and writes JSON to stdout. Handled errors exit `1` with diagnostics on stderr. Check the exit status before consuming stdout.
+Check the exit status before consuming stdout. —
+
+- Success exits `0` and writes JSON to stdout.
+- Handled errors exit `1` with diagnostics on stderr. 
 
 ## Install
 
 Releases provide platform archives and Python wheels as GitHub release assets, with a `SHA256SUMS` manifest. An archive and its matching wheels contain identical Go executable bytes. PyPI publication and container images are not part of the release; the `Dockerfile` builds an image locally. While the repository is private, use authenticated `gh release download` to fetch assets; the [distribution guide](docs/DISTRIBUTION.md#private-or-draft-github-downloads) shows the commands.
 
-The commands below target the prospective `v1.0.0` release. Its remote tag
-and release assets are not available yet. The `go install` command has been
-validated against a local module proxy; fetching the module from GitHub remains
-untested until the tag is pushed and access is available.
+The commands below target the `v1.0.0` release. As of this writing, the remote tag and release assets are not available yet. The `go install` command has been validated against a local module proxy; fetching the module from GitHub remains untested until the tag is pushed and access is available.
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
@@ -151,15 +156,11 @@ CGO_ENABLED=0 go build -trimpath -o bin/dircue .
 
 ## Compatibility direction
 
-Version 0.9 keeps the documented legacy Linguist CLI and JSON as a
-compatibility target. The [`dircue map`](docs/MAP.md) document is the primary
-1.x contract, and the [compatibility policy](docs/COMPATIBILITY.md) lists
-every surface 1.x keeps stable.
+Version 0.9 kept the documented legacy Linguist CLI and JSON as a compatibility target.
 
-Against the published 0.9.0 executable, 227 of 278 compatibility cases produce
-identical stdout and stderr; 51 have output changes, with no exit-status
-changes. Strict raw Linguist output matches for committed trees, ordinary
-directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
+The [`dircue map`](docs/MAP.md) document is the primary 1.x contract, and the [compatibility policy](docs/COMPATIBILITY.md) lists every surface 1.x keeps stable.
+
+Against the published 0.9.0 executable, 227 of 278 compatibility cases produce identical stdout and stderr; 51 have output changes, with no exit-status changes. Strict raw Linguist output matches for committed trees, ordinary directories and unborn repositories. See the [comparison receipt](tests/compatibility_v100/results/v090-compatibility.json).
 
 ## License
 
@@ -494,21 +495,9 @@ The 1.0.0 release does not include a PyPI publication step. If a future release 
 
 Keep development PRs in draft for lightweight CI. Marking a PR ready runs the full platform and conformance suites; later commits on a ready PR rerun them. See the [CI guide](docs/CI.md) for local checks, runner selection, and release preparation.
 
-The [0.6.0 candidate report](docs/releases/0.6.0-validation.md) records 278 compatibility cases, format and hotspot evidence, and measured default and opt-in costs against 0.5.0.
-
-The [0.5.0 candidate report](docs/releases/0.5.0-validation.md) records declaration and comparison coverage, compatibility checks, and measured default and opt-in costs against 0.4.0. Its source-bound evidence distinguishes local validation from the separate release packaging gates.
-
-The [0.4.0 candidate report](docs/releases/0.4.0-validation.md) separates final-candidate checks from earlier experiments and outstanding release gates. It links the 209-case comparison with 0.3.0, optional-module validation, and measured costs. Results below retain the versions and inputs they originally tested.
-
-The 0.3 candidate adds [project-map validation](tests/projects/README.md) on Roslyn, ASP.NET Core, Spring Framework, and Apache Maven, plus schema checks covering combined reports. The [production structural check](tests/structure/README.md) compares 150 Java/C# files with the pinned worker and preserves known grammar limitations. The [structural breadth harness](tests/structural_breadth/README.md) adds small fixtures for every enabled parser; these do not provide equivalent real-project coverage for every language. [CLI compatibility](tests/compatibility_v030/README.md) compares existing invocations with the shipped 0.2.0 binary; [performance and scale checks](tests/performance_v030/README.md) record the cost of project mapping. The [structural prototype](prototypes/structural/README.md) records parse reuse and offline execution. These checks have a different scope from the historical language and scc benchmarks below; they do not establish that structural parsing has the same cost as language classification.
-
-The 0.2 metrics validation compared 910 committed files from Spring Framework, Roslyn, and ASP.NET Core against native Git bytes and standalone scc. Fixtures cover Java, C#, scope overrides, and a 1,100 MiB XML file. All five [candidate CI jobs](https://github.com/war-and-code/dircue/actions/runs/35128787043) passed, including Linux, macOS, Windows, and both conformance suites. See the [metrics validation](tests/metrics/results/README.md) for counters, performance measurements, source identities, and limitations.
-
 Note that this project was renamed from **auragaze** to **dircue** before public release. Archived benchmark and validation records retain the former name, original source revisions, and executable hashes. They describe the pre-rename candidate; the rename validation is recorded separately in [the rename notes](docs/RENAME.md).
 
-The 0.1 release candidate matched Linguist 9.7.0 language totals and file breakdowns on all 11 pinned public projects. In the recorded Linux arm64 Docker run, median execution was **5.38–14.66× faster**: **9.99×** for Spring Framework, **7.05×** for Roslyn, and **8.21×** for ASP.NET Core. These are measurements of those checkouts and commands, not a guarantee for every repository or host. Peak memory was higher on several large projects; Roslyn used about 345 MiB versus Linguist's 223 MiB.
-
-The final public-project evidence, final scale evidence, and release validation record raw measurements, source identities, checks and limitations. These files are archived in the [evidence-archive-1 release](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1); restore them locally with `make fetch-receipts`. Historical RC1 results remain available separately.
+The final public-project evidence, final scale evidence, and release validation record raw measurements, source identities, checks and limitations. These files are archived in the [evidence-archive-1 release](https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1); restore locally with `make fetch-receipts`. Historical RC1 results remain available separately.
 
 The maintained classifier's `GetLanguage` calls were **1.64× faster** on full sample contents and **1.71× faster** on 128 KiB prefixes than upstream Enry v2.9.6 in the controlled library comparison. The Enry comparison also records CLI timings, differing language policies, and memory costs. Three comparisons against the published Enry CLI were inconclusive, and many scenarios produce different outputs under Enry's defaults.
 
@@ -518,8 +507,6 @@ go vet ./...
 ```
 
 [Conformance](tests/conformance/README.md) compares the actual pinned Ruby CLI, including failures and intentional extensions. [Upstream sample results](tests/conformance/results/samples.md) compare language classifiers. The [performance harness](tests/performance/README.md) compares identical committed public checkouts, requires exact language output before timing, and records raw measurements and environment details.
-
-Java and C#/.NET receive explicit coverage through Spring Framework, Roslyn, ASP.NET Core, and focused Maven/Gradle/MSBuild fixtures. The [scale suite](tests/stress/README.md) adds a fully written 2 GiB ETL-pipeline-shaped checkout, a 1.1 GiB XML log, and 2,048 interconnected `.csproj` files. It exercises both loose and packed Git objects, bounded delta history, Git-free views, generated-code overrides, and tree-size boundaries. ETL-pipeline and XML-log fixtures are synthetic and not verified exports from any vendor. The 0.3 project mapper now reports declared project-reference edges. Directory attribution and target-presence checks remain distinct from evaluated build membership or dependency resolution.
 
 XML is normally excluded as a data language. The [attribute examples](#attributes-and-boundaries) show how to include XML or generated Java when that suits your pipeline.
 
@@ -537,9 +524,11 @@ These checks establish behavior for the recorded inputs. Re-run the comparison w
 
 ## Contributions
 
-Bug reports and design proposals go through [GitHub Issues](https://github.com/war-and-code/dircue/issues) with the templates the repository ships. Outside pull requests are not accepted at present. See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting guidance and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
+Outside pull requests are not accepted at present.
 
-For a classification mismatch, include the dircue version, command, expected result, and a small reproducible example you can share.
+Bug reports and design proposals go through [GitHub Issues](https://github.com/war-and-code/dircue/issues) with the templates the repository ships.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting guidance and [SECURITY.md](SECURITY.md) for private vulnerability reporting.
 
 ## Full license notice
 
