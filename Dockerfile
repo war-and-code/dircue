@@ -3,9 +3,12 @@ ARG VERSION
 WORKDIR /src
 COPY . .
 RUN test -n "${VERSION}" && CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags="-s -w -X github.com/war-and-code/dircue/internal/cli.Version=${VERSION}" -o /out/dircue .
+# Create a relative symlink so /usr/local/bin/dirq resolves to dircue.
+RUN cd /out && ln -s dircue dirq
 
 FROM scratch
 COPY --from=build /out/dircue /usr/local/bin/dircue
+COPY --from=build /out/dirq /usr/local/bin/dirq
 COPY --from=build /src/LICENSE /src/THIRD_PARTY_NOTICES.md /licenses/
 USER 65532:65532
 WORKDIR /repo

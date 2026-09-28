@@ -40,8 +40,27 @@ class PackagingTest(unittest.TestCase):
                         self.assertEqual(archive.getnames(), sorted(payload))
                         for info in archive:
                             self.assertEqual((info.uid, info.gid, info.mtime, info.uname, info.gname), (0, 0, 0, '', ''))
-                            self.assertEqual(info.mode, 0o755 if payload[info.name][1] else 0o644)
-                            self.assertEqual(archive.extractfile(info).read(), payload[info.name][0])
+                            content, executable = payload[info.name]
+                            if content is None:
+                                self.assertTrue(info.issym())
+                                self.assertEqual(info.linkname, executable)
+                            else:
+                                self.assertEqual(info.mode, 0o755 if executable else 0o644)
+                                self.assertEqual(archive.extractfile(info).read(), content)
+
+    def test_symlink_entry_in_tar_archive(self):
+        payload = {'README.md': (b'hello\n', False), 'dircue': (b'\x00bin\xff', True),
+                   'dirq': (None, 'dircue')}
+        with tempfile.TemporaryDirectory() as temporary:
+            path = Path(temporary) / 'out.tar.gz'
+            release.write_archive(path, payload)
+            with tarfile.open(fileobj=io.BytesIO(gzip.decompress(path.read_bytes()))) as archive:
+                members = {m.name: m for m in archive}
+                self.assertEqual(sorted(members), sorted(payload))
+                self.assertTrue(members['dirq'].issym())
+                self.assertEqual(members['dirq'].linkname, 'dircue')
+                self.assertFalse(members['dircue'].issym())
+                self.assertEqual(archive.extractfile(members['dircue']).read(), b'\x00bin\xff')
 
     def test_environment_ignores_workspace_arch_flags_and_private_proxy(self):
         poisoned = {'PATH':'/example/bin', 'HOME':'/example/home', 'GOFLAGS':'-race',

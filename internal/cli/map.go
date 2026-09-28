@@ -37,7 +37,7 @@ func newMapCommand(opts *options) *cobra.Command {
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
 		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Use --forest to discover nested Git roots and produce a forest document. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
-		Example: "  dircue map --json /checkout\n  dircue map --summary --source directory /content\n  dircue map --forest /disk\n  dircue map --budget-files 50000 --json /checkout",
+		Example: "  " + opts.displayName + " map --json /checkout\n  " + opts.displayName + " map --summary --source directory /content\n  " + opts.displayName + " map --forest /disk\n  " + opts.displayName + " map --budget-files 50000 --json /checkout",
 		Args:    pathArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			for _, name := range []string{"breakdown", "strategies"} {
@@ -232,7 +232,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd.Flags().StringVar(&statsJSONPath, "stats-json", "", "Write a run-statistics document (deterministic cost counters and timing) to this path; never enters the map payload")
 	cmd.Flags().StringVar(&cpuProfilePath, "cpuprofile", "", "Write a Go CPU profile to this path (off by default; for diagnostic use)")
 	cmd.Flags().StringVar(&memProfilePath, "memprofile", "", "Write a Go heap profile to this path after the scan completes (off by default; for diagnostic use)")
-	addMapSettingsFlags(cmd, &settingsFlags)
+	addMapSettingsFlags(cmd, &settingsFlags, opts.displayName)
 	cmd.AddCommand(newMapLocateCommand(opts), newMapRouteCommand(opts), newMapSettingsCommand(opts))
 	return cmd
 }

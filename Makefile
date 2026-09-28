@@ -112,6 +112,14 @@ RELEASE_SMOKE_DIR ?= .cache/release-smoke
 release-smoke: ## Run the offline core release smokes against a stamped binary
 	@mkdir -p "$(RELEASE_SMOKE_DIR)"
 	CGO_ENABLED=0 go build -mod=readonly -buildvcs=false -trimpath -ldflags "-X github.com/war-and-code/dircue/internal/cli.Version=$(RELEASE_SMOKE_VERSION)" -o "$(RELEASE_SMOKE_DIR)/dircue" .
+	ln -sf dircue "$(RELEASE_SMOKE_DIR)/dirq"
+	@dircue_v="$$("$(RELEASE_SMOKE_DIR)/dircue" --version 2>&1)"; \
+	 dirq_v="$$("$(RELEASE_SMOKE_DIR)/dirq" --version 2>&1)"; \
+	 echo "dircue --version: $$dircue_v"; \
+	 echo "  dirq --version: $$dirq_v"; \
+	 dircue_num="$$(echo "$$dircue_v" | grep -oE '[0-9][^ ]*$$')"; \
+	 dirq_num="$$(echo "$$dirq_v" | grep -oE '[0-9][^ ]*$$')"; \
+	 [ "$$dircue_num" = "$$dirq_num" ] || (echo "error: dirq version number differs from dircue ($$dircue_num vs $$dirq_num)" >&2 && exit 1)
 	python3 scripts/declarations_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/declarations.json"
 	python3 scripts/formats_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/formats.json"
 	python3 scripts/targeted_release_smoke.py --candidate "$(RELEASE_SMOKE_DIR)/dircue" --version "$(RELEASE_SMOKE_VERSION)" --output "$(RELEASE_SMOKE_DIR)/targeted.json"

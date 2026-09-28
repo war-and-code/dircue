@@ -103,7 +103,11 @@ def local_replacement(source, value):
 
 
 def write_archive(path, payload, windows=False):
-    """Canonical flat payload: binary0755, text0644; no filesystem metadata leaks."""
+    """Canonical flat payload: binary0755, text0644, symlinks by name; no filesystem metadata leaks.
+
+    For tar archives a symlink entry uses (None, link_target) as its value.
+    Windows zip archives do not support symlinks; use byte-identical copies instead.
+    """
     entries = sorted(payload.items())
     if windows:
         with zipfile.ZipFile(path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as output:
@@ -119,10 +123,19 @@ def write_archive(path, payload, windows=False):
                 with tarfile.open(fileobj=compressed, mode='w', format=tarfile.USTAR_FORMAT) as output:
                     for name, (content, executable) in entries:
                         info = tarfile.TarInfo(name)
-                        info.size, info.mode, info.mtime = len(content), 0o755 if executable else 0o644, 0
-                        info.uid = info.gid = 0
-                        info.uname = info.gname = ''
-                        output.addfile(info, io.BytesIO(content))
+                        if content is None:
+                            # Relative symlink: executable holds the link target name.
+                            info.type = tarfile.SYMTYPE
+                            info.linkname = executable
+                            info.mode, info.mtime = 0o777, 0
+                            info.uid = info.gid = 0
+                            info.uname = info.gname = ''
+                            output.addfile(info)
+                        else:
+                            info.size, info.mode, info.mtime = len(content), 0o755 if executable else 0o644, 0
+                            info.uid = info.gid = 0
+                            info.uname = info.gname = ''
+                            output.addfile(info, io.BytesIO(content))
 
 
 def main():
@@ -181,6 +194,12 @@ def main():
                 binary_bytes = binary.read_bytes()
                 payload = {filename:((source/filename).read_bytes(), False) for filename in PAYLOAD}
                 payload[binary_name] = (binary_bytes, True)
+                # Windows zip: byte-identical copy (zip symlinks are unreliable on Windows).
+                # Unix tar: relative symlink dirq -> dircue at the archive root.
+                if target_os == 'windows':
+                    payload['dirq.exe'] = (binary_bytes, True)
+                else:
+                    payload['dirq'] = (None, 'dircue')
                 archive = packaged/(name+('.zip' if target_os == 'windows' else '.tar.gz'))
                 write_archive(archive, payload, target_os == 'windows')
                 archives.append({'name':archive.name, 'sha256':hashlib.sha256(archive.read_bytes()).hexdigest(),

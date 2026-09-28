@@ -6,6 +6,8 @@ Profile source code repos and other directories of computer content.
 together. It works deterministically and offline, without running anything in
 the directory.
 
+`dirq` is a shorter name for the same command. Every example below works with either name.
+
 `dircue map` reads a committed Git tree or an ordinary directory and writes one portable document covering:
 - **components:** projects from 36 component kinds, reported under 27 `ecosystem` values;
 - **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
@@ -88,7 +90,8 @@ untested until the tag is pushed and access is available.
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
-go install github.com/war-and-code/dircue@v1.0.0
+go install github.com/war-and-code/dircue@v1.0.0           # dircue
+go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0  # dirq, the same program
 
 # Release archive + checksum verification (Linux amd64 shown; substitute your platform)
 curl -fsSL -O https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue_1.0.0_linux_amd64.tar.gz
@@ -97,11 +100,12 @@ sha256sum -c SHA256SUMS --ignore-missing
 tar -xzf dircue_1.0.0_linux_amd64.tar.gz
 mkdir -p "$HOME/.local/bin"
 install -m 755 dircue "$HOME/.local/bin/dircue"
+ln -sf dircue "$HOME/.local/bin/dirq"    # the archive's dirq is this same link
 
 # Python wheel via uv (offline-compatible; the launcher only invokes the bundled Go binary)
 uvx --from \
   https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
-  dircue map --summary /path/to/checkout
+  dircue map --summary /path/to/checkout    # the wheel also installs dirq
 ```
 
 While the repository is private, `go install` also needs `GOPRIVATE=github.com/war-and-code` and Git credentials for GitHub.

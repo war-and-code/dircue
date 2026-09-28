@@ -21,10 +21,26 @@ import (
 	"github.com/war-and-code/dircue/pkg/structure"
 )
 
+// nameContextKey is the unexported context key for the display name.
+type nameContextKey struct{}
+
+// contextName retrieves the display name stored by ExecuteAs. It returns
+// "dircue" when no name has been set (e.g. in tests that call Execute directly).
+func contextName(ctx context.Context) string {
+	if name, ok := ctx.Value(nameContextKey{}).(string); ok && name != "" {
+		return name
+	}
+	return "dircue"
+}
+
 // Version may be set by release builds with -ldflags "-X github.com/war-and-code/dircue/internal/cli.Version=...".
 var Version = defaultVersion
 
 type options struct {
+	// displayName is the human-facing program name, either "dircue" or "dirq".
+	// It is set once per Execute/ExecuteAs call and must not be mutated after
+	// the cobra tree is built.
+	displayName            string
 	environments           bool
 	availability           bool
 	focusProject           string
@@ -65,20 +81,50 @@ type options struct {
 	syftMaxBytes           int64
 }
 
-// Execute runs one invocation. Errors are returned without printing; the caller
-// decides how to display them and which process exit code to use.
+// Execute runs one invocation using the binary's invoked name (os.Args[0]) to
+// determine the display name shown in help and error text. It is the entry
+// point for the repo-root main.go. For an explicit name selection use
+// ExecuteAs directly.
+//
+// Errors are returned without printing; the caller decides how to display them
+// and which process exit code to use.
 func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
+	return ExecuteAs(ctx, detectName(os.Args[0]), args, out, errOut)
+}
+
+// ExecuteAs is the core entry point. The name parameter sets the display name
+// shown in help, usage, and error-hint text; it must be "dircue" or "dirq".
+// Unrecognised values are silently normalised to "dircue". JSON output always
+// uses "dircue" regardless of name so that machine-readable consumers are
+// unaffected by the invoked alias.
+func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.Writer) error {
+	if name != "dircue" && name != "dirq" {
+		name = "dircue"
+	}
+	// Store the display name in the context so that diagnostic helper functions
+	// (which only receive cmd or ctx) can emit the right name in error messages.
+	ctx = context.WithValue(ctx, nameContextKey{}, name)
+
 	// Cobra treats nil as a request to consume the host process's arguments.
 	// This API always uses only the arguments supplied by its caller.
 	if args == nil {
 		args = []string{}
 	}
-	opts := &options{}
+	root := newRootCommand(name, out, errOut)
+	root.SetArgs(args)
+	return safeCLIError(root.ExecuteContext(ctx))
+}
+
+// newRootCommand builds the complete command tree under the given display
+// name. capabilities --cli describes a tree built as "dircue", so its JSON is
+// the same whichever name was invoked.
+func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
+	opts := &options{displayName: name}
 	root := &cobra.Command{
-		Use:           "dircue [path]",
+		Use:           name + " [path]",
 		Short:         "Profile source code repos and other directories of computer content",
 		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
-		Example:       "  dircue --json /checkout\n  dircue analyze discovery --source directory --json /content\n  dircue analyze all --declarations --json /checkout\n  dircue capabilities --cli --json",
+		Example:       "  " + name + " --json /checkout\n  " + name + " analyze discovery --source directory --json /content\n  " + name + " analyze all --declarations --json /checkout\n  " + name + " capabilities --cli --json",
 		Version:       effectiveVersion(),
 		Args:          pathArgs,
 		SilenceErrors: true,
@@ -88,11 +134,10 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		},
 	}
 	root.CompletionOptions.DisableDefaultCmd = true
-	root.SetVersionTemplate("dircue {{.Version}}\n")
+	root.SetVersionTemplate(name + " {{.Version}}\n")
 	root.SetOut(out)
 	root.SetErr(errOut)
 	root.SetFlagErrorFunc(flagErrorWithHint)
-	root.SetArgs(args)
 	flags := root.PersistentFlags()
 	flags.BoolVarP(&opts.json, "json", "j", false, "Emit JSON")
 	flags.BoolVarP(&opts.breakdown, "breakdown", "b", false, "Include file paths in language results (no effect on other profilers)")
@@ -109,7 +154,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 		Use:     "analyze",
 		Short:   "Run a selected profiler",
 		Long:    "Choose the profiler for the evidence you need. Discovery inventories metadata; languages retains Linguist-compatible output; all combines languages and ecosystem hints with explicitly selected optional modules. Git repository roots use committed HEAD unless --source directory is selected. No heavier profiler is enabled by choosing this group.",
-		Example: "  dircue analyze discovery --json /checkout\n  dircue analyze languages --source directory --json /content\n  dircue analyze all --declarations --metrics --json /checkout",
+		Example: "  " + name + " analyze discovery --json /checkout\n  " + name + " analyze languages --source directory --json /content\n  " + name + " analyze all --declarations --metrics --json /checkout",
 		RunE:    analysisSelectionError,
 	}
 	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
@@ -119,7 +164,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 			Args:  pathArgs,
 			RunE:  func(cmd *cobra.Command, args []string) error { return run(cmd, args, opts, mode) },
 		}
-		setExtendedCommandHelp(command, mode)
+		setExtendedCommandHelp(command, mode, name)
 		if mode == "metrics" || mode == "all" || mode == "structure" || mode == "focus" {
 			command.Flags().BoolVar(&opts.metricsFiles, "files", false, "Include per-file metrics or structural observations")
 		}
@@ -167,7 +212,7 @@ func Execute(ctx context.Context, args []string, out, errOut io.Writer) error {
 	mapCommand := newMapCommand(opts)
 	mapCommand.AddCommand(newMapCompareCommand(opts))
 	root.AddCommand(mapCommand)
-	return safeCLIError(root.ExecuteContext(ctx))
+	return root
 }
 
 func pathArgs(cmd *cobra.Command, args []string) error {

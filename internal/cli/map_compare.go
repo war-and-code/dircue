@@ -13,20 +13,21 @@ import (
 const maxMapComparisonBytes = 64 << 20
 
 func newMapCompareCommand(opts *options) *cobra.Command {
+	n := opts.displayName
 	var format string
 	command := &cobra.Command{
 		Use:   "compare <base-map.json> <head-map.json>",
 		Short: "Compare two saved directory maps",
-		Long: "Compare two explicitly selected dircue map documents by stable node and relationship IDs. The comparison opens neither source tree. It separates material observations from evidence and coverage changes, and does not claim a deletion when head coverage is incomplete.\n\n" +
+		Long: "Compare two explicitly selected " + n + " map documents by stable node and relationship IDs. The comparison opens neither source tree. It separates material observations from evidence and coverage changes, and does not claim a deletion when head coverage is incomplete.\n\n" +
 			"Output formats (--format):\n" +
 			"  text     Plain text summary (default when stdout is a terminal).\n" +
 			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
 			"--json supersedes --format and writes the full comparison document.\n\n" +
 			"A valid comparison exits 0 regardless of whether changes are present; only I/O or usage errors produce a non-zero exit.",
-		Example: "  dircue map --json old-checkout > before.json\n  dircue map --json new-checkout > after.json\n  dircue map compare --json before.json after.json\n  dircue map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
+		Example: "  " + n + " map --json old-checkout > before.json\n  " + n + " map --json new-checkout > after.json\n  " + n + " map compare --json before.json after.json\n  " + n + " map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
-				return fmt.Errorf("map compare requires base and head map files; see: dircue map compare --help")
+				return fmt.Errorf("map compare requires base and head map files; see: %s map compare --help", n)
 			}
 			return nil
 		},
@@ -37,11 +38,11 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			if format != "text" && format != "markdown" {
 				return fmt.Errorf("unsupported --format %q; choose text or markdown", format)
 			}
-			base, err := loadMapDocument(args[0], "base map")
+			base, err := loadMapDocument(args[0], "base map", n)
 			if err != nil {
 				return err
 			}
-			head, err := loadMapDocument(args[1], "head map")
+			head, err := loadMapDocument(args[1], "head map", n)
 			if err != nil {
 				return err
 			}
@@ -63,10 +64,10 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 	return command
 }
 
-func loadMapDocument(filename, role string) (mapdoc.Document, error) {
+func loadMapDocument(filename, role, displayName string) (mapdoc.Document, error) {
 	file, err := openInputFile(filename, role)
 	if err != nil {
-		return mapdoc.Document{}, &diagnosticError{message: "cannot open " + role + "; supply a readable regular JSON document saved by dircue map --json", cause: err}
+		return mapdoc.Document{}, &diagnosticError{message: "cannot open " + role + "; supply a readable regular JSON document saved by " + displayName + " map --json", cause: err}
 	}
 	defer file.Close()
 	info, err := file.Stat()
@@ -88,11 +89,11 @@ func loadMapDocument(filename, role string) (mapdoc.Document, error) {
 	// document has no top-level kind field; treat it like a legacy profile.
 	if kind := documentKind(data); kind != "map" {
 		if kind != "" {
-			return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: dircue compare", role, kind)
+			return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: %s compare", role, kind, displayName)
 		}
 		// No kind field — check for a profile-shaped document.
 		if isProfileDocument(data) {
-			return mapdoc.Document{}, fmt.Errorf("%s appears to be a legacy profile document (no kind field); use: dircue compare", role)
+			return mapdoc.Document{}, fmt.Errorf("%s appears to be a legacy profile document (no kind field); use: %s compare", role, displayName)
 		}
 	}
 	document, err := mapdoc.UnmarshalStrict(data)
@@ -100,7 +101,7 @@ func loadMapDocument(filename, role string) (mapdoc.Document, error) {
 		return mapdoc.Document{}, fmt.Errorf("%s: %w", role, err)
 	}
 	if document.Kind != "map" {
-		return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: dircue compare", role, document.Kind)
+		return mapdoc.Document{}, fmt.Errorf("%s is not a map document (kind: %q); use: %s compare", role, document.Kind, displayName)
 	}
 	return document, nil
 }

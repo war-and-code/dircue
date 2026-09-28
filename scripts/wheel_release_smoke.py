@@ -144,6 +144,9 @@ def run(core, directory, target, version):
         launcher = commands / ('dircue.exe' if target.startswith('windows-') else 'dircue')
         require(launcher.is_file() and not launcher.is_symlink(), 'installed console entrypoint is missing')
         launcher_hash = sha(launcher.read_bytes())
+        # Verify the dirq alias is also installed as a console script.
+        dirq_launcher = commands / ('dirq.exe' if target.startswith('windows-') else 'dirq')
+        require(dirq_launcher.is_file() and not dirq_launcher.is_symlink(), 'dirq console entrypoint is missing')
         smoke_file = area / 'launcher-declarations.json'
         # -E/-s ignore caller Python settings while retaining the trusted helper
         # directory for its local imports. All helper subprocesses inherit env.
@@ -152,6 +155,14 @@ def run(core, directory, target, version):
         smoke = json.loads(smoke_file.read_bytes())
         require(smoke['passed'] is True and smoke['candidate_sha256'] == launcher_hash,
                 'console entrypoint smoke identity differs')
+        # Verify dirq --version exits 0 and embeds the correct version number.
+        dirq_version_result = execute([dirq_launcher, '--version'], env, area)
+        dirq_version_line = dirq_version_result.stdout.decode('utf-8', errors='replace').strip()
+        dircue_version_result = execute([launcher, '--version'], env, area)
+        dircue_version_line = dircue_version_result.stdout.decode('utf-8', errors='replace').strip()
+        # Extract the version number (last whitespace-delimited token) from each line.
+        require(dirq_version_line.split()[-1:] == dircue_version_line.split()[-1:],
+                f'dirq --version number differs from dircue --version: {dirq_version_line!r} vs {dircue_version_line!r}')
         require(sha(Path(identity['binary']).read_bytes()) == row['binary_sha256'] and
                 sha(wheel.read_bytes()) == wheel_hash, 'wheel or installed binary changed during execution')
         receipt = {'schema_version': '1.0.0', 'passed': True, 'version': version,

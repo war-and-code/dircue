@@ -90,9 +90,11 @@ cosign verify-blob \
 # Verify archive checksums
 sha256sum --check SHA256SUMS
 
-# Verify the version string on Linux amd64 after checking its archive
+# Verify the version strings on Linux amd64 after checking its archive
+# (the tar contains both dircue and a dirq -> dircue symlink)
 tar -xzf dircue_1.0.0_linux_amd64.tar.gz
 ./dircue --version
+./dirq --version
 ```
 
 On another host, use that host's matching archive and executable. For example,

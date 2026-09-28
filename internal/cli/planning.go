@@ -40,19 +40,25 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 		if cmd.Flags().Changed("cli") && !cliView || cmd.Flags().Changed("guide") && !guideView || cmd.Flags().Changed("accuracy") && !accuracyView {
 			return fmt.Errorf("capabilities view selectors require true; omit --cli, --guide, or --accuracy for planner modules")
 		}
+		// JSON describes a tree built as "dircue", so it is the same under
+		// either command name; text describes the invoked tree.
+		described := cmd.Root()
+		if opts.json {
+			described = newRootCommand("dircue", io.Discard, io.Discard)
+		}
 		if cliView {
-			d := describeCLI(cmd.Root())
+			d := describeCLI(described)
 			if opts.json {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 			}
-			return writeCLIContract(cmd.OutOrStdout(), d)
+			return writeCLIContract(cmd.OutOrStdout(), d, opts.displayName)
 		}
 		if guideView {
-			d := automationGuide(cmd.Root())
+			d := automationGuide(described)
 			if opts.json {
 				return json.NewEncoder(cmd.OutOrStdout()).Encode(d)
 			}
-			return writeAutomationGuide(cmd.OutOrStdout(), d)
+			return writeAutomationGuide(cmd.OutOrStdout(), d, opts.displayName)
 		}
 		if accuracyView {
 			if opts.json {
@@ -105,7 +111,7 @@ func newCapabilitiesCommand(opts *options) *cobra.Command {
 	command.Flags().StringVar(&schemaName, "schema", "", "Export a bundled JSON Schema by exact name; always emits JSON")
 	command.Long = "Describe planner-supported modules by default. Explicit --cli, --guide, --accuracy, and --schema views expose CLI contracts, workflow guidance, embedded accuracy cards, and offline schemas. These mutually exclusive views never scan directories, probe tools, or access the network. --cli=false, --guide=false, and --accuracy=false are rejected; omit the selector for planner modules."
 	setSavedReportHelp(command)
-	command.Example = "  dircue capabilities --json\n  dircue capabilities --cli --json\n  dircue capabilities --guide\n  dircue capabilities --accuracy --json\n  dircue capabilities --schema profile --json"
+	command.Example = "  " + opts.displayName + " capabilities --json\n  " + opts.displayName + " capabilities --cli --json\n  " + opts.displayName + " capabilities --guide\n  " + opts.displayName + " capabilities --accuracy --json\n  " + opts.displayName + " capabilities --schema profile --json"
 	return command
 }
 
@@ -113,7 +119,7 @@ func newPlanCommand(opts *options) *cobra.Command {
 	var modules, questions, projects, inputs []string
 	command := &cobra.Command{Use: "plan <report.json>", Short: "Plan selected follow-up analysis from a saved profile", Args: func(_ *cobra.Command, args []string) error {
 		if len(args) != 1 {
-			return fmt.Errorf("plan requires one saved aggregate report; use: dircue plan report.json --module declarations --json")
+			return fmt.Errorf("plan requires one saved aggregate report; use: %s plan report.json --module declarations --json", opts.displayName)
 		}
 		return nil
 	}, RunE: func(cmd *cobra.Command, args []string) error {
@@ -122,12 +128,12 @@ func newPlanCommand(opts *options) *cobra.Command {
 		}
 		selection := planning.Selection{Questions: questions, Modules: modules, Projects: projects, Inputs: inputs}
 		registry := capabilities.Dircue(Version)
-		if err := validatePlanningSelectionForCLI(selection, registry); err != nil {
+		if err := validatePlanningSelectionForCLI(selection, registry, opts.displayName); err != nil {
 			return err
 		}
 		file, err := openInputFile(args[0], "saved report")
 		if err != nil {
-			return &diagnosticError{message: savedReportOpenErrorMessage("saved report"), cause: err}
+			return &diagnosticError{message: savedReportOpenErrorMessage(opts.displayName, "saved report"), cause: err}
 		}
 		defer file.Close()
 		info, err := file.Stat()
@@ -155,7 +161,7 @@ func newPlanCommand(opts *options) *cobra.Command {
 	command.Flags().StringArrayVar(&projects, "project", nil, "Root-relative project selector for focus planning")
 	command.Flags().StringSliceVar(&inputs, "input", nil, "Caller-supplied prerequisite name, such as structural-worker (repeatable)")
 	command.Long = "Read a saved aggregate profile and plan only the requested follow-ups. Never scans its declared root, probes tools, or executes planned commands. Revalidate source identity, boundary, and freshness before replacing any argv placeholder."
-	command.Example = "  dircue analyze discovery --json /checkout > first-pass.json\n  dircue plan first-pass.json --module declarations --json\n  dircue plan first-pass.json --question content-formats --json\n  dircue plan first-pass.json --module structure --input structural-worker --json"
+	command.Example = "  " + opts.displayName + " analyze discovery --json /checkout > first-pass.json\n  " + opts.displayName + " plan first-pass.json --module declarations --json\n  " + opts.displayName + " plan first-pass.json --question content-formats --json\n  " + opts.displayName + " plan first-pass.json --module structure --input structural-worker --json"
 	setSavedReportHelp(command)
 	defaultHelp := command.HelpFunc()
 	command.SetHelpFunc(func(cmd *cobra.Command, args []string) {
@@ -172,9 +178,9 @@ func newPlanCommand(opts *options) *cobra.Command {
 	return command
 }
 
-func validatePlanningSelectionForCLI(selection planning.Selection, registry capabilities.Descriptor) error {
+func validatePlanningSelectionForCLI(selection planning.Selection, registry capabilities.Descriptor, displayName string) error {
 	if len(selection.Modules)+len(selection.Questions) == 0 {
-		return fmt.Errorf("%w: select at least one --module or --question; use: dircue plan report.json --module declarations --json; list choices with: dircue capabilities --json", planning.ErrInvalid)
+		return fmt.Errorf("%w: select at least one --module or --question; use: %s plan report.json --module declarations --json; list choices with: %s capabilities --json", planning.ErrInvalid, displayName, displayName)
 	}
 	if len(selection.Modules)+len(selection.Questions) > planning.MaxRequests || len(selection.Inputs) > planning.MaxRequests {
 		return fmt.Errorf("%w: select at most %d module/question requests and %d inputs", planning.ErrLimit, planning.MaxRequests, planning.MaxRequests)
@@ -207,7 +213,7 @@ func validatePlanningSelectionForCLI(selection planning.Selection, registry capa
 				if nearby := nearbyName(value, group.valid); nearby != "" {
 					hint = fmt.Sprintf("; did you mean --%s %s?", group.name, nearby)
 				}
-				return fmt.Errorf("%w: unknown --%s %q%s; list choices with: dircue capabilities --json", planning.ErrInvalid, group.name, diagnosticValue(value), hint)
+				return fmt.Errorf("%w: unknown --%s %q%s; list choices with: %s capabilities --json", planning.ErrInvalid, group.name, diagnosticValue(value), hint, displayName)
 			}
 			module := value
 			if group.name == "question" {
@@ -243,7 +249,7 @@ func validatePlanningSelectionForCLI(selection planning.Selection, registry capa
 			if input == "structural-worker" && !selected["structure"] {
 				hint = "--input structural-worker applies only when structure is selected"
 			}
-			return fmt.Errorf("%w: unsupported --input %q; %s; list prerequisites with: dircue capabilities --json", planning.ErrInvalid, diagnosticValue(input), hint)
+			return fmt.Errorf("%w: unsupported --input %q; %s; list prerequisites with: %s capabilities --json", planning.ErrInvalid, diagnosticValue(input), hint, displayName)
 		}
 	}
 	return nil
@@ -252,7 +258,7 @@ func validatePlanningSelectionForCLI(selection planning.Selection, registry capa
 func rejectPlanningAnalysisFlags(cmd *cobra.Command) error {
 	for _, flag := range analysisFlagNames {
 		if cmd.Flags().Changed(flag) {
-			return fmt.Errorf("--%s does not apply to %s; set scan options when creating a report with dircue analyze discovery --json /checkout", flag, cmd.Name())
+			return fmt.Errorf("--%s does not apply to %s; set scan options when creating a report with %s analyze discovery --json /checkout", flag, cmd.Name(), contextName(cmd.Context()))
 		}
 	}
 	return nil

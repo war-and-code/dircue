@@ -36,10 +36,19 @@ def get_binary_path():
 
 def main():
     binary = get_binary_path()
-    arguments = [binary, *sys.argv[1:]]
+    # Pass the invoking script\'s basename as argv[0] when it is "dirq" so the
+    # Go binary can show the right display name; otherwise keep the binary path.
+    script = os.path.basename(os.path.splitext(sys.argv[0])[0])
+    if sys.platform == "win32":
+        script = script.lower()
+    argv0 = script if script == "dirq" else binary
     try:
         if sys.platform == "win32":
-            child = subprocess.Popen(arguments)
+            # Separate executable from command line so argv[0] can differ from
+            # the binary path when the "dirq" console script is invoked.
+            popen_args = [argv0, *sys.argv[1:]]
+            child = (subprocess.Popen(popen_args, executable=binary)
+                     if argv0 != binary else subprocess.Popen(popen_args))
             while True:
                 try:
                     raise SystemExit(child.wait())
@@ -47,7 +56,7 @@ def main():
                     # The child shares the console and receives Ctrl-C itself.
                     # Keep its exit status instead of killing it or tracing here.
                     continue
-        os.execv(binary, arguments)
+        os.execv(binary, [argv0, *sys.argv[1:]])
     except OSError as error:
         print("dircue: cannot execute bundled binary: " + str(error), file=sys.stderr)
         raise SystemExit(127 if error.errno == errno.ENOENT else 126)
@@ -127,13 +136,19 @@ def validate_binary(content, target):
 
 
 def archive_payload(raw, windows):
-    """Read only a flat regular payload into memory; never extract archive paths."""
+    """Read only a flat regular payload into memory; never extract archive paths.
+
+    For tar archives exactly one symlink is permitted: dirq -> dircue at the
+    archive root.  Any other symlink, or a symlink with a different target, is
+    rejected.  Windows zip archives must contain only unencrypted regular files.
+    """
     payload = {}
     total = 0
     def add(name, size, reader):
         nonlocal total
         total += size
-        if name not in ('dircue', 'dircue.exe', 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md') or name in payload:
+        if name not in ('dircue', 'dircue.exe', 'dirq', 'dirq.exe',
+                        'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md') or name in payload:
             raise ValueError('unexpected or duplicate release archive member')
         if size < 0 or size > 128 * 1024**2 or total > 256 * 1024**2:
             raise ValueError('release archive payload exceeds size limit')
@@ -148,13 +163,29 @@ def archive_payload(raw, windows):
                     raise ValueError('release ZIP must contain only unencrypted regular files')
                 add(member.filename, member.file_size, lambda: archive.read(member))
     else:
+        pending_symlinks = []
         with tarfile.open(fileobj=io.BytesIO(raw), mode='r:gz') as archive:
             for member in archive:
+                if member.issym():
+                    # Exactly one symlink is permitted: dirq -> dircue at the root.
+                    if member.name == 'dirq' and member.linkname == 'dircue':
+                        pending_symlinks.append(('dirq', 'dircue'))
+                        continue
+                    raise ValueError('release tar symlink not permitted'
+                                     ' (only dirq -> dircue is allowed at the archive root)')
                 if not member.isfile():
                     raise ValueError('release tar must contain only regular files')
                 add(member.name, member.size, lambda: archive.extractfile(member).read())
+        for name, target in pending_symlinks:
+            if target not in payload:
+                raise ValueError('release tar symlink target is missing from the archive')
+            if name in payload:
+                raise ValueError('unexpected or duplicate release archive member')
+            payload[name] = payload[target]
     binary = 'dircue.exe' if windows else 'dircue'
-    if set(payload) != {binary, 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md'}:
+    dirq_alias = 'dirq.exe' if windows else 'dirq'
+    required = {binary, dirq_alias, 'LICENSE', 'README.md', 'THIRD_PARTY_NOTICES.md'}
+    if set(payload) != required:
         raise ValueError('release archive is missing a required payload')
     return payload
 
@@ -223,7 +254,7 @@ def wheel_files(version, platform, row, payload, provenance):
         'dircue/bin/' + binary: payload[binary],
         info + '/METADATA': metadata.encode(),
         info + '/WHEEL': ('Wheel-Version: 1.0\nGenerator: dircue archive adapter 1\nRoot-Is-Purelib: false\nTag: py3-none-' + platform + '\n').encode(),
-        info + '/entry_points.txt': b'[console_scripts]\ndircue = dircue:main\n',
+        info + '/entry_points.txt': b'[console_scripts]\ndircue = dircue:main\ndirq = dircue:main\n',
         info + '/licenses/LICENSE': payload['LICENSE'],
         info + '/licenses/THIRD_PARTY_NOTICES.md': payload['THIRD_PARTY_NOTICES.md'],
         info + '/release-provenance.json': provenance,
