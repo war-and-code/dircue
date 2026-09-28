@@ -1,20 +1,10 @@
 # Language and project coverage
 
-Dircue has separate language classifiers, line counters, structural parsers, and
-project readers. Support in one does not imply support in all four. These tables
-describe the enabled integrations in the 1.0 line, rather than every feature
-provided by its upstream dependencies.
+Dircue has separate language classifiers, line counters, structural parsers, and project readers. Support in one does not imply support in all four. These tables describe the enabled integrations in the 1.0 line, rather than every feature provided by its upstream dependencies.
 
-Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md),
-[.NET declaration graphs](GRAPH.md), [Syft report import](PACKAGE_EVIDENCE.md),
-[caller-supplied rules](RULES.md), [package-source declarations](REGISTRIES.md),
-and [bounded function metrics](FUNCTIONS.md).
-These additions have their own scope and coverage fields; they do not expand
-the structural grammar list or turn filename hints into parsed declarations.
+Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md), [.NET declaration graphs](GRAPH.md), [Syft report import](PACKAGE_EVIDENCE.md), [caller-supplied rules](RULES.md), [package-source declarations](REGISTRIES.md), and [bounded function metrics](FUNCTIONS.md). These additions have their own scope and coverage fields; they do not expand the structural grammar list or turn filename hints into parsed declarations.
 
-Version 0.5.0 adds explicit [project declarations](DECLARATIONS.md) for npm, Go,
-Python/uv and Cargo, alongside the existing .NET/JVM readers, and
-[offline comparison](COMPARISON.md) of saved reports. These are opt-in operations.
+Version 0.5.0 adds explicit [project declarations](DECLARATIONS.md) for npm, Go, Python/uv and Cargo, alongside the existing .NET/JVM readers, and [offline comparison](COMPARISON.md) of saved reports. These are opt-in operations.
 
 Version 0.6.0 adds [format evidence](FORMATS.md) and [population-aware function hotspots](HOTSPOTS.md), both explicit selections. Existing language, line-count and structural grammar coverage is unchanged.
 
@@ -45,17 +35,26 @@ Version 0.8.0 adds [declared environment requirements](ENVIRONMENTS.md), a limit
 | Saved-report comparison | Two explicit aggregate JSON files | Per-module observation changes with provenance and coverage qualifications; no rescanning. |
 | Project and build observations | Recognized manifest families | Detailed .NET/Maven declarations, conservative Gradle observations, and filename-based discovery elsewhere. A project relationship is not a resolved package dependency graph. |
 
-The language and metrics paths cover substantially more languages than structural
-analysis. An unsupported structural language can still contribute to language
-statistics, line metrics, and content composition. XML and other data are excluded
-from default source statistics and parsing; project XML manifests have a separate
-selection path. Broader text counting is an explicit metrics option.
+The language and metrics paths cover substantially more languages than structural analysis. An unsupported structural language can still contribute to language statistics, line metrics, and content composition. XML and other data are excluded from default source statistics and parsing; project XML manifests have a separate selection path. Broader text counting is an explicit metrics option.
+
+## Profile schema versions
+
+The `schema_version` of an aggregate [profile](../schema/profile.schema.json) report depends on the modules requested:
+
+| Requested output | Schema version |
+| --- | --- |
+| Aggregate report without optional modules | `1.0.0` |
+| Metrics, without projects or structure | `1.1.0` |
+| Projects or structure, with optional metrics | `1.2.0` |
+| Discovery, graph, imported package evidence, rules, registries, or function metrics | `1.3.0` |
+| Project declarations, alone or with other modules | `1.4.0` |
+| File-format evidence | `1.5.0` |
+| Focus, availability, explanations, or focused metrics | `1.6.0` |
+| Declared environments, with reused declarations | `1.7.0` |
 
 ## Structural coverage
 
-All rows have language identification and an explicit scc mapping. Every listed
-structural parser returns upstream BCA metrics and syntax-node/recovery counts.
-The extra Java/C# declaration fields should not be inferred for other rows.
+All rows have language identification and an explicit scc mapping. Every listed structural parser returns upstream BCA metrics and syntax-node/recovery counts. The extra Java/C# declaration fields should not be inferred for other rows.
 
 | Detected language | Structural grammar | Relevant project discovery/build coverage |
 | --- | --- | --- |
@@ -80,73 +79,28 @@ The extra Java/C# declaration fields should not be inferred for other rows.
 | TSX | TSX | Opt-in npm workspace, dependency and interface declarations |
 | TypeScript | TypeScript | Opt-in npm workspace, dependency and interface declarations |
 
-Project readers follow manifests, not source-file language labels. A Maven
-project's presence does not prove how Kotlin or another JVM language is compiled.
-Similarly, F# and Visual Basic .NET project files receive .NET declaration
-analysis, but neither language has an enabled structural parser in this release.
-The [project guide](PROJECTS.md) lists interpreted files, conditions, and limits.
+Project readers follow manifests, not source-file language labels. A Maven project's presence does not prove how Kotlin or another JVM language is compiled. Similarly, F# and Visual Basic .NET project files receive .NET declaration analysis, but neither language has an enabled structural parser in this release. The [project guide](PROJECTS.md) lists interpreted files, conditions, and limits.
 
-F5 iRules is supported by the standalone worker, but cannot currently be selected
-through the pinned Enry language catalog. It is not counted among the 20 production
-languages. Firefox-specific BCA parser variants are not enabled. Dircue does not
-fetch extra grammars based on repository contents or installed software.
+F5 iRules is supported by the standalone worker, but cannot currently be selected through the pinned Enry language catalog. It is not counted among the 20 production languages. Firefox-specific BCA parser variants are not enabled. Dircue does not fetch extra grammars based on repository contents or installed software.
 
 ## Interpreting structural results
 
-`structure.supported_languages` lists each production language, its pinned grammar,
-available `observations` fields, and upstream `metric_groups`. `structure.observation_files` records how many
-analyzed files contribute to each observation key. Read aggregate counts alongside that contributor coverage. A zero class count
-measured only across Java/C# files does not establish that the other languages
-have no classes. Unavailable observation fields are absent, not measured zeroes.
+`structure.supported_languages` lists each production language, its pinned grammar, available `observations` fields, and upstream `metric_groups`. `structure.observation_files` records how many analyzed files contribute to each observation key. Read aggregate counts alongside that contributor coverage. A zero class count measured only across Java/C# files does not establish that the other languages have no classes. Unavailable observation fields are absent, not measured zeroes.
 
-BCA's metric groups and their applicability vary by language. Shell, for example,
-does not produce every object-oriented metric group. Upstream nulls and zeros are
-retained, without inventing unavailable measurements or averaging unrelated
-cross-language values. File metrics are available with `--files`.
+BCA's metric groups and their applicability vary by language. Shell, for example, does not produce every object-oriented metric group. Upstream nulls and zeros are retained, without inventing unavailable measurements or averaging unrelated cross-language values. File metrics are available with `--files`.
 
-`syntax_errors` and the file's `status` qualify parser acceptance. Some grammar
-recovery is visible only through the root error flag, so zero exposed error or
-missing-node counts do not override a partial status. A complete parse is not
-proof that the code compiles, or that its grammar covers every modern construct.
+`syntax_errors` and the file's `status` qualify parser acceptance. Some grammar recovery is visible only through the root error flag, so zero exposed error or missing-node counts do not override a partial status. A complete parse is not proof that the code compiles, or that its grammar covers every modern construct.
 
-Every enabled language has a small deterministic integration fixture. Java and
-C# have the deepest real-project corpus checks; additional corpus samples cover
-Python, JavaScript, TypeScript, C, Rust, Go, PHP, and Ruby. These checks establish
-behavior on those inputs, not exhaustive dialect or metric correctness. See the
-[breadth harness](../tests/structural_breadth/README.md) and
-[Java/C# corpus harness](../tests/structure/README.md).
+Every enabled language has a small deterministic integration fixture. Java and C# have the deepest real-project corpus checks; additional corpus samples cover Python, JavaScript, TypeScript, C, Rust, Go, PHP, and Ruby. These checks establish behavior on those inputs, not exhaustive dialect or metric correctness. See the [breadth harness](../tests/structural_breadth/README.md) and [Java/C# corpus harness](../tests/structure/README.md).
 
 <a id="known-boundaries-at-10"></a>
 
 ## Current boundaries
 
-These are known boundaries of the 1.0 implementation. The 1.x compatibility
-policy is documented in [COMPATIBILITY.md](COMPATIBILITY.md); it does not imply
-that the analysis layers below cover every ecosystem or repository shape.
+These are known boundaries of the 1.0 implementation. The 1.x compatibility policy is documented in [COMPATIBILITY.md](COMPATIBILITY.md); it does not imply that the analysis layers below cover every ecosystem or repository shape.
 
-- **Git repository shapes:** bare and unborn repositories, SHA-256 object
-  format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery
-  inside a repository root are not fully modeled. `--source git` fails with
-  an explicit error for the unsupported forms; `--source auto` may fall
-  back to directory mode silently on the legacy Linguist surface. See
-  [source availability](AVAILABILITY.md) for related evidence and
-  [#66](https://github.com/war-and-code/dircue/issues/66).
-- **Absent focus query:** `analyze focus --affected-by <path>` for a path
-  with no matching declaration returns `status: complete` with the echoed
-  query rather than a dedicated "no match" sentinel. See
-  [focus guide](FOCUS.md) and
-  [#67](https://github.com/war-and-code/dircue/issues/67).
-- **Registry adapter coverage:** `analyze registries` reads NuGet.Config
-  and .npmrc only; other package sources (Maven `settings.xml`,
-  `pip.conf`, Cargo `config.toml`, Yarn configuration, etc.) are outside
-  scope. See [registries guide](REGISTRIES.md#uncovered-configuration)
-  and [#68](https://github.com/war-and-code/dircue/issues/68).
-- **Environment adapter breadth:** `analyze environments` covers the
-  dimensions in [ENVIRONMENTS.md](ENVIRONMENTS.md); other ecosystems'
-  environment declarations are not modeled yet. See
-  [#65](https://github.com/war-and-code/dircue/issues/65).
-- **Structural worker isolation:** the worker inherits the caller's
-  process environment and working directory and is not sandboxed. The
-  caller is responsible for the worker binary's origin. See
-  [structural guide](STRUCTURE.md#dependencies-and-redistribution) and
-  [#69](https://github.com/war-and-code/dircue/issues/69).
+- **Git repository shapes:** bare and unborn repositories, SHA-256 object format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery inside a repository root are not fully modeled. `--source git` fails with an explicit error for the unsupported forms; `--source auto` may fall back to directory mode silently on the legacy Linguist surface. See [source availability](AVAILABILITY.md) for related evidence and [#66](https://github.com/war-and-code/dircue/issues/66).
+- **Absent focus query:** `analyze focus --affected-by <path>` for a path with no matching declaration returns `status: complete` with the echoed query rather than a dedicated "no match" sentinel. See [focus guide](FOCUS.md) and [#67](https://github.com/war-and-code/dircue/issues/67).
+- **Registry adapter coverage:** `analyze registries` reads NuGet.Config and .npmrc only; other package sources (Maven `settings.xml`, `pip.conf`, Cargo `config.toml`, Yarn configuration, etc.) are outside scope. See [registries guide](REGISTRIES.md#uncovered-configuration) and [#68](https://github.com/war-and-code/dircue/issues/68).
+- **Environment adapter breadth:** `analyze environments` covers the dimensions in [ENVIRONMENTS.md](ENVIRONMENTS.md); other ecosystems' environment declarations are not modeled yet. See [#65](https://github.com/war-and-code/dircue/issues/65).
+- **Structural worker isolation:** the worker inherits the caller's process environment and working directory and is not sandboxed. The caller is responsible for the worker binary's origin. See [structural guide](STRUCTURE.md#dependencies-and-redistribution) and [#69](https://github.com/war-and-code/dircue/issues/69).
