@@ -2,7 +2,7 @@
 
 Profile source code repos and other directories of computer content.
 
-If/when faced with an unfamiliar repository, you want to know what's in it — programming languages and projects, what gets built and deployed, what it exposes and depends on, and perhaps which deeper tools are worth running where. Answering *all that* usually means reading around willy-nilly and/or running *several* tools that each cover one "slice", like Linguist for languages, scc for line counts and Syft for packages.
+If/when faced with an unfamiliar repository, you want to know what's in it: programming languages and projects, what gets built and deployed, what it exposes and depends on, and perhaps which deeper tools are worth running where. Answering *all that* usually means reading around willy-nilly and/or running *several* tools that each cover one "slice", like Linguist for languages, scc for line counts and Syft for packages.
 
 `dircue map` answers *all that* in one deterministic, offline pass, without running anything in the directory. It conditionally reads a committed Git tree, or just the ordinary directory. Then it writes one portable document covering:
 
@@ -13,6 +13,8 @@ If/when faced with an unfamiliar repository, you want to know what's in it — p
 - **relationships:** what builds, runs, depends on and contains what.
 
 Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question carries a coverage status. `complete` means exhaustive for its scope; anything heuristic says `partial` and why.
+
+![Meme: "You never know what is gonna come thru that door"](docs/images/you-never-know.jpg)
 
 `dircue` started as "just" a Linguist-compatible language profiler, and that's still a supported use case. `dirq` is a shorter alias for `dircue`.
 
@@ -349,5 +351,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for reporting guidance and [SECURITY.md](
 ## License
 
 [MIT](LICENSE). The maintained Enry fork keeps Apache-2.0 licensing and Linguist's MIT data notices, and scc is MIT. [Third-party notices](THIRD_PARTY_NOTICES.md) cover the Go executable and embedded MIME database. The optional structural worker includes BCA under MPL-2.0 and Tree-sitter grammars under their own licenses; its archive carries their sources, licenses and provenance (see [worker redistribution](docs/STRUCTURE.md#dependencies-and-redistribution)).
+
+The image near the top of this README is a captioned still from the TV series *Pawn Stars*, made with [imgflip](https://imgflip.com). It isn't covered by this project's MIT license; its rights belong to their respective holders.
 
 The optional Bend research models include [modified Apache-2.0 proof examples](research/bend-aggregation/topk/THIRD_PARTY_NOTICES.md) and are kept separate from the released executables.
