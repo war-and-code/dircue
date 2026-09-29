@@ -24,6 +24,11 @@ The PyPI account owner must do the PyPI setup. A repository maintainer can
 prepare the GitHub environment. Keep the approval rule and branch restriction
 in place for subsequent releases.
 
+The 1.0.0 wheels embed a README that says no PyPI package exists. The verifier
+rejects that stale description. Prepare a small follow-up GitHub Release with
+durable README wording before the first PyPI upload; 1.0.1 is the intended
+first candidate.
+
 ## Before each publication
 
 - Review the published GitHub Release and its release-candidate receipt.
@@ -40,7 +45,7 @@ equivalent is:
 
 ```sh
 gh workflow run publish-pypi.yml --repo war-and-code/dircue --ref main \
-  -f version=1.0.0
+  -f version=1.0.1
 ```
 
 The read-only verification job rejects a missing, draft, or prerelease GitHub
@@ -66,7 +71,7 @@ published wheel files.
 After PyPI publication, pin the version in the project that invokes dircue:
 
 ```sh
-uv add 'dircue==1.0.0'
+uv add 'dircue==1.0.1'
 uv sync --locked
 uv run dircue --version
 ```

@@ -87,7 +87,7 @@ Check the exit status before consuming stdout:
 
 ## Install
 
-Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. There is no PyPI package or published container image.
+Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. Check the [distribution guide](docs/DISTRIBUTION.md) for each version's PyPI availability. There is no published container image.
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
@@ -311,7 +311,7 @@ Structural analysis runs only the worker executable you pass, one at a time, wit
 | An attached report has `binding: unknown` | The report and selected source lack comparable snapshot identity. See [source selection and binding](docs/MAP.md#source-selection-and-binding); don't treat path association as proof of the same snapshot. |
 | `map locate` reports `unresolvable_uri` | Supply `--source-uri` when SARIF uses absolute artifact URIs, and confirm that the URI is inside that root. |
 | Docker cannot read mounted source | Check file permissions and use `--user` to select a suitable UID/GID. |
-| uv cannot find dircue on PyPI | Releases aren't published to PyPI. Install a wheel from the GitHub Release URL or a local file; see the [distribution guide](docs/DISTRIBUTION.md). |
+| uv cannot find dircue on PyPI | Check whether that version has been published to PyPI. You can also install its wheel from the GitHub Release URL or a local file; see the [distribution guide](docs/DISTRIBUTION.md). |
 
 ## Verification
 

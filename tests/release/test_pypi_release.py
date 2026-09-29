@@ -20,9 +20,9 @@ def sha(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def fixture(directory):
+def fixture(directory, readme=b'# dircue\n'):
     release = directory / 'release'
-    provenance = fixture_release(release)
+    provenance = fixture_release(release, readme=readme)
     publication = directory / 'publication'
     wheel_receipt = wheels.package(release, publication)
     platforms = []
@@ -58,6 +58,13 @@ class PyPIPublicationTests(unittest.TestCase):
                 pypi_release.verify(directory, '0.1.0', '1' * 40)
             with self.assertRaises(ValueError):
                 pypi_release.verify(directory, '0.2.0', '0' * 40)
+
+    def test_stale_pypi_description_is_rejected(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = fixture(Path(temporary),
+                                readme=b'# dircue\n\nThere is no PyPI package.\n')
+            with self.assertRaisesRegex(ValueError, 'stale PyPI availability claim'):
+                pypi_release.verify(directory, '0.1.0', '0' * 40)
 
     def test_missing_extra_or_corrupt_wheel_is_rejected(self):
         for corruption in ('missing', 'extra', 'payload'):

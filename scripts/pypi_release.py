@@ -85,6 +85,10 @@ def verify_wheel(path, version, commit, target, core_sha, sums):
             f'{path.name} package identity differs')
     require(metadata['Requires-Python'] == '>=3.10' and metadata['License-Expression'] == 'MIT',
             f'{path.name} Python or license metadata differs')
+    description = metadata.get_payload()
+    require('There is no PyPI package' not in description and
+            "Releases aren't published to PyPI" not in description,
+            f'{path.name} would publish a stale PyPI availability claim')
     require(entries[info + '/WHEEL'].decode('utf-8').splitlines()[-1] == 'Tag: py3-none-' + tag,
             f'{path.name} platform tag differs')
     require(entries[info + '/entry_points.txt'] ==

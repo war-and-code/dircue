@@ -54,7 +54,7 @@ def executable(target, dynamic=False, macos=12):
     return bytes(result)
 
 
-def fixture_release(directory):
+def fixture_release(directory, readme=b'# dircue\n'):
     directory.mkdir()
     records = []
     for target in wheels.PLATFORMS:
@@ -64,7 +64,7 @@ def fixture_release(directory):
         name = 'dircue_0.1.0_{}_{}{}'.format(*target, '.zip' if windows else '.tar.gz')
         payload = {binary: (content, True), 'LICENSE': (b'MIT\n', False),
                    'THIRD_PARTY_NOTICES.md': (b'Dependency licenses\n', False),
-                   'README.md': (b'# dircue\n', False)}
+                   'README.md': (readme, False)}
         # Windows: byte-identical copy; Unix: relative symlink dirq -> dircue.
         if windows:
             payload['dirq.exe'] = (content, True)

@@ -7,21 +7,26 @@ Release or a locally prepared wheel.
 
 GitHub Release archives and platform-specific Python wheels contain the same Go executable bytes for a given operating system, architecture, and version. Existing releases include both formats. The 1.0.0 GitHub Release does not by itself make the wheels available on PyPI; use a release wheel URL or standalone archive until PyPI publication is confirmed.
 
-The examples below target 1.0.0. For another release, substitute its version consistently in commands and filenames.
+GitHub Release examples below use the published 1.0.0 assets. PyPI examples use
+the intended first PyPI version, 1.0.1, after that release is available.
+Substitute a version consistently in commands and filenames.
 
 ## Pipeline use after PyPI publication
 
-The commands below become available for 1.0.0 only after its wheels are uploaded to PyPI:
+The commands below become available for a version only after its wheels are
+uploaded to PyPI. The 1.0.0 wheels retain a release-time description saying
+that no PyPI package exists, so a follow-up release is intended for the first
+PyPI upload:
 
 ```sh
-uvx dircue@1.0.0 --breakdown --json /path/to/checkout
-uvx dircue@1.0.0 analyze all --json /path/to/checkout
+uvx dircue@1.0.1 --breakdown --json /path/to/checkout
+uvx dircue@1.0.1 analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==1.0.0'
+uv tool install 'dircue==1.0.1'
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -62,7 +67,9 @@ go install github.com/war-and-code/dircue@v1.0.0        # installs dircue
 go install github.com/war-and-code/dircue/cmd/dirq@v1.0.0  # installs dirq
 ```
 
-Verify these commands against a clean module cache and the actual public tag as a release gate. While the repository is private, a maintainer can clone with authenticated GitHub access and build from that checkout. A versioned `go install module@version` cannot be confirmed in a clean anonymous environment until the tag is publicly fetchable; local `go install .` does not prove the remote installation contract.
+Verify these commands against a clean module cache and the public tag as a
+release gate. Local `go install .` does not prove the remote installation
+contract.
 
 `uvx` installs into an isolated cached environment. It avoids changing the checkout's Python dependencies, but its first invocation still needs the wheel and a compatible Python interpreter. uv can obtain Python when permitted. For restricted-network runners, pre-stage Python and the wheel, then use `--offline`. No Go compiler or Ruby installation is needed. The launcher does not download anything or run project code; it invokes the bundled executable with the original arguments and working directory. On Unix it replaces itself with the Go process.
 
@@ -156,7 +163,7 @@ Publish after source and documentation review. Before a PyPI upload, confirm own
 
 For each release, upload the verified standalone archives, checksums, provenance, and release notes to a GitHub Release. Attach wheels there too for direct uv installation without PyPI. For PyPI publication, upload only the intended `.whl` files. Both channels must identify the same version and source. Verify real downloads and pinned invocations after publication; local installation checks do not establish that publication succeeded. Never replace an already published version with different executable bytes.
 
-The [release automation guide](RELEASE_AUTOMATION.md) covers local packaging and the Actions workflow that prepares and verifies GitHub draft releases, including all seven wheels. PyPI publication remains separate and is tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
+The [release automation guide](RELEASE_AUTOMATION.md) covers local packaging and the Actions workflow that prepares and verifies GitHub draft releases, including all seven wheels. The separate [PyPI publishing guide](PYPI_PUBLISHING.md) covers the manual upload workflow tracked in [#14](https://github.com/war-and-code/dircue/issues/14).
 
 ## Historical 0.1 validation
 
