@@ -28,6 +28,7 @@ jobs:
       attestations: read
     outputs:
       commit: ${{ steps.release.outputs.commit }}
+      manifest_sha256: ${{ steps.manifest.outputs.sha256 }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -109,6 +110,10 @@ jobs:
           "$RUNNER_TEMP/dircue-wheel-check/bin/python" -m pip install --no-index \
             "dist/pypi/dircue-${RELEASE_VERSION}-py3-none-manylinux_2_17_x86_64.whl"
           test "$("$RUNNER_TEMP/dircue-wheel-check/bin/dircue" --version)" = "dircue ${RELEASE_VERSION}"
+      - name: Bind the verified checksum manifest to the upload job
+        id: manifest
+        shell: bash
+        run: echo "sha256=$(sha256sum dist/pypi/SHA256SUMS | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: verified-pypi-wheels
@@ -129,6 +134,8 @@ jobs:
           name: verified-pypi-wheels
           path: dist/pypi
       - name: Recheck transferred wheel hashes
+        env:
+          EXPECTED_MANIFEST_SHA256: ${{ needs.verify.outputs.manifest_sha256 }}
         shell: bash
         run: |
           set -euo pipefail
@@ -139,6 +146,8 @@ jobs:
           import re
           root = Path('dist/pypi')
           version = os.environ['RELEASE_VERSION']
+          if hashlib.sha256((root / 'SHA256SUMS').read_bytes()).hexdigest() != os.environ['EXPECTED_MANIFEST_SHA256']:
+              raise SystemExit('verified checksum manifest changed during transfer')
           wheels = sorted(root.glob('*.whl'))
           if len(wheels) != 7 or any(not re.fullmatch(r'dircue-' + re.escape(version) + r'-py3-none-[a-z0-9_]+\.whl', p.name) for p in wheels):
               raise SystemExit('wheel inventory changed between verification and publication')
