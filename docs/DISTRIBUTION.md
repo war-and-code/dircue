@@ -1,22 +1,18 @@
 # Distribution
 
-PyPI publication is prepared separately from GitHub Releases. See the
+Version 1.0.1 is available on [PyPI](https://pypi.org/project/dircue/1.0.1/).
+PyPI publication is separate from GitHub Releases; see the
 [PyPI publishing guide](PYPI_PUBLISHING.md) for the manual, approved workflow.
-Until its first successful upload, `dircue` must be installed from a GitHub
-Release or a locally prepared wheel.
 
-GitHub Release archives and platform-specific Python wheels contain the same Go executable bytes for a given operating system, architecture, and version. Existing releases include both formats. The 1.0.0 GitHub Release does not by itself make the wheels available on PyPI; use a release wheel URL or standalone archive until PyPI publication is confirmed.
+GitHub Release archives and platform-specific Python wheels contain the same Go executable bytes for a given operating system, architecture, and version. Existing releases include both formats. Versions before 1.0.1 remain available from GitHub Releases.
 
 GitHub Release examples below use the published 1.0.0 assets. PyPI examples use
-the intended first PyPI version, 1.0.1, after that release is available.
+the first PyPI version, 1.0.1.
 Substitute a version consistently in commands and filenames.
 
-## Pipeline use after PyPI publication
+## Install from PyPI
 
-The commands below become available for a version only after its wheels are
-uploaded to PyPI. The 1.0.0 wheels retain a release-time description saying
-that no PyPI package exists, so a follow-up release is intended for the first
-PyPI upload:
+Run the pinned version without adding it to a project:
 
 ```sh
 uvx dircue@1.0.1 --breakdown --json /path/to/checkout
@@ -30,7 +26,21 @@ uv tool install 'dircue==1.0.1'
 dircue --breakdown --json /path/to/checkout
 ```
 
-With uv's default index settings, these commands require the matching version on PyPI. A configured private index or a local wheel collection supplied with `--no-index --find-links` can also resolve the package by name. Until PyPI publication is announced, use GitHub wheels as shown below. The package name and executable name are both `dircue`.
+With uv's default index settings, these commands resolve the matching version on PyPI. A configured private index or a local wheel collection supplied with `--no-index --find-links` can also resolve the package by name. The package name and executable name are both `dircue`.
+
+For installation with a Python project's normal `uv sync`:
+
+```sh
+uv add 'dircue==1.0.1'
+uv sync --locked
+uv run dircue analyze all --source directory --json /path/to/checkout
+```
+
+Keep the dependency in `[project].dependencies` when deployment environments
+need the executable, and commit the generated `uv.lock`. The same lockfile
+selects the compatible wheel on supported Linux, macOS and Windows hosts.
+Python 3.10 or later is required; the optional structural worker is a separate
+download.
 
 ## Two names, one binary
 

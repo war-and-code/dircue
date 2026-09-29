@@ -87,7 +87,17 @@ Check the exit status before consuming stdout:
 
 ## Install
 
-Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. Check the [distribution guide](docs/DISTRIBUTION.md) for each version's PyPI availability. There is no published container image.
+Each release has platform archives and Python wheels, which contain the same Go executable, plus a signed `SHA256SUMS` manifest. Version 1.0.1 is also available on [PyPI](https://pypi.org/project/dircue/1.0.1/). There is no published container image.
+
+```sh
+# Add dircue to a Python project's dependencies, then use its environment
+uv add 'dircue==1.0.1'
+uv sync --locked
+uv run dircue --version
+
+# Or run without adding a project dependency
+uvx dircue@1.0.1 map --summary /path/to/checkout
+```
 
 ```sh
 # Go toolchain (1.26.6 or later): installs the module at the release tag
