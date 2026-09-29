@@ -158,8 +158,40 @@ jobs:
         shell: bash
         run: uv publish --publish-url https://upload.pypi.org/legacy/ --trusted-publishing always dist/pypi/*.whl
 
-  install-smoke:
+  lock-smoke:
     needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          version: '0.11.2'
+          enable-cache: false
+      - name: Lock the published package for all supported hosts
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir smoke
+          cd smoke
+          cat > pyproject.toml <<EOF
+          [project]
+          name = "dircue-pypi-install-smoke"
+          version = "0.0.0"
+          requires-python = ">=3.10"
+          dependencies = ["dircue==${RELEASE_VERSION}"]
+          EOF
+          uv lock --no-cache --no-config
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pypi-uv-lock
+          path: |
+            smoke/pyproject.toml
+            smoke/uv.lock
+          if-no-files-found: error
+          retention-days: 7
+
+  install-smoke:
+    needs: lock-smoke
     timeout-minutes: 10
     strategy:
       fail-fast: false
@@ -174,19 +206,15 @@ jobs:
         with:
           version: '0.11.2'
           enable-cache: false
-      - name: Install from public PyPI in a fresh environment
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: pypi-uv-lock
+          path: smoke
+      - name: Install from public PyPI using the same lockfile on every host
         run: |
           set -euo pipefail
-          mkdir smoke
           cd smoke
-          cat > pyproject.toml <<EOF
-          [project]
-          name = "dircue-pypi-install-smoke"
-          version = "0.0.0"
-          requires-python = ">=3.10"
-          dependencies = ["dircue==${RELEASE_VERSION}"]
-          EOF
-          uv sync --no-cache --no-config
+          uv sync --locked --no-cache --no-config
           actual="$(uv run --locked --no-config dircue --version)"
           test "$actual" = "dircue ${RELEASE_VERSION}"
           actual="$(uvx --no-cache --no-config --from "dircue==${RELEASE_VERSION}" dircue --version)"

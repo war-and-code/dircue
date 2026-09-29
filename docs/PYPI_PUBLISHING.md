@@ -61,8 +61,9 @@ The separate `publish` job waits for approval in the `pypi` environment. It
 receives only the verified files, rechecks their hashes, and obtains a
 short-lived PyPI credential through Trusted Publishing. Only this job has
 `id-token: write`; it has no checkout or repository write permission. After
-publication, fresh installations run on Linux x64/ARM64, both Mac
-architectures, and Windows x64. A failure in these post-publication checks
+publication, a single universal `uv.lock` is created and fresh installations
+using that same lockfile run on Linux x64/ARM64, both Mac architectures, and
+Windows x64. A failure in these post-publication checks
 requires investigation and usually a new patch version; do not replace the
 published wheel files.
 
