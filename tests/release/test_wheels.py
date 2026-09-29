@@ -54,7 +54,7 @@ def executable(target, dynamic=False, macos=12):
     return bytes(result)
 
 
-def fixture_release(directory):
+def fixture_release(directory, readme=b'# dircue\n'):
     directory.mkdir()
     records = []
     for target in wheels.PLATFORMS:
@@ -64,7 +64,7 @@ def fixture_release(directory):
         name = 'dircue_0.1.0_{}_{}{}'.format(*target, '.zip' if windows else '.tar.gz')
         payload = {binary: (content, True), 'LICENSE': (b'MIT\n', False),
                    'THIRD_PARTY_NOTICES.md': (b'Dependency licenses\n', False),
-                   'README.md': (b'# dircue\n', False)}
+                   'README.md': (readme, False)}
         # Windows: byte-identical copy; Unix: relative symlink dirq -> dircue.
         if windows:
             payload['dirq.exe'] = (content, True)
@@ -86,6 +86,21 @@ def fixture_release(directory):
 
 
 class WheelTests(unittest.TestCase):
+    def test_pypi_description_links_resolve_at_the_release_tag(self):
+        readme = ('[guide](docs/DISTRIBUTION.md#install) '
+                  '![image](docs/images/example.jpg) '
+                  '[issue](https://github.com/war-and-code/dircue/issues/14) '
+                  '[section](#install)')
+        result = wheels.pypi_readme(readme, '1.0.1')
+        self.assertIn('](https://github.com/war-and-code/dircue/blob/v1.0.1/'
+                      'docs/DISTRIBUTION.md#install)', result)
+        self.assertIn('](https://raw.githubusercontent.com/war-and-code/dircue/'
+                      'v1.0.1/docs/images/example.jpg)', result)
+        self.assertIn('[issue](https://github.com/war-and-code/dircue/issues/14)', result)
+        self.assertIn('[section](#install)', result)
+        with self.assertRaisesRegex(ValueError, 'escapes'):
+            wheels.pypi_readme('[outside](../secrets.txt)', '1.0.1')
+
     def test_wheel_payload_record_metadata_and_reproducibility(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

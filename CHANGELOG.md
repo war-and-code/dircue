@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.1 (unreleased)
+
+- Add a manually dispatched PyPI publishing workflow for the exact wheels in a verified GitHub Release. Publishing requires approval in the protected `pypi` environment and a PyPI Trusted Publisher; pushing a tag or publishing a GitHub Release does not upload to PyPI.
+- Check wheel provenance, checksums, package metadata and bundled executable identity before upload, then test one shared `uv.lock` with fresh `uv sync` and `uvx` installations on the supported Linux, macOS and Windows runners.
+- Update the README's distribution wording so it remains accurate after PyPI publication. CLI behavior and map output are unchanged from 1.0.0.
+- Resolve repository-relative README links against the release tag in wheel metadata, so the PyPI project description links to the intended documentation and images.
+
 ## 1.0.0 (2026-09-28)
 
 dircue 1.0 adds **the map**. One deterministic, offline command answers what an unfamiliar directory contains and how it is built and run: projects, deployables, declared interfaces and capabilities, and the relationships between them. Every fact carries evidence identifying its source file and rule; a source span is included when the analyzer can locate one. Every question has a coverage status. The strict Linguist-compatible language commands remain available with their 0.9 output contract; changes to other commands are listed below.

@@ -238,7 +238,24 @@ def load_release(directory):
     return provenance, raw_provenance, version, loaded
 
 
-def wheel_files(version, platform, row, payload, provenance):
+def pypi_readme(readme, git_version):
+    """Resolve repository-relative README links against this release tag."""
+    source = f'https://github.com/war-and-code/dircue/blob/v{git_version}/'
+    images = f'https://raw.githubusercontent.com/war-and-code/dircue/v{git_version}/'
+
+    def resolve(match):
+        url = match.group(1)
+        if re.match(r'[a-z][a-z0-9+.-]*:', url, re.IGNORECASE) or url.startswith(('#', '//')):
+            return match.group(0)
+        path = url.removeprefix('./')
+        if path.startswith('/') or '..' in path.split('/'):
+            raise ValueError('README link escapes the release source tree')
+        return '](' + (images if path.startswith('docs/images/') else source) + path + ')'
+
+    return re.sub(r'\]\(([^)\s]+)\)', resolve, readme)
+
+
+def wheel_files(version, git_version, platform, row, payload, provenance):
     info = f'dircue-{version}.dist-info'
     binary = 'dircue.exe' if row['os'] == 'windows' else 'dircue'
     metadata = ('Metadata-Version: 2.4\nName: dircue\nVersion: ' + version + '\n'
@@ -247,7 +264,8 @@ def wheel_files(version, platform, row, payload, provenance):
                 'License-File: LICENSE\nLicense-File: THIRD_PARTY_NOTICES.md\n'
                 'Project-URL: Source, https://github.com/war-and-code/dircue\n'
                 'Project-URL: Issues, https://github.com/war-and-code/dircue/issues\n'
-                'Description-Content-Type: text/markdown\n\n' + payload['README.md'].decode('utf-8'))
+                'Description-Content-Type: text/markdown\n\n' +
+                pypi_readme(payload['README.md'].decode('utf-8'), git_version))
     files = {
         'dircue/__init__.py': LAUNCHER.format(binary=binary).encode(),
         'dircue/__main__.py': b'from . import main\n\nmain()\n',
@@ -292,7 +310,8 @@ def package(release_dir, output):
             for platform in PLATFORMS[(row['os'], row['arch'])]:
                 filename = f'dircue-{version}-py3-none-{platform}.whl'
                 path = staging / filename
-                write_wheel(path, wheel_files(version, platform, row, payload, raw_provenance))
+                write_wheel(path, wheel_files(version, provenance['version'], platform, row,
+                                              payload, raw_provenance))
                 wheels.append({'name': filename, 'sha256': sha(path.read_bytes()),
                                'source_archive': row['name'], 'source_archive_sha256': row['sha256'],
                                'binary_sha256': row['binary_sha256'], 'platform': platform,
