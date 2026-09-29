@@ -5,6 +5,7 @@
 - Add a manually dispatched PyPI publishing workflow for the exact wheels in a verified GitHub Release. Publishing requires approval in the protected `pypi` environment and a PyPI Trusted Publisher; pushing a tag or publishing a GitHub Release does not upload to PyPI.
 - Check wheel provenance, checksums, package metadata and bundled executable identity before upload, then test one shared `uv.lock` with fresh `uv sync` and `uvx` installations on the supported Linux, macOS and Windows runners.
 - Update the README's distribution wording so it remains accurate after PyPI publication. CLI behavior and map output are unchanged from 1.0.0.
+- Resolve repository-relative README links against the release tag in wheel metadata, so the PyPI project description links to the intended documentation and images.
 
 ## 1.0.0 (2026-09-28)
 

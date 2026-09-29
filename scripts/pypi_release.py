@@ -89,6 +89,8 @@ def verify_wheel(path, version, commit, target, core_sha, sums):
     require('There is no PyPI package' not in description and
             "Releases aren't published to PyPI" not in description,
             f'{path.name} would publish a stale PyPI availability claim')
+    require(wheels.pypi_readme(description, version) == description,
+            f'{path.name} contains unresolved repository-relative README links')
     require(entries[info + '/WHEEL'].decode('utf-8').splitlines()[-1] == 'Tag: py3-none-' + tag,
             f'{path.name} platform tag differs')
     require(entries[info + '/entry_points.txt'] ==

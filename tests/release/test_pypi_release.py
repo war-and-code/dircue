@@ -66,6 +66,16 @@ class PyPIPublicationTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'stale PyPI availability claim'):
                 pypi_release.verify(directory, '0.1.0', '0' * 40)
 
+    def test_published_wheel_metadata_uses_release_links(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            directory = fixture(Path(temporary),
+                                readme=b'# dircue\n\n[guide](docs/DISTRIBUTION.md)\n')
+            pypi_release.verify(directory, '0.1.0', '0' * 40)
+            with zipfile.ZipFile(sorted(directory.glob('*.whl'))[0]) as archive:
+                metadata = archive.read('dircue-0.1.0.dist-info/METADATA').decode()
+            self.assertIn('](https://github.com/war-and-code/dircue/blob/v0.1.0/'
+                          'docs/DISTRIBUTION.md)', metadata)
+
     def test_missing_extra_or_corrupt_wheel_is_rejected(self):
         for corruption in ('missing', 'extra', 'payload'):
             with self.subTest(corruption=corruption), tempfile.TemporaryDirectory() as temporary:

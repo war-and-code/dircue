@@ -4,6 +4,8 @@ PyPI publication is a separate, manual step after a GitHub Release is public. Th
 `publish-pypi.yml` workflow downloads that release's seven wheels and publishes
 those exact files. It never rebuilds the Go executable or uploads a source
 distribution. No workflow runs on a schedule or automatically on a tag push.
+The wheel packager points relative README links and images at the matching
+GitHub tag so that the PyPI description remains navigable.
 
 ## One-time setup
 
