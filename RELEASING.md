@@ -101,14 +101,6 @@ When satisfied, publish the draft release through the GitHub UI.
 
 Publishing is always a deliberate manual step; the workflow never does it.
 
-### Optional PyPI publication
-
-After the GitHub Release is public, use the separate, manually dispatched
-[PyPI publishing workflow](docs/PYPI_PUBLISHING.md). It verifies and uploads
-the exact release wheels, subject to the protected `pypi` environment's
-approval. Publishing the GitHub Release or pushing a tag does not trigger a
-PyPI upload.
-
 ## Build reproducibility
 
 - The release workflow enforces a clean committed checkout with `scripts/draft_release.py validate`.

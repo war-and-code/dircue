@@ -1,27 +1,22 @@
 # Distribution
 
-PyPI publication is prepared separately from GitHub Releases. See the
-[PyPI publishing guide](PYPI_PUBLISHING.md) for the manual, approved workflow.
-Until its first successful upload, `dircue` must be installed from a GitHub
-Release or a locally prepared wheel.
+GitHub Release archives and platform-specific Python wheels contain the same Go executable bytes for a given operating system, architecture, and version. Existing releases include both formats. The 0.9.0 release does not include a PyPI publication step; use the wheel from the GitHub Release URL directly, or install one of the standalone archives.
 
-GitHub Release archives and platform-specific Python wheels contain the same Go executable bytes for a given operating system, architecture, and version. Existing releases include both formats. The 1.0.0 GitHub Release does not by itself make the wheels available on PyPI; use a release wheel URL or standalone archive until PyPI publication is confirmed.
+The examples below target 0.9.0. Tagged download URLs become available when the release is published; local packaging works from the prepared source. For an earlier release, substitute its version consistently in commands and filenames.
 
-The examples below target 1.0.0. For another release, substitute its version consistently in commands and filenames.
+## Pipeline use if a future release adds PyPI publication
 
-## Pipeline use after PyPI publication
-
-The commands below become available for 1.0.0 only after its wheels are uploaded to PyPI:
+The 0.9.0 release does not publish to PyPI. If a later release adds it, the following commands become available:
 
 ```sh
-uvx dircue@1.0.0 --breakdown --json /path/to/checkout
-uvx dircue@1.0.0 analyze all --json /path/to/checkout
+uvx dircue@<version> --breakdown --json /path/to/checkout
+uvx dircue@<version> analyze all --json /path/to/checkout
 ```
 
 For a persistent installation on a self-hosted runner:
 
 ```sh
-uv tool install 'dircue==1.0.0'
+uv tool install 'dircue==<version>'
 dircue --breakdown --json /path/to/checkout
 ```
 
@@ -73,8 +68,8 @@ For repeat jobs, keep a runner-owned uv cache or install the pinned tool once in
 From a clean committed checkout, choose fresh output directories:
 
 ```sh
-python3 scripts/release.py --version 1.0.0 --output dist/release-1.0.0
-python3 scripts/wheels.py --release-dir dist/release-1.0.0 --output dist/wheels-1.0.0
+python3 scripts/release.py --version 0.9.0 --output dist/release-0.9.0
+python3 scripts/wheels.py --release-dir dist/release-0.9.0 --output dist/wheels-0.9.0
 ```
 
 The wheel builder consumes existing release archives; it does not compile Go, run their executables, contact a package index, or publish files. It verifies archive checksums and records the binary checksums in wheel provenance. Keep archive and wheel provenance together with their SHA-256 checksum files.
@@ -97,7 +92,7 @@ Test a local wheel on an Apple Silicon Mac without accessing a package index:
 
 ```sh
 uvx --offline --no-index \
-  --from ./dist/wheels-1.0.0/dircue-1.0.0-py3-none-macosx_12_0_arm64.whl \
+  --from ./dist/wheels-0.9.0/dircue-0.9.0-py3-none-macosx_12_0_arm64.whl \
   dircue --version
 ```
 
@@ -109,7 +104,7 @@ Public PyPI is optional. After a compatible wheel is attached to a GitHub Releas
 
 ```sh
 uvx --from \
-  https://github.com/war-and-code/dircue/releases/download/v1.0.0/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
+  https://github.com/war-and-code/dircue/releases/download/v0.9.0/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue --breakdown --json /path/to/checkout
 ```
 
@@ -120,11 +115,11 @@ Use `uv tool install` with the same wheel URL for a persistent installation. Cho
 A private asset URL (for example, a draft release that has not yet flipped to public) cannot be used as an anonymous public download. With an authenticated GitHub CLI, download the compatible wheel first, then give uv the local file:
 
 ```sh
-gh release download v1.0.0 --repo war-and-code/dircue \
-  --pattern 'dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl' \
+gh release download v0.9.0 --repo war-and-code/dircue \
+  --pattern 'dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl' \
   --dir ./dircue-download
 uvx --offline --no-index \
-  --from ./dircue-download/dircue-1.0.0-py3-none-manylinux_2_17_x86_64.whl \
+  --from ./dircue-download/dircue-0.9.0-py3-none-manylinux_2_17_x86_64.whl \
   dircue analyze projects --json /path/to/checkout
 ```
 
@@ -142,8 +137,8 @@ dircue analyze structure --json --files \
 Build its platform archive separately:
 
 ```sh
-python3 scripts/structural_worker_release.py --version 1.0.0 \
-  --platform darwin-arm64 --output dist/structural-worker-1.0.0 --smoke-test
+python3 scripts/structural_worker_release.py --version 0.9.0 \
+  --platform darwin-arm64 --output dist/structural-worker-0.9.0 --smoke-test
 ```
 
 See the [worker guide](STRUCTURE.md#building-the-add-on) for the pinned Rust build toolchain and supported targets. The worker uses [big-code-analysis](https://github.com/dekobon/big-code-analysis) and Tree-sitter; it is not included in Python wheels or the core Docker image. A built worker runs offline and requires neither Cargo nor a grammar download at runtime.
