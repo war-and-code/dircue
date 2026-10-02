@@ -1121,15 +1121,16 @@ const maxCapabilityEvidencePaths = 20
 
 // capGroup accumulates observations for a single (capability, component) pair.
 type capGroup struct {
-	name        string
-	projectID   string
-	attribution string
-	state       string
-	basis       string
-	paths       []string
-	evidence    []mapdoc.Evidence
-	properties  map[string]string
-	total       int // total distinct (path, name) observations before capping
+	name                          string
+	projectID                     string
+	attribution                   string
+	state                         string
+	basis                         string
+	paths                         []string
+	evidence                      []mapdoc.Evidence
+	properties                    map[string]string
+	total                         int // total distinct (path, name) observations before capping
+	testEvidence, nonTestEvidence bool
 }
 
 func (g *capGroup) worstState(state string) {
@@ -1191,6 +1192,11 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			capGroupOrder = append(capGroupOrder, gk)
 		}
 		g.total++
+		if o.Properties["evidence_scope"] == "test_path_convention" {
+			g.testEvidence = true
+		} else if o.Properties["evidence_scope"] == "non_test_path_convention" {
+			g.nonTestEvidence = true
+		}
 		g.worstState(o.State)
 		// Multiple bases → prefer declared_config > declared_dependency > others
 		if g.basis == "" || (o.Basis == "declared_config" && g.basis != "declared_config") {
@@ -1216,6 +1222,15 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		if role := capPathRole(g.paths...); role != "" {
 			n.Properties["role"] = role
 			n.Properties["role_basis"] = "path_name"
+		}
+		if g.testEvidence {
+			n.Properties["test_path_evidence"] = "true"
+		}
+		if g.nonTestEvidence {
+			n.Properties["non_test_path_evidence"] = "true"
+		}
+		if g.testEvidence && !g.nonTestEvidence {
+			n.Properties["test_only_evidence"] = "true"
 		}
 		for k, v := range g.properties {
 			if _, exists := n.Properties[k]; !exists {

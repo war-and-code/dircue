@@ -52,6 +52,26 @@ func capabilitiesFor(kind, value string) []string {
 		}
 	}
 
+	// Java package names do not preserve Maven artifact names; only well-known API namespaces are mapped.
+	if kind == "maven-import" {
+		l := strings.ToLower(pkg)
+		for ns, cap := range map[string]string{"org.postgresql": "datastore:postgresql", "com.mysql": "datastore:mysql", "org.springframework.data.jpa": "datastore:relational", "org.springframework.data.redis": "cache:redis", "org.springframework.data.mongodb": "datastore:mongodb", "org.springframework.kafka": "messaging:kafka", "org.springframework.amqp": "messaging:amqp", "org.springframework.security.oauth2": "auth:oauth2"} {
+			if strings.HasPrefix(l, ns) {
+				add(cap)
+			}
+		}
+	}
+	// C# namespace evidence uses namespace prefixes mapped to known NuGet capabilities.
+	if kind == "nuget-import" {
+		l := strings.ToLower(pkg)
+		for ns, caps := range map[string][]string{"npgsql": {"datastore:postgresql"}, "microsoft.entityframeworkcore": {"datastore:relational"}, "stackexchange.redis": {"cache:redis"}, "mongodb.driver": {"datastore:mongodb"}, "confluent.kafka": {"messaging:kafka"}, "rabbitmq.client": {"messaging:amqp"}} {
+			if strings.HasPrefix(l, ns) {
+				for _, c := range caps {
+					add(c)
+				}
+			}
+		}
+	}
 	// --- Code generation declarations ---
 	// A .NET <Protobuf> item or a Maven protobuf plugin generates protobuf
 	// code; the value names the generator rather than a package.

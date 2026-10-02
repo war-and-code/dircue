@@ -868,3 +868,51 @@ func TestPrismaSchemaProviderEmitsSpecificDatastoreCapability(t *testing.T) {
 		})
 	}
 }
+
+func TestAdditionalImportScannersBoundaries(t *testing.T) {
+	cases := []struct {
+		name, src string
+		parse     func(string, []byte) []Observation
+		want      string
+		absent    bool
+	}{
+		{"java", "// import org.postgresql.Driver;\nimport static org.springframework.data.jpa.JpaRepository.*;\nclass A {}", parseJVMImports, "datastore:relational", false},
+		{"java-string", "class A { String s = \"import org.postgresql.Driver;\"; }", parseJVMImports, "datastore:postgresql", true},
+		{"csharp", "// using Npgsql;\nusing Db = Npgsql;\nclass A {}", parseDotnetImports, "datastore:postgresql", false},
+		{"csharp-indented", "class A {\n using Npgsql;\n}", parseDotnetImports, "datastore:postgresql", true},
+		{"typescript", "// import pg from 'pg';\nimport type { Pool } from 'pg';", parseJSImports, "datastore:postgresql", false},
+		{"typescript-shadow", "const require = fake; require('pg');", parseJSImports, "datastore:postgresql", true},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			os := tt.parse("src/a", []byte(tt.src))
+			found := false
+			for _, o := range os {
+				if o.Name == tt.want {
+					found = true
+				}
+			}
+			if found == tt.absent {
+				t.Fatalf("found=%v want absent=%v observations=%+v", found, tt.absent, os)
+			}
+		})
+	}
+}
+
+func TestMavenTestScopeFilteringIsMapPrivate(t *testing.T) {
+	d := New(Options{})
+	pom := []byte(`<project><dependencies><dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>2.2</version><scope>test</scope></dependency><dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42</version><scope>provided</scope></dependency></dependencies></project>`)
+	_, _ = d.Detect(context.Background(), profile.File{Path: "pom.xml", Size: int64(len(pom)), Content: pom})
+	reqs := []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml"}, {Kind: "maven-dependency", Value: "org.postgresql:postgresql:42", State: "declared", Evidence: "pom.xml"}}
+	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: reqs}})
+	r, _ := d.Finish(context.Background())
+	for _, o := range r.Observations {
+		if o.Name == "datastore:relational" && o.Basis == "declared_dependency" {
+			t.Fatal("test-scoped Maven dependency promoted")
+		}
+		if o.Name == "datastore:postgresql" && o.Basis == "declared_dependency" {
+			return
+		}
+	}
+	t.Fatal("provided Maven dependency was filtered")
+}

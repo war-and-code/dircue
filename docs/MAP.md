@@ -33,6 +33,8 @@ A local `build_context` is attributed to the component whose root is that direct
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic hash-based identities derived from their kind, paths, and discriminator. They can be compared across maps of the same logical content, but an ID is not a content checksum.
 
+Capability import evidence is a bounded source syntax signal. The scanner recognizes Go and Python imports, Java/Kotlin `import` lines, C#/VB `using` directives, and TypeScript/JavaScript ES imports and conservative CommonJS `require` calls. Comments are ignored; import evidence does not prove that the imported code executes. Maven dependencies explicitly carrying `<scope>test</scope>` are excluded from declared capability evidence in the map; `provided` remains eligible because the runtime may supply it. This Maven scope handling is private to the map and does not alter project or declaration reports. Imports under conventional test paths are retained and marked with capability properties `test_path_evidence=true` and, when all contributing import paths appear test-only, `test_only_evidence=true`. Those values reflect path naming conventions, not verified test execution. Mixed test and non-test evidence retains both `test_path_evidence` and `non_test_path_evidence`.
+
 The following `properties` keys carry stable meanings. A missing key means the observation did not establish that value; consumers should preserve unknown keys for future producers.
 
 | Kind | Common properties |

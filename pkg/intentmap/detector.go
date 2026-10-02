@@ -29,6 +29,7 @@ type Detector struct {
 	omissions    map[string]int
 	projects     map[string]string // projectID → root dir
 	projectNames map[string]string // projectID → module/package name base (for binary naming)
+	testMaven    map[string]bool
 }
 
 var _ profile.Detector = (*Detector)(nil)
@@ -42,7 +43,7 @@ func New(options Options) *Detector {
 	if maxObs <= 0 || maxObs > DefaultMaxObservations {
 		maxObs = DefaultMaxObservations
 	}
-	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}}
+	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}, testMaven: map[string]bool{}}
 }
 
 func (d *Detector) Name() string { return DetectorName }
@@ -86,7 +87,7 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 	compose := isComposeFile(file.Path)
 	k8s := !compose && isK8sManifest(file.Path)
 	contract := contractCandidate(file.Path)
-	if !proto && !goFile && !pythonFile && !config && !prisma && !dockerfile && !java && !compose && !k8s && !contract {
+	if !proto && !goFile && !pythonFile && !config && !prisma && !dockerfile && !java && !compose && !k8s && !contract && !isExtraImport(file.Path) {
 		return nil, nil
 	}
 	if strings.HasPrefix(filename, "docs/") || strings.HasPrefix(filename, "doc/") || strings.HasPrefix(filename, "examples/") || strings.HasPrefix(filename, "samples/") {
@@ -119,13 +120,24 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		observations = parseK8sContainerPorts(file.Path, file.Content)
 	case dockerfile:
 		observations = parseDockerfileExpose(file.Path, file.Content)
+	case isExtraImport(file.Path) && !strings.HasSuffix(filename, ".java") && !strings.HasSuffix(filename, ".kt"):
+		ext := strings.ToLower(path.Ext(file.Path))
+		switch ext {
+		case ".java", ".kt":
+			observations = parseJVMImports(file.Path, file.Content)
+		case ".cs", ".vb":
+			observations = parseDotnetImports(file.Path, file.Content)
+		default:
+			observations = parseJSImports(file.Path, file.Content)
+		}
 	case java:
 		base := path.Base(strings.ToLower(file.Path))
 		switch {
 		case strings.HasSuffix(base, ".java") || strings.HasSuffix(base, ".kt"):
-			observations = parseJavaSpringBoot(file.Path, file.Content)
+			observations = append(parseJavaSpringBoot(file.Path, file.Content), parseJVMImports(file.Path, file.Content)...)
 		case base == "pom.xml":
 			observations = parseMavenMainClass(file.Path, file.Content)
+			d.collectMavenTestScopes(file.Path, file.Content)
 		case base == "build.gradle" || base == "build.gradle.kts":
 			observations = parseGradleMainClass(file.Path, file.Content)
 		}
@@ -818,7 +830,7 @@ func parseGoImports(name string, content []byte) []Observation {
 			continue
 		}
 		for _, capability := range capabilitiesFor("go-import", value) {
-			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: capabilityBasis, Path: name, StartLine: capabilityLine, EndLine: capabilityLine, Properties: map[string]string{"import": value}})
+			out = append(out, Observation{Kind: KindCapability, Name: capability, State: "observed", Basis: capabilityBasis, Path: name, StartLine: capabilityLine, EndLine: capabilityLine, Properties: map[string]string{"import": value, "evidence_scope": importEvidenceScope(name)}})
 		}
 	}
 	return out
@@ -940,7 +952,7 @@ func parsePythonImports(name string, content []byte) []Observation {
 				Path:       name,
 				StartLine:  line,
 				EndLine:    line,
-				Properties: map[string]string{"import": pkg},
+				Properties: map[string]string{"import": pkg, "evidence_scope": importEvidenceScope(name)},
 			})
 		}
 	}

@@ -81,6 +81,9 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, StartLine: v.StartLine, EndLine: v.EndLine, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
 		for _, req := range project.Requirements {
+			if req.Kind == "maven-dependency" && d.testMaven[req.Evidence+"\x00"+mavenCoordinate(req.Value)] {
+				continue
+			}
 			// PEP 735 dependency groups (dev, test, docs, lint) are never
 			// published with the package; like npm devDependencies they
 			// describe tooling, not what the component uses.
@@ -153,4 +156,12 @@ func gemfileToolingGroup(condition string) bool {
 		}
 	}
 	return true
+}
+
+func mavenCoordinate(value string) string {
+	parts := strings.SplitN(value, ":", 3)
+	if len(parts) < 2 {
+		return value
+	}
+	return parts[0] + ":" + parts[1]
 }
