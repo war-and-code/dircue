@@ -9,6 +9,12 @@ import minor
 
 
 class BaselineIdentity(unittest.TestCase):
+    def test_external_report_fixture_is_part_of_receipt_identity(self):
+        hashes = minor.input_hashes()
+        syft = "tests/packageevidence/fixtures/syft-1.52.0.json"
+        self.assertEqual(hashes[syft], minor.previous.sha(minor.ROOT / syft))
+        self.assertIn("scripts/declarations_release_smoke.py", hashes)
+
     def test_changed_binary_is_rejected_before_execution(self):
         with tempfile.TemporaryDirectory() as temporary:
             binary = Path(temporary) / "binary"

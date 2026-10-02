@@ -17,6 +17,14 @@ spec = importlib.util.spec_from_file_location("minor_compatibility_helpers", HEL
 helpers = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(helpers)
 previous = helpers.previous
+INPUT_FILES = (HELPER, helpers.PREVIOUS, previous.LEGACY_HARNESS,
+               previous.BREADTH / "fixtures.json", Path(__file__).resolve(),
+               ROOT / "scripts/declarations_release_smoke.py",
+               ROOT / "tests/packageevidence/fixtures/syft-1.52.0.json")
+
+
+def input_hashes():
+    return {str(p.relative_to(ROOT)): previous.sha(p) for p in INPUT_FILES}
 
 
 def check_baseline(binary, expected_sha256, expected_version):
@@ -35,9 +43,7 @@ def run(baseline, candidate, worker):
         "baseline_sha256": previous.sha(baseline),
         "candidate_sha256": previous.sha(candidate),
         "worker_sha256": previous.sha(worker) if worker else None,
-        "helper_sha256": {str(p.relative_to(ROOT)): previous.sha(p) for p in
-                          (HELPER, helpers.PREVIOUS, previous.LEGACY_HARNESS,
-                           previous.BREADTH / "fixtures.json", Path(__file__).resolve())},
+        "helper_and_external_input_sha256": input_hashes(),
         "untested": [] if worker else ["optional native structural-worker execution"],
         "method": "Exact exit status, stdout and stderr; no normalization. Help, version, newer map/focus/context interfaces, and newly supported evidence require separate checks.",
         "cases": [],
@@ -52,7 +58,7 @@ def run(baseline, candidate, worker):
         matrix += helpers.extra_cases(base, worker)
         matrix += helpers.declaration_cases(base, baseline, env)
         expected = 278 if worker else 245
-        if len(matrix) != expected:
+        if len(matrix) != expected or len({row[0] for row in matrix}) != expected:
             raise AssertionError("inherited case count changed; review the matrix")
         before = previous.fixture_manifest(base)
         for case_id, group, cwd, options in matrix:
@@ -67,6 +73,8 @@ def run(baseline, candidate, worker):
         report["fixtures_sha256"] = before
     if previous.sha(baseline) != report["baseline_sha256"] or previous.sha(candidate) != report["candidate_sha256"]:
         raise AssertionError("an executable changed during verification")
+    if input_hashes() != report["helper_and_external_input_sha256"]:
+        raise AssertionError("a helper or external input changed during verification")
     if worker and previous.sha(worker) != report["worker_sha256"]:
         raise AssertionError("the worker changed during verification")
     report["total"] = len(report["cases"])
