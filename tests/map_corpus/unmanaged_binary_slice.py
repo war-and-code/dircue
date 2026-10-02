@@ -86,7 +86,10 @@ def map_slice(binary: Path, root: Path) -> dict[str, Any]:
     roles: dict[str, int] = {}
     counts: dict[str, int] = {}
     package_names: list[str] = []
+    nodes_by_id: dict[str, dict[str, Any]] = {}
+    artifact_references: list[dict[str, Any]] = []
     for node in document.get("nodes", []):
+        nodes_by_id[node.get("id", "")] = node
         kind = node.get("kind", "unknown")
         counts[kind] = counts.get(kind, 0) + 1
         if kind == "content":
@@ -94,12 +97,34 @@ def map_slice(binary: Path, root: Path) -> dict[str, Any]:
             roles[role] = roles.get(role, 0) + 1
         elif kind == "package":
             package_names.append(node.get("name") or "(unnamed)")
+        elif kind == "component":
+            for fact in node.get("facts", []):
+                if fact.get("kind") == "artifact_reference":
+                    evidence = fact.get("evidence") or [{}]
+                    artifact_references.append({
+                        "component_root": node.get("properties", {}).get("root", ""),
+                        "declaration": evidence[0].get("path", ""),
+                        "state": fact.get("state", ""),
+                        "value": fact.get("value", ""),
+                    })
+    artifact_edges: list[dict[str, Any]] = []
+    for edge in document.get("edges", []):
+        if edge.get("type") != "references_artifact":
+            continue
+        source = nodes_by_id.get(edge.get("from", ""), {})
+        target = nodes_by_id.get(edge.get("to", ""), {})
+        artifact_edges.append({
+            "component_root": source.get("properties", {}).get("root", ""),
+            "target_paths": target.get("paths", []),
+        })
     return {
         "status": document.get("status"),
         "node_counts": counts,
         "content_roles": roles,
         "package_nodes": len(package_names),
         "package_names": package_names,
+        "artifact_references": artifact_references,
+        "artifact_edges": artifact_edges,
         "coverage": document.get("coverage", []),
     }
 
@@ -237,6 +262,18 @@ def validate_slice(spec: dict[str, Any], scratch: Path, binary: Path | None) -> 
             raise ValueError(f"{spec['id']}: expected {spec['expected_content_role']} content role")
         if observed["package_nodes"]:
             raise ValueError(f"{spec['id']}: package identity inferred without a provider report")
+        target = spec["binary"].replace("\\", "/")
+        if spec["id"] == "zdh-web-local-jar":
+            if not any(target in edge["target_paths"] for edge in observed["artifact_edges"]):
+                raise ValueError(f"{spec['id']}: map did not link the Maven systemPath declaration to {target}")
+        elif spec["id"] == "pyrevit-local-dll":
+            if not any(
+                ref["declaration"] == spec["manifest"] and ref["state"] == "unresolved"
+                for ref in observed["artifact_references"]
+            ):
+                raise ValueError(f"{spec['id']}: map did not retain the unresolved HintPath declaration")
+            if any(target in edge["target_paths"] for edge in observed["artifact_edges"]):
+                raise ValueError(f"{spec['id']}: ambiguous multi-target HintPath was linked to {target}")
         result["dircue_map"] = observed
     return result
 

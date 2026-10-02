@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -416,6 +417,18 @@ func TestMakefileContinuationDoesNotReattributeBuildFromAnotherDirectory(t *test
 	}
 }
 
+func TestMakefileVariableContinuationIsNotParsedAsRecipe(t *testing.T) {
+	body := `DOCKER_BUILD = \
+	docker build -f Dockerfile .
+image:
+	$(DOCKER_BUILD)
+`
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || matched || len(defs) != 0 {
+		t.Fatalf("continued assignment body became a recipe: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+}
+
 func TestNestedMakefilesDoNotConsumeDeployableSelectionBudget(t *testing.T) {
 	if IsCandidate("services/api/Makefile") {
 		t.Fatal("nested Makefile is unsupported and must not consume a candidate slot")
@@ -423,12 +436,16 @@ func TestNestedMakefilesDoNotConsumeDeployableSelectionBudget(t *testing.T) {
 	if !IsCandidate("Dockerfile") {
 		t.Fatal("root Dockerfile must remain a selected deployable candidate")
 	}
-	files := []Candidate{makeCandidate("services/api/Makefile", "\tdocker build -f Dockerfile .\n"), makeCandidate("Dockerfile", "FROM alpine:3\n")}
+	files := make([]Candidate, 0, 4101)
+	for i := range 4100 {
+		files = append(files, makeCandidate(fmt.Sprintf("%04d/Makefile", i), "\tdocker build -f Dockerfile .\n"))
+	}
+	files = append(files, makeCandidate("Dockerfile", "FROM alpine:3\n"))
 	report, err := Observe(context.Background(), files, Options{Files: 1})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(report.Definitions) != 1 || report.Definitions[0].Path != "Dockerfile" || report.Omissions["file_limit"] != 0 {
+	if len(report.Definitions) != 1 || report.Definitions[0].Path != "Dockerfile" || report.Omissions["file_limit"] != 0 || report.Coverage.CandidateFiles != 1 {
 		t.Fatalf("unsupported nested Makefile consumed the selection budget: defs=%+v omissions=%+v", report.Definitions, report.Omissions)
 	}
 }

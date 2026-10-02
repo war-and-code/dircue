@@ -47,6 +47,12 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 			continue
 		}
 		if !strings.HasPrefix(original, "\t") {
+			// A tab-indented physical line can continue a Make variable or target
+			// declaration. It is not a recipe just because Make uses tabs to mark
+			// recipes on logical-line boundaries.
+			if !strings.HasPrefix(trimmed, "#") && strings.HasSuffix(trimmed, "\\") {
+				continued = true
+			}
 			continue
 		}
 		command := strings.TrimSpace(original)

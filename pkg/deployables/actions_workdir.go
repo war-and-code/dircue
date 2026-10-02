@@ -97,21 +97,28 @@ func checkoutPath(step map[interface{}]interface{}) (p string, namedRepository, 
 	return p, namedRepository, true
 }
 
-// checkoutNamedRepository reports an explicit checkout of a repository other
-// than github.repository, including the default-path case where no `path:` is
-// given. Such a checkout occupies the workflow workspace root and its build
-// context must not be attributed to the repository being scanned.
-func checkoutNamedRepository(step map[interface{}]interface{}) bool {
+// checkoutContext resolves the workspace path occupied by an actions/checkout
+// step. The default path is the workspace root. A dynamic or unsafe path keeps
+// the checkout in the context as unknown instead of guessing that it used root.
+func checkoutContext(step map[interface{}]interface{}) (workflowCheckout, bool) {
 	uses, found := stringValue(step, "uses")
 	if !found || !strings.HasPrefix(uses, "actions/checkout@") {
-		return false
+		return workflowCheckout{}, false
 	}
 	inputs, found := object(step, "with")
 	if !found {
-		return false
+		return workflowCheckout{path: "."}, true
 	}
 	repository, found := stringValue(inputs, "repository")
-	return found && strings.TrimSpace(repository) != "" && !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
+	named := found && strings.TrimSpace(repository) != "" && !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
+	checkoutPath, found := stringValue(inputs, "path")
+	if !found {
+		return workflowCheckout{path: ".", named: named}, true
+	}
+	if dynamic(checkoutPath) || !safeRelative(checkoutPath) {
+		return workflowCheckout{named: named, unknown: true}, true
+	}
+	return workflowCheckout{path: path.Clean(checkoutPath), named: named}, true
 }
 
 var selfRepositoryExpr = regexp.MustCompile(`^\$\{\{\s*github\.repository\s*\}\}$`)
@@ -143,8 +150,9 @@ func workflowDefaultsWorkdir(doc map[interface{}]interface{}) (val string, prese
 
 // workflowCheckout is an actions/checkout step's literal path in a job.
 type workflowCheckout struct {
-	path  string
-	named bool
+	path    string
+	named   bool
+	unknown bool
 }
 
 // jobCheckouts lists the literal, safe checkout paths of a job's steps, in
@@ -157,14 +165,8 @@ func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
 		if !ok {
 			continue
 		}
-		if p, named, found := checkoutPath(step); found && safeRelative(p) {
-			if clean := path.Clean(p); clean != "." {
-				out = append(out, workflowCheckout{path: clean, named: named})
-			} else if named {
-				out = append(out, workflowCheckout{path: ".", named: true})
-			}
-		} else if checkoutNamedRepository(step) {
-			out = append(out, workflowCheckout{path: ".", named: true})
+		if context, found := checkoutContext(step); found {
+			out = append(out, context)
 		}
 	}
 	return out
@@ -176,7 +178,11 @@ func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
 func withCheckout(ref Reference, dir string, checkouts []workflowCheckout) Reference {
 	dir = path.Clean(dir)
 	for _, c := range checkouts {
-		if (c.path == "." || dir == c.path || strings.HasPrefix(dir, c.path+"/")) && len(c.path) > len(ref.Checkout) {
+		if c.unknown {
+			ref.CheckoutUnknown = true
+			continue
+		}
+		if (c.path == "." || dir == c.path || strings.HasPrefix(dir, c.path+"/")) && len(c.path) >= len(ref.Checkout) {
 			ref.Checkout, ref.CheckoutNamed = c.path, c.named
 		}
 	}

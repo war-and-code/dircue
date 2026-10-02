@@ -1007,7 +1007,11 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 			d.Evidence = append(d.Evidence, Evidence{Field: "job." + bounded(jobName) + ".defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"})
 			if !jobWDDynamic {
 				ref := Reference{Kind: "working_directory", Value: bounded(jobWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"}}
-				d.References = append(d.References, withCheckout(ref, jobWDVal, jobCheckouts(job)))
+				ref = withCheckout(ref, jobWDVal, jobCheckouts(job))
+				if ref.CheckoutUnknown && ref.Qualification == "local" {
+					ref.Qualification = "unresolved"
+				}
+				d.References = append(d.References, ref)
 			}
 		}
 
@@ -1031,7 +1035,9 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 									q = "unresolved"
 								}
 								ref := withCheckout(Reference{Kind: "build_context", Value: bounded(context), Qualification: q, Evidence: Evidence{Field: "with.context", Value: bounded(context), Line: lineOf(content, "context:"), Basis: "github-build-push-action"}}, context, earlier)
-								if ref.CheckoutNamed && ref.Qualification == "local" {
+								if ref.CheckoutUnknown && ref.Qualification == "local" {
+									ref.Qualification = "unresolved"
+								} else if ref.CheckoutNamed && ref.Qualification == "local" {
 									ref.Qualification = "external"
 								}
 								d.References = append(d.References, ref)
@@ -1075,18 +1081,14 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 						val = "unresolved"
 					}
 					ref := Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}}
-					d.References = append(d.References, withCheckout(ref, prec.dir, earlier))
-				}
-				if p, named, found := checkoutPath(step); found && safeRelative(p) {
-					if clean := path.Clean(p); clean != "." {
-						earlier = append(earlier, workflowCheckout{path: clean, named: named})
-					} else if named {
-						earlier = append(earlier, workflowCheckout{path: ".", named: true})
+					ref = withCheckout(ref, prec.dir, earlier)
+					if ref.CheckoutUnknown && ref.Qualification == "local" {
+						ref.Qualification = "unresolved"
 					}
-				} else if checkoutNamedRepository(step) {
-					// actions/checkout defaults to GITHUB_WORKSPACE when path is
-					// omitted. A foreign repository therefore occupies the root.
-					earlier = append(earlier, workflowCheckout{path: ".", named: true})
+					d.References = append(d.References, ref)
+				}
+				if context, found := checkoutContext(step); found {
+					earlier = append(earlier, context)
 				}
 			}
 		}

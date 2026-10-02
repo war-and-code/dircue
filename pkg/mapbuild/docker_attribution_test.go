@@ -121,6 +121,50 @@ func TestBuilderStageCargoCommandDoesNotNarrowFinalImageOwners(t *testing.T) {
 	}
 }
 
+func TestFinalStageCargoPythonAndNodeBuildsKeepAllCoLocatedOwners(t *testing.T) {
+	dockerfile := `FROM rust:1.85 AS runtime
+WORKDIR /app
+COPY crates ./crates
+RUN cargo build --release
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+COPY package.json package-lock.json ./
+RUN npm ci
+`
+	content := []byte(dockerfile)
+	report, err := deployables.Observe(context.Background(), []deployables.Candidate{{Path: "Dockerfile", Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) {
+		return content, int64(len(content)), nil
+	}}}, deployables.Options{})
+	if err != nil || len(report.Definitions) != 1 {
+		t.Fatalf("Dockerfile observation: report=%+v err=%v", report, err)
+	}
+	doc := mapdoc.New()
+	for _, ecosystem := range []string{"cargo", "python", "npm"} {
+		node := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "manifest"}, ecosystem)
+		node.Name = ecosystem
+		node.Properties = map[string]string{"root": ".", "ecosystem": ecosystem}
+		doc.Nodes = append(doc.Nodes, node)
+	}
+	addDeployables(&doc, report)
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	got := map[string]bool{}
+	for _, edge := range doc.Edges {
+		if edge.From != dockerID || edge.Type != mapdoc.EdgeBuilds {
+			continue
+		}
+		for _, node := range doc.Nodes {
+			if node.ID == edge.To {
+				got[node.Properties["ecosystem"]] = true
+			}
+		}
+	}
+	for _, ecosystem := range []string{"cargo", "python", "npm"} {
+		if !got[ecosystem] {
+			t.Fatalf("final-stage Cargo evidence pruned co-located %s build; owners=%v", ecosystem, got)
+		}
+	}
+}
+
 const stagedBuild = "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn package\n"
 
 func TestDockerFinalStageIsTheLastFromNotTheLastSortedImage(t *testing.T) {

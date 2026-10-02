@@ -31,6 +31,9 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 	if def.DockerContextUnknown || def.Path != "" && path.Dir(def.Path) != "." {
 		return "", nil, false
 	}
+	if dockerHasCoLocatedPythonOrNodeBuild(def, owners, d) {
+		return "", nil, false
+	}
 	type copiedCrate struct {
 		root     string
 		line     int
@@ -152,6 +155,68 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 		}
 	}
 	return "", nil, false
+}
+
+// A final-stage Cargo invocation can coexist with installed Python or Node
+// applications. Keep root co-location attribution in that case rather than
+// letting the Cargo signal erase the other components from the image map.
+func dockerHasCoLocatedPythonOrNodeBuild(def deployables.Definition, owners []string, d *mapdoc.Document) bool {
+	hasOtherOwner := false
+	for _, owner := range owners {
+		for _, node := range d.Nodes {
+			if node.ID == owner && (node.Properties["ecosystem"] == "python" || node.Properties["ecosystem"] == "npm") {
+				hasOtherOwner = true
+				break
+			}
+		}
+	}
+	if !hasOtherOwner {
+		return false
+	}
+	for _, ref := range def.DockerPathWrites {
+		if ref.Kind != "run_instruction" || ref.Stage != def.DockerFinalStage {
+			continue
+		}
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, segment := range strings.Split(command, "&&") {
+			fields := strings.Fields(strings.TrimSpace(segment))
+			if dockerRunInstallsAppDependencies(fields) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func firstArg(fields []string) string {
+	if len(fields) < 2 {
+		return ""
+	}
+	return strings.ToLower(fields[1])
+}
+
+func dockerRunInstallsAppDependencies(fields []string) bool {
+	if len(fields) == 0 {
+		return false
+	}
+	tool := strings.ToLower(path.Base(fields[0]))
+	verb := firstArg(fields)
+	switch tool {
+	case "npm":
+		return verb == "install" || verb == "ci"
+	case "yarn":
+		return len(fields) == 1 || verb == "install" || verb == "ci"
+	case "pnpm", "bun":
+		return verb == "install" || verb == "ci"
+	case "pip", "pip3", "poetry", "pipenv":
+		return verb == "install"
+	case "uv":
+		return verb == "sync" || verb == "pip" && len(fields) > 2 && strings.ToLower(fields[2]) == "install"
+	case "python", "python3":
+		return len(fields) > 3 && fields[1] == "-m" && fields[2] == "pip" && fields[3] == "install"
+	default:
+		return false
+	}
 }
 
 func literalCargoBin(fields []string) (string, bool) {
