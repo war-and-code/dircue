@@ -1027,7 +1027,7 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	if len(valid) == 0 || valid[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid source import no longer produces evidence: %+v", valid)
 	}
-	validAfterSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <Icon />;\nimport pg from 'pg';"))
+	validAfterSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <div />;\nimport pg from 'pg';"))
 	if len(validAfterSelfClose) == 0 || validAfterSelfClose[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid import after self-closing JSX was masked: %+v", validAfterSelfClose)
 	}
