@@ -1450,9 +1450,9 @@ func deployableEvidence(filename string, e deployables.Evidence) mapdoc.Evidence
 	return item
 }
 
-// maxCapabilityEvidencePaths caps the number of evidence paths per capability
-// node. The actual count is stored in the node's "evidence_path_count"
-// property so consumers can tell whether paths were omitted.
+// maxCapabilityEvidencePaths caps the number of stored evidence observations
+// per capability node. evidence_path_count reports distinct contributing source
+// paths across all observations in the report, including paths beyond that cap.
 const maxCapabilityEvidencePaths = 20
 
 // capGroup accumulates observations for a single (capability, component) pair.
@@ -1462,10 +1462,11 @@ type capGroup struct {
 	attribution                   string
 	state                         string
 	basis                         string
+	pathCount                     int
+	seenPaths                     map[string]struct{}
 	paths                         []string
 	evidence                      []mapdoc.Evidence
 	properties                    map[string]string
-	total                         int // total distinct (path, name) observations before capping
 	testEvidence, nonTestEvidence bool
 	typeOnlyImport, nonTypeImport bool
 	otherEvidence                 bool
@@ -1559,7 +1560,13 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			capGroups[gk] = g
 			capGroupOrder = append(capGroupOrder, gk)
 		}
-		g.total++
+		if g.seenPaths == nil {
+			g.seenPaths = make(map[string]struct{})
+		}
+		if _, exists := g.seenPaths[o.Path]; !exists {
+			g.seenPaths[o.Path] = struct{}{}
+			g.pathCount++
+		}
 		if o.Basis != "imported" && o.Basis != "code_syntax" {
 			g.otherEvidence = true
 		}
@@ -1593,7 +1600,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			"observation_kind":    "capability",
 			"state":               g.state,
 			"basis":               g.basis,
-			"evidence_path_count": strconv.Itoa(g.total),
+			"evidence_path_count": strconv.Itoa(g.pathCount),
 		}
 		if role := capPathRole(g.paths...); role != "" {
 			n.Properties["role"] = role

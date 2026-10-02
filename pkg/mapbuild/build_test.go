@@ -3,6 +3,7 @@ package mapbuild
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"slices"
@@ -988,6 +989,76 @@ func TestCapabilityGranularityOneNodePerComponent(t *testing.T) {
 	}
 }
 
+func TestCapabilityEvidencePathCountDeduplicatesSourceImports(t *testing.T) {
+	for _, tc := range []struct {
+		name, path, source, capability string
+	}{
+		{"python", "src/app.py", "import psycopg\nimport psycopg2\n", "datastore:postgresql"},
+		{"javascript", "src/app.js", "require('pg');\nrequire('pg-promise');\n", "datastore:postgresql"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			detector := intentmap.New(intentmap.Options{})
+			content := []byte(tc.source)
+			if _, err := detector.Detect(context.Background(), profile.File{Path: tc.path, Size: int64(len(content)), Content: content}); err != nil {
+				t.Fatal(err)
+			}
+			report, err := detector.Finish(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			var imports int
+			for _, observation := range report.Observations {
+				if observation.Kind == intentmap.KindCapability && observation.Name == tc.capability && observation.Path == tc.path {
+					imports++
+				}
+			}
+			if imports != 2 {
+				t.Fatalf("producer emitted %d same-file imports, want 2: %+v", imports, report.Observations)
+			}
+
+			doc := mapdoc.New()
+			addIntent(&doc, report)
+			for _, node := range doc.Nodes {
+				if node.Kind == mapdoc.NodeCapability && node.Name == tc.capability {
+					if got := node.Properties["evidence_path_count"]; got != "1" {
+						t.Fatalf("evidence_path_count = %q, want 1 for two imports in %s", got, tc.path)
+					}
+					if len(node.Evidence) != 2 || len(node.Paths) != 2 {
+						t.Fatalf("deduplicating the count changed the existing observation retention: paths=%v evidence=%+v", node.Paths, node.Evidence)
+					}
+					return
+				}
+			}
+			t.Fatalf("no %s capability emitted", tc.capability)
+		})
+	}
+}
+
+func TestCapabilityEvidencePathCountDeduplicatesAcrossBasisAndLines(t *testing.T) {
+	first := intentmap.Observation{Kind: intentmap.KindCapability, Name: "cache:redis", ProjectID: "svc/pyproject.toml", State: "observed", Basis: "imported", Path: "svc/src/app.py", StartLine: 3}
+	second := intentmap.Observation{Kind: intentmap.KindCapability, Name: "cache:redis", ProjectID: "svc/pyproject.toml", State: "conditional", Basis: "declared_dependency", Path: first.Path, StartLine: 8}
+	third := first
+	third.StartLine = 3
+	doc := mapdoc.New()
+	addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: []intentmap.Observation{first, second, third}})
+	for _, node := range doc.Nodes {
+		if node.Kind != mapdoc.NodeCapability || node.Name != "cache:redis" {
+			continue
+		}
+		if got := node.Properties["evidence_path_count"]; got != "1" {
+			t.Fatalf("evidence_path_count = %q, want 1 for one source path", got)
+		}
+		if len(node.Evidence) != 3 {
+			t.Fatalf("basis/state/line aggregation dropped evidence observations: %+v", node.Evidence)
+		}
+		if node.Properties["state"] != "observed" {
+			t.Fatalf("state aggregation changed to %q", node.Properties["state"])
+		}
+		return
+	}
+	t.Fatal("no cache:redis capability node created")
+}
+
 func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 	// Ensure that when total observations exceed maxCapabilityEvidencePaths,
 	// the node still stores only maxCapabilityEvidencePaths evidence entries
@@ -997,17 +1068,24 @@ func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 	component.Properties = map[string]string{"root": "svc"}
 	doc.Nodes = append(doc.Nodes, component)
 
-	total := maxCapabilityEvidencePaths + 10
+	uniquePaths := maxCapabilityEvidencePaths + 5
 	var obs []intentmap.Observation
-	for i := 0; i < total; i++ {
+	for i := 0; i < uniquePaths; i++ {
 		obs = append(obs, intentmap.Observation{
 			Kind:      intentmap.KindCapability,
 			Name:      "cache:redis",
 			ProjectID: "svc/go.mod",
 			State:     "observed",
 			Basis:     "imported",
-			Path:      "svc/pkg/f" + string(rune('a'+i%26)) + ".go",
+			Path:      fmt.Sprintf("svc/pkg/file-%02d.go", i),
 		})
+	}
+	// Duplicate paths with other lines and bases remain distinct evidence
+	// observations but do not inflate the count of source paths.
+	for _, observation := range obs[:5] {
+		observation.Basis = "declared_dependency"
+		observation.StartLine = 4
+		obs = append(obs, observation)
 	}
 	report := &intentmap.Report{
 		Coverage:     intentmap.Coverage{Status: "complete"},
@@ -1017,8 +1095,11 @@ func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 
 	for _, n := range doc.Nodes {
 		if n.Kind == mapdoc.NodeCapability && n.Name == "cache:redis" {
-			if len(n.Evidence) > maxCapabilityEvidencePaths {
-				t.Errorf("evidence entries = %d, must not exceed maxCapabilityEvidencePaths=%d", len(n.Evidence), maxCapabilityEvidencePaths)
+			if got := n.Properties["evidence_path_count"]; got != fmt.Sprint(uniquePaths) {
+				t.Errorf("evidence_path_count = %q, want %d unique paths", got, uniquePaths)
+			}
+			if len(n.Evidence) != maxCapabilityEvidencePaths {
+				t.Errorf("evidence entries = %d, want observation cap %d", len(n.Evidence), maxCapabilityEvidencePaths)
 			}
 			return
 		}
