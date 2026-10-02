@@ -1165,6 +1165,8 @@ func TestJSImportPackageMatchingDoesNotNormalizeSourceSpecifiers(t *testing.T) {
 		{"version-like at suffix", `require("redis@fake");`, ""},
 		{"node builtin scheme", `import fs from "node:fs";`, ""},
 		{"node builtin bare", `import path from "path";`, ""},
+		{"malformed scoped package suffix", `import x from "@aws-sdk/client@fake";`, ""},
+		{"uppercase scoped package name", `import x from "@aws-sdk/UPPER";`, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1203,10 +1205,56 @@ func TestJSImportObservationClonesShortSpecifierFromLargeSource(t *testing.T) {
 	}
 }
 
-func TestJSImportOversizedSpecifierIsOmitted(t *testing.T) {
+func TestJVMAndDotnetImportObservationsCloneNamespaces(t *testing.T) {
+	for _, tt := range []struct {
+		name, lang, source, capability string
+	}{
+		{"java", "java", strings.Repeat(" ", 1<<20) + "import org.postgresql.Driver;", "datastore:postgresql"},
+		{"csharp", "cs", strings.Repeat(" ", 1<<20) + "using Npgsql;", "datastore:postgresql"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tokens, limited := lexSource(tt.source, tt.lang)
+			if limited {
+				t.Fatal("short namespace in large source unexpectedly hit token limit")
+			}
+			var observations []Observation
+			if tt.lang == "java" {
+				observations = parseJVMImportsTokens("large.java", tt.lang, tokens)
+			} else {
+				observations = parseDotnetImportsTokens("large.cs", false, tokens)
+			}
+			if len(observations) != 1 || observations[0].Name != tt.capability {
+				t.Fatalf("unexpected import evidence: %+v", observations)
+			}
+			retained := observations[0].Properties["import"]
+			sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(tt.source)))
+			retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+			if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(tt.source)) {
+				t.Fatal("namespace evidence retained the large source backing storage")
+			}
+		})
+	}
+}
+
+func TestJSImportLongSubpathRetainsOnlyPackageRoot(t *testing.T) {
 	source := `import client from "@aws-sdk/client-s3/` + strings.Repeat("x", 1<<20) + `";`
-	observations := parseJSImports("large.js", []byte(source))
-	if len(observations) != 0 {
-		t.Fatalf("oversized import specifier should be conservatively omitted: %+v", observations)
+	tokens, limited := lexSource(source, "js")
+	if limited {
+		t.Fatal("one long string token unexpectedly hit token limit")
+	}
+	observations := parseJSImportsTokens("large.js", tokens, true)
+	if len(observations) == 0 {
+		t.Fatal("long valid subpath should corroborate the known package root")
+	}
+	for _, observation := range observations {
+		if observation.Properties["import"] != "@aws-sdk/client-s3" || observation.Properties["import_representation"] != "package_root" {
+			t.Fatalf("long subpath should retain only validated package root: %+v", observation)
+		}
+		retained := observation.Properties["import"]
+		sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(source)))
+		retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+		if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(source)) {
+			t.Fatal("package-root evidence retained the complete large source backing storage")
+		}
 	}
 }

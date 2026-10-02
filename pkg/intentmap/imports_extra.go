@@ -6,10 +6,6 @@ import (
 	"unicode"
 )
 
-// maxJSImportSpecifierBytes bounds both matching work and memory retained by
-// an observation. Oversized/dynamic-looking module specifiers are omitted.
-const maxJSImportSpecifierBytes = 256
-
 // sourceToken is a small lexical token with its source line and lexical brace
 // depth. Strings remain opaque tokens so import parsers can accept a genuine
 // module specifier without scanning text inside unrelated literals.
@@ -369,7 +365,11 @@ func parseJVMImportsTokens(name, lang string, toks []sourceToken) []Observation 
 		if pkg == "" || expectName || (lang == "java" && !sawSemicolon) {
 			continue
 		}
-		for _, c := range capabilitiesFor("maven-import", pkg) {
+		caps := capabilitiesFor("maven-import", pkg)
+		if len(caps) > 0 {
+			pkg = strings.Clone(pkg)
+		}
+		for _, c := range caps {
 			props := map[string]string{"import": pkg, "evidence_scope": importEvidenceScope(name)}
 			if isStatic {
 				props["import_static"] = "true"
@@ -499,7 +499,11 @@ func parseDotnetImportsTokens(name string, vb bool, toks []sourceToken) []Observ
 		if vb {
 			kind = "nuget-import-vb"
 		}
-		for _, c := range capabilitiesFor(kind, ns) {
+		caps := capabilitiesFor(kind, ns)
+		if len(caps) > 0 {
+			ns = strings.Clone(ns)
+		}
+		for _, c := range caps {
 			props := map[string]string{"import": ns, "evidence_scope": importEvidenceScope(name)}
 			if alias {
 				props["import_alias"] = "true"
@@ -622,19 +626,16 @@ func tsImportTypeOnly(t []sourceToken, i int) bool {
 }
 
 func addJSImport(out *[]Observation, name string, line, endLine int, p string, typeOnly bool) {
-	if len(p) == 0 || len(p) > maxJSImportSpecifierBytes {
-		return
-	}
 	packageName := jsImportPackageName(p)
 	if packageName == "" {
 		return
 	}
-	// Lexer token strings are substrings of the whole file. Clone the bounded
-	// specifier so a retained map observation cannot keep a large source file
-	// alive through that backing string.
-	specifier := strings.Clone(p)
+	// `import` records the validated npm package root, rather than preserving
+	// arbitrary subpaths. This keeps retained evidence small and states which
+	// catalog entry the source specifier matched.
+	packageName = strings.Clone(packageName)
 	for _, c := range capabilitiesForJSImport(packageName) {
-		props := map[string]string{"import": specifier, "evidence_scope": importEvidenceScope(name)}
+		props := map[string]string{"import": packageName, "import_representation": "package_root", "evidence_scope": importEvidenceScope(name)}
 		if typeOnly {
 			props["import_qualifier"] = "type_only"
 		}
@@ -655,10 +656,14 @@ func jsImportPackageName(specifier string) string {
 			return ""
 		}
 		end := strings.IndexByte(specifier[slash+1:], '/')
-		if end < 0 {
-			return specifier
+		nameEnd := len(specifier)
+		if end >= 0 {
+			nameEnd = slash + 1 + end
 		}
-		return specifier[:slash+1+end]
+		if !validNPMImportName(specifier[1:slash]) || !validNPMImportName(specifier[slash+1:nameEnd]) || nameEnd > 214 {
+			return ""
+		}
+		return specifier[:nameEnd]
 	}
 	if strings.HasPrefix(specifier, ".") || strings.HasPrefix(specifier, "/") || strings.Contains(specifier, ":") {
 		return ""
@@ -666,10 +671,23 @@ func jsImportPackageName(specifier string) string {
 	if slash := strings.IndexByte(specifier, '/'); slash >= 0 {
 		specifier = specifier[:slash]
 	}
-	if specifier == "" {
+	if !validNPMImportName(specifier) {
 		return ""
 	}
 	return specifier
+}
+
+func validNPMImportName(name string) bool {
+	if len(name) == 0 || len(name) > 214 || name == "." || name == ".." || name[0] == '.' || name[0] == '_' {
+		return false
+	}
+	for i := 0; i < len(name); i++ {
+		c := name[i]
+		if !(c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '.' || c == '_' || c == '-') {
+			return false
+		}
+	}
+	return true
 }
 func jsRequireShadowed(t []sourceToken) bool {
 	for i, x := range t {
