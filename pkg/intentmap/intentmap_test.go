@@ -1031,6 +1031,10 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	if len(validAfterSelfClose) == 0 || validAfterSelfClose[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid import after self-closing JSX was masked: %+v", validAfterSelfClose)
 	}
+	validAfterComponentSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <Icon />;\nimport pg from 'pg';"))
+	if len(validAfterComponentSelfClose) == 0 || validAfterComponentSelfClose[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after self-closing JSX component was masked: %+v", validAfterComponentSelfClose)
+	}
 	validAfterRegexTemplate := parseJSImports("src/view.jsx", []byte("const copy = `${ /`/.test(value) ? '' : '' }`;\nimport pg from 'pg';"))
 	if len(validAfterRegexTemplate) == 0 || validAfterRegexTemplate[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid import after a regex-containing template was masked: %+v", validAfterRegexTemplate)
