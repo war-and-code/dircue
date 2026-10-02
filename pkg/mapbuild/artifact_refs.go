@@ -131,7 +131,7 @@ func addArtifactReferenceEdges(d *mapdoc.Document, report *declarations.Report) 
 }
 
 func artifactEvidence(ref declarations.Reference, selected bool) []mapdoc.Evidence {
-	evidence := []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: ref.Evidence, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}}}
+	evidence := []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: ref.Evidence, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/local-artifact-declaration", Version: "1.1.0"}}}
 	if selected && ref.Target != "" {
 		evidence = append(evidence, mapdoc.Evidence{Basis: mapdoc.BasisResolvedReference, Path: ref.Target, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/selected-inventory", Version: "1.0.0"}})
 	}
