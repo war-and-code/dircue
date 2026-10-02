@@ -14,7 +14,28 @@ The [primary receipt](https://github.com/war-and-code/dircue/releases/download/e
 | Spring Petclinic map | 88.25 ms | 92.49 ms | 43.24 / 42.64 MiB |
 | Ruff map | 2.824 s | 2.849 s | 72.19 / 71.28 MiB |
 
-The small language timings warranted more samples. The [extended receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-extended-macos-arm64.json.gz) contains 30 Java and 15 .NET pairs. Candidate-minus-release paired medians were +0.33 ms and +0.89 ms, respectively; means were +0.12 ms and -0.29 ms. The candidate was slower in 16/30 Java pairs and 8/15 .NET pairs. The distributions overlap widely. These observations do not establish a consistent language-path regression, nor do they prove exact performance equivalence. The map medians also do not support claiming a speedup; added analysis can cost time or memory.
+These compact workloads do not represent the largest repositories. A separate
+review comparison reported longer map times on three larger checkouts:
+
+| Repository | Published 1.0.1 | Candidate | Change |
+| --- | ---: | ---: | ---: |
+| Spring Framework | 1.10 s | 1.40 s | +27% |
+| ASP.NET Core | 1.8–1.9 s | 2.1 s | +15% |
+| Roslyn | 5.9–6.1 s | 6.3–6.4 s | +5% |
+
+The raw samples for this separate comparison are not in the retained timing
+receipt, so these figures are reported measurements rather than independently
+reproducible results from this directory. The compact receipt above does not
+establish that large-map runtime is unchanged.
+
+The small language timings warranted more samples. The
+[extended receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-extended-macos-arm64.json.gz) contains 30 Java and
+15 .NET pairs. Candidate-minus-release paired medians were +0.33 ms and
++0.89 ms, respectively; means were +0.12 ms and -0.29 ms. The candidate was
+slower in 16/30 Java pairs and 8/15 .NET pairs. The distributions overlap
+widely. These observations do not establish a consistent language-path
+regression, nor do they prove exact performance equivalence. The map medians
+also do not support claiming a speedup; added analysis can cost time or memory.
 
 Both binaries used Go 1.26.6, CGO disabled and trimpath. The published executable is symbol-reduced; the candidate retains debug information. Exact published linker strip flags cannot be recovered from embedded metadata, so binary-size and resource differences cannot be attributed solely to source changes.
 
@@ -37,7 +58,16 @@ Historical measurements are release assets, listed with sizes and SHA-256 hashes
 
 ## Map regression oracle
 
-The [candidate score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-candidate.json.gz) uses the unchanged seven-repository labels and scorer. The [published-1.0.1 score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-released-v101.json.gz) matches the reference [source-build score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-v101-sourcebuild.json.gz), which used commit `510575cb7878fbb5184444d8efd976ee37a8c0b3`, whose change after 1.0.1 was documentation only. The final candidate resolves three relationship misses, one false relationship and one interface miss:
+The current candidate score uses the unchanged seven-repository labels and
+scorer. The archived
+[published-1.0.1 score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-released-v101.json.gz) matches the reference
+[source-build score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-v101-sourcebuild.json.gz), which used commit
+`510575cb7878fbb5184444d8efd976ee37a8c0b3`, whose change after 1.0.1 was
+documentation only. The current candidate rerun resolves two relationship
+misses, removes one false relationship and one interface miss. The archived
+`golden-candidate.json.gz` is the historical `a205c3b` result (219 / 0 / 1); it
+is intentionally retained as that historical receipt and is not the current
+score below:
 
 | Class | Reference TP / FP / FN | Candidate TP / FP / FN |
 | --- | --- | --- |
@@ -45,7 +75,15 @@ The [candidate score](https://github.com/war-and-code/dircue/releases/download/e
 | Deployables | 40 / 0 / 0 | 40 / 0 / 0 |
 | Interfaces | 46 / 0 / 1 | 47 / 0 / 0 |
 | Capabilities | 46 / 0 / 0 | 46 / 0 / 0 |
-| Relationships | 216 / 1 / 4 | 219 / 0 / 1 |
+| Relationships | 216 / 1 / 4 | 218 / 0 / 2 |
 | Coverage statuses | 17 / 0 / 11 | 17 / 0 / 11 |
 
-The remaining relationship miss concerns workload capability modeling (#103). Coverage-status disagreements are unchanged; this sprint does not expand every bounded observer into exhaustive coverage. These are adjudicated regression results. Labels were not changed to accommodate the candidate, and the scores do not establish accuracy on arbitrary repositories.
+The two remaining relationship misses concern workload capability modeling
+(#103) and Ruff's root Dockerfile. Ruff's build stage copies `crates`, runs
+`cargo zigbuild`, then copies `/ruff` from that stage; the preceding `cp` uses a
+dynamic target path, so the static analyzer cannot verify that artifact flow
+and leaves the build edge unresolved. Coverage-status disagreements are
+unchanged; this sprint does not expand every bounded observer into exhaustive
+coverage. These are adjudicated regression results. Labels were not changed to
+accommodate the candidate, and the scores do not establish accuracy on
+arbitrary repositories.

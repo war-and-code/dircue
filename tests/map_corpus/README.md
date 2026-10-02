@@ -131,10 +131,12 @@ chooses a fresh receipt path. This is a reproducible guard check for the import
 cases covered here; it is not the reviewer's original sixteen-mutation set or
 a general mutation score.
 
-The 2026-09-23 run passed 167 of 167 exact records in that slice: 56 nodes,
-39 edges, and 72 coverage statuses. The separate 21-repository qualitative
-gate passed 44 targeted assertions. Its labels are not exhaustive, so that
-gate does not report whole-repository precision.
+The current reviewed run passed 176 of 176 selected facts, with 0 false
+positives and 0 misses. This total includes a new first-party TypeScript service
+fixture. Its facts were checked against the fixture source, but the fixture is
+project-authored and is not an independent repository evaluation. The separate
+21-repository qualitative gate passed 44 targeted assertions. Its labels are
+not exhaustive, so that gate does not report whole-repository precision.
 
 The microservices-demo slice now includes the C# cartservice project, its
 Protobuf contract, container build, and a pinned Kubernetes manifest. Those

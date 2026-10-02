@@ -8,11 +8,8 @@ Corrected label errors are recorded in `golden_expectations.json` (`corrections`
 
 | Repository | Kind | Item | Class | Why |
 |---|---|---|---|---|
-| loki | edge FN | `cmd/loki/Dockerfile` builds `loki` | (a) | The Dockerfile copies the repository (`COPY . /src/loki`) and runs `make loki`. Its build context is set by the Makefile, not the Dockerfile, so the Dockerfile's location does not identify the root module statically. |
-| loki | edge FN | `cmd/logcli/Dockerfile` builds `loki` | (a) | Same as above. |
 | ruff | interface FN | `ruff` CLI binary declared by `pyproject.toml` (`[tool.maturin] bindings = "bin"`) | (a) | The Rust binary is found from `crates/ruff/Cargo.toml`; the maturin binary binding in `pyproject.toml` is not read. |
-| ruff | edge FP | `Dockerfile` builds the root Python package `ruff` | (a) | The root Dockerfile builds the Cargo workspace (`COPY crates`, `cargo zigbuild`). The Python package that shares the root directory is linked by co-location; that edge is `partial` (`dockerfile_co_located_with_multiple_components`). |
+| ruff | edge FN | `Dockerfile` builds the root Cargo component | (a) | The final stage copies `/ruff` from the build stage, but the build-stage `cp` uses a dynamic target path (`target/$(cat rust_target.txt)/release/ruff`). The artifact flow is not statically verified, so no build edge is emitted. |
 | spring-petclinic | edge FN | the `petclinic` Kubernetes Deployment uses PostgreSQL | (c) | The Deployment selects the PostgreSQL profile through its environment. The map attributes capabilities to components, not to individual workloads. |
-| terraform-aws-vpc | edge FN | `wrappers` depends on the root module (`source = "../"`) | (a) | Terraform `module` source references between local modules are not yet edges. |
 
-Follow-ups: the (a) items are tracked for the next minor release. The (c) item is a documented modeling boundary.
+Follow-ups: the (a) items are tracked for a later release. The (c) item is a documented modeling boundary.
