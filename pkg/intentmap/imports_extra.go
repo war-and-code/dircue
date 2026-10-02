@@ -6,6 +6,10 @@ import (
 	"unicode"
 )
 
+// maxJSImportSpecifierBytes bounds both matching work and memory retained by
+// an observation. Oversized/dynamic-looking module specifiers are omitted.
+const maxJSImportSpecifierBytes = 256
+
 // sourceToken is a small lexical token with its source line and lexical brace
 // depth. Strings remain opaque tokens so import parsers can accept a genuine
 // module specifier without scanning text inside unrelated literals.
@@ -618,16 +622,54 @@ func tsImportTypeOnly(t []sourceToken, i int) bool {
 }
 
 func addJSImport(out *[]Observation, name string, line, endLine int, p string, typeOnly bool) {
-	if strings.HasPrefix(p, ".") || strings.HasPrefix(p, "/") || p == "" {
+	if len(p) == 0 || len(p) > maxJSImportSpecifierBytes {
 		return
 	}
-	for _, c := range capabilitiesFor("npm-dependency", p) {
-		props := map[string]string{"import": p, "evidence_scope": importEvidenceScope(name)}
+	packageName := jsImportPackageName(p)
+	if packageName == "" {
+		return
+	}
+	// Lexer token strings are substrings of the whole file. Clone the bounded
+	// specifier so a retained map observation cannot keep a large source file
+	// alive through that backing string.
+	specifier := strings.Clone(p)
+	for _, c := range capabilitiesForJSImport(packageName) {
+		props := map[string]string{"import": specifier, "evidence_scope": importEvidenceScope(name)}
 		if typeOnly {
 			props["import_qualifier"] = "type_only"
 		}
 		*out = append(*out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: endLine, Properties: props})
 	}
+}
+
+// jsImportPackageName returns the package root for a bare Node module
+// specifier. It deliberately does not lowercase or strip npm-style @version
+// suffixes: source imports are not manifest dependency declarations.
+func jsImportPackageName(specifier string) string {
+	if strings.HasPrefix(specifier, "node:") || strings.ContainsAny(specifier, "\\?# \t\r\n") {
+		return "" // Node built-ins and URL/query forms have no npm catalog entry.
+	}
+	if strings.HasPrefix(specifier, "@") {
+		slash := strings.IndexByte(specifier, '/')
+		if slash <= 1 || slash == len(specifier)-1 {
+			return ""
+		}
+		end := strings.IndexByte(specifier[slash+1:], '/')
+		if end < 0 {
+			return specifier
+		}
+		return specifier[:slash+1+end]
+	}
+	if strings.HasPrefix(specifier, ".") || strings.HasPrefix(specifier, "/") || strings.Contains(specifier, ":") {
+		return ""
+	}
+	if slash := strings.IndexByte(specifier, '/'); slash >= 0 {
+		specifier = specifier[:slash]
+	}
+	if specifier == "" {
+		return ""
+	}
+	return specifier
 }
 func jsRequireShadowed(t []sourceToken) bool {
 	for i, x := range t {

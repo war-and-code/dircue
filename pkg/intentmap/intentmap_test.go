@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -1149,5 +1150,63 @@ func TestTruncatedJavaScriptDoesNotInferUnverifiedCommonJSImports(t *testing.T) 
 	}
 	if !hasESM {
 		t.Fatalf("lost retained ESM evidence: %+v", observations)
+	}
+}
+
+func TestJSImportPackageMatchingDoesNotNormalizeSourceSpecifiers(t *testing.T) {
+	tests := []struct {
+		name, source string
+		want         string
+	}{
+		{"exact package", `import pg from "pg";`, "datastore:postgresql"},
+		{"package subpath", `require("pg/lib/client");`, "datastore:postgresql"},
+		{"scoped package subpath", `import s3 from "@aws-sdk/client-s3/dist/client";`, "storage:object"},
+		{"case sensitive", `require("PG");`, ""},
+		{"version-like at suffix", `require("redis@fake");`, ""},
+		{"node builtin scheme", `import fs from "node:fs";`, ""},
+		{"node builtin bare", `import path from "path";`, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseJSImports("src/app.js", []byte(tt.source))
+			found := false
+			for _, observation := range got {
+				if observation.Kind == KindCapability && observation.Name == tt.want && tt.want != "" {
+					found = true
+				}
+			}
+			if tt.want != "" && !found {
+				t.Fatalf("missing %s from %q: %+v", tt.want, tt.source, got)
+			}
+			if tt.want == "" && len(got) != 0 {
+				t.Fatalf("unexpected source capability for %q: %+v", tt.source, got)
+			}
+		})
+	}
+}
+
+func TestJSImportObservationClonesShortSpecifierFromLargeSource(t *testing.T) {
+	source := strings.Repeat(" ", 1<<20) + `import pg from "pg";`
+	tokens, limited := lexSource(source, "js")
+	if limited {
+		t.Fatal("short import in a large source unexpectedly hit token limit")
+	}
+	observations := parseJSImportsTokens("large.js", tokens, true)
+	if len(observations) != 1 || observations[0].Properties["import"] != "pg" {
+		t.Fatalf("unexpected import evidence: %+v", observations)
+	}
+	retained := observations[0].Properties["import"]
+	sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(source)))
+	retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+	if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(source)) {
+		t.Fatal("short specifier retained the large source string backing storage")
+	}
+}
+
+func TestJSImportOversizedSpecifierIsOmitted(t *testing.T) {
+	source := `import client from "@aws-sdk/client-s3/` + strings.Repeat("x", 1<<20) + `";`
+	observations := parseJSImports("large.js", []byte(source))
+	if len(observations) != 0 {
+		t.Fatalf("oversized import specifier should be conservatively omitted: %+v", observations)
 	}
 }

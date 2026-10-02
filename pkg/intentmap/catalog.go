@@ -98,6 +98,31 @@ func capabilitiesFor(kind, value string) []string {
 	return out
 }
 
+// capabilitiesForJSImport matches an already-extracted JavaScript package
+// root. Source specifiers are case-sensitive evidence, and unlike manifest
+// values must not have an @version suffix removed.
+func capabilitiesForJSImport(packageName string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(capability string) {
+		if !seen[capability] {
+			seen[capability] = true
+			out = append(out, capability)
+		}
+	}
+	for _, capability := range npmExact[packageName] {
+		add(capability)
+	}
+	// Scoped namespace catalog entries are intentional broad prefixes (for
+	// example @aws-sdk); other ecosystem prefixes do not apply to Node imports.
+	for _, entry := range prefixEntries {
+		if strings.HasPrefix(entry.prefix, "@") && coordinateMatch(packageName, entry.prefix) {
+			add(entry.capability)
+		}
+	}
+	return out
+}
+
 // prefixMatchKind reports whether prefix matching should be applied.
 func prefixMatchKind(kind string) bool {
 	switch kind {
