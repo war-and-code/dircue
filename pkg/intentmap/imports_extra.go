@@ -20,7 +20,9 @@ type sourceToken struct {
 // lexer, not a language parser: malformed or unsupported constructs simply do
 // not produce import evidence.
 func lexSource(src string, lang string) ([]sourceToken, bool) {
-	capacity := min(DefaultMaxLexicalTokensPerFile, len(src))
+	// Reserve for a typical token density, not one 40-byte slot per source
+	// byte. Append growth preserves the same retained-token limit and order.
+	capacity := min(DefaultMaxLexicalTokensPerFile, len(src)/4+1)
 	toks := make([]sourceToken, 0, capacity)
 	line, depth := 1, 0
 	vbStatementStart := true
