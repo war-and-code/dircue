@@ -72,33 +72,11 @@ python3 tests/map_corpus/verify_public.py \
 
 `public_expectations.json` binds twenty-one upstream commits to facts taken
 directly from cited manifests, source files, and tree inventories. It includes
-Terraform, an unrendered Helm chart, Serverless Framework examples, uv, Kotlin,
-.NET samples, a Python functions framework, OCI client source, and a Java SAM
-application in addition to the original language corpus. The gate verifies
-every commit and cited path before scanning. Its report retains each question,
-its source URL, targeted negative checks, and questions deliberately left
-unknown. Source-backed expectation corrections are recorded in that manifest. They distinguish Go module display names from full `go_module` paths and align the Terraform fact with the mapper's module-directory granularity; the cited upstream source remains explicit in each correction record.
+Terraform, an unrendered Helm chart, Serverless Framework examples, uv, Kotlin, .NET samples, a Python functions framework, OCI client source, and a Java SAM application in addition to the original language corpus. The gate verifies every commit and cited path before scanning. Its report retains each question, its source URL, targeted negative checks, and questions deliberately left unknown. Source-backed expectation corrections are recorded in that manifest. They distinguish Go module display names from full `go_module` paths and align the Terraform fact with the mapper's module-directory granularity; the cited upstream source remains explicit in each correction record.
 
-Precision is not claimed: the hand-authored expectations do not exhaustively
-label every observation emitted from these repositories. Per-question recall
-therefore covers only the cited positive facts; negative assertions are narrow
-false-positive checks, and unknowns do not become passes. These limits remain
-visible instead of being converted into an aggregate 100% score. A separate
-five-file, hash-pinned Linux-kernel slice lives in
-`tests/conformance/public_corpus.json`; it covers ambiguous Perl and the 50 KiB
-classifier window rather than claiming to represent the complete kernel.
+Precision is not claimed: the hand-authored expectations do not exhaustively label every observation emitted from these repositories. Per-question recall therefore covers only the cited positive facts; negative assertions are narrow false-positive checks, and unknowns do not become passes. These limits remain visible instead of being converted into an aggregate 100% score. A separate five-file, hash-pinned Linux-kernel slice lives in `tests/conformance/public_corpus.json`; it covers ambiguous Perl and the 50 KiB classifier window rather than claiming to represent the complete kernel.
 
-An additional bounded quality gate measures exact precision and recall rather
-than extrapolating from targeted assertions. It labels every component,
-deployable, interface, capability, and evidenced edge emitted from 29 reviewed
-source paths, plus every coverage status. The entries include pinned
-microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example,
-Express, Flask, Helm examples, a checked-in TypeScript import fixture, and the
-non-source fixture. Other map records remain outside the denominator and the
-report says so explicitly. The TypeScript fixture checks that a value import
-corroborates an optional PostgreSQL dependency, a type-only JWT import leaves
-a peer dependency conditional, and `src/test_utils.ts` is not mistaken for a
-test file:
+An additional bounded quality gate measures exact precision and recall rather than extrapolating from targeted assertions. It labels every component, deployable, interface, capability, and evidenced edge emitted from 29 reviewed source paths, plus every coverage status. The entries include pinned microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example, Express, Flask, Helm examples, a checked-in TypeScript import fixture, and the non-source fixture. Other map records remain outside the denominator and the report says so explicitly. The TypeScript fixture checks that a value import corroborates an optional PostgreSQL dependency, a type-only JWT import leaves a peer dependency conditional, and `src/test_utils.ts` is not mistaken for a test file:
 
 ```sh
 python3 tests/map_corpus/verify_public_quality.py \
@@ -107,61 +85,15 @@ python3 tests/map_corpus/verify_public_quality.py \
   --output .cache/public-map-quality.json
 ```
 
-Each oracle path is content-hashed and linked to its exact upstream commit.
-The microservices-demo run edge also uses a separately hashed Skaffold file as
-supporting evidence; that file does not expand the scored path set.
-For microservices-demo, the same gate also checks the full repository's twelve
-service roots, twelve primary Dockerfiles, and nine GitHub workflow files
-against source-enumerated path sets. These full-population guards catch dropped
-services or workflows, but are not included in the bounded precision/recall
-denominator.
-The expectations cover multi-document Kubernetes, Python requirements-only
-components, Dockerfile-to-component build edges, .NET project relationships,
-declared Redis and event-bus capabilities, Terraform provider aliases, manifest
-interfaces, and honest partial/unknown coverage. This is a precise score for a
-reviewable slice, not a claim about every observation in the full repositories.
+Each oracle path is content-hashed and linked to its exact upstream commit. The microservices-demo run edge also uses a separately hashed Skaffold file as supporting evidence; that file does not expand the scored path set. For microservices-demo, the same gate also checks the full repository's twelve service roots, twelve primary Dockerfiles, and nine GitHub workflow files against source-enumerated path sets. These full-population guards catch dropped services or workflows, but are not included in the bounded precision/recall denominator. The expectations cover multi-document Kubernetes, Python requirements-only components, Dockerfile-to-component build edges, .NET project relationships, declared Redis and event-bus capabilities, Terraform provider aliases, manifest interfaces, and honest partial/unknown coverage. This is a precise score for a reviewable slice, not a claim about every observation in the full repositories.
 
-`evidence_path_count` is the number of distinct source paths contributing to a
-capability. Multiple observations or source lines from the same file do not
-increase that count, and remain separate evidence records when retained. The
-four source-reviewed count corrections are recorded under `label_corrections`
-in `public_quality_expectations.json`; each cites its pinned source URL and
-hash. The capability nodes and their four `uses_capability` edges remain in the
-scored expectations.
+`evidence_path_count` is the number of distinct source paths contributing to a capability. Multiple observations or source lines from the same file do not increase that count, and remain separate evidence records when retained. The four source-reviewed count corrections are recorded under `label_corrections` in `public_quality_expectations.json`; each cites its pinned source URL and hash. The capability nodes and their four `uses_capability` edges remain in the scored expectations.
 
-Import evidence has a separate opt-in mutation check. Run
-`python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-three
-hand-authored counterfactual source changes against their selected Go tests.
-It creates a detached temporary worktree, records exact source and test hashes,
-mutations, commands, toolchain, and full output in a fresh JSON receipt under
-the system temporary directory, then removes the worktree. `--output PATH`
-chooses a fresh receipt path. This is a reproducible guard check for the import
-cases covered here; it is not the reviewer's original sixteen-mutation set or
-a general mutation score.
+Import evidence has a separate opt-in mutation check. Run `python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-three hand-authored counterfactual source changes against their selected Go tests. It creates a detached temporary worktree, records exact source and test hashes, mutations, commands, toolchain, and full output in a fresh JSON receipt under the system temporary directory, then removes the worktree. `--output PATH` chooses a fresh receipt path. This is a reproducible guard check for the import cases covered here; it is not the reviewer's original sixteen-mutation set or a general mutation score.
 
-The current reviewed run passed 176 of 176 selected facts, with 0 false
-positives and 0 misses. This total includes a new first-party TypeScript service
-fixture. Its facts were checked against the fixture source, but the fixture is
-project-authored and is not an independent repository evaluation. The separate
-21-repository qualitative gate passed 44 targeted assertions. Its labels are
-not exhaustive, so that gate does not report whole-repository precision.
+The current reviewed run passed 176 of 176 selected facts, with 0 false positives and 0 misses. This total includes a new first-party TypeScript service fixture. Its facts were checked against the fixture source, but the fixture is project-authored and is not an independent repository evaluation. The separate 21-repository qualitative gate passed 44 targeted assertions. Its labels are not exhaustive, so that gate does not report whole-repository precision.
 
-The microservices-demo slice now includes the C# cartservice project, its
-Protobuf contract, container build, and a pinned Kubernetes manifest. Those
-sources declare Redis caching, PostgreSQL, and Protobuf generation; the contract
-declares `CartService` and its three RPCs. The manifest contains five Kubernetes
-objects: two Deployments, two Services, and a ServiceAccount. The expected
-categories are respectively `workload`, `service`, and `infrastructure`, with
-the metadata names preserved. The emailservice manifest uses the same
-Deployment, Service, and ServiceAccount distinction, and the expectations label
-all three. The gate fails if a candidate collapses these Kubernetes kinds into
-workloads, loses source names while disambiguating repeated resources, or omits
-the cartservice Redis capability and its component relationship. The Helm
-emailservice template is hash-pinned as supporting evidence but stays outside
-exact identity scoring: its conditional resource set and templated names remain
-unresolved without evaluating chart values, and `dircue` does not render Helm.
-Supporting receipts also pin eShop project files referenced by
-project-relationship edges, without expanding the scored path slice.
+The microservices-demo slice now includes the C# cartservice project, its Protobuf contract, container build, and a pinned Kubernetes manifest. Those sources declare Redis caching, PostgreSQL, and Protobuf generation; the contract declares `CartService` and its three RPCs. The manifest contains five Kubernetes objects: two Deployments, two Services, and a ServiceAccount. The expected categories are respectively `workload`, `service`, and `infrastructure`, with the metadata names preserved. The emailservice manifest uses the same Deployment, Service, and ServiceAccount distinction, and the expectations label all three. The gate fails if a candidate collapses these Kubernetes kinds into workloads, loses source names while disambiguating repeated resources, or omits the cartservice Redis capability and its component relationship. The Helm emailservice template is hash-pinned as supporting evidence but stays outside exact identity scoring: its conditional resource set and templated names remain unresolved without evaluating chart values, and `dircue` does not render Helm. Supporting receipts also pin eShop project files referenced by project-relationship edges, without expanding the scored path slice.
 
 The optional fetch helper requires every repository ID explicitly and refuses
 to update or replace existing checkouts. It fetches complete snapshots because

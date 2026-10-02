@@ -2,7 +2,7 @@
 
 These results compare an actual published 1.0.1 executable with a source-built candidate on one macOS ARM64 host. They record local workload behavior, not a universal performance guarantee or an independent map accuracy estimate.
 
-## Timing scope
+## Historical timing scope
 
 The [primary receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-macos-arm64.json.gz) records five interleaved AB/BA pairs after warming both executables. `/usr/bin/time -l` supplied peak RSS; the parent measured wall time. Every measured language/format invocation matched the release's stdout, stderr and exit status exactly. Map output is intentionally different because the candidate adds observations. Both Ruff maps retained the same skipped-symlink warning.
 
@@ -40,22 +40,24 @@ These measurements show a runtime cost on the tested large repositories. Peak RS
 
 Both binaries used Go 1.26.6, CGO disabled and trimpath. The published executable is symbol-reduced; the candidate retains debug information. Exact published linker strip flags cannot be recovered from embedded metadata, so binary-size and resource differences cannot be attributed solely to source changes.
 
-The timed candidate was source commit `8e61302e07e0301b4f896d7ae5969f51125e5eb7`. A later change constrained Cargo attribution to root Dockerfiles with known contexts; the final compatibility and packaging receipts are tied separately to `a205c3b`. Do not treat the timing receipt as a measurement of a different binary.
+The original small-workload candidate was source commit `8e61302e07e0301b4f896d7ae5969f51125e5eb7`. Historical compatibility and packaging receipts use `a205c3b`. The corrected candidate measured above uses `063cf27`; none of those earlier receipts should be treated as a measurement of this later binary.
 
 ## Inputs and reproduction
 
-The receipts retain binary hashes, command arguments, source/build metadata, regular-file content digests, individual measurements and capture hashes. Workloads are pinned to:
+The historical small-workload receipts retain binary hashes, command arguments, source/build metadata, regular-file content digests, individual measurements and capture hashes. Those workloads are pinned to:
 
 - Spring Petclinic: `818c4136ea971c21674525f9053de0d9c7ad8cfe`.
 - ASP.NET Core: `7387de91234d3ef751fa50b3d1bfede4130213ff`, subtree `src/Http`.
 - Ruff: `ea544ce22a7db999b26cd66be76b88d27b9170b5`.
 - One synthetic 128 MiB-class XML-shaped file, outside a Git repository.
 
+The corrected large-map workload pins are Spring Framework `9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82`, the complete ASP.NET Core checkout at the revision above, and Roslyn `ca7d6c1a040cda9fecd1ffe3720fb971251ace67`. The readable [large-repository harness](large_repositories.py) requires macOS, caller-supplied checkouts and pinned executables. Its receipt records Git revisions, clean status, tracked-path digests, raw capture hashes, all samples and p95 values. Parent wall times include subprocess timing overhead; twenty samples on one shared host do not characterize long-tail production latency. The [raw capture archive](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-corrected-raw-captures.tar.gz) retains the measured output bytes.
+
 The synthetic file tests prefix recognition, not whole-document validity or bulk XML parsing. The formats scan read its bounded 65,537-byte prefix. The initial language-only pilot emitted no languages because XML is outside the default language-statistics scope; that pilot is excluded from the final timing matrix. The tree digests omit symlinks and `.git` entries; they are not raw filesystem snapshots.
 
 The experiment scripts are readable source: [primary harness](benchmark-harness.py), [formats harness](formats-harness.py), [extended harness](extended-harness.py), and [synthetic generator](xml-generator.py). They document the original cache layout and macOS timing commands, rather than a portable CI runner. To repeat the experiment, obtain the pinned workloads and published executable, build the recorded candidate, and adapt cache paths to fresh output directories. Retain new receipts instead of overwriting historical results.
 
-Historical measurements are release assets, listed with sizes and SHA-256 hashes in [the evidence manifest](../../receipts/evidence-archive.json). Run `make fetch-receipts` to restore their ignored local paths. Host workspace prefixes in command/build metadata use `{workspace}`; captured output and capture hashes are unchanged. These receipts describe the pre-review candidate, not the subsequently corrected binary. Fresh validation must identify its own build. No scheduled or network-fetching benchmark was enabled.
+Historical measurements are release assets, listed with sizes and SHA-256 hashes in [the evidence manifest](../../receipts/evidence-archive.json). Run `make fetch-receipts` to restore their ignored local paths. Host workspace prefixes in command/build metadata use `{workspace}`; captured output and capture hashes are unchanged. The original primary and extended receipts describe the pre-review candidate, not the corrected binary. Fresh validation must identify its own build. No scheduled or network-fetching benchmark was enabled.
 
 ## Map regression oracle
 
