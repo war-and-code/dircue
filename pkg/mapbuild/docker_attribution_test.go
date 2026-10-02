@@ -2,6 +2,7 @@ package mapbuild
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/deployables"
@@ -122,46 +123,55 @@ func TestBuilderStageCargoCommandDoesNotNarrowFinalImageOwners(t *testing.T) {
 }
 
 func TestFinalStageCargoPythonAndNodeBuildsKeepAllCoLocatedOwners(t *testing.T) {
-	dockerfile := `FROM rust:1.85 AS runtime
+	for _, tc := range []struct {
+		name, command, ecosystem string
+	}{
+		{name: "npm run build", command: "npm run build", ecosystem: "npm"},
+		{name: "npm flags before verb", command: "npm --prefix /app ci", ecosystem: "npm"},
+		{name: "Python setup.py build", command: "python setup.py build", ecosystem: "python-pip"},
+		{name: "maturin build", command: "maturin build --release", ecosystem: "python-uv"},
+		{name: "uv wrapper", command: "uv run python -m build", ecosystem: "python-uv"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			dockerfile := fmt.Sprintf(`FROM rust:1.85 AS runtime
 WORKDIR /app
 COPY crates ./crates
 RUN cargo build --release
-COPY requirements.txt .
-RUN pip install -r requirements.txt
-COPY package.json package-lock.json ./
-RUN npm ci
-`
-	content := []byte(dockerfile)
-	report, err := deployables.Observe(context.Background(), []deployables.Candidate{{Path: "Dockerfile", Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) {
-		return content, int64(len(content)), nil
-	}}}, deployables.Options{})
-	if err != nil || len(report.Definitions) != 1 {
-		t.Fatalf("Dockerfile observation: report=%+v err=%v", report, err)
-	}
-	doc := mapdoc.New()
-	for _, ecosystem := range []string{"cargo", "python", "npm"} {
-		node := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "manifest"}, ecosystem)
-		node.Name = ecosystem
-		node.Properties = map[string]string{"root": ".", "ecosystem": ecosystem}
-		doc.Nodes = append(doc.Nodes, node)
-	}
-	addDeployables(&doc, report)
-	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
-	got := map[string]bool{}
-	for _, edge := range doc.Edges {
-		if edge.From != dockerID || edge.Type != mapdoc.EdgeBuilds {
-			continue
-		}
-		for _, node := range doc.Nodes {
-			if node.ID == edge.To {
-				got[node.Properties["ecosystem"]] = true
+RUN %s
+`, tc.command)
+			content := []byte(dockerfile)
+			report, err := deployables.Observe(context.Background(), []deployables.Candidate{{Path: "Dockerfile", Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) {
+				return content, int64(len(content)), nil
+			}}}, deployables.Options{})
+			if err != nil || len(report.Definitions) != 1 {
+				t.Fatalf("Dockerfile observation: report=%+v err=%v", report, err)
 			}
-		}
-	}
-	for _, ecosystem := range []string{"cargo", "python", "npm"} {
-		if !got[ecosystem] {
-			t.Fatalf("final-stage Cargo evidence pruned co-located %s build; owners=%v", ecosystem, got)
-		}
+			doc := mapdoc.New()
+			for _, ecosystem := range []string{"cargo", tc.ecosystem} {
+				node := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "manifest"}, ecosystem)
+				node.Name = ecosystem
+				node.Properties = map[string]string{"root": ".", "ecosystem": ecosystem}
+				doc.Nodes = append(doc.Nodes, node)
+			}
+			addDeployables(&doc, report)
+			dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+			got := map[string]bool{}
+			for _, edge := range doc.Edges {
+				if edge.From != dockerID || edge.Type != mapdoc.EdgeBuilds {
+					continue
+				}
+				for _, node := range doc.Nodes {
+					if node.ID == edge.To {
+						got[node.Properties["ecosystem"]] = true
+					}
+				}
+			}
+			for _, ecosystem := range []string{"cargo", tc.ecosystem} {
+				if !got[ecosystem] {
+					t.Fatalf("final-stage Cargo evidence pruned co-located %s build; owners=%v", ecosystem, got)
+				}
+			}
+		})
 	}
 }
 
