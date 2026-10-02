@@ -121,6 +121,16 @@ declared Redis and event-bus capabilities, Terraform provider aliases, manifest
 interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
 
+Import evidence has a separate opt-in mutation check. Run
+`python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-one
+hand-authored counterfactual source changes against their selected Go tests.
+It creates a detached temporary worktree, records exact source and test hashes,
+mutations, commands, toolchain, and full output in a fresh JSON receipt under
+the system temporary directory, then removes the worktree. `--output PATH`
+chooses a fresh receipt path. This is a reproducible guard check for the import
+cases covered here; it is not the reviewer's original sixteen-mutation set or
+a general mutation score.
+
 The 2026-09-23 run passed 167 of 167 exact records in that slice: 56 nodes,
 39 edges, and 72 coverage statuses. The separate 21-repository qualitative
 gate passed 44 targeted assertions. Its labels are not exhaustive, so that

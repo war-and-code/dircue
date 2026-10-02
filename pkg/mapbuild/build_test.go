@@ -1850,6 +1850,7 @@ func TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState(t *testi
 		scope       string
 		condition   string
 		importFirst bool
+		basis       string
 	}{
 		{name: "optional type-only first", qualifier: "type_only", scope: "non_test_path_convention", condition: "optionalDependencies", importFirst: true},
 		{name: "optional test-only first", scope: "test_path_convention", condition: "optionalDependencies", importFirst: true},
@@ -1857,11 +1858,17 @@ func TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState(t *testi
 		{name: "optional test-only after", scope: "test_path_convention", condition: "optionalDependencies"},
 		{name: "peer type-only", qualifier: "type_only", scope: "non_test_path_convention", condition: "peerDependencies"},
 		{name: "peer test-only", scope: "test_path_convention", condition: "peerDependencies"},
+		{name: "optional Go test syntax first", scope: "test_path_convention", condition: "optionalDependencies", importFirst: true, basis: "code_syntax"},
+		{name: "optional Go test syntax after", scope: "test_path_convention", condition: "optionalDependencies", basis: "code_syntax"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			imported := intentmap.Observation{
 				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "observed", Basis: "imported", Path: "app/src/types.ts",
 				Properties: map[string]string{"evidence_scope": tc.scope, "import_qualifier": tc.qualifier},
+			}
+			if tc.basis != "" {
+				imported.Basis = tc.basis
+				imported.Path = "app/mux_test.go"
 			}
 			optional := intentmap.Observation{
 				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "conditional", Basis: "declared_dependency", Path: "app/package.json",

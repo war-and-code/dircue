@@ -1494,7 +1494,8 @@ func (g *capGroup) worstState(o intentmap.Observation) {
 		return
 	}
 	if o.State == "observed" {
-		runtimeEvidence := o.Basis != "imported" || (o.Properties["import_qualifier"] != "type_only" && o.Properties["evidence_scope"] != "test_path_convention")
+		importEvidence := o.Basis == "imported" || o.Basis == "code_syntax"
+		runtimeEvidence := !importEvidence || (o.Properties["import_qualifier"] != "type_only" && o.Properties["evidence_scope"] != "test_path_convention")
 		if runtimeEvidence {
 			g.runtimeImportEvidence = true
 			g.state = "observed"
