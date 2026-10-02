@@ -29,7 +29,6 @@ type Detector struct {
 	omissions    map[string]int
 	projects     map[string]string // projectID → root dir
 	projectNames map[string]string // projectID → module/package name base (for binary naming)
-	testMaven    map[string]bool
 }
 
 var _ profile.Detector = (*Detector)(nil)
@@ -43,7 +42,7 @@ func New(options Options) *Detector {
 	if maxObs <= 0 || maxObs > DefaultMaxObservations {
 		maxObs = DefaultMaxObservations
 	}
-	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}, testMaven: map[string]bool{}}
+	return &Detector{maxBytes: maxBytes, maxObs: maxObs, omissions: map[string]int{}, projects: map[string]string{}, projectNames: map[string]string{}}
 }
 
 func (d *Detector) Name() string { return DetectorName }
@@ -137,7 +136,6 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 			observations = append(parseJavaSpringBoot(file.Path, file.Content), parseJVMImports(file.Path, file.Content)...)
 		case base == "pom.xml":
 			observations = parseMavenMainClass(file.Path, file.Content)
-			d.collectMavenTestScopes(file.Path, file.Content)
 		case base == "build.gradle" || base == "build.gradle.kts":
 			observations = parseGradleMainClass(file.Path, file.Content)
 		}

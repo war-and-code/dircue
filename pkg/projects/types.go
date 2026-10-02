@@ -9,6 +9,7 @@ type Requirement struct {
 	State     string `json:"state"`
 	Evidence  string `json:"evidence"`
 	Condition string `json:"condition,omitempty"`
+	Scope     string `json:"-"` // map-private manifest detail; never changes project/declaration JSON
 }
 
 // Reference is an edge declared by a manifest. Target is root-relative when

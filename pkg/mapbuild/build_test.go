@@ -1427,3 +1427,42 @@ func TestBuildContextRootEscapeIsNotAttributed(t *testing.T) {
 		t.Errorf("expected path_outside_repository reason; got %q", factReason)
 	}
 }
+
+func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
+	cases := []struct {
+		name                                               string
+		observations                                       []intentmap.Observation
+		status, wantTestOnly, wantTest, wantProd, wantType string
+	}{
+		{"test-only imports complete", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
+		{"mixed source imports", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/java/App.java", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}}}, "complete", "", "true", "true", ""},
+		{"test import and runtime declaration", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "declared", Basis: "declared_dependency", Path: "app/pom.xml"}}, "complete", "", "true", "", ""},
+		{"test-only import but incomplete scan", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "partial", "", "true", "", ""},
+		{"type-only import", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/ts/a.ts", Properties: map[string]string{"import_qualifier": "type_only", "evidence_scope": "non_test_path_convention"}}}, "complete", "", "", "true", "true"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := mapdoc.New()
+			c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
+			c.Properties = map[string]string{"root": "app"}
+			doc.Nodes = append(doc.Nodes, c)
+			addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: tt.status}, Observations: tt.observations})
+			for _, n := range doc.Nodes {
+				if n.Kind != mapdoc.NodeCapability {
+					continue
+				}
+				check := func(key, want string) {
+					if got := n.Properties[key]; got != want {
+						t.Errorf("%s=%q want %q", key, got, want)
+					}
+				}
+				check("test_only_evidence", tt.wantTestOnly)
+				check("test_path_evidence", tt.wantTest)
+				check("non_test_path_evidence", tt.wantProd)
+				check("type_only_import_evidence", tt.wantType)
+				return
+			}
+			t.Fatal("missing capability node")
+		})
+	}
+}

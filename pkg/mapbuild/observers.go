@@ -1131,6 +1131,8 @@ type capGroup struct {
 	properties                    map[string]string
 	total                         int // total distinct (path, name) observations before capping
 	testEvidence, nonTestEvidence bool
+	typeOnlyImport, nonTypeImport bool
+	otherEvidence                 bool
 }
 
 func (g *capGroup) worstState(state string) {
@@ -1192,6 +1194,14 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			capGroupOrder = append(capGroupOrder, gk)
 		}
 		g.total++
+		if o.Basis != "imported" {
+			g.otherEvidence = true
+		}
+		if o.Properties["import_qualifier"] == "type_only" {
+			g.typeOnlyImport = true
+		} else if o.Basis == "imported" {
+			g.nonTypeImport = true
+		}
 		if o.Properties["evidence_scope"] == "test_path_convention" {
 			g.testEvidence = true
 		} else if o.Properties["evidence_scope"] == "non_test_path_convention" {
@@ -1229,10 +1239,20 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		if g.nonTestEvidence {
 			n.Properties["non_test_path_evidence"] = "true"
 		}
-		if g.testEvidence && !g.nonTestEvidence {
+		if g.testEvidence && !g.nonTestEvidence && !g.otherEvidence && r.Coverage.Status == "complete" {
 			n.Properties["test_only_evidence"] = "true"
+			n.Properties["test_evidence_scope_basis"] = "path_name_convention"
+		}
+		if g.typeOnlyImport {
+			n.Properties["type_only_import_evidence"] = "true"
+		}
+		if g.nonTypeImport {
+			n.Properties["non_type_only_import_evidence"] = "true"
 		}
 		for k, v := range g.properties {
+			if k == "evidence_scope" || k == "import_qualifier" {
+				continue
+			}
 			if _, exists := n.Properties[k]; !exists {
 				n.Properties[k] = v
 			}

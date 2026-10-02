@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
@@ -900,19 +901,178 @@ func TestAdditionalImportScannersBoundaries(t *testing.T) {
 }
 
 func TestMavenTestScopeFilteringIsMapPrivate(t *testing.T) {
+	// A test declaration by itself grants no capability.
 	d := New(Options{})
-	pom := []byte(`<project><dependencies><dependency><groupId>com.h2database</groupId><artifactId>h2</artifactId><version>2.2</version><scope>test</scope></dependency><dependency><groupId>org.postgresql</groupId><artifactId>postgresql</artifactId><version>42</version><scope>provided</scope></dependency></dependencies></project>`)
-	_, _ = d.Detect(context.Background(), profile.File{Path: "pom.xml", Size: int64(len(pom)), Content: pom})
-	reqs := []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml"}, {Kind: "maven-dependency", Value: "org.postgresql:postgresql:42", State: "declared", Evidence: "pom.xml"}}
-	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: reqs}})
+	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "test"}}}})
 	r, _ := d.Finish(context.Background())
 	for _, o := range r.Observations {
-		if o.Name == "datastore:relational" && o.Basis == "declared_dependency" {
+		if o.Name == "datastore:relational" {
 			t.Fatal("test-scoped Maven dependency promoted")
 		}
+	}
+	// The same coordinate with runtime scope still grants evidence; filtering one test occurrence must not suppress its runtime sibling.
+	d = New(Options{})
+	reqs := []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "test"}, {Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "compile"}, {Kind: "maven-dependency", Value: "org.postgresql:postgresql:42", State: "declared", Evidence: "pom.xml", Scope: "provided"}}
+	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: reqs}})
+	r, _ = d.Finish(context.Background())
+	relational, postgres := false, false
+	for _, o := range r.Observations {
+		if o.Name == "datastore:relational" && o.Basis == "declared_dependency" {
+			relational = true
+		}
 		if o.Name == "datastore:postgresql" && o.Basis == "declared_dependency" {
+			postgres = true
+		}
+	}
+	if !relational || !postgres {
+		t.Fatalf("runtime duplicate or provided scope lost: %+v", r.Observations)
+	}
+	raw, _ := json.Marshal(reqs)
+	if strings.Contains(string(raw), "Scope") || strings.Contains(string(raw), "scope") {
+		t.Fatalf("map-private Maven scope leaked to declaration JSON: %s", raw)
+	}
+}
+
+func TestLexicalImportEvidenceAdversarialBoundaries(t *testing.T) {
+	tests := []struct {
+		name, path, source, want, absent string
+		qualifier                        string
+	}{
+		{"kotlin alias", "A.kt", "import org.postgresql.Driver as PgDriver", "datastore:postgresql", "", ""},
+		{"java multiline", "A.java", "import org.\npostgresql.Driver;", "datastore:postgresql", "", ""},
+		{"java text block", "A.java", "class A { String x = \"\"\"\nimport org.postgresql.Driver;\n\"\"\"; }\nimport org.postgresql.Driver;", "datastore:postgresql", "", ""},
+		{"java namespace lookalike", "A.java", "import org.postgresqlish.Driver;", "", "datastore:postgresql", ""},
+		{"C sharp raw literal", "A.cs", "class A { string s = \"\"\"\nusing Npgsql;\n\"\"\"; }\nusing Db = Npgsql;", "datastore:postgresql", "", ""},
+		{"C sharp namespace lookalike", "A.cs", "using NpgsqlFake;", "", "datastore:postgresql", ""},
+		{"C sharp false case", "A.cs", "using npgsql;", "", "datastore:postgresql", ""},
+		{"Java false case", "A.java", "import Org.postgresql.Driver;", "", "datastore:postgresql", ""},
+		{"C sharp multiline", "A.cs", "using Npgsql.\n EntityFrameworkCore.PostgreSQL;", "datastore:postgresql", "", ""},
+		{"C sharp namespace using", "A.cs", "namespace X { using Npgsql; class C { void M() { using var x = new Npgsql(); } } }", "datastore:postgresql", "", ""},
+		{"C sharp method using only", "A.cs", "namespace X { class C { void M() { using Npgsql; } } }", "", "datastore:postgresql", ""},
+		{"VB apostrophe", "A.vb", "' Imports Npgsql\nImports Db = Npgsql", "datastore:postgresql", "", ""},
+		{"VB namespace case insensitive", "A.vb", "Imports npgsql", "datastore:postgresql", "", ""},
+		{"typescript template", "a.ts", "const x = `\nimport pg from 'pg';\n`;\nimport type { Pool } from 'pg';", "datastore:postgresql", "", "type_only"},
+		{"commonjs string", "a.js", `const x = "require('pg')";`, "", "datastore:postgresql", ""},
+		{"commonjs regex", "a.js", `const re = /require\('pg'\)/;`, "", "datastore:postgresql", ""},
+		{"ES regex", "a.js", `const re = /import pg from 'pg'/;`, "", "datastore:postgresql", ""},
+		{"commonjs destructured shadow", "a.js", `const { require } = fake; require('pg');`, "", "datastore:postgresql", ""},
+		{"ES import with shadow", "a.ts", `const { require } = fake; import pg from 'pg';`, "datastore:postgresql", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []Observation
+			switch strings.ToLower(path.Ext(tt.path)) {
+			case ".java", ".kt":
+				got = parseJVMImports(tt.path, []byte(tt.source))
+			case ".cs", ".vb":
+				got = parseDotnetImports(tt.path, []byte(tt.source))
+			default:
+				got = parseJSImports(tt.path, []byte(tt.source))
+			}
+			found, absent, qual := false, false, ""
+			for _, o := range got {
+				if o.Name == tt.want && tt.want != "" {
+					found = true
+					qual = o.Properties["import_qualifier"]
+				}
+				if o.Name == tt.absent && tt.absent != "" {
+					absent = true
+				}
+			}
+			if tt.want != "" && !found {
+				t.Fatalf("missing %s evidence: %+v", tt.want, got)
+			}
+			if tt.absent != "" && absent {
+				t.Fatalf("false positive %s: %+v", tt.absent, got)
+			}
+			if tt.qualifier != "" && qual != tt.qualifier {
+				t.Fatalf("import qualifier = %q observations=%+v", qual, got)
+			}
+		})
+	}
+}
+
+func TestImportEvidenceUsesTestPathConvention(t *testing.T) {
+	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go"} {
+		if importEvidenceScope(p) != "test_path_convention" {
+			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
+		}
+	}
+	for _, p := range []string{"src/main/java/App.java", "src/client.ts"} {
+		if importEvidenceScope(p) != "non_test_path_convention" {
+			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
+		}
+	}
+}
+
+func TestLexerMasksNestedAndUnterminatedLiteralRegions(t *testing.T) {
+	cases := []struct {
+		name, lang, source string
+		want               bool
+	}{
+		{"Kotlin nested comment", "kotlin", "/* outer /* import org.postgresql.Driver */ still comment */\nimport org.postgresql.Driver", true},
+		{"C sharp four quote raw", "cs", "var s = \"\"\"\"\nusing Npgsql;\n\"\"\"\"; using Db = Npgsql;", true},
+		{"JS unterminated quote", "js", "const x = \"require('pg')\nrequire('pg')", false},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			tokens, _ := lexSource(tt.source, tt.lang)
+			found := false
+			for _, tk := range tokens {
+				if (tt.lang == "kotlin" && tk.text == "import") || (tt.lang == "cs" && tk.text == "using") || (tt.lang == "js" && tk.text == "require") {
+					found = true
+				}
+			}
+			if found != tt.want {
+				t.Fatalf("found code token=%v, want %v; tokens=%+v", found, tt.want, tokens)
+			}
+		})
+	}
+}
+
+func TestLexerEscapeParityAndImportBindingShadow(t *testing.T) {
+	if escapedAt(`\\\"`, 2) {
+		t.Fatal("quote after an even number of backslashes was considered escaped")
+	}
+	if !escapedAt(`\"`, 1) {
+		t.Fatal("quote after one backslash was not considered escaped")
+	}
+	got := parseJSImports("a.ts", []byte(`import { createRequire as require } from "node:module"; require("pg"); import type from "pg";`))
+	count := 0
+	for _, o := range got {
+		if o.Name == "datastore:postgresql" {
+			count++
+		}
+		if o.Properties["import_qualifier"] == "type_only" {
+			t.Fatal("default binding named type was mislabeled type-only")
+		}
+	}
+	if count != 1 {
+		t.Fatalf("ES imports should survive local require binding; module evidence count=%d observations=%+v", count, got)
+	}
+}
+
+func TestVBRemAndTypeScriptInlineTypeImports(t *testing.T) {
+	vb := parseDotnetImports("src/App.vb", []byte("REM Imports Npgsql\nImports StackExchange.Redis"))
+	foundRedis, foundPg := false, false
+	for _, o := range vb {
+		foundRedis = foundRedis || o.Name == "cache:redis"
+		foundPg = foundPg || o.Name == "datastore:postgresql"
+	}
+	if !foundRedis || foundPg {
+		t.Fatalf("VB REM/import classification wrong: %+v", vb)
+	}
+	ts := parseJSImports("src/db.ts", []byte("import { type Pool, type Client } from 'pg';"))
+	for _, o := range ts {
+		if o.Name == "datastore:postgresql" && o.Properties["import_qualifier"] == "type_only" {
 			return
 		}
 	}
-	t.Fatal("provided Maven dependency was filtered")
+	t.Fatalf("inline type-only import missing qualifier: %+v", ts)
+	mixed := parseJSImports("src/db.ts", []byte("import { type Pool, Client } from 'pg';"))
+	for _, o := range mixed {
+		if o.Name == "datastore:postgresql" && o.Properties["import_qualifier"] == "type_only" {
+			t.Fatalf("mixed value/type import marked type-only: %+v", mixed)
+		}
+	}
 }

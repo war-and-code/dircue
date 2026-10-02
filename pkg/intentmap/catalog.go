@@ -33,6 +33,9 @@ import (
 func capabilitiesFor(kind, value string) []string {
 	lower := strings.ToLower(value)
 	pkg := extractPackageName(kind, lower)
+	if kind == "maven-import" || kind == "nuget-import" || kind == "nuget-import-vb" {
+		pkg = value
+	}
 
 	seen := map[string]bool{}
 	var out []string
@@ -52,26 +55,28 @@ func capabilitiesFor(kind, value string) []string {
 		}
 	}
 
-	// Java package names do not preserve Maven artifact names; only well-known API namespaces are mapped.
+	// Java and C# are case-sensitive; VB namespace identifiers are not.
 	if kind == "maven-import" {
-		l := strings.ToLower(pkg)
-		for ns, cap := range map[string]string{"org.postgresql": "datastore:postgresql", "com.mysql": "datastore:mysql", "org.springframework.data.jpa": "datastore:relational", "org.springframework.data.redis": "cache:redis", "org.springframework.data.mongodb": "datastore:mongodb", "org.springframework.kafka": "messaging:kafka", "org.springframework.amqp": "messaging:amqp", "org.springframework.security.oauth2": "auth:oauth2"} {
-			if strings.HasPrefix(l, ns) {
-				add(cap)
+		for _, m := range []struct{ ns, cap string }{{"com.mysql", "datastore:mysql"}, {"org.apache.kafka", "messaging:kafka"}, {"org.postgresql", "datastore:postgresql"}, {"org.springframework.amqp", "messaging:amqp"}, {"org.springframework.data.jpa", "datastore:relational"}, {"org.springframework.data.mongodb", "datastore:mongodb"}, {"org.springframework.data.redis", "cache:redis"}, {"org.springframework.kafka", "messaging:kafka"}, {"org.springframework.security.oauth2", "auth:oauth2"}, {"software.amazon.awssdk", "cloud:aws"}} {
+			if namespaceMatch(pkg, m.ns) {
+				add(m.cap)
 			}
 		}
 	}
-	// C# namespace evidence uses namespace prefixes mapped to known NuGet capabilities.
-	if kind == "nuget-import" {
-		l := strings.ToLower(pkg)
-		for ns, caps := range map[string][]string{"npgsql": {"datastore:postgresql"}, "microsoft.entityframeworkcore": {"datastore:relational"}, "stackexchange.redis": {"cache:redis"}, "mongodb.driver": {"datastore:mongodb"}, "confluent.kafka": {"messaging:kafka"}, "rabbitmq.client": {"messaging:amqp"}} {
-			if strings.HasPrefix(l, ns) {
-				for _, c := range caps {
-					add(c)
-				}
+	if kind == "nuget-import" || kind == "nuget-import-vb" {
+		valueForMatch := pkg
+		for _, m := range []struct{ ns, cap string }{{"Confluent.Kafka", "messaging:kafka"}, {"Microsoft.EntityFrameworkCore", "datastore:relational"}, {"MongoDB.Driver", "datastore:mongodb"}, {"Npgsql", "datastore:postgresql"}, {"RabbitMQ.Client", "messaging:amqp"}, {"StackExchange.Redis", "cache:redis"}} {
+			prefix := m.ns
+			if kind == "nuget-import-vb" {
+				valueForMatch = strings.ToLower(pkg)
+				prefix = strings.ToLower(prefix)
+			}
+			if namespaceMatch(valueForMatch, prefix) {
+				add(m.cap)
 			}
 		}
 	}
+
 	// --- Code generation declarations ---
 	// A .NET <Protobuf> item or a Maven protobuf plugin generates protobuf
 	// code; the value names the generator rather than a package.
@@ -948,4 +953,9 @@ var pubExact = map[string][]string{
 	"langchain":            {"ai:llm-sdk"},
 	"google_generative_ai": {"ai:llm-sdk"},
 	"openai_dart":          {"ai:llm-sdk"},
+}
+
+// namespaceMatch accepts an exact namespace or one of its qualified members.
+func namespaceMatch(value, prefix string) bool {
+	return value == prefix || strings.HasPrefix(value, prefix+".")
 }

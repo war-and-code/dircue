@@ -2,211 +2,648 @@ package intentmap
 
 import (
 	"path"
-	"regexp"
 	"strings"
+	"unicode"
 )
 
-var (
-	javaImportRE = regexp.MustCompile(`^import\s+(?:static\s+)?([A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*|\.\*)*)\s*;`)
-	vbImportsRE  = regexp.MustCompile(`(?i)^Imports\s+(?:[A-Za-z_][\w]*\s*=\s*)?([A-Za-z_][\w.]*)\s*$`)
-	csUsingRE    = regexp.MustCompile(`^using\s+(?:static\s+)?([A-Za-z_][\w.]*)\s*;`)
-	csAliasRE    = regexp.MustCompile(`^using\s+[A-Za-z_][\w]*\s*=\s*([A-Za-z_][\w.]*)\s*;`)
-	tsFromRE     = regexp.MustCompile(`\bimport\s+(?:type\s+)?(?:[^;]*?\s+from\s+)?['"]([^'"]+)['"]`)
-	tsRequireRE  = regexp.MustCompile(`(?:^|[=(:,]\s*)require\s*\(\s*['"]([^'"]+)['"]\s*\)`)
-)
+// sourceToken is a small lexical token with its source line and lexical brace
+// depth. Strings remain opaque tokens so import parsers can accept a genuine
+// module specifier without scanning text inside unrelated literals.
+type sourceToken struct {
+	text  string
+	kind  byte // i identifier, s string, p punctuation
+	line  int
+	depth int
+}
 
-// scrubComments removes comments while preserving quoted literals and line positions.
-func scrubComments(s string, slash bool) string {
-	var b strings.Builder
-	b.Grow(len(s))
-	quote := byte(0)
-	line, block := false, false
-	esc := false
-	for i := 0; i < len(s); i++ {
-		c := s[i]
-		n := byte(0)
-		if i+1 < len(s) {
-			n = s[i+1]
+// lexSource masks comments and emits strings as opaque tokens. It is a bounded
+// lexer, not a language parser: malformed or unsupported constructs simply do
+// not produce import evidence.
+func lexSource(src string, lang string) ([]sourceToken, string) {
+	var toks []sourceToken
+	var masked strings.Builder
+	masked.Grow(len(src))
+	line, depth := 1, 0
+	space := func(c byte) {
+		if c == '\n' {
+			masked.WriteByte('\n')
+			line++
+		} else {
+			masked.WriteByte(' ')
 		}
-		if line {
-			if c == '\n' {
-				line = false
-				b.WriteByte(c)
-			} else {
-				b.WriteByte(' ')
-			}
+	}
+	for i := 0; i < len(src); {
+		c := src[i]
+		if c == '\n' {
+			masked.WriteByte(c)
+			line++
+			i++
 			continue
 		}
-		if block {
-			if c == '*' && n == '/' {
-				b.WriteString("  ")
+		if c == ' ' || c == '\t' || c == '\r' || c == '\f' {
+			masked.WriteByte(c)
+			i++
+			continue
+		}
+		if lang == "vb" && i+3 <= len(src) && strings.EqualFold(src[i:i+3], "REM") && (i+3 == len(src) || src[i+3] == ' ' || src[i+3] == '\t') {
+			lineStart := strings.LastIndex(src[:i], "\n") + 1
+			prefix := strings.TrimSpace(src[lineStart:i])
+			if prefix == "" || strings.HasSuffix(prefix, ":") {
+				for i < len(src) && src[i] != '\n' {
+					space(src[i])
+					i++
+				}
+				continue
+			}
+		}
+		// VB uses apostrophe comments and doubled quotes in string literals.
+		if lang == "vb" && c == '\'' {
+			for i < len(src) && src[i] != '\n' {
+				space(src[i])
 				i++
-				block = false
-			} else if c == '\n' {
-				b.WriteByte(c)
-			} else {
-				b.WriteByte(' ')
 			}
 			continue
 		}
-		if quote != 0 {
-			b.WriteByte(c)
-			if esc {
-				esc = false
-			} else if c == '\\' {
-				esc = true
-			} else if c == quote {
-				quote = 0
+		if c == '/' && i+1 < len(src) && src[i+1] == '/' {
+			for i < len(src) && src[i] != '\n' {
+				space(src[i])
+				i++
 			}
 			continue
 		}
-		if c == '"' || c == '\'' || c == '`' {
-			quote = c
-			b.WriteByte(c)
+		if c == '/' && i+1 < len(src) && src[i+1] == '*' {
+			space('/')
+			space('*')
+			i += 2
+			nesting := 1
+			for i < len(src) && nesting > 0 {
+				if lang == "kotlin" && i+1 < len(src) && src[i] == '/' && src[i+1] == '*' {
+					space('/')
+					space('*')
+					i += 2
+					nesting++
+					continue
+				}
+				if i+1 < len(src) && src[i] == '*' && src[i+1] == '/' {
+					space('*')
+					space('/')
+					i += 2
+					nesting--
+					continue
+				}
+				space(src[i])
+				i++
+			}
 			continue
 		}
-		if c == '/' && n == '*' {
-			block = true
-			b.WriteString("  ")
+		// A JavaScript regular-expression literal is opaque too. Recognize it
+		// only where an expression may begin; division after a value stays
+		// punctuation. This intentionally favors omission over parsing regex
+		// contents as module syntax.
+		if lang == "js" && c == '/' && jsRegexMayStart(toks) {
+			j := i + 1
+			inClass, closed := false, false
+			for j < len(src) && src[j] != '\n' {
+				if src[j] == '\\' {
+					j += 2
+					continue
+				}
+				if src[j] == '[' {
+					inClass = true
+				} else if src[j] == ']' {
+					inClass = false
+				} else if src[j] == '/' && !inClass {
+					j++
+					for j < len(src) && ((src[j] >= 'a' && src[j] <= 'z') || (src[j] >= 'A' && src[j] <= 'Z')) {
+						j++
+					}
+					closed = true
+					break
+				}
+				j++
+			}
+			if !closed {
+				// An ambiguous or malformed regexp may contain arbitrary text;
+				// mask the remainder of the line so it cannot yield evidence.
+				for i < len(src) && src[i] != '\n' {
+					space(src[i])
+					i++
+				}
+				continue
+			}
+			for i < j {
+				space(src[i])
+				i++
+			}
+			continue
+		}
+
+		// C# verbatim/interpolated-verbatim strings: @"..." / $@"..." / @$"...".
+		strStart := i
+		startLine := line
+		qpos := i
+		if lang == "cs" && (src[i] == '@' || src[i] == '$') {
+			j := i
+			for j < len(src) && (src[j] == '@' || src[j] == '$') {
+				j++
+			}
+			if j < len(src) && src[j] == '"' {
+				qpos = j
+			}
+		}
+		if src[qpos] == '"' || src[qpos] == '\'' || src[qpos] == '`' {
+			q := src[qpos]
+			start := qpos
+			delim := 1
+			quoteRun := 1
+			if q == '"' {
+				for start+quoteRun < len(src) && src[start+quoteRun] == '"' {
+					quoteRun++
+				}
+			}
+			raw := q == '`'
+			triple := q == '"' && (lang == "java" || lang == "kotlin") && quoteRun >= 3
+			if triple {
+				delim = 3
+			}
+			if lang == "cs" && q == '"' && quoteRun >= 3 {
+				delim = quoteRun
+				raw = true
+				triple = true
+			}
+			if triple {
+				if lang != "cs" {
+					delim = 3
+				}
+				qpos = start + delim - 1
+			}
+			contentStart := start + delim
+			verbatim := lang == "cs" && strings.Contains(src[strStart:qpos+1], "@")
+			j := contentStart
+			closed := false
+			invalidLineString := false
+			for j < len(src) {
+				if !triple && q != '`' && !verbatim && src[j] == '\n' {
+					invalidLineString = true
+					break
+				}
+				if triple && src[j] == '"' {
+					run := 1
+					for j+run < len(src) && src[j+run] == '"' {
+						run++
+					}
+					if run >= delim {
+						closed = true
+						break
+					}
+					j += run
+					continue
+				}
+				if !triple && src[j] == q {
+					if (verbatim || lang == "vb") && q == '"' && j+1 < len(src) && src[j+1] == '"' {
+						j += 2
+						continue
+					}
+					if raw || !escapedAt(src, j) {
+						closed = true
+						break
+					}
+				}
+				j++
+			}
+			val := src[contentStart:j]
+			if closed {
+				if triple {
+					run := 1
+					for j+run < len(src) && src[j+run] == '"' {
+						run++
+					}
+					j += run
+				} else {
+					j++
+				}
+			}
+			if invalidLineString {
+				j = len(src)
+			}
+			for k := strStart; k < j; k++ {
+				space(src[k])
+			}
+			if closed {
+				toks = append(toks, sourceToken{text: val, kind: 's', line: startLine, depth: depth})
+			}
+			i = j
+			continue
+		}
+
+		if c == '_' || c == '$' || unicode.IsLetter(rune(c)) {
+			start := i
 			i++
+			for i < len(src) && (src[i] == '_' || src[i] == '$' || unicode.IsLetter(rune(src[i])) || unicode.IsDigit(rune(src[i]))) {
+				i++
+			}
+			v := src[start:i]
+			toks = append(toks, sourceToken{text: v, kind: 'i', line: line, depth: depth})
+			masked.WriteString(v)
 			continue
 		}
-		if slash && c == '/' && n == '/' {
-			line = true
-			b.WriteString("  ")
-			i++
-			continue
+		if c == '}' && depth > 0 {
+			depth--
 		}
-		b.WriteByte(c)
+		toks = append(toks, sourceToken{text: string(c), kind: 'p', line: line, depth: depth})
+		masked.WriteByte(c)
+		if c == '{' {
+			depth++
+		}
+		i++
 	}
-	return b.String()
+	return toks, masked.String()
 }
-func javaImportPackage(s string) string { s = strings.TrimSuffix(s, ".*"); return s }
+
+func jsRegexMayStart(t []sourceToken) bool {
+	if len(t) == 0 {
+		return true
+	}
+	x := t[len(t)-1]
+	if x.kind == 'i' || x.kind == 's' || x.text == ")" || x.text == "]" || x.text == "}" || x.text == "++" || x.text == "--" {
+		return x.kind == 'i' && (x.text == "return" || x.text == "throw" || x.text == "case" || x.text == "delete" || x.text == "void" || x.text == "typeof" || x.text == "instanceof" || x.text == "in" || x.text == "of" || x.text == "yield" || x.text == "await")
+	}
+	switch x.text {
+	case "(", "=", "=>", ":", ",", "!", "?", "&", "|", "+", "-", "*", "%", "{", ";":
+		return true
+	default:
+		return false
+	}
+}
+
+func escapedAt(s string, i int) bool {
+	n := 0
+	for j := i - 1; j >= 0 && s[j] == '\\'; j-- {
+		n++
+	}
+	return n%2 == 1
+}
+
 func parseJVMImports(name string, content []byte) []Observation {
-	s := scrubComments(string(content), true)
-	lines := strings.Split(s, "\n")
-	var out []Observation
-	for i := 0; i < len(lines); i++ {
-		l := strings.TrimSpace(lines[i])
-		if l == "" || strings.HasPrefix(l, "*") || strings.HasPrefix(l, "//") {
+	lang := "java"
+	if strings.HasSuffix(strings.ToLower(name), ".kt") {
+		lang = "kotlin"
+	}
+	toks, _ := lexSource(string(content), lang)
+	out := []Observation{}
+	for i := 0; i < len(toks); i++ {
+		t := toks[i]
+		if t.depth != 0 || t.text != "import" || t.kind != 'i' {
 			continue
 		}
-		start := i + 1
-		for strings.HasPrefix(l, "import ") && !strings.Contains(l, ";") && i+1 < len(lines) {
-			i++
-			l += " " + strings.TrimSpace(lines[i])
+		j := i + 1
+		isStatic := false
+		if j < len(toks) && toks[j].text == "static" {
+			isStatic = true
+			j++
 		}
-		m := javaImportRE.FindStringSubmatch(l)
-		if len(m) < 2 {
+		var b strings.Builder
+		expectName := true
+		sawSemicolon := false
+		alias := false
+		for j < len(toks) {
+			x := toks[j]
+			if x.text == ";" {
+				sawSemicolon = true
+				break
+			}
+			if x.text == "as" && lang == "kotlin" && j+1 < len(toks) && toks[j+1].kind == 'i' {
+				alias = true
+				j += 2
+				break
+			}
+			if expectName && x.kind == 'i' {
+				b.WriteString(x.text)
+				expectName = false
+				j++
+				continue
+			}
+			if !expectName && x.text == "." {
+				b.WriteByte('.')
+				expectName = true
+				j++
+				continue
+			}
+			if expectName && b.Len() > 0 && x.text == "*" {
+				b.WriteByte('*')
+				expectName = false
+				j++
+				continue
+			}
+			break
+		}
+		endLine := t.line
+		if j > i+1 && j-1 < len(toks) {
+			endLine = toks[j-1].line
+		}
+		pkg := strings.TrimSuffix(b.String(), ".*")
+		if pkg == "" || expectName || (lang == "java" && !sawSemicolon) {
 			continue
 		}
-		pkg := javaImportPackage(m[1])
-		for _, c := range capabilitiesFor("maven-import", pkg+":") {
-			out = append(out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: start, EndLine: i + 1, Properties: map[string]string{"import": pkg, "evidence_scope": importEvidenceScope(name)}})
+		for _, c := range capabilitiesFor("maven-import", pkg) {
+			props := map[string]string{"import": pkg, "evidence_scope": importEvidenceScope(name)}
+			if isStatic {
+				props["import_static"] = "true"
+			}
+			if alias {
+				props["import_alias"] = "true"
+			}
+			out = append(out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: t.line, EndLine: endLine, Properties: props})
 		}
+		i = j - 1
 	}
 	return out
 }
+
+func csNamespaceScopes(t []sourceToken) []bool {
+	scopes := make([]bool, len(t))
+	stack := []bool{}
+	pending := false
+	for i, x := range t {
+		if x.text == "}" && len(stack) > 0 {
+			stack = stack[:len(stack)-1]
+		}
+		if len(stack) > 0 && stack[len(stack)-1] {
+			scopes[i] = true
+		}
+		if x.kind == 'i' && x.text == "namespace" {
+			pending = true
+		}
+		if x.text == ";" && pending {
+			pending = false
+		}
+		if x.text == "{" {
+			stack = append(stack, pending)
+			pending = false
+		}
+	}
+	return scopes
+}
+
 func parseDotnetImports(name string, content []byte) []Observation {
-	s := scrubComments(string(content), true)
-	lines := strings.Split(s, "\n")
-	var out []Observation
-	for i, l := range lines {
-		if strings.TrimSpace(l) != l {
+	vb := strings.HasSuffix(strings.ToLower(name), ".vb")
+	lang := "cs"
+	if vb {
+		lang = "vb"
+	}
+	toks, _ := lexSource(string(content), lang)
+	out := []Observation{}
+	namespaceScope := csNamespaceScopes(toks)
+	for i := 0; i < len(toks); i++ {
+		t := toks[i]
+		if (t.depth != 0 && (vb || !namespaceScope[i])) || t.kind != 'i' {
 			continue
 		}
-		l = strings.TrimSpace(l)
-		m := csUsingRE.FindStringSubmatch(l)
-		if len(m) < 2 {
-			m = csAliasRE.FindStringSubmatch(l)
+		j := i
+		alias := false
+		isStatic := false
+		if vb {
+			if !strings.EqualFold(t.text, "Imports") {
+				continue
+			}
+			j++
+		} else {
+			if t.text != "using" && !(t.text == "global" && i+1 < len(toks) && toks[i+1].text == "using") {
+				continue
+			}
+			if t.text == "global" {
+				j++
+			}
+			j++
+			if j < len(toks) && toks[j].text == "static" {
+				isStatic = true
+				j++
+			}
 		}
-		if len(m) < 2 && strings.HasSuffix(strings.ToLower(name), ".vb") {
-			m = vbImportsRE.FindStringSubmatch(l)
+		if j < len(toks) && toks[j].kind == 'i' && j+1 < len(toks) && toks[j+1].text == "=" {
+			alias = true
+			j += 2
 		}
-		if len(m) < 2 {
+		var b strings.Builder
+		needID := true
+		for j < len(toks) && j < i+64 {
+			if vb && toks[j].line != t.line {
+				break
+			}
+			if !vb && toks[j].line > t.line+4 {
+				break
+			}
+			if !vb && toks[j].line > t.line && !needID {
+				break
+			}
+			x := toks[j]
+			if x.text == ";" {
+				break
+			}
+			if x.kind == 'i' {
+				b.WriteString(x.text)
+				needID = false
+				j++
+				continue
+			}
+			if x.text == "." && !needID {
+				b.WriteByte('.')
+				needID = true
+				j++
+				continue
+			}
+			break
+		}
+		endLine := t.line
+		if j > i && j-1 < len(toks) {
+			endLine = toks[j-1].line
+		}
+		ns := b.String()
+		if ns == "" || needID {
 			continue
 		}
-		for _, c := range capabilitiesFor("nuget-import", m[1]) {
-			out = append(out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: i + 1, EndLine: i + 1, Properties: map[string]string{"import": m[1], "evidence_scope": importEvidenceScope(name)}})
+		kind := "nuget-import"
+		if vb {
+			kind = "nuget-import-vb"
 		}
+		for _, c := range capabilitiesFor(kind, ns) {
+			props := map[string]string{"import": ns, "evidence_scope": importEvidenceScope(name)}
+			if alias {
+				props["import_alias"] = "true"
+			}
+			if isStatic {
+				props["import_static"] = "true"
+			}
+			out = append(out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: t.line, EndLine: endLine, Properties: props})
+		}
+		i = j - 1
 	}
 	return out
 }
+
 func parseJSImports(name string, content []byte) []Observation {
-	s := scrubComments(string(content), true)
-	lines := strings.Split(s, "\n")
-	var out []Observation
-	for i, l := range lines {
-		if strings.TrimSpace(l) != l {
-			continue
-		} // Bind require only when not shadowed by a declaration/parameter.
-		if strings.Contains(s, "const require") || strings.Contains(s, "let require") || strings.Contains(s, "function (require") || strings.Contains(s, "function(require") {
+	toks, _ := lexSource(string(content), "js")
+	out := []Observation{}
+	shadowed := jsRequireShadowed(toks)
+	for i := 0; i < len(toks); i++ {
+		t := toks[i]
+		if t.depth != 0 || t.kind != 'i' {
 			continue
 		}
-		if !strings.HasPrefix(strings.TrimSpace(l), "import ") && !strings.HasPrefix(strings.TrimSpace(l), "import{") { /* CommonJS pass below */
-		}
-		ms := tsFromRE.FindAllStringSubmatch(l, -1)
-		if !strings.HasPrefix(strings.TrimSpace(l), "import ") && !strings.HasPrefix(strings.TrimSpace(l), "import{") {
-			ms = nil
-		}
-		ms = append(ms, tsRequireRE.FindAllStringSubmatch(l, -1)...)
-		for _, m := range ms {
-			if len(m) < 2 {
+		if t.text == "import" {
+			if i+1 >= len(toks) || toks[i+1].text == "(" || toks[i+1].text == "." {
 				continue
 			}
-			p := m[1]
-			if strings.HasPrefix(p, ".") || strings.HasPrefix(p, "/") {
-				continue
+			typeOnly := tsImportTypeOnly(toks, i)
+			j := i + 1
+			spec := ""
+			if toks[j].kind == 's' {
+				spec = toks[j].text
+			} else {
+				for j < len(toks) {
+					if toks[j].text == ";" {
+						break
+					}
+					if j > i+1 && toks[j].line > t.line+12 {
+						break
+					}
+					if toks[j].text == "import" || toks[j].text == "export" {
+						break
+					}
+					if toks[j].text == "from" && j+1 < len(toks) && toks[j+1].kind == 's' {
+						spec = toks[j+1].text
+						break
+					}
+					j++
+				}
 			}
-			for _, c := range capabilitiesFor("npm-dependency", p) {
-				out = append(out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: i + 1, EndLine: i + 1, Properties: map[string]string{"import": p, "evidence_scope": importEvidenceScope(name)}})
+			if spec != "" {
+				endLine := t.line
+				if j < len(toks) {
+					endLine = toks[j].line
+				}
+				addJSImport(&out, name, t.line, endLine, spec, typeOnly)
 			}
+			continue
+		}
+		if t.text == "require" && !shadowed && (i == 0 || (toks[i-1].text != "." && toks[i-1].text != "?." && toks[i-1].text != "/")) && i+3 < len(toks) && toks[i+1].text == "(" && toks[i+2].kind == 's' && toks[i+3].text == ")" {
+			addJSImport(&out, name, t.line, toks[i+2].line, toks[i+2].text, false)
 		}
 	}
 	return out
 }
+func tsImportTypeOnly(t []sourceToken, i int) bool {
+	if i+2 < len(t) && t[i+1].text == "type" && t[i+2].text != "from" && (t[i+2].kind == 'i' || t[i+2].text == "{" || t[i+2].text == "*") {
+		return true
+	}
+	open := -1
+	for j := i + 1; j < len(t) && j < i+32; j++ {
+		if t[j].text == "from" || t[j].text == ";" {
+			break
+		}
+		if t[j].text == "{" && t[j].depth == 0 {
+			open = j
+			break
+		}
+	}
+	if open < 0 {
+		return false
+	}
+	groups := [][]sourceToken{{}}
+	closed := false
+	for j := open + 1; j < len(t); j++ {
+		if t[j].text == "}" && t[j].depth == 0 {
+			closed = true
+			break
+		}
+		if t[j].text == "," && t[j].depth == 1 {
+			groups = append(groups, []sourceToken{})
+			continue
+		}
+		groups[len(groups)-1] = append(groups[len(groups)-1], t[j])
+	}
+	if !closed {
+		return false
+	}
+	seen := false
+	for _, g := range groups {
+		if len(g) == 0 {
+			continue
+		}
+		seen = true
+		if g[0].text != "type" || len(g) < 2 || g[1].kind != 'i' {
+			return false
+		}
+	}
+	return seen
+}
+
+func addJSImport(out *[]Observation, name string, line, endLine int, p string, typeOnly bool) {
+	if strings.HasPrefix(p, ".") || strings.HasPrefix(p, "/") || p == "" {
+		return
+	}
+	for _, c := range capabilitiesFor("npm-dependency", p) {
+		props := map[string]string{"import": p, "evidence_scope": importEvidenceScope(name)}
+		if typeOnly {
+			props["import_qualifier"] = "type_only"
+		}
+		*out = append(*out, Observation{Kind: KindCapability, Name: c, State: "observed", Basis: "imported", Path: name, StartLine: line, EndLine: endLine, Properties: props})
+	}
+}
+func jsRequireShadowed(t []sourceToken) bool {
+	for i, x := range t {
+		if x.text != "require" || x.kind != 'i' {
+			continue
+		}
+		prev := ""
+		if i > 0 {
+			prev = t[i-1].text
+		}
+		if prev == "const" || prev == "let" || prev == "var" || prev == "function" || prev == "class" || prev == "catch" || prev == "import" || prev == "as" || prev == "namespace" {
+			return true
+		}
+		if i+1 < len(t) && t[i+1].text == "=>" {
+			return true
+		}
+		if prev == "(" || prev == "," || prev == "{" || prev == ":" { // Parameter or destructured binding; inspect a bounded local declaration shape.
+			close := -1
+			for j := i + 1; j < len(t) && j < i+16; j++ {
+				if t[j].text == ")" || t[j].text == "}" || t[j].text == "]" {
+					close = j
+					break
+				}
+				if t[j].text == "=>" {
+					return true
+				}
+			}
+			if close > 0 && close+1 < len(t) && t[close+1].text == "=>" {
+				return true
+			}
+			for j := i - 1; j >= 0 && j > i-16; j-- {
+				if t[j].text == "=" || t[j].text == ";" {
+					break
+				}
+				if t[j].text == "const" || t[j].text == "let" || t[j].text == "var" {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
 func isExtraImport(name string) bool {
 	e := strings.ToLower(path.Ext(name))
 	return e == ".java" || e == ".kt" || e == ".cs" || e == ".vb" || e == ".ts" || e == ".tsx" || e == ".js" || e == ".jsx" || e == ".mjs" || e == ".cjs"
 }
-
 func testEvidencePath(p string) bool {
 	l := strings.ToLower(p)
 	b := path.Base(l)
-	return strings.HasPrefix(l, "tests/") || strings.HasPrefix(l, "test/") || strings.Contains(l, "/src/test/") || strings.Contains(l, "/tests/") || strings.Contains(l, "/__tests__/") || strings.Contains(l, "/test/") || strings.HasPrefix(b, "test_") || strings.Contains(b, ".test.") || strings.Contains(b, ".spec.") || strings.HasSuffix(b, "_test.go")
+	return strings.HasPrefix(l, "tests/") || strings.HasPrefix(l, "test/") || strings.HasPrefix(l, "src/test/") || strings.HasPrefix(l, "__tests__/") || strings.Contains(l, "/src/test/") || strings.Contains(l, "/tests/") || strings.Contains(l, "/__tests__/") || strings.Contains(l, "/test/") || strings.HasPrefix(b, "test_") || strings.Contains(b, ".test.") || strings.Contains(b, ".spec.") || strings.HasSuffix(b, "_test.go")
 }
-
 func importEvidenceScope(p string) string {
 	if testEvidencePath(p) {
 		return "test_path_convention"
 	}
 	return "non_test_path_convention"
-}
-
-var mavenDependencyBlock = regexp.MustCompile(`(?s)<dependency\b[^>]*>(.*?)</dependency\s*>`)
-var mavenTag = func(tag string) *regexp.Regexp {
-	return regexp.MustCompile(`(?s)<` + tag + `\b[^>]*>\s*([^<]+?)\s*</` + tag + `\s*>`)
-}
-
-func (d *Detector) collectMavenTestScopes(name string, content []byte) {
-	for _, block := range mavenDependencyBlock.FindAllSubmatch(content, -1) {
-		body := string(block[1])
-		scope := mavenTag("scope").FindStringSubmatch(body)
-		if len(scope) < 2 || strings.TrimSpace(scope[1]) != "test" {
-			continue
-		}
-		g := mavenTag("groupId").FindStringSubmatch(body)
-		a := mavenTag("artifactId").FindStringSubmatch(body)
-		v := mavenTag("version").FindStringSubmatch(body)
-		if len(g) < 2 || len(a) < 2 {
-			continue
-		}
-		value := strings.TrimSpace(g[1]) + ":" + strings.TrimSpace(a[1])
-		if len(v) > 1 && strings.TrimSpace(v[1]) != "" {
-			value += ":" + strings.TrimSpace(v[1])
-		}
-		d.mu.Lock()
-		d.testMaven[name+"\x00"+mavenCoordinate(value)] = true
-		d.mu.Unlock()
-	}
 }
