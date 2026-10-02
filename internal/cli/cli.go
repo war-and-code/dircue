@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/war-and-code/dircue/pkg/detectors"
 	"github.com/war-and-code/dircue/pkg/focus"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -119,30 +120,54 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 		return nil
 	}
 	var outcome *comparisonExit
-	if !errors.As(err, &outcome) && mapCompareExitCodesSelected(command, err) {
-		return &comparisonErrorExit{cause: err}
+	if !errors.As(err, &outcome) && command != nil && command.Name() == "compare" && command.Parent() != nil && command.Parent().Name() == "map" {
+		_, commandArgs, findErr := root.Find(args)
+		if findErr == nil && mapCompareExitCodesSelected(command, commandArgs) {
+			return &comparisonErrorExit{cause: err}
+		}
 	}
 	return err
 }
 
-// mapCompareExitCodesSelected relies on Cobra's resolved command and parsed
-// flag state, so values and paths that happen to contain "map compare" cannot
-// opt another command into this exit contract. The parse-error check covers an
-// invalid --exit-code value, which pflag rejects before marking the flag set.
-func mapCompareExitCodesSelected(command *cobra.Command, err error) bool {
-	if command == nil || command.Name() != "compare" || command.Parent() == nil || command.Parent().Name() != "map" {
-		return false
+// mapCompareExitCodesSelected reparses only the resolved command's arguments
+// with unknown flags ignored. This lets an explicit --exit-code after an
+// unrelated invalid flag select its error contract without scanning strings
+// in other commands' flag values or paths. Known non-contract flags are
+// registered as no-op values so malformed values do not stop this probe.
+func mapCompareExitCodesSelected(command *cobra.Command, args []string) bool {
+	var selected bool
+	flags := pflag.NewFlagSet("map compare exit-code probe", pflag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	command.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Name == "exit-code" {
+			flags.BoolVar(&selected, flag.Name, false, flag.Usage)
+			probe := flags.Lookup(flag.Name)
+			probe.Shorthand = flag.Shorthand
+			probe.NoOptDefVal = flag.NoOptDefVal
+			return
+		}
+		copy := *flag
+		copy.Value = ignoredFlagValue{kind: flag.Value.Type(), noOpt: flag.NoOptDefVal != ""}
+		copy.Changed = false
+		flags.AddFlag(&copy)
+	})
+	flags.ParseErrorsWhitelist.UnknownFlags = true
+	err := flags.Parse(args)
+	if flags.Lookup("exit-code").Changed && selected {
+		return true
 	}
-	flag := command.Flags().Lookup("exit-code")
-	if flag == nil {
-		return false
-	}
-	if flag.Changed {
-		selected, getErr := command.Flags().GetBool("exit-code")
-		return getErr == nil && selected
-	}
-	return strings.Contains(err.Error(), `invalid value for --exit-code`)
+	return err != nil && strings.Contains(err.Error(), `--exit-code`)
 }
+
+type ignoredFlagValue struct {
+	kind  string
+	noOpt bool
+}
+
+func (v ignoredFlagValue) String() string   { return "" }
+func (v ignoredFlagValue) Type() string     { return v.kind }
+func (v ignoredFlagValue) Set(string) error { return nil }
+func (v ignoredFlagValue) IsBoolFlag() bool { return v.noOpt }
 
 type comparisonErrorExit struct{ cause error }
 
