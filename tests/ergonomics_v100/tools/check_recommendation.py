@@ -76,8 +76,9 @@ def check(identifier, binary):
             exit_three = next(x['meaning'] for x in out['exit_codes'] if x['code'] == 3)
             assert 'map compare --exit-code' in exit_three and 'diagnostic on stderr' in exit_three
             missing = str(cwd/'missing-map.json')
-            run('map','compare','--json',missing,missing,code=1)
-            run('map','compare','--exit-code','--json',missing,missing,code=3)
+            default_error = run('map','compare','--json',missing,missing,code=1)
+            opted_error = run('map','compare','--exit-code','--json',missing,missing,code=3)
+            assert default_error.strip() and default_error == opted_error
             # Contract: the set of registered command paths must equal this explicit list.
             # The list includes the map subcommands added in 1.0 (map compare/locate/route/settings).
             # Update this set when a new top-level or subcommand is deliberately added.
