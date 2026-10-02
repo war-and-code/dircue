@@ -1,0 +1,10 @@
+{
+  "name": "typescript-import-fixture",
+  "private": true,
+  "optionalDependencies": {
+    "pg": "^8.0.0"
+  },
+  "peerDependencies": {
+    "jsonwebtoken": "^9.0.0"
+  }
+}

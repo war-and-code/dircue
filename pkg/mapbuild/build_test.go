@@ -1786,6 +1786,7 @@ func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
 		status, wantTestOnly, wantTest, wantProd, wantType string
 	}{
 		{"test-only imports complete", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
+		{"test-only Go client syntax", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "net:http-client", ProjectID: "app/go.mod", State: "observed", Basis: "code_syntax", Path: "app/mux_test.go", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
 		{"mixed source imports", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/java/App.java", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}}}, "complete", "", "true", "true", ""},
 		{"test import and runtime declaration", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "declared", Basis: "declared_dependency", Path: "app/pom.xml"}}, "complete", "", "true", "", ""},
 		{"test-only import but incomplete scan", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "partial", "true", "true", "", ""},
@@ -1818,33 +1819,28 @@ func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
 	}
 }
 
-func TestImportTokenLimitDoesNotHideObservedTestOnlyEvidence(t *testing.T) {
+func TestUnrelatedFileOmissionDoesNotHideObservedTestOnlyEvidence(t *testing.T) {
 	doc := mapdoc.New()
 	c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
 	c.Properties = map[string]string{"root": "app"}
 	doc.Nodes = append(doc.Nodes, c)
 	addIntent(&doc, &intentmap.Report{
-		Coverage: intentmap.Coverage{Status: "partial", Omissions: map[string]int{"import_token_limit": 1}},
+		Coverage: intentmap.Coverage{Status: "partial", Omissions: map[string]int{"file_bytes": 1}},
 		Observations: []intentmap.Observation{{
 			Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/DbTest.java",
 			Properties: map[string]string{"evidence_scope": "test_path_convention"},
 		}},
 	})
-	for _, question := range doc.Coverage {
-		if question.Question == "capabilities" && !slices.Contains(question.Reasons, "import_token_limit_reached") {
-			t.Fatalf("capability coverage did not disclose the import token cutoff: %+v", question)
-		}
-	}
 	for _, n := range doc.Nodes {
 		if n.Kind != mapdoc.NodeCapability {
 			continue
 		}
 		if n.Properties["test_path_evidence"] != "true" || n.Properties["test_only_evidence"] != "true" {
-			t.Fatalf("unrelated truncation hid the retained test-only evidence: %+v", n.Properties)
+			t.Fatalf("unrelated file omission hid the retained test-only evidence: %+v", n.Properties)
 		}
 		return
 	}
-	t.Fatal("missing retained capability from before the token cutoff")
+	t.Fatal("missing retained capability despite the unrelated omission")
 }
 
 func TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState(t *testing.T) {

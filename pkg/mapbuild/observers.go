@@ -1505,7 +1505,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			capGroupOrder = append(capGroupOrder, gk)
 		}
 		g.total++
-		if o.Basis != "imported" {
+		if o.Basis != "imported" && o.Basis != "code_syntax" {
 			g.otherEvidence = true
 		}
 		if o.Properties["import_qualifier"] == "type_only" {

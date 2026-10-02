@@ -90,11 +90,15 @@ classifier window rather than claiming to represent the complete kernel.
 
 An additional bounded quality gate measures exact precision and recall rather
 than extrapolating from targeted assertions. It labels every component,
-deployable, interface, capability, and evidenced edge emitted from 22 reviewed
-source paths, plus every coverage status. The eight entries include pinned
+deployable, interface, capability, and evidenced edge emitted from 29 reviewed
+source paths, plus every coverage status. The entries include pinned
 microservices-demo, eShop, Spring Petclinic, a Terraform provider-alias example,
-Express, Flask, Helm examples, and the checked-in non-source fixture. Other map
-records remain outside the denominator and the report says so explicitly:
+Express, Flask, Helm examples, a checked-in TypeScript import fixture, and the
+non-source fixture. Other map records remain outside the denominator and the
+report says so explicitly. The TypeScript fixture checks that a value import
+corroborates an optional PostgreSQL dependency, a type-only JWT import leaves
+a peer dependency conditional, and `src/test_utils.ts` is not mistaken for a
+test file:
 
 ```sh
 python3 tests/map_corpus/verify_public_quality.py \

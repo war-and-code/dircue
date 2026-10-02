@@ -994,12 +994,12 @@ func TestLexicalImportEvidenceAdversarialBoundaries(t *testing.T) {
 }
 
 func TestImportEvidenceUsesTestPathConvention(t *testing.T) {
-	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go", "src/utils/test_helper.py", "src/generated/test_utils_test.py", "src/ThingTest.cs"} {
+	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go", "src/utils/test_helper.py", "src/generated/test_utils_test.py", "src/ThingTest.cs", "src/WidgetTestCase.java"} {
 		if importEvidenceScope(p) != "test_path_convention" {
 			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
 		}
 	}
-	for _, p := range []string{"src/main/java/App.java", "src/client.ts", "src/test_utils.ts", "src/test_helpers.js", "src/test_utils.go", "src/test_utils.cs"} {
+	for _, p := range []string{"src/main/java/App.java", "src/client.ts", "src/test_utils.ts", "src/test_helpers.js", "src/test_utils.go", "src/test_utils.cs", "src/Contest.java", "src/Latest.cs", "src/Latest.vb"} {
 		if importEvidenceScope(p) != "non_test_path_convention" {
 			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
 		}
@@ -1010,9 +1010,11 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	sources := []string{
 		"const copy = `require('pg') and import pg from 'pg'`;",
 		"const copy = `outer ${`nested require('pg')`} import pg from 'pg'`;",
+		"const copy = `${ /`/.test(value) ? '' : '' } import pg from 'pg'`;",
 		"const view = <div>require('pg') import pg from 'pg'</div>;",
 		"const view = <div>\nimport pg from 'pg'\nrequire('pg')\n</div>;",
 		"const view = <>\nimport pg from 'pg'\nrequire('pg')\n</>;",
+		"const view = <div>\nimport pg from 'pg'\nrequire('pg')",
 	}
 	for _, source := range sources {
 		if got := parseJSImports("src/view.jsx", []byte(source)); len(got) != 0 {
@@ -1022,6 +1024,10 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	valid := parseJSImports("src/view.jsx", []byte("import pg from 'pg';"))
 	if len(valid) == 0 || valid[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid source import no longer produces evidence: %+v", valid)
+	}
+	validAfterSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <Icon />;\nimport pg from 'pg';"))
+	if len(validAfterSelfClose) == 0 || validAfterSelfClose[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after self-closing JSX was masked: %+v", validAfterSelfClose)
 	}
 }
 

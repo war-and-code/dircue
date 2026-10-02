@@ -288,7 +288,10 @@ func findTemplateLiteralEndDepth(src string, start, nesting int) int {
 	if nesting >= 128 {
 		return len(src)
 	}
-	type expression struct{ braces int }
+	type expression struct {
+		braces int
+		start  int
+	}
 	expressions := []expression{}
 	quote := byte(0)
 	for i := start + 1; i < len(src); {
@@ -302,7 +305,7 @@ func findTemplateLiteralEndDepth(src string, start, nesting int) int {
 				return i
 			}
 			if c == '$' && i+1 < len(src) && src[i+1] == '{' {
-				expressions = append(expressions, expression{})
+				expressions = append(expressions, expression{start: i + 2})
 				i += 2
 				continue
 			}
@@ -332,6 +335,17 @@ func findTemplateLiteralEndDepth(src string, start, nesting int) int {
 			}
 			continue
 		}
+		if c == '/' && jsTemplateRegexMayStart(src, expressions[len(expressions)-1].start, i) {
+			end, ok := findJSRegexEnd(src, i)
+			if !ok {
+				return len(src)
+			}
+			i = end + 1
+			for i < len(src) && ((src[i] >= 'a' && src[i] <= 'z') || (src[i] >= 'A' && src[i] <= 'Z')) {
+				i++
+			}
+			continue
+		}
 		if c == '\'' || c == '"' {
 			quote = c
 			i++
@@ -357,6 +371,47 @@ func findTemplateLiteralEndDepth(src string, start, nesting int) int {
 		i++
 	}
 	return len(src)
+}
+
+func jsTemplateRegexMayStart(src string, start, slash int) bool {
+	i := slash - 1
+	for i >= start && (src[i] == ' ' || src[i] == '\t' || src[i] == '\r' || src[i] == '\n') {
+		i--
+	}
+	if i < start {
+		return true
+	}
+	switch src[i] {
+	case '(', '[', '{', '=', ':', ',', ';', '!', '?', '&', '|', '+', '-', '*', '%', '^', '~', '<', '>':
+		return true
+	}
+	end := i + 1
+	for i >= start && ((src[i] >= 'a' && src[i] <= 'z') || (src[i] >= 'A' && src[i] <= 'Z')) {
+		i--
+	}
+	switch src[i+1 : end] {
+	case "return", "throw", "case", "delete", "void", "typeof", "instanceof", "in", "of", "yield", "await":
+		return true
+	}
+	return false
+}
+
+func findJSRegexEnd(src string, start int) (int, bool) {
+	inClass := false
+	for i := start + 1; i < len(src) && src[i] != '\n'; i++ {
+		if src[i] == '\\' {
+			i++
+			continue
+		}
+		if src[i] == '[' {
+			inClass = true
+		} else if src[i] == ']' {
+			inClass = false
+		} else if src[i] == '/' && !inClass {
+			return i, true
+		}
+	}
+	return len(src), false
 }
 
 func jsRegexMayStart(t []sourceToken) bool {
@@ -689,6 +744,10 @@ func jsJSXTextMask(t []sourceToken) []bool {
 			if openEnd >= len(t) || t[openEnd].text != ">" {
 				continue
 			}
+			if openEnd > i && t[openEnd-1].text == "/" {
+				// A self-closing JSX element has no child-text region.
+				continue
+			}
 		}
 		depth, closeEnd := 1, -1
 		for j := openEnd + 1; j < len(t) && depth > 0; j++ {
@@ -730,6 +789,12 @@ func jsJSXTextMask(t []sourceToken) []bool {
 		}
 		if closeEnd > openEnd {
 			for j := openEnd + 1; j < closeEnd; j++ {
+				mask[j] = true
+			}
+		} else if !fragment && t[i+1].text != "" && t[i+1].text[0] >= 'a' && t[i+1].text[0] <= 'z' {
+			// An unmatched lowercase tag is likely malformed JSX. Omit apparent
+			// source tokens through EOF rather than treating its children as code.
+			for j := openEnd + 1; j < len(mask); j++ {
 				mask[j] = true
 			}
 		}
@@ -911,16 +976,17 @@ func testEvidencePath(p string) bool {
 		return true
 	}
 	ext := path.Ext(b)
+	originalBase := path.Base(p)
+	originalStem := strings.TrimSuffix(originalBase, path.Ext(originalBase))
 	switch ext {
 	case ".py":
-		return strings.HasPrefix(b, "test_") || strings.HasSuffix(b, "_test.py")
+		return strings.HasPrefix(originalBase, "test_") || strings.HasSuffix(originalBase, "_test.py")
 	case ".go":
 		return strings.HasSuffix(b, "_test.go")
 	case ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx":
 		return strings.Contains(b, ".test.") || strings.Contains(b, ".spec.")
 	case ".java", ".kt", ".cs", ".vb":
-		stem := strings.TrimSuffix(b, ext)
-		return strings.HasSuffix(stem, "test") || strings.HasSuffix(stem, "tests") || strings.HasSuffix(stem, "testcase")
+		return strings.HasSuffix(originalStem, "Test") || strings.HasSuffix(originalStem, "Tests") || strings.HasSuffix(originalStem, "TestCase")
 	default:
 		return false
 	}
