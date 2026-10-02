@@ -230,6 +230,10 @@ func TestBuiltMapComparisonExits(t *testing.T) {
 			{"bad option", []string{"map", "compare", "--exit-code", "--not-a-flag", base, changed}, 3},
 			{"bad exit-code value", []string{"map", "compare", "--exit-code=invalid", base, changed}, 3},
 			{"bad arguments", []string{"map", "compare", "--exit-code", base}, 3},
+			{"last repeated flag disables errors contract", []string{"map", "compare", "--exit-code", "--exit-code=false", "--not-a-flag", base, changed}, 1},
+			{"last repeated flag enables errors contract", []string{"map", "compare", "--exit-code=false", "--exit-code", "--not-a-flag", base, changed}, 3},
+			{"parent persistent flag before command", []string{"map", "--json", "compare", "--exit-code", "--not-a-flag", base, changed}, 3},
+			{"command words inside flag value do not opt in", []string{"map", "settings", "--set", "map compare", "--exit-code"}, 1},
 			{"legacy error code", []string{"map", "compare", "--json", missing, changed}, 1},
 		} {
 			t.Run(filepath.Base(alias)+"/"+tc.name, func(t *testing.T) {

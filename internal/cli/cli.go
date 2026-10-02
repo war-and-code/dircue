@@ -113,47 +113,35 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 	}
 	root := newRootCommand(name, out, errOut)
 	root.SetArgs(args)
-	err := safeCLIError(root.ExecuteContext(ctx))
+	command, executeErr := root.ExecuteContextC(ctx)
+	err := safeCLIError(executeErr)
 	if err == nil {
 		return nil
 	}
 	var outcome *comparisonExit
-	if !errors.As(err, &outcome) && mapCompareExitCodesSelected(args) {
+	if !errors.As(err, &outcome) && mapCompareExitCodesSelected(command, err) {
 		return &comparisonErrorExit{cause: err}
 	}
 	return err
 }
 
-// mapCompareExitCodesSelected identifies errors from an invocation that opted
-// into the map comparison outcome contract. It also covers Cobra parse errors,
-// which happen before the command's RunE callback can wrap them.
-func mapCompareExitCodesSelected(args []string) bool {
-	compare := -1
-	for i := 0; i+1 < len(args); i++ {
-		if args[i] == "--" {
-			break
-		}
-		if args[i] == "map" && args[i+1] == "compare" {
-			compare = i + 2
-			break
-		}
-	}
-	if compare < 0 {
+// mapCompareExitCodesSelected relies on Cobra's resolved command and parsed
+// flag state, so values and paths that happen to contain "map compare" cannot
+// opt another command into this exit contract. The parse-error check covers an
+// invalid --exit-code value, which pflag rejects before marking the flag set.
+func mapCompareExitCodesSelected(command *cobra.Command, err error) bool {
+	if command == nil || command.Name() != "compare" || command.Parent() == nil || command.Parent().Name() != "map" {
 		return false
 	}
-	for _, arg := range args[compare:] {
-		if arg == "--" {
-			break
-		}
-		if arg == "--exit-code" {
-			return true
-		}
-		if strings.HasPrefix(arg, "--exit-code=") {
-			selected, err := strconv.ParseBool(strings.TrimPrefix(arg, "--exit-code="))
-			return err != nil || selected
-		}
+	flag := command.Flags().Lookup("exit-code")
+	if flag == nil {
+		return false
 	}
-	return false
+	if flag.Changed {
+		selected, getErr := command.Flags().GetBool("exit-code")
+		return getErr == nil && selected
+	}
+	return strings.Contains(err.Error(), `invalid value for --exit-code`)
 }
 
 type comparisonErrorExit struct{ cause error }
