@@ -188,6 +188,14 @@ MUTATIONS = [
         "test": "TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState",
     },
     {
+        "name": "TypeScript import-equals type qualifier dropped",
+        "file": "pkg/intentmap/imports_extra.go",
+        "old": "addJSImport(&out, name, t.line, toks[end].line, spec, typeOnly)",
+        "new": "addJSImport(&out, name, t.line, toks[end].line, spec, false)",
+        "package": "./pkg/intentmap",
+        "test": "TestLexicalImportEvidenceAdversarialBoundaries",
+    },
+    {
         "name": "runtime imports cannot corroborate conditional requirements",
         "file": "pkg/mapbuild/observers.go",
         "old": "if runtimeEvidence {\n\t\t\tg.runtimeImportEvidence = true\n\t\t\tg.state = \"observed\"",

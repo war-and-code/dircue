@@ -953,6 +953,8 @@ func TestLexicalImportEvidenceAdversarialBoundaries(t *testing.T) {
 		{"VB apostrophe", "A.vb", "' Imports Npgsql\nImports Db = Npgsql", "datastore:postgresql", "", ""},
 		{"VB namespace case insensitive", "A.vb", "Imports npgsql", "datastore:postgresql", "", ""},
 		{"typescript template", "a.ts", "const x = `\nimport pg from 'pg';\n`;\nimport type { Pool } from 'pg';", "datastore:postgresql", "", "type_only"},
+		{"typescript type import-equals require", "a.ts", `import type Pg = require("pg");`, "datastore:postgresql", "", "type_only"},
+		{"typescript runtime import-equals require", "a.ts", `import Pg = require("pg");`, "datastore:postgresql", "", ""},
 		{"commonjs string", "a.js", `const x = "require('pg')";`, "", "datastore:postgresql", ""},
 		{"commonjs regex", "a.js", `const re = /require\('pg'\)/;`, "", "datastore:postgresql", ""},
 		{"ES regex", "a.js", `const re = /import pg from 'pg'/;`, "", "datastore:postgresql", ""},

@@ -688,6 +688,11 @@ func parseJSImportsTokens(name string, toks []sourceToken, allowCommonJS bool) [
 				continue
 			}
 			typeOnly := tsImportTypeOnly(toks, i)
+			if spec, end, ok := tsImportEqualsRequire(toks, i); ok {
+				addJSImport(&out, name, t.line, toks[end].line, spec, typeOnly)
+				i = end
+				continue
+			}
 			j := i + 1
 			spec := ""
 			if toks[j].kind == 's' {
@@ -815,6 +820,22 @@ func jsJSXStartContext(t []sourceToken, i int) bool {
 		return false
 	}
 }
+
+// tsImportEqualsRequire recognizes TypeScript's `import Alias =
+// require("module")` form (including its `import type` variant). Without
+// advancing over the declaration, its require token is later misread as a
+// CommonJS runtime import.
+func tsImportEqualsRequire(t []sourceToken, i int) (spec string, end int, ok bool) {
+	alias := i + 1
+	if alias < len(t) && t[alias].text == "type" {
+		alias++
+	}
+	if alias+5 >= len(t) || t[alias].kind != 'i' || t[alias+1].text != "=" || t[alias+2].text != "require" || t[alias+3].text != "(" || t[alias+4].kind != 's' || t[alias+5].text != ")" {
+		return "", 0, false
+	}
+	return t[alias+4].text, alias + 5, true
+}
+
 func tsImportTypeOnly(t []sourceToken, i int) bool {
 	if i+2 < len(t) && t[i+1].text == "type" && t[i+2].text != "from" && (t[i+2].kind == 'i' || t[i+2].text == "{" || t[i+2].text == "*") {
 		return true

@@ -122,7 +122,7 @@ interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
 
 Import evidence has a separate opt-in mutation check. Run
-`python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-one
+`python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-two
 hand-authored counterfactual source changes against their selected Go tests.
 It creates a detached temporary worktree, records exact source and test hashes,
 mutations, commands, toolchain, and full output in a fresh JSON receipt under
