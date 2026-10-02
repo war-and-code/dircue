@@ -106,10 +106,11 @@
           "must_include": [
             {
               "kind": "component",
-              "name": "github.com/spf13/cobra",
+              "name": "cobra",
               "path": "go.mod",
               "properties": {
-                "ecosystem": "go"
+                "ecosystem": "go",
+                "go_module": "github.com/spf13/cobra"
               }
             }
           ],
@@ -1056,6 +1057,15 @@
           "must_not_include": []
         }
       ]
+    }
+  ],
+  "label_corrections": [
+    {
+      "repository": "cobra",
+      "question": "positive-1",
+      "change": "Component name github.com/spf13/cobra → cobra; add go_module=github.com/spf13/cobra.",
+      "source_url": "https://github.com/spf13/cobra/blob/88b30ab89da2d0d0abb153818746c5a2d30eccec/go.mod#L1",
+      "reason": "The pinned go.mod declares module github.com/spf13/cobra. The map uses its final path segment as the display name and retains the full declared module path in go_module; the previous expectation conflated these separate values. The published 1.0.1 binary and current candidate emit the same name and property."
     }
   ]
 }

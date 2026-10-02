@@ -77,7 +77,9 @@ Terraform, an unrendered Helm chart, Serverless Framework examples, uv, Kotlin,
 application in addition to the original language corpus. The gate verifies
 every commit and cited path before scanning. Its report retains each question,
 its source URL, targeted negative checks, and questions deliberately left
-unknown.
+unknown. The Cobra module-name correction is recorded in that manifest: the
+pinned `go.mod` supplies `github.com/spf13/cobra`, while the component's display
+name is `cobra` and its `go_module` property retains the full path.
 
 Precision is not claimed: the hand-authored expectations do not exhaustively
 label every observation emitted from these repositories. Per-question recall
