@@ -11,7 +11,7 @@ import (
 
 const (
 	DetectorName           = "dircue-intent-map"
-	DetectorVersion        = "1.0.0"
+	DetectorVersion        = "1.1.0"
 	DefaultMaxFileBytes    = 1 << 20
 	DefaultMaxObservations = 4096
 )
