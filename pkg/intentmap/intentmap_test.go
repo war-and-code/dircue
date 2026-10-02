@@ -1052,6 +1052,58 @@ func TestLexerEscapeParityAndImportBindingShadow(t *testing.T) {
 	}
 }
 
+func TestImportLexerTokenLimitMarksCoveragePartial(t *testing.T) {
+	content := []byte("import org.postgresql.Driver;\n" + strings.Repeat(";", DefaultMaxLexicalTokensPerFile+10))
+	d := New(Options{})
+	if _, err := d.Detect(context.Background(), profile.File{Path: "src/test/java/DbTest.java", Size: int64(len(content)), Content: content}); err != nil {
+		t.Fatal(err)
+	}
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Coverage.Status != "partial" || r.Coverage.Omissions["import_token_limit"] != 1 {
+		t.Fatalf("token overflow coverage = %+v", r.Coverage)
+	}
+	if len(r.Observations) == 0 || r.Observations[0].Name != "datastore:postgresql" {
+		t.Fatalf("evidence before the bounded cutoff was lost: %+v", r.Observations)
+	}
+}
+
+func TestImportLexerRetainsFixedTokenCountOnDenseSource(t *testing.T) {
+	source := strings.Repeat(";", 1<<20)
+	tokens, limited := lexSource(source, "cs")
+	if !limited {
+		t.Fatal("dense source did not report lexical token truncation")
+	}
+	if len(tokens) != DefaultMaxLexicalTokensPerFile {
+		t.Fatalf("retained %d tokens; want fixed cap %d", len(tokens), DefaultMaxLexicalTokensPerFile)
+	}
+}
+
+func BenchmarkLexVBREMIdentifiers(b *testing.B) {
+	for _, n := range []int{8 << 10, 48 << 10} {
+		source := strings.Repeat("x REM ", n/6)
+		b.Run(fmt.Sprintf("%d-bytes", len(source)), func(b *testing.B) {
+			b.SetBytes(int64(len(source)))
+			b.ReportAllocs()
+			for range b.N {
+				_, _ = lexSource(source, "vb")
+			}
+		})
+	}
+}
+
+func BenchmarkLexicalTokenLimitDenseSource(b *testing.B) {
+	source := strings.Repeat(";", 1<<20)
+	b.SetBytes(int64(len(source)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		_, _ = lexSource(source, "cs")
+	}
+}
+
 func TestVBRemAndTypeScriptInlineTypeImports(t *testing.T) {
 	vb := parseDotnetImports("src/App.vb", []byte("REM Imports Npgsql\nImports StackExchange.Redis"))
 	foundRedis, foundPg := false, false

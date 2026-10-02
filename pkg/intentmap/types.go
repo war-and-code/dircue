@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	DetectorName           = "dircue-intent-map"
-	DetectorVersion        = "1.1.0"
-	DefaultMaxFileBytes    = 1 << 20
-	DefaultMaxObservations = 4096
+	DetectorName                   = "dircue-intent-map"
+	DetectorVersion                = "1.1.0"
+	DefaultMaxFileBytes            = 1 << 20
+	DefaultMaxObservations         = 4096
+	DefaultMaxLexicalTokensPerFile = 16384
 )
 
 type Kind string

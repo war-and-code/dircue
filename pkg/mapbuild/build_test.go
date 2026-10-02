@@ -2,6 +2,7 @@ package mapbuild
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -1465,4 +1466,33 @@ func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
 			t.Fatal("missing capability node")
 		})
 	}
+}
+
+func TestImportTokenLimitSuppressesTestOnlyClaim(t *testing.T) {
+	doc := mapdoc.New()
+	c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
+	c.Properties = map[string]string{"root": "app"}
+	doc.Nodes = append(doc.Nodes, c)
+	addIntent(&doc, &intentmap.Report{
+		Coverage: intentmap.Coverage{Status: "partial", Omissions: map[string]int{"import_token_limit": 1}},
+		Observations: []intentmap.Observation{{
+			Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/DbTest.java",
+			Properties: map[string]string{"evidence_scope": "test_path_convention"},
+		}},
+	})
+	for _, question := range doc.Coverage {
+		if question.Question == "capabilities" && !slices.Contains(question.Reasons, "import_token_limit_reached") {
+			t.Fatalf("capability coverage did not disclose the import token cutoff: %+v", question)
+		}
+	}
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeCapability {
+			continue
+		}
+		if n.Properties["test_path_evidence"] != "true" || n.Properties["test_only_evidence"] != "" {
+			t.Fatalf("truncated import scan made an unjustified test-only claim: %+v", n.Properties)
+		}
+		return
+	}
+	t.Fatal("missing retained capability from before the token cutoff")
 }

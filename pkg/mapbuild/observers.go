@@ -1151,7 +1151,12 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		coverage.Reasons = append(coverage.Reasons, "interface_or_capability_observations_incomplete")
 	}
 	setQuestion(d, "interfaces", coverage)
-	setQuestion(d, "capabilities", coverage)
+	capabilityCoverage := coverage
+	capabilityCoverage.Reasons = slices.Clone(coverage.Reasons)
+	if r.Coverage.Omissions["import_token_limit"] > 0 {
+		capabilityCoverage.Reasons = append(capabilityCoverage.Reasons, "import_token_limit_reached")
+	}
+	setQuestion(d, "capabilities", capabilityCoverage)
 	componentsByManifest := map[string]string{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeComponent {

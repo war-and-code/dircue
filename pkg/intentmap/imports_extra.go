@@ -19,42 +19,44 @@ type sourceToken struct {
 // lexSource masks comments and emits strings as opaque tokens. It is a bounded
 // lexer, not a language parser: malformed or unsupported constructs simply do
 // not produce import evidence.
-func lexSource(src string, lang string) ([]sourceToken, string) {
-	var toks []sourceToken
-	var masked strings.Builder
-	masked.Grow(len(src))
+func lexSource(src string, lang string) ([]sourceToken, bool) {
+	capacity := min(DefaultMaxLexicalTokensPerFile, len(src))
+	toks := make([]sourceToken, 0, capacity)
 	line, depth := 1, 0
+	vbStatementStart := true
+	overflow := false
+	appendToken := func(t sourceToken) bool {
+		if len(toks) >= DefaultMaxLexicalTokensPerFile {
+			overflow = true
+			return false
+		}
+		toks = append(toks, t)
+		return true
+	}
 	space := func(c byte) {
 		if c == '\n' {
-			masked.WriteByte('\n')
 			line++
-		} else {
-			masked.WriteByte(' ')
 		}
 	}
+scanLoop:
 	for i := 0; i < len(src); {
 		c := src[i]
 		if c == '\n' {
-			masked.WriteByte(c)
 			line++
+			vbStatementStart = true
 			i++
 			continue
 		}
 		if c == ' ' || c == '\t' || c == '\r' || c == '\f' {
-			masked.WriteByte(c)
 			i++
 			continue
 		}
-		if lang == "vb" && i+3 <= len(src) && strings.EqualFold(src[i:i+3], "REM") && (i+3 == len(src) || src[i+3] == ' ' || src[i+3] == '\t') {
-			lineStart := strings.LastIndex(src[:i], "\n") + 1
-			prefix := strings.TrimSpace(src[lineStart:i])
-			if prefix == "" || strings.HasSuffix(prefix, ":") {
-				for i < len(src) && src[i] != '\n' {
-					space(src[i])
-					i++
-				}
-				continue
+		if lang == "vb" && vbStatementStart && i+3 <= len(src) && strings.EqualFold(src[i:i+3], "REM") && (i+3 == len(src) || src[i+3] == ' ' || src[i+3] == '\t') {
+			for i < len(src) && src[i] != '\n' {
+				space(src[i])
+				i++
 			}
+			continue
 		}
 		// VB uses apostrophe comments and doubled quotes in string literals.
 		if lang == "vb" && c == '\'' {
@@ -230,7 +232,10 @@ func lexSource(src string, lang string) ([]sourceToken, string) {
 				space(src[k])
 			}
 			if closed {
-				toks = append(toks, sourceToken{text: val, kind: 's', line: startLine, depth: depth})
+				if !appendToken(sourceToken{text: val, kind: 's', line: startLine, depth: depth}) {
+					break scanLoop
+				}
+				vbStatementStart = false
 			}
 			i = j
 			continue
@@ -243,21 +248,27 @@ func lexSource(src string, lang string) ([]sourceToken, string) {
 				i++
 			}
 			v := src[start:i]
-			toks = append(toks, sourceToken{text: v, kind: 'i', line: line, depth: depth})
-			masked.WriteString(v)
+			if !appendToken(sourceToken{text: v, kind: 'i', line: line, depth: depth}) {
+				break scanLoop
+			}
+			vbStatementStart = false
 			continue
 		}
 		if c == '}' && depth > 0 {
 			depth--
 		}
-		toks = append(toks, sourceToken{text: string(c), kind: 'p', line: line, depth: depth})
-		masked.WriteByte(c)
+		if !appendToken(sourceToken{text: src[i : i+1], kind: 'p', line: line, depth: depth}) {
+			break scanLoop
+		}
+		if lang == "vb" {
+			vbStatementStart = c == ':'
+		}
 		if c == '{' {
 			depth++
 		}
 		i++
 	}
-	return toks, masked.String()
+	return toks, overflow
 }
 
 func jsRegexMayStart(t []sourceToken) bool {
@@ -285,11 +296,20 @@ func escapedAt(s string, i int) bool {
 }
 
 func parseJVMImports(name string, content []byte) []Observation {
+	out, _ := parseJVMImportsBounded(name, content)
+	return out
+}
+
+func parseJVMImportsBounded(name string, content []byte) ([]Observation, bool) {
 	lang := "java"
 	if strings.HasSuffix(strings.ToLower(name), ".kt") {
 		lang = "kotlin"
 	}
-	toks, _ := lexSource(string(content), lang)
+	toks, limited := lexSource(string(content), lang)
+	return parseJVMImportsTokens(name, lang, toks), limited
+}
+
+func parseJVMImportsTokens(name, lang string, toks []sourceToken) []Observation {
 	out := []Observation{}
 	for i := 0; i < len(toks); i++ {
 		t := toks[i]
@@ -386,12 +406,21 @@ func csNamespaceScopes(t []sourceToken) []bool {
 }
 
 func parseDotnetImports(name string, content []byte) []Observation {
+	out, _ := parseDotnetImportsBounded(name, content)
+	return out
+}
+
+func parseDotnetImportsBounded(name string, content []byte) ([]Observation, bool) {
 	vb := strings.HasSuffix(strings.ToLower(name), ".vb")
 	lang := "cs"
 	if vb {
 		lang = "vb"
 	}
-	toks, _ := lexSource(string(content), lang)
+	toks, limited := lexSource(string(content), lang)
+	return parseDotnetImportsTokens(name, vb, toks), limited
+}
+
+func parseDotnetImportsTokens(name string, vb bool, toks []sourceToken) []Observation {
 	out := []Observation{}
 	namespaceScope := csNamespaceScopes(toks)
 	for i := 0; i < len(toks); i++ {
@@ -482,7 +511,16 @@ func parseDotnetImports(name string, content []byte) []Observation {
 }
 
 func parseJSImports(name string, content []byte) []Observation {
-	toks, _ := lexSource(string(content), "js")
+	out, _ := parseJSImportsBounded(name, content)
+	return out
+}
+
+func parseJSImportsBounded(name string, content []byte) ([]Observation, bool) {
+	toks, limited := lexSource(string(content), "js")
+	return parseJSImportsTokens(name, toks), limited
+}
+
+func parseJSImportsTokens(name string, toks []sourceToken) []Observation {
 	out := []Observation{}
 	shadowed := jsRequireShadowed(toks)
 	for i := 0; i < len(toks); i++ {

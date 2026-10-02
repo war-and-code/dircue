@@ -100,6 +100,7 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		return nil, nil
 	}
 	var observations []Observation
+	var importTokensLimited bool
 	if contract {
 		observations = parseContract(file.Path, file.Content)
 	}
@@ -123,17 +124,19 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		ext := strings.ToLower(path.Ext(file.Path))
 		switch ext {
 		case ".java", ".kt":
-			observations = parseJVMImports(file.Path, file.Content)
+			observations, importTokensLimited = parseJVMImportsBounded(file.Path, file.Content)
 		case ".cs", ".vb":
-			observations = parseDotnetImports(file.Path, file.Content)
+			observations, importTokensLimited = parseDotnetImportsBounded(file.Path, file.Content)
 		default:
-			observations = parseJSImports(file.Path, file.Content)
+			observations, importTokensLimited = parseJSImportsBounded(file.Path, file.Content)
 		}
 	case java:
 		base := path.Base(strings.ToLower(file.Path))
 		switch {
 		case strings.HasSuffix(base, ".java") || strings.HasSuffix(base, ".kt"):
-			observations = append(parseJavaSpringBoot(file.Path, file.Content), parseJVMImports(file.Path, file.Content)...)
+			var imports []Observation
+			imports, importTokensLimited = parseJVMImportsBounded(file.Path, file.Content)
+			observations = append(parseJavaSpringBoot(file.Path, file.Content), imports...)
 		case base == "pom.xml":
 			observations = parseMavenMainClass(file.Path, file.Content)
 		case base == "build.gradle" || base == "build.gradle.kts":
@@ -153,6 +156,9 @@ func (d *Detector) Detect(ctx context.Context, file profile.File) ([]profile.Fin
 		} else {
 			observations = parseConfig(file.Path, file.Content)
 		}
+	}
+	if importTokensLimited {
+		d.omit("import_token_limit")
 	}
 	d.mu.Lock()
 	d.inspected++
