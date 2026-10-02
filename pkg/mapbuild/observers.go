@@ -24,54 +24,139 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 }
 
 // dockerCargoComponent narrows root-level co-location attribution only when
-// both the copied crate tree and a literal Cargo build command are present.
-// These remain partial static clues; ambiguous roots are left unattributed.
-func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document) (string, []mapdoc.Evidence, bool) {
-	copyEvidence := []mapdoc.Evidence{}
+// a copied crate tree and a literal Cargo build command occur in the same
+// Docker build stage. Zigbuild targets additionally need an exact declared
+// default-run interface on one unique Cargo component.
+func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document, intents ...*intentmap.Report) (string, []mapdoc.Evidence, bool) {
+	copyEvidenceByStage := map[string][]mapdoc.Evidence{}
 	for _, ref := range def.References {
 		if ref.Kind != "copy_source" {
 			continue
 		}
 		source := strings.TrimPrefix(path.Clean(ref.Value), "./")
 		if source == "crates" || strings.HasPrefix(source, "crates/") {
-			copyEvidence = append(copyEvidence, deployableEvidence(def.Path, ref.Evidence))
+			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], deployableEvidence(def.Path, ref.Evidence))
 		}
 	}
-	if len(copyEvidence) == 0 {
-		return "", nil, false
-	}
-	buildEvidence := []mapdoc.Evidence{}
 	for _, ref := range def.DockerPathWrites {
 		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
 		for _, segment := range strings.Split(command, "&&") {
 			fields := strings.Fields(strings.TrimSpace(segment))
-			if len(fields) >= 2 && path.Base(fields[0]) == "cargo" && fields[1] == "build" {
-				buildEvidence = append(buildEvidence, deployableEvidence(def.Path, ref.Evidence))
-				break
-			}
-		}
-	}
-	if len(buildEvidence) == 0 {
-		return "", nil, false
-	}
-	var cargoOwner string
-	for _, id := range owners {
-		for _, n := range d.Nodes {
-			if n.ID == id && n.Properties["ecosystem"] == "cargo" {
-				if cargoOwner != "" {
-					return "", nil, false
+			if len(fields) >= 2 && fields[0] == "cargo" && (fields[1] == "build" || fields[1] == "zigbuild") {
+				copyEvidence := copyEvidenceByStage[ref.Stage]
+				if len(copyEvidence) == 0 {
+					continue
 				}
-				cargoOwner = id
+				buildEvidence := deployableEvidence(def.Path, ref.Evidence)
+				if fields[1] == "zigbuild" {
+					binary, valid := literalCargoBin(fields)
+					if !valid {
+						continue
+					}
+					matches := []string{}
+					var manifest string
+					for _, n := range d.Nodes {
+						if n.Kind != mapdoc.NodeComponent || n.Properties["ecosystem"] != "cargo" || n.Name != binary {
+							continue
+						}
+						root := n.Properties["root"]
+						if !strings.HasPrefix(root, "crates/") {
+							continue
+						}
+						projectPath := ""
+						for _, candidate := range n.Paths {
+							if path.Base(candidate) == "Cargo.toml" {
+								projectPath = candidate
+								break
+							}
+						}
+						if projectPath == "" || !intentDeclaresCargoBin(intents, projectPath, binary) {
+							continue
+						}
+						matches = append(matches, n.ID)
+						manifest = projectPath
+					}
+					if len(matches) != 1 {
+						continue
+					}
+					evidence := append(append([]mapdoc.Evidence{}, copyEvidence...), buildEvidence,
+						mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: manifest, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}})
+					var workspaceCargo []string
+					for _, id := range owners {
+						for _, n := range d.Nodes {
+							if n.ID == id && n.Properties["ecosystem"] == "cargo" {
+								workspaceCargo = append(workspaceCargo, id)
+							}
+						}
+					}
+					if len(workspaceCargo) != 1 {
+						continue
+					}
+					return workspaceCargo[0], append(evidence, mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: path.Join(path.Dir(def.Path), "Cargo.toml"), SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}}), true
+				}
+				var cargoOwner string
+				for _, id := range owners {
+					for _, n := range d.Nodes {
+						if n.ID == id && n.Properties["ecosystem"] == "cargo" {
+							if cargoOwner != "" {
+								return "", nil, false
+							}
+							cargoOwner = id
+						}
+					}
+				}
+				if cargoOwner != "" {
+					return cargoOwner, append(copyEvidence, buildEvidence), true
+				}
 			}
 		}
 	}
-	if cargoOwner == "" {
-		return "", nil, false
-	}
-	return cargoOwner, append(copyEvidence, buildEvidence[0]), true
+	return "", nil, false
 }
 
-func addDeployables(d *mapdoc.Document, r *deployables.Report) {
+func literalCargoBin(fields []string) (string, bool) {
+	var binary string
+	for i := 2; i < len(fields); i++ {
+		if fields[i] != "--bin" {
+			continue
+		}
+		if binary != "" || i+1 >= len(fields) || strings.ContainsAny(fields[i+1], "$*?{}") {
+			return "", false
+		}
+		binary = fields[i+1]
+		i++
+	}
+	return binary, binary != ""
+}
+
+func intentDeclaresCargoBin(reports []*intentmap.Report, manifest, binary string) bool {
+	for _, report := range reports {
+		if report == nil {
+			continue
+		}
+		for _, observation := range report.Observations {
+			if observation.Kind == intentmap.KindInterface && observation.Name == binary && observation.ProjectID == manifest && observation.Properties["interface_kind"] == "cargo-default-run" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dockerHasCargoZigbuild(def deployables.Definition) bool {
+	for _, ref := range def.DockerPathWrites {
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, segment := range strings.Split(command, "&&") {
+			fields := strings.Fields(strings.TrimSpace(segment))
+			if len(fields) >= 2 && fields[0] == "cargo" && fields[1] == "zigbuild" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*intentmap.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
@@ -375,8 +460,11 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			}
 			if len(artifactOwners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, artifactOwners[0], "dockerfile-artifact:"+def.Path, "dockerfile_copy_source_matches_maven_archive", artifactEvidence)
-			} else if owner, evidence, ok := dockerCargoComponent(def, owners, d); ok {
+			} else if owner, evidence, ok := dockerCargoComponent(def, owners, d, intents...); ok {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile-cargo:"+def.Path, "dockerfile_copy_and_build_evidence_matches_cargo_component", evidence...)
+			} else if dockerHasCargoZigbuild(def) {
+				// An explicit but ambiguous zigbuild target must not fall through to
+				// generic co-location with the repository-root Cargo manifest.
 			} else if len(owners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
 			} else if len(owners) > 1 {
@@ -463,7 +551,8 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				continue
 			}
 			addRelationship(mapdoc.EdgeBuilds, dockerID, owner, "makefile-context:"+dockerPath, "declared_context_matches_component_root",
-				deployableEvidence(binding.SourcePath, binding.ContextEvidence), deployableEvidence(binding.SourcePath, binding.FileEvidence))
+				deployableEvidence(binding.SourcePath, binding.ContextEvidence), deployableEvidence(binding.SourcePath, binding.FileEvidence),
+				mapdoc.Evidence{Basis: mapdoc.BasisResolvedReference, Path: dockerPath, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/selected-inventory", Version: "1.0.0"}})
 		}
 	}
 	// Emit depends_on edges for compose service dependencies declared via depends_on.

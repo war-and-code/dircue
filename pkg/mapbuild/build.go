@@ -221,7 +221,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 		question("analyzer_coverage", mapdoc.CoverageUnknown, "no_analyzer_report_attached"),
 	)
 	if opts.Deployables != nil {
-		addDeployables(&d, opts.Deployables)
+		addDeployables(&d, opts.Deployables, opts.Intent)
 		addWorkflowComponentEdges(&d, opts.Deployables)
 	}
 	if opts.Intent != nil {

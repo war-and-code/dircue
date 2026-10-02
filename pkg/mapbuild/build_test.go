@@ -145,6 +145,92 @@ func TestMakefileDockerfilePathIsInvocationRootRelative(t *testing.T) {
 	t.Fatal("root-relative Docker -f path did not link the selected build context component")
 }
 
+func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
+	makeDoc := func(duplicate bool) mapdoc.Document {
+		doc := mapdoc.New()
+		root := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root")
+		root.Name = "(root)"
+		root.Properties = map[string]string{"root": ".", "ecosystem": "cargo"}
+		crate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/ruff", "crates/ruff/Cargo.toml"}, "cargo-ruff")
+		crate.Name = "ruff"
+		crate.Properties = map[string]string{"root": "crates/ruff", "ecosystem": "cargo"}
+		doc.Nodes = append(doc.Nodes, root, crate)
+		if duplicate {
+			other := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/other", "crates/other/Cargo.toml"}, "cargo-ruff-other")
+			other.Name = "ruff"
+			other.Properties = map[string]string{"root": "crates/other", "ecosystem": "cargo"}
+			doc.Nodes = append(doc.Nodes, other)
+		}
+		return doc
+	}
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete",
+		Evidence:         []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Field: "COPY source", Value: "crates", Line: 27, Basis: "dockerfile-instruction"}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff --target $(TARGET) --release", Stage: "build", Evidence: deployables.Evidence{Field: "RUN", Line: 30, Basis: "dockerfile-instruction"}}},
+	}
+	intent := &intentmap.Report{Observations: []intentmap.Observation{{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/ruff/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}}}}
+	for _, tc := range []struct {
+		name      string
+		duplicate bool
+		want      string
+	}{
+		{name: "unique declared bin and workspace root", want: "cargo-root"},
+		{name: "ambiguous package name", duplicate: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := makeDoc(tc.duplicate)
+			observations := slices.Clone(intent.Observations)
+			if tc.duplicate {
+				observations = append(observations, intentmap.Observation{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/other/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}})
+			}
+			addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}}, &intentmap.Report{Observations: observations})
+			dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+			for _, edge := range doc.Edges {
+				if edge.Type != mapdoc.EdgeBuilds || edge.From != dockerID {
+					continue
+				}
+				if tc.want == "" || edge.To != mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root").ID {
+					t.Fatalf("zigbuild attribution was not uniquely source-backed: %+v", edge)
+				}
+				if edge.Coverage.Status != mapdoc.CoveragePartial {
+					t.Fatalf("static build relationship must remain partial: %+v", edge.Coverage)
+				}
+				return
+			}
+			if tc.want != "" {
+				t.Fatal("unique declared binary crate did not receive build edge")
+			}
+		})
+	}
+}
+
+func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T) {
+	doc := mapdoc.New()
+	crate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/ruff", "crates/ruff/Cargo.toml"}, "cargo-ruff")
+	crate.Name = "ruff"
+	crate.Properties = map[string]string{"root": "crates/ruff", "ecosystem": "cargo"}
+	doc.Nodes = append(doc.Nodes, crate)
+	intent := &intentmap.Report{Observations: []intentmap.Observation{{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/ruff/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}}}}
+	base := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete",
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "copy-stage", Evidence: deployables.Evidence{Line: 1}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff", Stage: "build-stage", Evidence: deployables.Evidence{Line: 2}}},
+	}
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("crate copy from a different stage was combined with the zigbuild command")
+	}
+	base.References[0].Stage = "build-stage"
+	base.DockerPathWrites[0].Value = "RUN pseudocargo zigbuild --bin ruff"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok || dockerHasCargoZigbuild(base) {
+		t.Fatal("pseudocargo command was accepted as a literal Cargo zigbuild")
+	}
+	base.DockerPathWrites[0].Value = "RUN cargo zigbuild --bin $(BIN)"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("dynamic --bin name was treated as a static crate selection")
+	}
+}
+
 func TestTerraformLiteralLocalModuleSourcesLinkModuleDeployables(t *testing.T) {
 	root := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "infra", Path: "infra/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "module", Value: "child", Line: 1, Basis: "terraform-literal-block"}}, References: []deployables.Reference{{Kind: "module_source", Value: "../modules/network", Qualification: "local", Evidence: deployables.Evidence{Field: "source", Value: "../modules/network", Line: 2, Basis: "terraform-module-source"}}}}
 	child := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "network", Path: "modules/network/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "resource", Value: "aws_vpc.main", Line: 1, Basis: "terraform-literal-block"}}}
