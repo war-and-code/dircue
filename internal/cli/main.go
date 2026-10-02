@@ -2,6 +2,7 @@ package cli
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -29,6 +30,11 @@ func Main(name string) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := ExecuteAs(ctx, name, os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		var outcome *comparisonExit
+		if errors.As(err, &outcome) {
+			stop()
+			os.Exit(outcome.code)
+		}
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		stop()
 		os.Exit(1)

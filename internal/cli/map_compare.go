@@ -15,6 +15,8 @@ const maxMapComparisonBytes = 64 << 20
 func newMapCompareCommand(opts *options) *cobra.Command {
 	n := opts.displayName
 	var format string
+	var exitCode bool
+	var onUncertain string
 	command := &cobra.Command{
 		Use:   "compare <base-map.json> <head-map.json>",
 		Short: "Compare two saved directory maps",
@@ -23,7 +25,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			"  text     Plain text summary (default when stdout is a terminal).\n" +
 			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
 			"--json supersedes --format and writes the full comparison document.\n\n" +
-			"A valid comparison exits 0 regardless of whether changes are present; only I/O or usage errors produce a non-zero exit.",
+			"By default, a valid comparison exits 0 regardless of changes. With --exit-code, unchanged exits 0 and changed exits 1. Uncertain results exit 2: indeterminate removals, incomparable results, unknown source binding, or differing observer identities. --on-uncertain allow explicitly permits an uncertain result to use its observed changed/unchanged exit; the report still retains its uncertainty. Handled errors exit 1. Comparison statuses are written before an outcome exit; output errors take precedence.",
 		Example: "  " + n + " map --json old-checkout > before.json\n  " + n + " map --json new-checkout > after.json\n  " + n + " map compare --json before.json after.json\n  " + n + " map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
@@ -38,6 +40,12 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			if format != "text" && format != "markdown" {
 				return fmt.Errorf("unsupported --format %q; choose text or markdown", format)
 			}
+			if onUncertain != "fail" && onUncertain != "allow" {
+				return fmt.Errorf("unsupported --on-uncertain %q; choose fail or allow", diagnosticValue(onUncertain))
+			}
+			if cmd.Flags().Changed("on-uncertain") && !exitCode {
+				return fmt.Errorf("--on-uncertain requires --exit-code")
+			}
 			base, err := loadMapDocument(args[0], "base map", n)
 			if err != nil {
 				return err
@@ -50,18 +58,50 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if opts.json {
-				return json.NewEncoder(cmd.OutOrStdout()).Encode(report)
+			var writeErr error
+			switch {
+			case opts.json:
+				writeErr = json.NewEncoder(cmd.OutOrStdout()).Encode(report)
+			case format == "markdown":
+				writeErr = mapdiff.WriteMarkdown(cmd.OutOrStdout(), report)
+			default:
+				writeErr = writeMapComparison(cmd.OutOrStdout(), report)
 			}
-			if format == "markdown" {
-				return mapdiff.WriteMarkdown(cmd.OutOrStdout(), report)
+			if writeErr != nil {
+				return writeErr
 			}
-			return writeMapComparison(cmd.OutOrStdout(), report)
+			if exitCode {
+				return comparisonOutcome(report, onUncertain)
+			}
+			return nil
 		},
 	}
 	command.Flags().StringVar(&format, "format", "text", "Output format: text (default) or markdown")
+	command.Flags().BoolVar(&exitCode, "exit-code", false, "Exit 1 for changed, 2 for uncertain comparisons; unchanged exits 0")
+	command.Flags().StringVar(&onUncertain, "on-uncertain", "fail", "With --exit-code, uncertainty: fail (exit 2) or allow the observed changed/unchanged exit")
 	setSavedReportHelp(command)
 	return command
+}
+
+// comparisonExit is an outcome after a complete report was written, not a
+// diagnostic error. Main uses its status without printing an error message.
+type comparisonExit struct {
+	code   int
+	status string
+}
+
+func (e *comparisonExit) Error() string { return "map comparison: " + e.status }
+
+func comparisonOutcome(report mapdiff.Report, onUncertain string) error {
+	unboundDirectory := func(source mapdoc.Source) bool { return source.Mode == "directory" && source.Digest == nil }
+	uncertain := report.Status == "indeterminate" || report.Status == "incomparable" || report.Counts.IndeterminateRemoval > 0 || report.SourceBinding == "unknown" || unboundDirectory(report.Base) || unboundDirectory(report.Head) || report.ObserverCompatibility == "different"
+	if uncertain && onUncertain == "fail" {
+		return &comparisonExit{code: 2, status: "uncertain"}
+	}
+	if report.Status == "changed" {
+		return &comparisonExit{code: 1, status: report.Status}
+	}
+	return nil
 }
 
 func loadMapDocument(filename, role, displayName string) (mapdoc.Document, error) {

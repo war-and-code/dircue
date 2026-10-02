@@ -160,6 +160,21 @@ The `fast` preset was removed after a three-run scan of the pinned 21-repository
 
 `--cpu-limit` scopes `GOMAXPROCS` to the map command. `--memory-limit` scopes Go's soft memory limit to the command. A value of zero inherits the process setting. These controls preserve the map answer and are restored before an embedded caller regains control. They are cooperative preferences: neither is a hard CPU quota or RSS ceiling, and they do not constrain child processes, native allocations, memory-mapped files, or operating-system caches. `GOMEMLIMIT` remains an inherited cooperative default when no explicit memory limit is supplied. Use operating-system or container controls when a workload requires enforced CPU, memory, or wall-time bounds.
 
+### Fixed bounds
+
+`map settings --json` also lists read-only entries categorized as
+`fixed-safety-bound`. They cover retained Git readers, format input/output and
+parser budgets, and manifest input sizes. The registry also names bounds for
+optional registry, environment and structural analysis; listing them does not
+enable those modules. Their descriptions identify where each bound applies.
+
+These bounds protect parser work and report size. They are separate from a
+memory ceiling: transient Git delta readers, for example, are outside the
+retained-reader count. Fixed entries cannot be changed through `--set`.
+Cooperative CPU, memory, worker and cache choices preserve semantic answers
+with the same analysis budgets. Presets that alter content or inventory limits
+may change retained evidence and must disclose their omissions.
+
 ## Attach saved provider reports
 
 `--attach KIND=PATH` joins an existing report into the map. The flag is repeatable. Dircue reads the file as bounded JSON data and never runs the provider.
@@ -368,6 +383,29 @@ Without `--json`, `--format text` (the default) prints a plain summary and `--fo
 Comparison uses stable IDs and opens neither source tree. It separates material source changes, provider observations, evidence changes, and coverage changes. Provider-only nodes and edges do not inflate source material-change counts. If the head map has incomplete or incomparable provider coverage, a missing observation is reported as an indeterminate removal rather than a proven deletion. The caller selects the pair; dircue does not infer repository identity or rename relationships. A valid comparison exits `0` even when changes are present.
 
 `dircue map compare` accepts only map documents (`kind: "map"`). Passing a legacy profile document produces a helpful error pointing to `dircue compare`. The older `dircue compare` command accepts only aggregate `analyze all` profile documents; passing a map document to it produces a helpful error pointing to `dircue map compare`. Their input and output contracts are different. This split preserves the legacy command contract; scripts comparing maps should use `dircue map compare` explicitly.
+
+### Comparison outcome exits
+
+By default a valid comparison exits `0`, including when it finds changes.
+For an automation gate, select the new behavior explicitly:
+
+```sh
+dircue map compare --exit-code --json before.json after.json
+```
+
+The comparison document is unchanged by this option. A complete report is
+written before returning `0` for observed unchanged or `1` for observed changed.
+Uncertain comparisons return `2`: this includes indeterminate removals,
+incomparable results, unbound source identity and differing observer identities.
+Uncertainty takes precedence when a report also contains observed changes.
+These outcome exits do not write an error diagnostic to stderr. A usage, input
+or output error still exits `1` with a diagnostic; do not mistake it for a
+successful changed result.
+
+`--on-uncertain allow`, accepted only with `--exit-code`, explicitly permits the
+observed changed/unchanged exit instead. It never removes caveats or changes the
+JSON status. An observed unchanged result is limited to the report's evidence
+and coverage; it is not proof that an incompletely inspected tree has no changes.
 
 ## Locate SARIF results in the map
 

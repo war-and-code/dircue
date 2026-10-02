@@ -139,8 +139,9 @@ func describeCLI(root *cobra.Command) cliContract {
 		Code    int    `json:"code"`
 		Meaning string `json:"meaning"`
 	}{
-		{0, "Successful command; reports can still have partial coverage. Differences in a comparison are not an error. The legacy tree-size limit returns empty statistics with a warning."},
-		{1, "Handled CLI, input, analysis, cancellation, or output error; diagnostics go to stderr. Check status before consuming stdout."},
+		{0, "Successful command; reports can still have partial coverage. Comparisons exit zero by default. With map compare --exit-code, zero means unchanged under the selected uncertainty policy. The legacy tree-size limit returns empty statistics with a warning."},
+		{1, "Handled CLI, input, analysis, cancellation, or output error, with diagnostics on stderr; or a changed map comparison when --exit-code is selected, with its complete report on stdout and no error diagnostic."},
+		{2, "Only map compare --exit-code: uncertain comparison under --on-uncertain fail (the default). The complete comparison report is on stdout; this is an outcome, not a parser error."},
 		{141, "Terminated by SIGPIPE on POSIX systems when a downstream reader closed early (128 + signal 13). The Go runtime's default disposition is intentionally preserved; treat 141 as an early consumer close rather than a dircue error."},
 	}
 	d.SourceSelection = []string{
@@ -195,6 +196,9 @@ func describeCLI(root *cobra.Command) cliContract {
 
 func flagAllowedValues(cmd *cobra.Command, name string) []string {
 	canonical := canonicalCommandPath(cmd)
+	if canonical == "dircue map compare" && name == "on-uncertain" {
+		return []string{"fail", "allow"}
+	}
 	if name == "preset" && (canonical == "dircue map" || canonical == "dircue map settings") {
 		return slices.Clone(mapPresetNames)
 	}
@@ -277,7 +281,7 @@ func commandRestrictions(cmd *cobra.Command) []string {
 		r = append(r, "At most one source path. --rev and --tree are mutually exclusive. --rev requires a Git source.")
 	}
 	if canonical == "dircue map compare" {
-		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. A zero exit status means the comparison completed, not that the maps are identical.")
+		return append(r, "Exactly two saved map documents; inherited source scan flags are rejected. By default zero means comparison completed. --exit-code selects outcome statuses: 0 unchanged, 1 changed, 2 uncertain. --on-uncertain requires --exit-code and can explicitly allow uncertainty; reports retain the original status and caveats.")
 	}
 	if canonical == "dircue map settings" {
 		return append(r, "No source is scanned. --preset and repeatable --set resolve effective values; inherited analysis flags are rejected. Resource notes are contractual qualifications, not measured ceiling claims.")
