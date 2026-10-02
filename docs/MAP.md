@@ -35,6 +35,12 @@ Additional build-context links use literal Compose `build.context`/`dockerfile` 
 
 Maven system-scope `systemPath` and .NET `Reference`/`HintPath` declarations can record local JAR/DLL references. A selected regular file is linked by `references_artifact`, with an `artifact_reference` fact on its component. Its content type is a partial filename hint; dircue does not unpack the file, identify a package/version, or verify a managed assembly. Unresolved, missing or inventory-limited targets keep their status without copying the raw target into map output. Root-escaping and dynamic references remain unattributed; supported same-POM properties can resolve a Maven path. Project/declaration reports also retain these references in their existing `references` arrays. Maven XML readers accept declared ISO-8859-1 and US-ASCII as well as UTF-8 and BOM-marked UTF-16; unsupported or contradictory encodings remain diagnostics.
 
+Cargo attribution from copied crate paths is limited to a root Dockerfile with
+a known context. The copy and literal build must be in the same stage, with the
+copy before the build when source lines are known. A conflicting manifest or
+package selector prevents this narrowing. Surviving co-location edges retain
+their IDs when their supporting evidence is strengthened.
+
 A Python project with literal maturin `bindings = "bin"` has a `binary` interface with condition `maturin bindings=bin` pointing to its declared local Cargo manifest. This is packaging intent, not proof that the crate contains a runnable binary.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic hash-based identities derived from their kind, paths, and discriminator. They can be compared across maps of the same logical content, but an ID is not a content checksum.
