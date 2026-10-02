@@ -71,3 +71,41 @@ checks do not cover every newer map, focus or context interface. Those have
 separate semantic, schema and integration gates. Help/version text, new option
 catalog entries and intended improvements in detected evidence require review;
 passing the matrix alone is not sufficient to approve a release.
+
+### 1.1.0 candidate evidence
+
+The [published-1.0.1 comparison](results/v110-released-v101-macos-arm64.json.gz)
+matches **278 of 278** inherited cases on macOS ARM64, including the native
+structural worker. The [build receipt](results/v110-build-inputs-macos-arm64.json.gz)
+binds the candidate executable to clean source commit
+`a205c3bdafd3e41d6214fd94fbd4586c335a8616` and 399 local Go/embedded inputs.
+Later receipt/documentation commits do not change those compilation inputs.
+
+The baseline is the executable extracted from the
+[published 1.0.1 release](https://github.com/war-and-code/dircue/releases/tag/v1.0.1),
+not a source rebuild or a candidate stamped with an older version. Its archive
+was verified against the release checksums before extraction.
+
+| Input | SHA-256 |
+| --- | --- |
+| Published Darwin ARM64 core archive | `f9d4c74db7b6d13027fefe91d49d64597cd045e7b5f634326a1e8a610bac4eab` |
+| Extracted core executable | `b8bf24a26a078b5fe073890e6882647254eba482ffd9fb4398e5f38ff5008150` |
+| Published Darwin ARM64 worker archive | `8f3f5698c90282c7b00ad819fed42345681ed969088a71f9899a724bcf87e25a` |
+| Extracted worker executable | `73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740` |
+| Candidate executable | `227d5d3540ce470c3eac840865ec385b5b374ec64bfab16a446e7875c283cf83` |
+
+The candidate's source default reports `1.1.0-dev`; version/help text is outside
+the equality matrix. The case groups are 118 retained CLI cases, 55 project
+cases, 6 structural validation cases, 30 native structural cases, 32 optional
+module cases and 37 declaration cases. New map semantics, limits and opt-in
+exit statuses have separate tests. This result does not establish untested
+platform compatibility or freeze every byte on newly supported inputs.
+
+The same source commit also passed the
+[13-check offline native wheel smoke](results/v110-native-wheel-macos-arm64.json.gz)
+and a [nine-case alias comparison](results/v110-native-alias-macos-arm64.json.gz)
+between the archive's `dirq` symlink and the installed wheel's `dirq` launcher,
+including comparison exits 0, 1 and 2. The
+[native build provenance](results/v110-native-build-macos-arm64.json.gz)
+records the clean source and release build flags. These locally built artifacts
+use the test version `1.1.0-rc.1`; no public tag or publication is implied.
