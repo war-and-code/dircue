@@ -3,6 +3,7 @@ package cli
 import (
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -61,21 +62,27 @@ func TestMapPerformanceSettingsPreserveAnswers(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
+	assertMapPerformanceSettings(t, root, "directory")
+	git, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("Git oracle unavailable; directory invariance tested")
+	}
+	for _, args := range [][]string{
+		{"init", "-q"}, {"add", "-A"},
+		{"-c", "user.name=dircue-test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false", "-c", "core.hooksPath=" + t.TempDir(), "commit", "-qm", "fixture"},
+		{"repack", "-ad"},
+	} {
+		cmd := exec.Command(git, args...)
+		cmd.Dir = root
+		cmd.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull)
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("Git fixture %v: %v %s", args, err, out)
+		}
+	}
+	assertMapPerformanceSettings(t, root, "git")
 	base, _, err := invoke("map", "--source", "directory", "--json", root)
 	if err != nil {
 		t.Fatal(err)
-	}
-	for _, settings := range [][]string{
-		{"--workers", "1"}, {"--workers", "4"},
-		{"--set", "git.object_cache_bytes=1MiB"},
-		{"--cpu-limit", "1"}, {"--memory-limit", "64MiB"},
-	} {
-		args := append([]string{"map", "--source", "directory", "--json"}, settings...)
-		args = append(args, root)
-		got, _, err := invoke(args...)
-		if err != nil || got != base {
-			t.Fatalf("performance preference changed answers: %v err=%v", settings, err)
-		}
 	}
 	limited, _, err := invoke("map", "--source", "directory", "--json", "--budget-files", "1", root)
 	if err != nil {
@@ -97,5 +104,25 @@ func TestMapPerformanceSettingsPreserveAnswers(t *testing.T) {
 	}
 	if !disclosed || limited == base {
 		t.Fatalf("coverage-changing limit not disclosed: %s", limited)
+	}
+}
+
+func assertMapPerformanceSettings(t *testing.T, root, source string) {
+	t.Helper()
+	base, _, err := invoke("map", "--source", source, "--json", root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, settings := range [][]string{
+		{"--workers", "1"}, {"--workers", "4"},
+		{"--set", "git.object_cache_bytes=1MiB"},
+		{"--cpu-limit", "1"}, {"--memory-limit", "64MiB"},
+	} {
+		args := append([]string{"map", "--source", source, "--json"}, settings...)
+		args = append(args, root)
+		got, _, err := invoke(args...)
+		if err != nil || got != base {
+			t.Fatalf("performance preference changed answers: %v err=%v", settings, err)
+		}
 	}
 }

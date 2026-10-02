@@ -13,6 +13,7 @@ import (
 var enumFlagsBySemantics = map[string]struct{}{
 	"source":        {},
 	"on-error":      {},
+	"on-uncertain":  {},
 	"metrics-scope": {},
 	"schema":        {},
 	"module":        {},
