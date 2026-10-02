@@ -9,9 +9,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 	"github.com/war-and-code/dircue/pkg/projects"
+	"github.com/war-and-code/dircue/pkg/registries"
+	"github.com/war-and-code/dircue/pkg/scanner"
+	"github.com/war-and-code/dircue/pkg/structure"
 )
 
 func TestFixedMapBoundsAreDiscoverableAndReadOnly(t *testing.T) {
@@ -30,19 +35,52 @@ func TestFixedMapBoundsAreDiscoverableAndReadOnly(t *testing.T) {
 		}
 		values[s.Name] = s
 	}
-	for name, want := range map[string]int64{
-		"formats.files":        formats.MaxFiles,
-		"formats.file_bytes":   formats.MaxFileBytes,
-		"formats.input_bytes":  formats.MaxInputBytes,
-		"manifests.file_bytes": projects.MaxManifestBytes,
-	} {
-		s, ok := values[name]
+	lanes, singleLaneReaders, concurrentLaneReaders := scanner.GitStorageBounds()
+	want := map[string]struct {
+		value int64
+		unit  string
+	}{
+		"git.object_lanes":                         {int64(lanes), "lanes"},
+		"git.retained_readers_single_lane":         {int64(singleLaneReaders), "readers"},
+		"git.retained_readers_per_concurrent_lane": {int64(concurrentLaneReaders), "readers"},
+		"formats.files":                            {int64(formats.MaxFiles), "files"},
+		"formats.file_bytes":                       {formats.MaxFileBytes, "bytes"},
+		"formats.input_bytes":                      {formats.MaxInputBytes, "bytes"},
+		"formats.output_bytes":                     {formats.MaxOutputBytes, "bytes"},
+		"formats.parser_depth":                     {int64(formats.MaxDepth), "levels"},
+		"formats.parser_tokens":                    {int64(formats.MaxTokens), "tokens"},
+		"manifests.file_bytes":                     {projects.MaxManifestBytes, "bytes"},
+		"registries.file_bytes":                    {registries.MaxFileBytes, "bytes"},
+		"environments.inventory_paths":             {int64(environments.DefaultMaxInventoryPaths), "paths"},
+		"environments.file_bytes":                  {environments.DefaultMaxGlobalJSONBytes, "bytes"},
+		"environments.input_bytes":                 {environments.DefaultMaxInputBytes, "bytes"},
+		"environments.requirements":                {int64(environments.DefaultMaxRequirements), "requirements"},
+		"environments.contexts":                    {int64(environments.DefaultMaxContexts), "contexts"},
+		"environments.output_bytes":                {int64(environments.DefaultMaxOutputBytes), "bytes"},
+		"structure.report_functions":               {int64(scanner.FunctionReportLimit()), "functions"},
+		"structure.file_functions":                 {int64(structure.FunctionLimit), "functions"},
+		"intent.import_tokens_per_file":            {int64(intentmap.DefaultMaxLexicalTokensPerFile), "tokens"},
+	}
+	fixed := map[string]mapEffectiveSetting{}
+	for _, s := range report.Settings {
+		if s.Category == "fixed-safety-bound" {
+			fixed[s.Name] = s
+		}
+	}
+	if len(fixed) != len(want) {
+		t.Fatalf("fixed bound inventory has %d entries, want %d: %+v", len(fixed), len(want), fixed)
+	}
+	for name, expected := range want {
+		s, ok := fixed[name]
 		if !ok || s.Category != "fixed-safety-bound" || s.Minimum != s.Value || s.Maximum != s.Value {
 			t.Fatalf("missing fixed bound: %s %+v", name, s)
 		}
+		if s.Origin != "fixed" || s.Unit != expected.unit || s.Description == "" {
+			t.Fatalf("fixed bound metadata mismatch: %s %+v", name, s)
+		}
 		parsed, err := strconv.ParseInt(s.Value, 10, 64)
-		if err != nil || parsed != want {
-			t.Fatalf("bound drift: %s %s", name, s.Value)
+		if err != nil || parsed != expected.value {
+			t.Fatalf("bound drift: %s got %s want %d", name, s.Value, expected.value)
 		}
 		out, _, err := invoke("map", "settings", "--set", name+"="+s.Value)
 		if err == nil || !strings.Contains(err.Error(), "fixed bound") || out != "" {

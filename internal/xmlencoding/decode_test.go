@@ -11,6 +11,10 @@ func TestDecodeSupportedXMLCharsetsAndRejectsContradictoryBOM(t *testing.T) {
 	if err != nil || !strings.Contains(string(latin1), "café") || !strings.Contains(string(latin1), `encoding="UTF-8"`) {
 		t.Fatalf("Latin-1 was not exactly transcoded: %q err=%v", latin1, err)
 	}
+	latin1Alias, err := Decode([]byte(`<?xml version="1.0" encoding="ISO8859-1"?><x>caf` + "\xe9" + `</x>`))
+	if err != nil || !strings.Contains(string(latin1Alias), "café") || !strings.Contains(string(latin1Alias), `encoding="UTF-8"`) {
+		t.Fatalf("valid ISO8859-1 alias was not exactly transcoded: %q err=%v", latin1Alias, err)
+	}
 	for _, order := range []binary.ByteOrder{binary.LittleEndian, binary.BigEndian} {
 		text := `<?xml version="1.0" encoding="utf-16"?><x>ok</x>`
 		units := []uint16{}
@@ -33,6 +37,7 @@ func TestDecodeSupportedXMLCharsetsAndRejectsContradictoryBOM(t *testing.T) {
 	for _, body := range [][]byte{
 		append([]byte{0xef, 0xbb, 0xbf}, []byte(`<?xml version="1.0" encoding="ISO-8859-1"?><x/>`)...),
 		[]byte(`<?xml version="1.0" encoding="unsupported"?><x/>`),
+		[]byte(`<?xml version="1.0" encoding="ISO_8859-1"?><x/>`),
 		[]byte(`<?xml version="1.0" encoding="US-ASCII"?><x>caf` + "\xe9" + `</x>`),
 	} {
 		if got, err := Decode(body); err == nil {

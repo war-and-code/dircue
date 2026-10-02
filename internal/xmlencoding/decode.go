@@ -14,9 +14,10 @@ import (
 
 var declaration = regexp.MustCompile(`(?i)^\s*<\?xml\s+[^?]{0,512}?encoding\s*=\s*["']([^"']+)["']`)
 
-// Decode returns UTF-8 XML for UTF-8, BOM-marked UTF-16, ISO-8859-1 and
-// US-ASCII inputs. Single-byte declarations are transcoded exactly and the
-// declaration is rewritten so encoding/xml sees the resulting UTF-8 bytes.
+// Decode returns UTF-8 XML for UTF-8, BOM-marked UTF-16, ISO-8859-1 (including
+// the common XML-name alias ISO8859-1) and US-ASCII inputs. Single-byte
+// declarations are transcoded exactly and the declaration is rewritten so
+// encoding/xml sees the resulting UTF-8 bytes.
 func Decode(content []byte) ([]byte, error) {
 	utf16BOM := bytes.HasPrefix(content, []byte{0xff, 0xfe}) || bytes.HasPrefix(content, []byte{0xfe, 0xff})
 	utf8BOM := bytes.HasPrefix(content, []byte{0xef, 0xbb, 0xbf})
@@ -38,7 +39,7 @@ func Decode(content []byte) ([]byte, error) {
 	if encoding == "utf-8" || encoding == "utf-16" {
 		return decoded, nil
 	}
-	latin1 := encoding == "iso-8859-1" || encoding == "latin1"
+	latin1 := encoding == "iso-8859-1" || encoding == "iso8859-1" || encoding == "latin1"
 	ascii := encoding == "us-ascii" || encoding == "ascii"
 	if utf16BOM || (!latin1 && !ascii) {
 		return nil, errors.New("unsupported XML encoding")
