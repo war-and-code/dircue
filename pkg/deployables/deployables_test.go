@@ -401,6 +401,37 @@ image:
 	}
 }
 
+func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
+	for _, assignment := range []string{
+		"OCI_BUILD := docker build ; echo unsafe",
+		"OCI_BUILD := docker build -f hidden/Dockerfile .",
+		"OCI_BUILD := docker build hidden-context",
+	} {
+		t.Run(assignment, func(t *testing.T) {
+			body := assignment + "\nimage:\n\t$(OCI_BUILD) -f services/api/Dockerfile services/api\n"
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("unsafe variable command was attributed: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+}
+
+func TestMakefileRejectsAmbiguousDirectDockerBuildArguments(t *testing.T) {
+	for _, command := range []string{
+		"docker build -f wrong/Dockerfile other-context -f services/api/Dockerfile services/api",
+		"docker build -f services/api/Dockerfile other-context services/api",
+	} {
+		t.Run(command, func(t *testing.T) {
+			body := "image:\n\t" + command + "\n"
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("ambiguous Docker command was attributed: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+}
+
 func TestMisleadingFilenamesDoNotCreateClaims(t *testing.T) {
 	for _, tc := range []struct{ name, body string }{{"Dockerfile", "this is documentation"}, {"deployment.yaml", "kind: of misleading prose"}, {".github/workflows/ci.yml", "name: merely a name"}, {"main.tf", "# resource \"fake\" \"fake\" {}"}} {
 		r, err := Observe(context.Background(), []Candidate{{Path: tc.name, Size: int64(len(tc.body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(tc.body), int64(len(tc.body)), nil }}}, Options{})

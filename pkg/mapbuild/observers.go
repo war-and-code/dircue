@@ -447,12 +447,17 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	}
 	if r != nil {
 		for _, binding := range r.BuildContexts {
-			resolved := path.Clean(path.Join(path.Dir(binding.SourcePath), binding.Context))
+			// Root Makefile recipes run from the invocation directory (the
+			// repository root), and Docker resolves both -f and context paths
+			// from that directory. Compose differs: its Dockerfile is relative
+			// to the declared build context.
+			base := path.Dir(binding.SourcePath)
+			resolved := path.Clean(path.Join(base, binding.Context))
 			owner, _ := localPathOwner(componentsByRoot, resolved, false)
 			if owner == "" {
 				continue
 			}
-			dockerPath := path.Clean(path.Join(resolved, binding.Dockerfile))
+			dockerPath := path.Clean(path.Join(base, binding.Dockerfile))
 			dockerID := dockerNodesByPath[dockerPath]
 			if dockerID == "" {
 				continue

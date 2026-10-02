@@ -32,7 +32,7 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 			if name == "" {
 				continue
 			}
-			assignments[name] = append(assignments[name], dockerBuildPrefix(m[2]))
+			assignments[name] = append(assignments[name], safeDockerBuildAssignment(m[2]))
 		}
 	}
 	defs := []Definition{}
@@ -80,6 +80,7 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 		args := fields[prefixLen:]
 		file := ""
 		invalidFile := false
+		positionals := []string{}
 		for i := 0; i < len(args); i++ {
 			switch {
 			case args[i] == "-f" || args[i] == "--file":
@@ -95,12 +96,26 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 					continue
 				}
 				file = strings.TrimPrefix(args[i], "--file=")
+			case args[i] == "--load" || args[i] == "--push" || args[i] == "--no-cache" || args[i] == "--pull":
+				continue
+			case strings.HasPrefix(args[i], "--") && strings.Contains(args[i], "="):
+				continue
+			case args[i] == "--platform" || args[i] == "--build-arg" || args[i] == "--tag" || args[i] == "-t" || args[i] == "--target" || args[i] == "--network" || args[i] == "--label" || args[i] == "--secret" || args[i] == "--ssh" || args[i] == "--output" || args[i] == "--cache-from" || args[i] == "--cache-to":
+				if i+1 >= len(args) {
+					invalidFile = true
+					continue
+				}
+				i++
+			case strings.HasPrefix(args[i], "-"):
+				invalidFile = true
+			default:
+				positionals = append(positionals, args[i])
 			}
 		}
-		if file == "" || invalidFile {
+		if file == "" || invalidFile || len(positionals) != 1 {
 			continue
 		}
-		context := args[len(args)-1]
+		context := positionals[0]
 		if !safeRelative(file) || !safeRelative(context) || strings.HasPrefix(context, "-") || strings.ContainsAny(file+context, "$%{}*?[]'\"") {
 			continue
 		}
@@ -117,6 +132,57 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 }
 
 func dockerBuildPrefix(value string) bool { return directDockerBuildPrefix(strings.Fields(value)) > 0 }
+
+// safeDockerBuildAssignment accepts the simple Docker command prefix and
+// option-only trailing expansions used by build Makefiles. It rejects shell
+// control syntax and positional/file arguments, either of which could change
+// which Dockerfile or context the recipe actually selects.
+func safeDockerBuildAssignment(value string) bool {
+	if strings.ContainsAny(value, ";&|`<>\\\n\r") {
+		return false
+	}
+	fields := strings.Fields(value)
+	prefix := directDockerBuildPrefix(fields)
+	if prefix == 0 {
+		return false
+	}
+	for _, arg := range fields[prefix:] {
+		if arg == "-f" || arg == "--file" || strings.HasPrefix(arg, "--file=") {
+			return false
+		}
+	}
+	for i := prefix; i < len(fields); i++ {
+		arg := fields[i]
+		if strings.HasPrefix(arg, "--") {
+			if strings.Contains(arg, "=") || arg == "--load" || arg == "--push" {
+				continue
+			}
+			if arg == "--build-arg" || arg == "--platform" {
+				if i+1 >= len(fields) || !safeMakeArgument(fields[i+1]) {
+					return false
+				}
+				i++
+				continue
+			}
+			return false
+		}
+		if isSimpleMakeVariable(arg) {
+			continue
+		}
+		if !strings.HasPrefix(arg, "-") {
+			return false
+		}
+	}
+	return true
+}
+
+func safeMakeArgument(value string) bool {
+	return value != "" && !strings.ContainsAny(value, ";&|`<>\\\n\r") && !strings.HasPrefix(value, "-")
+}
+
+func isSimpleMakeVariable(value string) bool {
+	return strings.HasPrefix(value, "$(") && strings.HasSuffix(value, ")") && !strings.ContainsAny(value[2:len(value)-1], "()")
+}
 
 func directDockerBuildPrefix(fields []string) int {
 	i := 0

@@ -119,6 +119,32 @@ func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
 	}
 }
 
+func TestMakefileDockerfilePathIsInvocationRootRelative(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/package.json"}, "npm")
+	component.Name = "api"
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "npm"}
+	doc.Nodes = append(doc.Nodes, component)
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "api", Path: "services/api/Dockerfile", Coverage: "complete",
+		Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+	}
+	report := &deployables.Report{
+		Status: "complete", Definitions: []deployables.Definition{definition},
+		BuildContexts: []deployables.BuildContext{{SourcePath: "Makefile", Context: "services/api", Dockerfile: "services/api/Dockerfile",
+			ContextEvidence: deployables.Evidence{Field: "context", Value: "services/api", Line: 7, Basis: "makefile-docker-build"},
+			FileEvidence:    deployables.Evidence{Field: "-f", Value: "services/api/Dockerfile", Line: 7, Basis: "makefile-docker-build"}}},
+	}
+	addDeployables(&doc, report)
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile"}, "dockerfile:container_build:api").ID
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeBuilds && edge.From == dockerID && edge.To == component.ID {
+			return
+		}
+	}
+	t.Fatal("root-relative Docker -f path did not link the selected build context component")
+}
+
 func TestTerraformLiteralLocalModuleSourcesLinkModuleDeployables(t *testing.T) {
 	root := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "infra", Path: "infra/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "module", Value: "child", Line: 1, Basis: "terraform-literal-block"}}, References: []deployables.Reference{{Kind: "module_source", Value: "../modules/network", Qualification: "local", Evidence: deployables.Evidence{Field: "source", Value: "../modules/network", Line: 2, Basis: "terraform-module-source"}}}}
 	child := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "network", Path: "modules/network/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "resource", Value: "aws_vpc.main", Line: 1, Basis: "terraform-literal-block"}}}
