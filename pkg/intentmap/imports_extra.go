@@ -675,7 +675,13 @@ func parseJSImportsBounded(name string, content []byte) ([]Observation, bool) {
 
 func parseJSImportsTokens(name string, toks []sourceToken, allowCommonJS bool) []Observation {
 	out := []Observation{}
-	jsxText := jsJSXTextMask(toks)
+	jsxText := make([]bool, len(toks))
+	// JSX is not valid in .ts files. A token sequence such as `<number>1`
+	// is a TypeScript angle-bracket assertion, and an unmatched-tag heuristic
+	// must not hide later imports in that file.
+	if !strings.EqualFold(path.Ext(name), ".ts") {
+		jsxText = jsJSXTextMask(toks)
+	}
 	// A truncated token stream cannot rule out a later binding that shadows require.
 	shadowed := !allowCommonJS || jsRequireShadowed(toks)
 	for i := 0; i < len(toks); i++ {

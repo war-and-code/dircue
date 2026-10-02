@@ -1031,6 +1031,22 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	if len(validAfterSelfClose) == 0 || validAfterSelfClose[0].Name != "datastore:postgresql" {
 		t.Fatalf("valid import after self-closing JSX was masked: %+v", validAfterSelfClose)
 	}
+	validAfterRegexTemplate := parseJSImports("src/view.jsx", []byte("const copy = `${ /`/.test(value) ? '' : '' }`;\nimport pg from 'pg';"))
+	if len(validAfterRegexTemplate) == 0 || validAfterRegexTemplate[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a regex-containing template was masked: %+v", validAfterRegexTemplate)
+	}
+	validAfterTypeAssertion := parseJSImports("src/assertion.ts", []byte("const value = <number>1;\nimport pg from 'pg';"))
+	if len(validAfterTypeAssertion) != 1 || validAfterTypeAssertion[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a TypeScript angle-bracket assertion was masked: %+v", validAfterTypeAssertion)
+	}
+	importsAfterTypeEquals := parseJSImports("src/types.ts", []byte("import type Pg = require(\"pg\")\nimport redis from 'redis'"))
+	qualifiers := map[string]string{}
+	for _, observation := range importsAfterTypeEquals {
+		qualifiers[observation.Name] = observation.Properties["import_qualifier"]
+	}
+	if qualifiers["datastore:postgresql"] != "type_only" || qualifiers["cache:redis"] != "" {
+		t.Fatalf("semicolonless import-equals swallowed or upgraded a following import: %+v", importsAfterTypeEquals)
+	}
 }
 
 func TestLexerMasksNestedAndUnterminatedLiteralRegions(t *testing.T) {

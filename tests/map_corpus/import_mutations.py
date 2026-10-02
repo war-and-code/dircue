@@ -35,8 +35,16 @@ MUTATIONS = [
     {
         "name": "JSX text mask disabled",
         "file": "pkg/intentmap/imports_extra.go",
-        "old": "jsxText := jsJSXTextMask(toks)",
-        "new": "jsxText := make([]bool, len(toks))",
+        "old": "if !strings.EqualFold(path.Ext(name), \".ts\") {",
+        "new": "if false {",
+        "package": "./pkg/intentmap",
+        "test": "TestJSImportParserIgnoresTemplateAndJSXText",
+    },
+    {
+        "name": "TypeScript angle assertions treated as JSX",
+        "file": "pkg/intentmap/imports_extra.go",
+        "old": "if !strings.EqualFold(path.Ext(name), \".ts\") {",
+        "new": "if true {",
         "package": "./pkg/intentmap",
         "test": "TestJSImportParserIgnoresTemplateAndJSXText",
     },
