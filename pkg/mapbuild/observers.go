@@ -28,6 +28,9 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 // Docker build stage. Zigbuild targets additionally need an exact declared
 // default-run interface on one unique Cargo component.
 func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document, intents ...*intentmap.Report) (string, []mapdoc.Evidence, bool) {
+	if def.DockerContextUnknown || def.Path != "" && path.Dir(def.Path) != "." {
+		return "", nil, false
+	}
 	type copiedCrate struct {
 		root     string
 		line     int

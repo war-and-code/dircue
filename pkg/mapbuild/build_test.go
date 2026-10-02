@@ -234,6 +234,19 @@ func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T)
 		t.Fatal("copying a different crate subtree was treated as copying the selected bin crate")
 	}
 	base.References[0].Value = "crates"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); !ok {
+		t.Fatal("root Dockerfile with known context did not retain the Cargo component link")
+	}
+	base.Path = "services/api/Dockerfile"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("nested Dockerfile was treated as building the repository-root crates tree")
+	}
+	base.Path = "Dockerfile"
+	base.DockerContextUnknown = true
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("unknown Docker context was treated as the repository-root crates tree")
+	}
+	base.DockerContextUnknown = false
 	base.DockerPathWrites[0].Value = "RUN pseudocargo zigbuild --bin ruff"
 	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok || dockerHasCargoZigbuild(base) {
 		t.Fatal("pseudocargo command was accepted as a literal Cargo zigbuild")
