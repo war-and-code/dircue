@@ -202,6 +202,9 @@ func TestCronJobFacetsAreTypedBoundedAndUnresolvedWhenUnsafe(t *testing.T) {
 			if err != nil || !recognized || len(defs) != 1 {
 				t.Fatalf("parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
 			}
+			if defs[0].Coverage != "qualified" {
+				t.Fatalf("a static CronJob declaration must remain qualified: %+v", defs[0])
+			}
 			got := map[string]Reference{}
 			for _, ref := range defs[0].References {
 				got[ref.Kind] = ref

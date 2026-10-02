@@ -41,6 +41,13 @@ Paths are clean, root-relative paths. Node and edge IDs are deterministic hash-b
 
 Capability import evidence is a bounded source syntax signal. The scanner recognizes Go and Python imports, Java/Kotlin `import` lines, C# `using` and VB `Imports` directives, and TypeScript/JavaScript ES imports and conservative CommonJS `require` calls. The bounded lexical scanners mask comments and treat strings as opaque, accepting string tokens only in import position; they recognize only catalogued package namespaces; unsupported or malformed syntax is omitted. CommonJS evidence requires a top-level, unshadowed `require` call. The lexical observers retain at most 16,384 tokens per file; reaching that limit adds `import_token_limit_reached` to coverage. Truncated JavaScript keeps recognized ES-import evidence but omits CommonJS inference because a later shadowing declaration may be outside the inspected prefix. Import evidence does not prove that the imported code executes. Maven dependencies explicitly carrying `<scope>test</scope>` are excluded from declared capability evidence in the map; `provided` remains eligible because the runtime may supply it. This Maven scope handling is private to the map and does not alter project or declaration reports. Imports under conventional test paths are retained and marked with capability properties `test_path_evidence=true` and, when all contributing import paths appear test-only, `test_only_evidence=true`. Those values reflect path naming conventions, not verified test execution. `test_only_evidence` is emitted only when the intent observer reports no omissions and every retained capability observation is a test-path import; it is omitted when a manifest, config, mixed, or incomplete-scan observation also supports the capability. TypeScript `import type` evidence is marked `type_only_import_evidence`; it does not assert a runtime dependency. Mixed test and non-test source imports retain both `test_path_evidence` and `non_test_path_evidence`.
 
+JavaScript and TypeScript import matching uses case-sensitive, canonical npm
+package roots. Import evidence retains that root in `import`, with
+`import_representation=package_root`; the source span identifies the declaration.
+Subpaths do not change the package match. A source specifier such as `PG` or
+`redis@version` is not treated as the manifest dependency `pg` or `redis`.
+Manifest dependency matching and source import matching have different syntax.
+
 The following `properties` keys carry stable meanings. A missing key means the observation did not establish that value; consumers should preserve unknown keys for future producers.
 
 | Kind | Common properties |
