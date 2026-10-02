@@ -42,7 +42,9 @@ When stdout is closed by a downstream reader (`dircue --json . | head`), dircue 
 
 ## Additive changes and `schema_version`
 
-New optional modules and commands can be added without changing existing invocations. New fields, warning codes, or enum values still require a review of producer schemas and saved-report readers: a strict existing reader may reject them. Report versioning and consumer guidance must describe that impact. A newer binary reads the report versions it documents; an older binary is not promised to accept reports emitted by a newer version.
+New optional modules and commands can be added without changing existing invocations. In 1.1, the map adds `references_artifact` to the edge enum while retaining `schema_version: "1.0.0"`: this is an additive observation under the policy above, with existing edge meanings unchanged. An older strict schema or saved-report reader may reject a 1.1 map containing that edge. Use the current bundled schema and a reader that preserves unknown values; dircue 1.1 reads existing 1.0 maps. This does not promise forward readability by old binaries.
+
+New fields, warning codes, or enum values still require a review of producer schemas and saved-report readers: a strict existing reader may reject them. Report versioning and consumer guidance must describe that impact. A newer binary reads the report versions it documents; an older binary is not promised to accept reports emitted by a newer version.
 
 Removing a field, tightening an enum, or narrowing accepted input requires a major bump and is not planned within 1.x. When the design requires such a change, we would ship it in a 2.0 with a migration note.
 

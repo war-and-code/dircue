@@ -4,7 +4,7 @@ These results compare an actual published 1.0.1 executable with a source-built c
 
 ## Timing scope
 
-The [primary receipt](results/macos-arm64.json.gz) records five interleaved AB/BA pairs after warming both executables. `/usr/bin/time -l` supplied peak RSS; the parent measured wall time. Every measured language/format invocation matched the release's stdout, stderr and exit status exactly. Map output is intentionally different because the candidate adds observations. Both Ruff maps retained the same skipped-symlink warning.
+The [primary receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-macos-arm64.json.gz) records five interleaved AB/BA pairs after warming both executables. `/usr/bin/time -l` supplied peak RSS; the parent measured wall time. Every measured language/format invocation matched the release's stdout, stderr and exit status exactly. Map output is intentionally different because the candidate adds observations. Both Ruff maps retained the same skipped-symlink warning.
 
 | Workload | Released median | Candidate median | Released / candidate median peak RSS |
 | --- | --- | --- | --- |
@@ -14,7 +14,7 @@ The [primary receipt](results/macos-arm64.json.gz) records five interleaved AB/B
 | Spring Petclinic map | 88.25 ms | 92.49 ms | 43.24 / 42.64 MiB |
 | Ruff map | 2.824 s | 2.849 s | 72.19 / 71.28 MiB |
 
-The small language timings warranted more samples. The [extended receipt](results/extended-macos-arm64.json.gz) contains 30 Java and 15 .NET pairs. Candidate-minus-release paired medians were +0.33 ms and +0.89 ms, respectively; means were +0.12 ms and -0.29 ms. The candidate was slower in 16/30 Java pairs and 8/15 .NET pairs. The distributions overlap widely. These observations do not establish a consistent language-path regression, nor do they prove exact performance equivalence. The map medians also do not support claiming a speedup; added analysis can cost time or memory.
+The small language timings warranted more samples. The [extended receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-extended-macos-arm64.json.gz) contains 30 Java and 15 .NET pairs. Candidate-minus-release paired medians were +0.33 ms and +0.89 ms, respectively; means were +0.12 ms and -0.29 ms. The candidate was slower in 16/30 Java pairs and 8/15 .NET pairs. The distributions overlap widely. These observations do not establish a consistent language-path regression, nor do they prove exact performance equivalence. The map medians also do not support claiming a speedup; added analysis can cost time or memory.
 
 Both binaries used Go 1.26.6, CGO disabled and trimpath. The published executable is symbol-reduced; the candidate retains debug information. Exact published linker strip flags cannot be recovered from embedded metadata, so binary-size and resource differences cannot be attributed solely to source changes.
 
@@ -37,7 +37,7 @@ Historical measurements are release assets, listed with sizes and SHA-256 hashes
 
 ## Map regression oracle
 
-The [candidate score](results/golden-candidate.json.gz) uses the unchanged seven-repository labels and scorer. The [published-1.0.1 score](results/golden-released-v101.json.gz) matches the reference [source-build score](results/golden-v101-sourcebuild.json.gz), which used commit `510575cb7878fbb5184444d8efd976ee37a8c0b3`, whose change after 1.0.1 was documentation only. The final candidate resolves three relationship misses, one false relationship and one interface miss:
+The [candidate score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-candidate.json.gz) uses the unchanged seven-repository labels and scorer. The [published-1.0.1 score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-released-v101.json.gz) matches the reference [source-build score](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-original-golden-v101-sourcebuild.json.gz), which used commit `510575cb7878fbb5184444d8efd976ee37a8c0b3`, whose change after 1.0.1 was documentation only. The final candidate resolves three relationship misses, one false relationship and one interface miss:
 
 | Class | Reference TP / FP / FN | Candidate TP / FP / FN |
 | --- | --- | --- |

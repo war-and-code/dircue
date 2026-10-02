@@ -21,8 +21,8 @@
     },
     "status": {
       "type": "string",
-      "enum": ["changed", "unchanged", "indeterminate"],
-      "description": "Whether material changes were found between base and head. Indeterminate means at least one removal cannot be confirmed because head coverage is incomplete."
+      "enum": ["changed", "unchanged", "indeterminate", "incomparable"],
+      "description": "Whether material changes were found between base and head. Indeterminate means at least one removal cannot be confirmed because head coverage is incomplete. Incomparable is a reserved value retained for schema compatibility; the current comparer rejects unsupported input versions instead of emitting it."
     },
     "source_binding": {
       "type": "string",
