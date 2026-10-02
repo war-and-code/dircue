@@ -27,6 +27,20 @@ Before creating a release tag, finalize the version entry in `CHANGELOG.md` (rem
 
 The release notes are copied into the draft GitHub Release as written.
 
+Compare the candidate with the most recent published executable using
+[`tests/compatibility_next/minor.py`](tests/compatibility_next/README.md#comparing-later-minor-releases).
+Verify the downloaded archive and pin the executable hash and reported release
+version. Include the pinned structural worker when native parsing is supported
+on the test host. Retain the receipt, candidate build command and source commit.
+Investigate any stdout, stderr or exit-code difference rather than normalizing
+it away. List intended interface changes in `CHANGELOG.md`.
+
+The inherited CLI matrix is one gate. Also run the current semantic, schema and
+map-corpus checks, and smoke-test the packaged wheel with the release tooling.
+Measure representative workloads against the published binary before claiming
+performance improvements; report added analysis costs and memory tradeoffs.
+Local checks on one host do not replace the full cross-platform CI checks.
+
 ## How to cut a release
 
 ### Step 1: Tag the commit
