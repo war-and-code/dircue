@@ -524,6 +524,9 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 		for _, r := range p.References {
 			addLegacyReference(d, r)
 		}
+		for _, iface := range p.Interfaces {
+			AddInterface(d, Interface{Kind: iface.Kind, Name: iface.Name, Target: iface.Target, State: iface.State, Evidence: iface.Evidence, Condition: iface.Condition, StartLine: iface.Line, EndLine: iface.Line})
+		}
 	}
 	for _, r := range legacy.Requirements {
 		addLegacyRequirement(d, r)

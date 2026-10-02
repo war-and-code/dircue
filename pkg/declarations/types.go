@@ -24,6 +24,8 @@ type Interface struct {
 	State     string `json:"state"`
 	Evidence  string `json:"evidence"`
 	Condition string `json:"condition,omitempty"`
+	StartLine int    `json:"start_line,omitempty"`
+	EndLine   int    `json:"end_line,omitempty"`
 }
 
 type Project struct {

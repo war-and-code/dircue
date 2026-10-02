@@ -23,6 +23,18 @@ type Reference struct {
 	Condition    string `json:"condition,omitempty"`
 }
 
+// Interface is a bounded, source-declared launch or service interface. It is
+// populated only for project forms whose declaration has a stable meaning.
+type Interface struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Target    string `json:"target,omitempty"`
+	State     string `json:"state"`
+	Evidence  string `json:"evidence"`
+	Condition string `json:"condition,omitempty"`
+	Line      int    `json:"line,omitempty"`
+}
+
 type Project struct {
 	ConfigurationCandidates []string      `json:"configuration_candidates"`
 	ID                      string        `json:"id"`
@@ -31,6 +43,7 @@ type Project struct {
 	Evidence                []string      `json:"evidence"`
 	Requirements            []Requirement `json:"requirements"`
 	References              []Reference   `json:"references"`
+	Interfaces              []Interface   `json:"-"`
 	Files                   int64         `json:"files"`
 	Bytes                   int64         `json:"bytes"`
 }

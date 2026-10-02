@@ -61,6 +61,50 @@ func TestObserveStaticDeclarationKindsAndQualifications(t *testing.T) {
 	}
 }
 
+func TestLaunchFacetsWithholdDockerArgumentsAndRetainCronSchedule(t *testing.T) {
+	docker := "FROM python:3.12\nENTRYPOINT [\"python3\", \"-m\", \"http.server\", \"--password\", \"DO_NOT_DISCLOSE\"]\nCMD [\"custom-launcher\", \"DO_NOT_DISCLOSE\"]\n"
+	kube := "# schedule: fake comment value\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: nightly\nspec:\n  schedule: \"0 3 * * *\"\n"
+	files := []Candidate{}
+	for name, body := range map[string]string{"Dockerfile": docker, "cron.yaml": kube} {
+		name, body := name, body
+		files = append(files, Candidate{Path: name, Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(body), int64(len(body)), nil }})
+	}
+	report, err := Observe(context.Background(), files, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawPython, sawWithheld, sawCustomWithheld, sawCron bool
+	for _, def := range report.Definitions {
+		for _, ref := range def.References {
+			switch ref.Kind {
+			case "docker_entrypoint":
+				sawPython = ref.Value == "python3 -m http.server" && ref.Qualification == "declared"
+			case "docker_entrypoint_arguments":
+				sawWithheld = ref.Qualification == "withheld_arguments" && ref.Value == ""
+			case "docker_cmd":
+				sawCustomWithheld = ref.Value == "" && ref.Qualification == "withheld_arguments"
+			case "cron_schedule":
+				sawCron = ref.Value == "0 3 * * *" && ref.Qualification == "declared" && ref.Evidence.Line > 0
+			}
+		}
+	}
+	if !sawPython || !sawWithheld || !sawCustomWithheld || !sawCron {
+		t.Fatalf("launch facets absent: python=%t withheld=%t custom=%t cron=%t defs=%+v", sawPython, sawWithheld, sawCustomWithheld, sawCron, report.Definitions)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "DO_NOT_DISCLOSE") || strings.Contains(string(encoded), "--password") || strings.Contains(string(encoded), "custom-launcher") {
+		t.Fatalf("Docker argv leaked into report: %s", encoded)
+	}
+
+	templated, recognized, err := parseYAML("cron.yaml", []byte("apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: dynamic}\nspec:\n  schedule: '{{ .Values.schedule }}'\n"))
+	if err != nil || !recognized || len(templated) != 1 || len(templated[0].References) != 1 || templated[0].References[0].Qualification != "unresolved" || templated[0].References[0].Value != "{{ .Values.schedule }}" {
+		t.Fatalf("templated schedule: defs=%+v recognized=%t err=%v", templated, recognized, err)
+	}
+}
+
 func TestMisleadingFilenamesDoNotCreateClaims(t *testing.T) {
 	for _, tc := range []struct{ name, body string }{{"Dockerfile", "this is documentation"}, {"deployment.yaml", "kind: of misleading prose"}, {".github/workflows/ci.yml", "name: merely a name"}, {"main.tf", "# resource \"fake\" \"fake\" {}"}} {
 		r, err := Observe(context.Background(), []Candidate{{Path: tc.name, Size: int64(len(tc.body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(tc.body), int64(len(tc.body)), nil }}}, Options{})

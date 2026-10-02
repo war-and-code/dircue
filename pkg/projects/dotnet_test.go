@@ -50,6 +50,28 @@ func TestDotnetProjectDeclarations(t *testing.T) {
 	}
 }
 
+func TestDotnetDeclaredApplicationOutputPreservesConditionsAndExpressions(t *testing.T) {
+	doc := ParseDotnet("src/App/App.csproj", []byte(`<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'"><OutputType>WinExe</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>$(ChosenOutputType)</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>Library</OutputType></PropertyGroup>
+  <ItemGroup><OutputType>Exe</OutputType></ItemGroup>
+</Project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("projects: %+v", doc)
+	}
+	got := doc.Projects[0].Interfaces
+	if len(got) != 2 {
+		t.Fatalf("interfaces: %+v", got)
+	}
+	if got[0].Kind != "dotnet-application" || got[0].Name != "App" || got[0].Target != "WinExe" || got[0].State != "conditional" || got[0].Condition == "" || got[0].Line != 2 {
+		t.Fatalf("conditional application output: %+v", got[0])
+	}
+	if got[1].Target != "$(ChosenOutputType)" || got[1].State != "unresolved" || got[1].Line != 3 {
+		t.Fatalf("unresolved application output: %+v", got[1])
+	}
+}
+
 func TestDotnetSharedConfiguration(t *testing.T) {
 	doc := ParseDotnet("Directory.Build.props", []byte(`<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><TargetFrameworkVersion>v4.8</TargetFrameworkVersion><LangVersion>$(ChosenVersion)</LangVersion></PropertyGroup><ImportGroup Condition="'$(OS)' == 'Windows_NT'"><Import Project="build/windows.props"/></ImportGroup></Project>`))
 	if len(doc.Projects) != 0 || len(doc.Requirements) != 2 || len(doc.References) != 1 {

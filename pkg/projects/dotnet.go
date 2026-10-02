@@ -79,6 +79,7 @@ func (b *dotnetBudget) condition(parent, current string) string {
 type dotnetNode struct {
 	name     string
 	attrs    map[string]string
+	line     int
 	text     strings.Builder
 	children []*dotnetNode
 }
@@ -128,6 +129,7 @@ func ParseDotnet(name string, content []byte) Document {
 	}
 	var reqs []Requirement
 	var refs []Reference
+	var interfaces []Interface
 	budget := dotnetBudget{remaining: dotnetMaxExpandedBytes}
 	addReq := func(kind, value, condition string) {
 		value = strings.TrimSpace(value)
@@ -178,6 +180,20 @@ func ParseDotnet(name string, content []byte) Document {
 					break
 				}
 				addReq("target-framework", v, condition)
+			}
+		case "OutputType":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
+			// Exe and WinExe are explicit application outputs. Preserve MSBuild
+			// expressions as unresolved launch declarations; they may evaluate to
+			// either an application or a library in a later build context.
+			if value == "Exe" || value == "WinExe" || dotnetDynamic(value) {
+				appName := strings.TrimSuffix(path.Base(name), path.Ext(name))
+				if appName == "" {
+					appName = "application"
+				}
+				interfaces = append(interfaces, Interface{Kind: "dotnet-application", Name: appName, Target: value, State: dotnetState(value, condition), Evidence: name, Condition: condition, Line: n.line})
 			}
 		case "TargetFrameworkVersion":
 			if parent != "PropertyGroup" && parent != "Project" {
@@ -321,7 +337,7 @@ func ParseDotnet(name string, content []byte) Document {
 		if ext == ".slnx" {
 			kind = "solution"
 		}
-		doc.Projects = []Project{{ID: name, Root: path.Dir(name), Kind: kind, Evidence: []string{name}, Requirements: reqs, References: refs}}
+		doc.Projects = []Project{{ID: name, Root: path.Dir(name), Kind: kind, Evidence: []string{name}, Requirements: reqs, References: refs, Interfaces: interfaces}}
 	} else {
 		doc.Requirements = reqs
 		doc.References = refs
@@ -336,7 +352,7 @@ func dotnetSemanticName(parent, name string) string {
 	var supported []string
 	switch parent {
 	case "PropertyGroup":
-		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers"}
+		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers", "OutputType"}
 	case "ItemGroup":
 		supported = []string{"ProjectReference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
 	default:
@@ -380,6 +396,13 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 				return nil, fmt.Errorf("XML exceeds declaration parser depth or element limits")
 			}
 			n := &dotnetNode{name: t.Name.Local, attrs: make(map[string]string)}
+			// InputOffset points just beyond the start tag. Locate its opening
+			// delimiter so multiline XML attributes still point at the tag line.
+			if offset := int(decoder.InputOffset()); offset <= len(decoded) {
+				if start := bytes.LastIndex(decoded[:offset], []byte("<")); start >= 0 {
+					n.line = bytes.Count(decoded[:start], []byte("\n")) + 1
+				}
+			}
 			for _, a := range t.Attr {
 				if _, exists := n.attrs[a.Name.Local]; exists {
 					return nil, fmt.Errorf("XML has duplicate attribute names")

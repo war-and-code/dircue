@@ -1,15 +1,111 @@
 package mapbuild
 
 import (
+	"context"
 	"strings"
 	"testing"
 
+	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/discovery"
 	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 	"github.com/war-and-code/dircue/pkg/profile"
 )
+
+func TestDeclaredPythonScriptsRemainDistinctEvidenceBackedMapInterfaces(t *testing.T) {
+	doc := declarations.Parse("pyproject.toml", []byte(`[project]
+name = "weather"
+[project.scripts]
+weather = "weather.cli:main"
+[project.gui-scripts]
+weather-gui = "weather.ui:launch"
+`))
+	if doc == nil || len(doc.Project.Interfaces) != 2 {
+		t.Fatalf("Python interfaces: %+v", doc)
+	}
+	detector := intentmap.New(intentmap.Options{})
+	detector.AddDeclarations([]declarations.Project{*doc.Project})
+	report, err := detector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapDoc := mapdoc.New()
+	addIntent(&mapDoc, report)
+	kinds := map[string]string{}
+	for _, n := range mapDoc.Nodes {
+		if n.Kind == mapdoc.NodeInterface {
+			kinds[n.Properties["interface_kind"]] = n.Properties["target"]
+		}
+	}
+	if kinds["python-console-script"] != "weather.cli:main" || kinds["python-gui-script"] != "weather.ui:launch" || len(kinds) != 2 {
+		t.Fatalf("Python entrypoint interfaces: %+v", kinds)
+	}
+}
+
+func TestDotnetLaunchInterfacePreservesConditionalAndUnresolvedOutputTypes(t *testing.T) {
+	parsed := declarations.Parse("src/App/App.csproj", []byte(`<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'"><OutputType>WinExe</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>$(ChosenOutputType)</OutputType></PropertyGroup>
+</Project>`))
+	detector := intentmap.New(intentmap.Options{})
+	detector.AddDeclarations([]declarations.Project{*parsed.Project})
+	report, err := detector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := mapdoc.New()
+	addIntent(&doc, report)
+	seen := map[string]mapdoc.Node{}
+	for _, n := range doc.Nodes {
+		if n.Properties["interface_kind"] == "dotnet-application" {
+			seen[n.Properties["target"]] = n
+		}
+	}
+	if len(seen) != 2 {
+		t.Fatalf("launch interfaces: %+v", seen)
+	}
+	conditional := seen["WinExe"]
+	if conditional.Name != "App" || conditional.Properties["condition"] == "" || conditional.Evidence[0].Span == nil || conditional.Evidence[0].Span.StartLine != 2 || conditional.Coverage.Status != mapdoc.CoveragePartial {
+		t.Fatalf("conditional output type: %+v", conditional)
+	}
+	unresolved := seen["$(ChosenOutputType)"]
+	if unresolved.Properties["state"] != "unresolved" || unresolved.Evidence[0].Span == nil || unresolved.Evidence[0].Span.StartLine != 3 {
+		t.Fatalf("unresolved output type: %+v", unresolved)
+	}
+}
+
+func TestDeployableLaunchFacetsRetainSafeValuesAndEvidence(t *testing.T) {
+	doc := mapdoc.New()
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Value: "python:3", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{
+			{Kind: "docker_entrypoint", Value: "python3 -m http.server", Qualification: "declared", Evidence: deployables.Evidence{Field: "ENTRYPOINT", Line: 2, Basis: "dockerfile-instruction"}},
+			{Kind: "docker_entrypoint_arguments", Qualification: "withheld_arguments", Evidence: deployables.Evidence{Field: "ENTRYPOINT arguments withheld", Line: 2, Basis: "dockerfile-instruction"}},
+		}},
+		{Provider: "kubernetes", Kind: "workload", Name: "nightly", Path: "cron.yaml", K8sKind: "CronJob", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "CronJob", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "cron_schedule", Value: "0 3 * * *", Qualification: "declared", Evidence: deployables.Evidence{Field: "schedule", Value: "0 3 * * *", Line: 6, Basis: "kubernetes-cronjob-field"}}}},
+	}})
+	found := map[string]mapdoc.Fact{}
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, fact := range n.Facts {
+			found[n.Name+":"+fact.Name] = fact
+		}
+	}
+	entrypoint := found["api:docker_entrypoint"]
+	withheld := found["api:docker_entrypoint_arguments"]
+	cron := found["nightly:cron_schedule"]
+	if entrypoint.Value != "python3 -m http.server" || entrypoint.Evidence[0].Span == nil || entrypoint.Evidence[0].Span.StartLine != 2 {
+		t.Fatalf("Docker launch facet: %+v", entrypoint)
+	}
+	if withheld.State != "withheld_arguments" || withheld.Evidence[0].Span == nil {
+		t.Fatalf("Docker args withholding evidence: %+v", withheld)
+	}
+	if cron.Value != "0 3 * * *" || cron.Evidence[0].Span == nil || cron.Evidence[0].Span.StartLine != 6 {
+		t.Fatalf("CronJob schedule facet: %+v", cron)
+	}
+}
 
 func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
 	n := fileNode("opaque.lib", "binary", "static_library", "extension", 20)

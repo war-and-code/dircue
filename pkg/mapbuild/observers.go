@@ -1311,11 +1311,19 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		}
 		kind := mapdoc.NodeInterface
 		key := string(o.Kind) + ":" + o.Path + ":" + o.Name + ":" + o.ProjectID
+		discriminator := string(o.Kind) + ":" + o.Name + ":" + o.ProjectID
+		// A .NET project can declare different OutputType values under different
+		// MSBuild conditions. Keep each bounded variant separately addressable
+		// so neither its condition nor an unresolved expression is discarded.
+		if o.Properties["interface_kind"] == "dotnet-application" {
+			key += ":" + o.Properties["target"] + ":" + o.Properties["condition"]
+			discriminator += ":" + o.Properties["target"] + ":" + o.Properties["condition"]
+		}
 		if seen[key] {
 			continue
 		}
 		seen[key] = true
-		n := mapdoc.NewNode(kind, []string{o.Path}, string(o.Kind)+":"+o.Name+":"+o.ProjectID)
+		n := mapdoc.NewNode(kind, []string{o.Path}, discriminator)
 		n.Name = o.Name
 		n.Properties = map[string]string{"observation_kind": string(o.Kind), "state": o.State, "basis": o.Basis}
 		if role := mapPathRole(o.Path); role != "" {
@@ -1333,7 +1341,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			n.Properties[k] = v
 		}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
-		if o.State == "partial" || o.State == "unresolved" {
+		if o.State == "partial" || o.State == "unresolved" || (o.State == "conditional" && o.Properties["interface_kind"] == "dotnet-application") {
 			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"observation_" + o.State}}
 		}
 		n.Evidence = []mapdoc.Evidence{intentEvidence(o)}

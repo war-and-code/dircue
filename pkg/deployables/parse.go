@@ -2,6 +2,7 @@ package deployables
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -125,6 +126,26 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
 			}
+		} else if strings.HasPrefix(strings.ToUpper(trimmedLine), "ENTRYPOINT ") || strings.HasPrefix(strings.ToUpper(trimmedLine), "CMD ") {
+			// Record the declared launch facet and its source location, but never
+			// copy argv into the map: literal arguments can contain credentials,
+			// tokens, or private paths. Consumers can inspect the selected source
+			// under their own data-handling policy if the command itself is needed.
+			field := strings.ToUpper(strings.Fields(trimmedLine)[0])
+			kind := "docker_" + strings.ToLower(field)
+			qual := "declared"
+			if dynamic(trimmedLine) {
+				qual = "unresolved"
+				d.Coverage = "qualified"
+			}
+			value := dockerLaunchAllowlistedValue(trimmedLine)
+			if value == "" && qual == "declared" {
+				qual = "withheld_arguments"
+			}
+			d.References = append(d.References,
+				Reference{Kind: kind, Value: value, Qualification: qual, Evidence: Evidence{Field: field, Line: i + 1, Basis: "dockerfile-instruction"}},
+				Reference{Kind: kind + "_arguments", Qualification: "withheld_arguments", Evidence: Evidence{Field: field + " arguments withheld", Line: i + 1, Basis: "dockerfile-instruction"}},
+			)
 		} else if m := dockerArg.FindStringSubmatch(line); m != nil {
 			// Expand at declaration so chained defaults (B=$A) resolve.
 			vars[m[1]] = expandDockerVars(dockerUnquote(strings.TrimSpace(m[2])), vars)
@@ -274,6 +295,43 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 		return nil, false, nil
 	}
 	return []Definition{d}, true, nil
+}
+
+// dockerLaunchAllowlistedValue exposes only a tiny fixed vocabulary of common
+// launch executables and Python modules. Arbitrary executable paths, module
+// names, and all arguments stay out of the portable map because they can
+// contain credentials or private deployment details.
+func dockerLaunchAllowlistedValue(instruction string) string {
+	fields := strings.Fields(instruction)
+	if len(fields) < 2 {
+		return ""
+	}
+	rest := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(instruction), fields[0]))
+	var argv []string
+	if strings.HasPrefix(rest, "[") {
+		if json.Unmarshal([]byte(rest), &argv) != nil {
+			return ""
+		}
+	} else {
+		argv = strings.Fields(rest)
+	}
+	if len(argv) == 0 {
+		return ""
+	}
+	base := strings.ToLower(path.Base(strings.Trim(argv[0], "\"'")))
+	allowed := map[string]bool{"python": true, "python3": true, "node": true, "java": true, "dotnet": true, "nginx": true, "httpd": true, "apache2": true, "gunicorn": true, "uvicorn": true, "flask": true}
+	if !allowed[base] {
+		return ""
+	}
+	value := base
+	if len(argv) >= 3 && argv[1] == "-m" {
+		module := strings.ToLower(argv[2])
+		allowedModules := map[string]bool{"http.server": true, "uvicorn": true, "gunicorn": true}
+		if allowedModules[module] {
+			value += " -m " + module
+		}
+	}
+	return value
 }
 
 // parseTerraform returns ONE definition per file, representing the Terraform module
@@ -1093,6 +1151,17 @@ func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, p
 			}
 		}
 	}
+	if provider == "kubernetes" && fallback == "CronJob" {
+		if spec, ok := object(doc, "spec"); ok {
+			if schedule, ok := stringValue(spec, "schedule"); ok {
+				qualification := "declared"
+				if dynamic(schedule) {
+					qualification = "unresolved"
+				}
+				d.References = append(d.References, Reference{Kind: "cron_schedule", Value: bounded(schedule), Qualification: qualification, Evidence: Evidence{Field: "schedule", Value: bounded(schedule), Line: yamlFieldLine(content, "schedule"), Basis: "kubernetes-cronjob-field"}})
+			}
+		}
+	}
 	return []Definition{d}, true, nil
 }
 
@@ -1341,6 +1410,25 @@ func lineOf(content []byte, needle string) int {
 	}
 	return 1 + bytes.Count(content[:i], []byte("\n"))
 }
+
+// yamlFieldLine locates a simple block-style YAML key without matching a
+// comment or a key embedded in a longer identifier. YAML parser coordinates
+// are not retained by this bounded reader, so inline/flow-form keys may have
+// no span rather than receive a guessed line.
+func yamlFieldLine(content []byte, field string) int {
+	for i, raw := range bytes.Split(content, []byte("\n")) {
+		line := strings.TrimSpace(string(raw))
+		if strings.HasPrefix(line, "#") || !strings.HasPrefix(line, field) {
+			continue
+		}
+		rest := strings.TrimPrefix(line, field)
+		if strings.HasPrefix(rest, ":") || strings.HasPrefix(rest, " ") {
+			return i + 1
+		}
+	}
+	return 0
+}
+
 func tooDeep(content []byte, maxDepth int) bool {
 	for _, line := range strings.Split(string(content), "\n") {
 		spaces := len(line) - len(strings.TrimLeft(line, " "))
