@@ -84,7 +84,7 @@ func TestLaunchFacetsWithholdDockerArgumentsAndRetainCronSchedule(t *testing.T) 
 			case "docker_cmd":
 				sawCustomWithheld = ref.Value == "" && ref.Qualification == "withheld_arguments"
 			case "cron_schedule":
-				sawCron = ref.Value == "0 3 * * *" && ref.Qualification == "declared" && ref.Evidence.Line > 0
+				sawCron = ref.Value == "0 3 * * *" && ref.Qualification == "declared" && ref.Evidence.Line == 0
 			}
 		}
 	}
@@ -100,8 +100,129 @@ func TestLaunchFacetsWithholdDockerArgumentsAndRetainCronSchedule(t *testing.T) 
 	}
 
 	templated, recognized, err := parseYAML("cron.yaml", []byte("apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: dynamic}\nspec:\n  schedule: '{{ .Values.schedule }}'\n"))
-	if err != nil || !recognized || len(templated) != 1 || len(templated[0].References) != 1 || templated[0].References[0].Qualification != "unresolved" || templated[0].References[0].Value != "{{ .Values.schedule }}" {
+	if err != nil || !recognized || len(templated) != 1 || len(templated[0].References) != 1 || templated[0].References[0].Qualification != "unresolved" || templated[0].References[0].Value != "" {
 		t.Fatalf("templated schedule: defs=%+v recognized=%t err=%v", templated, recognized, err)
+	}
+}
+
+func TestDockerLaunchFormStageAndUnresolvedBoundaries(t *testing.T) {
+	body := `FROM alpine AS build
+ENTRYPOINT ["python3", "-m", "http.server", "--password", "DO_NOT_DISCLOSE"]
+RUN printf ok \\
+CMD ["node", "DO_NOT_DISCLOSE"]
+FROM alpine AS runtime
+CMD ["python3", "-m", "http.server"]
+ENTRYPOINT []
+ENTRYPOINT ["PyThOn", "app"]
+ENTRYPOINT 'python3' app
+CMD [
+  "node",
+  "app"
+]
+`
+	defs, recognized, err := parseDockerfile("Dockerfile", []byte(body))
+	if err != nil || !recognized || len(defs) != 1 {
+		t.Fatalf("Dockerfile parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+	}
+	var buildEntry, runtimeCmd, emptyExec, mixedCase, quotedShell, multilineCmd, runContinuationCmd int
+	for _, ref := range defs[0].References {
+		if ref.Kind == "docker_entrypoint" && ref.Stage == "build" {
+			buildEntry++
+			if ref.Value != "python3 -m http.server" || ref.Qualification != "declared" || ref.Evidence.Basis != "dockerfile-instruction-exec" {
+				t.Errorf("build stage entrypoint: %+v", ref)
+			}
+		}
+		if ref.Kind == "docker_cmd" && ref.Stage == "runtime" && ref.Evidence.Line == 6 {
+			runtimeCmd++
+			if ref.Value != "python3 -m http.server" || ref.Qualification != "declared" || ref.Evidence.Basis != "dockerfile-instruction-exec" {
+				t.Errorf("runtime command: %+v", ref)
+			}
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Qualification == "unresolved" && ref.Value == "" {
+			emptyExec++
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Evidence.Line == 8 && ref.Value == "" && ref.Qualification == "withheld_arguments" {
+			mixedCase++
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Evidence.Line == 9 && ref.Value == "" && ref.Qualification == "withheld_arguments" {
+			quotedShell++
+		}
+		if ref.Kind == "docker_cmd" && ref.Evidence.Line == 10 && ref.Qualification == "unresolved" && ref.Value == "" && ref.Stage == "runtime" {
+			multilineCmd++
+		}
+		if ref.Kind == "docker_cmd" && ref.Evidence.Line == 4 {
+			runContinuationCmd++
+		}
+		if ref.Kind == "docker_cmd" && ref.Value == "node" && ref.Stage == "runtime" {
+			t.Fatalf("launch in continuation promoted: %+v", ref)
+		}
+		if ref.Kind == "docker_cmd" && ref.Value == "node" {
+			t.Fatalf("RUN continuation promoted to a launch instruction: %+v", ref)
+		}
+	}
+	if buildEntry != 1 || runtimeCmd != 1 || emptyExec != 1 || mixedCase != 1 || quotedShell != 1 || multilineCmd != 1 || runContinuationCmd != 0 {
+		t.Fatalf("launch boundaries build=%d runtime=%d empty=%d mixed=%d quoted=%d multiline=%d run-continuation=%d refs=%+v", buildEntry, runtimeCmd, emptyExec, mixedCase, quotedShell, multilineCmd, runContinuationCmd, defs[0].References)
+	}
+	if defs[0].DockerFinalStage != "runtime" {
+		t.Fatalf("final declared stage = %q", defs[0].DockerFinalStage)
+	}
+}
+
+func TestDockerLaunchContinuationCannotCreateStageOrOpcode(t *testing.T) {
+	body := "FROM alpine AS first\nCMD [\\\nFROM alpine AS fake\nENV LEAK=value\n]\nFROM alpine AS last\nCMD [\"node\"]\n"
+	defs, recognized, err := parseDockerfile("Dockerfile", []byte(body))
+	if err != nil || !recognized || len(defs) != 1 {
+		t.Fatalf("Dockerfile parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+	}
+	if defs[0].DockerFinalStage != "last" {
+		t.Fatalf("continuation text changed final stage: %q", defs[0].DockerFinalStage)
+	}
+	for _, ref := range defs[0].References {
+		if ref.Kind == "docker_cmd" && ref.Stage == "fake" {
+			t.Fatalf("continuation text created a stage-scoped launch fact: %+v", ref)
+		}
+	}
+}
+
+func TestCronJobFacetsAreTypedBoundedAndUnresolvedWhenUnsafe(t *testing.T) {
+	for _, tc := range []struct {
+		name, body                          string
+		wantSchedule, wantSuspend, wantZone string
+	}{
+		{"valid", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '*/5 * * * *'\n  suspend: false\n  timeZone: Etc/UTC\n", "declared", "declared", "withheld_value"},
+		{"invalid schedule", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '60 * * * *'\n  suspend: nonsense\n  timeZone: 'user:secret@example'\n", "", "", "withheld_value"},
+		{"missing schedule", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  suspend: true\n", "", "declared", ""},
+		{"dynamic", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '{{ .Values.schedule }}'\n  suspend: '{{ .Values.suspend }}'\n  timeZone: '{{ .Values.zone }}'\n", "unresolved", "unresolved", "unresolved"},
+		{"wrong types", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: [1, 2]\n  suspend: 1\n  timeZone: 7\n", "", "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defs, recognized, err := parseYAML("cron.yaml", []byte(tc.body))
+			if err != nil || !recognized || len(defs) != 1 {
+				t.Fatalf("parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+			}
+			got := map[string]Reference{}
+			for _, ref := range defs[0].References {
+				got[ref.Kind] = ref
+			}
+			for kind, want := range map[string]string{"cron_schedule": tc.wantSchedule, "cron_suspend": tc.wantSuspend, "cron_timezone": tc.wantZone} {
+				ref, ok := got[kind]
+				if want == "" {
+					if ok {
+						t.Errorf("unexpected %s: %+v", kind, ref)
+					}
+					continue
+				}
+				if !ok || ref.Qualification != want {
+					t.Errorf("%s = %+v, want %s", kind, ref, want)
+				}
+				if kind == "cron_timezone" && ref.Value != "" {
+					t.Errorf("timezone value leaked: %+v", ref)
+				}
+				if kind == "cron_schedule" && ref.Evidence.Line != 0 {
+					t.Errorf("unverified source coordinate: %+v", ref)
+				}
+			}
+		})
 	}
 }
 

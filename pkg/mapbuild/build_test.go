@@ -78,9 +78,9 @@ func TestDotnetLaunchInterfacePreservesConditionalAndUnresolvedOutputTypes(t *te
 func TestDeployableLaunchFacetsRetainSafeValuesAndEvidence(t *testing.T) {
 	doc := mapdoc.New()
 	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{
-		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Value: "python:3", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{
-			{Kind: "docker_entrypoint", Value: "python3 -m http.server", Qualification: "declared", Evidence: deployables.Evidence{Field: "ENTRYPOINT", Line: 2, Basis: "dockerfile-instruction"}},
-			{Kind: "docker_entrypoint_arguments", Qualification: "withheld_arguments", Evidence: deployables.Evidence{Field: "ENTRYPOINT arguments withheld", Line: 2, Basis: "dockerfile-instruction"}},
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "runtime", Evidence: []deployables.Evidence{{Field: "FROM", Value: "python:3", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{
+			{Kind: "docker_entrypoint", Value: "python3 -m http.server", Qualification: "declared", Stage: "runtime", Evidence: deployables.Evidence{Field: "ENTRYPOINT", Line: 2, Basis: "dockerfile-instruction-exec"}},
+			{Kind: "docker_entrypoint_arguments", Qualification: "withheld_arguments", Stage: "runtime", Evidence: deployables.Evidence{Field: "ENTRYPOINT arguments withheld", Line: 2, Basis: "dockerfile-instruction-exec"}},
 		}},
 		{Provider: "kubernetes", Kind: "workload", Name: "nightly", Path: "cron.yaml", K8sKind: "CronJob", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "CronJob", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "cron_schedule", Value: "0 3 * * *", Qualification: "declared", Evidence: deployables.Evidence{Field: "schedule", Value: "0 3 * * *", Line: 6, Basis: "kubernetes-cronjob-field"}}}},
 	}})
@@ -96,7 +96,7 @@ func TestDeployableLaunchFacetsRetainSafeValuesAndEvidence(t *testing.T) {
 	entrypoint := found["api:docker_entrypoint"]
 	withheld := found["api:docker_entrypoint_arguments"]
 	cron := found["nightly:cron_schedule"]
-	if entrypoint.Value != "python3 -m http.server" || entrypoint.Evidence[0].Span == nil || entrypoint.Evidence[0].Span.StartLine != 2 {
+	if entrypoint.Value != "python3 -m http.server" || entrypoint.Evidence[0].Span == nil || entrypoint.Evidence[0].Span.StartLine != 2 || entrypoint.Properties["instruction_form"] != "exec" || entrypoint.Properties["stage"] != "runtime" || entrypoint.Properties["stage_is_final"] != "true" {
 		t.Fatalf("Docker launch facet: %+v", entrypoint)
 	}
 	if withheld.State != "withheld_arguments" || withheld.Evidence[0].Span == nil {

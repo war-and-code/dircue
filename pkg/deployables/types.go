@@ -104,6 +104,10 @@ type Definition struct {
 	// DockerPathWrites retains bounded opaque RUN/ADD instructions as private
 	// barriers while mapbuild traces staged artifact paths.
 	DockerPathWrites []Reference `json:"-"`
+	// DockerFinalStage is parser-only stage context. It lets map facts distinguish
+	// a launch instruction's stage without asserting which instruction is
+	// effective after Docker's order and override rules are applied.
+	DockerFinalStage string `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`

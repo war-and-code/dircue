@@ -166,7 +166,15 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		for _, ref := range def.References {
 			factIndex := len(n.Facts)
-			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
+			fact := mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}}
+			if strings.HasPrefix(ref.Kind, "docker_entrypoint") || strings.HasPrefix(ref.Kind, "docker_cmd") {
+				fact.Properties = map[string]string{"arguments": "withheld", "instruction_form": strings.TrimPrefix(ref.Evidence.Basis, "dockerfile-instruction-")}
+				if ref.Stage != "" {
+					fact.Properties["stage"] = ref.Stage
+					fact.Properties["stage_is_final"] = fmt.Sprint(ref.Stage == def.DockerFinalStage)
+				}
+			}
+			n.Facts = append(n.Facts, fact)
 			if ref.Kind == "service_dependency" && ref.Qualification == "local" {
 				composeDeps = append(composeDeps, composeDep{fromID: n.ID, toName: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
 			}

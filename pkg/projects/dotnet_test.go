@@ -72,6 +72,43 @@ func TestDotnetDeclaredApplicationOutputPreservesConditionsAndExpressions(t *tes
 	}
 }
 
+func TestDotnetOutputTypeSpanUsesOpeningLineForMultilineTags(t *testing.T) {
+	doc := ParseDotnet("App.csproj", []byte(`<Project>
+  <PropertyGroup>
+    <OutputType
+      Condition="'$(Configuration)' == 'Release'">
+      Exe
+    </OutputType>
+  </PropertyGroup>
+</Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].Interfaces) != 1 || doc.Projects[0].Interfaces[0].Line != 3 {
+		t.Fatalf("multiline declaration span: %+v", doc.Projects)
+	}
+	encoded, err := json.Marshal(doc.Projects[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "interfaces") {
+		t.Fatalf("launch-only internal field changed legacy project JSON: %s", encoded)
+	}
+}
+
+func BenchmarkParseDotnetLargeManifestLineAccounting(b *testing.B) {
+	var source strings.Builder
+	source.WriteString("<Project>\n")
+	for range 4096 {
+		source.WriteString("<PropertyGroup><OutputType>Library</OutputType></PropertyGroup>\n")
+	}
+	source.WriteString("<PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>\n</Project>")
+	content := []byte(source.String())
+	b.SetBytes(int64(len(content)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		_ = ParseDotnet("App.csproj", content)
+	}
+}
+
 func TestDotnetSharedConfiguration(t *testing.T) {
 	doc := ParseDotnet("Directory.Build.props", []byte(`<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><TargetFrameworkVersion>v4.8</TargetFrameworkVersion><LangVersion>$(ChosenVersion)</LangVersion></PropertyGroup><ImportGroup Condition="'$(OS)' == 'Windows_NT'"><Import Project="build/windows.props"/></ImportGroup></Project>`))
 	if len(doc.Projects) != 0 || len(doc.Requirements) != 2 || len(doc.References) != 1 {

@@ -193,7 +193,10 @@ func ParseDotnet(name string, content []byte) Document {
 				if appName == "" {
 					appName = "application"
 				}
-				interfaces = append(interfaces, Interface{Kind: "dotnet-application", Name: appName, Target: value, State: dotnetState(value, condition), Evidence: name, Condition: condition, Line: n.line})
+				iface := Interface{Kind: "dotnet-application", Name: appName, Target: value, State: dotnetState(value, condition), Evidence: name, Condition: condition, Line: n.line}
+				if budget.observation(len(iface.Kind) + len(iface.Name) + len(iface.Target) + len(iface.Condition) + len(name) + 128) {
+					interfaces = append(interfaces, iface)
+				}
 			}
 		case "TargetFrameworkVersion":
 			if parent != "PropertyGroup" && parent != "Project" {
@@ -381,7 +384,10 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 	var stack []*dotnetNode
 	var root *dotnetNode
 	nodes := 0
+	lineCursor := 0
+	currentLine := 1
 	for {
+		before := int(decoder.InputOffset())
 		token, err := decoder.Token()
 		if err == io.EOF {
 			break
@@ -389,6 +395,14 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Cannot parse XML: %w", err)
 		}
+		after := int(decoder.InputOffset())
+		if before < lineCursor || after < before || after > len(decoded) {
+			return nil, fmt.Errorf("Cannot parse XML: invalid token offsets")
+		}
+		if before > lineCursor {
+			currentLine += bytes.Count(decoded[lineCursor:before], []byte("\n"))
+		}
+		segment := decoded[before:after]
 		switch t := token.(type) {
 		case xml.StartElement:
 			nodes++
@@ -396,12 +410,10 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 				return nil, fmt.Errorf("XML exceeds declaration parser depth or element limits")
 			}
 			n := &dotnetNode{name: t.Name.Local, attrs: make(map[string]string)}
-			// InputOffset points just beyond the start tag. Locate its opening
-			// delimiter so multiline XML attributes still point at the tag line.
-			if offset := int(decoder.InputOffset()); offset <= len(decoded) {
-				if start := bytes.LastIndex(decoded[:offset], []byte("<")); start >= 0 {
-					n.line = bytes.Count(decoded[:start], []byte("\n")) + 1
-				}
+			// Token slices are disjoint, so source line counting remains linear.
+			// A multiline start tag points at its opening delimiter.
+			if start := bytes.IndexByte(segment, '<'); start >= 0 {
+				n.line = currentLine + bytes.Count(segment[:start], []byte("\n"))
 			}
 			for _, a := range t.Attr {
 				if _, exists := n.attrs[a.Name.Local]; exists {
@@ -430,6 +442,8 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 		case xml.Directive:
 			return nil, fmt.Errorf("XML directives are not supported by the declaration parser")
 		}
+		currentLine += bytes.Count(segment, []byte("\n"))
+		lineCursor = after
 	}
 	if len(stack) != 0 {
 		return nil, fmt.Errorf("XML has unclosed elements")
