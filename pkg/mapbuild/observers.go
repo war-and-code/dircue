@@ -28,14 +28,18 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 // Docker build stage. Zigbuild targets additionally need an exact declared
 // default-run interface on one unique Cargo component.
 func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document, intents ...*intentmap.Report) (string, []mapdoc.Evidence, bool) {
-	copyEvidenceByStage := map[string][]mapdoc.Evidence{}
+	type copiedCrate struct {
+		root     string
+		evidence mapdoc.Evidence
+	}
+	copyEvidenceByStage := map[string][]copiedCrate{}
 	for _, ref := range def.References {
 		if ref.Kind != "copy_source" {
 			continue
 		}
 		source := strings.TrimPrefix(path.Clean(ref.Value), "./")
 		if source == "crates" || strings.HasPrefix(source, "crates/") {
-			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], deployableEvidence(def.Path, ref.Evidence))
+			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], copiedCrate{root: source, evidence: deployableEvidence(def.Path, ref.Evidence)})
 		}
 	}
 	for _, ref := range def.DockerPathWrites {
@@ -43,14 +47,18 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 		for _, segment := range strings.Split(command, "&&") {
 			fields := strings.Fields(strings.TrimSpace(segment))
 			if len(fields) >= 2 && fields[0] == "cargo" && (fields[1] == "build" || fields[1] == "zigbuild") {
-				copyEvidence := copyEvidenceByStage[ref.Stage]
-				if len(copyEvidence) == 0 {
+				copiedCrates := copyEvidenceByStage[ref.Stage]
+				if len(copiedCrates) == 0 {
 					continue
+				}
+				copyEvidence := make([]mapdoc.Evidence, 0, len(copiedCrates))
+				for _, copied := range copiedCrates {
+					copyEvidence = append(copyEvidence, copied.evidence)
 				}
 				buildEvidence := deployableEvidence(def.Path, ref.Evidence)
 				if fields[1] == "zigbuild" {
 					binary, valid := literalCargoBin(fields)
-					if !valid {
+					if !valid || cargoTargetOverridden(fields) {
 						continue
 					}
 					matches := []string{}
@@ -61,6 +69,16 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 						}
 						root := n.Properties["root"]
 						if !strings.HasPrefix(root, "crates/") {
+							continue
+						}
+						copied := false
+						for _, source := range copiedCrates {
+							if source.root == "crates" || root == source.root || strings.HasPrefix(root, source.root+"/") {
+								copied = true
+								break
+							}
+						}
+						if !copied {
 							continue
 						}
 						projectPath := ""
@@ -127,6 +145,15 @@ func literalCargoBin(fields []string) (string, bool) {
 		i++
 	}
 	return binary, binary != ""
+}
+
+func cargoTargetOverridden(fields []string) bool {
+	for _, field := range fields {
+		if field == "--manifest-path" || strings.HasPrefix(field, "--manifest-path=") || field == "--package" || strings.HasPrefix(field, "--package=") || field == "-p" || field == "--workspace" || field == "--all" || field == "--all-targets" {
+			return true
+		}
+	}
+	return false
 }
 
 func intentDeclaresCargoBin(reports []*intentmap.Report, manifest, binary string) bool {
@@ -461,7 +488,20 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*inten
 			if len(artifactOwners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, artifactOwners[0], "dockerfile-artifact:"+def.Path, "dockerfile_copy_source_matches_maven_archive", artifactEvidence)
 			} else if owner, evidence, ok := dockerCargoComponent(def, owners, d, intents...); ok {
-				addRelationship(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile-cargo:"+def.Path, "dockerfile_copy_and_build_evidence_matches_cargo_component", evidence...)
+				if len(owners) > 1 {
+					// Preserve the prior co-location edge ID for the same selected
+					// owner while strengthening its evidence and narrowing away the
+					// unrelated co-located owners.
+					e := mapdoc.NewEdge(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile-multi:"+owner)
+					if !seenEdges[e.ID] {
+						seenEdges[e.ID] = true
+						e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"dockerfile_copy_and_build_evidence_matches_cargo_component"}}
+						e.Evidence = evidence
+						d.Edges = append(d.Edges, e)
+					}
+				} else {
+					addRelationship(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile:"+def.Path, "dockerfile_copy_and_build_evidence_matches_cargo_component", evidence...)
+				}
 			} else if dockerHasCargoZigbuild(def) {
 				// An explicit but ambiguous zigbuild target must not fall through to
 				// generic co-location with the repository-root Cargo manifest.

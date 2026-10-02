@@ -151,10 +151,13 @@ func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
 		root := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root")
 		root.Name = "(root)"
 		root.Properties = map[string]string{"root": ".", "ecosystem": "cargo"}
+		python := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "pyproject.toml"}, "python-root")
+		python.Name = "ruff"
+		python.Properties = map[string]string{"root": ".", "ecosystem": "python-uv"}
 		crate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/ruff", "crates/ruff/Cargo.toml"}, "cargo-ruff")
 		crate.Name = "ruff"
 		crate.Properties = map[string]string{"root": "crates/ruff", "ecosystem": "cargo"}
-		doc.Nodes = append(doc.Nodes, root, crate)
+		doc.Nodes = append(doc.Nodes, root, python, crate)
 		if duplicate {
 			other := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/other", "crates/other/Cargo.toml"}, "cargo-ruff-other")
 			other.Name = "ruff"
@@ -186,6 +189,8 @@ func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
 			}
 			addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}}, &intentmap.Report{Observations: observations})
 			dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+			rootID := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root").ID
+			baselineID := mapdoc.NewEdge(mapdoc.EdgeBuilds, dockerID, rootID, "dockerfile-multi:"+rootID).ID
 			for _, edge := range doc.Edges {
 				if edge.Type != mapdoc.EdgeBuilds || edge.From != dockerID {
 					continue
@@ -195,6 +200,9 @@ func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
 				}
 				if edge.Coverage.Status != mapdoc.CoveragePartial {
 					t.Fatalf("static build relationship must remain partial: %+v", edge.Coverage)
+				}
+				if edge.ID != baselineID {
+					t.Fatalf("strengthened edge changed its stable ID: got %s want %s", edge.ID, baselineID)
 				}
 				return
 			}
@@ -221,6 +229,11 @@ func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T)
 		t.Fatal("crate copy from a different stage was combined with the zigbuild command")
 	}
 	base.References[0].Stage = "build-stage"
+	base.References[0].Value = "crates/other"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("copying a different crate subtree was treated as copying the selected bin crate")
+	}
+	base.References[0].Value = "crates"
 	base.DockerPathWrites[0].Value = "RUN pseudocargo zigbuild --bin ruff"
 	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok || dockerHasCargoZigbuild(base) {
 		t.Fatal("pseudocargo command was accepted as a literal Cargo zigbuild")
@@ -228,6 +241,15 @@ func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T)
 	base.DockerPathWrites[0].Value = "RUN cargo zigbuild --bin $(BIN)"
 	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
 		t.Fatal("dynamic --bin name was treated as a static crate selection")
+	}
+	for _, command := range []string{
+		"RUN cargo zigbuild --bin ruff --manifest-path ../external/Cargo.toml",
+		"RUN cargo zigbuild --bin ruff -p another-package",
+	} {
+		base.DockerPathWrites[0].Value = command
+		if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+			t.Fatalf("overridden workspace selection was attributed: %s", command)
+		}
 	}
 }
 
