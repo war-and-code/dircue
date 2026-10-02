@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 25
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(github.event_name == 'push' && '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","target":"x86_64-unknown-linux-gnu","suffix":""}]}' || '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","target":"x86_64-unknown-linux-gnu","suffix":""},{"os":"ubuntu-24.04-arm","platform":"linux-arm64","target":"aarch64-unknown-linux-gnu","suffix":""},{"os":"macos-14","platform":"darwin-arm64","target":"aarch64-apple-darwin","suffix":""},{"os":"macos-15-intel","platform":"darwin-amd64","target":"x86_64-apple-darwin","suffix":""},{"os":"windows-latest","platform":"windows-amd64","target":"x86_64-pc-windows-msvc","suffix":".exe"}]}') }}
+      matrix: ${{ fromJSON(github.event_name == 'push' && '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","release_target":"linux/amd64","target":"x86_64-unknown-linux-gnu","suffix":""}]}' || '{"include":[{"os":"ubuntu-22.04","platform":"linux-amd64","release_target":"linux/amd64","target":"x86_64-unknown-linux-gnu","suffix":""},{"os":"ubuntu-24.04-arm","platform":"linux-arm64","release_target":"linux/arm64","target":"aarch64-unknown-linux-gnu","suffix":""},{"os":"macos-14","platform":"darwin-arm64","release_target":"darwin/arm64","target":"aarch64-apple-darwin","suffix":""},{"os":"macos-15-intel","platform":"darwin-amd64","release_target":"darwin/amd64","target":"x86_64-apple-darwin","suffix":""},{"os":"windows-latest","platform":"windows-amd64","release_target":"windows/amd64","target":"x86_64-pc-windows-msvc","suffix":".exe"}]}') }}
     runs-on: ${{ matrix.os }}
     env:
       # Test-fixture version only; this selects no release version and creates no tags/releases.
@@ -42,6 +42,12 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.12'
+      - name: Build native core release archive for local wheel smoke
+        run: python scripts/release.py --version ${{ env.DIRCUE_CI_VERSION }} --target ${{ matrix.release_target }} --output .cache/native-release/core
+      - name: Package native wheel and execute installed launcher offline
+        run: |
+          python scripts/wheels.py --release-dir .cache/native-release/core --output .cache/native-release/wheels
+          python scripts/wheel_release_smoke.py --release-dir .cache/native-release/core --wheel-dir .cache/native-release/wheels --platform ${{ matrix.platform }} --version ${{ env.DIRCUE_CI_VERSION }} --output .cache/native-release/wheel-smoke.json
       - name: Install pinned Rust toolchain
         run: rustup toolchain install 1.94.0 --profile minimal --target ${{ matrix.target }}
       - name: Cache Rust dependencies, crate sources, and build outputs

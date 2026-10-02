@@ -40,7 +40,15 @@ def show_diagnostics(stream):
     # Don't print a partial URL at the cutoff: its credential delimiter may
     # occur beyond the retained prefix. Withhold the whole trailing token.
     if truncated:
-        data = data[:MAX_DIAGNOSTIC_BYTES].rsplit(b"\n", 1)[0] if b"\n" in data[:MAX_DIAGNOSTIC_BYTES] else b""
+        retained = data[:MAX_DIAGNOSTIC_BYTES]
+        if b"\n" in retained:
+            data = retained.rsplit(b"\n", 1)[0]
+        else:
+            # Preserve useful one-line errors, but never emit a possibly
+            # incomplete URL whose credentials may continue past the limit.
+            decoded = retained.decode("utf-8", errors="replace")
+            url_start = URL.search(decoded)
+            data = decoded[:url_start.start()].encode("utf-8") if url_start else retained
     text = safe_diagnostics(data.decode("utf-8", errors="replace"))
     if text:
         print(text.rstrip("\n"), file=sys.stderr, flush=True)

@@ -86,6 +86,41 @@ class GoDownloadRetryTests(unittest.TestCase):
         self.assertNotIn("secret", log.getvalue())
         self.assertLess(len(log.getvalue()), downloader.MAX_DIAGNOSTIC_BYTES + 100)
 
+    def test_truncated_single_line_error_keeps_context_but_drops_partial_url(self):
+        log = io.StringIO()
+        with tempfile.TemporaryFile() as capture, contextlib.redirect_stderr(log):
+            capture.write(b"proxy request failed: " + b"x" * 100 + b" https://user:secret@private.invalid/" + b"z" * 70000)
+            downloader.show_diagnostics(capture)
+        output = log.getvalue()
+        self.assertIn("proxy request failed:", output)
+        self.assertIn("truncated", output)
+        self.assertNotIn("user", output)
+        self.assertNotIn("secret", output)
+
+    def test_truncated_single_line_without_url_keeps_bounded_error(self):
+        log = io.StringIO()
+        with tempfile.TemporaryFile() as capture, contextlib.redirect_stderr(log):
+            capture.write(b"module proxy unavailable: " + b"x" * 70000)
+            downloader.show_diagnostics(capture)
+        output = log.getvalue()
+        self.assertIn("module proxy unavailable:", output)
+        self.assertIn("truncated", output)
+        self.assertLess(len(output), downloader.MAX_DIAGNOSTIC_BYTES + 100)
+
+    def test_url_redaction_handles_tricky_authorities_and_public_query_tokens(self):
+        output = downloader.safe_diagnostics(
+            "https://proxy.golang.org.evil.invalid/private "
+            "https://name:pass@proxy.golang.org/pkg?token=hidden#part "
+            "https://proxy.golang.org/pkg?token=hidden#part "
+            "https://[::1/private "
+        )
+        self.assertNotIn("proxy.golang.org.evil.invalid/private", output)
+        self.assertNotIn("name", output)
+        self.assertNotIn("pass", output)
+        self.assertNotIn("hidden", output)
+        self.assertNotIn("part", output)
+        self.assertIn("https://proxy.golang.org/pkg", output)
+
     def test_controls_cannot_escape_terminal(self):
         self.assertEqual(downloader.safe_diagnostics("bad\x1b[31m\x00\r\n"), "bad\\x1b[31m\\x00\\x0d\n")
 
