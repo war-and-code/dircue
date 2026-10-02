@@ -160,7 +160,7 @@ The default `balanced` preset retains automatic worker selection and the 100,000
 | Preset | Current effect |
 | --- | --- |
 | `balanced` | Automatic workers and the default inventory limit. |
-| `low-memory` | Use two file workers and an 8 MiB retained Git object cache. This is a relative preference, not a hard RSS ceiling. |
+| `low-memory` | Use two file workers, an 8 MiB retained Git object cache, a 512 KiB content cap per file, and fewer retained intent observations. Content and observation caps may omit evidence; coverage records omissions. This is a relative preference, not a hard RSS ceiling. |
 | `thorough` | Raise the inventory limit to 250,000 entries; this can replace a partial answer with a more complete one. |
 
 Inspect effective values, categories, and origins without scanning:
