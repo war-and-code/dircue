@@ -30,6 +30,7 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document, intents ...*intentmap.Report) (string, []mapdoc.Evidence, bool) {
 	type copiedCrate struct {
 		root     string
+		line     int
 		evidence mapdoc.Evidence
 	}
 	copyEvidenceByStage := map[string][]copiedCrate{}
@@ -39,7 +40,7 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 		}
 		source := strings.TrimPrefix(path.Clean(ref.Value), "./")
 		if source == "crates" || strings.HasPrefix(source, "crates/") {
-			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], copiedCrate{root: source, evidence: deployableEvidence(def.Path, ref.Evidence)})
+			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], copiedCrate{root: source, line: ref.Evidence.Line, evidence: deployableEvidence(def.Path, ref.Evidence)})
 		}
 	}
 	for _, ref := range def.DockerPathWrites {
@@ -47,18 +48,29 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 		for _, segment := range strings.Split(command, "&&") {
 			fields := strings.Fields(strings.TrimSpace(segment))
 			if len(fields) >= 2 && fields[0] == "cargo" && (fields[1] == "build" || fields[1] == "zigbuild") {
+				if cargoTargetOverridden(fields) {
+					continue
+				}
 				copiedCrates := copyEvidenceByStage[ref.Stage]
 				if len(copiedCrates) == 0 {
 					continue
 				}
 				copyEvidence := make([]mapdoc.Evidence, 0, len(copiedCrates))
+				orderedCopies := make([]copiedCrate, 0, len(copiedCrates))
 				for _, copied := range copiedCrates {
+					if copied.line > 0 && ref.Evidence.Line > 0 && copied.line >= ref.Evidence.Line {
+						continue
+					}
+					orderedCopies = append(orderedCopies, copied)
 					copyEvidence = append(copyEvidence, copied.evidence)
+				}
+				if len(orderedCopies) == 0 {
+					continue
 				}
 				buildEvidence := deployableEvidence(def.Path, ref.Evidence)
 				if fields[1] == "zigbuild" {
 					binary, valid := literalCargoBin(fields)
-					if !valid || cargoTargetOverridden(fields) {
+					if !valid {
 						continue
 					}
 					matches := []string{}
@@ -72,7 +84,7 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 							continue
 						}
 						copied := false
-						for _, source := range copiedCrates {
+						for _, source := range orderedCopies {
 							if source.root == "crates" || root == source.root || strings.HasPrefix(root, source.root+"/") {
 								copied = true
 								break
@@ -149,7 +161,7 @@ func literalCargoBin(fields []string) (string, bool) {
 
 func cargoTargetOverridden(fields []string) bool {
 	for _, field := range fields {
-		if field == "--manifest-path" || strings.HasPrefix(field, "--manifest-path=") || field == "--package" || strings.HasPrefix(field, "--package=") || field == "-p" || field == "--workspace" || field == "--all" || field == "--all-targets" {
+		if field == "--manifest-path" || strings.HasPrefix(field, "--manifest-path=") || field == "--package" || strings.HasPrefix(field, "--package=") || field == "-p" || strings.HasPrefix(field, "-p") && len(field) > 2 || field == "--workspace" || field == "--all" || field == "--all-targets" {
 			return true
 		}
 	}

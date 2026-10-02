@@ -245,11 +245,30 @@ func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T)
 	for _, command := range []string{
 		"RUN cargo zigbuild --bin ruff --manifest-path ../external/Cargo.toml",
 		"RUN cargo zigbuild --bin ruff -p another-package",
+		"RUN cargo zigbuild --bin ruff -panother-package",
 	} {
 		base.DockerPathWrites[0].Value = command
 		if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
 			t.Fatalf("overridden workspace selection was attributed: %s", command)
 		}
+	}
+	for _, command := range []string{
+		"RUN cargo build --manifest-path ../external/Cargo.toml",
+		"RUN cargo build --package another-package",
+		"RUN cargo build -panother-package",
+	} {
+		base.DockerPathWrites[0].Value = command
+		if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+			t.Fatalf("overridden cargo build was attributed to the local workspace: %s", command)
+		}
+	}
+	base.DockerPathWrites[0].Value = "RUN cargo build --release"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); !ok {
+		t.Fatal("literal cargo build --release stopped being accepted")
+	}
+	base.References[0].Evidence.Line = 3
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("COPY occurring after cargo build was treated as its source")
 	}
 }
 
