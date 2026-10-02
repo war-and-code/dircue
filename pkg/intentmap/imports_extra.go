@@ -184,34 +184,39 @@ scanLoop:
 			j := contentStart
 			closed := false
 			invalidLineString := false
-			for j < len(src) {
-				if !triple && q != '`' && !verbatim && src[j] == '\n' {
-					invalidLineString = true
-					break
-				}
-				if triple && src[j] == '"' {
-					run := 1
-					for j+run < len(src) && src[j+run] == '"' {
-						run++
-					}
-					if run >= delim {
-						closed = true
+			if q == '`' {
+				j = findTemplateLiteralEnd(src, start)
+				closed = j < len(src) && src[j] == '`'
+			} else {
+				for j < len(src) {
+					if !triple && q != '`' && !verbatim && src[j] == '\n' {
+						invalidLineString = true
 						break
 					}
-					j += run
-					continue
-				}
-				if !triple && src[j] == q {
-					if (verbatim || lang == "vb") && q == '"' && j+1 < len(src) && src[j+1] == '"' {
-						j += 2
+					if triple && src[j] == '"' {
+						run := 1
+						for j+run < len(src) && src[j+run] == '"' {
+							run++
+						}
+						if run >= delim {
+							closed = true
+							break
+						}
+						j += run
 						continue
 					}
-					if raw || !escapedAt(src, j) {
-						closed = true
-						break
+					if !triple && src[j] == q {
+						if (verbatim || lang == "vb") && q == '"' && j+1 < len(src) && src[j+1] == '"' {
+							j += 2
+							continue
+						}
+						if raw || !escapedAt(src, j) {
+							closed = true
+							break
+						}
 					}
+					j++
 				}
-				j++
 			}
 			val := src[contentStart:j]
 			if closed {
@@ -269,6 +274,89 @@ scanLoop:
 		i++
 	}
 	return toks, overflow
+}
+
+// findTemplateLiteralEnd finds the matching backtick while accounting for
+// nested template literals inside ${...}. The lexer treats all template
+// content as opaque; this boundary prevents raw text after a nested template
+// from being mistaken for JavaScript source.
+func findTemplateLiteralEnd(src string, start int) int {
+	return findTemplateLiteralEndDepth(src, start, 0)
+}
+
+func findTemplateLiteralEndDepth(src string, start, nesting int) int {
+	if nesting >= 128 {
+		return len(src)
+	}
+	type expression struct{ braces int }
+	expressions := []expression{}
+	quote := byte(0)
+	for i := start + 1; i < len(src); {
+		c := src[i]
+		if c == '\\' {
+			i += 2
+			continue
+		}
+		if len(expressions) == 0 {
+			if c == '`' {
+				return i
+			}
+			if c == '$' && i+1 < len(src) && src[i+1] == '{' {
+				expressions = append(expressions, expression{})
+				i += 2
+				continue
+			}
+			i++
+			continue
+		}
+		if quote != 0 {
+			if c == quote {
+				quote = 0
+			}
+			i++
+			continue
+		}
+		if c == '/' && i+1 < len(src) && src[i+1] == '/' {
+			for i < len(src) && src[i] != '\n' {
+				i++
+			}
+			continue
+		}
+		if c == '/' && i+1 < len(src) && src[i+1] == '*' {
+			i += 2
+			for i+1 < len(src) && !(src[i] == '*' && src[i+1] == '/') {
+				i++
+			}
+			if i+1 < len(src) {
+				i += 2
+			}
+			continue
+		}
+		if c == '\'' || c == '"' {
+			quote = c
+			i++
+			continue
+		}
+		if c == '`' {
+			nestedEnd := findTemplateLiteralEndDepth(src, i, nesting+1)
+			if nestedEnd >= len(src) {
+				return len(src)
+			}
+			i = nestedEnd + 1
+			continue
+		}
+		if c == '{' {
+			expressions[len(expressions)-1].braces++
+		} else if c == '}' {
+			if expressions[len(expressions)-1].braces == 0 {
+				expressions = expressions[:len(expressions)-1]
+			} else {
+				expressions[len(expressions)-1].braces--
+			}
+		}
+		i++
+	}
+	return len(src)
 }
 
 func jsRegexMayStart(t []sourceToken) bool {
@@ -530,11 +618,12 @@ func parseJSImportsBounded(name string, content []byte) ([]Observation, bool) {
 
 func parseJSImportsTokens(name string, toks []sourceToken, allowCommonJS bool) []Observation {
 	out := []Observation{}
+	jsxText := jsJSXTextMask(toks)
 	// A truncated token stream cannot rule out a later binding that shadows require.
 	shadowed := !allowCommonJS || jsRequireShadowed(toks)
 	for i := 0; i < len(toks); i++ {
 		t := toks[i]
-		if t.depth != 0 || t.kind != 'i' {
+		if t.depth != 0 || t.kind != 'i' || jsxText[i] {
 			continue
 		}
 		if t.text == "import" {
@@ -578,6 +667,86 @@ func parseJSImportsTokens(name string, toks []sourceToken, allowCommonJS bool) [
 		}
 	}
 	return out
+}
+
+// jsJSXTextMask excludes children text from the token stream's apparent
+// JavaScript. JSX expressions remain separately brace-scoped and are already
+// excluded by the top-level import rule.
+func jsJSXTextMask(t []sourceToken) []bool {
+	mask := make([]bool, len(t))
+	for i := 0; i+1 < len(t); i++ {
+		if t[i].text != "<" || (t[i+1].kind != 'i' && t[i+1].text != ">") || !jsJSXStartContext(t, i) {
+			continue
+		}
+		fragment := t[i+1].text == ">"
+		openEnd := i + 2
+		if fragment {
+			openEnd = i + 1
+		} else {
+			for openEnd < len(t) && t[openEnd].text != ">" && t[openEnd].text != ";" && openEnd < i+64 {
+				openEnd++
+			}
+			if openEnd >= len(t) || t[openEnd].text != ">" {
+				continue
+			}
+		}
+		depth, closeEnd := 1, -1
+		for j := openEnd + 1; j < len(t) && depth > 0; j++ {
+			if t[j].text != "<" || j+1 >= len(t) {
+				continue
+			}
+			closing := t[j+1].text == "/"
+			if fragment && closing && j+2 < len(t) && t[j+2].text == ">" {
+				depth--
+				if depth == 0 {
+					closeEnd = j + 2
+				}
+				j += 2
+				continue
+			}
+			nameAt := j + 1
+			if closing {
+				nameAt++
+			}
+			if nameAt >= len(t) || t[nameAt].kind != 'i' {
+				continue
+			}
+			end := nameAt + 1
+			for end < len(t) && t[end].text != ">" && end < nameAt+64 {
+				end++
+			}
+			if end >= len(t) || t[end].text != ">" {
+				continue
+			}
+			if closing {
+				depth--
+				if depth == 0 {
+					closeEnd = end
+				}
+			} else if end == 0 || t[end-1].text != "/" {
+				depth++
+			}
+			j = end
+		}
+		if closeEnd > openEnd {
+			for j := openEnd + 1; j < closeEnd; j++ {
+				mask[j] = true
+			}
+		}
+	}
+	return mask
+}
+
+func jsJSXStartContext(t []sourceToken, i int) bool {
+	if i == 0 {
+		return true
+	}
+	switch t[i-1].text {
+	case "=", "(", "=>", ":", ",", "[", "return", "yield":
+		return true
+	default:
+		return false
+	}
 }
 func tsImportTypeOnly(t []sourceToken, i int) bool {
 	if i+2 < len(t) && t[i+1].text == "type" && t[i+2].text != "from" && (t[i+2].kind == 'i' || t[i+2].text == "{" || t[i+2].text == "*") {
@@ -738,7 +907,35 @@ func isExtraImport(name string) bool {
 func testEvidencePath(p string) bool {
 	l := strings.ToLower(p)
 	b := path.Base(l)
-	return strings.HasPrefix(l, "tests/") || strings.HasPrefix(l, "test/") || strings.HasPrefix(l, "src/test/") || strings.HasPrefix(l, "__tests__/") || strings.Contains(l, "/src/test/") || strings.Contains(l, "/tests/") || strings.Contains(l, "/__tests__/") || strings.Contains(l, "/test/") || strings.HasPrefix(b, "test_") || strings.Contains(b, ".test.") || strings.Contains(b, ".spec.") || strings.HasSuffix(b, "_test.go")
+	if pathHasTestDirectory(l) {
+		return true
+	}
+	ext := path.Ext(b)
+	switch ext {
+	case ".py":
+		return strings.HasPrefix(b, "test_") || strings.HasSuffix(b, "_test.py")
+	case ".go":
+		return strings.HasSuffix(b, "_test.go")
+	case ".js", ".jsx", ".mjs", ".cjs", ".ts", ".tsx":
+		return strings.Contains(b, ".test.") || strings.Contains(b, ".spec.")
+	case ".java", ".kt", ".cs", ".vb":
+		stem := strings.TrimSuffix(b, ext)
+		return strings.HasSuffix(stem, "test") || strings.HasSuffix(stem, "tests") || strings.HasSuffix(stem, "testcase")
+	default:
+		return false
+	}
+}
+
+// pathHasTestDirectory recognizes conventional test directories at any path
+// depth, including the whole-repository test and tests roots.
+func pathHasTestDirectory(p string) bool {
+	for _, segment := range strings.Split(strings.Trim(p, "/"), "/") {
+		switch segment {
+		case "test", "tests", "__tests__":
+			return true
+		}
+	}
+	return false
 }
 func importEvidenceScope(p string) string {
 	if testEvidencePath(p) {

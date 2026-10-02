@@ -1415,15 +1415,40 @@ type capGroup struct {
 	testEvidence, nonTestEvidence bool
 	typeOnlyImport, nonTypeImport bool
 	otherEvidence                 bool
+	runtimeImportEvidence         bool
 }
 
-func (g *capGroup) worstState(state string) {
+func (g *capGroup) worstState(o intentmap.Observation) {
 	// partial < conditional < declared < observed (worst = partial)
-	if state == "partial" || state == "unresolved" {
+	if o.State == "partial" || o.State == "unresolved" {
 		g.state = "partial"
-	} else if g.state == "conditional" && (state == "declared" || state == "observed") {
-		// An unconditional declaration supersedes a conditional one.
-		g.state = state
+		return
+	}
+	if g.state == "partial" {
+		return
+	}
+	if o.State == "conditional" {
+		if !g.runtimeImportEvidence && (g.state == "" || g.state == "observed") {
+			g.state = "conditional"
+		}
+		return
+	}
+	if o.State == "declared" {
+		if g.state == "" || g.state == "conditional" {
+			g.state = "declared"
+		}
+		return
+	}
+	if o.State == "observed" {
+		runtimeEvidence := o.Basis != "imported" || (o.Properties["import_qualifier"] != "type_only" && o.Properties["evidence_scope"] != "test_path_convention")
+		if runtimeEvidence {
+			g.runtimeImportEvidence = true
+			g.state = "observed"
+		} else if g.state == "" {
+			// Without a conditional declaration the source evidence remains a
+			// useful observation, while its qualifier stays available to filters.
+			g.state = "observed"
+		}
 	}
 }
 
@@ -1473,7 +1498,6 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 				name:        o.Name,
 				projectID:   o.ProjectID,
 				attribution: o.ProjectAttribution,
-				state:       o.State,
 				basis:       o.Basis,
 				properties:  cloneProps(o.Properties),
 			}
@@ -1494,7 +1518,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		} else if o.Properties["evidence_scope"] == "non_test_path_convention" {
 			g.nonTestEvidence = true
 		}
-		g.worstState(o.State)
+		g.worstState(o)
 		// Multiple bases → prefer declared_config > declared_dependency > others
 		if g.basis == "" || (o.Basis == "declared_config" && g.basis != "declared_config") {
 			g.basis = o.Basis
@@ -1526,7 +1550,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		if g.nonTestEvidence {
 			n.Properties["non_test_path_evidence"] = "true"
 		}
-		if g.testEvidence && !g.nonTestEvidence && !g.otherEvidence && r.Coverage.Status == "complete" {
+		if g.testEvidence && !g.nonTestEvidence && !g.otherEvidence {
 			n.Properties["test_only_evidence"] = "true"
 			n.Properties["test_evidence_scope_basis"] = "path_name_convention"
 		}

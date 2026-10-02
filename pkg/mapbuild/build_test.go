@@ -1774,7 +1774,7 @@ func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
 		{"test-only imports complete", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
 		{"mixed source imports", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/java/App.java", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}}}, "complete", "", "true", "true", ""},
 		{"test import and runtime declaration", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "declared", Basis: "declared_dependency", Path: "app/pom.xml"}}, "complete", "", "true", "", ""},
-		{"test-only import but incomplete scan", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "partial", "", "true", "", ""},
+		{"test-only import but incomplete scan", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "partial", "true", "true", "", ""},
 		{"type-only import", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/ts/a.ts", Properties: map[string]string{"import_qualifier": "type_only", "evidence_scope": "non_test_path_convention"}}}, "complete", "", "", "true", "true"},
 	}
 	for _, tt := range cases {
@@ -1804,7 +1804,7 @@ func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
 	}
 }
 
-func TestImportTokenLimitSuppressesTestOnlyClaim(t *testing.T) {
+func TestImportTokenLimitDoesNotHideObservedTestOnlyEvidence(t *testing.T) {
 	doc := mapdoc.New()
 	c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
 	c.Properties = map[string]string{"root": "app"}
@@ -1825,10 +1825,70 @@ func TestImportTokenLimitSuppressesTestOnlyClaim(t *testing.T) {
 		if n.Kind != mapdoc.NodeCapability {
 			continue
 		}
-		if n.Properties["test_path_evidence"] != "true" || n.Properties["test_only_evidence"] != "" {
-			t.Fatalf("truncated import scan made an unjustified test-only claim: %+v", n.Properties)
+		if n.Properties["test_path_evidence"] != "true" || n.Properties["test_only_evidence"] != "true" {
+			t.Fatalf("unrelated truncation hid the retained test-only evidence: %+v", n.Properties)
 		}
 		return
 	}
 	t.Fatal("missing retained capability from before the token cutoff")
+}
+
+func TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		qualifier   string
+		scope       string
+		condition   string
+		importFirst bool
+	}{
+		{name: "optional type-only first", qualifier: "type_only", scope: "non_test_path_convention", condition: "optionalDependencies", importFirst: true},
+		{name: "optional test-only first", scope: "test_path_convention", condition: "optionalDependencies", importFirst: true},
+		{name: "optional type-only after", qualifier: "type_only", scope: "non_test_path_convention", condition: "optionalDependencies"},
+		{name: "optional test-only after", scope: "test_path_convention", condition: "optionalDependencies"},
+		{name: "peer type-only", qualifier: "type_only", scope: "non_test_path_convention", condition: "peerDependencies"},
+		{name: "peer test-only", scope: "test_path_convention", condition: "peerDependencies"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			imported := intentmap.Observation{
+				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "observed", Basis: "imported", Path: "app/src/types.ts",
+				Properties: map[string]string{"evidence_scope": tc.scope, "import_qualifier": tc.qualifier},
+			}
+			optional := intentmap.Observation{
+				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "conditional", Basis: "declared_dependency", Path: "app/package.json",
+				Properties: map[string]string{"condition": tc.condition},
+			}
+			observations := []intentmap.Observation{optional, imported}
+			if tc.importFirst {
+				observations = []intentmap.Observation{imported, optional}
+			}
+			doc := mapdoc.New()
+			addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: observations})
+			for _, n := range doc.Nodes {
+				if n.Kind == mapdoc.NodeCapability && n.Name == "datastore:postgresql" {
+					if got := n.Properties["state"]; got != "conditional" {
+						t.Fatalf("state=%q, want conditional; node=%+v", got, n)
+					}
+					return
+				}
+			}
+			t.Fatal("missing optional PostgreSQL capability")
+		})
+	}
+}
+
+func TestRuntimeImportCanCorroborateOptionalDependency(t *testing.T) {
+	doc := mapdoc.New()
+	addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: []intentmap.Observation{
+		{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "conditional", Basis: "declared_dependency", Path: "app/package.json", Properties: map[string]string{"condition": "optionalDependencies"}},
+		{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "observed", Basis: "imported", Path: "app/src/db.ts", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}},
+	}})
+	for _, n := range doc.Nodes {
+		if n.Kind == mapdoc.NodeCapability && n.Name == "datastore:postgresql" {
+			if got := n.Properties["state"]; got != "observed" {
+				t.Fatalf("state=%q, want observed; node=%+v", got, n)
+			}
+			return
+		}
+	}
+	t.Fatal("missing optional PostgreSQL capability")
 }

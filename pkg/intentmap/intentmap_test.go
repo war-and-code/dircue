@@ -994,15 +994,34 @@ func TestLexicalImportEvidenceAdversarialBoundaries(t *testing.T) {
 }
 
 func TestImportEvidenceUsesTestPathConvention(t *testing.T) {
-	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go"} {
+	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go", "src/utils/test_helper.py", "src/generated/test_utils_test.py", "src/ThingTest.cs"} {
 		if importEvidenceScope(p) != "test_path_convention" {
 			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
 		}
 	}
-	for _, p := range []string{"src/main/java/App.java", "src/client.ts"} {
+	for _, p := range []string{"src/main/java/App.java", "src/client.ts", "src/test_utils.ts", "src/test_helpers.js", "src/test_utils.go", "src/test_utils.cs"} {
 		if importEvidenceScope(p) != "non_test_path_convention" {
 			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
 		}
+	}
+}
+
+func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
+	sources := []string{
+		"const copy = `require('pg') and import pg from 'pg'`;",
+		"const copy = `outer ${`nested require('pg')`} import pg from 'pg'`;",
+		"const view = <div>require('pg') import pg from 'pg'</div>;",
+		"const view = <div>\nimport pg from 'pg'\nrequire('pg')\n</div>;",
+		"const view = <>\nimport pg from 'pg'\nrequire('pg')\n</>;",
+	}
+	for _, source := range sources {
+		if got := parseJSImports("src/view.jsx", []byte(source)); len(got) != 0 {
+			t.Errorf("non-code template/JSX text produced import evidence for %q: %+v", source, got)
+		}
+	}
+	valid := parseJSImports("src/view.jsx", []byte("import pg from 'pg';"))
+	if len(valid) == 0 || valid[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid source import no longer produces evidence: %+v", valid)
 	}
 }
 
