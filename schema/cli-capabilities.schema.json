@@ -42,11 +42,12 @@
         ],
         "properties": {
           "code": {
-            "description": "Ordinary handled exit code (0/1), opt-in map comparison uncertainty (2), or POSIX SIGPIPE termination (141).",
+            "description": "Ordinary handled exit code (0/1), opt-in map comparison uncertainty (2) or handled error (3), or POSIX SIGPIPE termination (141).",
             "enum": [
               0,
               1,
               2,
+              3,
               141
             ]
           },

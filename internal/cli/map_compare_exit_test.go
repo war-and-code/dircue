@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
@@ -143,11 +144,22 @@ func TestMapCompareOutputErrorPrecedesOutcome(t *testing.T) {
 	}
 }
 
+func TestMapCompareOptInErrorsPreserveCausesForBothAliases(t *testing.T) {
+	base := writeComparisonMapFixture(t, "base.json", mapComparisonFixture("before", "aaa", true))
+	head := writeComparisonMapFixture(t, "head.json", mapComparisonFixture("after", "bbb", true))
+	for _, alias := range []string{"dircue", "dirq"} {
+		err := ExecuteAs(context.Background(), alias, []string{"map", "compare", "--exit-code", "--json", base, head}, failedComparisonWriter{}, io.Discard)
+		var handled *comparisonErrorExit
+		if !errors.As(err, &handled) || !errors.Is(err, io.ErrClosedPipe) || handled.Unwrap() == nil {
+			t.Fatalf("%s did not preserve output failure through error exit: %v", alias, err)
+		}
+	}
+}
+
 func TestMapCompareUncertaintyPrecedesMaterialChange(t *testing.T) {
 	for _, report := range []mapdiff.Report{
 		{Status: "changed", Counts: mapdiff.Counts{IndeterminateRemoval: 1}},
 		{Status: "unchanged", ObserverCompatibility: "different"},
-		{Status: "incomparable"},
 	} {
 		var outcome *comparisonExit
 		if !errors.As(comparisonOutcome(report, "fail"), &outcome) || outcome.code != 2 {
@@ -192,6 +204,67 @@ func TestBuiltMapComparisonExits(t *testing.T) {
 		}
 		if code != want || stderr.Len() != 0 || !json.Valid(stdout.Bytes()) {
 			t.Fatalf("code=%d want=%d out=%q stderr=%q", code, want, stdout.String(), stderr.String())
+		}
+	}
+	invalid := filepath.Join(t.TempDir(), "invalid.json")
+	if err := os.WriteFile(invalid, []byte("{"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	missing := filepath.Join(t.TempDir(), "missing.json")
+	aliases := []string{binary}
+	if runtime.GOOS != "windows" {
+		alias := filepath.Join(t.TempDir(), "dirq")
+		if err := os.Symlink(binary, alias); err != nil {
+			t.Fatal(err)
+		}
+		aliases = append(aliases, alias)
+	}
+	for _, alias := range aliases {
+		for _, tc := range []struct {
+			name string
+			args []string
+			code int
+		}{
+			{"missing baseline", []string{"map", "compare", "--exit-code", "--json", missing, changed}, 3},
+			{"invalid JSON", []string{"map", "compare", "--exit-code", "--json", invalid, changed}, 3},
+			{"bad option", []string{"map", "compare", "--exit-code", "--not-a-flag", base, changed}, 3},
+			{"bad exit-code value", []string{"map", "compare", "--exit-code=invalid", base, changed}, 3},
+			{"bad arguments", []string{"map", "compare", "--exit-code", base}, 3},
+			{"legacy error code", []string{"map", "compare", "--json", missing, changed}, 1},
+		} {
+			t.Run(filepath.Base(alias)+"/"+tc.name, func(t *testing.T) {
+				cmd := exec.Command(alias, tc.args...)
+				var stdout, stderr bytes.Buffer
+				cmd.Stdout, cmd.Stderr = &stdout, &stderr
+				err := cmd.Run()
+				code := 0
+				if err != nil {
+					var e *exec.ExitError
+					if !errors.As(err, &e) {
+						t.Fatal(err)
+					}
+					code = e.ExitCode()
+				}
+				if code != tc.code || stderr.Len() == 0 || stdout.Len() != 0 {
+					t.Fatalf("code=%d want=%d stdout=%q stderr=%q", code, tc.code, stdout.String(), stderr.String())
+				}
+			})
+		}
+	}
+	if _, err := os.Stat("/dev/full"); err == nil {
+		full, err := os.OpenFile("/dev/full", os.O_WRONLY, 0)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(binary, "map", "compare", "--exit-code", "--json", base, changed)
+		cmd.Stdout = full
+		var stderr bytes.Buffer
+		cmd.Stderr = &stderr
+		err = cmd.Run()
+		_ = full.Close()
+		var exit *exec.ExitError
+		if !errors.As(err, &exit) || exit.ExitCode() != 3 || stderr.Len() == 0 {
+			t.Fatalf("output error should exit 3 with diagnostic: err=%v stderr=%q", err, stderr.String())
 		}
 	}
 }

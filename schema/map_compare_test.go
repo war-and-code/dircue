@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/war-and-code/dircue/internal/cli"
+	"github.com/war-and-code/dircue/pkg/mapdoc"
 
 	"github.com/santhosh-tekuri/jsonschema/v5"
 )
@@ -86,5 +87,54 @@ func TestMapCompareSchema(t *testing.T) {
 	}
 	if obj["schema_version"] != "1.0.0" {
 		t.Errorf("expected schema_version 1.0.0, got %v", obj["schema_version"])
+	}
+}
+
+func TestIndeterminateMapComparisonValidatesAgainstSchema(t *testing.T) {
+	compiled, err := jsonschema.Compile("map-compare.schema.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseDoc := mapdoc.New()
+	baseDoc.Coverage = []mapdoc.QuestionCoverage{{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoverageComplete, Reasons: []string{}}}}
+	baseDoc.Source = mapdoc.Source{Mode: "git", Revision: "base", Tree: "base"}
+	node := mapdoc.NewNode(mapdoc.NodeComponent, []string{"go.mod"}, "go")
+	node.Name = "demo"
+	node.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
+	node.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "go.mod", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "test", Version: "1"}}}
+	baseDoc.Nodes = []mapdoc.Node{node}
+	headDoc := mapdoc.New()
+	headDoc.Status = mapdoc.CoveragePartial
+	headDoc.Source = mapdoc.Source{Mode: "git", Revision: "head", Tree: "head"}
+	headDoc.Coverage = []mapdoc.QuestionCoverage{{Question: "components", Scope: ".", Coverage: mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_declaration_catalog"}}}}
+	base, err := mapdoc.Marshal(baseDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := mapdoc.Marshal(headDoc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	baseFile := filepath.Join(t.TempDir(), "base.json")
+	headFile := filepath.Join(t.TempDir(), "head.json")
+	if err := os.WriteFile(baseFile, base, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(headFile, head, 0600); err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	if err := cli.Execute(context.Background(), []string{"map", "compare", "--json", baseFile, headFile}, &out, &bytes.Buffer{}); err != nil {
+		t.Fatal(err)
+	}
+	var value map[string]any
+	if err := json.Unmarshal(out.Bytes(), &value); err != nil {
+		t.Fatal(err)
+	}
+	if value["status"] != "indeterminate" {
+		t.Fatalf("fixture did not exercise the producer's indeterminate status: %v", value["status"])
+	}
+	if err := compiled.Validate(value); err != nil {
+		t.Fatalf("actual indeterminate map comparison fails exported schema: %v\n%s", err, out.String())
 	}
 }

@@ -30,6 +30,12 @@ func Main(name string) {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if err := ExecuteAs(ctx, name, os.Args[1:], os.Stdout, os.Stderr); err != nil {
+		var handled *comparisonErrorExit
+		if errors.As(err, &handled) {
+			fmt.Fprintf(os.Stderr, "Error: %v\n", handled)
+			stop()
+			os.Exit(3)
+		}
 		var outcome *comparisonExit
 		if errors.As(err, &outcome) {
 			stop()

@@ -25,7 +25,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			"  text     Plain text summary (default when stdout is a terminal).\n" +
 			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
 			"--json supersedes --format and writes the full comparison document.\n\n" +
-			"By default, a valid comparison exits 0 regardless of changes. With --exit-code, unchanged exits 0 and changed exits 1. Uncertain results exit 2: indeterminate removals, incomparable results, incomplete source binding, decreased question coverage, or differing observer identities. --on-uncertain allow explicitly permits an uncertain result to use its observed changed/unchanged exit; the report still retains its uncertainty. Handled errors exit 1. Comparison statuses are written before an outcome exit; output errors take precedence.",
+			"By default, a valid comparison exits 0 regardless of changes. With --exit-code, unchanged exits 0, changed exits 1, and uncertain exits 2. Uncertainty includes indeterminate removals, incomplete source binding, decreased question coverage, or differing observer identities. --on-uncertain allow explicitly permits an uncertain result to use its observed changed/unchanged exit; the report still retains its uncertainty. Handled errors, including input and output failures, exit 3 and print a diagnostic. Comparison reports are written before an outcome exit.",
 		Example: "  " + n + " map --json old-checkout > before.json\n  " + n + " map --json new-checkout > after.json\n  " + n + " map compare --json before.json after.json\n  " + n + " map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
@@ -80,7 +80,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 		},
 	}
 	command.Flags().StringVar(&format, "format", "text", "Output format: text (default) or markdown")
-	command.Flags().BoolVar(&exitCode, "exit-code", false, "Exit 1 for changed, 2 for uncertain comparisons; unchanged exits 0")
+	command.Flags().BoolVar(&exitCode, "exit-code", false, "Exit 1 for changed, 2 for uncertain, or 3 for handled errors; unchanged exits 0")
 	command.Flags().StringVar(&onUncertain, "on-uncertain", "fail", "With --exit-code, uncertainty: fail (exit 2) or allow the observed changed/unchanged exit")
 	setSavedReportHelp(command)
 	return command
@@ -97,7 +97,7 @@ func (e *comparisonExit) Error() string { return "map comparison: " + e.status }
 
 func comparisonOutcome(report mapdiff.Report, onUncertain string) error {
 	unboundDirectory := func(source mapdoc.Source) bool { return source.Mode == "directory" && source.Digest == nil }
-	uncertain := report.Status == "indeterminate" || report.Status == "incomparable" || report.Counts.IndeterminateRemoval > 0 || report.SourceBinding == "unknown" || unboundDirectory(report.Base) || unboundDirectory(report.Head) || report.ObserverCompatibility == "different" || comparisonCoverageDecreased(report)
+	uncertain := report.Status == "indeterminate" || report.Counts.IndeterminateRemoval > 0 || report.SourceBinding == "unknown" || unboundDirectory(report.Base) || unboundDirectory(report.Head) || report.ObserverCompatibility == "different" || comparisonCoverageDecreased(report)
 	if uncertain && onUncertain == "fail" {
 		return &comparisonExit{code: 2, status: "uncertain"}
 	}

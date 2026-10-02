@@ -21,8 +21,8 @@
     },
     "status": {
       "type": "string",
-      "enum": ["changed", "unchanged"],
-      "description": "Whether any material changes were found between base and head."
+      "enum": ["changed", "unchanged", "indeterminate"],
+      "description": "Whether material changes were found between base and head. Indeterminate means at least one removal cannot be confirmed because head coverage is incomplete."
     },
     "source_binding": {
       "type": "string",
