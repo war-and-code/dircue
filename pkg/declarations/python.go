@@ -232,6 +232,30 @@ func ParsePython(name string, content []byte) *Document {
 	if !ok {
 		return d
 	}
+	// Maturin's `bin` binding declares an installed command backed by the Rust
+	// crate at manifest-path. Record only a literal in-project Cargo.toml path;
+	// no build script or dynamic manifest value is evaluated.
+	if maturin, ok := pythonTable(d, tool, "maturin"); ok {
+		if bindings, _ := maturin["bindings"].(string); bindings == "bin" {
+			manifest := "Cargo.toml"
+			if value, present := maturin["manifest-path"]; present {
+				var isString bool
+				manifest, isString = value.(string)
+				if !isString {
+					manifest = ""
+				}
+			}
+			if manifest != "" && !strings.ContainsAny(manifest, "$%{}") && path.Base(manifest) == "Cargo.toml" {
+				if target, ok := pythonLocalTarget(name, path.Dir(manifest), path.Base(manifest)); ok {
+					label := d.Project.Name
+					if label == "" {
+						label = "maturin binary"
+					}
+					AddInterface(d, Interface{Kind: "binary", Name: label, Target: target, State: "declared", Evidence: name, Condition: "maturin bindings=bin"})
+				}
+			}
+		}
+	}
 	uv, ok := pythonTable(d, tool, "uv")
 	if !ok {
 		return d

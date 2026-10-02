@@ -110,6 +110,7 @@ func (c *Collector) Finish() *Report {
 	if c.budgetDrops > 0 {
 		out.omit("selection_budget", c.budgetDrops, "", "Only the lexically first declaration candidates within the file and input-byte budgets were parsed.")
 	}
+	var privateContexts []BuildContext
 	for _, file := range c.pending {
 		out.Coverage.ReadFiles++
 		out.Coverage.InspectedBytes += int64(len(file.content))
@@ -134,6 +135,22 @@ func (c *Collector) Finish() *Report {
 			defs[i].ID = stableID(defs[i])
 			slices.SortFunc(defs[i].Evidence, compareEvidence)
 			slices.SortFunc(defs[i].References, compareReference)
+			if defs[i].Provider == "makefile" {
+				var fileRef, contextRef *Reference
+				for j := range defs[i].References {
+					ref := &defs[i].References[j]
+					if ref.Kind == "dockerfile" && ref.Qualification == "local" {
+						fileRef = ref
+					}
+					if ref.Kind == "build_context" && ref.Qualification == "local" {
+						contextRef = ref
+					}
+				}
+				if fileRef != nil && contextRef != nil {
+					privateContexts = append(privateContexts, BuildContext{SourcePath: file.path, Context: contextRef.Value, Dockerfile: fileRef.Value, ContextEvidence: contextRef.Evidence, FileEvidence: fileRef.Evidence})
+				}
+				continue
+			}
 			out.Definitions = append(out.Definitions, defs[i])
 		}
 	}
@@ -154,6 +171,16 @@ func (c *Collector) Finish() *Report {
 		}
 		refs += len(out.Definitions[i].References)
 	}
+	for _, binding := range privateContexts {
+		if refs+2 > out.Limits.References {
+			out.Omissions["reference_limit"]++
+			out.Status = "partial"
+			continue
+		}
+		out.BuildContexts = append(out.BuildContexts, binding)
+		refs += 2
+	}
+	out.Coverage.RetainedReferences = refs
 	out.Coverage.RetainedDefinitions = len(out.Definitions)
 	out.Coverage.RetainedReferences = refs
 	slices.SortFunc(out.Diagnostics, func(a, b Diagnostic) int { return strings.Compare(a.Path+"\x00"+a.Code, b.Path+"\x00"+b.Code) })

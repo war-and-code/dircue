@@ -39,6 +39,7 @@ func (h *candidates) Pop() any          { v := (*h)[len(*h)-1]; *h = (*h)[:len(*
 type Collector struct {
 	report        Report
 	files         map[string]bool
+	fileSizes     map[string]int64
 	paths         candidates
 	inventory     candidates
 	readLimit     int64
@@ -170,6 +171,18 @@ func (c *Collector) diagnostic(code, message string) {
 }
 
 func (c *Collector) Omit() { c.report.Coverage.OmittedFiles++ }
+
+// RecordSelectedFileSize retains bounded metadata for exact target lookup.
+// It does not open the target or rely on the sparse discovery candidate list.
+func (c *Collector) RecordSelectedFileSize(name string, size int64) {
+	if size < 0 || !c.files[name] {
+		return
+	}
+	if c.fileSizes == nil {
+		c.fileSizes = map[string]int64{}
+	}
+	c.fileSizes[name] = size
+}
 func (c *Collector) Skip(reason string) *Report {
 	c.report.Status = "skipped"
 	c.report.Diagnostics = append(c.report.Diagnostics, Diagnostic{Path: ".", Code: reason, Message: "The selected inventory was not analyzed."})
@@ -198,6 +211,7 @@ func (c *Collector) Add(name string, candidate *Candidate) {
 		c.diagnostic("inventory-limit", "The declaration inventory path limit was reached.")
 		if len(name) <= MaxStringBytes && len(c.inventory) > 0 && name < c.inventory[0].Path {
 			delete(c.files, c.inventory[0].Path)
+			delete(c.fileSizes, c.inventory[0].Path)
 			c.inventory[0] = Candidate{Path: name}
 			heap.Fix(&c.inventory, 0)
 			c.files[name] = true
@@ -300,7 +314,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 		}
 		resolve(docs, c.files)
 	}
-	resolveLegacy(docs, c.files)
+	resolveLegacy(docs, c.files, c.fileSizes)
 	resolveGradleNames(docs)
 	totalBytes := 0
 	for _, d := range docs {
@@ -339,6 +353,11 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 			for j := range c.report.Projects[i].References {
 				r := &c.report.Projects[i].References[j]
 				if r.TargetStatus == "missing" {
+					if r.Kind == "local-artifact" && c.report.Coverage.OmittedFiles > 0 {
+						r.TargetStatus = "unknown"
+						r.State = "unresolved"
+						continue
+					}
 					r.TargetStatus = "unresolved"
 					r.State = "unresolved"
 				}
@@ -365,6 +384,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 	// Adapter metadata and source callbacks need not survive the returned report.
 	c.paths = nil
 	c.files = nil
+	c.fileSizes = nil
 	c.inventory = nil
 	return &c.report, nil
 }
@@ -558,7 +578,7 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 
 type legacyData struct{}
 
-func resolveLegacy(docs []*Document, files map[string]bool) {
+func resolveLegacy(docs []*Document, files map[string]bool, sizes map[string]int64) {
 	dirs := map[string]bool{}
 	for filename := range files {
 		for dir := path.Dir(filename); !dirs[dir]; dir = path.Dir(dir) {
@@ -594,6 +614,7 @@ func resolveLegacy(docs []*Document, files map[string]bool) {
 			r.TargetStatus = "missing"
 			if present {
 				r.TargetStatus = "present"
+				r.TargetBytes = sizes[target]
 			}
 			if r.State == "declared" {
 				r.State = "missing"

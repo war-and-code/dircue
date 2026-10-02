@@ -1,6 +1,7 @@
 package projects
 
 import (
+	"encoding/json"
 	"runtime"
 	"strings"
 	"testing"
@@ -64,6 +65,80 @@ func TestMavenParentResolution(t *testing.T) {
 	}
 }
 
+func TestMavenSystemPathUsesOnlyConfinedLiteralOrBasedirPaths(t *testing.T) {
+	doc := ParseJVM("modules/service/pom.xml", []byte(`<project>
+  <properties><local.lib>lib/known.jar</local.lib></properties>
+  <dependencies>
+    <dependency><groupId>local</groupId><artifactId>known</artifactId><scope>system</scope><systemPath>${basedir}/lib/known.jar</systemPath></dependency>
+    <dependency><groupId>local</groupId><artifactId>other</artifactId><scope>system</scope><systemPath>${local.lib}</systemPath></dependency>
+		<dependency><groupId>local</groupId><artifactId>escaped</artifactId><scope>system</scope><systemPath>../../../outside.jar</systemPath></dependency>
+    <dependency><groupId>local</groupId><artifactId>dynamic</artifactId><scope>system</scope><systemPath>${external.lib}</systemPath></dependency>
+    <dependency><groupId>local</groupId><artifactId>ordinary</artifactId><scope>compile</scope><systemPath>lib/ignored.jar</systemPath></dependency>
+  </dependencies>
+</project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("project: %+v", doc)
+	}
+	refs := doc.Projects[0].References
+	if len(refs) != 4 {
+		t.Fatalf("artifact references: %+v", refs)
+	}
+	if refs[0].Target != "modules/service/lib/known.jar" || refs[0].State != "declared" || refs[0].Value != "${basedir}/lib/known.jar" {
+		t.Fatalf("basedir target: %+v", refs[0])
+	}
+	if refs[1].Target != "modules/service/lib/known.jar" || refs[1].State != "declared" {
+		t.Fatalf("static property target: %+v", refs[1])
+	}
+	if refs[2].Target != "" || refs[2].State != "unresolved" || refs[3].Target != "" || refs[3].State != "unresolved" {
+		t.Fatalf("unsafe paths resolved: %+v", refs)
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil || strings.Contains(string(encoded), `"scope"`) {
+		t.Fatalf("internal Maven scope escaped its report: %s err=%v", encoded, err)
+	}
+}
+
+func TestMavenDependencyScopeIsPrivateAndOnlyApplicationDependenciesAreTagged(t *testing.T) {
+	doc := ParseJVM("pom.xml", []byte(`<project>
+  <dependencies>
+    <dependency><groupId>example</groupId><artifactId>same</artifactId><scope>test</scope></dependency>
+    <dependency><groupId>example</groupId><artifactId>same</artifactId><scope>compile</scope></dependency>
+  </dependencies>
+  <dependencyManagement><dependencies><dependency><groupId>example</groupId><artifactId>managed</artifactId><scope>test</scope></dependency></dependencies></dependencyManagement>
+  <build><plugins><plugin><dependencies><dependency><groupId>example</groupId><artifactId>plugin-only</artifactId><scope>test</scope></dependency></dependencies></plugin></plugins></build>
+  <profiles><profile><dependencies><dependency><groupId>example</groupId><artifactId>profile-only</artifactId><scope>test</scope></dependency></dependencies></profile></profiles>
+</project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("project: %+v", doc)
+	}
+	var same []Requirement
+	profileSeen := false
+	for _, req := range doc.Projects[0].Requirements {
+		if req.Kind == "maven-dependency" && strings.Contains(req.Value, ":same") {
+			same = append(same, req)
+		}
+		if strings.Contains(req.Value, "managed") || strings.Contains(req.Value, "plugin-only") {
+			t.Fatalf("non-direct Maven declaration was parsed as an app dependency: %+v", req)
+		}
+		if strings.Contains(req.Value, "profile-only") {
+			profileSeen = true
+			if req.Scope != "test" || req.Condition == "" {
+				t.Fatalf("profile dependency lost scope or profile condition: %+v", req)
+			}
+		}
+	}
+	if len(same) != 2 || same[0].Scope != "test" || same[1].Scope != "compile" || !profileSeen {
+		t.Fatalf("direct duplicate coordinates lost scope or identity: %+v", same)
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), `"Scope"`) || strings.Contains(string(encoded), `"scope"`) {
+		t.Fatalf("private scope metadata changed public JSON: %s", encoded)
+	}
+}
+
 func TestMavenRejectsMalformedAndForeignXML(t *testing.T) {
 	for _, input := range []string{`<project>`, `<project/><project/>`, `<!DOCTYPE project [<!ENTITY x SYSTEM "file:///etc/passwd">]><project>&x;</project>`, strings.Repeat("<x>", 65) + strings.Repeat("</x>", 65), `<project xmlns="urn:other"><modules><module>wrong</module></modules></project>`} {
 		d := ParseJVM("pom.xml", []byte(input))
@@ -74,6 +149,32 @@ func TestMavenRejectsMalformedAndForeignXML(t *testing.T) {
 	d := ParseJVM("pom.xml", []byte(`<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:foreign="urn:other"><modules><foreign:module>wrong</foreign:module><module>right</module></modules></project>`))
 	if len(d.Projects[0].References) != 1 || d.Projects[0].References[0].Target != "right/pom.xml" {
 		t.Fatalf("foreign namespace: %+v", d)
+	}
+}
+
+func TestMavenSingleByteXMLCharsets(t *testing.T) {
+	for _, tc := range []struct {
+		name, encoding string
+	}{
+		{"latin1", "ISO-8859-1"},
+		{"ascii", "US-ASCII"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			body := []byte(`<?xml version="1.0" encoding="` + tc.encoding + `"?><project><artifactId>caf`)
+			body = append(body, 0xe9)
+			body = append(body, []byte(`</artifactId></project>`)...)
+			if tc.name == "ascii" {
+				body = []byte(`<?xml version="1.0" encoding="US-ASCII"?><project><artifactId>cafe</artifactId></project>`)
+			}
+			doc := ParseJVM("pom.xml", body)
+			if len(doc.Projects) != 1 || len(doc.Diagnostics) != 0 || doc.Projects[0].Requirements[0].Value != "café" && tc.name == "latin1" {
+				t.Fatalf("single-byte POM rejected or corrupted: %+v", doc)
+			}
+		})
+	}
+	bad := ParseJVM("pom.xml", []byte("<?xml version=\"1.0\" encoding=\"US-ASCII\"?><project><artifactId>caf\xe9</artifactId></project>"))
+	if len(bad.Projects) != 0 || len(bad.Diagnostics) == 0 {
+		t.Fatalf("invalid US-ASCII accepted: %+v", bad)
 	}
 }
 
@@ -375,8 +476,17 @@ func TestMaven41DeclarationsAndSubprojects(t *testing.T) {
 }
 
 func TestMavenUnsupportedEncodingDiagnostic(t *testing.T) {
-	d := ParseJVM("pom.xml", []byte(`<?xml version="1.0" encoding="ISO-8859-1"?><project/>`))
-	if len(d.Projects) != 0 || len(d.Diagnostics) != 1 || !strings.Contains(d.Diagnostics[0].Message, "unsupported encoding") {
-		t.Fatalf("encoding diagnostic: %+v", d)
+	d := ParseJVM("pom.xml", []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><project><artifactId>caf\xe9</artifactId></project>"))
+	if len(d.Projects) != 1 || len(d.Diagnostics) != 0 {
+		t.Fatalf("ISO-8859-1 rejected: %+v", d)
+	}
+	found := false
+	for _, req := range d.Projects[0].Requirements {
+		if req.Kind == "maven-artifactId" && req.Value == "café" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("ISO-8859-1 text corrupted: %+v", d.Projects[0].Requirements)
 	}
 }

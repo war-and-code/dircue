@@ -109,6 +109,28 @@ func BenchmarkParseDotnetLargeManifestLineAccounting(b *testing.B) {
 	}
 }
 
+func TestDotnetHintPathIsAConfinedLocalArtifactReference(t *testing.T) {
+	doc := ParseDotnet("src/App/App.csproj", []byte(`<Project><ItemGroup Condition="'$(Configuration)' == 'Release'">
+  <Reference Include="Helper"><HintPath>../../lib/Helper.dll</HintPath></Reference>
+  <Reference Include="Unknown"><HintPath>$(SharedDir)/Unknown.dll</HintPath></Reference>
+  <Reference Include="Escape"><HintPath>../../../outside.dll</HintPath></Reference>
+  <Reference Include="GAC" />
+</ItemGroup></Project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("project: %+v", doc)
+	}
+	refs := doc.Projects[0].References
+	if len(refs) != 3 {
+		t.Fatalf("HintPath refs: %+v", refs)
+	}
+	if refs[0].Target != "lib/Helper.dll" || refs[0].State != "conditional" || refs[0].Value != "../../lib/Helper.dll" {
+		t.Fatalf("resolved conditional HintPath: %+v", refs[0])
+	}
+	if refs[1].Target != "" || refs[1].State != "unresolved" || refs[2].Target != "" || refs[2].State != "unresolved" {
+		t.Fatalf("dynamic or out-of-root HintPath was accepted: %+v", refs)
+	}
+}
+
 func TestDotnetSharedConfiguration(t *testing.T) {
 	doc := ParseDotnet("Directory.Build.props", []byte(`<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><TargetFrameworkVersion>v4.8</TargetFrameworkVersion><LangVersion>$(ChosenVersion)</LangVersion></PropertyGroup><ImportGroup Condition="'$(OS)' == 'Windows_NT'"><Import Project="build/windows.props"/></ImportGroup></Project>`))
 	if len(doc.Projects) != 0 || len(doc.Requirements) != 2 || len(doc.References) != 1 {

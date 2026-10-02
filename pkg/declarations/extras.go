@@ -300,6 +300,11 @@ func pyprojectIsToolOnly(raw map[string]any) bool {
 
 	// 7–8. Inspect [tool.*] for packaging or workspace indicators.
 	if tool, ok := raw["tool"].(map[string]any); ok {
+		// Maturin is a distribution backend/configuration, including binary
+		// bindings that install a command into the Python package.
+		if _, ok := tool["maturin"]; ok {
+			return false
+		}
 		// uv workspace coordinator — manages Python member projects.
 		if uv, ok := tool["uv"].(map[string]any); ok {
 			if _, hasWS := uv["workspace"]; hasWS {

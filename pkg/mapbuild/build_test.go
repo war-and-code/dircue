@@ -2,6 +2,9 @@ package mapbuild
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
@@ -12,6 +15,7 @@ import (
 	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
 
 func TestDeclaredPythonScriptsRemainDistinctEvidenceBackedMapInterfaces(t *testing.T) {
@@ -112,6 +116,156 @@ func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
 	n := fileNode("opaque.lib", "binary", "static_library", "extension", 20)
 	if n.Coverage.Status != mapdoc.CoveragePartial || n.Evidence[0].Basis != mapdoc.BasisFilenameHint {
 		t.Fatalf("unverified suffix claimed a complete binary: %+v", n)
+	}
+}
+
+func TestTerraformLiteralLocalModuleSourcesLinkModuleDeployables(t *testing.T) {
+	root := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "infra", Path: "infra/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "module", Value: "child", Line: 1, Basis: "terraform-literal-block"}}, References: []deployables.Reference{{Kind: "module_source", Value: "../modules/network", Qualification: "local", Evidence: deployables.Evidence{Field: "source", Value: "../modules/network", Line: 2, Basis: "terraform-module-source"}}}}
+	child := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "network", Path: "modules/network/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "resource", Value: "aws_vpc.main", Line: 1, Basis: "terraform-literal-block"}}}
+	doc := mapdoc.New()
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{root, child}})
+	from := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"infra"}, "terraform:infrastructure:infra").ID
+	to := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"modules/network"}, "terraform:infrastructure:network").ID
+	for _, e := range doc.Edges {
+		if e.From == from && e.To == to && e.Type == mapdoc.EdgeDependsOnLocal && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial local-module dependency edge: %+v", doc.Edges)
+}
+
+func TestComposeContextLinksReferencedDockerfileToComponent(t *testing.T) {
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/package.json"}, "npm")
+	component.Name = "api"
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "npm"}
+	doc := mapdoc.New()
+	doc.Nodes = append(doc.Nodes, component)
+	compose := deployables.Definition{Kind: "service", Provider: "compose", Name: "api", Path: "deploy/compose.yaml", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "service", Value: "api", Line: 1, Basis: "compose-services-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: "../services/api", Qualification: "local", Evidence: deployables.Evidence{Field: "build_context", Value: "../services/api", Line: 4, Basis: "compose-field"}}, {Kind: "dockerfile", Value: "Dockerfile.api", Qualification: "local", Evidence: deployables.Evidence{Field: "dockerfile", Value: "Dockerfile.api", Line: 5, Basis: "compose-field"}}}}
+	docker := deployables.Definition{Kind: "container_build", Provider: "dockerfile", Name: "api", Path: "services/api/Dockerfile.api", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{compose, docker}})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile.api"}, "dockerfile:container_build:api").ID
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.To == component.ID && e.Type == mapdoc.EdgeBuilds && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial context-derived Dockerfile edge: %+v", doc.Edges)
+}
+
+func TestMakefileStaticBuildContextLinksDockerfile(t *testing.T) {
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo")
+	component.Name = "app"
+	component.Properties = map[string]string{"root": ".", "ecosystem": "cargo"}
+	doc := mapdoc.New()
+	doc.Nodes = append(doc.Nodes, component)
+	docker := deployables.Definition{Kind: "container_build", Provider: "dockerfile", Name: "app", Path: "cmd/app/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}
+	report := &deployables.Report{Status: "complete", Definitions: []deployables.Definition{docker}, BuildContexts: []deployables.BuildContext{{SourcePath: "Makefile", Context: ".", Dockerfile: "cmd/app/Dockerfile", ContextEvidence: deployables.Evidence{Field: "context", Value: ".", Line: 7, Basis: "makefile-docker-build"}, FileEvidence: deployables.Evidence{Field: "-f", Value: "cmd/app/Dockerfile", Line: 7, Basis: "makefile-docker-build"}}}}
+	addDeployables(&doc, report)
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"cmd/app/Dockerfile"}, "dockerfile:container_build:app").ID
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.To == component.ID && e.Type == mapdoc.EdgeBuilds && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial Makefile-context Dockerfile edge: %+v", doc.Edges)
+}
+
+func TestGitHubContextUsesCheckoutSubdirectoryCoordinates(t *testing.T) {
+	doc := mapdoc.New()
+	for _, root := range []string{"services/api", "repo/services/api"} {
+		c := mapdoc.NewNode(mapdoc.NodeComponent, []string{root, root + "/go.mod"}, "go")
+		c.Name = root
+		c.Properties = map[string]string{"root": root, "ecosystem": "go"}
+		doc.Nodes = append(doc.Nodes, c)
+	}
+	wf := deployables.Definition{Provider: "github-actions", Kind: "workflow", Name: "build", Path: ".github/workflows/build.yml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "jobs", Value: "1", Line: 1, Basis: "github-workflow-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: "repo/services/api", Qualification: "local", Checkout: "repo", Evidence: deployables.Evidence{Field: "with.context", Value: "repo/services/api", Line: 8, Basis: "github-build-push-action"}}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{wf}})
+	wfID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{wf.Path}, "github-actions:workflow:build").ID
+	for _, edge := range doc.Edges {
+		if edge.From != wfID || edge.Type != mapdoc.EdgeBuilds {
+			continue
+		}
+		for _, node := range doc.Nodes {
+			if node.ID != edge.To || node.Kind != mapdoc.NodeComponent {
+				continue
+			}
+			if node.Properties["root"] != "services/api" {
+				t.Fatalf("checkout subdirectory was not stripped: attributed to %q", node.Properties["root"])
+			}
+			return
+		}
+	}
+	t.Fatalf("missing checkout-aware static context edge: %+v", doc.Edges)
+}
+
+func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
+	root := t.TempDir()
+	files := map[string][]byte{
+		"app/pom.xml":    []byte(`<project><artifactId>app</artifactId><dependencies><dependency><groupId>local</groupId><artifactId>helper</artifactId><scope>system</scope><systemPath>${basedir}/../lib/helper.jar</systemPath></dependency></dependencies></project>`),
+		"app/App.csproj": []byte(`<Project><ItemGroup><Reference Include="Helper"><HintPath>../lib/Helper.dll</HintPath></Reference></ItemGroup></Project>`),
+		"lib/helper.jar": []byte("not opened by the project parser"),
+		"lib/Helper.dll": []byte("also not opened by the project parser"),
+	}
+	for name, data := range files {
+		full := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(full), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := scanner.Scan(context.Background(), root, scanner.Options{Source: "directory", Discovery: true, Declarations: true, Workers: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Declarations == nil || report.Declarations.Status != "complete" {
+		t.Fatalf("declarations: %+v", report.Declarations)
+	}
+	// Discovery candidate retention is deliberately sparse. Removing these
+	// examples proves exact target lookup comes from the selected inventory.
+	report.Discovery.Candidates = nil
+	report.Formats = nil
+	doc, err := Build(report, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wanted := map[string]bool{"maven->lib/helper.jar": false, "dotnet->lib/Helper.dll": false}
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeReferencesArtifact {
+			continue
+		}
+		from, to := "", ""
+		for _, node := range doc.Nodes {
+			if node.ID == edge.From {
+				from = node.Properties["ecosystem"]
+			}
+			if node.ID == edge.To {
+				to = node.Paths[0]
+			}
+		}
+		key := from + "->" + to
+		if _, ok := wanted[key]; !ok || wanted[key] || len(edge.Evidence) != 2 {
+			t.Fatalf("unexpected or duplicate artifact edge: %+v (%s)", edge, key)
+		}
+		wanted[key] = true
+	}
+	for key, found := range wanted {
+		if !found {
+			t.Errorf("missing artifact edge %s", key)
+		}
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "${basedir}") || strings.Contains(string(encoded), "../lib/") || strings.Contains(string(encoded), root) {
+		t.Fatalf("artifact map leaked raw declaration or host path: %s", encoded)
+	}
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeReferencesArtifact && edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Fatalf("selected path suffix was overstated as validated artifact evidence: %+v", edge)
+		}
 	}
 }
 

@@ -61,6 +61,33 @@ func attributeRootDockerfile(t *testing.T, dockerfile string, extra map[string]s
 	return ""
 }
 
+func TestRootDockerfileCrateCopyAndCargoBuildSelectCargoComponent(t *testing.T) {
+	doc := mapdoc.New()
+	for _, eco := range []string{"cargo", "npm"} {
+		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "manifest"}, eco)
+		n.Name = eco
+		n.Properties = map[string]string{"root": ".", "ecosystem": eco}
+		doc.Nodes = append(doc.Nodes, n)
+	}
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete",
+		Evidence:         []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Evidence: deployables.Evidence{Field: "COPY source", Value: "crates", Line: 2, Basis: "dockerfile-instruction"}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo build --release", Evidence: deployables.Evidence{Field: "RUN", Value: "RUN cargo build --release", Line: 3, Basis: "dockerfile-instruction"}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	var builds []mapdoc.Edge
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.Type == mapdoc.EdgeBuilds {
+			builds = append(builds, e)
+		}
+	}
+	if len(builds) != 1 || builds[0].To != doc.Nodes[0].ID || len(builds[0].Evidence) != 2 || builds[0].Coverage.Status != mapdoc.CoveragePartial {
+		t.Fatalf("cargo evidence should narrow co-location to one partial edge: %+v", builds)
+	}
+}
+
 const stagedBuild = "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn package\n"
 
 func TestDockerFinalStageIsTheLastFromNotTheLastSortedImage(t *testing.T) {

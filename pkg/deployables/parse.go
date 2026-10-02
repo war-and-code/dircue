@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/war-and-code/dircue/internal/xmlencoding"
 	yaml "go.yaml.in/yaml/v2"
 )
 
@@ -46,6 +47,8 @@ func parse(name string, content []byte) ([]Definition, bool, error) {
 		return parseDockerfile(name, content)
 	case strings.HasSuffix(base, ".tf"):
 		return parseTerraform(name, content)
+	case strings.EqualFold(base, "makefile"):
+		return parseMakefile(name, content)
 	case base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile."):
 		return parseJenkins(content)
 	case base == "program.cs" && isAppHostDir(path.Dir(name)):
@@ -416,7 +419,28 @@ func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 		ev := Evidence{Field: kind, Value: bounded(blockName), Line: line, Basis: "terraform-literal-block"}
 		evidence = append(evidence, ev)
 		if kind == "module" {
-			refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+			open := bytes.IndexByte(content[m[0]:m[1]], '{') + m[0]
+			end := -1
+			if open >= m[0] {
+				end = terraformBlockEnd(content, open)
+			}
+			if end < 0 {
+				refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+				continue
+			}
+			body := content[open+1 : end]
+			source, sourceLine, sourceOK := terraformModuleSource(body)
+			if !sourceOK || bytes.Contains(content, []byte("/*")) || bytes.Contains(content, []byte("<<")) {
+				refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+				continue
+			}
+			q := "external"
+			if strings.Contains(source, "${") || strings.Contains(source, "%{") || strings.ContainsAny(source, "\\\x00") {
+				q = "unresolved"
+			} else if source == "." || strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../") {
+				q = "local"
+			}
+			refs = append(refs, Reference{Kind: "module_source", Value: bounded(source), Qualification: q, Evidence: Evidence{Field: "source", Value: bounded(source), Line: line + sourceLine, Basis: "terraform-module-source"}})
 		}
 	}
 	if len(evidence) == 0 {
@@ -441,6 +465,61 @@ func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 		References: refs,
 	}
 	return []Definition{d}, true, nil
+}
+
+var terraformSourceAttribute = regexp.MustCompile(`^\s*source\s*=`)
+var terraformLiteralSource = regexp.MustCompile(`^\s*source\s*=\s*"([^"\r\n]+)"\s*(?://.*|#.*)?\s*$`)
+
+// terraformModuleSource reads one direct body-level quoted source attribute.
+// Comments and nested objects are skipped; duplicate or expression-valued
+// attributes are unresolved. Heredocs and block comments are rejected by the
+// caller because the small block-boundary lexer cannot safely delimit them.
+func terraformModuleSource(body []byte) (string, int, bool) {
+	depth := 0
+	quoted, escaped := false, false
+	count, line, sourceLine := 0, 0, 0
+	source := ""
+	for _, raw := range bytes.Split(body, []byte("\n")) {
+		line++
+		text := string(raw)
+		if depth == 0 && terraformSourceAttribute.MatchString(text) {
+			count++
+			if m := terraformLiteralSource.FindStringSubmatch(text); m != nil {
+				source, sourceLine = m[1], line-1
+			} else {
+				source = ""
+			}
+		}
+		for i := 0; i < len(text); i++ {
+			c := text[i]
+			if quoted {
+				if escaped {
+					escaped = false
+					continue
+				}
+				if c == '\\' {
+					escaped = true
+					continue
+				}
+				if c == '"' {
+					quoted = false
+				}
+				continue
+			}
+			if c == '#' || (c == '/' && i+1 < len(text) && text[i+1] == '/') {
+				break
+			}
+			switch c {
+			case '"':
+				quoted = true
+			case '{':
+				depth++
+			case '}':
+				depth--
+			}
+		}
+	}
+	return source, sourceLine, count == 1 && source != ""
 }
 
 var terraformAlias = regexp.MustCompile(`(?m)^\s*alias\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$`)
@@ -581,6 +660,10 @@ var mavenPropertyRef = regexp.MustCompile(`\$\{([^}]+)\}`)
 // same file only; a name that still holds a ${...} expression (for example one
 // defined in a parent POM or supplied on the command line) is qualified.
 func parsePomXML(name string, content []byte) ([]Definition, bool, error) {
+	content, err := xmlencoding.Decode(content)
+	if err != nil {
+		return nil, false, nil
+	}
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("pom.xml contains binary data")
 	}
@@ -936,6 +1019,24 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 				}
 				if uses, ok := stringValue(step, "uses"); ok {
 					d.References = append(d.References, workflowRef("action", uses, content))
+					// docker/build-push-action consumes an explicit local context. Keep
+					// this lexical: the action's default Git context and expressions
+					// cannot be resolved from the selected repository inventory.
+					if strings.HasPrefix(strings.ToLower(uses), "docker/build-push-action@") {
+						if inputs, ok := object(step, "with"); ok {
+							if context, ok := stringValue(inputs, "context"); ok {
+								q := "local"
+								if dynamic(context) || !safeRelative(context) {
+									q = "unresolved"
+								}
+								ref := withCheckout(Reference{Kind: "build_context", Value: bounded(context), Qualification: q, Evidence: Evidence{Field: "with.context", Value: bounded(context), Line: lineOf(content, "context:"), Basis: "github-build-push-action"}}, context, earlier)
+								if ref.CheckoutNamed && ref.Qualification == "local" {
+									ref.Qualification = "external"
+								}
+								d.References = append(d.References, ref)
+							}
+						}
+					}
 				}
 				// Record checkout path declarations (#48): actions/checkout with an explicit
 				// path: input establishes a checkout-relative coordinate for subsequent steps.

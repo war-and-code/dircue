@@ -127,6 +127,17 @@ type Diagnostic struct {
 	Message string `json:"message"`
 }
 
+// BuildContext is a private source-backed pairing between a literal Docker
+// build context and Dockerfile outside the Dockerfile itself. It is carried
+// only between observers and is not part of deployables report JSON.
+type BuildContext struct {
+	SourcePath      string
+	Context         string
+	Dockerfile      string
+	ContextEvidence Evidence
+	FileEvidence    Evidence
+}
+
 type Report struct {
 	Provider        string           `json:"provider"`
 	ProviderVersion string           `json:"provider_version"`
@@ -140,7 +151,8 @@ type Report struct {
 	Omissions       map[string]int64 `json:"omissions"`
 	// Directories holds every directory above a selected file, so path
 	// references can be checked against the scanned tree. Not serialized.
-	Directories map[string]bool `json:"-"`
+	Directories   map[string]bool `json:"-"`
+	BuildContexts []BuildContext  `json:"-"`
 }
 
 // addDirectories records every ancestor directory of a file path.

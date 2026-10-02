@@ -67,6 +67,39 @@ func pythonTestReq(t *testing.T, d *Document, kind, value, state string) {
 	t.Fatalf("missing requirement %s=%q state=%s in %+v", kind, value, state, d.Project.Requirements)
 }
 
+func TestMaturinBinBindingDeclaresBinaryAtStaticInProjectManifest(t *testing.T) {
+	d := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "ruff"
+version = "1.0"
+[dependency-groups]
+dev = []
+[tool.maturin]
+bindings = "bin"
+manifest-path = "crates/ruff/Cargo.toml"
+`))
+	if d == nil || len(d.Project.Interfaces) != 1 {
+		t.Fatalf("maturin binary interface missing: %+v", d)
+	}
+	got := d.Project.Interfaces[0]
+	if got.Kind != "binary" || got.Name != "ruff" || got.Target != "python/crates/ruff/Cargo.toml" || got.State != "declared" {
+		t.Fatalf("unexpected maturin interface: %+v", got)
+	}
+	for _, body := range []string{
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='bin'\nmanifest-path='../../outside/Cargo.toml'\n",
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='bin'\nmanifest-path='${CARGO_MANIFEST_DIR}/Cargo.toml'\n",
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='pyo3'\n",
+	} {
+		doc := ParsePython("python/pyproject.toml", []byte(body))
+		if doc != nil {
+			for _, iface := range doc.Project.Interfaces {
+				if iface.Kind == "binary" {
+					t.Errorf("unsupported/out-of-root maturin declaration became a binary: %+v", iface)
+				}
+			}
+		}
+	}
+}
+
 func TestPythonDeclarationsAndInterfaces(t *testing.T) {
 	d := ParsePython("service/pyproject.toml", []byte(`[project]
 name = "weather-service"

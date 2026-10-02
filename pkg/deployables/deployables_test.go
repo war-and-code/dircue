@@ -2,6 +2,7 @@ package deployables
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
 	"reflect"
 	"strings"
@@ -223,6 +224,180 @@ func TestCronJobFacetsAreTypedBoundedAndUnresolvedWhenUnsafe(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestMavenArchiveParserAcceptsSingleByteXML(t *testing.T) {
+	body := []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><project><artifactId>caf\xe9</artifactId><version>1</version><packaging>war</packaging></project>")
+	definitions, matched, err := parsePomXML("pom.xml", body)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "café-1.war" {
+		t.Fatalf("ISO-8859-1 WAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+	ascii := []byte(`<?xml version="1.0" encoding="US-ASCII"?><project><artifactId>web</artifactId><version>1</version><packaging>ear</packaging></project>`)
+	definitions, matched, err = parsePomXML("pom.xml", ascii)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "web-1.ear" {
+		t.Fatalf("US-ASCII EAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+	text := `<?xml version="1.0" encoding="utf-16"?><project><artifactId>web</artifactId><version>1</version><packaging>war</packaging></project>`
+	utf16Body := make([]byte, 2+2*len([]rune(text)))
+	utf16Body[0], utf16Body[1] = 0xff, 0xfe
+	for i, r := range text {
+		binary.LittleEndian.PutUint16(utf16Body[2+i*2:], uint16(r))
+	}
+	definitions, matched, err = parsePomXML("pom.xml", utf16Body)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "web-1.war" {
+		t.Fatalf("UTF-16 WAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+}
+
+func TestTerraformOnlyLiteralLocalModuleSourcesAreQualified(t *testing.T) {
+	defs, matched, err := parseTerraform("infra/main.tf", []byte(`resource "x_y" "z" {}
+module "local" {
+  source = "../modules/network" # literal local source
+}
+module "registry" { source = "example/network/aws" }
+module "dynamic" { source = "../${var.name}" }
+module "commented" {
+  # source = "../not-a-module"
+}
+`))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse Terraform: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	want := map[string]string{"../modules/network": "local", "example/network/aws": "external", "../${var.name}": "unresolved", "uninspected": "unresolved"}
+	for _, ref := range defs[0].References {
+		if ref.Kind != "module_source" {
+			continue
+		}
+		if q, ok := want[ref.Value]; !ok || q != ref.Qualification {
+			t.Errorf("unexpected module source %+v", ref)
+		}
+		delete(want, ref.Value)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing module source observations: %v", want)
+	}
+}
+
+func TestTerraformModuleSourcesDoNotReadCommentsNestedValuesOrAmbiguousSyntax(t *testing.T) {
+	body := []byte(`resource "x_y" "z" {}
+module "nested" {
+  local = { source = "../fake" }
+}
+module "duplicate" {
+  source = "../first"
+  source = "../second"
+}
+module "heredoc" {
+  marker = <<EOF
+source = "../fake"
+}
+EOF
+  source = "../real"
+}
+module "block-comment" {
+  /* source = "../fake" */
+  source = "../real"
+}
+`)
+	defs, matched, err := parseTerraform("infra/main.tf", body)
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse Terraform: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	for _, ref := range defs[0].References {
+		if ref.Kind == "module_source" && (ref.Qualification != "unresolved" || ref.Value != "uninspected") {
+			t.Errorf("ambiguous or nested Terraform source became linkable: %+v", ref)
+		}
+	}
+}
+
+func TestGitHubBuildPushActionRequiresExplicitStaticContext(t *testing.T) {
+	defs, matched, err := parseYAML(".github/workflows/build.yml", []byte(`name: build
+jobs:
+  image:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+      - uses: docker/build-push-action@v6
+        with:
+          context: repo/services/api
+          file: services/api/Dockerfile
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}
+`))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse workflow: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	contexts := 0
+	for _, ref := range defs[0].References {
+		if ref.Kind != "build_context" {
+			continue
+		}
+		contexts++
+		if ref.Value == "repo/services/api" && (ref.Qualification != "local" || ref.Checkout != "repo") {
+			t.Errorf("literal context/check-out binding lost: %+v", ref)
+		}
+		if strings.Contains(ref.Value, "${{") && ref.Qualification != "unresolved" {
+			t.Errorf("expression context was resolved: %+v", ref)
+		}
+	}
+	if contexts != 2 {
+		t.Fatalf("expected explicit context observations only, got %+v", defs[0].References)
+	}
+}
+
+func TestMakefileReadsOnlyStaticDockerBuildFileAndContext(t *testing.T) {
+	body := `OCI_BUILD := DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARGS)
+OCI_BUILD := DOCKER_BUILDKIT=1 docker build $(BUILD_ARGS)
+
+image:
+	$(OCI_BUILD) -t $(IMAGE) -f cmd/loki/Dockerfile .
+	docker build -f cmd/api/Dockerfile services/api
+	docker build -f $(DOCKERFILE) .
+	$(UNKNOWN_BUILD) -f cmd/nope/Dockerfile .
+	$(OCI_BUILD) -f cmd/dynamic/Dockerfile $(BUILD_CONTEXT)
+`
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || !matched || len(defs) != 2 {
+		t.Fatalf("static Makefile builds: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	wanted := map[string]string{"cmd/loki/Dockerfile": ".", "cmd/api/Dockerfile": "services/api"}
+	for _, def := range defs {
+		file, context := "", ""
+		for _, ref := range def.References {
+			switch ref.Kind {
+			case "dockerfile":
+				file = ref.Value
+			case "build_context":
+				context = ref.Value
+			}
+		}
+		if wanted[file] != context || context == "" {
+			t.Errorf("unexpected build context pair: %+v", def.References)
+		}
+		delete(wanted, file)
+	}
+	if len(wanted) != 0 {
+		t.Fatalf("missing static build invocations: %v", wanted)
+	}
+	file := []byte(body)
+	report, err := Observe(context.Background(), []Candidate{{Path: "Makefile", Size: int64(len(file)), Read: func(context.Context, int64) ([]byte, int64, error) { return file, int64(len(file)), nil }}}, Options{})
+	if err != nil || len(report.BuildContexts) != 2 || len(report.Definitions) != 0 {
+		t.Fatalf("Makefile contexts should remain private observer metadata, report=%+v err=%v", report, err)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil || strings.Contains(string(encoded), "BuildContexts") || strings.Contains(string(encoded), "makefile") {
+		t.Fatalf("Makefile plumbing changed public report JSON: %s err=%v", encoded, err)
+	}
+	collector := NewCollector(Options{})
+	if _, err := collector.Detect(context.Background(), profile.File{Path: "Makefile", Size: int64(len(file)), Content: file}); err != nil {
+		t.Fatal(err)
+	}
+	collected := collector.Finish()
+	if len(collected.BuildContexts) != 2 || len(collected.Definitions) != 0 {
+		t.Fatalf("scanner collector dropped private Makefile contexts: %+v", collected)
 	}
 }
 
@@ -1162,16 +1337,10 @@ func TestMavenWARProfilePackagingIsIgnored(t *testing.T) {
 	}
 }
 
-func TestMavenWARUnsupportedEncodingMatchesComponentParser(t *testing.T) {
-	body := `<?xml version="1.0" encoding="ISO-8859-1"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <artifactId>web</artifactId>
-  <version>1.0</version>
-  <packaging>war</packaging>
-</project>
-`
-	r := observeOne(t, "pom.xml", body)
-	if len(r.Definitions) != 0 {
-		t.Errorf("an encoding the Maven component parser rejects must not yield an archive, got %+v", r.Definitions)
+func TestMavenWARSingleByteEncodingMatchesComponentParser(t *testing.T) {
+	body := []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><project><artifactId>caf\xe9</artifactId><version>1</version><packaging>war</packaging></project>")
+	r := observeOne(t, "pom.xml", string(body))
+	if len(r.Definitions) != 1 || r.Definitions[0].Name != "café-1.war" {
+		t.Errorf("ISO-8859-1 WAR was not parsed consistently with Maven components: %+v", r.Definitions)
 	}
 }

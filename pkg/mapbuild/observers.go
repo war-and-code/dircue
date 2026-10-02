@@ -23,6 +23,54 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: name, Scope: ".", Coverage: coverage})
 }
 
+// dockerCargoComponent narrows root-level co-location attribution only when
+// both the copied crate tree and a literal Cargo build command are present.
+// These remain partial static clues; ambiguous roots are left unattributed.
+func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document) (string, []mapdoc.Evidence, bool) {
+	copyEvidence := []mapdoc.Evidence{}
+	for _, ref := range def.References {
+		if ref.Kind != "copy_source" {
+			continue
+		}
+		source := strings.TrimPrefix(path.Clean(ref.Value), "./")
+		if source == "crates" || strings.HasPrefix(source, "crates/") {
+			copyEvidence = append(copyEvidence, deployableEvidence(def.Path, ref.Evidence))
+		}
+	}
+	if len(copyEvidence) == 0 {
+		return "", nil, false
+	}
+	buildEvidence := []mapdoc.Evidence{}
+	for _, ref := range def.DockerPathWrites {
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, segment := range strings.Split(command, "&&") {
+			fields := strings.Fields(strings.TrimSpace(segment))
+			if len(fields) >= 2 && path.Base(fields[0]) == "cargo" && fields[1] == "build" {
+				buildEvidence = append(buildEvidence, deployableEvidence(def.Path, ref.Evidence))
+				break
+			}
+		}
+	}
+	if len(buildEvidence) == 0 {
+		return "", nil, false
+	}
+	var cargoOwner string
+	for _, id := range owners {
+		for _, n := range d.Nodes {
+			if n.ID == id && n.Properties["ecosystem"] == "cargo" {
+				if cargoOwner != "" {
+					return "", nil, false
+				}
+				cargoOwner = id
+			}
+		}
+	}
+	if cargoOwner == "" {
+		return "", nil, false
+	}
+	return cargoOwner, append(copyEvidence, buildEvidence[0]), true
+}
+
 func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
@@ -91,6 +139,18 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		evidence mapdoc.Evidence
 	}
 	var composeDeps []composeDep
+	type terraformModuleRef struct {
+		fromID, fromDir, source string
+		evidence                mapdoc.Evidence
+	}
+	var terraformModuleRefs []terraformModuleRef
+	terraformNodeByDir := map[string]string{}
+	type contextDockerfile struct {
+		file, component string
+		evidence        mapdoc.Evidence
+	}
+	var contextDockerfiles []contextDockerfile
+	dockerNodesByPath := map[string]string{}
 	seenDeployables := map[string]int{}
 	seenEdges := map[string]bool{}
 	for _, edge := range d.Edges {
@@ -120,6 +180,9 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			nodePaths = []string{path.Dir(def.Path)}
 		}
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, nodePaths, def.Provider+":"+def.Kind+":"+def.Name)
+		if def.Provider == "dockerfile" {
+			dockerNodesByPath[def.Path] = n.ID
+		}
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
 		if def.Format != "" {
@@ -187,6 +250,16 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				if ref.Kind == "working_directory" {
 					resolved = path.Clean(ref.Value)
 				}
+				if def.Provider == "github-actions" && ref.Kind == "build_context" {
+					resolved = path.Clean(ref.Value)
+					if ref.Checkout != "" {
+						if resolved == ref.Checkout {
+							resolved = "."
+						} else if strings.HasPrefix(resolved, ref.Checkout+"/") {
+							resolved = strings.TrimPrefix(resolved, ref.Checkout+"/")
+						}
+					}
+				}
 				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
 				if ref.Kind == "working_directory" {
 					owner, reason = workingDirectoryOwner(d, r, ref, componentsByRoot, resolved)
@@ -202,7 +275,19 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 						addRelationship(mapdoc.EdgeBuilds, n.ID, owner, ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
 					}
 					if def.Provider == "compose" && def.Kind == "service" {
-						addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						if def.Provider == "compose" {
+							addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						}
+						var dockerfile string
+						for _, candidate := range def.References {
+							if candidate.Kind == "dockerfile" && candidate.Qualification == "local" {
+								dockerfile = path.Clean(path.Join(resolved, candidate.Value))
+								break
+							}
+						}
+						if dockerfile != "" {
+							contextDockerfiles = append(contextDockerfiles, contextDockerfile{file: dockerfile, component: owner, evidence: localEvidence})
+						}
 					}
 				}
 			}
@@ -290,6 +375,8 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			}
 			if len(artifactOwners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, artifactOwners[0], "dockerfile-artifact:"+def.Path, "dockerfile_copy_source_matches_maven_archive", artifactEvidence)
+			} else if owner, evidence, ok := dockerCargoComponent(def, owners, d); ok {
+				addRelationship(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile-cargo:"+def.Path, "dockerfile_copy_and_build_evidence_matches_cargo_component", evidence...)
 			} else if len(owners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
 			} else if len(owners) > 1 {
@@ -333,7 +420,46 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				}{n.ID, image.name, image.evidence})
 			}
 		}
+		if def.Provider == "terraform" {
+			dir := path.Clean(path.Dir(def.Path))
+			terraformNodeByDir[dir] = n.ID
+			for _, ref := range def.References {
+				if ref.Kind == "module_source" && ref.Qualification == "local" {
+					terraformModuleRefs = append(terraformModuleRefs, terraformModuleRef{fromID: n.ID, fromDir: dir, source: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
+				}
+			}
+		}
 		d.Nodes = append(d.Nodes, n)
+	}
+	for _, ref := range terraformModuleRefs {
+		targetDir := path.Clean(path.Join(ref.fromDir, ref.source))
+		if targetDir == ".." || strings.HasPrefix(targetDir, "../") || strings.HasPrefix(targetDir, "/") {
+			continue
+		}
+		if targetID := terraformNodeByDir[targetDir]; targetID != "" {
+			addRelationship(mapdoc.EdgeDependsOnLocal, ref.fromID, targetID, "terraform-module:"+targetDir, "terraform_declares_local_module_source", ref.evidence)
+		}
+	}
+	for _, binding := range contextDockerfiles {
+		if dockerID := dockerNodesByPath[binding.file]; dockerID != "" {
+			addRelationship(mapdoc.EdgeBuilds, dockerID, binding.component, "declared-build-context:"+binding.file, "declared_context_matches_component_root", binding.evidence)
+		}
+	}
+	if r != nil {
+		for _, binding := range r.BuildContexts {
+			resolved := path.Clean(path.Join(path.Dir(binding.SourcePath), binding.Context))
+			owner, _ := localPathOwner(componentsByRoot, resolved, false)
+			if owner == "" {
+				continue
+			}
+			dockerPath := path.Clean(path.Join(resolved, binding.Dockerfile))
+			dockerID := dockerNodesByPath[dockerPath]
+			if dockerID == "" {
+				continue
+			}
+			addRelationship(mapdoc.EdgeBuilds, dockerID, owner, "makefile-context:"+dockerPath, "declared_context_matches_component_root",
+				deployableEvidence(binding.SourcePath, binding.ContextEvidence), deployableEvidence(binding.SourcePath, binding.FileEvidence))
+		}
 	}
 	// Emit depends_on edges for compose service dependencies declared via depends_on.
 	// Both sides must be known compose service deployable nodes.

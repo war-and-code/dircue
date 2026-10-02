@@ -230,6 +230,26 @@ func ParseDotnet(name string, content []byte) Document {
 					addRef(dotnetReference(name, "project-reference", v, condition))
 				}
 			}
+		case "Reference":
+			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
+			for _, child := range n.children {
+				if !strings.EqualFold(child.name, "HintPath") {
+					continue
+				}
+				hint := strings.TrimSpace(child.text.String())
+				if hint == "" {
+					continue
+				}
+				childCondition := budget.condition(condition, child.attrs["Condition"])
+				ref := dotnetReference(name, "local-artifact", hint, childCondition)
+				if ref.Target != "" && !strings.EqualFold(path.Ext(ref.Target), ".dll") {
+					ref.Target = ""
+					ref.State = "unresolved"
+				}
+				addRef(ref)
+			}
 		case "Import":
 			if v := n.attrs["Project"]; v != "" {
 				ref := dotnetReference(name, "import", v, condition)
@@ -357,7 +377,7 @@ func dotnetSemanticName(parent, name string) string {
 	case "PropertyGroup":
 		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers", "OutputType"}
 	case "ItemGroup":
-		supported = []string{"ProjectReference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
+		supported = []string{"ProjectReference", "Reference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
 	default:
 		return name
 	}

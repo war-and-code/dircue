@@ -22,6 +22,7 @@ type Reference struct {
 	State        string `json:"state"`
 	Evidence     string `json:"evidence"`
 	Condition    string `json:"condition,omitempty"`
+	TargetBytes  int64  `json:"-"` // Selected-source size used by map assembly; never serialized.
 }
 
 // Interface is a bounded, source-declared launch or service interface. It is
