@@ -1,5 +1,5 @@
 {
-  "description": "Evidence archive manifest. Files listed here have been removed from the repository working tree and git history. They are stored as assets of the GitHub release tagged evidence-archive-1. Use scripts/fetch_receipts.py (or make fetch-receipts) to restore them locally.",
+  "description": "Evidence archive manifest. Listed evidence is stored as assets of the GitHub release tagged evidence-archive-1 and is not tracked in the current repository tree. Historical commits may still contain earlier copies. Use scripts/fetch_receipts.py (or make fetch-receipts) to restore ignored local copies.",
   "release_tag": "evidence-archive-1",
   "release_url": "https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1",
   "base_download_url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1",
