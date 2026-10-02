@@ -423,6 +423,19 @@ func jvmMavenSection(name string, n *jvmNode, condition string, props map[string
 		if budget.exceeded {
 			return
 		}
+		// Maven plugin dependencies can also declare system-scoped local
+		// artifacts. They are build inputs even though they are not application
+		// dependencies, so retain only the local-artifact relationship here.
+		for _, dep := range plugin.child("dependencies").list("dependency") {
+			if budget.exceeded {
+				return
+			}
+			if strings.EqualFold(dep.value("scope"), "system") {
+				if ref := jvmArtifactReference(name, dep.value("systemPath"), condition, props); ref.Kind != "" {
+					budget.reference(ref)
+				}
+			}
+		}
 		artifact := plugin.value("artifactId")
 		group := plugin.value("groupId")
 		if group == "" {

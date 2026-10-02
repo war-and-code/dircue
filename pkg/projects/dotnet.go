@@ -234,6 +234,17 @@ func ParseDotnet(name string, content []byte) Document {
 			if parent != "ItemGroup" && parent != "Project" {
 				break
 			}
+			// MSBuild permits item metadata in XML attributes as well as child
+			// elements. Keep HintPath declarations visible in either form; the
+			// normal path resolver leaves property expressions unresolved.
+			if hint := strings.TrimSpace(n.attrs["HintPath"]); hint != "" {
+				ref := dotnetReference(name, "local-artifact", hint, condition)
+				if ref.Target != "" && !strings.EqualFold(path.Ext(ref.Target), ".dll") {
+					ref.Target = ""
+					ref.State = "unresolved"
+				}
+				addRef(ref)
+			}
 			for _, child := range n.children {
 				if !strings.EqualFold(child.name, "HintPath") {
 					continue

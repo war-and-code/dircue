@@ -383,8 +383,8 @@ func TestGitHubBuildContextAfterForeignRootCheckoutIsNotAttributed(t *testing.T)
 func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
 	root := t.TempDir()
 	files := map[string][]byte{
-		"app/pom.xml":    []byte(`<project><artifactId>app</artifactId><dependencies><dependency><groupId>local</groupId><artifactId>helper</artifactId><scope>system</scope><systemPath>${basedir}/../lib/helper.jar</systemPath></dependency></dependencies></project>`),
-		"app/App.csproj": []byte(`<Project><ItemGroup><Reference Include="Helper"><HintPath>../lib/Helper.dll</HintPath></Reference></ItemGroup></Project>`),
+		"app/pom.xml":    []byte(`<project><artifactId>app</artifactId><build><plugins><plugin><artifactId>generator</artifactId><dependencies><dependency><groupId>local</groupId><artifactId>helper</artifactId><scope>system</scope><systemPath>${basedir}/../lib/helper.jar</systemPath></dependency></dependencies></plugin></plugins></build></project>`),
+		"app/App.csproj": []byte(`<Project><ItemGroup><Reference Include="Helper"><HintPath>../lib/Helper.dll</HintPath></Reference><Reference Include="Dynamic" HintPath="$(LibraryDir)\Dynamic.dll" /></ItemGroup></Project>`),
 		"lib/helper.jar": []byte("not opened by the project parser"),
 		"lib/Helper.dll": []byte("also not opened by the project parser"),
 	}
@@ -401,7 +401,7 @@ func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if report.Declarations == nil || report.Declarations.Status != "complete" {
+	if report.Declarations == nil || report.Declarations.Status != "partial" {
 		t.Fatalf("declarations: %+v", report.Declarations)
 	}
 	// Discovery candidate retention is deliberately sparse. Removing these
@@ -413,6 +413,17 @@ func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
 		t.Fatal(err)
 	}
 	wanted := map[string]bool{"maven->lib/helper.jar": false, "dotnet->lib/Helper.dll": false}
+	unresolvedAttributeFound := false
+	for _, node := range doc.Nodes {
+		if node.Kind != mapdoc.NodeComponent || node.Properties["ecosystem"] != "dotnet" {
+			continue
+		}
+		for _, fact := range node.Facts {
+			if fact.Kind == "artifact_reference" && fact.State == "unresolved" {
+				unresolvedAttributeFound = true
+			}
+		}
+	}
 	for _, edge := range doc.Edges {
 		if edge.Type != mapdoc.EdgeReferencesArtifact {
 			continue
@@ -436,6 +447,9 @@ func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
 		if !found {
 			t.Errorf("missing artifact edge %s", key)
 		}
+	}
+	if !unresolvedAttributeFound {
+		t.Fatal("dynamic HintPath attribute did not survive as an unresolved artifact reference")
 	}
 	encoded, err := json.Marshal(doc)
 	if err != nil {

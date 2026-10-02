@@ -131,6 +131,17 @@ func TestDotnetHintPathIsAConfinedLocalArtifactReference(t *testing.T) {
 	}
 }
 
+func TestDotnetHintPathAttributeRetainsUnresolvedLocalArtifact(t *testing.T) {
+	doc := ParseDotnet("src/App.csproj", []byte(`<Project><ItemGroup><Reference Include="Json" HintPath="$(LibraryDir)\Json.dll" /></ItemGroup></Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].References) != 1 {
+		t.Fatalf("attribute HintPath was not retained: %+v", doc)
+	}
+	ref := doc.Projects[0].References[0]
+	if ref.Kind != "local-artifact" || ref.Value != `$(LibraryDir)\Json.dll` || ref.Target != "" || ref.State != "unresolved" {
+		t.Fatalf("dynamic HintPath was guessed or lost: %+v", ref)
+	}
+}
+
 func TestDotnetSharedConfiguration(t *testing.T) {
 	doc := ParseDotnet("Directory.Build.props", []byte(`<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><TargetFrameworkVersion>v4.8</TargetFrameworkVersion><LangVersion>$(ChosenVersion)</LangVersion></PropertyGroup><ImportGroup Condition="'$(OS)' == 'Windows_NT'"><Import Project="build/windows.props"/></ImportGroup></Project>`))
 	if len(doc.Projects) != 0 || len(doc.Requirements) != 2 || len(doc.References) != 1 {

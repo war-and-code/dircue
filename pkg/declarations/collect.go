@@ -349,7 +349,10 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 	if len(c.report.Diagnostics) > 0 || c.report.Coverage.OmittedFiles > 0 {
 		c.report.Status = "partial"
 	}
-	if c.report.Status == "partial" {
+	// A diagnostic in one manifest does not change the selected-file inventory
+	// and must not turn definite missing references into unresolved ones. Only
+	// an inventory omission can make an absent target uncertain.
+	if c.report.Coverage.OmittedFiles > 0 {
 		for i := range c.report.Projects {
 			for j := range c.report.Projects[i].References {
 				r := &c.report.Projects[i].References[j]

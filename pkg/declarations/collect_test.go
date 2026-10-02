@@ -97,6 +97,30 @@ func TestCollectorDeterministicAndSelectedOnly(t *testing.T) {
 	}
 }
 
+func TestUnrelatedDiagnosticDoesNotRewriteMissingArtifactTarget(t *testing.T) {
+	c := New("directory", "", 0)
+	c.Add("app/App.csproj", candidateFor("app/App.csproj", `<Project><ItemGroup><Reference Include="Missing"><HintPath>lib/Missing.dll</HintPath></Reference></ItemGroup></Project>`))
+	c.Add("broken/Cargo.toml", candidateFor("broken/Cargo.toml", "[package\nname = \"broken\"\n"))
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || len(r.Diagnostics) == 0 {
+		t.Fatalf("expected the unrelated invalid manifest to make the report partial: %+v", r)
+	}
+	for _, project := range r.Projects {
+		for _, ref := range project.References {
+			if ref.Kind == "local-artifact" {
+				if ref.TargetStatus != "missing" || ref.State != "missing" {
+					t.Fatalf("unrelated diagnostic changed a definite missing artifact into %s/%s", ref.TargetStatus, ref.State)
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("missing artifact reference was not retained")
+}
+
 func TestPythonRequirementsOnlyRootProducesComponent(t *testing.T) {
 	// A requirements.txt without any .py source files is still a valid Python
 	// component: it declares a dependency set for a service whose code may be

@@ -139,6 +139,17 @@ func TestMavenDependencyScopeIsPrivateAndOnlyApplicationDependenciesAreTagged(t 
 	}
 }
 
+func TestMavenPluginSystemDependencyRetainsLocalArtifact(t *testing.T) {
+	doc := ParseJVM("pom.xml", []byte(`<project><build><plugins><plugin><artifactId>generator</artifactId><dependencies><dependency><groupId>local</groupId><artifactId>generator-data</artifactId><scope>system</scope><systemPath>${basedir}/lib/generator-data.jar</systemPath></dependency></dependencies></plugin></plugins></build></project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].References) != 1 {
+		t.Fatalf("plugin system dependency was not retained: %+v", doc)
+	}
+	ref := doc.Projects[0].References[0]
+	if ref.Kind != "local-artifact" || ref.Target != "lib/generator-data.jar" || ref.State != "declared" {
+		t.Fatalf("plugin artifact path was not resolved: %+v", ref)
+	}
+}
+
 func TestMavenRejectsMalformedAndForeignXML(t *testing.T) {
 	for _, input := range []string{`<project>`, `<project/><project/>`, `<!DOCTYPE project [<!ENTITY x SYSTEM "file:///etc/passwd">]><project>&x;</project>`, strings.Repeat("<x>", 65) + strings.Repeat("</x>", 65), `<project xmlns="urn:other"><modules><module>wrong</module></modules></project>`} {
 		d := ParseJVM("pom.xml", []byte(input))
