@@ -151,7 +151,7 @@ func mapCompareExitCodesSelected(command *cobra.Command, args []string) bool {
 		copy.Changed = false
 		flags.AddFlag(&copy)
 	})
-	flags.ParseErrorsWhitelist.UnknownFlags = true
+	flags.ParseErrorsAllowlist.UnknownFlags = true
 	err := flags.Parse(args)
 	if flags.Lookup("exit-code").Changed && selected {
 		return true

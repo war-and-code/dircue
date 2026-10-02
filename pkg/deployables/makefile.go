@@ -147,8 +147,6 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 	return defs, len(defs) > 0, nil
 }
 
-func dockerBuildPrefix(value string) bool { return directDockerBuildPrefix(strings.Fields(value)) > 0 }
-
 // safeDockerBuildAssignment accepts the simple Docker command prefix and
 // option-only trailing expansions used by build Makefiles. It rejects shell
 // control syntax and positional/file arguments, either of which could change
