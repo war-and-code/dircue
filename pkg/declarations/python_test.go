@@ -81,7 +81,7 @@ manifest-path = "crates/ruff/Cargo.toml"
 		t.Fatalf("maturin binary interface missing: %+v", d)
 	}
 	got := d.Project.Interfaces[0]
-	if got.Kind != "binary" || got.Name != "ruff" || got.Target != "python/crates/ruff/Cargo.toml" || got.State != "declared" {
+	if got.Kind != "binary" || got.Name != "unresolved" || got.Target != "python/crates/ruff/Cargo.toml" || got.State != "unresolved" {
 		t.Fatalf("unexpected maturin interface: %+v", got)
 	}
 	for _, body := range []string{
@@ -97,6 +97,54 @@ manifest-path = "crates/ruff/Cargo.toml"
 				}
 			}
 		}
+	}
+}
+
+func TestMaturinBinaryNameComesFromCargoTarget(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+`))
+	docs := []*Document{python, cargo}
+	ResolveCargo(docs, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "mtcli" || got.State != "declared" {
+		t.Fatalf("maturin binary should use Cargo target name, got %+v", got)
+	}
+}
+
+func TestMaturinBinaryNameRemainsUnknownWhenCargoTargetsAreAmbiguous(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+[[bin]]
+name = "other"
+path = "src/other.rs"
+`))
+	ResolveCargo([]*Document{python, cargo}, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true, "rust/src/other.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "unresolved" || got.State != "unresolved" {
+		t.Fatalf("ambiguous Cargo targets should not inherit Python distribution name: %+v", got)
 	}
 }
 

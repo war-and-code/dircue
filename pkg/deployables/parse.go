@@ -1077,8 +1077,16 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 					ref := Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}}
 					d.References = append(d.References, withCheckout(ref, prec.dir, earlier))
 				}
-				if p, named, found := checkoutPath(step); found && safeRelative(p) && path.Clean(p) != "." {
-					earlier = append(earlier, workflowCheckout{path: path.Clean(p), named: named})
+				if p, named, found := checkoutPath(step); found && safeRelative(p) {
+					if clean := path.Clean(p); clean != "." {
+						earlier = append(earlier, workflowCheckout{path: clean, named: named})
+					} else if named {
+						earlier = append(earlier, workflowCheckout{path: ".", named: true})
+					}
+				} else if checkoutNamedRepository(step) {
+					// actions/checkout defaults to GITHUB_WORKSPACE when path is
+					// omitted. A foreign repository therefore occupies the root.
+					earlier = append(earlier, workflowCheckout{path: ".", named: true})
 				}
 			}
 		}

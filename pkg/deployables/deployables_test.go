@@ -405,6 +405,34 @@ image:
 	}
 }
 
+func TestMakefileContinuationDoesNotReattributeBuildFromAnotherDirectory(t *testing.T) {
+	body := "image:\n\tdocker build -f services/api/Dockerfile .\n\nother:\n\tcd services && \\\n\t\tdocker build -f Dockerfile .\n"
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("only the complete literal invocation should be observed: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	if got := defs[0].References[0].Value; got != "services/api/Dockerfile" {
+		t.Fatalf("continuation body was misattributed as root invocation: %q", got)
+	}
+}
+
+func TestNestedMakefilesDoNotConsumeDeployableSelectionBudget(t *testing.T) {
+	if IsCandidate("services/api/Makefile") {
+		t.Fatal("nested Makefile is unsupported and must not consume a candidate slot")
+	}
+	if !IsCandidate("Dockerfile") {
+		t.Fatal("root Dockerfile must remain a selected deployable candidate")
+	}
+	files := []Candidate{makeCandidate("services/api/Makefile", "\tdocker build -f Dockerfile .\n"), makeCandidate("Dockerfile", "FROM alpine:3\n")}
+	report, err := Observe(context.Background(), files, Options{Files: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Definitions) != 1 || report.Definitions[0].Path != "Dockerfile" || report.Omissions["file_limit"] != 0 {
+		t.Fatalf("unsupported nested Makefile consumed the selection budget: defs=%+v omissions=%+v", report.Definitions, report.Omissions)
+	}
+}
+
 func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
 	for _, assignment := range []string{
 		"OCI_BUILD := docker build ; echo unsafe",

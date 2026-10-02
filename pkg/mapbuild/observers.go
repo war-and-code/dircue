@@ -51,6 +51,13 @@ func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc
 		for _, segment := range strings.Split(command, "&&") {
 			fields := strings.Fields(strings.TrimSpace(segment))
 			if len(fields) >= 2 && fields[0] == "cargo" && (fields[1] == "build" || fields[1] == "zigbuild") {
+				// A builder-stage command does not prove that this Cargo output is
+				// shipped in the final image. Narrow co-location only when the build
+				// itself runs in the final stage; cross-stage artifact tracing is
+				// handled separately when its source and destination are explicit.
+				if ref.Stage != def.DockerFinalStage {
+					continue
+				}
 				if cargoTargetOverridden(fields) {
 					continue
 				}

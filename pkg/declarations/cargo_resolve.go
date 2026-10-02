@@ -303,6 +303,66 @@ func ResolveCargo(docs []*Document, files map[string]bool) {
 			}
 		}
 	}
+	resolveMaturinBinaryNames(docs)
+}
+
+// resolveMaturinBinaryNames links a maturin bin binding to its selected Cargo
+// manifest. Cargo's declared binary target (or default-run when present) is
+// authoritative; the Python distribution name is not.
+func resolveMaturinBinaryNames(docs []*Document) {
+	cargoByManifest := map[string]*Document{}
+	for _, d := range docs {
+		if d != nil && d.Project != nil {
+			if _, ok := d.Data.(*cargoData); ok {
+				cargoByManifest[d.Project.ID] = d
+			}
+		}
+	}
+	for _, python := range docs {
+		if python == nil || python.Project == nil {
+			continue
+		}
+		for i := range python.Project.Interfaces {
+			iface := &python.Project.Interfaces[i]
+			if iface.Kind != "binary" || iface.Condition != "maturin bindings=bin" {
+				continue
+			}
+			cargo := cargoByManifest[iface.Target]
+			if cargo == nil || !cargo.Parsed {
+				continue
+			}
+			var bins []string
+			defaultRun := ""
+			for _, candidate := range cargo.Project.Interfaces {
+				switch candidate.Kind {
+				case "cargo-bin":
+					if candidate.State == "declared" {
+						bins = append(bins, candidate.Name)
+					}
+				case "cargo-default-run":
+					if candidate.State == "declared" {
+						defaultRun = candidate.Name
+					}
+				}
+			}
+			name := ""
+			if defaultRun != "" {
+				for _, bin := range bins {
+					if bin == defaultRun {
+						name = bin
+						break
+					}
+				}
+			} else if len(bins) == 1 {
+				name = bins[0]
+			}
+			if name == "" {
+				continue
+			}
+			iface.Name = name
+			iface.State = "declared"
+		}
+	}
 }
 
 func cargoPatternReferences(root *Document, pattern, kind string, packages []*Document, files map[string]bool, work *cargoWork, accept func(*Document) bool) {

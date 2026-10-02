@@ -37,13 +37,23 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 	}
 	defs := []Definition{}
 	lineNo := 0
+	continued := false
 	for _, raw := range bytes.Split(content, []byte("\n")) {
 		lineNo++
 		original := string(raw)
+		trimmed := strings.TrimSpace(original)
+		if continued {
+			continued = strings.HasSuffix(trimmed, "\\")
+			continue
+		}
 		if !strings.HasPrefix(original, "\t") {
 			continue
 		}
 		command := strings.TrimSpace(original)
+		if strings.HasSuffix(command, "\\") {
+			continued = true
+			continue
+		}
 		command = strings.TrimPrefix(command, "@")
 		if comment := strings.Index(command, " #"); comment >= 0 {
 			command = strings.TrimSpace(command[:comment])

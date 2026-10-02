@@ -88,6 +88,39 @@ func TestRootDockerfileCrateCopyAndCargoBuildSelectCargoComponent(t *testing.T) 
 	}
 }
 
+func TestBuilderStageCargoCommandDoesNotNarrowFinalImageOwners(t *testing.T) {
+	doc := mapdoc.New()
+	for _, eco := range []string{"cargo", "python", "npm"} {
+		n := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "manifest"}, eco)
+		n.Name = eco
+		n.Properties = map[string]string{"root": ".", "ecosystem": eco}
+		doc.Nodes = append(doc.Nodes, n)
+	}
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "runtime",
+		Evidence:         []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Stage: "builder", Evidence: deployables.Evidence{Field: "COPY source", Value: "crates", Line: 2, Basis: "dockerfile-instruction"}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo build --release", Stage: "builder", Evidence: deployables.Evidence{Field: "RUN", Value: "RUN cargo build --release", Line: 3, Basis: "dockerfile-instruction"}}},
+	}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+	got := map[string]bool{}
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.Type == mapdoc.EdgeBuilds {
+			for _, n := range doc.Nodes {
+				if n.ID == e.To {
+					got[n.Properties["ecosystem"]] = true
+				}
+			}
+		}
+	}
+	for _, eco := range []string{"cargo", "python", "npm"} {
+		if !got[eco] {
+			t.Fatalf("builder-stage Cargo command wrongly narrowed away %s co-location edge; got %v", eco, got)
+		}
+	}
+}
+
 const stagedBuild = "FROM maven:3.9 AS build\nWORKDIR /src\nCOPY . .\nRUN mvn package\n"
 
 func TestDockerFinalStageIsTheLastFromNotTheLastSortedImage(t *testing.T) {

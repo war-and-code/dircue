@@ -247,11 +247,11 @@ func ParsePython(name string, content []byte) *Document {
 			}
 			if manifest != "" && !strings.ContainsAny(manifest, "$%{}") && path.Base(manifest) == "Cargo.toml" {
 				if target, ok := pythonLocalTarget(name, path.Dir(manifest), path.Base(manifest)); ok {
-					label := d.Project.Name
-					if label == "" {
-						label = "maturin binary"
-					}
-					AddInterface(d, Interface{Kind: "binary", Name: label, Target: target, State: "declared", Evidence: name, Condition: "maturin bindings=bin"})
+					// The Python distribution name need not match Cargo's binary
+					// target name. Resolve it against the selected Cargo manifest
+					// after all manifests have been parsed; until then be explicit
+					// that the executable name is unknown.
+					AddInterface(d, Interface{Kind: "binary", Name: "unresolved", Target: target, State: "unresolved", Evidence: name, Condition: "maturin bindings=bin"})
 				}
 			}
 		}

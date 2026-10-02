@@ -97,6 +97,23 @@ func checkoutPath(step map[interface{}]interface{}) (p string, namedRepository, 
 	return p, namedRepository, true
 }
 
+// checkoutNamedRepository reports an explicit checkout of a repository other
+// than github.repository, including the default-path case where no `path:` is
+// given. Such a checkout occupies the workflow workspace root and its build
+// context must not be attributed to the repository being scanned.
+func checkoutNamedRepository(step map[interface{}]interface{}) bool {
+	uses, found := stringValue(step, "uses")
+	if !found || !strings.HasPrefix(uses, "actions/checkout@") {
+		return false
+	}
+	inputs, found := object(step, "with")
+	if !found {
+		return false
+	}
+	repository, found := stringValue(inputs, "repository")
+	return found && strings.TrimSpace(repository) != "" && !selfRepositoryExpr.MatchString(strings.TrimSpace(repository))
+}
+
 var selfRepositoryExpr = regexp.MustCompile(`^\$\{\{\s*github\.repository\s*\}\}$`)
 
 // jobDefaultsWorkdir returns the declared literal working-directory from a
@@ -143,7 +160,11 @@ func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
 		if p, named, found := checkoutPath(step); found && safeRelative(p) {
 			if clean := path.Clean(p); clean != "." {
 				out = append(out, workflowCheckout{path: clean, named: named})
+			} else if named {
+				out = append(out, workflowCheckout{path: ".", named: true})
 			}
+		} else if checkoutNamedRepository(step) {
+			out = append(out, workflowCheckout{path: ".", named: true})
 		}
 	}
 	return out
@@ -155,7 +176,7 @@ func jobCheckouts(job map[interface{}]interface{}) []workflowCheckout {
 func withCheckout(ref Reference, dir string, checkouts []workflowCheckout) Reference {
 	dir = path.Clean(dir)
 	for _, c := range checkouts {
-		if (dir == c.path || strings.HasPrefix(dir, c.path+"/")) && len(c.path) > len(ref.Checkout) {
+		if (c.path == "." || dir == c.path || strings.HasPrefix(dir, c.path+"/")) && len(c.path) > len(ref.Checkout) {
 			ref.Checkout, ref.CheckoutNamed = c.path, c.named
 		}
 	}

@@ -191,6 +191,13 @@ func IsCandidate(name string) bool {
 		return false
 	}
 	base, ext := strings.ToLower(path.Base(name)), strings.ToLower(path.Ext(name))
+	// parseMakefile only supports root-level recipes because nested Makefiles
+	// may run from an unknown working directory. Do not let unsupported nested
+	// Makefiles consume the bounded declaration-file budget ahead of real
+	// deployables such as a root Dockerfile.
+	if base == "makefile" && path.Dir(name) != "." {
+		return false
+	}
 	if base == "dockerfile" || strings.HasPrefix(base, "dockerfile.") || base == "compose.yml" || base == "compose.yaml" ||
 		base == "docker-compose.yml" || base == "docker-compose.yaml" || base == ".gitlab-ci.yml" || base == ".gitlab-ci.yaml" ||
 		base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile.") || base == "chart.yaml" || base == "serverless.yml" || base == "serverless.yaml" || base == "makefile" || ext == ".tf" {

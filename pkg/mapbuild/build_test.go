@@ -167,7 +167,7 @@ func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
 		return doc
 	}
 	definition := deployables.Definition{
-		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete",
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "build",
 		Evidence:         []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
 		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Field: "COPY source", Value: "crates", Line: 27, Basis: "dockerfile-instruction"}}},
 		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff --target $(TARGET) --release", Stage: "build", Evidence: deployables.Evidence{Field: "RUN", Line: 30, Basis: "dockerfile-instruction"}}},
@@ -221,7 +221,7 @@ func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T)
 	doc.Nodes = append(doc.Nodes, crate)
 	intent := &intentmap.Report{Observations: []intentmap.Observation{{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/ruff/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}}}}
 	base := deployables.Definition{
-		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete",
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "build-stage",
 		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "copy-stage", Evidence: deployables.Evidence{Line: 1}}},
 		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff", Stage: "build-stage", Evidence: deployables.Evidence{Line: 2}}},
 	}
@@ -362,6 +362,22 @@ func TestGitHubContextUsesCheckoutSubdirectoryCoordinates(t *testing.T) {
 		}
 	}
 	t.Fatalf("missing checkout-aware static context edge: %+v", doc.Edges)
+}
+
+func TestGitHubBuildContextAfterForeignRootCheckoutIsNotAttributed(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "go.mod"}, "go")
+	component.Name = "root"
+	component.Properties = map[string]string{"root": ".", "ecosystem": "go"}
+	doc.Nodes = append(doc.Nodes, component)
+	wf := deployables.Definition{Provider: "github-actions", Kind: "workflow", Name: "build", Path: ".github/workflows/build.yml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "jobs", Value: "1", Line: 1, Basis: "github-workflow-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: ".", Qualification: "external", Checkout: ".", CheckoutNamed: true, Evidence: deployables.Evidence{Field: "with.context", Value: ".", Line: 8, Basis: "github-build-push-action"}}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{wf}})
+	wfID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{wf.Path}, "github-actions:workflow:build").ID
+	for _, edge := range doc.Edges {
+		if edge.From == wfID && edge.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("foreign repository checkout context was attributed to local component: %+v", edge)
+		}
+	}
 }
 
 func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
