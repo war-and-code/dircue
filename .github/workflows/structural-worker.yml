@@ -127,5 +127,7 @@ jobs:
         with:
           retention-days: 7
           name: structural-worker-${{ matrix.platform }}
-          path: dist/structural-worker/*
+          path: |
+            dist/structural-worker/*
+            .cache/native-release/wheel-smoke.json
           if-no-files-found: error
