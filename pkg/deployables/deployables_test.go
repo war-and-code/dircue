@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/war-and-code/dircue/pkg/profile"
 )
@@ -1373,5 +1374,16 @@ func TestMavenWARSingleByteEncodingMatchesComponentParser(t *testing.T) {
 	r := observeOne(t, "pom.xml", string(body))
 	if len(r.Definitions) != 1 || r.Definitions[0].Name != "café-1.war" {
 		t.Errorf("ISO-8859-1 WAR was not parsed consistently with Maven components: %+v", r.Definitions)
+	}
+}
+
+func TestDockerLaunchLabelDoesNotRetainArgumentsBackingStorage(t *testing.T) {
+	command := "python " + strings.Repeat("private-argument", 65536)
+	label := dockerLaunchAllowlistedValue(strings.Fields(command))
+	if label != "python" {
+		t.Fatalf("launch label = %q", label)
+	}
+	if unsafe.StringData(label) == unsafe.StringData(command) {
+		t.Fatal("small launch label retains the entire argument buffer")
 	}
 }

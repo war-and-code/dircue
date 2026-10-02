@@ -340,7 +340,8 @@ func dockerLaunchAllowlistedValue(argv []string) string {
 	if !allowed[argv[0]] {
 		return ""
 	}
-	value := argv[0]
+	// Keep only the small label, rather than its backing shell-command line.
+	value := strings.Clone(argv[0])
 	if (argv[0] == "python" || argv[0] == "python3") && len(argv) >= 3 && argv[1] == "-m" {
 		module := argv[2]
 		allowedModules := map[string]bool{"http.server": true, "uvicorn": true, "gunicorn": true}
