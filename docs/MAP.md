@@ -35,24 +35,15 @@ Additional build-context links use literal Compose `build.context`/`dockerfile` 
 
 Maven system-scope `systemPath` and .NET `Reference`/`HintPath` declarations can record local JAR/DLL references. A selected regular file is linked by `references_artifact`, with an `artifact_reference` fact on its component. Its content type is a partial filename hint; dircue does not unpack the file, identify a package/version, or verify a managed assembly. Unresolved, missing or inventory-limited targets keep their status without copying the raw target into map output. Root-escaping and dynamic references remain unattributed; supported same-POM properties can resolve a Maven path. Project/declaration reports also retain these references in their existing `references` arrays. Maven XML readers accept declared ISO-8859-1 and US-ASCII as well as UTF-8 and BOM-marked UTF-16; unsupported or contradictory encodings remain diagnostics.
 
-Cargo attribution from copied crate paths is limited to a root Dockerfile with
-a known context. The copy and literal build must be in the same stage, with the
-copy before the build when source lines are known. A conflicting manifest or
-package selector prevents this narrowing. Surviving co-location edges retain
-their IDs when their supporting evidence is strengthened.
+Cargo attribution from copied crate paths is limited to a root Dockerfile with a known context. The copy and literal build must be in the final stage, with the copy before the build when source lines are known. A command in an unused builder stage does not narrow component ownership. A conflicting manifest or package selector prevents this narrowing. Surviving co-location edges retain their IDs when their supporting evidence is strengthened.
 
-A Python project with literal maturin `bindings = "bin"` has a `binary` interface with condition `maturin bindings=bin` pointing to its declared local Cargo manifest. This is packaging intent, not proof that the crate contains a runnable binary.
+A Python project with literal maturin `bindings = "bin"` has a `binary` interface with condition `maturin bindings=bin` pointing to its declared local Cargo manifest. Its name comes from a unique declared Cargo binary target or a matching `default-run`, rather than the Python distribution name. When that cannot be determined, its state is unresolved. This is packaging intent, not proof that the crate contains a runnable binary.
 
 Paths are clean, root-relative paths. Node and edge IDs are deterministic hash-based identities derived from their kind, paths, and discriminator. They can be compared across maps of the same logical content, but an ID is not a content checksum.
 
-Capability import evidence is a bounded source syntax signal. The scanner recognizes Go and Python imports, Java/Kotlin `import` lines, C# `using` and VB `Imports` directives, and TypeScript/JavaScript ES imports and conservative CommonJS `require` calls. The bounded lexical scanners mask comments and treat strings as opaque, accepting string tokens only in import position; they recognize only catalogued package namespaces; unsupported or malformed syntax is omitted. CommonJS evidence requires a top-level, unshadowed `require` call. The lexical observers retain at most 16,384 tokens per file; reaching that limit adds `import_token_limit_reached` to coverage. Truncated JavaScript keeps recognized ES-import evidence but omits CommonJS inference because a later shadowing declaration may be outside the inspected prefix. Import evidence does not prove that the imported code executes. Maven dependencies explicitly carrying `<scope>test</scope>` are excluded from declared capability evidence in the map; `provided` remains eligible because the runtime may supply it. This Maven scope handling is private to the map and does not alter project or declaration reports. Imports under conventional test paths are retained and marked with capability properties `test_path_evidence=true` and, when all contributing import paths appear test-only, `test_only_evidence=true`. Those values reflect path naming conventions, not verified test execution. `test_only_evidence` is emitted only when the intent observer reports no omissions and every retained capability observation is a test-path import; it is omitted when a manifest, config, mixed, or incomplete-scan observation also supports the capability. TypeScript `import type` evidence is marked `type_only_import_evidence`; it does not assert a runtime dependency. Mixed test and non-test source imports retain both `test_path_evidence` and `non_test_path_evidence`.
+Capability import evidence is a bounded source syntax signal. The scanner recognizes Go and Python imports, Java/Kotlin `import` lines, C# `using` and VB `Imports` directives, and TypeScript/JavaScript ES imports and conservative CommonJS `require` calls. The bounded lexical scanners mask comments and treat strings as opaque, accepting string tokens only in import position; they recognize only catalogued package namespaces; unsupported or malformed syntax is omitted. CommonJS evidence requires a top-level, unshadowed `require` call. The lexical observers retain at most 16,384 tokens per file; reaching that limit adds `import_token_limit_reached` to coverage. Truncated JavaScript keeps recognized ES-import evidence but omits CommonJS inference because a later shadowing declaration may be outside the inspected prefix. Import evidence does not prove that the imported code executes. Maven dependencies explicitly carrying `<scope>test</scope>` are excluded from declared capability evidence in the map; `provided` remains eligible because the runtime may supply it. This Maven scope handling is private to the map and does not alter project or declaration reports. Imports under conventional test paths are retained and marked with capability properties `test_path_evidence=true` and, when all contributing import paths appear test-only, `test_only_evidence=true`. Those values reflect path naming conventions, not verified test execution. `test_only_evidence` qualifies the retained observations: it is emitted when every retained observation for that capability is a test-path import, and omitted when a manifest, config, or non-test import also supports it. It does not assert that uninspected files lack production evidence; omissions remain visible in coverage. Type-only and test-path imports do not promote conditional optional/peer declarations into runtime observations. TypeScript `import type` evidence is marked `type_only_import_evidence`; it does not assert a runtime dependency. Mixed test and non-test source imports retain both `test_path_evidence` and `non_test_path_evidence`.
 
-JavaScript and TypeScript import matching uses case-sensitive, canonical npm
-package roots. Import evidence retains that root in `import`, with
-`import_representation=package_root`; the source span identifies the declaration.
-Subpaths do not change the package match. A source specifier such as `PG` or
-`redis@version` is not treated as the manifest dependency `pg` or `redis`.
-Manifest dependency matching and source import matching have different syntax.
+JavaScript and TypeScript import matching uses case-sensitive, canonical npm package roots. Import evidence retains that root in `import`, with `import_representation=package_root`; the source span identifies the declaration. Subpaths do not change the package match. A source specifier such as `PG` or `redis@version` is not treated as the manifest dependency `pg` or `redis`. Manifest dependency matching and source import matching have different syntax.
 
 The following `properties` keys carry stable meanings. A missing key means the observation did not establish that value; consumers should preserve unknown keys for future producers.
 
@@ -186,18 +177,9 @@ The `fast` preset was removed after a three-run scan of the pinned 21-repository
 
 ### Fixed bounds
 
-`map settings --json` also lists read-only entries categorized as
-`fixed-safety-bound`. They cover retained Git readers, format input/output and
-parser budgets, manifest input sizes, and retained import tokens. The registry also names bounds for
-optional registry, environment and structural analysis; listing them does not
-enable those modules. Their descriptions identify where each bound applies.
+`map settings --json` also lists read-only entries categorized as `fixed-safety-bound`. They cover retained Git readers, format input/output and parser budgets, manifest input sizes, and retained import tokens. The registry also names bounds for optional registry, environment and structural analysis; listing them does not enable those modules. Their descriptions identify where each bound applies.
 
-These bounds protect parser work and report size. They are separate from a
-memory ceiling: transient Git delta readers, for example, are outside the
-retained-reader count. Fixed entries cannot be changed through `--set`.
-Cooperative CPU, memory, worker and cache choices preserve semantic answers
-with the same analysis budgets. Presets that alter content or inventory limits
-may change retained evidence and must disclose their omissions.
+These bounds protect parser work and report size. They are separate from a memory ceiling: transient Git delta readers, for example, are outside the retained-reader count. Fixed entries cannot be changed through `--set`. Cooperative CPU, memory, worker and cache choices preserve semantic answers with the same analysis budgets. Presets that alter content or inventory limits may change retained evidence and must disclose their omissions.
 
 ## Attach saved provider reports
 
@@ -316,11 +298,7 @@ The catalog is in `pkg/intentmap/catalog.go`. Entries are per-ecosystem exact ma
 
 To add entries:
 
-1. Pick or propose a category name. Prefer an existing category for the same technology, not a new one per library.
-2. Add the package name to the appropriate ecosystem map, keeping entries sorted by category within each map. For Go module paths and Maven groups, add to the `prefixEntries` slice with a `prefixMatchKind`-compatible kind.
-3. Add or extend the table test in `pkg/intentmap/catalog_test.go` (`TestCatalogEcosystemExactMatching`) with at least one positive and one negative case for the new entry.
-4. Run `go test ./pkg/intentmap/...` and `go test -race ./pkg/intentmap/...`.
-5. Run `python3 tests/map_corpus/verify.py --results <dir>` after `python3 tests/map_corpus/run.py` to confirm no fixture regressions.
+1. Pick or propose a category name. Prefer an existing category for the same technology, not a new one per library. 2. Add the package name to the appropriate ecosystem map, keeping entries sorted by category within each map. For Go module paths and Maven groups, add to the `prefixEntries` slice with a `prefixMatchKind`-compatible kind. 3. Add or extend the table test in `pkg/intentmap/catalog_test.go` (`TestCatalogEcosystemExactMatching`) with at least one positive and one negative case for the new entry. 4. Run `go test ./pkg/intentmap/...` and `go test -race ./pkg/intentmap/...`. 5. Run `python3 tests/map_corpus/verify.py --results <dir>` after `python3 tests/map_corpus/run.py` to confirm no fixture regressions.
 
 Catalog entries must be verifiable against public documentation for the package or import name. Do not add entries for internal or private packages.
 
@@ -410,26 +388,15 @@ Comparison uses stable IDs and opens neither source tree. It separates material 
 
 ### Comparison outcome exits
 
-By default a valid comparison exits `0`, including when it finds changes.
-For an automation gate, select the new behavior explicitly:
+By default a valid comparison exits `0`, including when it finds changes. For an automation gate, select the new behavior explicitly:
 
 ```sh
 dircue map compare --exit-code --json before.json after.json
 ```
 
-The comparison document is unchanged by this option. A complete report is
-written before returning `0` for observed unchanged or `1` for observed changed.
-Uncertain comparisons return `2`: this includes indeterminate removals,
-incomparable results, unbound or partially bound source identity, decreased question coverage and differing observer identities. Equal partial digests do not establish a fully bound source.
-Uncertainty takes precedence when a report also contains observed changes.
-These outcome exits do not write an error diagnostic to stderr. A usage, input
-or output error still exits `1` with a diagnostic; do not mistake it for a
-successful changed result.
+The comparison document is unchanged by this option. A complete report is written before returning `0` for observed unchanged or `1` for observed changed. Uncertain comparisons return `2`: this includes indeterminate removals, incomparable results, unbound or partially bound source identity, decreased question coverage and differing observer identities. Equal partial digests do not establish a fully bound source. Uncertainty takes precedence when a report also contains observed changes. These outcome exits do not write an error diagnostic to stderr. A usage, input or output error still exits `1` with a diagnostic; do not mistake it for a successful changed result.
 
-`--on-uncertain allow`, accepted only with `--exit-code`, explicitly permits the
-observed changed/unchanged exit instead. It never removes caveats or changes the
-JSON status. An observed unchanged result is limited to the report's evidence
-and coverage; it is not proof that an incompletely inspected tree has no changes.
+`--on-uncertain allow`, accepted only with `--exit-code`, explicitly permits the observed changed/unchanged exit instead. It never removes caveats or changes the JSON status. An observed unchanged result is limited to the report's evidence and coverage; it is not proof that an incompletely inspected tree has no changes.
 
 ## Locate SARIF results in the map
 

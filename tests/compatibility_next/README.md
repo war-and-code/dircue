@@ -4,23 +4,11 @@ This harness compares an actual released 0.3.0 executable with a candidate. Each
 
 The initial macOS ARM64 run matched **209 of 209 cases**. It includes the existing 118-case CLI matrix, project declarations and limits introduced in 0.3.0, and the released structural worker across all 20 supported languages. This is evidence for the exercised cases, not a guarantee for every input, platform or future candidate.
 
-The [integrated follow-up receipt](results/integrated-macos-arm64.json.gz) also
-matched all 209 cases after Syft-import hardening and the new command-help and
-validation changes. The [function-integration receipt](results/functions-macos-arm64.json.gz) matched
-the same 209 cases after adding optional function metrics and protocol hardening.
-Each receipt identifies its own candidate binary.
+The [integrated follow-up receipt](results/integrated-macos-arm64.json.gz) also matched all 209 cases after Syft-import hardening and the new command-help and validation changes. The [function-integration receipt](results/functions-macos-arm64.json.gz) matched the same 209 cases after adding optional function metrics and protocol hardening. Each receipt identifies its own candidate binary.
 
-The [rules and decoder-optimization receipt](results/rules-optimized-macos-arm64.json.gz)
-matched all 209 cases using the released worker. Its [build provenance](results/rules-optimized-build-inputs.json.gz)
-records 271 local Go and embedded inputs, checked before and after verification.
-This comparison build deliberately reports version `0.3.0`; its source default is
-`0.4.0-dev`, and it is not a v0.3.0 release artifact.
+The [rules and decoder-optimization receipt](results/rules-optimized-macos-arm64.json.gz) matched all 209 cases using the released worker. Its [build provenance](results/rules-optimized-build-inputs.json.gz) records 271 local Go and embedded inputs, checked before and after verification. This comparison build deliberately reports version `0.3.0`; its source default is `0.4.0-dev`, and it is not a v0.3.0 release artifact.
 
-A separate [combined-module smoke check](results/rules-optimized-native-smoke.json.gz)
-uses the updated function-capable worker on three small Java/C#/Python files.
-Adding rules preserved the other module results, including 22 function spaces
-and one parse per source. Combined rule results matched standalone analysis.
-That check covers the stated fixtures, not every combination of optional modules.
+A separate [combined-module smoke check](results/rules-optimized-native-smoke.json.gz) uses the updated function-capable worker on three small Java/C#/Python files. Adding rules preserved the other module results, including 22 function spaces and one parse per source. Combined rule results matched standalone analysis. That check covers the stated fixtures, not every combination of optional modules.
 
 From the repository root:
 
@@ -48,13 +36,7 @@ See [coverage](COVERAGE.md), [differences](DISCREPANCIES.md) and [provenance](PR
 
 ## Comparing later minor releases
 
-`minor.py` reuses the inherited matrix against an explicitly supplied release
-binary. Both its SHA-256 and reported release version must match. It checks 245
-cases without the native structural worker, or 278 with a separately pinned
-worker. A missing worker is recorded as untested; `--require-worker` makes that
-omission an error. Each receipt contains raw stdout/stderr and exit statuses,
-fixture and executable hashes, and helper hashes; existing receipts cannot be
-overwritten.
+`minor.py` reuses the inherited matrix against an explicitly supplied release binary. Both its SHA-256 and reported release version must match. It checks 245 cases without the native structural worker, or 278 with a separately pinned worker. A missing worker is recorded as untested; `--require-worker` makes that omission an error. Each receipt contains raw stdout/stderr and exit statuses, fixture and executable hashes, and helper hashes; existing receipts cannot be overwritten.
 
 ```sh
 python3 tests/compatibility_next/minor.py \
@@ -65,26 +47,13 @@ python3 tests/compatibility_next/minor.py \
   --output /path/to/new-receipt.json
 ```
 
-The executable hash is distinct from the downloaded archive hash. Verify the
-archive against its release checksums before extracting the executable. These
-checks do not cover every newer map, focus or context interface. Those have
-separate semantic, schema and integration gates. Help/version text, new option
-catalog entries and intended improvements in detected evidence require review;
-passing the matrix alone is not sufficient to approve a release.
+The executable hash is distinct from the downloaded archive hash. Verify the archive against its release checksums before extracting the executable. These checks do not cover every newer map, focus or context interface. Those have separate semantic, schema and integration gates. Help/version text, new option catalog entries and intended improvements in detected evidence require review; passing the matrix alone is not sufficient to approve a release.
 
-### 1.1.0 candidate evidence
+### Historical 1.1.0 candidate evidence
 
-The [published-1.0.1 comparison](results/v110-released-v101-macos-arm64.json.gz)
-matches **278 of 278** inherited cases on macOS ARM64, including the native
-structural worker. The [build receipt](results/v110-build-inputs-macos-arm64.json.gz)
-binds the candidate executable to clean source commit
-`a205c3bdafd3e41d6214fd94fbd4586c335a8616` and 399 local Go/embedded inputs.
-Later receipt/documentation commits do not change those compilation inputs.
+The [published-1.0.1 comparison](results/v110-released-v101-macos-arm64.json.gz) matches **278 of 278** inherited cases on macOS ARM64, including the native structural worker. The [build receipt](results/v110-build-inputs-macos-arm64.json.gz) binds the candidate executable to clean source commit `a205c3bdafd3e41d6214fd94fbd4586c335a8616` and 399 local Go/embedded inputs. These historical receipts predate the adversarial-review fixes; they do not validate the corrected candidate. They are [archived release assets](../receipts/evidence-archive.json), restored to ignored paths by `make fetch-receipts`. Command metadata uses `{workspace}` in place of host workspace prefixes; raw captures and their hashes are unchanged.
 
-The baseline is the executable extracted from the
-[published 1.0.1 release](https://github.com/war-and-code/dircue/releases/tag/v1.0.1),
-not a source rebuild or a candidate stamped with an older version. Its archive
-was verified against the release checksums before extraction.
+The baseline is the executable extracted from the [published 1.0.1 release](https://github.com/war-and-code/dircue/releases/tag/v1.0.1), not a source rebuild or a candidate stamped with an older version. Its archive was verified against the release checksums before extraction.
 
 | Input | SHA-256 |
 | --- | --- |
@@ -94,18 +63,6 @@ was verified against the release checksums before extraction.
 | Extracted worker executable | `73cc5ed95a5b81dcc97c91d57b99a0db4e71ff45bdb74ce8a8193e60e3d53740` |
 | Candidate executable | `227d5d3540ce470c3eac840865ec385b5b374ec64bfab16a446e7875c283cf83` |
 
-The candidate's source default reports `1.1.0-dev`; version/help text is outside
-the equality matrix. The case groups are 118 retained CLI cases, 55 project
-cases, 6 structural validation cases, 30 native structural cases, 32 optional
-module cases and 37 declaration cases. New map semantics, limits and opt-in
-exit statuses have separate tests. This result does not establish untested
-platform compatibility or freeze every byte on newly supported inputs.
+The candidate's source default reports `1.1.0-dev`; version/help text is outside the equality matrix. The case groups are 118 retained CLI cases, 55 project cases, 6 structural validation cases, 30 native structural cases, 32 optional module cases and 37 declaration cases. New map semantics, limits and opt-in exit statuses have separate tests. This result does not establish untested platform compatibility or freeze every byte on newly supported inputs.
 
-The same source commit also passed the
-[13-check offline native wheel smoke](results/v110-native-wheel-macos-arm64.json.gz)
-and a [nine-case alias comparison](results/v110-native-alias-macos-arm64.json.gz)
-between the archive's `dirq` symlink and the installed wheel's `dirq` launcher,
-including comparison exits 0, 1 and 2. The
-[native build provenance](results/v110-native-build-macos-arm64.json.gz)
-records the clean source and release build flags. These locally built artifacts
-use the test version `1.1.0-rc.1`; no public tag or publication is implied.
+The same source commit also passed the [13-check offline native wheel smoke](results/v110-native-wheel-macos-arm64.json.gz) and a [nine-case alias comparison](results/v110-native-alias-macos-arm64.json.gz) between the archive's `dirq` symlink and the installed wheel's `dirq` launcher, including comparison exits 0, 1 and 2. The [native build provenance](results/v110-native-build-macos-arm64.json.gz) records the clean source and release build flags. These locally built artifacts use the test version `1.1.0-rc.1`; no public tag or publication is implied.

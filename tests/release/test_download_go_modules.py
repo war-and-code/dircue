@@ -4,6 +4,7 @@ import io
 from pathlib import Path
 import subprocess
 import sys
+import tempfile
 import unittest
 
 
@@ -37,8 +38,8 @@ class GoDownloadRetryTests(unittest.TestCase):
             self.assertEqual(command, ["go", "mod", "download"])
             self.assertEqual(kwargs["env"]["GOFLAGS"], "-mod=readonly")
             self.assertEqual(kwargs["timeout"], 180)
-            self.assertEqual(kwargs["stdout"], subprocess.DEVNULL)
-            self.assertEqual(kwargs["stderr"], subprocess.DEVNULL)
+            self.assertTrue(hasattr(kwargs["stdout"], "write"))
+            self.assertEqual(kwargs["stderr"], subprocess.STDOUT)
         self.assertIn("attempt 2/3", log)
 
     def test_permanent_failure_stops_and_fails(self):
@@ -57,6 +58,36 @@ class GoDownloadRetryTests(unittest.TestCase):
     def test_warm_cache_does_not_retry(self):
         code, calls, sleeps, _ = self.invoke([0])
         self.assertEqual((code, len(calls), sleeps), (0, 1, []))
+
+    def test_public_failures_remain_visible_and_private_urls_are_redacted(self):
+        payload = ("go: example.org/pkg@v1.2.3: reading https://proxy.golang.org/example.org/pkg/@v/v1.2.3.zip: 404 Not Found\n"
+                   "https://username:password@example.invalid/private/token?api=secret#fragment\n"
+                   "https://github.com/public/repo?token=query-secret\n"
+                   "https://example.invalid/private-secret\n")
+        log = io.StringIO()
+        def failing(command, **kwargs):
+            kwargs["stdout"].write(payload.encode())
+            return subprocess.CompletedProcess(command, 1)
+        with contextlib.redirect_stderr(log):
+            self.assertEqual(downloader.download(run=failing, sleep=lambda _: None), 1)
+        result = log.getvalue()
+        self.assertIn("404 Not Found", result)
+        self.assertIn("example.org/pkg/@v/v1.2.3.zip", result)
+        for secret in ("username", "password", "private/token", "query-secret", "private-secret", "fragment"):
+            self.assertNotIn(secret, result)
+
+    def test_excerpt_bounds_and_partial_url_credentials(self):
+        log = io.StringIO()
+        with tempfile.TemporaryFile() as capture, contextlib.redirect_stderr(log):
+            capture.write(b"Useful first line\n" + b"https://" + b"secret" * 20000 + b":password@example.invalid\n")
+            downloader.show_diagnostics(capture)
+        self.assertIn("Useful first line", log.getvalue())
+        self.assertIn("truncated", log.getvalue())
+        self.assertNotIn("secret", log.getvalue())
+        self.assertLess(len(log.getvalue()), downloader.MAX_DIAGNOSTIC_BYTES + 100)
+
+    def test_controls_cannot_escape_terminal(self):
+        self.assertEqual(downloader.safe_diagnostics("bad\x1b[31m\x00\r\n"), "bad\\x1b[31m\\x00\\x0d\n")
 
     def test_real_child_output_cannot_disclose_proxy_credentials(self):
         canary = "https://proxy-user-canary:proxy-password-canary@example.invalid"
