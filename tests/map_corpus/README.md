@@ -121,6 +121,14 @@ declared Redis and event-bus capabilities, Terraform provider aliases, manifest
 interfaces, and honest partial/unknown coverage. This is a precise score for a
 reviewable slice, not a claim about every observation in the full repositories.
 
+`evidence_path_count` is the number of distinct source paths contributing to a
+capability. Multiple observations or source lines from the same file do not
+increase that count, and remain separate evidence records when retained. The
+four source-reviewed count corrections are recorded under `label_corrections`
+in `public_quality_expectations.json`; each cites its pinned source URL and
+hash. The capability nodes and their four `uses_capability` edges remain in the
+scored expectations.
+
 Import evidence has a separate opt-in mutation check. Run
 `python3 tests/map_corpus/import_mutations.py --commit HEAD` to test twenty-three
 hand-authored counterfactual source changes against their selected Go tests.

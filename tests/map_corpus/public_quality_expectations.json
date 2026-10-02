@@ -104,7 +104,7 @@
             "requirement_kind": "python-dependency",
             "state": "declared",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-            "evidence_path_count": "2"
+            "evidence_path_count": "1"
           }
         },
         {
@@ -385,7 +385,7 @@
           ],
           "properties": {
             "basis": "declared_dependency",
-            "evidence_path_count": "2",
+            "evidence_path_count": "1",
             "observation_kind": "capability",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
             "requirement": "grpcio==1.76.0",
@@ -904,7 +904,7 @@
               "requirement_kind": "python-dependency",
               "state": "declared",
               "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-              "evidence_path_count": "2"
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1016,7 +1016,7 @@
             ],
             "properties": {
               "basis": "declared_dependency",
-              "evidence_path_count": "2",
+              "evidence_path_count": "1",
               "observation_kind": "capability",
               "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
               "requirement": "grpcio==1.76.0",
@@ -1237,7 +1237,7 @@
             "observation_kind": "capability",
             "state": "declared",
             "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-            "evidence_path_count": "3"
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1831,7 +1831,7 @@
               "observation_kind": "capability",
               "state": "declared",
               "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-              "evidence_path_count": "3"
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -2279,7 +2279,7 @@
           ],
           "properties": {
             "basis": "declared_dependency",
-            "evidence_path_count": "2",
+            "evidence_path_count": "1",
             "observation_kind": "capability",
             "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
             "requirement": "com.h2database:h2",
@@ -2417,7 +2417,7 @@
             ],
             "properties": {
               "basis": "declared_dependency",
-              "evidence_path_count": "2",
+              "evidence_path_count": "1",
               "observation_kind": "capability",
               "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
               "requirement": "com.h2database:h2",
@@ -3234,5 +3234,58 @@
         }
       ]
     }
-  ]
+  ],
+  "label_corrections": {
+    "reason": "Manual source review after evidence_path_count was corrected to count distinct source paths. Only the four audited capability values and their matching edge copies changed; no node or edge expectation was removed.",
+    "items": [
+      {
+        "repository": "microservices-demo",
+        "kind": "capability",
+        "name": "net:http-client",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "src/emailservice/requirements.txt",
+        "source_sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+        "source_url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt#L100-L103",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "microservices-demo",
+        "kind": "capability",
+        "name": "serialization:protobuf",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "src/emailservice/requirements.txt",
+        "source_sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+        "source_url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt#L24-L31",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "eshop",
+        "kind": "capability",
+        "name": "messaging:event-bus",
+        "property": "evidence_path_count",
+        "from": "3",
+        "to": "1",
+        "source_file": "src/Basket.API/appsettings.json",
+        "source_sha256": "1af10c5eea5d7531727075516927555c4d7ed9d9c89866c7be03dedd9ec85ec3",
+        "source_url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Basket.API/appsettings.json#L13-L21",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "spring-petclinic",
+        "kind": "capability",
+        "name": "datastore:relational",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "pom.xml",
+        "source_sha256": "7e61df0a43d538a5404e8130a55b8085541ec8e841fcf39f81bb6d3d81dcd2f4",
+        "source_url": "https://github.com/spring-projects/spring-petclinic/blob/818c4136ea971c21674525f9053de0d9c7ad8cfe/pom.xml#L76-L80",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      }
+    ]
+  }
 }
