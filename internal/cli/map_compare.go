@@ -25,7 +25,7 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 			"  text     Plain text summary (default when stdout is a terminal).\n" +
 			"  markdown Markdown summary for $GITHUB_STEP_SUMMARY or a PR comment body.\n\n" +
 			"--json supersedes --format and writes the full comparison document.\n\n" +
-			"By default, a valid comparison exits 0 regardless of changes. With --exit-code, unchanged exits 0 and changed exits 1. Uncertain results exit 2: indeterminate removals, incomparable results, unknown source binding, or differing observer identities. --on-uncertain allow explicitly permits an uncertain result to use its observed changed/unchanged exit; the report still retains its uncertainty. Handled errors exit 1. Comparison statuses are written before an outcome exit; output errors take precedence.",
+			"By default, a valid comparison exits 0 regardless of changes. With --exit-code, unchanged exits 0 and changed exits 1. Uncertain results exit 2: indeterminate removals, incomparable results, incomplete source binding, decreased question coverage, or differing observer identities. --on-uncertain allow explicitly permits an uncertain result to use its observed changed/unchanged exit; the report still retains its uncertainty. Handled errors exit 1. Comparison statuses are written before an outcome exit; output errors take precedence.",
 		Example: "  " + n + " map --json old-checkout > before.json\n  " + n + " map --json new-checkout > after.json\n  " + n + " map compare --json before.json after.json\n  " + n + " map compare --format markdown before.json after.json >> \"$GITHUB_STEP_SUMMARY\"",
 		Args: func(_ *cobra.Command, args []string) error {
 			if len(args) != 2 {
@@ -71,6 +71,9 @@ func newMapCompareCommand(opts *options) *cobra.Command {
 				return writeErr
 			}
 			if exitCode {
+				if onUncertain == "fail" && (!comparisonSourceBound(base) || !comparisonSourceBound(head)) {
+					return &comparisonExit{code: 2, status: "uncertain"}
+				}
 				return comparisonOutcome(report, onUncertain)
 			}
 			return nil
@@ -94,7 +97,7 @@ func (e *comparisonExit) Error() string { return "map comparison: " + e.status }
 
 func comparisonOutcome(report mapdiff.Report, onUncertain string) error {
 	unboundDirectory := func(source mapdoc.Source) bool { return source.Mode == "directory" && source.Digest == nil }
-	uncertain := report.Status == "indeterminate" || report.Status == "incomparable" || report.Counts.IndeterminateRemoval > 0 || report.SourceBinding == "unknown" || unboundDirectory(report.Base) || unboundDirectory(report.Head) || report.ObserverCompatibility == "different"
+	uncertain := report.Status == "indeterminate" || report.Status == "incomparable" || report.Counts.IndeterminateRemoval > 0 || report.SourceBinding == "unknown" || unboundDirectory(report.Base) || unboundDirectory(report.Head) || report.ObserverCompatibility == "different" || comparisonCoverageDecreased(report)
 	if uncertain && onUncertain == "fail" {
 		return &comparisonExit{code: 2, status: "uncertain"}
 	}
@@ -102,6 +105,36 @@ func comparisonOutcome(report mapdiff.Report, onUncertain string) error {
 		return &comparisonExit{code: 1, status: report.Status}
 	}
 	return nil
+}
+
+func comparisonSourceBound(doc mapdoc.Document) bool {
+	for _, coverage := range doc.Coverage {
+		if coverage.Question == mapdoc.QuestionSourceBinding && coverage.Scope == "." {
+			return coverage.Status == mapdoc.CoverageComplete
+		}
+	}
+	return false
+}
+
+func comparisonCoverageDecreased(report mapdiff.Report) bool {
+	rank := func(status mapdoc.CoverageStatus) int {
+		switch status {
+		case mapdoc.CoverageComplete:
+			return 3
+		case mapdoc.CoveragePartial:
+			return 2
+		case mapdoc.CoverageUnknown:
+			return 1
+		default:
+			return 0
+		}
+	}
+	for _, change := range report.CoverageChanges {
+		if change.Base.Present && (!change.Head.Present || rank(change.Head.Status) < rank(change.Base.Status)) {
+			return true
+		}
+	}
+	return false
 }
 
 func loadMapDocument(filename, role, displayName string) (mapdoc.Document, error) {

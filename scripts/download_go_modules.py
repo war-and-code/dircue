@@ -13,7 +13,10 @@ def download(*, run=subprocess.run, sleep=time.sleep):
     for attempt in range(1, 4):
         print(f"Go module download attempt {attempt}/3", file=sys.stderr, flush=True)
         try:
-            result = run(["go", "mod", "download"], env=env, timeout=180, check=False)
+            # Go diagnostics may repeat proxy URLs containing credentials.
+            # Discard them without retaining an unbounded output buffer.
+            result = run(["go", "mod", "download"], env=env, timeout=180,
+                         check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             code = result.returncode
         except subprocess.TimeoutExpired:
             print("Go module download exceeded 180 seconds", file=sys.stderr, flush=True)

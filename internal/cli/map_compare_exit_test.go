@@ -27,6 +27,23 @@ func TestMapCompareOptInOutcomes(t *testing.T) {
 	unknownDoc.Coverage = append([]mapdoc.QuestionCoverage(nil), baseDoc.Coverage...)
 	unknownDoc.Coverage[1].Coverage = mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{"source_digest_disabled"}}
 	unknown := writeComparisonMapFixture(t, "unknown.json", unknownDoc)
+	downgradedDoc := baseDoc
+	downgradedDoc.Coverage = append([]mapdoc.QuestionCoverage(nil), baseDoc.Coverage...)
+	for i := range downgradedDoc.Coverage {
+		if downgradedDoc.Coverage[i].Question == "components" {
+			downgradedDoc.Coverage[i].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_declaration_catalog"}}
+		}
+	}
+	downgraded := writeComparisonMapFixture(t, "downgraded.json", downgradedDoc)
+	partialBindingDoc := unknownDoc
+	partialBindingDoc.Source.Digest = &mapdoc.Digest{Algorithm: "git-sha1", Scope: "gitignore_filtered", Normalization: "git_normalized", Value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+	partialBindingDoc.Coverage = append([]mapdoc.QuestionCoverage(nil), unknownDoc.Coverage...)
+	for i := range partialBindingDoc.Coverage {
+		if partialBindingDoc.Coverage[i].Question == "source_binding" {
+			partialBindingDoc.Coverage[i].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"windows_checkout_semantics"}}
+		}
+	}
+	partialBinding := writeComparisonMapFixture(t, "partial-binding.json", partialBindingDoc)
 	for _, tt := range []struct {
 		name, head string
 		flags      []string
@@ -39,6 +56,10 @@ func TestMapCompareOptInOutcomes(t *testing.T) {
 		{"partial", partial, []string{"--exit-code"}, 2},
 		{"partial allowed", partial, []string{"--exit-code", "--on-uncertain=allow"}, 0},
 		{"unknown binding", unknown, []string{"--exit-code"}, 2},
+		{"coverage downgrade", downgraded, []string{"--exit-code"}, 2},
+		{"coverage downgrade allowed", downgraded, []string{"--exit-code", "--on-uncertain=allow"}, 0},
+		{"coverage downgrade default", downgraded, nil, 0},
+		{"partial binding with digest", partialBinding, []string{"--exit-code"}, 2},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, alias := range []string{"dircue", "dirq"} {
@@ -76,6 +97,26 @@ func TestMapCompareOptInOutcomes(t *testing.T) {
 		if err == nil || errors.As(err, &outcome) || out != "" {
 			t.Fatalf("invalid policy accepted: %q %v", out, err)
 		}
+	}
+}
+
+func TestEqualPartialBindingsRemainUncertainDespiteEqualDigests(t *testing.T) {
+	doc := mapComparisonFixture("before", "aaa", true)
+	doc.Source = mapdoc.Source{Mode: "directory", Digest: &mapdoc.Digest{Algorithm: "git-sha1", Scope: "gitignore_filtered", Normalization: "git_normalized", Value: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}
+	for i := range doc.Coverage {
+		if doc.Coverage[i].Question == "source_binding" {
+			doc.Coverage[i].Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"windows_checkout_semantics"}}
+		}
+	}
+	file := writeComparisonMapFixture(t, "partial.json", doc)
+	defaultJSON, _, err := invoke("map", "compare", "--json", file, file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	flagJSON, _, err := invoke("map", "compare", "--json", "--exit-code", file, file)
+	var outcome *comparisonExit
+	if !errors.As(err, &outcome) || outcome.code != 2 || flagJSON != defaultJSON {
+		t.Fatalf("partial binding accepted or report changed: %v", err)
 	}
 }
 

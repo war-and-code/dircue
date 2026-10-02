@@ -400,7 +400,7 @@ dircue map compare --exit-code --json before.json after.json
 The comparison document is unchanged by this option. A complete report is
 written before returning `0` for observed unchanged or `1` for observed changed.
 Uncertain comparisons return `2`: this includes indeterminate removals,
-incomparable results, unbound source identity and differing observer identities.
+incomparable results, unbound or partially bound source identity, decreased question coverage and differing observer identities. Equal partial digests do not establish a fully bound source.
 Uncertainty takes precedence when a report also contains observed changes.
 These outcome exits do not write an error diagnostic to stderr. A usage, input
 or output error still exits `1` with a diagnostic; do not mistake it for a

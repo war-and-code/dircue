@@ -3,6 +3,7 @@ import importlib.util
 import io
 from pathlib import Path
 import subprocess
+import sys
 import unittest
 
 
@@ -36,6 +37,8 @@ class GoDownloadRetryTests(unittest.TestCase):
             self.assertEqual(command, ["go", "mod", "download"])
             self.assertEqual(kwargs["env"]["GOFLAGS"], "-mod=readonly")
             self.assertEqual(kwargs["timeout"], 180)
+            self.assertEqual(kwargs["stdout"], subprocess.DEVNULL)
+            self.assertEqual(kwargs["stderr"], subprocess.DEVNULL)
         self.assertIn("attempt 2/3", log)
 
     def test_permanent_failure_stops_and_fails(self):
@@ -54,6 +57,19 @@ class GoDownloadRetryTests(unittest.TestCase):
     def test_warm_cache_does_not_retry(self):
         code, calls, sleeps, _ = self.invoke([0])
         self.assertEqual((code, len(calls), sleeps), (0, 1, []))
+
+    def test_real_child_output_cannot_disclose_proxy_credentials(self):
+        canary = "https://proxy-user-canary:proxy-password-canary@example.invalid"
+        def noisy_child(command, **kwargs):
+            return subprocess.run([sys.executable, "-c",
+                                   "import sys; print(sys.argv[1]); print(sys.argv[1], file=sys.stderr); sys.exit(1)",
+                                   canary], **kwargs)
+        log = io.StringIO()
+        with contextlib.redirect_stderr(log):
+            code = downloader.download(run=noisy_child, sleep=lambda _: None)
+        self.assertEqual(code, 1)
+        self.assertNotIn("proxy-user-canary", log.getvalue())
+        self.assertNotIn("proxy-password-canary", log.getvalue())
 
 
 if __name__ == "__main__":
