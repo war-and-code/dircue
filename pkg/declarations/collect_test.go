@@ -15,6 +15,23 @@ func candidateFor(name, content string) *Candidate {
 	return &Candidate{Path: name, Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(content), int64(len(content)), nil }}
 }
 
+func TestArtifactSizesDoNotDuplicateTheWholeContentInventory(t *testing.T) {
+	c := New("directory", "", 0)
+	for i := 0; i < 2000; i++ {
+		name := fmt.Sprintf("src/%04d.cs", i)
+		c.Add(name, nil)
+		c.RecordSelectedFileSize(name, 100)
+	}
+	for _, name := range []string{"lib/Helper.DLL", "lib/vendor.jar"} {
+		c.Add(name, nil)
+		c.RecordSelectedFileSize(name, 1024)
+	}
+	c.RecordSelectedFileSize("unselected.dll", 2048)
+	if len(c.fileSizes) != 2 || c.fileSizes["lib/Helper.DLL"] != 1024 || c.fileSizes["lib/vendor.jar"] != 1024 {
+		t.Fatalf("unexpected artifact size inventory: %+v", c.fileSizes)
+	}
+}
+
 func TestCollectorOutputBoundIncludesDiagnosticsAndEnvelope(t *testing.T) {
 	c := New("directory", "", 0)
 	for i := 0; i < 30; i++ {

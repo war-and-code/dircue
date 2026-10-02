@@ -45,3 +45,29 @@ Omitting `--worker` runs 179 cases and records native parsing as untested. Use `
 Receipts retain exact reference output and any differing candidate output, fixture hashes, executable hashes, source metadata and coverage counts. Identical candidate captures are represented by an explicit reference to their baseline capture. The verifier checks capture digests and recomputes match totals; it does not independently prove that a subprocess ran. No candidate output is accepted as a replacement golden.
 
 See [coverage](COVERAGE.md), [differences](DISCREPANCIES.md) and [provenance](PROVENANCE.md). Help, version and newly available commands are captured separately and require review; they are not included among the 209 equality checks.
+
+## Comparing later minor releases
+
+`minor.py` reuses the inherited matrix against an explicitly supplied release
+binary. Both its SHA-256 and reported release version must match. It checks 245
+cases without the native structural worker, or 278 with a separately pinned
+worker. A missing worker is recorded as untested; `--require-worker` makes that
+omission an error. Each receipt contains raw stdout/stderr and exit statuses,
+fixture and executable hashes, and helper hashes; existing receipts cannot be
+overwritten.
+
+```sh
+python3 tests/compatibility_next/minor.py \
+  --baseline /path/to/released/dircue \
+  --baseline-sha256 VERIFIED_EXECUTABLE_SHA256 \
+  --baseline-version 1.0.1 \
+  --candidate /path/to/candidate/dircue \
+  --output /path/to/new-receipt.json
+```
+
+The executable hash is distinct from the downloaded archive hash. Verify the
+archive against its release checksums before extracting the executable. These
+checks do not cover every newer map, focus or context interface. Those have
+separate semantic, schema and integration gates. Help/version text, new option
+catalog entries and intended improvements in detected evidence require review;
+passing the matrix alone is not sufficient to approve a release.

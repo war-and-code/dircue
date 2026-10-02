@@ -5,6 +5,7 @@ import (
 
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/projects"
 	"github.com/war-and-code/dircue/pkg/registries"
 	"github.com/war-and-code/dircue/pkg/scanner"
@@ -39,5 +40,6 @@ func fixedMapSettings() []mapEffectiveSetting {
 	add("environments.output_bytes", environments.DefaultMaxOutputBytes, "bytes", "Serialized environment report bound.")
 	add("structure.report_functions", int64(scanner.FunctionReportLimit()), "functions", "Maximum retained functions across an explicitly requested structural report; the optional worker is not enabled by map.")
 	add("structure.file_functions", structure.FunctionLimit, "functions", "Maximum retained function records per file for explicitly requested structural analysis.")
+	add("intent.import_tokens_per_file", intentmap.DefaultMaxLexicalTokensPerFile, "tokens", "Maximum retained lexical tokens per Java, Kotlin, C#, Visual Basic, JavaScript, or TypeScript import candidate; reaching this bound makes import coverage partial.")
 	return settings
 }

@@ -172,10 +172,11 @@ func (c *Collector) diagnostic(code, message string) {
 
 func (c *Collector) Omit() { c.report.Coverage.OmittedFiles++ }
 
-// RecordSelectedFileSize retains bounded metadata for exact target lookup.
+// RecordSelectedFileSize retains bounded metadata for local artifact lookup.
 // It does not open the target or rely on the sparse discovery candidate list.
 func (c *Collector) RecordSelectedFileSize(name string, size int64) {
-	if size < 0 || !c.files[name] {
+	ext := strings.ToLower(path.Ext(name))
+	if (ext != ".jar" && ext != ".dll") || size < 0 || !c.files[name] {
 		return
 	}
 	if c.fileSizes == nil {

@@ -1128,3 +1128,26 @@ func TestVBRemAndTypeScriptInlineTypeImports(t *testing.T) {
 		}
 	}
 }
+
+func TestTruncatedJavaScriptDoesNotInferUnverifiedCommonJSImports(t *testing.T) {
+	source := "import redis from 'redis'; require('pg');\n" + strings.Repeat(";", DefaultMaxLexicalTokensPerFile) + "\nfunction require(x) { return x; }"
+	observations, limited := parseJSImportsBounded("src/cache.js", []byte(source))
+	if !limited {
+		t.Fatal("expected token limit")
+	}
+	hasESM := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "datastore:postgresql" {
+			t.Fatalf("inferred shadowed CommonJS capability: %+v", o)
+		}
+		if o.Kind == KindImport && o.Name == "pg" {
+			t.Fatalf("inferred unverified require import: %+v", o)
+		}
+		if o.Kind == KindCapability && o.Name == "cache:redis" {
+			hasESM = true
+		}
+	}
+	if !hasESM {
+		t.Fatalf("lost retained ESM evidence: %+v", observations)
+	}
+}

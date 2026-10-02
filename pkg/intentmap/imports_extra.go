@@ -517,12 +517,13 @@ func parseJSImports(name string, content []byte) []Observation {
 
 func parseJSImportsBounded(name string, content []byte) ([]Observation, bool) {
 	toks, limited := lexSource(string(content), "js")
-	return parseJSImportsTokens(name, toks), limited
+	return parseJSImportsTokens(name, toks, !limited), limited
 }
 
-func parseJSImportsTokens(name string, toks []sourceToken) []Observation {
+func parseJSImportsTokens(name string, toks []sourceToken, allowCommonJS bool) []Observation {
 	out := []Observation{}
-	shadowed := jsRequireShadowed(toks)
+	// A truncated token stream cannot rule out a later binding that shadows require.
+	shadowed := !allowCommonJS || jsRequireShadowed(toks)
 	for i := 0; i < len(toks); i++ {
 		t := toks[i]
 		if t.depth != 0 || t.kind != 'i' {
