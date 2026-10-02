@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.1.0 (unreleased)
+
+- Corroborate capabilities with bounded Java, Kotlin, C#, Visual Basic, JavaScript and TypeScript import observations. Comments, unrelated strings and template contents do not supply import evidence; unsupported syntax is omitted. Known namespace matches respect boundaries and language casing. Imports describe source syntax, not execution or installed packages.
+- Qualify capability evidence from test-path conventions and TypeScript type-only imports. `test_only_evidence` describes retained evidence under those conventions; it does not prove that production code never uses the capability. Runtime dependency or configuration evidence prevents that qualifier. Observation limits remain visible in coverage.
+- Exclude literal Maven test-scope dependencies from map capability inference using private parser metadata. Existing project and declaration requirement JSON retains those dependencies and its output shape.
+- Add `.NET` application interfaces for explicit `OutputType` declarations, retaining conditions and unresolved values. Dockerfile launch facts disclose the stage and shell/exec form, with arbitrary executables and arguments withheld. CronJob facts retain bounded schedule declarations and suspend values; timezone values are withheld. These declarations do not establish an effective runtime command or prove that a controller accepts a schedule.
+- Add `map compare --exit-code`: observed unchanged results exit 0, changed results exit 1, and uncertain comparisons exit 2. Coverage decreases, incomplete source binding and differing observer identities are uncertain. `--on-uncertain allow` explicitly uses the observed outcome while retaining the report's caveats. The default comparison exit behavior and JSON remain unchanged; output errors take precedence.
+- Expose fixed parser, inventory and storage bounds through `map settings`. They are read-only and do not enable optional modules. Tests distinguish performance-only preferences that preserve answers from limits that change coverage; CPU and memory settings remain cooperative preferences rather than enforced quotas.
+- Retry pinned Go module downloads up to three times in native release builds, with a timeout per attempt. Proxy diagnostics are withheld to avoid logging credentials; the workflow verifies that module inputs remain unchanged. No scheduled workflow was added.
+- Advance capability and deployable observer versions to 1.1.0. Cross-version comparisons therefore disclose the observer change separately from source changes. Existing map schema fields retain their meanings; older strict readers may reject new optional facts or enum values.
+
 ## 1.0.1 (2026-09-29)
 
 - Add a manually dispatched PyPI publishing workflow for the exact wheels in a verified GitHub Release. Publishing requires approval in the protected `pypi` environment and a PyPI Trusted Publisher; pushing a tag or publishing a GitHub Release does not upload to PyPI.
