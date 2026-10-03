@@ -142,3 +142,23 @@ func TestLockfilesCLIAcceptsNPMShrinkwrapPrecedence(t *testing.T) {
 		t.Fatalf("shrinkwrap did not win association: %+v", context)
 	}
 }
+
+func TestLockfilesComposeWithEnvironmentsAndRegistries(t *testing.T) {
+	root := t.TempDir()
+	writeCLILockfileFixture(t, root, map[string]string{
+		"app/package.json":      `{"name":"app","engines":{"node":">=20"},"dependencies":{"left-pad":"1.0.0"}}`,
+		"app/package-lock.json": cliLockfileMatch,
+		".node-version":         "20.12.0\n",
+		".npmrc":                "registry=https://registry.npmjs.org/\n",
+	})
+	output, stderr, err := invoke("analyze", "all", "--source", "directory", "--lockfiles", "--environments", "--registries", "--json", root)
+	if err != nil || stderr != "" {
+		t.Fatalf("stdout=%q stderr=%q err=%v", output, stderr, err)
+	}
+	report := decodeLockfilesProfile(t, output)
+	for _, module := range []string{"lockfiles", "environments", "registries"} {
+		if report[module] == nil {
+			t.Errorf("combined analyze all omitted %q module: %s", module, output)
+		}
+	}
+}
