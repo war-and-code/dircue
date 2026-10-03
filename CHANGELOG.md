@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.1.0 (unreleased)
+## 1.1.0 (2026-10-03)
 
 - Identify supported capabilities from Java, Kotlin, C#, Visual Basic, JavaScript and TypeScript imports within documented parsing limits. Comments, unrelated strings and template contents do not supply import evidence; unsupported syntax is omitted. Known namespace matches respect boundaries and language casing. Imports describe source syntax, not execution or installed packages.
 - Qualify capability evidence from test-path conventions and TypeScript type-only imports. `test_only_evidence` describes retained evidence under those conventions; it does not prove that production code never uses the capability. Runtime dependency or configuration evidence prevents that qualifier. Observation limits remain visible in coverage.
