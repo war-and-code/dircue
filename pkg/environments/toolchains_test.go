@@ -145,6 +145,86 @@ func TestToolchainCancellationAndOldReportCompatibility(t *testing.T) {
 	}
 }
 
+func TestRustToolchainRejectsMalformedOptionalFields(t *testing.T) {
+	for _, content := range []string{
+		"[toolchain]\nchannel = \"stable\"\ncomponents = \"rustfmt\"\n",
+		"[toolchain]\nchannel = \"stable\"\ntargets = [\"x86_64-unknown-linux-gnu\", 7]\n",
+		"[toolchain]\nchannel = \"stable\"\nprofile = \"fast\"\n",
+	} {
+		r, err := Analyze(t.Context(), envInput(map[string]string{"rust-toolchain.toml": content}, nil), Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if r.Status != "partial" || len(r.ToolchainDeclarations) != 1 || r.ToolchainDeclarations[0].State != "declared" || len(r.ToolchainDeclarations[0].Values) != 1 || r.ToolchainDeclarations[0].Values[0] != "stable" {
+			t.Fatalf("supported channel literal should be retained while malformed metadata degrades coverage: content=%q report=%+v", content, r)
+		}
+		if err := ValidateReport(r); err != nil {
+			t.Fatalf("analyzer report should validate: %v", err)
+		}
+		forgedComplete := cloneEnvironmentReport(t, r)
+		forgedComplete.Status = "complete"
+		if err := ValidateReport(forgedComplete); err == nil {
+			t.Fatalf("complete report with malformed Rust metadata diagnostic was accepted: %+v", forgedComplete)
+		}
+	}
+
+	valid := "[toolchain]\nchannel = \"nightly-2025-01-01\"\ncomponents = [\"rustfmt\", \"rustc-dev\"]\ntargets = [\"x86_64-unknown-linux-gnu\"]\nprofile = \"minimal\"\n"
+	r, err := Analyze(t.Context(), envInput(map[string]string{"rust-toolchain.toml": valid}, nil), Limits{})
+	if err != nil || r.Status != "complete" || r.ToolchainDeclarations[0].State != "declared" {
+		t.Fatalf("valid rustup metadata rejected: report=%+v err=%v", r, err)
+	}
+}
+
+func TestNVMRCReservedPairsAndCredentialLookingSelectors(t *testing.T) {
+	r, err := Analyze(t.Context(), envInput(map[string]string{".nvmrc": "lts/* # latest LTS\nfuture_option=value\n"}, nil), Limits{})
+	if err != nil || r.Status != "complete" || len(r.ToolchainDeclarations) != 1 || r.ToolchainDeclarations[0].Values[0] != "lts/*" {
+		t.Fatalf("nvm's documented comment and reserved key/value syntax should retain its selector: report=%+v err=%v", r, err)
+	}
+	secretLike := "AKIAIOSFODNN7EXAMPLE"
+	r, err = Analyze(t.Context(), envInput(map[string]string{".python-version": secretLike}, nil), Limits{})
+	if err != nil || r.Status != "partial" || len(r.ToolchainDeclarations) != 1 || r.ToolchainDeclarations[0].State != "unsupported" || len(r.ToolchainDeclarations[0].Values) != 0 {
+		t.Fatalf("credential-looking selector must not be emitted as a version: report=%+v err=%v", r, err)
+	}
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), secretLike) {
+		t.Fatalf("credential-looking selector leaked into report: %s", encoded)
+	}
+}
+
+func TestNestedUnresolvedToolchainStillHasLookupBoundary(t *testing.T) {
+	r, err := Analyze(t.Context(), envInput(map[string]string{
+		".node-version":       "20\n",
+		"apps/service/.nvmrc": "20\n21\n",
+	}, nil), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, boundary := range r.Boundaries {
+		if boundary.Reason == "nested-toolchain-declaration" && boundary.Path == "apps/service/.nvmrc" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("nested candidate should remain visible even when its contents are unsupported: %+v", r.Boundaries)
+	}
+}
+
+func TestToolchainReaderCancellationAfterSuccessfulReadIsFatal(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		cancel()
+		return []byte("20\n"), 3, nil
+	}
+	if _, err := Analyze(ctx, in, Limits{}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("successful read after cancellation should abort analysis, got %v", err)
+	}
+}
+
 func TestToolchainDeclarationsOnlyComeFromSelectedInventory(t *testing.T) {
 	in := envInput(map[string]string{".nvmrc": "20\n", "../outside/.nvmrc": "21\n"}, nil)
 	// The observer only considers paths admitted by the selected inventory.

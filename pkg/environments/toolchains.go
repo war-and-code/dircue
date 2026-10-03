@@ -89,6 +89,9 @@ func observeToolchainDeclarations(ctx context.Context, in Input, limits Limits, 
 			appendToolchainDeclaration(r, limits, declaration)
 			continue
 		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if int64(len(content)) != size || size != file.Size || size > limits.ToolchainFileBytes || size > limits.ToolchainInputBytes-r.Coverage.ToolchainBytes {
 			r.Status = "partial"
 			r.Coverage.OmittedToolchainFiles++
@@ -101,7 +104,7 @@ func observeToolchainDeclarations(ctx context.Context, in Input, limits Limits, 
 		values, state, diagnosticCode := parseToolchainValues(candidate, content)
 		declaration.Values = values
 		declaration.State = state
-		if state != "declared" {
+		if state != "declared" || diagnosticCode != "" {
 			r.Status = "partial"
 			r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: candidate, Code: diagnosticCode, Message: "Toolchain declaration is malformed or outside the supported literal subset; raw file contents were not retained."})
 		}
@@ -187,6 +190,14 @@ func parseNVMRC(content []byte) ([]string, string, string) {
 		if line == "" {
 			continue
 		}
+		// nvm currently reserves key/value lines for future settings and
+		// ignores them when reading .nvmrc.
+		if key, value, ok := strings.Cut(line, "="); ok {
+			if strings.TrimSpace(key) == "" || strings.TrimSpace(value) == "" {
+				return nil, "unsupported", "unsupported-toolchain-value"
+			}
+			continue
+		}
 		values = append(values, line)
 	}
 	if len(values) != 1 || !safeToolchainSelector(values[0]) {
@@ -215,19 +226,64 @@ func parseRustToolchainTOML(content []byte) ([]string, string, string) {
 			return nil, "unsupported", "unsupported-toolchain-toml"
 		}
 	}
+	metadataUnsupported := false
+	for _, key := range []string{"components", "targets"} {
+		if raw, exists := toolchain[key]; exists && !rustupStringArray(raw) {
+			metadataUnsupported = true
+		}
+	}
+	if raw, exists := toolchain["profile"]; exists {
+		profile, ok := raw.(string)
+		if !ok || (profile != "minimal" && profile != "default" && profile != "complete") {
+			metadataUnsupported = true
+		}
+	}
 	channel, hasChannel := toolchain["channel"]
-	_, hasPath := toolchain["path"]
+	toolchainPath, hasPath := toolchain["path"]
 	if hasChannel == hasPath {
 		return nil, "unresolved", "invalid-toolchain-toml"
 	}
 	if !hasChannel {
 		return nil, "unresolved", "unresolved-toolchain-path"
 	}
+	if _, ok := toolchainPath.(string); hasPath && !ok {
+		return nil, "unresolved", "invalid-toolchain-toml"
+	}
 	value, ok := channel.(string)
 	if !ok || !safeToolchainSelector(value) {
 		return nil, "unresolved", "invalid-toolchain-channel"
 	}
+	if metadataUnsupported {
+		return []string{value}, "declared", "unsupported-toolchain-toml"
+	}
 	return []string{value}, "declared", ""
+}
+
+func rustupStringArray(value any) bool {
+	items, ok := value.([]any)
+	if !ok {
+		return false
+	}
+	for _, item := range items {
+		text, ok := item.(string)
+		if !ok || !safeRustupListValue(text) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeRustupListValue(value string) bool {
+	if value == "" || len(value) > 128 {
+		return false
+	}
+	for _, r := range value {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || strings.ContainsRune("._+-", r) {
+			continue
+		}
+		return false
+	}
+	return true
 }
 
 // tomlNestingWithinBound limits arrays and inline tables before handing
@@ -283,7 +339,7 @@ func tomlNestingWithinBound(content []byte, maxDepth int) bool {
 }
 
 func safeToolchainSelector(value string) bool {
-	if value == "" || len(value) > 128 || strings.HasPrefix(value, "-") || strings.Contains(value, "..") || strings.ContainsAny(value, "$%{}\\\"'`,;\t\r\n") {
+	if value == "" || len(value) > 128 || strings.HasPrefix(value, "-") || credentialLookingSelector(value) || strings.Contains(value, "..") || strings.ContainsAny(value, "$%{}\\\"'`,;\t\r\n") {
 		return false
 	}
 	for _, segment := range strings.Split(value, "/") {
@@ -303,15 +359,37 @@ func safeToolchainSelector(value string) bool {
 	return true
 }
 
+func credentialLookingSelector(value string) bool {
+	if len(value) == 20 && (strings.HasPrefix(value, "AKIA") || strings.HasPrefix(value, "ASIA")) {
+		for _, r := range value[4:] {
+			if !(r >= 'A' && r <= 'Z') && !(r >= '0' && r <= '9') {
+				return false
+			}
+		}
+		return true
+	}
+	for _, prefix := range []string{"ghp_", "gho_", "ghu_", "ghs_", "ghr_", "github_pat_", "sk-", "xoxb-", "xoxp-", "xoxa-", "xoxr-", "xoxs-", "AIza"} {
+		if strings.HasPrefix(value, prefix) && len(value) >= len(prefix)+20 {
+			return true
+		}
+	}
+	return false
+}
+
 func detectToolchainConflicts(r *Report) {
 	declarations := r.ToolchainDeclarations
 	for i, declaration := range declarations {
-		if declaration.State != "declared" || len(declaration.Values) == 0 {
-			continue
-		}
 		for j := i + 1; j < len(declarations); j++ {
 			other := declarations[j]
-			if other.State != "declared" || other.Tool != declaration.Tool || len(other.Values) == 0 {
+			if other.Tool != declaration.Tool {
+				continue
+			}
+			nested := isNestedScope(declaration.ScopeDirectory, other.ScopeDirectory) || isNestedScope(other.ScopeDirectory, declaration.ScopeDirectory)
+			if nested {
+				r.Boundaries = append(r.Boundaries, Boundary{Path: other.SourcePath, Reason: "nested-toolchain-declaration", Detail: "Nested declarations were retained separately; manager-specific lookup and the applicable winner were not determined."})
+				continue
+			}
+			if declaration.State != "declared" || len(declaration.Values) == 0 || other.State != "declared" || len(other.Values) == 0 {
 				continue
 			}
 			if other.ScopeDirectory == declaration.ScopeDirectory {
@@ -326,9 +404,6 @@ func detectToolchainConflicts(r *Report) {
 					Explanation: "Same-directory declarations for this tool disagree; manager-specific precedence was not inferred.",
 				})
 				continue
-			}
-			if isNestedScope(declaration.ScopeDirectory, other.ScopeDirectory) || isNestedScope(other.ScopeDirectory, declaration.ScopeDirectory) {
-				r.Boundaries = append(r.Boundaries, Boundary{Path: other.SourcePath, Reason: "nested-toolchain-declaration", Detail: "Nested declarations were retained separately; manager-specific lookup and the applicable winner were not determined."})
 			}
 		}
 	}

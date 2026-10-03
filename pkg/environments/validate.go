@@ -98,6 +98,11 @@ func ValidateReport(r *Report) error {
 		if !wireString(d.Path) || !wireString(d.Code) || !wireString(d.Message) {
 			return errors.New("environment diagnostic is invalid")
 		}
+		if r.Status == "complete" && current {
+			if _, toolchainPath := toolchainFilenames[path.Base(d.Path)]; toolchainPath {
+				return errors.New("complete environment report contains toolchain diagnostics")
+			}
+		}
 	}
 	for _, x := range r.Conflicts {
 		if !wireString(x.ContextID) || !wireString(x.Dimension) || !wireString(x.Explanation) || len(x.Values) < 1 || len(x.Values) > 16 || len(x.Evidence) != len(x.Values) {
