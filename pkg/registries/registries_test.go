@@ -706,19 +706,31 @@ func TestChangedAndIncompleteReads(t *testing.T) {
 	}
 }
 func FuzzParseDeterminismAndBounds(f *testing.F) {
-	for _, s := range []string{"registry=https://u:p@example.com/path?token=secret", `<configuration><packageSources><clear/></packageSources></configuration>`, "registry=${SECRET}", "\x00\xff"} {
+	for _, s := range []string{
+		"registry=https://u:p@example.com/path?token=secret",
+		`<configuration><packageSources><clear/></packageSources></configuration>`,
+		`<settings><mirrors><mirror><id>corp</id><url>https://repo.example/maven</url><mirrorOf>*</mirrorOf></mirror></mirrors></settings>`,
+		"registry=${SECRET}",
+		"\x00\xff",
+		"[registry]\ndefault = \"crates-io\"\n[registries.private]\nindex = \"sparse+https://example.com/index/\"\n",
+		"[source.private]\nregistry = \"https://example.com/index/\"\n",
+		"[tool]\n" + strings.Repeat("nested.", 65) + "leaf = 1\n",
+	} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		if len(input) > int(MaxFileBytes)+1 {
+		if len(input) > 64<<10 {
 			t.Skip()
 		}
-		for _, name := range []string{"NuGet.Config", ".npmrc"} {
+		for _, name := range []string{"NuGet.Config", ".npmrc", "settings.xml", ".cargo/config", ".cargo/config.toml"} {
 			a, err := Parse(name, []byte(input))
 			if err != nil {
 				t.Fatal(err)
 			}
-			b, _ := Parse(name, []byte(input))
+			b, err := Parse(name, []byte(input))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if !reflect.DeepEqual(a, b) {
 				t.Fatal("nondeterministic")
 			}
