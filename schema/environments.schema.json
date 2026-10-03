@@ -210,6 +210,28 @@
           }
         }
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "complete"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "toolchain_declarations": {
+            "items": {
+              "properties": {
+                "state": {
+                  "const": "declared"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ],
   "$defs": {
@@ -533,19 +555,32 @@
       ],
       "properties": {
         "source_path": {
-          "$ref": "#/$defs/requiredText"
+          "$ref": "#/$defs/toolchainPath"
         },
         "tool": {
-          "$ref": "#/$defs/requiredText"
+          "enum": [
+            "python",
+            "node",
+            "rust"
+          ]
         },
         "kind": {
-          "$ref": "#/$defs/requiredText"
+          "enum": [
+            "python-version",
+            "node-version",
+            "nvmrc",
+            "rust-toolchain",
+            "rust-toolchain-toml"
+          ]
         },
         "values": {
           "type": "array",
           "maxItems": 16,
           "items": {
-            "$ref": "#/$defs/requiredText"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+/*-]*$"
           }
         },
         "state": {
@@ -556,13 +591,155 @@
           ]
         },
         "scope_directory": {
-          "$ref": "#/$defs/requiredText"
+          "$ref": "#/$defs/toolchainScope"
         },
         "applicability": {
           "$ref": "#/$defs/requiredText"
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "state": {
+                "const": "declared"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "values"
+            ],
+            "properties": {
+              "values": {
+                "minItems": 1
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "values": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "python-version"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tool": {
+                "const": "python"
+              },
+              "source_path": {
+                "pattern": "(^|/)\\.python-version$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "node-version"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tool": {
+                "const": "node"
+              },
+              "source_path": {
+                "pattern": "(^|/)\\.node-version$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "nvmrc"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tool": {
+                "const": "node"
+              },
+              "source_path": {
+                "pattern": "(^|/)\\.nvmrc$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "rust-toolchain"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tool": {
+                "const": "rust"
+              },
+              "source_path": {
+                "pattern": "(^|/)rust-toolchain$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "const": "rust-toolchain-toml"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "tool": {
+                "const": "rust"
+              },
+              "source_path": {
+                "pattern": "(^|/)rust-toolchain\\.toml$"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "toolchainPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8192,
+      "pattern": "^[^/\\\\\\x00]+(/[^/\\\\\\x00]+)*$",
+      "not": {
+        "pattern": "(^|/)\\.{1,2}(/|$)"
+      }
+    },
+    "toolchainScope": {
+      "anyOf": [
+        {
+          "const": "."
+        },
+        {
+          "$ref": "#/$defs/toolchainPath"
+        }
+      ]
     }
   }
 }

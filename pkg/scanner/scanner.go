@@ -679,7 +679,8 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		}
 		if lockfileCollector != nil {
 			if err := lockfileCollector.add(value); err != nil {
-				return nil, err
+				fail(err)
+				continue
 			}
 		}
 		if environmentCollector != nil {

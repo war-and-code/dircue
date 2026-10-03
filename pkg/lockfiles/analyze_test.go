@@ -410,6 +410,23 @@ func TestNuGetSharedProjectInputsKeepLockfileClaimIndeterminate(t *testing.T) {
 	}
 }
 
+func TestNuGetExplicitMSBuildImportKeepsLockAssociationIndeterminate(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Declared@1.0", State: "declared"})
+	record.Project.References = []declarations.Reference{{Kind: "import", Value: "../Shared.props", Target: "Shared.props", State: "declared", Evidence: record.Project.ID}}
+	lock := `{"version":1,"dependencies":{"net8.0":{"Declared":{"type":"Direct"},"Imported":{"type":"Direct"}}}}`
+	r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := r.Contexts[0]
+	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 || r.Status != "partial" {
+		t.Fatalf("explicit imported MSBuild input was treated as a closed project: %+v", c)
+	}
+	if len(c.Boundaries) != 1 || c.Boundaries[0].Reason != "nuget-imported-project-input-unresolved" {
+		t.Fatalf("missing explicit import boundary: %+v", c.Boundaries)
+	}
+}
+
 func TestReadFailureCanContinueButCancellationIsFatal(t *testing.T) {
 	rec := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
 	in := testInput([]declarations.ProjectRecord{rec}, map[string]string{"app/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`}, true)

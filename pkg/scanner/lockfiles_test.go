@@ -201,3 +201,25 @@ func TestLockfilesReportIsStableAcrossRepeatedDirectoryScans(t *testing.T) {
 		t.Fatalf("repeated reports differ:\n%+v\n%+v", first.Lockfiles, second.Lockfiles)
 	}
 }
+
+func TestNuGetExplicitImportedPropsPreventCompleteLockfileComparison(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"app/App.csproj":         `<Project><Import Project="Additional.props"/><ItemGroup><PackageReference Include="Declared" Version="1.0.0"/></ItemGroup></Project>`,
+		"app/Additional.props":   `<Project><ItemGroup><PackageReference Include="Imported" Version="2.0.0"/></ItemGroup></Project>`,
+		"app/packages.lock.json": `{"version":1,"dependencies":{"net8.0":{"Declared":{"type":"Direct"},"Imported":{"type":"Direct"}}}}`,
+	})
+	report, err := Scan(context.Background(), root, Options{Source: "directory", Lockfiles: true, DeclarationsOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Lockfiles.Contexts) != 1 {
+		t.Fatalf("lockfile contexts: %+v", report.Lockfiles.Contexts)
+	}
+	got := report.Lockfiles.Contexts[0]
+	if got.AssociationState != "indeterminate" || len(got.Checks) != 0 || report.Lockfiles.Status != "partial" {
+		t.Fatalf("explicit imported props were treated as fully inspected: context=%+v report=%+v", got, report.Lockfiles)
+	}
+	if len(got.Boundaries) != 1 || got.Boundaries[0].Reason != "nuget-imported-project-input-unresolved" {
+		t.Fatalf("missing imported MSBuild boundary: %+v", got.Boundaries)
+	}
+}

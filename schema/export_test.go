@@ -357,3 +357,75 @@ func TestLanguagesSchemaAcceptsExistingNaNStringOnly(t *testing.T) {
 		t.Fatal("bare NaN unexpectedly became valid JSON")
 	}
 }
+
+func TestExportedToolchainSchemaRejectsFalseIdentityAndCompleteness(t *testing.T) {
+	before, after := compileExportPair(t, "environments")
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".nvmrc"), []byte("20\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	profile := exportCLIValue(t, "analyze", "environments", "--json", "--source", "directory", root).(map[string]any)
+	original := profile["environments"]
+	for _, tc := range []struct {
+		name   string
+		mutate func(map[string]any, map[string]any)
+	}{
+		{"traversal", func(_, d map[string]any) { d["source_path"] = "../.nvmrc" }},
+		{"absolute", func(_, d map[string]any) { d["source_path"] = "/.nvmrc" }},
+		{"unclean_scope", func(_, d map[string]any) { d["scope_directory"] = "nested/../other" }},
+		{"wrong_tool", func(_, d map[string]any) { d["tool"] = "python" }},
+		{"wrong_kind", func(_, d map[string]any) { d["kind"] = "rust-toolchain" }},
+		{"unsafe_selector", func(_, d map[string]any) { d["values"] = []any{"20; echo hello"} }},
+		{"unsupported_complete", func(r, d map[string]any) { r["status"] = "complete"; d["state"] = "unsupported"; delete(d, "values") }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := json.Marshal(original)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report map[string]any
+			if err := json.Unmarshal(raw, &report); err != nil {
+				t.Fatal(err)
+			}
+			decl := report["toolchain_declarations"].([]any)[0].(map[string]any)
+			tc.mutate(report, decl)
+			if before.Validate(report) == nil || after.Validate(report) == nil {
+				t.Fatal("invalid toolchain declaration accepted by bundled or exported schema")
+			}
+		})
+	}
+	if before.Validate(original) != nil || after.Validate(original) != nil {
+		t.Fatal("actual toolchain report rejected")
+	}
+}
+
+func TestOptionalDependencySchemasPreserveUnusualSelectedFilenames(t *testing.T) {
+	root := t.TempDir()
+	folder := filepath.Join(root, "tab\tand\nnewline")
+	if err := os.Mkdir(folder, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{
+		"package.json":      `{"dependencies":{"left-pad":"1.3.0"}}`,
+		"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1.3.0"}}}}`,
+		".nvmrc":            "20\n",
+	} {
+		if err := os.WriteFile(filepath.Join(folder, name), []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report := exportCLIValue(t, "analyze", "all", "--lockfiles", "--environments", "--json", "--source", "directory", root).(map[string]any)
+	for _, name := range []string{"profile", "lockfiles", "environments"} {
+		before, after := compileExportPair(t, name)
+		value := any(report)
+		if name != "profile" {
+			value = report[name]
+		}
+		if err := before.Validate(value); err != nil {
+			t.Fatalf("%s bundled schema: %v", name, err)
+		}
+		if err := after.Validate(value); err != nil {
+			t.Fatalf("%s exported schema: %v", name, err)
+		}
+	}
+}

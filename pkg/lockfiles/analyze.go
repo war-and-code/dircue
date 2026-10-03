@@ -141,6 +141,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		ctxResult := Context{ProjectID: rec.Project.ID, Ecosystem: ecosystem, ManifestPath: manifest, AssociationState: "indeterminate", Checks: []Check{}, Boundaries: []Boundary{}}
 		nugetSharedInputs := ecosystem == "nuget" && hasNuGetSharedInputs(paths, rec.Project.Root)
+		nugetImportedInputs := ecosystem == "nuget" && hasNuGetImports(rec)
 		nugetCustomLockPath := false
 		nugetProjectConfigUnresolved := false
 		if ecosystem == "nuget" {
@@ -175,6 +176,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		} else if nugetProjectConfigUnresolved {
 			association = "indeterminate"
 			reason = "nuget-project-config-unresolved"
+		} else if nugetImportedInputs {
+			association = "indeterminate"
+			reason = "nuget-imported-project-input-unresolved"
 		}
 		if association == "observed" && !inventoryComplete {
 			association = "indeterminate"
@@ -806,6 +810,15 @@ func hasDirectDeclarations(rec declarations.ProjectRecord, ecosystem string) boo
 			if req.Kind == "package-reference" {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+func hasNuGetImports(rec declarations.ProjectRecord) bool {
+	for _, ref := range rec.Project.References {
+		if strings.EqualFold(ref.Kind, "import") {
+			return true
 		}
 	}
 	return false
