@@ -527,6 +527,20 @@ func TestReadFailureCanContinueButCancellationIsFatal(t *testing.T) {
 	}
 }
 
+func TestCancellationAfterSuccessfulLockReadIsFatal(t *testing.T) {
+	rec := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{rec}, map[string]string{"app/package-lock.json": lock}, true)
+	ctx, cancel := context.WithCancel(context.Background())
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		cancel()
+		return []byte(lock), int64(len(lock)), nil
+	}
+	if _, err := Analyze(ctx, in, Limits{}); !errors.Is(err, context.Canceled) {
+		t.Fatalf("successful read that canceled the caller context returned %v; want context.Canceled", err)
+	}
+}
+
 func TestBoundedAdmissionAndInputBytesAreDisclosed(t *testing.T) {
 	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
 	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
