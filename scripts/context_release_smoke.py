@@ -15,13 +15,14 @@ import wheels
 ROOT = Path(__file__).resolve().parents[1]
 CHECKS = {
     'core_version', 'default_omission', 'environment_worker_determinism',
-    'environment_declared_facts', 'capability_contract', 'saved_plan_without_source',
+    'environment_declared_facts', 'toolchain_observed_selector', 'capability_contract', 'saved_plan_without_source',
     'plan_exact_report_identity', 'plan_inert_argv', 'plan_source_binding',
     'focus_comparison_schema_1_6', 'availability_comparison_schema_1_6',
     'malformed_report_rejected', 'planning_request_cap_enforced',
 }
 FIXTURES = {
     'global.json': b'{"sdk":{"version":"8.0.300","rollForward":"latestPatch","allowPrerelease":false}}\n',
+    '.node-version': b'22.14.0\n',
     'app/App.csproj': b'<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>\n',
     'app/Program.cs': b'class App { static void Main() {} }\n',
     'py/pyproject.toml': b'[project]\nname="demo"\nversion="1.0"\nrequires-python=">=3.12"\n',
@@ -30,12 +31,16 @@ FIXTURES = {
     'assets/model.bin': b'version https://git-lfs.github.com/spec/v1\noid sha256:' + b'a' * 64 + b'\nsize 42\n',
 }
 FACTS = {
-    'environment_provider_version': '1.0.0',
+    'environment_provider_version': '1.1.0',
     'dotnet_project': 'app/App.csproj',
     'dotnet_target': 'net8.0',
     'python_project': 'py/pyproject.toml',
     'python_constraint': '>=3.12',
     'sdk_version': '8.0.300',
+    'toolchain_selector': {
+        'source_path': '.node-version', 'tool': 'node', 'kind': 'node-version',
+        'values': ['22.14.0'], 'state': 'declared', 'scope_directory': '.',
+    },
     'capability_schema_version': '1.0.0',
     'profile_schema_version': '1.7.0',
     'comparison_profile_schema_version': '1.6.0',
@@ -124,6 +129,12 @@ def check_environment(report):
     require((FACTS['dotnet_project'], 'target-framework', FACTS['dotnet_target']) in requirements and
             (FACTS['python_project'], 'python-requires-python', FACTS['python_constraint']) in requirements,
             'declared environment facts differ')
+    expected_toolchain = FACTS['toolchain_selector']
+    matches = [row for row in env.get('toolchain_declarations', [])
+               if row.get('source_path') == expected_toolchain['source_path']]
+    require(len(matches) == 1 and
+            all(matches[0].get(key) == value for key, value in expected_toolchain.items()),
+            'declared toolchain selector differs')
     selections = {row['project_id']: row for row in env['selections']}
     require(selections[FACTS['dotnet_project']]['sdk_version'] == FACTS['sdk_version'] and
             selections[FACTS['dotnet_project']]['global_json'] == 'global.json',
