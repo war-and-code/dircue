@@ -259,14 +259,15 @@ Directory statistics count full file sizes, and classification reads at most the
 | `analyze metrics` | code, comment and blank lines and complexity estimates, via scc | [METRICS.md](docs/METRICS.md) |
 | `analyze projects` | .NET, Maven and Gradle declarations, references and file composition | [PROJECTS.md](docs/PROJECTS.md) |
 | `analyze declarations` | project identities, workspaces, requirements and named interfaces from manifests | [DECLARATIONS.md](docs/DECLARATIONS.md) |
-| `analyze environments` | environment requirements declared in manifests | [ENVIRONMENTS.md](docs/ENVIRONMENTS.md) |
+| `analyze lockfiles` | supported npm/NuGet lockfile associations and named static checks | [LOCKFILES.md](docs/LOCKFILES.md) |
+| `analyze environments` | manifest environment requirements and declared Python, Node and Rust toolchains | [ENVIRONMENTS.md](docs/ENVIRONMENTS.md) |
 | `analyze formats` | file-format evidence | [FORMATS.md](docs/FORMATS.md) |
 | `analyze availability` | Git LFS pointers, gitlinks, submodules and sparse checkouts that can make source look absent | [AVAILABILITY.md](docs/AVAILABILITY.md) |
 | `analyze focus` | one project, with the original root's inventory as context | [FOCUS.md](docs/FOCUS.md) |
 | `analyze graph` | .NET project-reference graphs | [GRAPH.md](docs/GRAPH.md) |
 | `analyze packages --syft-report FILE` | package evidence from a saved Syft report | [PACKAGE_EVIDENCE.md](docs/PACKAGE_EVIDENCE.md) |
 | `analyze rules --rules-file FILE` | matches for caller-supplied filename, path and content rules | [RULES.md](docs/RULES.md) |
-| `analyze registries` | NuGet and npm package-source declarations | [REGISTRIES.md](docs/REGISTRIES.md) |
+| `analyze registries` | NuGet, npm, Maven and Cargo package-source declarations | [REGISTRIES.md](docs/REGISTRIES.md) |
 | `analyze structure` | syntax and metrics for 20 languages from a separate native worker | [STRUCTURE.md](docs/STRUCTURE.md) |
 | `analyze explain --file PATH` | why one file or project (`--project`) was classified and selected as it was | [EXPLANATIONS.md](docs/EXPLANATIONS.md) |
 

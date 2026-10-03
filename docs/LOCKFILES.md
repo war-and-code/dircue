@@ -13,7 +13,7 @@ dircue capabilities --schema lockfiles
 
 ## npm
 
-Dircue reads root `package.json` declarations and the root package entry (`packages[""]`) in npm lockfile format versions 2 and 3. It compares dependency names and the exact declaration text in `dependencies`, `devDependencies`, `optionalDependencies`, and `peerDependencies`. A text difference is reported as `different`; dircue does not interpret semver ranges, resolve aliases, or compare the installed or transitive graph. A comparison can be `indeterminate` when declarations are not statically understood.
+Dircue reads root `package.json` declarations and the root package entry (`packages[""]`) in npm lockfile format versions 2 and 3. It compares dependency names and the exact declaration text in `dependencies`, `devDependencies`, `optionalDependencies`, and `peerDependencies`. A text difference is reported as `different`; dircue does not interpret semver ranges, resolve aliases or Git references, or compare the installed or transitive graph. A comparison is `indeterminate` for aliases, Git references or other declarations outside the bounded matcher.
 
 At a package root, `npm-shrinkwrap.json` takes precedence over `package-lock.json`, as npm documents. Workspace membership is not inferred from nearby manifests: when a member has only an ancestor lockfile, ownership remains indeterminate. Other managers' lockfiles, including pnpm and Yarn, are not analyzed.
 
@@ -29,6 +29,8 @@ The standard same-directory `packages.lock.json` is associated only when one pro
 
 `association_state` distinguishes `observed`, `missing`, `unsupported`, `indeterminate`, and `not_applicable`. A missing lockfile is reported as `missing` only when the selected inventory is complete and a relevant declaration exists. With incomplete inventory, absence cannot be established and remains indeterminate. Unsupported formats and ambiguous ownership also remain distinct from absence.
 
+Coverage describes the supported project contexts and named checks, not a parse of every lockfile in the directory. A lower-priority `package-lock.json` is not read when shrinkwrap takes precedence. Orphan lockfiles without a supported project context do not establish a comparison population. Only `.csproj` projects receive NuGet checks; other MSBuild project types are counted when determining whether a shared lockfile has an unambiguous owner.
+
 Git scans read the selected commit or tree, not dirty working-tree changes. Directory scans read the current selected directory, including untracked files. In either mode, lockfile contents come from that same selected source. Symlink and other non-regular candidates are not followed as lockfile content.
 
 The module never runs npm, NuGet, MSBuild, install scripts, or restore; it does not contact registries or use ambient package-manager configuration. Defaults are disclosed in the report's `limits` object:
@@ -37,8 +39,8 @@ The module never runs npm, NuGet, MSBuild, install scripts, or restore; it does 
 | --- | ---: |
 | Selected relevant inventory paths | 200,000 |
 | Lockfile candidates admitted | 256 |
-| Bytes in one lockfile | 1 MiB |
-| Total lockfile bytes read | 16 MiB |
+| Bytes in one lockfile or selected project XML | 1 MiB |
+| Total lockfile and selected project XML bytes read | 16 MiB |
 | Package names in comparisons | 65,536 |
 | Project contexts | 4,096 |
 | Serialized module report | 16 MiB |

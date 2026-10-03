@@ -1,0 +1,331 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dircue lockfile observations",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "provider",
+    "provider_version",
+    "status",
+    "source",
+    "semantics",
+    "limits",
+    "coverage",
+    "contexts",
+    "diagnostics"
+  ],
+  "properties": {
+    "provider": {
+      "const": "dircue"
+    },
+    "provider_version": {
+      "const": "1.0.0"
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "partial",
+        "skipped"
+      ]
+    },
+    "source": {
+      "enum": [
+        "directory",
+        "git"
+      ]
+    },
+    "tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "semantics": {
+      "const": [
+        "npm-package-lock-direct-tables-v1",
+        "nuget-packages-lock-direct-presence-v1"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_paths",
+        "lockfiles",
+        "file_bytes",
+        "input_bytes",
+        "package_names",
+        "contexts",
+        "output_bytes"
+      ],
+      "properties": {
+        "inventory_paths": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200000
+        },
+        "lockfiles": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 256
+        },
+        "file_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1048576
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        },
+        "package_names": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "contexts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "output_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 16777216
+        }
+      }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inventory_paths",
+        "project_records",
+        "lock_candidates",
+        "lockfiles_read",
+        "input_bytes",
+        "package_names",
+        "omitted_files",
+        "omitted_contexts"
+      ],
+      "properties": {
+        "inventory_paths": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        },
+        "project_records": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        },
+        "lock_candidates": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        },
+        "lockfiles_read": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 256
+        },
+        "input_bytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16777216
+        },
+        "package_names": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 65536
+        },
+        "omitted_files": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "omitted_contexts": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "project_id",
+          "ecosystem",
+          "manifest_path",
+          "association_state",
+          "checks",
+          "boundaries"
+        ],
+        "properties": {
+          "project_id": {
+            "type": "string",
+            "maxLength": 8192,
+            "pattern": "^[^/\\\\\\x00-\\x1f\\x7f][^\\\\\\x00-\\x1f\\x7f]*$",
+            "not": {
+              "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
+            }
+          },
+          "ecosystem": {
+            "enum": [
+              "npm",
+              "nuget"
+            ]
+          },
+          "manifest_path": {
+            "type": "string",
+            "maxLength": 8192,
+            "pattern": "^[^/\\\\\\x00-\\x1f\\x7f][^\\\\\\x00-\\x1f\\x7f]*$",
+            "not": {
+              "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
+            }
+          },
+          "lockfile_path": {
+            "type": "string",
+            "maxLength": 8192,
+            "pattern": "^[^/\\\\\\x00-\\x1f\\x7f][^\\\\\\x00-\\x1f\\x7f]*$",
+            "not": {
+              "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
+            }
+          },
+          "association_state": {
+            "enum": [
+              "observed",
+              "missing",
+              "unsupported",
+              "indeterminate",
+              "not_applicable"
+            ]
+          },
+          "lockfile_version": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "name",
+                "status",
+                "compared",
+                "explanation"
+              ],
+              "properties": {
+                "name": {
+                  "enum": [
+                    "npm-direct-declaration-table-match",
+                    "nuget-observed-direct-package-presence"
+                  ]
+                },
+                "status": {
+                  "enum": [
+                    "match",
+                    "different",
+                    "indeterminate",
+                    "not_applicable"
+                  ]
+                },
+                "compared": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "missing": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 65536
+                },
+                "mismatched": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 65536
+                },
+                "unexpected": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 65536
+                },
+                "explanation": {
+                  "type": "string"
+                }
+              }
+            },
+            "maxItems": 1
+          },
+          "boundaries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "maxItems": 4096
+    },
+    "diagnostics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "code",
+          "message"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "const": "git"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "tree"
+        ]
+      }
+    }
+  ]
+}

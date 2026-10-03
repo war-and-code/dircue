@@ -15,7 +15,7 @@ func TestDircueDescriptorIsSmallDeterministicRegistry(t *testing.T) {
 	if !reflect.DeepEqual(a, b) {
 		t.Fatal("descriptor changed between calls")
 	}
-	if len(a.Modules) != 8 {
+	if len(a.Modules) != 9 {
 		t.Fatalf("unexpected planner registry size: %d", len(a.Modules))
 	}
 	for _, m := range a.Modules {

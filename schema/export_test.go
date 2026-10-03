@@ -27,7 +27,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "map-compare", "planning", "profile", "stats"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "lockfiles", "map", "map-compare", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -139,7 +139,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	base := targetedCLIReport(t, "analyze", "all", "--availability", "--declarations", "--environments", "--formats", "--json", "--source", "directory", root)
+	base := targetedCLIReport(t, "analyze", "all", "--availability", "--declarations", "--environments", "--formats", "--lockfiles", "--json", "--source", "directory", root)
 	focus := targetedCLIReport(t, "analyze", "focus", "--project", "App.csproj", "--json", "--source", "directory", root)
 	explanation := targetedCLIReport(t, "analyze", "explain", "--file", "main.go", "--json", "--source", "directory", root)
 
@@ -181,7 +181,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		"guide":            exportCLIValue(t, "capabilities", "--guide", "--json"),
 		"availability":     base["availability"], "capabilities": capabilities.Dircue("test"),
 		"comparison": comparison, "declarations": base["declarations"],
-		"environments": base["environments"], "explanation": explanation["explanation"],
+		"lockfiles": base["lockfiles"], "environments": base["environments"], "explanation": explanation["explanation"],
 		"findings": exportCLIValue(t, "analyze", "frameworks", "--json", "--source", "directory", root),
 		"focus":    focus["focus"], "formats": base["formats"], "hotspots": hotspots,
 		"languages": exportCLIValue(t, "--json", "--source", "directory", root),

@@ -11,9 +11,9 @@ dircue compare before.json after.json --json > changes.json
 
 `compare` reads the two supplied files. It does not open their declared roots, follow evidence paths, rescan content, fetch Git history, or invoke another tool. Keep report files outside the inspected directory when taking filesystem snapshots so they do not become part of the next inventory.
 
-Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.7. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
+Inputs must be aggregate dircue JSON reports using supported schema versions 1.0–1.8. The language-only object from `dircue --json` or `github-linguist --json` does not carry the required aggregate contract. Malformed JSON, duplicate keys, unknown fields, invalid schema values and unsupported schema versions fail explicitly. Input validation uses bundled schemas and does not retrieve remote resources.
 
-From 0.8.0, comparison accepts the focused and source-availability reports introduced in schema 1.6.0. It also accepts schema 1.7.0 reports containing environment evidence, while explicitly marking environment comparison unsupported. Explanation comparison is likewise unsupported. Other supported modules in these reports can still be compared.
+From 0.8.0, comparison accepts the focused and source-availability reports introduced in schema 1.6.0. It also accepts schema 1.7.0 environment reports and schema 1.8.0 lockfile reports. From 1.2, comparison retains environment requirements, .NET selections and declared Python/Node/Rust toolchains, plus lockfile associations and named checks. These are observation comparisons: partial evidence and environment provider-scope changes keep absence uncertain. Neither a matching lockfile check nor an unchanged toolchain declaration verifies an effective build environment. Explanation comparison remains unsupported. Other supported modules in these reports can still be compared.
 
 ## Read compatibility before changes
 

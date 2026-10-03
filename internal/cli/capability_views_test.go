@@ -35,7 +35,7 @@ func TestCLIContractDerivesActualCommandsFlagsAndDefaultValues(t *testing.T) {
 	if err := json.Unmarshal([]byte(out), &contract); err != nil {
 		t.Fatal(err)
 	}
-	if len(contract.Commands) != 29 || contract.Kind != "dircue-cli-capabilities" {
+	if len(contract.Commands) != 30 || contract.Kind != "dircue-cli-capabilities" {
 		t.Fatalf("commands=%d kind=%s", len(contract.Commands), contract.Kind)
 	}
 	flagLine := regexp.MustCompile(`(?m)^\s+(?:-[A-Za-z0-9],\s+)?--([a-z0-9-]+)(?:\s|$)`)

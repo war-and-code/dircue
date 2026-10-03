@@ -6,9 +6,11 @@
   "additionalProperties": false,
   "required": ["schema_version", "root", "summary", "languages", "ecosystems", "frameworks", "layouts", "warnings"],
   "allOf": [
-    {"if": {"required": ["environments"]}, "then": {"required": ["declarations"], "properties": {"schema_version": {"const": "1.7.0"}}}},
+    {"if": {"required": ["lockfiles"]}, "then": {"required": ["declarations"], "properties": {"schema_version": {"const": "1.8.0"}}}},
+    {"if": {"properties": {"schema_version": {"const": "1.8.0"}}}, "then": {"required": ["lockfiles"]}},
+    {"if": {"required": ["environments"]}, "then": {"required": ["declarations"], "properties": {"schema_version": {"enum": ["1.7.0", "1.8.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.7.0"}}}, "then": {"required": ["environments"]}},
-    {"if": {"anyOf": [{"required": ["focus"]}, {"required": ["focused_metrics"]}, {"required": ["availability"]}, {"required": ["explanation"]}]}, "then": {"properties": {"schema_version": {"enum": ["1.6.0", "1.7.0"]}}}},
+    {"if": {"anyOf": [{"required": ["focus"]}, {"required": ["focused_metrics"]}, {"required": ["availability"]}, {"required": ["explanation"]}]}, "then": {"properties": {"schema_version": {"enum": ["1.6.0", "1.7.0", "1.8.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.6.0"}}}, "then": {"anyOf": [{"required": ["focus"]}, {"required": ["availability"]}, {"required": ["explanation"]}]}},
     {"if": {"required": ["focused_metrics"]}, "then": {"required": ["focus"], "properties": {"focus": {"properties": {"scope": {"properties": {"role": {"const": "project"}}}}}}}},
     {"if": {"required": ["focused_metrics"], "properties": {"focused_metrics": {"anyOf": [
@@ -16,9 +18,9 @@
       {"properties": {"related": {"contains": {"properties": {"metrics": {"properties": {"skipped": {"contains": {"$ref": "#/$defs/focus_scope_partial_marker"}}}}}}}}}
     ]}}}, "then": {"properties": {"focus": {"properties": {"status": {"const": "partial"}}}}}},
     {"if": {"required": ["focus"]}, "then": {"not": {"anyOf": [{"required": ["metrics"]}, {"required": ["structure"]}]}}},
-    {"if": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}, "then": {"properties": {"schema_version": {"enum": ["1.5.0", "1.6.0", "1.7.0"]}}}},
+    {"if": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}, "then": {"properties": {"schema_version": {"enum": ["1.5.0", "1.6.0", "1.7.0", "1.8.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.5.0"}}}, "then": {"anyOf": [{"required": ["formats"]}, {"required": ["structure"], "properties": {"structure": {"required": ["hotspots"]}}}]}},
-    {"if": {"required": ["declarations"]}, "then": {"properties": {"schema_version": {"enum": ["1.4.0", "1.5.0", "1.6.0", "1.7.0"]}}}},
+    {"if": {"required": ["declarations"]}, "then": {"properties": {"schema_version": {"enum": ["1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"]}}}},
     {"if": {"properties": {"schema_version": {"const": "1.4.0"}}}, "then": {"required": ["declarations"]}},
     {"if": {"properties": {"schema_version": {"enum": ["1.0.0", "1.1.0", "1.2.0"]}}}, "then": {"not": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["registries"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}}},
     {"if": {"properties": {"schema_version": {"const": "1.3.0"}}}, "then": {"anyOf": [{"required": ["discovery"]}, {"required": ["graph"]}, {"required": ["package_evidence"]}, {"required": ["rules"]}, {"required": ["registries"]}, {"required": ["structure"], "properties": {"structure": {"required": ["functions"]}}}]}},
@@ -86,6 +88,7 @@
   ],
   "properties": {
     "environments": {"$ref": "environments.schema.json"},
+    "lockfiles": {"$ref": "lockfiles.schema.json"},
     "focus": {"$ref": "focus.schema.json"},
     "availability": {"$ref": "availability.schema.json"},
     "explanation": {"$ref": "explanation.schema.json"},
@@ -101,7 +104,7 @@
     "discovery": {"$ref": "#/$defs/discovery"},
     "graph": {"$ref": "#/$defs/graph"},
     "schema_version": {
-      "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"]
+      "enum": ["1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"]
     },
     "root": {"type": "string", "minLength": 1},
     "summary": {
@@ -205,7 +208,7 @@
           "const": "dircue-registry-declarations"
         },
         "rule_version": {
-          "const": "1.0.0"
+          "enum": ["1.0.0", "1.1.0"]
         },
         "source": {
           "type": "object",
@@ -302,7 +305,7 @@
               "const": "qualified_identifiers_and_origins_may_reveal_internal_names_not_secret_detection"
             },
             "supported_configurations": {
-              "const": ["nuget_config_basename_case_insensitive", "npmrc_basename_exact"]
+              "enum": [["nuget_config_basename_case_insensitive", "npmrc_basename_exact"], ["cargo_dot_cargo_config_basename_exact", "cargo_dot_cargo_config_toml_basename_exact", "maven_settings_xml_basename_exact", "nuget_config_basename_case_insensitive", "npmrc_basename_exact"]]
             },
             "max_configurations_per_ecosystem": {
               "const": 64
@@ -342,22 +345,22 @@
             "admitted_files": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 128
+              "maximum": 256
             },
             "read_files": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 128
+              "maximum": 256
             },
             "parsed_files": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 128
+              "maximum": 256
             },
             "bytes_read": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 33554560
+              "maximum": 67109120
             },
             "observed_declarations": {
               "type": "integer",
@@ -367,7 +370,7 @@
             "retained_declarations": {
               "type": "integer",
               "minimum": 0,
-              "maximum": 2048
+              "maximum": 4096
             },
             "enumeration_complete": {
               "type": "boolean"
@@ -376,7 +379,7 @@
         },
         "configurations": {
           "type": "array",
-          "maxItems": 128,
+          "maxItems": 256,
           "items": {
             "$ref": "#/$defs/registry_configuration"
           }
@@ -421,7 +424,9 @@
         "ecosystem": {
           "enum": [
             "nuget",
-            "npm"
+            "npm",
+            "maven",
+            "cargo"
           ]
         },
         "status": {
@@ -504,7 +509,8 @@
             "packageSources",
             "disabledPackageSources",
             "packageSourceMapping",
-            "registry"
+            "registry",
+            "mirrors", "profiles", "repositories", "pluginRepositories", "activeProfiles", "cargoRegistry", "cargoSource"
           ]
         },
         "operation": {
@@ -513,9 +519,11 @@
             "clear",
             "remove",
             "map",
-            "registry"
+            "registry",
+            "default", "source", "replace"
           ]
         },
+        "applicability": {"enum": ["unresolved"]},
         "semantics": {
           "enum": [
             "declared",
@@ -1221,7 +1229,7 @@
           "const": "space-kind-function"
         },
         "rule_version": {
-          "const": "1.0.0"
+          "enum": ["1.0.0", "1.1.0"]
         },
         "scope": {
           "const": "selected-source-files"

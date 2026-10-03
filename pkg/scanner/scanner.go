@@ -24,6 +24,7 @@ import (
 	"github.com/war-and-code/dircue/pkg/focus"
 	"github.com/war-and-code/dircue/pkg/forest"
 	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/lockfiles"
 	"github.com/war-and-code/dircue/pkg/profile"
 	"github.com/war-and-code/dircue/pkg/projects"
 	"github.com/war-and-code/dircue/pkg/registries"
@@ -37,6 +38,8 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Lockfiles performs named static checks on selected manifest/lockfile pairs.
+	Lockfiles bool
 	// Environments reuses declarations and reads selected global.json inputs.
 	Environments bool
 	// Focus selects a declared project population and contextual inputs.
@@ -180,7 +183,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
 	}
-	if opts.Focus != nil || opts.Environments {
+	if opts.Focus != nil || opts.Environments || opts.Lockfiles {
 		opts.Declarations = true
 	}
 	if opts.FormatsOnly && (!opts.Formats || opts.Discovery || opts.Rules != nil || opts.Registries || opts.Projects || opts.Declarations || opts.Metrics != nil || opts.Structure != nil || len(opts.Detectors) > 0) {
@@ -300,6 +303,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	defer root.Close()
 	environmentCollector := newEnvironmentAccumulator(opts)
+	lockfileCollector := newLockfileAccumulator(opts)
 	availabilityCollector := newAvailabilityAccumulator(opts, snapshot)
 	focusCollector, err := newFocusAccumulator(opts, snapshot)
 	if err != nil {
@@ -323,6 +327,10 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				return nil, errors.New("focus inventory omitted: tree size limit reached")
 			}
 			report := newReport(abs)
+			if opts.Lockfiles {
+				report.Lockfiles = lockfiles.Skip("directory", "", "tree_size_limit")
+				report.SchemaVersion = profile.LockfilesSchemaVersion
+			}
 			if opts.Environments {
 				report.Environments = environments.Skip("directory", "", "tree_size_limit")
 				report.SchemaVersion = profile.EnvironmentSchemaVersion
@@ -393,6 +401,12 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				if err := finishLanguageExplanation(opts, snapshot, report, nil, false); err != nil {
 					return nil, err
 				}
+			}
+			if opts.Environments {
+				report.SchemaVersion = profile.EnvironmentSchemaVersion
+			}
+			if opts.Lockfiles {
+				report.SchemaVersion = profile.LockfilesSchemaVersion
 			}
 			return report, nil
 		}
@@ -617,7 +631,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		}
 		declarationCollector = declarations.New(source, tree, opts.MaxFileBytes)
 		declarationCollector.SetErrorPolicy(string(opts.ErrorPolicy))
-		if opts.Focus != nil || opts.Environments {
+		if opts.Focus != nil || opts.Environments || opts.Lockfiles {
 			declarationCollector.EnableProjectRecords()
 		}
 	}
@@ -662,6 +676,11 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		if value.envTree != nil {
 			report.SummarizedTrees = append(report.SummarizedTrees, *value.envTree)
 			continue
+		}
+		if lockfileCollector != nil {
+			if err := lockfileCollector.add(value); err != nil {
+				return nil, err
+			}
 		}
 		if environmentCollector != nil {
 			if err := environmentCollector.add(value); err != nil {
@@ -924,11 +943,24 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		if report.Environments != nil {
 			for _, d := range report.Environments.Diagnostics {
 				if d.Code == "file-read-error" {
-					addFileReadErrorWarning(report, fileReadErrorWarnings, d.Path, "selected global.json could not be read")
+					addFileReadErrorWarning(report, fileReadErrorWarnings, d.Path, "selected environment declaration could not be read")
 				}
 			}
 		}
 		report.SchemaVersion = profile.EnvironmentSchemaVersion
+	}
+	if lockfileCollector != nil {
+		if err := lockfileCollector.finish(ctx, root, declarationCollector, report); err != nil {
+			return nil, err
+		}
+		if report.Lockfiles != nil {
+			for _, d := range report.Lockfiles.Diagnostics {
+				if d.Code == "file-read-error" {
+					addFileReadErrorWarning(report, fileReadErrorWarnings, d.Path, "selected lockfile could not be read")
+				}
+			}
+		}
+		report.SchemaVersion = profile.LockfilesSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

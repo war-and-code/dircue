@@ -44,6 +44,7 @@ type options struct {
 	// the cobra tree is built.
 	displayName            string
 	environments           bool
+	lockfiles              bool
 	availability           bool
 	focusProject           string
 	focusRelated           []string
@@ -216,7 +217,7 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 		Example: "  " + name + " analyze discovery --json /checkout\n  " + name + " analyze languages --source directory --json /content\n  " + name + " analyze all --declarations --metrics --json /checkout",
 		RunE:    analysisSelectionError,
 	}
-	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "lockfiles", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -245,11 +246,12 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 			addFocusFlags(command, opts)
 		}
 		if mode == "all" {
-			command.Flags().BoolVar(&opts.environments, "environments", false, "Map declared project environments using manifest evidence and bounded global.json inputs")
+			command.Flags().BoolVar(&opts.lockfiles, "lockfiles", false, "Associate selected npm and NuGet lockfiles and run named static declaration checks")
+			command.Flags().BoolVar(&opts.environments, "environments", false, "Map declared project environments using manifest evidence and bounded global.json and Python/Node/Rust toolchain inputs")
 			command.Flags().BoolVar(&opts.availability, "availability", false, "Inspect bounded source-availability evidence without fetching missing material")
 			command.Flags().BoolVar(&opts.formats, "formats", false, "Inspect bounded content for format evidence, including data and artifact files")
 			command.Flags().BoolVar(&opts.declarations, "declarations", false, "Read declared project identities, workspace relationships, requirements, and interfaces")
-			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet.Config and .npmrc declarations; disclose qualified names and sanitized origins")
+			command.Flags().BoolVar(&opts.registries, "registries", false, "Read selected NuGet, npm, Maven and Cargo registry declarations; disclose qualified names and sanitized origins")
 			command.Flags().BoolVar(&opts.graph, "graph", false, "Analyze static .NET project-reference graphs (includes project inventory)")
 			command.Flags().BoolVar(&opts.projects, "projects", false, "Map projects, declared build requirements, and content composition")
 			command.Flags().BoolVar(&opts.structure, "structure", false, "Run optional structural analysis with the specified worker")
@@ -386,6 +388,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
 		Environments:     mode == "environments" || (mode == "all" && opts.environments),
+		Lockfiles:        mode == "lockfiles" || (mode == "all" && opts.lockfiles),
 		Focus:            focusRequest,
 		Availability:     mode == "availability" || (mode == "all" && opts.availability),
 		AvailabilityOnly: mode == "availability",
@@ -405,7 +408,7 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		Metrics:           metrics,
 		Projects:          mode == "projects" || mode == "graph" || packageReport != nil || (mode == "all" && (opts.projects || opts.graph)),
 		Declarations:      mode == "declarations" || (mode == "all" && opts.declarations),
-		DeclarationsOnly:  mode == "declarations" || mode == "environments",
+		DeclarationsOnly:  mode == "declarations" || mode == "environments" || mode == "lockfiles",
 		Formats:           mode == "formats" || (mode == "all" && opts.formats),
 		FormatsOnly:       mode == "formats",
 		Discovery:         mode == "discovery" || opts.discovery,
@@ -443,6 +446,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if report.Environments != nil {
 		report.SchemaVersion = profile.EnvironmentSchemaVersion
 	}
+	if report.Lockfiles != nil {
+		report.SchemaVersion = profile.LockfilesSchemaVersion
+	}
 	for _, warning := range report.Warnings {
 		// The Linguist-compatible language commands have always treated an
 		// unusable implicit Git source as an ordinary directory without writing
@@ -476,6 +482,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "lockfiles":
+		return writeLockfiles(out, report.Lockfiles)
 	case "environments":
 		return writeEnvironments(out, report.Environments)
 	case "focus":
@@ -548,6 +556,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 			if err := writeFindings(out, section.findings); err != nil {
 				return err
 			}
+		}
+		if err := writeLockfiles(out, report.Lockfiles); err != nil {
+			return err
 		}
 		if report.Environments != nil {
 			if _, err := fmt.Fprintln(out, "\nEnvironments:"); err != nil {

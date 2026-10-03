@@ -45,3 +45,7 @@ Costs report retained candidate file and byte quantities, the inspection class (
 Planning is bounded to 64 selected questions/modules, one focus project, 16 supporting observations per step, 256 observations overall, 256-byte request keys, and 1 MiB of serialized output. Exceeded input or arithmetic bounds fail instead of wrapping counts or emitting an unbounded plan.
 
 Git-backed plans use `--tree` with the exact retained tree object ID, followed by `--` before the source placeholder. `--rev` remains a commit selector; `REV:path` is rejected. Revalidate the source boundary and replace placeholders as distinct argument values, never through shell interpolation.
+
+## Passive dependency context
+
+The planner supports the explicitly requested `lockfiles` module alongside environments. A saved profile containing those observations can support an inert follow-up recipe; it does not authorize executing that recipe or validate restore consistency. Candidate counts describe retained manifest evidence, and missing counts remain unknown. Partial module evidence stays qualified. The plan never runs package managers or retrieves configuration from the host.

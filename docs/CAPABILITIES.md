@@ -1,6 +1,6 @@
 # Language and project coverage
 
-Dircue has separate language classifiers, line counters, structural parsers, and project readers. Support in one does not imply support in all four. These tables describe the enabled integrations in the 1.0 line, rather than every feature provided by its upstream dependencies.
+Dircue has separate language classifiers, line counters, structural parsers, and project readers. Support in one does not imply support in all four. These tables describe the enabled integrations in the 1.x line, rather than every feature provided by its upstream dependencies.
 
 Version 0.4.0 additionally offers [metadata discovery](DISCOVERY.md), [.NET declaration graphs](GRAPH.md), [Syft report import](PACKAGE_EVIDENCE.md), [caller-supplied rules](RULES.md), [package-source declarations](REGISTRIES.md), and [bounded function metrics](FUNCTIONS.md). These additions have their own scope and coverage fields; they do not expand the structural grammar list or turn filename hints into parsed declarations.
 
@@ -10,13 +10,13 @@ Version 0.6.0 adds [format evidence](FORMATS.md) and [population-aware function 
 
 Version 0.7.0 adds [focused .NET/Python project profiling](FOCUS.md), [source-availability evidence](AVAILABILITY.md), and [targeted explanations](EXPLANATIONS.md). These additions preserve the existing language catalog and structural grammar coverage.
 
-Version 0.8.0 adds [declared environment requirements](ENVIRONMENTS.md), a limited [planner capability registry and offline follow-up plans](PLANNING.md), and comparison of focused/source-availability evidence. It does not expand the language or grammar catalogs.
+Version 0.8.0 adds [declared environment requirements](ENVIRONMENTS.md), a limited [planner capability registry and offline follow-up plans](PLANNING.md), and comparison of focused/source-availability evidence. Version 1.2.0 adds explicit [lockfile observations](LOCKFILES.md), selected Python/Node/Rust toolchain declarations, and selected Maven/Cargo registry configuration. These modules do not expand the language or grammar catalogs.
 
 ## Analysis layers
 
 | Layer | Coverage | Result and limits |
 | --- | --- | --- |
-| Environment requirements | Supported declaration facts and bounded .NET `global.json` contexts | Declared constraints and qualified SDK-selection inputs; no installed-environment or build-success claim. |
+| Environment requirements | Supported declaration facts, bounded .NET `global.json` contexts, and selected Python/Node/Rust toolchain files | Declared constraints and qualified selection inputs; no installed-environment or build-success claim. |
 | Follow-up planning | Explicit caller requests and one saved aggregate report | Inert commands, prerequisites, retained evidence and cost quantities; no execution or source access. |
 | Focused profiling | Parsed .NET and Python/uv selections | Original-root context and qualified containment; optional separate primary/related scc metrics. |
 | Source availability | Explicit bounded prefixes, selected Gitlinks, supported checkout metadata | Acquisition-boundary evidence; no fetching, hydration, or filter execution. |
@@ -24,7 +24,8 @@ Version 0.8.0 adds [declared environment requirements](ENVIRONMENTS.md), a limit
 | Metadata discovery | Selected regular files, including non-code and vendor paths | Filename and size inventory, manifest/artifact candidates, explicit coverage; no source-payload reads. |
 | Format evidence | Bounded prefixes of selected regular files | Separate filename hints, signatures and supported syntax checks; no archive expansion or purpose inference. |
 | Function hotspots | Eligible BCA Function-kind spaces in selected parsed files | Fixed-bin distributions and top-ten evidence by language/grammar and clean/recovered syntax; includes overlapping nested spaces. |
-| Package-source declarations | Selected NuGet.Config and .npmrc files | Bounded declarations and sanitized origins; no effective feed resolution. |
+| Package-source declarations | Selected NuGet, npm, Maven and Cargo configuration | Bounded declarations and sanitized origins; no effective feed resolution. |
+| Lockfile observations | Selected npm and NuGet project/lockfile associations | Named direct-declaration checks with ownership and coverage qualifications; no restore or dependency-graph consistency claim. |
 | Caller rules | Explicit bounded JSON ruleset | Factual filename/path/literal matches; no automatic configuration or execution. |
 | Imported package evidence | Existing supported native Syft JSON | Explicit source binding and coordinate mapping; does not run Syft. |
 | Language identification | Maintained Enry/Linguist catalog | Language and byte totals, selected file metadata, and Linguist attributes. The [compatibility notes](../tests/conformance/DISCREPANCIES.md) describe the pinned reference and deliberate differences. |
@@ -51,6 +52,7 @@ The `schema_version` of an aggregate [profile](../schema/profile.schema.json) re
 | File-format evidence | `1.5.0` |
 | Focus, availability, explanations, or focused metrics | `1.6.0` |
 | Declared environments, with reused declarations | `1.7.0` |
+| Lockfile observations, with reused declarations | `1.8.0` |
 
 ## Structural coverage
 
@@ -101,6 +103,6 @@ These are known boundaries of the 1.0 implementation. The 1.x compatibility poli
 
 - **Git repository shapes:** bare and unborn repositories, SHA-256 object format, Git alternates, `GIT_DIR` overrides, and subdirectory discovery inside a repository root are not fully modeled. `--source git` fails with an explicit error for the unsupported forms; `--source auto` may fall back to directory mode silently on the legacy Linguist surface. See [source availability](AVAILABILITY.md) for related evidence and [#66](https://github.com/war-and-code/dircue/issues/66).
 - **Absent focus query:** `analyze focus --affected-by <path>` for a path with no matching declaration returns `status: complete` with the echoed query rather than a dedicated "no match" sentinel. See [focus guide](FOCUS.md) and [#67](https://github.com/war-and-code/dircue/issues/67).
-- **Registry adapter coverage:** `analyze registries` reads NuGet.Config and .npmrc only; other package sources (Maven `settings.xml`, `pip.conf`, Cargo `config.toml`, Yarn configuration, etc.) are outside scope. See [registries guide](REGISTRIES.md#uncovered-configuration) and [#68](https://github.com/war-and-code/dircue/issues/68).
+- **Registry adapter coverage:** `analyze registries` reads selected NuGet.Config, .npmrc, Maven `settings.xml` and `.cargo/config`/`.cargo/config.toml` files. Other package sources, such as `pip.conf`, Yarn configuration and Maven POM repository declarations, remain outside scope. See [registries guide](REGISTRIES.md#uncovered-configuration) and [#68](https://github.com/war-and-code/dircue/issues/68).
 - **Environment adapter breadth:** `analyze environments` covers the dimensions in [ENVIRONMENTS.md](ENVIRONMENTS.md); other ecosystems' environment declarations are not modeled yet. See [#65](https://github.com/war-and-code/dircue/issues/65).
 - **Structural worker isolation:** the worker inherits the caller's process environment and working directory and is not sandboxed. The caller is responsible for the worker binary's origin. See [structural guide](STRUCTURE.md#dependencies-and-redistribution) and [#69](https://github.com/war-and-code/dircue/issues/69).

@@ -10,6 +10,7 @@ import (
 	"github.com/war-and-code/dircue/pkg/explain"
 	"github.com/war-and-code/dircue/pkg/focus"
 	"github.com/war-and-code/dircue/pkg/formats"
+	"github.com/war-and-code/dircue/pkg/lockfiles"
 	"github.com/war-and-code/dircue/pkg/packageevidence"
 	"github.com/war-and-code/dircue/pkg/projects"
 	"github.com/war-and-code/dircue/pkg/registries"
@@ -82,6 +83,8 @@ const TargetedSchemaVersion = "1.6.0"
 
 const EnvironmentSchemaVersion = "1.7.0"
 
+const LockfilesSchemaVersion = "1.8.0"
+
 // SummarizedTree records a recognized environment or build-output tree that
 // was counted rather than scanned in detail.
 type SummarizedTree struct {
@@ -98,6 +101,7 @@ type SummarizedTree struct {
 }
 
 type Report struct {
+	Lockfiles       *lockfiles.Report       `json:"lockfiles,omitempty"`
 	Environments    *environments.Report    `json:"environments,omitempty"`
 	Explanation     *explain.Report         `json:"explanation,omitempty"`
 	Availability    *availability.Report    `json:"availability,omitempty"`

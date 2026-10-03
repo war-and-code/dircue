@@ -39,7 +39,8 @@ func (a *environmentAccumulator) add(value result) error {
 		}
 	}
 	base := path.Base(value.path)
-	envRelevant := base == "global.json" || base == "Directory.Build.props"
+	toolchain := base == ".python-version" || base == ".node-version" || base == ".nvmrc" || base == "rust-toolchain" || base == "rust-toolchain.toml"
+	envRelevant := base == "global.json" || base == "Directory.Build.props" || toolchain
 	// A file_read_error under continue is attributable to a specific
 	// enumerated path, so the inventory itself is not invalidated: an
 	// env-relevant candidate is still recorded (Analyze will report it as
@@ -66,7 +67,7 @@ func (a *environmentAccumulator) add(value result) error {
 	// and, under the continue policy, produce a per-path "file-read-error"
 	// diagnostic rather than aborting or invalidating the whole inventory.
 	file := environments.File{Path: value.path, NonRegular: value.selectedJob == nil}
-	if value.selectedJob != nil && base == "global.json" {
+	if value.selectedJob != nil && (base == "global.json" || toolchain) {
 		item := *value.selectedJob
 		file.Size = item.size
 		a.jobs[value.path] = item
@@ -103,6 +104,9 @@ func (a *environmentAccumulator) finish(ctx context.Context, root *os.Root, coll
 	limits := environments.Limits{}
 	if a.maxFileBytes > 0 && a.maxFileBytes < environments.DefaultMaxGlobalJSONBytes {
 		limits.GlobalJSONBytes = a.maxFileBytes
+	}
+	if a.maxFileBytes > 0 && a.maxFileBytes < environments.DefaultMaxToolchainFileBytes {
+		limits.ToolchainFileBytes = a.maxFileBytes
 	}
 	input := environments.Input{
 		Source: report.Declarations.Source, Tree: report.Declarations.Tree,
