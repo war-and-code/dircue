@@ -1,6 +1,6 @@
 {
   "schema": "dircue-public-map-quality-0.1",
-  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories and one checked-in non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
+  "metric_scope": "Exact precision and recall over each entry’s evaluated_kinds (component, deployable, interface, and capability for public sources; content for the non-source fixture), evidenced edges whose evidence paths are listed in oracle_files, and every coverage question/status. Other map output is outside the evaluated universe. Seven pinned public repositories, a checked-in TypeScript import fixture, and a non-source fixture are evaluated. A separate full-repository guard requires all 12 source service roots, all 12 primary Dockerfiles, and all 9 GitHub workflow files in microservices-demo; these guards are not included in the precision/recall denominator.",
   "repositories": [
     {
       "id": "microservices-demo",
@@ -48,6 +48,11 @@
           "path": "src/emailservice/requirements.txt",
           "sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
           "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt"
+        },
+        {
+          "path": "src/cartservice/src/cartstore/AlloyDBCartStore.cs",
+          "sha256": "35101d96d55d784904a9647fa57b53cffe7a169b6dbd2f233dfe3eeacc4066f2",
+          "url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/cartservice/src/cartstore/AlloyDBCartStore.cs"
         }
       ],
       "expected_nodes": [
@@ -71,16 +76,19 @@
           "kind": "capability",
           "name": "datastore:postgresql",
           "paths": [
-            "src/cartservice/src/cartservice.csproj"
+            "src/cartservice/src/cartservice.csproj",
+            "src/cartservice/src/cartstore/AlloyDBCartStore.cs"
           ],
           "properties": {
             "basis": "declared_dependency",
             "observation_kind": "capability",
             "requirement": "Npgsql@10.0.3",
             "requirement_kind": "package-reference",
-            "state": "declared",
+            "state": "observed",
             "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
-            "evidence_path_count": "1"
+            "evidence_path_count": "2",
+            "non_test_path_evidence": "true",
+            "non_type_only_import_evidence": "true"
           }
         },
         {
@@ -96,7 +104,7 @@
             "requirement_kind": "python-dependency",
             "state": "declared",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-            "evidence_path_count": "2"
+            "evidence_path_count": "1"
           }
         },
         {
@@ -377,7 +385,7 @@
           ],
           "properties": {
             "basis": "declared_dependency",
-            "evidence_path_count": "2",
+            "evidence_path_count": "1",
             "observation_kind": "capability",
             "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
             "requirement": "grpcio==1.76.0",
@@ -804,21 +812,25 @@
             "kind": "capability",
             "name": "datastore:postgresql",
             "paths": [
-              "src/cartservice/src/cartservice.csproj"
+              "src/cartservice/src/cartservice.csproj",
+              "src/cartservice/src/cartstore/AlloyDBCartStore.cs"
             ],
             "properties": {
               "basis": "declared_dependency",
               "observation_kind": "capability",
               "requirement": "Npgsql@10.0.3",
               "requirement_kind": "package-reference",
-              "state": "declared",
+              "state": "observed",
               "owning_component": "component:6cf943151a696d4f45994bd93eb1df4b",
-              "evidence_path_count": "1"
+              "evidence_path_count": "2",
+              "non_test_path_evidence": "true",
+              "non_type_only_import_evidence": "true"
             }
           },
           "properties": {},
           "evidence_paths": [
-            "src/cartservice/src/cartservice.csproj"
+            "src/cartservice/src/cartservice.csproj",
+            "src/cartservice/src/cartstore/AlloyDBCartStore.cs"
           ]
         },
         {
@@ -892,7 +904,7 @@
               "requirement_kind": "python-dependency",
               "state": "declared",
               "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
-              "evidence_path_count": "2"
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1004,7 +1016,7 @@
             ],
             "properties": {
               "basis": "declared_dependency",
-              "evidence_path_count": "2",
+              "evidence_path_count": "1",
               "observation_kind": "capability",
               "owning_component": "component:1590ad3172a544f720ead3bc4344a923",
               "requirement": "grpcio==1.76.0",
@@ -1141,6 +1153,11 @@
           "path": "src/eShop.AppHost/eShop.AppHost.csproj",
           "sha256": "ad0b0cd0b5eb630c07c5baf34069f81613d8c3b03ce5d5f34f91fe7e915e40f7",
           "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/eShop.AppHost/eShop.AppHost.csproj"
+        },
+        {
+          "path": "src/Basket.API/GlobalUsings.cs",
+          "sha256": "a31adc4837db4115916c16bc27ea19b1fd3a5e3f54108516a1be7866565c66ff",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Basket.API/GlobalUsings.cs"
         }
       ],
       "expected_nodes": [
@@ -1179,15 +1196,18 @@
           "kind": "capability",
           "name": "cache:redis",
           "paths": [
+            "src/Basket.API/GlobalUsings.cs",
             "src/Basket.API/appsettings.json"
           ],
           "properties": {
             "basis": "declared_config",
             "key": "ConnectionStrings:Redis",
             "observation_kind": "capability",
-            "state": "declared",
+            "state": "observed",
             "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-            "evidence_path_count": "1"
+            "evidence_path_count": "2",
+            "non_test_path_evidence": "true",
+            "non_type_only_import_evidence": "true"
           }
         },
         {
@@ -1217,7 +1237,7 @@
             "observation_kind": "capability",
             "state": "declared",
             "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-            "evidence_path_count": "3"
+            "evidence_path_count": "1"
           }
         },
         {
@@ -1254,6 +1274,21 @@
             "root": "src/eShop.AppHost",
             "role": "primary",
             "role_basis": "path_name"
+          }
+        },
+        {
+          "kind": "interface",
+          "name": "eShop.AppHost",
+          "paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ],
+          "properties": {
+            "basis": "declared_manifest",
+            "interface_kind": "dotnet-application",
+            "observation_kind": "interface",
+            "owning_component": "component:ab201712a34856ec5275bef628ec5de0",
+            "state": "declared",
+            "target": "Exe"
           }
         }
       ],
@@ -1796,7 +1831,7 @@
               "observation_kind": "capability",
               "state": "declared",
               "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-              "evidence_path_count": "3"
+              "evidence_path_count": "1"
             }
           },
           "properties": {},
@@ -1828,19 +1863,23 @@
             "kind": "capability",
             "name": "cache:redis",
             "paths": [
+              "src/Basket.API/GlobalUsings.cs",
               "src/Basket.API/appsettings.json"
             ],
             "properties": {
               "basis": "declared_config",
               "key": "ConnectionStrings:Redis",
               "observation_kind": "capability",
-              "state": "declared",
+              "state": "observed",
               "owning_component": "component:a8226a7bb22244084b48ae636e63aedc",
-              "evidence_path_count": "1"
+              "evidence_path_count": "2",
+              "non_test_path_evidence": "true",
+              "non_type_only_import_evidence": "true"
             }
           },
           "properties": {},
           "evidence_paths": [
+            "src/Basket.API/GlobalUsings.cs",
             "src/Basket.API/appsettings.json"
           ]
         },
@@ -1963,6 +2002,46 @@
           "properties": {},
           "evidence_paths": [
             "src/Basket.API/Basket.API.csproj"
+          ]
+        },
+        {
+          "type": "declares",
+          "from": {
+            "kind": "component",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost",
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "root": "src/eShop.AppHost",
+              "role": "primary",
+              "role_basis": "path_name"
+            }
+          },
+          "to": {
+            "kind": "interface",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/eShop.AppHost.csproj"
+            ],
+            "properties": {
+              "basis": "declared_manifest",
+              "interface_kind": "dotnet-application",
+              "observation_kind": "interface",
+              "owning_component": "component:ab201712a34856ec5275bef628ec5de0",
+              "state": "declared",
+              "target": "Exe"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/eShop.AppHost/eShop.AppHost.csproj"
           ]
         }
       ],
@@ -2200,7 +2279,7 @@
           ],
           "properties": {
             "basis": "declared_dependency",
-            "evidence_path_count": "2",
+            "evidence_path_count": "1",
             "observation_kind": "capability",
             "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
             "requirement": "com.h2database:h2",
@@ -2338,7 +2417,7 @@
             ],
             "properties": {
               "basis": "declared_dependency",
-              "evidence_path_count": "2",
+              "evidence_path_count": "1",
               "observation_kind": "capability",
               "owning_component": "component:26baf517dcc94faff08e6fa8713bdf57",
               "requirement": "com.h2database:h2",
@@ -2742,6 +2821,292 @@
       ]
     },
     {
+      "id": "typescript-imports-fixture",
+      "source_type": "fixture",
+      "fixture": "fixtures/typescript-imports",
+      "evaluated_kinds": [
+        "component",
+        "capability"
+      ],
+      "oracle_files": [
+        {
+          "path": "package.json",
+          "sha256": "a56a81f0407eb1452e6117ed2f0492ed465db449d770b5e9b053a8558dc1e4d2",
+          "url": "tests/map_corpus/fixtures/typescript-imports/package.json"
+        },
+        {
+          "path": "src/database.ts",
+          "sha256": "c86dcf0fd9cc98d00826f5d4da4767de88b3abc86d0997408ea0fda7e006d51a",
+          "url": "tests/map_corpus/fixtures/typescript-imports/src/database.ts"
+        },
+        {
+          "path": "src/types.ts",
+          "sha256": "ed4434db977d0fcaec7fc42a72b05ca1ed61d571e597fb84335a2a9f7b670f91",
+          "url": "tests/map_corpus/fixtures/typescript-imports/src/types.ts"
+        },
+        {
+          "path": "src/test_utils.ts",
+          "sha256": "1f552c729429bb3b16dc1d178f76c07ff7e7aaabb9f71b53e056d314d25cc038",
+          "url": "tests/map_corpus/fixtures/typescript-imports/src/test_utils.ts"
+        },
+        {
+          "path": "tests/database.test.ts",
+          "sha256": "99b8f17c402b713c2c5c51d221af78f2f9009eb894411248aa05fa26e1835d89",
+          "url": "tests/map_corpus/fixtures/typescript-imports/tests/database.test.ts"
+        }
+      ],
+      "expected_nodes": [
+        {
+          "kind": "component",
+          "name": "typescript-import-fixture",
+          "paths": [
+            "package.json"
+          ],
+          "properties": {
+            "ecosystem": "npm",
+            "language": "TypeScript",
+            "language_basis": "repository_population",
+            "project_kind": "npm",
+            "role": "primary",
+            "role_basis": "path_name",
+            "root": "."
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "datastore:postgresql",
+          "paths": [
+            "package.json",
+            "src/database.ts",
+            "tests/database.test.ts"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "condition": "optionalDependencies",
+            "evidence_path_count": "3",
+            "non_test_path_evidence": "true",
+            "non_type_only_import_evidence": "true",
+            "observation_kind": "capability",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+            "requirement": "pg@^8.0.0",
+            "requirement_kind": "npm-dependency",
+            "state": "observed",
+            "test_path_evidence": "true"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "auth:jwt",
+          "paths": [
+            "package.json",
+            "src/types.ts"
+          ],
+          "properties": {
+            "basis": "declared_dependency",
+            "condition": "peerDependencies",
+            "evidence_path_count": "2",
+            "non_test_path_evidence": "true",
+            "observation_kind": "capability",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+            "requirement": "jsonwebtoken@^9.0.0",
+            "requirement_kind": "npm-dependency",
+            "state": "conditional",
+            "type_only_import_evidence": "true"
+          }
+        },
+        {
+          "kind": "capability",
+          "name": "cache:redis",
+          "paths": [
+            "src/test_utils.ts"
+          ],
+          "properties": {
+            "basis": "imported",
+            "evidence_path_count": "1",
+            "import": "ioredis",
+            "import_representation": "package_root",
+            "non_test_path_evidence": "true",
+            "non_type_only_import_evidence": "true",
+            "observation_kind": "capability",
+            "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+            "state": "observed"
+          }
+        }
+      ],
+      "expected_edges": [
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "typescript-import-fixture",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "language": "TypeScript",
+              "language_basis": "repository_population",
+              "project_kind": "npm",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "datastore:postgresql",
+            "paths": [
+              "package.json",
+              "src/database.ts",
+              "tests/database.test.ts"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "condition": "optionalDependencies",
+              "evidence_path_count": "3",
+              "non_test_path_evidence": "true",
+              "non_type_only_import_evidence": "true",
+              "observation_kind": "capability",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+              "requirement": "pg@^8.0.0",
+              "requirement_kind": "npm-dependency",
+              "state": "observed",
+              "test_path_evidence": "true"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json",
+            "src/database.ts",
+            "tests/database.test.ts"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "typescript-import-fixture",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "language": "TypeScript",
+              "language_basis": "repository_population",
+              "project_kind": "npm",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "auth:jwt",
+            "paths": [
+              "package.json",
+              "src/types.ts"
+            ],
+            "properties": {
+              "basis": "declared_dependency",
+              "condition": "peerDependencies",
+              "evidence_path_count": "2",
+              "non_test_path_evidence": "true",
+              "observation_kind": "capability",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+              "requirement": "jsonwebtoken@^9.0.0",
+              "requirement_kind": "npm-dependency",
+              "state": "conditional",
+              "type_only_import_evidence": "true"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "package.json",
+            "src/types.ts"
+          ]
+        },
+        {
+          "type": "uses_capability",
+          "from": {
+            "kind": "component",
+            "name": "typescript-import-fixture",
+            "paths": [
+              "package.json"
+            ],
+            "properties": {
+              "ecosystem": "npm",
+              "language": "TypeScript",
+              "language_basis": "repository_population",
+              "project_kind": "npm",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "."
+            }
+          },
+          "to": {
+            "kind": "capability",
+            "name": "cache:redis",
+            "paths": [
+              "src/test_utils.ts"
+            ],
+            "properties": {
+              "basis": "imported",
+              "evidence_path_count": "1",
+              "import": "ioredis",
+              "import_representation": "package_root",
+              "non_test_path_evidence": "true",
+              "non_type_only_import_evidence": "true",
+              "observation_kind": "capability",
+              "owning_component": "component:f0f784ca9e255d1e94e691010110a240",
+              "state": "observed"
+            }
+          },
+          "properties": {},
+          "evidence_paths": [
+            "src/test_utils.ts"
+          ]
+        }
+      ],
+      "expected_coverage": [
+        {
+          "question": "analyzer_coverage",
+          "status": "unknown"
+        },
+        {
+          "question": "capabilities",
+          "status": "partial"
+        },
+        {
+          "question": "components",
+          "status": "partial"
+        },
+        {
+          "question": "content",
+          "status": "complete"
+        },
+        {
+          "question": "deployables",
+          "status": "partial"
+        },
+        {
+          "question": "interfaces",
+          "status": "partial"
+        },
+        {
+          "question": "packages",
+          "status": "unknown"
+        },
+        {
+          "question": "routing",
+          "status": "unknown"
+        },
+        {
+          "question": "source_binding",
+          "status": "complete"
+        }
+      ]
+    },
+    {
       "id": "non-source",
       "source_type": "fixture",
       "fixture": "fixtures/non-source",
@@ -2869,5 +3234,58 @@
         }
       ]
     }
-  ]
+  ],
+  "label_corrections": {
+    "reason": "Manual source review after evidence_path_count was corrected to count distinct source paths. Only the four audited capability values and their matching edge copies changed; no node or edge expectation was removed.",
+    "items": [
+      {
+        "repository": "microservices-demo",
+        "kind": "capability",
+        "name": "net:http-client",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "src/emailservice/requirements.txt",
+        "source_sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+        "source_url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt#L100-L103",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "microservices-demo",
+        "kind": "capability",
+        "name": "serialization:protobuf",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "src/emailservice/requirements.txt",
+        "source_sha256": "5b8b1c8de44d4b3afdd157e286b149926b2841063f339af0dfe40c25aeb84509",
+        "source_url": "https://github.com/GoogleCloudPlatform/microservices-demo/blob/38e7348eb289eb5b87c0c6e8cb19ced0449dc389/src/emailservice/requirements.txt#L24-L31",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "eshop",
+        "kind": "capability",
+        "name": "messaging:event-bus",
+        "property": "evidence_path_count",
+        "from": "3",
+        "to": "1",
+        "source_file": "src/Basket.API/appsettings.json",
+        "source_sha256": "1af10c5eea5d7531727075516927555c4d7ed9d9c89866c7be03dedd9ec85ec3",
+        "source_url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/Basket.API/appsettings.json#L13-L21",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      },
+      {
+        "repository": "spring-petclinic",
+        "kind": "capability",
+        "name": "datastore:relational",
+        "property": "evidence_path_count",
+        "from": "2",
+        "to": "1",
+        "source_file": "pom.xml",
+        "source_sha256": "7e61df0a43d538a5404e8130a55b8085541ec8e841fcf39f81bb6d3d81dcd2f4",
+        "source_url": "https://github.com/spring-projects/spring-petclinic/blob/818c4136ea971c21674525f9053de0d9c7ad8cfe/pom.xml#L76-L80",
+        "reason": "The capability has one distinct contributing source path. This property counts unique paths, not repeated observations from multiple lines or parser paths; the capability and its edge remain in the expectation."
+      }
+    ]
+  }
 }

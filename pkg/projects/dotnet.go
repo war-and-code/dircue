@@ -79,6 +79,7 @@ func (b *dotnetBudget) condition(parent, current string) string {
 type dotnetNode struct {
 	name     string
 	attrs    map[string]string
+	line     int
 	text     strings.Builder
 	children []*dotnetNode
 }
@@ -128,6 +129,7 @@ func ParseDotnet(name string, content []byte) Document {
 	}
 	var reqs []Requirement
 	var refs []Reference
+	var interfaces []Interface
 	budget := dotnetBudget{remaining: dotnetMaxExpandedBytes}
 	addReq := func(kind, value, condition string) {
 		value = strings.TrimSpace(value)
@@ -179,6 +181,23 @@ func ParseDotnet(name string, content []byte) Document {
 				}
 				addReq("target-framework", v, condition)
 			}
+		case "OutputType":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
+			// Exe and WinExe are explicit application outputs. Preserve MSBuild
+			// expressions as unresolved launch declarations; they may evaluate to
+			// either an application or a library in a later build context.
+			if value == "Exe" || value == "WinExe" || dotnetDynamic(value) {
+				appName := strings.TrimSuffix(path.Base(name), path.Ext(name))
+				if appName == "" {
+					appName = "application"
+				}
+				iface := Interface{Kind: "dotnet-application", Name: appName, Target: value, State: dotnetState(value, condition), Evidence: name, Condition: condition, Line: n.line}
+				if budget.observation(len(iface.Kind) + len(iface.Name) + len(iface.Target) + len(iface.Condition) + len(name) + 128) {
+					interfaces = append(interfaces, iface)
+				}
+			}
 		case "TargetFrameworkVersion":
 			if parent != "PropertyGroup" && parent != "Project" {
 				break
@@ -210,6 +229,37 @@ func ParseDotnet(name string, content []byte) Document {
 				if strings.TrimSpace(v) != "" {
 					addRef(dotnetReference(name, "project-reference", v, condition))
 				}
+			}
+		case "Reference":
+			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
+			// MSBuild permits item metadata in XML attributes as well as child
+			// elements. Keep HintPath declarations visible in either form; the
+			// normal path resolver leaves property expressions unresolved.
+			if hint := strings.TrimSpace(n.attrs["HintPath"]); hint != "" {
+				ref := dotnetReference(name, "local-artifact", hint, condition)
+				if ref.Target != "" && !strings.EqualFold(path.Ext(ref.Target), ".dll") {
+					ref.Target = ""
+					ref.State = "unresolved"
+				}
+				addRef(ref)
+			}
+			for _, child := range n.children {
+				if !strings.EqualFold(child.name, "HintPath") {
+					continue
+				}
+				hint := strings.TrimSpace(child.text.String())
+				if hint == "" {
+					continue
+				}
+				childCondition := budget.condition(condition, child.attrs["Condition"])
+				ref := dotnetReference(name, "local-artifact", hint, childCondition)
+				if ref.Target != "" && !strings.EqualFold(path.Ext(ref.Target), ".dll") {
+					ref.Target = ""
+					ref.State = "unresolved"
+				}
+				addRef(ref)
 			}
 		case "Import":
 			if v := n.attrs["Project"]; v != "" {
@@ -321,7 +371,7 @@ func ParseDotnet(name string, content []byte) Document {
 		if ext == ".slnx" {
 			kind = "solution"
 		}
-		doc.Projects = []Project{{ID: name, Root: path.Dir(name), Kind: kind, Evidence: []string{name}, Requirements: reqs, References: refs}}
+		doc.Projects = []Project{{ID: name, Root: path.Dir(name), Kind: kind, Evidence: []string{name}, Requirements: reqs, References: refs, Interfaces: interfaces}}
 	} else {
 		doc.Requirements = reqs
 		doc.References = refs
@@ -336,9 +386,9 @@ func dotnetSemanticName(parent, name string) string {
 	var supported []string
 	switch parent {
 	case "PropertyGroup":
-		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers"}
+		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers", "OutputType"}
 	case "ItemGroup":
-		supported = []string{"ProjectReference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
+		supported = []string{"ProjectReference", "Reference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
 	default:
 		return name
 	}
@@ -365,7 +415,10 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 	var stack []*dotnetNode
 	var root *dotnetNode
 	nodes := 0
+	lineCursor := 0
+	currentLine := 1
 	for {
+		before := int(decoder.InputOffset())
 		token, err := decoder.Token()
 		if err == io.EOF {
 			break
@@ -373,6 +426,14 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Cannot parse XML: %w", err)
 		}
+		after := int(decoder.InputOffset())
+		if before < lineCursor || after < before || after > len(decoded) {
+			return nil, fmt.Errorf("Cannot parse XML: invalid token offsets")
+		}
+		if before > lineCursor {
+			currentLine += bytes.Count(decoded[lineCursor:before], []byte("\n"))
+		}
+		segment := decoded[before:after]
 		switch t := token.(type) {
 		case xml.StartElement:
 			nodes++
@@ -380,6 +441,11 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 				return nil, fmt.Errorf("XML exceeds declaration parser depth or element limits")
 			}
 			n := &dotnetNode{name: t.Name.Local, attrs: make(map[string]string)}
+			// Token slices are disjoint, so source line counting remains linear.
+			// A multiline start tag points at its opening delimiter.
+			if start := bytes.IndexByte(segment, '<'); start >= 0 {
+				n.line = currentLine + bytes.Count(segment[:start], []byte("\n"))
+			}
 			for _, a := range t.Attr {
 				if _, exists := n.attrs[a.Name.Local]; exists {
 					return nil, fmt.Errorf("XML has duplicate attribute names")
@@ -407,6 +473,8 @@ func readDotnetXML(content []byte) (*dotnetNode, error) {
 		case xml.Directive:
 			return nil, fmt.Errorf("XML directives are not supported by the declaration parser")
 		}
+		currentLine += bytes.Count(segment, []byte("\n"))
+		lineCursor = after
 	}
 	if len(stack) != 0 {
 		return nil, fmt.Errorf("XML has unclosed elements")

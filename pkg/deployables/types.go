@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ProviderVersion    = "1.0.0"
+	ProviderVersion    = "1.1.0"
 	DefaultFileBytes   = int64(256 << 10)
 	DefaultInputBytes  = int64(16 << 20)
 	DefaultFiles       = 4096
@@ -75,10 +75,11 @@ type Reference struct {
 	// Checkout is parser-only GitHub Actions context for a working directory:
 	// the actions/checkout path that contains it in the same job, and whether
 	// that checkout names a repository. Empty when no checkout contains it.
-	Checkout      string `json:"-"`
-	CheckoutNamed bool   `json:"-"`
-	SourcePath    string `json:"-"`
-	TargetPath    string `json:"-"`
+	Checkout        string `json:"-"`
+	CheckoutNamed   bool   `json:"-"`
+	CheckoutUnknown bool   `json:"-"`
+	SourcePath      string `json:"-"`
+	TargetPath      string `json:"-"`
 }
 
 // Definition is a declaration, not proof of a built image, executed workflow,
@@ -104,6 +105,10 @@ type Definition struct {
 	// DockerPathWrites retains bounded opaque RUN/ADD instructions as private
 	// barriers while mapbuild traces staged artifact paths.
 	DockerPathWrites []Reference `json:"-"`
+	// DockerFinalStage is parser-only stage context. It lets map facts distinguish
+	// a launch instruction's stage without asserting which instruction is
+	// effective after Docker's order and override rules are applied.
+	DockerFinalStage string `json:"-"`
 	// Format is the packaging format for archive deployables (e.g. "war", "ear").
 	// Empty for all other kinds.
 	Format string `json:"format,omitempty"`
@@ -123,6 +128,17 @@ type Diagnostic struct {
 	Message string `json:"message"`
 }
 
+// BuildContext is a private source-backed pairing between a literal Docker
+// build context and Dockerfile outside the Dockerfile itself. It is carried
+// only between observers and is not part of deployables report JSON.
+type BuildContext struct {
+	SourcePath      string
+	Context         string
+	Dockerfile      string
+	ContextEvidence Evidence
+	FileEvidence    Evidence
+}
+
 type Report struct {
 	Provider        string           `json:"provider"`
 	ProviderVersion string           `json:"provider_version"`
@@ -136,7 +152,8 @@ type Report struct {
 	Omissions       map[string]int64 `json:"omissions"`
 	// Directories holds every directory above a selected file, so path
 	// references can be checked against the scanned tree. Not serialized.
-	Directories map[string]bool `json:"-"`
+	Directories   map[string]bool `json:"-"`
+	BuildContexts []BuildContext  `json:"-"`
 }
 
 // addDirectories records every ancestor directory of a file path.

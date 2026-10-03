@@ -300,6 +300,21 @@ class WorkflowExpressionTests(unittest.TestCase):
         self.assertEqual(2, workflow.count('"platform":"linux-amd64"'))
         self.assertEqual(1, workflow.count('"platform":"linux-arm64"'))
 
+    def test_native_structural_matrix_smokes_an_installed_release_wheel(self) -> None:
+        workflow = WORKFLOWS["Structural worker"].read_text()
+        self.assertIn("DIRCUE_CI_VERSION: '0.8.0-rc.1'", workflow)
+        self.assertIn("scripts/release.py --version", workflow)
+        self.assertIn("scripts/wheels.py --release-dir .cache/native-release/core", workflow)
+        self.assertIn("scripts/wheel_release_smoke.py --release-dir .cache/native-release/core", workflow)
+        self.assertLess(workflow.index("scripts/release.py --version"), workflow.index("Install pinned Rust toolchain"))
+        self.assertIn("github.event_name == 'push'", workflow)
+        self.assertIn('"release_target":"linux/amd64"', workflow)
+        self.assertIn('"release_target":"linux/arm64"', workflow)
+        self.assertIn('"release_target":"darwin/arm64"', workflow)
+        self.assertIn('"release_target":"darwin/amd64"', workflow)
+        self.assertIn('"release_target":"windows/amd64"', workflow)
+        self.assertNotIn("gh release create", workflow)
+
     def test_cancel_in_progress_remains_enabled_in_all_workflows(self) -> None:
         for workflow, path in WORKFLOWS.items():
             with self.subTest(workflow=workflow):

@@ -1,22 +1,87 @@
 """Focused local packaging checks; no Go builds, network, or release archives."""
 import gzip
+import contextlib
 import importlib.util
 import io
 import os
 from pathlib import Path
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
+from unittest import mock
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT/'scripts'))
 SPEC = importlib.util.spec_from_file_location('release_packager', ROOT/'scripts/release.py')
 release = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(release)
 
 
 class PackagingTest(unittest.TestCase):
+    def test_main_retries_failure_before_build_with_selected_toolchain_and_fresh_cache(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            go_root = base/'selected-go'
+            output = base/'release-output'
+            revisions = []
+            snapshots = []
+            snapshot_files = []
+            downloads = []
+            builds = mock.Mock()
+
+            def snapshot(root, revision, destination):
+                snapshots.append((root, revision, destination))
+                (destination/'go.mod').write_text('module example.org/release-test\n\ngo 1.26.6\n')
+                return 1
+
+            def go_output(command, **kwargs):
+                if command[1:] == ['env', 'GOROOT']:
+                    return str(go_root)
+                if command[1:] == ['version']:
+                    return 'go version go1.26.6 test/release'
+                if command[1:] == ['mod', 'edit', '-json']:
+                    return '{}'
+                self.fail(f'unexpected Go discovery command: {command!r}')
+
+            def fail_download(**kwargs):
+                downloads.append(kwargs)
+                snapshot_files.append((kwargs['cwd']/'go.mod').read_bytes())
+                return 1
+
+            argv = ['release.py', '--version', '1.1.0', '--output', str(output)]
+            with mock.patch.object(release, 'clean_revision', side_effect=lambda root, expected=None: revisions.append((root, expected)) or 'a'*40), \
+                    mock.patch.object(release, 'snapshot', side_effect=snapshot), \
+                    mock.patch.object(release.subprocess, 'check_output', side_effect=go_output), \
+                    mock.patch.object(release.subprocess, 'run', builds), \
+                    mock.patch.object(release.download_go_modules, 'download', side_effect=fail_download), \
+                    mock.patch.object(sys, 'argv', argv), \
+                    contextlib.redirect_stderr(io.StringIO()) as stderr:
+                with self.assertRaises(SystemExit) as raised:
+                    release.main()
+
+            self.assertEqual(raised.exception.code, 2, stderr.getvalue())
+            self.assertIn('Go module download failed before release build', stderr.getvalue())
+            self.assertEqual(len(snapshots), 1)
+            snapshot_root, revision, source = snapshots[0]
+            self.assertEqual(snapshot_root, ROOT)
+            self.assertEqual(revision, 'a'*40)
+            self.assertEqual(revisions, [(ROOT, None)])
+            self.assertEqual(snapshot_files, [b'module example.org/release-test\n\ngo 1.26.6\n'])
+            self.assertEqual(len(downloads), 1)
+            download = downloads[0]
+            compiler_name = 'go.exe' if os.name == 'nt' else 'go'
+            self.assertEqual(download['command'], str(go_root/'bin'/compiler_name))
+            self.assertEqual(download['cwd'], source)
+            self.assertEqual(download['env']['GOTOOLCHAIN'], 'local')
+            self.assertEqual(download['env']['GOAUTH'], 'off')
+            self.assertEqual(Path(download['env']['GOMODCACHE']).parent, source.parent)
+            self.assertEqual(Path(download['env']['GOCACHE']).parent, source.parent)
+            self.assertFalse(output.exists())
+            builds.assert_not_called()
+
     def test_canonical_tar_and_zip_are_independent_of_filename_and_order(self):
         payload = {'README.md':(b'hello\n', False), 'dircue':(b'\x00executable\xff', True)}
         with tempfile.TemporaryDirectory() as temporary:

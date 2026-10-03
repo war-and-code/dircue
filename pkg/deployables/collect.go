@@ -107,6 +107,22 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 				defs[i].Coverage = "qualified"
 			}
 			r.Coverage.RetainedReferences += len(defs[i].References)
+			if defs[i].Provider == "makefile" {
+				var file, context *Reference
+				for j := range defs[i].References {
+					ref := &defs[i].References[j]
+					if ref.Kind == "dockerfile" && ref.Qualification == "local" {
+						file = ref
+					}
+					if ref.Kind == "build_context" && ref.Qualification == "local" {
+						context = ref
+					}
+				}
+				if file != nil && context != nil {
+					r.BuildContexts = append(r.BuildContexts, BuildContext{SourcePath: candidate.Path, Context: context.Value, Dockerfile: file.Value, ContextEvidence: context.Evidence, FileEvidence: file.Evidence})
+				}
+				continue
+			}
 			if len(r.Definitions) >= limits.Definitions {
 				r.omit("definition_limit", int64(len(defs)-i), candidate.Path, "Some definitions were omitted at the report limit.")
 				break
@@ -175,9 +191,16 @@ func IsCandidate(name string) bool {
 		return false
 	}
 	base, ext := strings.ToLower(path.Base(name)), strings.ToLower(path.Ext(name))
+	// parseMakefile only supports root-level recipes because nested Makefiles
+	// may run from an unknown working directory. Do not let unsupported nested
+	// Makefiles consume the bounded declaration-file budget ahead of real
+	// deployables such as a root Dockerfile.
+	if base == "makefile" && path.Dir(name) != "." {
+		return false
+	}
 	if base == "dockerfile" || strings.HasPrefix(base, "dockerfile.") || base == "compose.yml" || base == "compose.yaml" ||
 		base == "docker-compose.yml" || base == "docker-compose.yaml" || base == ".gitlab-ci.yml" || base == ".gitlab-ci.yaml" ||
-		base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile.") || base == "chart.yaml" || base == "serverless.yml" || base == "serverless.yaml" || ext == ".tf" {
+		base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile.") || base == "chart.yaml" || base == "serverless.yml" || base == "serverless.yaml" || base == "makefile" || ext == ".tf" {
 		return true
 	}
 	if ext == ".yml" || ext == ".yaml" {

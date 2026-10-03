@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -86,6 +87,96 @@ func TestMapOneShotPortableEvidenceAndBudget(t *testing.T) {
 	}
 	if !reason {
 		t.Fatalf("budget crossing lacks explicit content reason: %s", limited)
+	}
+}
+
+func TestMapLocalArtifactLinksRespectSelectedGitInventoryAndPathPrivacy(t *testing.T) {
+	git, err := exec.LookPath("git")
+	if err != nil {
+		t.Skip("git unavailable")
+	}
+	root := t.TempDir()
+	for _, dir := range []string{"lib", "outside"} {
+		if err := os.MkdirAll(filepath.Join(root, dir), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	secret := filepath.Join(root, "outside", "secret.jar")
+	if err := os.WriteFile(secret, []byte("outside"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	pom := `<project><modelVersion>4.0.0</modelVersion><groupId>sample</groupId><artifactId>app</artifactId><version>1</version><dependencies>
+<dependency><groupId>local</groupId><artifactId>present</artifactId><scope>system</scope><systemPath>${basedir}/lib/present.jar</systemPath></dependency>
+<dependency><groupId>local</groupId><artifactId>deleted</artifactId><scope>system</scope><systemPath>lib/deleted.jar</systemPath></dependency>
+<dependency><groupId>local</groupId><artifactId>untracked</artifactId><scope>system</scope><systemPath>lib/untracked.jar</systemPath></dependency>
+<dependency><groupId>local</groupId><artifactId>symlink</artifactId><scope>system</scope><systemPath>lib/link.jar</systemPath></dependency>
+<dependency><groupId>local</groupId><artifactId>escape</artifactId><scope>system</scope><systemPath>../../outside/secret.jar</systemPath></dependency>
+<dependency><groupId>local</groupId><artifactId>dynamic</artifactId><scope>system</scope><systemPath>${external.secret}</systemPath></dependency>
+</dependencies></project>`
+	if err := os.WriteFile(filepath.Join(root, "pom.xml"), []byte(pom), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"present.jar", "deleted.jar"} {
+		if err := os.WriteFile(filepath.Join(root, "lib", name), []byte(name), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.Symlink(secret, filepath.Join(root, "lib", "link.jar")); err != nil {
+		t.Skipf("symlink unavailable: %v", err)
+	}
+	env := append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_CONFIG_GLOBAL="+os.DevNull, "HOME="+t.TempDir(), "GIT_AUTHOR_NAME=t", "GIT_AUTHOR_EMAIL=t@example.invalid", "GIT_COMMITTER_NAME=t", "GIT_COMMITTER_EMAIL=t@example.invalid")
+	for _, args := range [][]string{{"init", "-q"}, {"add", "pom.xml", "lib"}, {"commit", "-q", "-m", "initial"}} {
+		cmd := exec.Command(git, args...)
+		cmd.Dir, cmd.Env = root, env
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s: %v", args, output, err)
+		}
+	}
+	if err := os.Remove(filepath.Join(root, "lib", "deleted.jar")); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{{"add", "-u"}, {"commit", "-q", "-m", "delete-target"}} {
+		cmd := exec.Command(git, args...)
+		cmd.Dir, cmd.Env = root, env
+		if output, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s: %v", args, output, err)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(root, "lib", "untracked.jar"), []byte("untracked"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	out, stderr, err := invoke("map", "--source", "git", "--json", root)
+	if err != nil {
+		t.Fatalf("map: %v %s", err, stderr)
+	}
+	var doc mapdoc.Document
+	if err := json.Unmarshal([]byte(out), &doc); err != nil {
+		t.Fatal(err)
+	}
+	if err := mapdoc.Validate(doc); err != nil {
+		t.Fatalf("map schema validation: %v", err)
+	}
+	var targets []string
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeReferencesArtifact {
+			continue
+		}
+		for _, node := range doc.Nodes {
+			if node.ID == edge.To && len(node.Paths) == 1 {
+				targets = append(targets, node.Paths[0])
+			}
+		}
+		if edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Fatalf("artifact suffix claimed validation: %+v", edge)
+		}
+	}
+	if len(targets) != 1 || targets[0] != "lib/present.jar" {
+		t.Fatalf("selected target links = %v; want only present tracked file", targets)
+	}
+	for _, leaked := range []string{"${basedir}", "${external.secret}", "deleted.jar", "untracked.jar", "link.jar", "secret.jar", root} {
+		if strings.Contains(out, leaked) {
+			t.Fatalf("portable map leaked declaration or host path %q: %s", leaked, out)
+		}
 	}
 }
 

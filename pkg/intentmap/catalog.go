@@ -33,6 +33,9 @@ import (
 func capabilitiesFor(kind, value string) []string {
 	lower := strings.ToLower(value)
 	pkg := extractPackageName(kind, lower)
+	if kind == "maven-import" || kind == "nuget-import" || kind == "nuget-import-vb" {
+		pkg = value
+	}
 
 	seen := map[string]bool{}
 	var out []string
@@ -48,6 +51,28 @@ func capabilitiesFor(kind, value string) []string {
 		if caps, ok2 := m[pkg]; ok2 {
 			for _, c := range caps {
 				add(c)
+			}
+		}
+	}
+
+	// Java and C# are case-sensitive; VB namespace identifiers are not.
+	if kind == "maven-import" {
+		for _, m := range []struct{ ns, cap string }{{"com.mysql", "datastore:mysql"}, {"org.apache.kafka", "messaging:kafka"}, {"org.postgresql", "datastore:postgresql"}, {"org.springframework.amqp", "messaging:amqp"}, {"org.springframework.data.jpa", "datastore:relational"}, {"org.springframework.data.mongodb", "datastore:mongodb"}, {"org.springframework.data.redis", "cache:redis"}, {"org.springframework.kafka", "messaging:kafka"}, {"org.springframework.security.oauth2", "auth:oauth2"}, {"software.amazon.awssdk", "cloud:aws"}} {
+			if namespaceMatch(pkg, m.ns) {
+				add(m.cap)
+			}
+		}
+	}
+	if kind == "nuget-import" || kind == "nuget-import-vb" {
+		valueForMatch := pkg
+		for _, m := range []struct{ ns, cap string }{{"Confluent.Kafka", "messaging:kafka"}, {"Microsoft.EntityFrameworkCore", "datastore:relational"}, {"MongoDB.Driver", "datastore:mongodb"}, {"Npgsql", "datastore:postgresql"}, {"RabbitMQ.Client", "messaging:amqp"}, {"StackExchange.Redis", "cache:redis"}} {
+			prefix := m.ns
+			if kind == "nuget-import-vb" {
+				valueForMatch = strings.ToLower(pkg)
+				prefix = strings.ToLower(prefix)
+			}
+			if namespaceMatch(valueForMatch, prefix) {
+				add(m.cap)
 			}
 		}
 	}
@@ -70,6 +95,31 @@ func capabilitiesFor(kind, value string) []string {
 		}
 	}
 
+	return out
+}
+
+// capabilitiesForJSImport matches an already-extracted JavaScript package
+// root. Source specifiers are case-sensitive evidence, and unlike manifest
+// values must not have an @version suffix removed.
+func capabilitiesForJSImport(packageName string) []string {
+	seen := map[string]bool{}
+	var out []string
+	add := func(capability string) {
+		if !seen[capability] {
+			seen[capability] = true
+			out = append(out, capability)
+		}
+	}
+	for _, capability := range npmExact[packageName] {
+		add(capability)
+	}
+	// Scoped namespace catalog entries are intentional broad prefixes (for
+	// example @aws-sdk); other ecosystem prefixes do not apply to Node imports.
+	for _, entry := range prefixEntries {
+		if strings.HasPrefix(entry.prefix, "@") && coordinateMatch(packageName, entry.prefix) {
+			add(entry.capability)
+		}
+	}
 	return out
 }
 
@@ -928,4 +978,9 @@ var pubExact = map[string][]string{
 	"langchain":            {"ai:llm-sdk"},
 	"google_generative_ai": {"ai:llm-sdk"},
 	"openai_dart":          {"ai:llm-sdk"},
+}
+
+// namespaceMatch accepts an exact namespace or one of its qualified members.
+func namespaceMatch(value, prefix string) bool {
+	return value == prefix || strings.HasPrefix(value, prefix+".")
 }

@@ -81,6 +81,16 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: "content", Scope: ".", Coverage: mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons}})
 	d.Nodes = append(d.Nodes, contentNodes(r)...)
+	contentNodeIDs := make(map[string]bool, len(d.Nodes))
+	for _, node := range d.Nodes {
+		contentNodeIDs[node.ID] = true
+	}
+	for _, node := range artifactReferenceNodes(r.Declarations) {
+		if !contentNodeIDs[node.ID] {
+			d.Nodes = append(d.Nodes, node)
+			contentNodeIDs[node.ID] = true
+		}
+	}
 	d.Nodes = append(d.Nodes, languageNodes(r.Languages, mapdoc.Coverage{Status: contentStatus, Reasons: contentReasons})...)
 	d.Nodes = append(d.Nodes, summarizedTreeNodes(r)...)
 
@@ -192,6 +202,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	}
 	d.Nodes = append(d.Nodes, components...)
 	d.Edges = append(d.Edges, relationships...)
+	addArtifactReferenceEdges(&d, r.Declarations)
 	// The declaration parser covers a bounded set of ecosystems and forms. A
 	// successful pass is not proof that every project in the tree was found.
 	componentStatus := mapdoc.CoveragePartial
@@ -210,7 +221,7 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 		question("analyzer_coverage", mapdoc.CoverageUnknown, "no_analyzer_report_attached"),
 	)
 	if opts.Deployables != nil {
-		addDeployables(&d, opts.Deployables)
+		addDeployables(&d, opts.Deployables, opts.Intent)
 		addWorkflowComponentEdges(&d, opts.Deployables)
 	}
 	if opts.Intent != nil {

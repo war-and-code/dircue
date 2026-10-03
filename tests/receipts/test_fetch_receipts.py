@@ -62,6 +62,30 @@ class FetchFallbackTests(unittest.TestCase):
             with self.assertRaises(urllib.error.HTTPError):
                 fetch_receipts.fetch_bytes(URL)
 
+    def test_manifest_validator_rejects_paths_that_escape_repository(self):
+        manifest = {
+            "release_tag": "evidence-archive-1",
+            "release_url": "https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1",
+            "base_download_url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1",
+            "entries": [{"path": "../outside", "sha256": "0" * 64, "size": 1,
+                         "asset": "safe.txt", "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/safe.txt"}],
+        }
+        with self.assertRaisesRegex(ValueError, "unsafe restore path"):
+            fetch_receipts.validate_manifest(manifest)
+
+    def test_manifest_validator_binds_download_to_exact_github_asset(self):
+        manifest = {
+            "release_tag": "evidence-archive-1",
+            "release_url": "https://github.com/war-and-code/dircue/releases/tag/evidence-archive-1",
+            "base_download_url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1",
+            "entries": [{"path": "tests/results/example.json", "sha256": "0" * 64, "size": 1,
+                         "asset": "safe.txt", "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/safe.txt"}],
+        }
+        fetch_receipts.validate_manifest(manifest)
+        manifest["entries"][0]["url"] = "https://github.com.evil.invalid/war-and-code/dircue/releases/download/evidence-archive-1/safe.txt"
+        with self.assertRaisesRegex(ValueError, "unexpected download URL"):
+            fetch_receipts.validate_manifest(manifest)
+
 
 if __name__ == "__main__":
     unittest.main()

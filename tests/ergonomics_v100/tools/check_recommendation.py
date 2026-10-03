@@ -67,7 +67,18 @@ def check(identifier, binary):
         elif identifier == 'R-006':
             out = json.loads(run('capabilities','--cli','--json'))
             assert out['kind'] == 'dircue-cli-capabilities'
-            assert {x['code'] for x in out['exit_codes']} == {0,1,141}
+            # The map comparison outcome contract added the two opt-in codes
+            # for uncertainty and handled errors in 1.1.0.
+            assert {x['code'] for x in out['exit_codes']} == {0,1,2,3,141}
+            compare = next(x for x in out['commands'] if x['path'] == ['dircue','map','compare'])
+            restrictions = ' '.join(compare['restrictions'])
+            assert 'handled errors exit 1' in restrictions and '3 handled errors' in restrictions
+            exit_three = next(x['meaning'] for x in out['exit_codes'] if x['code'] == 3)
+            assert 'map compare --exit-code' in exit_three and 'diagnostic on stderr' in exit_three
+            missing = str(cwd/'missing-map.json')
+            default_error = run('map','compare','--json',missing,missing,code=1)
+            opted_error = run('map','compare','--exit-code','--json',missing,missing,code=3)
+            assert default_error.strip() and default_error == opted_error
             # Contract: the set of registered command paths must equal this explicit list.
             # The list includes the map subcommands added in 1.0 (map compare/locate/route/settings).
             # Update this set when a new top-level or subcommand is deliberately added.

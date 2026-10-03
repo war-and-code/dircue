@@ -9,6 +9,7 @@ type Requirement struct {
 	State     string `json:"state"`
 	Evidence  string `json:"evidence"`
 	Condition string `json:"condition,omitempty"`
+	Scope     string `json:"-"` // map-private manifest detail; never changes project/declaration JSON
 }
 
 // Reference is an edge declared by a manifest. Target is root-relative when
@@ -21,6 +22,19 @@ type Reference struct {
 	State        string `json:"state"`
 	Evidence     string `json:"evidence"`
 	Condition    string `json:"condition,omitempty"`
+	TargetBytes  int64  `json:"-"` // Selected-source size used by map assembly; never serialized.
+}
+
+// Interface is a bounded, source-declared launch or service interface. It is
+// populated only for project forms whose declaration has a stable meaning.
+type Interface struct {
+	Kind      string `json:"kind"`
+	Name      string `json:"name"`
+	Target    string `json:"target,omitempty"`
+	State     string `json:"state"`
+	Evidence  string `json:"evidence"`
+	Condition string `json:"condition,omitempty"`
+	Line      int    `json:"line,omitempty"`
 }
 
 type Project struct {
@@ -31,6 +45,7 @@ type Project struct {
 	Evidence                []string      `json:"evidence"`
 	Requirements            []Requirement `json:"requirements"`
 	References              []Reference   `json:"references"`
+	Interfaces              []Interface   `json:"-"`
 	Files                   int64         `json:"files"`
 	Bytes                   int64         `json:"bytes"`
 }

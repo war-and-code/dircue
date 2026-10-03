@@ -92,6 +92,10 @@ jobs:
           cache-dependency-path: go.sum
       - name: Validate checkout and tag before building
         run: python scripts/draft_release.py validate --version "$RELEASE_VERSION" --commit "$RELEASE_COMMIT" --notes "$RELEASE_NOTES"
+      - name: Download pinned Go modules with bounded retries
+        run: |
+          python scripts/download_go_modules.py
+          git diff --exit-code -- go.mod go.sum
       - name: Check Go core
         if: matrix.platform == 'linux-amd64'
         run: |

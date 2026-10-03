@@ -6,6 +6,12 @@ import (
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 )
 
+func TestArtifactReferenceRemovalUsesSelectedContentCoverage(t *testing.T) {
+	if got := questionForEdge(mapdoc.EdgeReferencesArtifact); got != "content" {
+		t.Fatalf("artifact-reference removal consults %q coverage; want selected content coverage", got)
+	}
+}
+
 func TestCompatibleProducersIgnoresRulesThatFiredOnOneSide(t *testing.T) {
 	base := []string{"rule:dircue/component-declarations@1.0.0"}
 	head := []string{"rule:dircue/component-declarations@1.0.0", "rule:dircue/deployables/dockerfile-instruction@1.0.0"}

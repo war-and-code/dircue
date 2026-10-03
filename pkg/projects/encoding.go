@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"regexp"
-	"strings"
 	"unicode/utf16"
 	"unicode/utf8"
-)
 
-var xmlEncodingDeclaration = regexp.MustCompile(`(?i)^\s*<\?xml\s+[^?]{0,512}?encoding\s*=\s*["']([^"']+)["']`)
+	"github.com/war-and-code/dircue/internal/xmlencoding"
+)
 
 // decodeBOMText accepts only the encodings that can be identified without
 // guessing. Callers apply their normal byte limit before decoding.
@@ -53,17 +51,5 @@ func decodeBOMText(content []byte) ([]byte, error) {
 }
 
 func decodeBOMXML(content []byte) ([]byte, error) {
-	utf16BOM := bytes.HasPrefix(content, []byte{0xff, 0xfe}) || bytes.HasPrefix(content, []byte{0xfe, 0xff})
-	decoded, err := decodeBOMText(content)
-	if err != nil {
-		return nil, err
-	}
-	match := xmlEncodingDeclaration.FindSubmatch(decoded)
-	if len(match) == 2 {
-		declaresUTF16 := strings.EqualFold(string(match[1]), "utf-16")
-		if declaresUTF16 != utf16BOM {
-			return nil, errors.New("XML declaration and byte-order mark disagree")
-		}
-	}
-	return decoded, nil
+	return xmlencoding.Decode(content)
 }

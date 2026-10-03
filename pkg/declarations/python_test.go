@@ -67,6 +67,113 @@ func pythonTestReq(t *testing.T, d *Document, kind, value, state string) {
 	t.Fatalf("missing requirement %s=%q state=%s in %+v", kind, value, state, d.Project.Requirements)
 }
 
+func TestMaturinBinBindingDeclaresBinaryAtStaticInProjectManifest(t *testing.T) {
+	d := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "ruff"
+version = "1.0"
+[dependency-groups]
+dev = []
+[tool.maturin]
+bindings = "bin"
+manifest-path = "crates/ruff/Cargo.toml"
+`))
+	if d == nil || len(d.Project.Interfaces) != 1 {
+		t.Fatalf("maturin binary interface missing: %+v", d)
+	}
+	got := d.Project.Interfaces[0]
+	if got.Kind != "binary" || got.Name != "unresolved" || got.Target != "python/crates/ruff/Cargo.toml" || got.State != "unresolved" {
+		t.Fatalf("unexpected maturin interface: %+v", got)
+	}
+	for _, body := range []string{
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='bin'\nmanifest-path='../../outside/Cargo.toml'\n",
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='bin'\nmanifest-path='${CARGO_MANIFEST_DIR}/Cargo.toml'\n",
+		"[project]\nname='ruff'\nversion='1'\n[tool.maturin]\nbindings='pyo3'\n",
+	} {
+		doc := ParsePython("python/pyproject.toml", []byte(body))
+		if doc != nil {
+			for _, iface := range doc.Project.Interfaces {
+				if iface.Kind == "binary" {
+					t.Errorf("unsupported/out-of-root maturin declaration became a binary: %+v", iface)
+				}
+			}
+		}
+	}
+}
+
+func TestMaturinBinaryNameComesFromCargoTarget(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+`))
+	docs := []*Document{python, cargo}
+	ResolveCargo(docs, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "mtcli" || got.State != "declared" {
+		t.Fatalf("maturin binary should use Cargo target name, got %+v", got)
+	}
+}
+
+func TestMaturinBinaryHonorsDeclaredCargoDefaultRun(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+default-run = "mtcli"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+[[bin]]
+name = "helper"
+path = "src/helper.rs"
+`))
+	ResolveCargo([]*Document{python, cargo}, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true, "rust/src/helper.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "mtcli" || got.State != "declared" {
+		t.Fatalf("maturin binary should use Cargo's valid default-run target, got %+v", got)
+	}
+}
+
+func TestMaturinBinaryNameRemainsUnknownWhenCargoTargetsAreAmbiguous(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+[[bin]]
+name = "other"
+path = "src/other.rs"
+`))
+	ResolveCargo([]*Document{python, cargo}, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true, "rust/src/other.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "unresolved" || got.State != "unresolved" {
+		t.Fatalf("ambiguous Cargo targets should not inherit Python distribution name: %+v", got)
+	}
+}
+
 func TestPythonDeclarationsAndInterfaces(t *testing.T) {
 	d := ParsePython("service/pyproject.toml", []byte(`[project]
 name = "weather-service"

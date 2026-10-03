@@ -12,3 +12,5 @@ __pycache__/
 /tests/profiling/results/
 /tests/release/results/
 /tests/stress/results/
+/tests/performance/v110_candidate/results/
+/tests/compatibility_next/results/v110-*.json.gz

@@ -27,6 +27,10 @@ Before creating a release tag, finalize the version entry in `CHANGELOG.md` (rem
 
 The release notes are copied into the draft GitHub Release as written.
 
+Compare the candidate with the most recent published executable using [`tests/compatibility_next/minor.py`](tests/compatibility_next/README.md#comparing-later-minor-releases). Verify the downloaded archive and pin the executable hash and reported release version. Include the pinned structural worker when native parsing is supported on the test host. Retain the receipt, candidate build command and source commit. Investigate any stdout, stderr or exit-code difference rather than normalizing it away. List intended interface changes in `CHANGELOG.md`.
+
+The inherited CLI matrix is one gate. Also run the current semantic, schema and map-corpus checks, and smoke-test the packaged wheel with the release tooling. Measure representative workloads against the published binary before claiming performance improvements; report added analysis costs and memory tradeoffs. Local checks on one host do not replace the full cross-platform CI checks.
+
 ## How to cut a release
 
 ### Step 1: Tag the commit
@@ -48,12 +52,7 @@ Go to **Actions → Prepare draft release → Run workflow** and fill in:
 
 The workflow:
 
-1. Validates the tag, commit, and release notes path.
-2. Builds `CGO_ENABLED=0 -trimpath` Go binaries for all five platforms (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64) via `scripts/release.py`.
-3. Packages platform archives, wheels, and the native Rust structural worker.
-4. Runs per-platform smoke tests (binary execution, `--version`, map output).
-5. Assembles SHA256SUMS and per-platform provenance.
-6. Creates a **draft** GitHub Release. It is never auto-published.
+1. Validates the tag, commit, and release notes path. 2. Builds `CGO_ENABLED=0 -trimpath` Go binaries for all five platforms (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64, windows/amd64) via `scripts/release.py`. 3. Packages platform archives, wheels, and the native Rust structural worker. 4. Runs per-platform smoke tests (binary execution, `--version`, map output). 5. Assembles SHA256SUMS and per-platform provenance. 6. Creates a **draft** GitHub Release. It is never auto-published.
 
 ### Step 3: Review the draft release
 
@@ -103,16 +102,13 @@ Publishing is always a deliberate manual step; the workflow never does it.
 
 ### Optional PyPI publication
 
-After the GitHub Release is public, use the separate, manually dispatched
-[PyPI publishing workflow](docs/PYPI_PUBLISHING.md). It verifies and uploads
-the exact release wheels, subject to the protected `pypi` environment's
-approval. Publishing the GitHub Release or pushing a tag does not trigger a
-PyPI upload.
+After the GitHub Release is public, use the separate, manually dispatched [PyPI publishing workflow](docs/PYPI_PUBLISHING.md). It verifies and uploads the exact release wheels, subject to the protected `pypi` environment's approval. Publishing the GitHub Release or pushing a tag does not trigger a PyPI upload.
 
 ## Build reproducibility
 
 - The release workflow enforces a clean committed checkout with `scripts/draft_release.py validate`.
 - Builds use `CGO_ENABLED=0 -trimpath -mod=readonly -buildvcs=false` and pinned Go and Rust toolchains.
+- Go dependencies are downloaded into each clean release build's fresh module cache with bounded retries and credential-redacted diagnostics before compilation.
 - `GOENV=off GOFLAGS='' GOEXPERIMENT='' GOAMD64=v1 GOARM64=v8.0` are set to eliminate host-environment variation.
 
 ## No Dependabot or scheduled automation

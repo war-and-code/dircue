@@ -23,7 +23,243 @@ func setQuestion(d *mapdoc.Document, name string, coverage mapdoc.Coverage) {
 	d.Coverage = append(d.Coverage, mapdoc.QuestionCoverage{Question: name, Scope: ".", Coverage: coverage})
 }
 
-func addDeployables(d *mapdoc.Document, r *deployables.Report) {
+// dockerCargoComponent narrows root-level co-location attribution only when
+// a copied crate tree and a literal Cargo build command occur in the same
+// Docker build stage. Zigbuild targets additionally need an exact declared
+// default-run interface on one unique Cargo component.
+func dockerCargoComponent(def deployables.Definition, owners []string, d *mapdoc.Document, intents ...*intentmap.Report) (string, []mapdoc.Evidence, bool) {
+	if def.DockerContextUnknown || def.Path != "" && path.Dir(def.Path) != "." {
+		return "", nil, false
+	}
+	if dockerHasCoLocatedPythonOrNodeCommand(def, owners, d) {
+		return "", nil, false
+	}
+	type copiedCrate struct {
+		root     string
+		line     int
+		evidence mapdoc.Evidence
+	}
+	copyEvidenceByStage := map[string][]copiedCrate{}
+	for _, ref := range def.References {
+		if ref.Kind != "copy_source" {
+			continue
+		}
+		source := strings.TrimPrefix(path.Clean(ref.Value), "./")
+		if source == "crates" || strings.HasPrefix(source, "crates/") {
+			copyEvidenceByStage[ref.Stage] = append(copyEvidenceByStage[ref.Stage], copiedCrate{root: source, line: ref.Evidence.Line, evidence: deployableEvidence(def.Path, ref.Evidence)})
+		}
+	}
+	for _, ref := range def.DockerPathWrites {
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, segment := range strings.Split(command, "&&") {
+			fields := strings.Fields(strings.TrimSpace(segment))
+			if len(fields) >= 2 && fields[0] == "cargo" && (fields[1] == "build" || fields[1] == "zigbuild") {
+				// A builder-stage command does not prove that this Cargo output is
+				// shipped in the final image. Narrow co-location only when the build
+				// itself runs in the final stage; cross-stage artifact tracing is
+				// handled separately when its source and destination are explicit.
+				if ref.Stage != def.DockerFinalStage {
+					continue
+				}
+				if cargoTargetOverridden(fields) {
+					continue
+				}
+				copiedCrates := copyEvidenceByStage[ref.Stage]
+				if len(copiedCrates) == 0 {
+					continue
+				}
+				copyEvidence := make([]mapdoc.Evidence, 0, len(copiedCrates))
+				orderedCopies := make([]copiedCrate, 0, len(copiedCrates))
+				for _, copied := range copiedCrates {
+					if copied.line > 0 && ref.Evidence.Line > 0 && copied.line >= ref.Evidence.Line {
+						continue
+					}
+					orderedCopies = append(orderedCopies, copied)
+					copyEvidence = append(copyEvidence, copied.evidence)
+				}
+				if len(orderedCopies) == 0 {
+					continue
+				}
+				buildEvidence := deployableEvidence(def.Path, ref.Evidence)
+				if fields[1] == "zigbuild" {
+					binary, valid := literalCargoBin(fields)
+					if !valid {
+						continue
+					}
+					matches := []string{}
+					var manifest string
+					for _, n := range d.Nodes {
+						if n.Kind != mapdoc.NodeComponent || n.Properties["ecosystem"] != "cargo" || n.Name != binary {
+							continue
+						}
+						root := n.Properties["root"]
+						if !strings.HasPrefix(root, "crates/") {
+							continue
+						}
+						copied := false
+						for _, source := range orderedCopies {
+							if source.root == "crates" || root == source.root || strings.HasPrefix(root, source.root+"/") {
+								copied = true
+								break
+							}
+						}
+						if !copied {
+							continue
+						}
+						projectPath := ""
+						for _, candidate := range n.Paths {
+							if path.Base(candidate) == "Cargo.toml" {
+								projectPath = candidate
+								break
+							}
+						}
+						if projectPath == "" || !intentDeclaresCargoBin(intents, projectPath, binary) {
+							continue
+						}
+						matches = append(matches, n.ID)
+						manifest = projectPath
+					}
+					if len(matches) != 1 {
+						continue
+					}
+					evidence := append(append([]mapdoc.Evidence{}, copyEvidence...), buildEvidence,
+						mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: manifest, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}})
+					var workspaceCargo []string
+					for _, id := range owners {
+						for _, n := range d.Nodes {
+							if n.ID == id && n.Properties["ecosystem"] == "cargo" {
+								workspaceCargo = append(workspaceCargo, id)
+							}
+						}
+					}
+					if len(workspaceCargo) != 1 {
+						continue
+					}
+					return workspaceCargo[0], append(evidence, mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: path.Join(path.Dir(def.Path), "Cargo.toml"), SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}}), true
+				}
+				var cargoOwner string
+				for _, id := range owners {
+					for _, n := range d.Nodes {
+						if n.ID == id && n.Properties["ecosystem"] == "cargo" {
+							if cargoOwner != "" {
+								return "", nil, false
+							}
+							cargoOwner = id
+						}
+					}
+				}
+				if cargoOwner != "" {
+					return cargoOwner, append(copyEvidence, buildEvidence), true
+				}
+			}
+		}
+	}
+	return "", nil, false
+}
+
+// A final-stage Cargo invocation can coexist with Python or Node builds.
+// Keep co-location attribution whenever the final stage invokes a recognizable
+// Python or Node package/build tool; command-line grammar is intentionally not
+// inferred here, so options before a verb or wrapper commands remain covered.
+func dockerHasCoLocatedPythonOrNodeCommand(def deployables.Definition, owners []string, d *mapdoc.Document) bool {
+	hasOtherOwner := false
+	for _, owner := range owners {
+		for _, node := range d.Nodes {
+			if node.ID != owner {
+				continue
+			}
+			ecosystem := node.Properties["ecosystem"]
+			if ecosystem == "npm" || strings.HasPrefix(ecosystem, "python") {
+				hasOtherOwner = true
+				break
+			}
+		}
+	}
+	if !hasOtherOwner {
+		return false
+	}
+	for _, ref := range def.DockerPathWrites {
+		if ref.Kind != "run_instruction" || ref.Stage != def.DockerFinalStage {
+			continue
+		}
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, field := range strings.Fields(command) {
+			tool := strings.ToLower(path.Base(strings.Trim(field, `\"'`)))
+			if isPythonOrNodeTool(tool) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func isPythonOrNodeTool(tool string) bool {
+	switch tool {
+	case "python", "python2", "python3", "pypy", "pypy3", "pip", "pip2", "pip3",
+		"uv", "poetry", "pipenv", "pdm", "hatch", "maturin", "pipx", "pytest", "tox", "rye",
+		"conda", "micromamba", "setup.py", "node", "npm", "npx", "yarn", "pnpm", "bun", "deno",
+		"next", "vite", "webpack", "esbuild", "tsc", "rollup", "parcel", "gulp", "grunt":
+		return true
+	default:
+		if strings.HasPrefix(tool, "python3.") || strings.HasPrefix(tool, "pip3.") {
+			return true
+		}
+		return false
+	}
+}
+
+func literalCargoBin(fields []string) (string, bool) {
+	var binary string
+	for i := 2; i < len(fields); i++ {
+		if fields[i] != "--bin" {
+			continue
+		}
+		if binary != "" || i+1 >= len(fields) || strings.ContainsAny(fields[i+1], "$*?{}") {
+			return "", false
+		}
+		binary = fields[i+1]
+		i++
+	}
+	return binary, binary != ""
+}
+
+func cargoTargetOverridden(fields []string) bool {
+	for _, field := range fields {
+		if field == "--manifest-path" || strings.HasPrefix(field, "--manifest-path=") || field == "--package" || strings.HasPrefix(field, "--package=") || field == "-p" || strings.HasPrefix(field, "-p") && len(field) > 2 || field == "--workspace" || field == "--all" || field == "--all-targets" {
+			return true
+		}
+	}
+	return false
+}
+
+func intentDeclaresCargoBin(reports []*intentmap.Report, manifest, binary string) bool {
+	for _, report := range reports {
+		if report == nil {
+			continue
+		}
+		for _, observation := range report.Observations {
+			if observation.Kind == intentmap.KindInterface && observation.Name == binary && observation.ProjectID == manifest && observation.Properties["interface_kind"] == "cargo-default-run" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func dockerHasCargoZigbuild(def deployables.Definition) bool {
+	for _, ref := range def.DockerPathWrites {
+		command := strings.TrimSpace(strings.TrimPrefix(ref.Value, "RUN "))
+		for _, segment := range strings.Split(command, "&&") {
+			fields := strings.Fields(strings.TrimSpace(segment))
+			if len(fields) >= 2 && fields[0] == "cargo" && fields[1] == "zigbuild" {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*intentmap.Report) {
 	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
@@ -91,6 +327,18 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		evidence mapdoc.Evidence
 	}
 	var composeDeps []composeDep
+	type terraformModuleRef struct {
+		fromID, fromDir, source string
+		evidence                mapdoc.Evidence
+	}
+	var terraformModuleRefs []terraformModuleRef
+	terraformNodeByDir := map[string]string{}
+	type contextDockerfile struct {
+		file, component string
+		evidence        mapdoc.Evidence
+	}
+	var contextDockerfiles []contextDockerfile
+	dockerNodesByPath := map[string]string{}
 	seenDeployables := map[string]int{}
 	seenEdges := map[string]bool{}
 	for _, edge := range d.Edges {
@@ -120,6 +368,9 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			nodePaths = []string{path.Dir(def.Path)}
 		}
 		n := mapdoc.NewNode(mapdoc.NodeDeployable, nodePaths, def.Provider+":"+def.Kind+":"+def.Name)
+		if def.Provider == "dockerfile" {
+			dockerNodesByPath[def.Path] = n.ID
+		}
 		n.Name = def.Name
 		n.Properties = map[string]string{"kind": def.Kind, "provider": def.Provider, "source_sha256": def.SourceSHA256}
 		if def.Format != "" {
@@ -166,7 +417,15 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 		}
 		for _, ref := range def.References {
 			factIndex := len(n.Facts)
-			n.Facts = append(n.Facts, mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}})
+			fact := mapdoc.Fact{Kind: "deployable_reference", Name: ref.Kind, Value: ref.Value, State: ref.Qualification, Coverage: referenceCoverage(ref.Qualification), Evidence: []mapdoc.Evidence{deployableEvidence(def.Path, ref.Evidence)}}
+			if strings.HasPrefix(ref.Kind, "docker_entrypoint") || strings.HasPrefix(ref.Kind, "docker_cmd") {
+				fact.Properties = map[string]string{"arguments": "withheld", "instruction_form": strings.TrimPrefix(ref.Evidence.Basis, "dockerfile-instruction-")}
+				if ref.Stage != "" {
+					fact.Properties["stage"] = ref.Stage
+					fact.Properties["stage_is_final"] = fmt.Sprint(ref.Stage == def.DockerFinalStage)
+				}
+			}
+			n.Facts = append(n.Facts, fact)
 			if ref.Kind == "service_dependency" && ref.Qualification == "local" {
 				composeDeps = append(composeDeps, composeDep{fromID: n.ID, toName: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
 			}
@@ -178,6 +437,16 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				resolved := path.Clean(path.Join(path.Dir(def.Path), ref.Value))
 				if ref.Kind == "working_directory" {
 					resolved = path.Clean(ref.Value)
+				}
+				if def.Provider == "github-actions" && ref.Kind == "build_context" {
+					resolved = path.Clean(ref.Value)
+					if ref.Checkout != "" {
+						if resolved == ref.Checkout {
+							resolved = "."
+						} else if strings.HasPrefix(resolved, ref.Checkout+"/") {
+							resolved = strings.TrimPrefix(resolved, ref.Checkout+"/")
+						}
+					}
 				}
 				owner, reason := localPathOwner(componentsByRoot, resolved, ref.Kind != "build_context")
 				if ref.Kind == "working_directory" {
@@ -194,7 +463,19 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 						addRelationship(mapdoc.EdgeBuilds, n.ID, owner, ref.Kind+":"+resolved, "declared_context_matches_component_root", localEvidence)
 					}
 					if def.Provider == "compose" && def.Kind == "service" {
-						addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						if def.Provider == "compose" {
+							addRelationship(mapdoc.EdgeRuns, n.ID, owner, "compose-service:"+resolved, "service_declares_build_context", localEvidence)
+						}
+						var dockerfile string
+						for _, candidate := range def.References {
+							if candidate.Kind == "dockerfile" && candidate.Qualification == "local" {
+								dockerfile = path.Clean(path.Join(resolved, candidate.Value))
+								break
+							}
+						}
+						if dockerfile != "" {
+							contextDockerfiles = append(contextDockerfiles, contextDockerfile{file: dockerfile, component: owner, evidence: localEvidence})
+						}
 					}
 				}
 			}
@@ -282,6 +563,24 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 			}
 			if len(artifactOwners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, artifactOwners[0], "dockerfile-artifact:"+def.Path, "dockerfile_copy_source_matches_maven_archive", artifactEvidence)
+			} else if owner, evidence, ok := dockerCargoComponent(def, owners, d, intents...); ok {
+				if len(owners) > 1 {
+					// Preserve the prior co-location edge ID for the same selected
+					// owner while strengthening its evidence and narrowing away the
+					// unrelated co-located owners.
+					e := mapdoc.NewEdge(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile-multi:"+owner)
+					if !seenEdges[e.ID] {
+						seenEdges[e.ID] = true
+						e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"dockerfile_copy_and_build_evidence_matches_cargo_component"}}
+						e.Evidence = evidence
+						d.Edges = append(d.Edges, e)
+					}
+				} else {
+					addRelationship(mapdoc.EdgeBuilds, n.ID, owner, "dockerfile:"+def.Path, "dockerfile_copy_and_build_evidence_matches_cargo_component", evidence...)
+				}
+			} else if dockerHasCargoZigbuild(def) {
+				// An explicit but ambiguous zigbuild target must not fall through to
+				// generic co-location with the repository-root Cargo manifest.
 			} else if len(owners) == 1 {
 				addRelationship(mapdoc.EdgeBuilds, n.ID, owners[0], "dockerfile:"+def.Path, "dockerfile_co_located_with_component", deployableEvidence(def.Path, def.Evidence[0]))
 			} else if len(owners) > 1 {
@@ -325,7 +624,52 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report) {
 				}{n.ID, image.name, image.evidence})
 			}
 		}
+		if def.Provider == "terraform" {
+			dir := path.Clean(path.Dir(def.Path))
+			terraformNodeByDir[dir] = n.ID
+			for _, ref := range def.References {
+				if ref.Kind == "module_source" && ref.Qualification == "local" {
+					terraformModuleRefs = append(terraformModuleRefs, terraformModuleRef{fromID: n.ID, fromDir: dir, source: ref.Value, evidence: deployableEvidence(def.Path, ref.Evidence)})
+				}
+			}
+		}
 		d.Nodes = append(d.Nodes, n)
+	}
+	for _, ref := range terraformModuleRefs {
+		targetDir := path.Clean(path.Join(ref.fromDir, ref.source))
+		if targetDir == ".." || strings.HasPrefix(targetDir, "../") || strings.HasPrefix(targetDir, "/") {
+			continue
+		}
+		if targetID := terraformNodeByDir[targetDir]; targetID != "" {
+			addRelationship(mapdoc.EdgeDependsOnLocal, ref.fromID, targetID, "terraform-module:"+targetDir, "terraform_declares_local_module_source", ref.evidence)
+		}
+	}
+	for _, binding := range contextDockerfiles {
+		if dockerID := dockerNodesByPath[binding.file]; dockerID != "" {
+			addRelationship(mapdoc.EdgeBuilds, dockerID, binding.component, "declared-build-context:"+binding.file, "declared_context_matches_component_root", binding.evidence)
+		}
+	}
+	if r != nil {
+		for _, binding := range r.BuildContexts {
+			// Root Makefile recipes run from the invocation directory (the
+			// repository root), and Docker resolves both -f and context paths
+			// from that directory. Compose differs: its Dockerfile is relative
+			// to the declared build context.
+			base := path.Dir(binding.SourcePath)
+			resolved := path.Clean(path.Join(base, binding.Context))
+			owner, _ := localPathOwner(componentsByRoot, resolved, false)
+			if owner == "" {
+				continue
+			}
+			dockerPath := path.Clean(path.Join(base, binding.Dockerfile))
+			dockerID := dockerNodesByPath[dockerPath]
+			if dockerID == "" {
+				continue
+			}
+			addRelationship(mapdoc.EdgeBuilds, dockerID, owner, "makefile-context:"+dockerPath, "declared_context_matches_component_root",
+				deployableEvidence(binding.SourcePath, binding.ContextEvidence), deployableEvidence(binding.SourcePath, binding.FileEvidence),
+				mapdoc.Evidence{Basis: mapdoc.BasisResolvedReference, Path: dockerPath, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/selected-inventory", Version: "1.0.0"}})
+		}
 	}
 	// Emit depends_on edges for compose service dependencies declared via depends_on.
 	// Both sides must be known compose service deployable nodes.
@@ -1106,31 +1450,61 @@ func deployableEvidence(filename string, e deployables.Evidence) mapdoc.Evidence
 	return item
 }
 
-// maxCapabilityEvidencePaths caps the number of evidence paths per capability
-// node. The actual count is stored in the node's "evidence_path_count"
-// property so consumers can tell whether paths were omitted.
+// maxCapabilityEvidencePaths caps the number of stored evidence observations
+// per capability node. evidence_path_count reports distinct contributing source
+// paths across all observations in the report, including paths beyond that cap.
 const maxCapabilityEvidencePaths = 20
 
 // capGroup accumulates observations for a single (capability, component) pair.
 type capGroup struct {
-	name        string
-	projectID   string
-	attribution string
-	state       string
-	basis       string
-	paths       []string
-	evidence    []mapdoc.Evidence
-	properties  map[string]string
-	total       int // total distinct (path, name) observations before capping
+	name                          string
+	projectID                     string
+	attribution                   string
+	state                         string
+	basis                         string
+	pathCount                     int
+	seenPaths                     map[string]struct{}
+	paths                         []string
+	evidence                      []mapdoc.Evidence
+	properties                    map[string]string
+	testEvidence, nonTestEvidence bool
+	typeOnlyImport, nonTypeImport bool
+	otherEvidence                 bool
+	runtimeImportEvidence         bool
 }
 
-func (g *capGroup) worstState(state string) {
+func (g *capGroup) worstState(o intentmap.Observation) {
 	// partial < conditional < declared < observed (worst = partial)
-	if state == "partial" || state == "unresolved" {
+	if o.State == "partial" || o.State == "unresolved" {
 		g.state = "partial"
-	} else if g.state == "conditional" && (state == "declared" || state == "observed") {
-		// An unconditional declaration supersedes a conditional one.
-		g.state = state
+		return
+	}
+	if g.state == "partial" {
+		return
+	}
+	if o.State == "conditional" {
+		if !g.runtimeImportEvidence && (g.state == "" || g.state == "observed") {
+			g.state = "conditional"
+		}
+		return
+	}
+	if o.State == "declared" {
+		if g.state == "" || g.state == "conditional" {
+			g.state = "declared"
+		}
+		return
+	}
+	if o.State == "observed" {
+		importEvidence := o.Basis == "imported" || o.Basis == "code_syntax"
+		runtimeEvidence := !importEvidence || (o.Properties["import_qualifier"] != "type_only" && o.Properties["evidence_scope"] != "test_path_convention")
+		if runtimeEvidence {
+			g.runtimeImportEvidence = true
+			g.state = "observed"
+		} else if g.state == "" {
+			// Without a conditional declaration the source evidence remains a
+			// useful observation, while its qualifier stays available to filters.
+			g.state = "observed"
+		}
 	}
 }
 
@@ -1140,7 +1514,12 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		coverage.Reasons = append(coverage.Reasons, "interface_or_capability_observations_incomplete")
 	}
 	setQuestion(d, "interfaces", coverage)
-	setQuestion(d, "capabilities", coverage)
+	capabilityCoverage := coverage
+	capabilityCoverage.Reasons = slices.Clone(coverage.Reasons)
+	if r.Coverage.Omissions["import_token_limit"] > 0 {
+		capabilityCoverage.Reasons = append(capabilityCoverage.Reasons, "import_token_limit_reached")
+	}
+	setQuestion(d, "capabilities", capabilityCoverage)
 	componentsByManifest := map[string]string{}
 	for _, n := range d.Nodes {
 		if n.Kind == mapdoc.NodeComponent {
@@ -1175,15 +1554,33 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 				name:        o.Name,
 				projectID:   o.ProjectID,
 				attribution: o.ProjectAttribution,
-				state:       o.State,
 				basis:       o.Basis,
 				properties:  cloneProps(o.Properties),
 			}
 			capGroups[gk] = g
 			capGroupOrder = append(capGroupOrder, gk)
 		}
-		g.total++
-		g.worstState(o.State)
+		if g.seenPaths == nil {
+			g.seenPaths = make(map[string]struct{})
+		}
+		if _, exists := g.seenPaths[o.Path]; !exists {
+			g.seenPaths[o.Path] = struct{}{}
+			g.pathCount++
+		}
+		if o.Basis != "imported" && o.Basis != "code_syntax" {
+			g.otherEvidence = true
+		}
+		if o.Properties["import_qualifier"] == "type_only" {
+			g.typeOnlyImport = true
+		} else if o.Basis == "imported" {
+			g.nonTypeImport = true
+		}
+		if o.Properties["evidence_scope"] == "test_path_convention" {
+			g.testEvidence = true
+		} else if o.Properties["evidence_scope"] == "non_test_path_convention" {
+			g.nonTestEvidence = true
+		}
+		g.worstState(o)
 		// Multiple bases → prefer declared_config > declared_dependency > others
 		if g.basis == "" || (o.Basis == "declared_config" && g.basis != "declared_config") {
 			g.basis = o.Basis
@@ -1203,13 +1600,32 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			"observation_kind":    "capability",
 			"state":               g.state,
 			"basis":               g.basis,
-			"evidence_path_count": strconv.Itoa(g.total),
+			"evidence_path_count": strconv.Itoa(g.pathCount),
 		}
 		if role := capPathRole(g.paths...); role != "" {
 			n.Properties["role"] = role
 			n.Properties["role_basis"] = "path_name"
 		}
+		if g.testEvidence {
+			n.Properties["test_path_evidence"] = "true"
+		}
+		if g.nonTestEvidence {
+			n.Properties["non_test_path_evidence"] = "true"
+		}
+		if g.testEvidence && !g.nonTestEvidence && !g.otherEvidence {
+			n.Properties["test_only_evidence"] = "true"
+			n.Properties["test_evidence_scope_basis"] = "path_name_convention"
+		}
+		if g.typeOnlyImport {
+			n.Properties["type_only_import_evidence"] = "true"
+		}
+		if g.nonTypeImport {
+			n.Properties["non_type_only_import_evidence"] = "true"
+		}
 		for k, v := range g.properties {
+			if k == "evidence_scope" || k == "import_qualifier" {
+				continue
+			}
 			if _, exists := n.Properties[k]; !exists {
 				n.Properties[k] = v
 			}
@@ -1311,11 +1727,19 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 		}
 		kind := mapdoc.NodeInterface
 		key := string(o.Kind) + ":" + o.Path + ":" + o.Name + ":" + o.ProjectID
+		discriminator := string(o.Kind) + ":" + o.Name + ":" + o.ProjectID
+		// A .NET project can declare different OutputType values under different
+		// MSBuild conditions. Keep each bounded variant separately addressable
+		// so neither its condition nor an unresolved expression is discarded.
+		if o.Properties["interface_kind"] == "dotnet-application" {
+			key += ":" + o.Properties["target"] + ":" + o.Properties["condition"]
+			discriminator += ":" + o.Properties["target"] + ":" + o.Properties["condition"]
+		}
 		if seen[key] {
 			continue
 		}
 		seen[key] = true
-		n := mapdoc.NewNode(kind, []string{o.Path}, string(o.Kind)+":"+o.Name+":"+o.ProjectID)
+		n := mapdoc.NewNode(kind, []string{o.Path}, discriminator)
 		n.Name = o.Name
 		n.Properties = map[string]string{"observation_kind": string(o.Kind), "state": o.State, "basis": o.Basis}
 		if role := mapPathRole(o.Path); role != "" {
@@ -1333,7 +1757,7 @@ func addIntent(d *mapdoc.Document, r *intentmap.Report) {
 			n.Properties[k] = v
 		}
 		n.Coverage = mapdoc.Coverage{Status: mapdoc.CoverageComplete}
-		if o.State == "partial" || o.State == "unresolved" {
+		if o.State == "partial" || o.State == "unresolved" || (o.State == "conditional" && o.Properties["interface_kind"] == "dotnet-application") {
 			n.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"observation_" + o.State}}
 		}
 		n.Evidence = []mapdoc.Evidence{intentEvidence(o)}

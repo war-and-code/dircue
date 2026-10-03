@@ -23,12 +23,16 @@ import os
 import re
 import subprocess
 import sys
+from urllib.parse import urlsplit
 import urllib.request
 import urllib.error
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = REPO_ROOT / "tests" / "receipts" / "evidence-archive.json"
+ARCHIVE_REPOSITORY = "https://github.com/war-and-code/dircue"
+SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
+ASSET_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
 def sha256_file(path: Path) -> str:
@@ -43,7 +47,60 @@ def load_manifest() -> dict:
     if not MANIFEST.exists():
         print(f"error: manifest not found: {MANIFEST}", file=sys.stderr)
         sys.exit(1)
-    return json.loads(MANIFEST.read_text())
+    manifest = json.loads(MANIFEST.read_text())
+    validate_manifest(manifest)
+    return manifest
+
+
+def validate_manifest(manifest: dict) -> None:
+    """Reject unsafe restore paths and URLs before any filesystem/network use."""
+    if not isinstance(manifest, dict):
+        raise ValueError("evidence archive manifest must be an object")
+    tag = manifest.get("release_tag")
+    if not isinstance(tag, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", tag):
+        raise ValueError("evidence archive release_tag is invalid")
+    base = f"{ARCHIVE_REPOSITORY}/releases/download/{tag}"
+    if manifest.get("base_download_url") != base or manifest.get("release_url") != f"{ARCHIVE_REPOSITORY}/releases/tag/{tag}":
+        raise ValueError("evidence archive release URLs do not match the configured repository and tag")
+    entries = manifest.get("entries")
+    if not isinstance(entries, list) or not entries:
+        raise ValueError("evidence archive entries must be a non-empty list")
+    paths, assets = set(), set()
+    for index, entry in enumerate(entries):
+        label = f"evidence archive entry {index}"
+        if not isinstance(entry, dict):
+            raise ValueError(f"{label} must be an object")
+        path, digest, size, asset, url = (entry.get(key) for key in ("path", "sha256", "size", "asset", "url"))
+        if not isinstance(path, str) or not path or "\\" in path or path.startswith("/") or "\x00" in path:
+            raise ValueError(f"{label} has an unsafe restore path")
+        if any(part in ("", ".", "..") for part in path.split("/")):
+            raise ValueError(f"{label} has an unsafe restore path")
+        if path in paths:
+            raise ValueError(f"{label} duplicates restore path {path!r}")
+        paths.add(path)
+        if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
+            raise ValueError(f"{label} has an invalid SHA-256 digest")
+        if isinstance(size, bool) or not isinstance(size, int) or size <= 0:
+            raise ValueError(f"{label} has an invalid size")
+        if not isinstance(asset, str) or not ASSET_RE.fullmatch(asset) or asset in (".", ".."):
+            raise ValueError(f"{label} has an unsafe asset name")
+        if asset in assets:
+            raise ValueError(f"{label} duplicates asset {asset!r}")
+        assets.add(asset)
+        expected_url = f"{base}/{asset}"
+        try:
+            parsed = urlsplit(url)
+        except (TypeError, ValueError):
+            parsed = None
+        if parsed is None or parsed.scheme != "https" or parsed.netloc != "github.com" or parsed.query or parsed.fragment or url != expected_url:
+            raise ValueError(f"{label} has an unexpected download URL")
+
+
+def destination_for(entry: dict) -> Path:
+    dest = REPO_ROOT / entry["path"]
+    if not dest.resolve().is_relative_to(REPO_ROOT.resolve()):
+        raise ValueError(f"restore path escapes repository through a symlink: {entry['path']!r}")
+    return dest
 
 
 RELEASE_URL = re.compile(r"^https://github\.com/([^/]+)/([^/]+)/releases/download/([^/]+)/([^/]+)$")
@@ -126,7 +183,7 @@ def check_file(entry: dict) -> tuple[bool, str]:
     """
     Returns (ok, status) where status is one of: 'ok', 'missing', 'corrupt', 'wrong-size'.
     """
-    dest = REPO_ROOT / entry["path"]
+    dest = destination_for(entry)
     if not dest.exists():
         return False, "missing"
     if dest.stat().st_size != entry["size"]:
@@ -144,7 +201,11 @@ def main() -> int:
                         help="Restore only this one in-tree path.")
     args = parser.parse_args()
 
-    manifest = load_manifest()
+    try:
+        manifest = load_manifest()
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"error: invalid evidence archive manifest: {exc}", file=sys.stderr)
+        return 1
     entries = manifest["entries"]
 
     if args.path:
@@ -156,7 +217,11 @@ def main() -> int:
     ok_count = skipped = failed = 0
 
     for entry in entries:
-        dest = REPO_ROOT / entry["path"]
+        try:
+            dest = destination_for(entry)
+        except ValueError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return 1
         good, status = check_file(entry)
 
         if good:

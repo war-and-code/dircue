@@ -313,3 +313,103 @@ func TestCheckoutPathQualifiesOtherRepository(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildContextAfterForeignRootCheckoutIsNotLocal(t *testing.T) {
+	content := []byte(`name: Build
+on: [push]
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/other
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+`)
+	r, err := Observe(context.Background(), []Candidate{{Path: ".github/workflows/build.yml", Size: int64(len(content)),
+		Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, def := range r.Definitions {
+		for _, ref := range def.References {
+			if ref.Kind == "build_context" {
+				found = true
+				if ref.Qualification != "external" {
+					t.Fatalf("root build context after foreign checkout must be external: %+v", ref)
+				}
+			}
+		}
+	}
+	if !found {
+		t.Fatal("build-push-action context was not observed")
+	}
+}
+
+func TestDynamicForeignCheckoutPathLeavesBuildContextUnresolved(t *testing.T) {
+	content := []byte(`name: Build
+on: [push]
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/other
+          path: ${{ inputs.checkout_path }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+`)
+	r, err := Observe(context.Background(), []Candidate{{Path: ".github/workflows/build.yml", Size: int64(len(content)),
+		Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, def := range r.Definitions {
+		for _, ref := range def.References {
+			if ref.Kind == "build_context" {
+				if ref.Qualification != "unresolved" || !ref.CheckoutUnknown {
+					t.Fatalf("dynamic foreign checkout path was guessed: %+v", ref)
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("build-push-action context was not observed")
+}
+
+func TestLaterSelfCheckoutAtRootRestoresLocalBuildContext(t *testing.T) {
+	content := []byte(`name: Build
+on: [push]
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: example/other
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.repository }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+`)
+	r, err := Observe(context.Background(), []Candidate{{Path: ".github/workflows/build.yml", Size: int64(len(content)),
+		Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return content, int64(len(content)), nil }}}, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, def := range r.Definitions {
+		for _, ref := range def.References {
+			if ref.Kind == "build_context" {
+				if ref.Qualification != "local" || ref.CheckoutNamed || ref.Checkout != "." {
+					t.Fatalf("later self checkout did not replace the foreign root context: %+v", ref)
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("build-push-action context was not observed")
+}

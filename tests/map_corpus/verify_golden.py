@@ -902,48 +902,85 @@ def main() -> int:
     entries = label_doc.get("repos", [])
 
     results: list[RepoResult] = []
+    inputs: list[dict[str, str]] = []
     for entry in entries:
         repo = entry.get("repo", "unknown")
         if args.maps:
             map_path = args.maps / f"{repo}.json"
             if not map_path.exists():
-                print(f"WARNING: {map_path} not found, skipping {repo}", file=sys.stderr)
+                message = f"map file not found: {map_path}"
+                print(f"ERROR: {message}", file=sys.stderr)
+                inputs.append({"repo": repo, "status": "missing", "detail": message})
                 continue
-            map_doc = json.loads(map_path.read_text())
+            try:
+                map_doc = json.loads(map_path.read_text())
+            except (OSError, json.JSONDecodeError) as exc:
+                message = f"could not read map file {map_path}: {exc}"
+                print(f"ERROR: {message}", file=sys.stderr)
+                inputs.append({"repo": repo, "status": "failed", "detail": message})
+                continue
         else:
             repo_dir = args.repos / repo
             if not repo_dir.is_dir():
-                print(f"WARNING: {repo_dir} not found, skipping {repo}", file=sys.stderr)
+                message = f"repository directory not found: {repo_dir}"
+                print(f"ERROR: {message}", file=sys.stderr)
+                inputs.append({"repo": repo, "status": "missing", "detail": message})
                 continue
             try:
                 map_doc = run_dircue(args.binary, repo_dir)
             except Exception as exc:
-                print(f"WARNING: dircue failed for {repo}: {exc}", file=sys.stderr)
+                message = f"dircue failed for {repo}: {exc}"
+                print(f"ERROR: {message}", file=sys.stderr)
+                inputs.append({"repo": repo, "status": "failed", "detail": message})
                 continue
         rr = score_repo(entry, map_doc)
         results.append(rr)
+        inputs.append({"repo": repo, "status": "evaluated", "detail": ""})
 
     totals = total_pr(results)
     print_table(results, totals)
+    input_complete = len(results) == len(entries)
+    input_failures = [item for item in inputs if item["status"] != "evaluated"]
+    failures = check_gates(totals)
+    if input_failures:
+        failures.insert(0, f"input coverage: evaluated {len(results)} of {len(entries)} labeled repositories")
 
     out_doc = {
         "gate": "golden-map-corpus",
-        "labeled_by": "blind",
+        "labeled_by": label_doc.get("labeled_by", "unspecified"),
         "repos": [r.as_dict() for r in results],
+        "repo_inputs": inputs,
+        "expected_repo_count": len(entries),
+        "evaluated_repo_count": len(results),
+        "input_complete": input_complete,
+        "metric_scope": {
+            "description": "This run is regression evidence for the supplied labels over the selected repositories, not an independent accuracy estimate; initially blind repository sets have since informed development.",
+            "scoring_modifies_labels": False,
+            "required_repo_count": len(entries),
+            "evaluated_repo_count": len(results),
+        },
         "totals": totals,
         "gates": GATE_THRESHOLDS,
+        "gate_status": "not_run" if args.no_gate else ("failed" if failures else "passed"),
+        "failures": failures,
     }
     if args.output:
         args.output.write_text(json.dumps(out_doc, indent=2) + "\n")
 
-    failures = check_gates(totals)
+    if input_failures and not args.no_gate:
+        print("\nGATE FAILED: incomplete labeled repository set.", file=sys.stderr)
+        for item in input_failures:
+            print(f"  {item['repo']}: {item['status']}: {item['detail']}", file=sys.stderr)
+        for f in check_gates(totals):
+            print(f"  {f}", file=sys.stderr)
+        return 1
     if failures and not args.no_gate:
         print("\nGATE FAILURES:", file=sys.stderr)
         for f in failures:
             print(f"  {f}", file=sys.stderr)
         return 1
-    elif failures:
-        print("\nGATE VIOLATIONS (--no-gate: not failing):", file=sys.stderr)
+    elif args.no_gate:
+        print(f"\nDiagnostics only (--no-gate): evaluated {len(results)} of {len(entries)} labeled repositories; gate status not assessed.", file=sys.stderr)
         for f in failures:
             print(f"  {f}", file=sys.stderr)
     else:

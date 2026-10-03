@@ -84,6 +84,7 @@ Check the exit status before consuming stdout:
 
 - Success exits `0` and writes JSON to stdout.
 - Handled errors exit `1` with diagnostics on stderr.
+- `map compare --exit-code` uses `0` for unchanged, `1` for changed, `2` for uncertain, and `3` for handled errors.
 
 ## Install
 

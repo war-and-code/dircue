@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"path"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -866,5 +868,511 @@ func TestPrismaSchemaProviderEmitsSpecificDatastoreCapability(t *testing.T) {
 				t.Errorf("want no capability %q, got %v", tt.wantNot, caps)
 			}
 		})
+	}
+}
+
+func TestAdditionalImportScannersBoundaries(t *testing.T) {
+	cases := []struct {
+		name, src string
+		parse     func(string, []byte) []Observation
+		want      string
+		absent    bool
+	}{
+		{"java", "// import org.postgresql.Driver;\nimport static org.springframework.data.jpa.JpaRepository.*;\nclass A {}", parseJVMImports, "datastore:relational", false},
+		{"java-string", "class A { String s = \"import org.postgresql.Driver;\"; }", parseJVMImports, "datastore:postgresql", true},
+		{"csharp", "// using Npgsql;\nusing Db = Npgsql;\nclass A {}", parseDotnetImports, "datastore:postgresql", false},
+		{"csharp-indented", "class A {\n using Npgsql;\n}", parseDotnetImports, "datastore:postgresql", true},
+		{"typescript", "// import pg from 'pg';\nimport type { Pool } from 'pg';", parseJSImports, "datastore:postgresql", false},
+		{"typescript-shadow", "const require = fake; require('pg');", parseJSImports, "datastore:postgresql", true},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			os := tt.parse("src/a", []byte(tt.src))
+			found := false
+			for _, o := range os {
+				if o.Name == tt.want {
+					found = true
+				}
+			}
+			if found == tt.absent {
+				t.Fatalf("found=%v want absent=%v observations=%+v", found, tt.absent, os)
+			}
+		})
+	}
+}
+
+func TestMavenTestScopeFilteringIsMapPrivate(t *testing.T) {
+	// A test declaration by itself grants no capability.
+	d := New(Options{})
+	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "test"}}}})
+	r, _ := d.Finish(context.Background())
+	for _, o := range r.Observations {
+		if o.Name == "datastore:relational" {
+			t.Fatal("test-scoped Maven dependency promoted")
+		}
+	}
+	// The same coordinate with runtime scope still grants evidence; filtering one test occurrence must not suppress its runtime sibling.
+	d = New(Options{})
+	reqs := []declarations.Requirement{{Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "test"}, {Kind: "maven-dependency", Value: "com.h2database:h2:2.2", State: "declared", Evidence: "pom.xml", Scope: "compile"}, {Kind: "maven-dependency", Value: "org.postgresql:postgresql:42", State: "declared", Evidence: "pom.xml", Scope: "provided"}}
+	d.AddDeclarations([]declarations.Project{{ID: "pom.xml", Requirements: reqs}})
+	r, _ = d.Finish(context.Background())
+	relational, postgres := false, false
+	for _, o := range r.Observations {
+		if o.Name == "datastore:relational" && o.Basis == "declared_dependency" {
+			relational = true
+		}
+		if o.Name == "datastore:postgresql" && o.Basis == "declared_dependency" {
+			postgres = true
+		}
+	}
+	if !relational || !postgres {
+		t.Fatalf("runtime duplicate or provided scope lost: %+v", r.Observations)
+	}
+	raw, _ := json.Marshal(reqs)
+	if strings.Contains(string(raw), "Scope") || strings.Contains(string(raw), "scope") {
+		t.Fatalf("map-private Maven scope leaked to declaration JSON: %s", raw)
+	}
+}
+
+func TestLexicalImportEvidenceAdversarialBoundaries(t *testing.T) {
+	tests := []struct {
+		name, path, source, want, absent string
+		qualifier                        string
+	}{
+		{"kotlin alias", "A.kt", "import org.postgresql.Driver as PgDriver", "datastore:postgresql", "", ""},
+		{"java multiline", "A.java", "import org.\npostgresql.Driver;", "datastore:postgresql", "", ""},
+		{"java text block", "A.java", "class A { String x = \"\"\"\nimport org.postgresql.Driver;\n\"\"\"; }\nimport org.postgresql.Driver;", "datastore:postgresql", "", ""},
+		{"java namespace lookalike", "A.java", "import org.postgresqlish.Driver;", "", "datastore:postgresql", ""},
+		{"C sharp raw literal", "A.cs", "class A { string s = \"\"\"\nusing Npgsql;\n\"\"\"; }\nusing Db = Npgsql;", "datastore:postgresql", "", ""},
+		{"C sharp namespace lookalike", "A.cs", "using NpgsqlFake;", "", "datastore:postgresql", ""},
+		{"C sharp false case", "A.cs", "using npgsql;", "", "datastore:postgresql", ""},
+		{"Java false case", "A.java", "import Org.postgresql.Driver;", "", "datastore:postgresql", ""},
+		{"C sharp multiline", "A.cs", "using Npgsql.\n EntityFrameworkCore.PostgreSQL;", "datastore:postgresql", "", ""},
+		{"C sharp namespace using", "A.cs", "namespace X { using Npgsql; class C { void M() { using var x = new Npgsql(); } } }", "datastore:postgresql", "", ""},
+		{"C sharp method using only", "A.cs", "namespace X { class C { void M() { using Npgsql; } } }", "", "datastore:postgresql", ""},
+		{"VB apostrophe", "A.vb", "' Imports Npgsql\nImports Db = Npgsql", "datastore:postgresql", "", ""},
+		{"VB namespace case insensitive", "A.vb", "Imports npgsql", "datastore:postgresql", "", ""},
+		{"typescript template", "a.ts", "const x = `\nimport pg from 'pg';\n`;\nimport type { Pool } from 'pg';", "datastore:postgresql", "", "type_only"},
+		{"typescript type import-equals require", "a.ts", `import type Pg = require("pg");`, "datastore:postgresql", "", "type_only"},
+		{"typescript runtime import-equals require", "a.ts", `import Pg = require("pg");`, "datastore:postgresql", "", ""},
+		{"commonjs string", "a.js", `const x = "require('pg')";`, "", "datastore:postgresql", ""},
+		{"commonjs regex", "a.js", `const re = /require\('pg'\)/;`, "", "datastore:postgresql", ""},
+		{"ES regex", "a.js", `const re = /import pg from 'pg'/;`, "", "datastore:postgresql", ""},
+		{"commonjs destructured shadow", "a.js", `const { require } = fake; require('pg');`, "", "datastore:postgresql", ""},
+		{"ES import with shadow", "a.ts", `const { require } = fake; import pg from 'pg';`, "datastore:postgresql", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []Observation
+			switch strings.ToLower(path.Ext(tt.path)) {
+			case ".java", ".kt":
+				got = parseJVMImports(tt.path, []byte(tt.source))
+			case ".cs", ".vb":
+				got = parseDotnetImports(tt.path, []byte(tt.source))
+			default:
+				got = parseJSImports(tt.path, []byte(tt.source))
+			}
+			found, absent, qual := false, false, ""
+			for _, o := range got {
+				if o.Name == tt.want && tt.want != "" {
+					found = true
+					qual = o.Properties["import_qualifier"]
+				}
+				if o.Name == tt.absent && tt.absent != "" {
+					absent = true
+				}
+			}
+			if tt.want != "" && !found {
+				t.Fatalf("missing %s evidence: %+v", tt.want, got)
+			}
+			if tt.absent != "" && absent {
+				t.Fatalf("false positive %s: %+v", tt.absent, got)
+			}
+			if tt.qualifier != "" && qual != tt.qualifier {
+				t.Fatalf("import qualifier = %q observations=%+v", qual, got)
+			}
+		})
+	}
+}
+
+func TestImportEvidenceUsesTestPathConvention(t *testing.T) {
+	for _, p := range []string{"src/test/java/AppTest.java", "tests/test_db.py", "__tests__/db.test.ts", "pkg/client_test.go", "src/utils/test_helper.py", "src/generated/test_utils_test.py", "src/ThingTest.cs", "src/WidgetTestCase.java"} {
+		if importEvidenceScope(p) != "test_path_convention" {
+			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
+		}
+	}
+	for _, p := range []string{"src/main/java/App.java", "src/client.ts", "src/test_utils.ts", "src/test_helpers.js", "src/test_utils.go", "src/test_utils.cs", "src/Contest.java", "src/Latest.cs", "src/Latest.vb"} {
+		if importEvidenceScope(p) != "non_test_path_convention" {
+			t.Errorf("%q scope = %q", p, importEvidenceScope(p))
+		}
+	}
+}
+
+func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
+	sources := []string{
+		"const copy = `require('pg') and import pg from 'pg'`;",
+		"const copy = `outer ${`nested require('pg')`} import pg from 'pg'`;",
+		"const copy = `${ /`/.test(value) ? '' : '' } import pg from 'pg'`;",
+		"const view = <div>require('pg') import pg from 'pg'</div>;",
+		"const view = <div>\nimport pg from 'pg'\nrequire('pg')\n</div>;",
+		"const view = <>\nimport pg from 'pg'\nrequire('pg')\n</>;",
+		"const view = <div>\nimport pg from 'pg'\nrequire('pg')",
+	}
+	for _, source := range sources {
+		if got := parseJSImports("src/view.jsx", []byte(source)); len(got) != 0 {
+			t.Errorf("non-code template/JSX text produced import evidence for %q: %+v", source, got)
+		}
+	}
+	valid := parseJSImports("src/view.jsx", []byte("import pg from 'pg';"))
+	if len(valid) == 0 || valid[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid source import no longer produces evidence: %+v", valid)
+	}
+	validAfterSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <div />;\nimport pg from 'pg';"))
+	if len(validAfterSelfClose) == 0 || validAfterSelfClose[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after self-closing JSX was masked: %+v", validAfterSelfClose)
+	}
+	validAfterComponentSelfClose := parseJSImports("src/view.jsx", []byte("const icon = <Icon />;\nimport pg from 'pg';"))
+	if len(validAfterComponentSelfClose) == 0 || validAfterComponentSelfClose[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after self-closing JSX component was masked: %+v", validAfterComponentSelfClose)
+	}
+	validAfterRegexTemplate := parseJSImports("src/view.jsx", []byte("const copy = `${ /`/.test(value) ? '' : '' }`;\nimport pg from 'pg';"))
+	if len(validAfterRegexTemplate) == 0 || validAfterRegexTemplate[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a regex-containing template was masked: %+v", validAfterRegexTemplate)
+	}
+	validAfterTypeAssertion := parseJSImports("src/assertion.ts", []byte("const value = <number>1;\nimport pg from 'pg';"))
+	if len(validAfterTypeAssertion) != 1 || validAfterTypeAssertion[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a TypeScript angle-bracket assertion was masked: %+v", validAfterTypeAssertion)
+	}
+	importsAfterTypeEquals := parseJSImports("src/types.ts", []byte("import type Pg = require(\"pg\")\nimport redis from 'redis'"))
+	qualifiers := map[string]string{}
+	for _, observation := range importsAfterTypeEquals {
+		qualifiers[observation.Name] = observation.Properties["import_qualifier"]
+	}
+	if qualifiers["datastore:postgresql"] != "type_only" || qualifiers["cache:redis"] != "" {
+		t.Fatalf("semicolonless import-equals swallowed or upgraded a following import: %+v", importsAfterTypeEquals)
+	}
+}
+
+func TestJSImportParserPreservesMixedDefaultAndTypeImports(t *testing.T) {
+	for _, tc := range []struct {
+		name, source string
+		typeOnly     bool
+	}{
+		{"default plus type specifier", `import Pg, { type Config } from "pg";`, false},
+		{"value named type alias", `import { type as Pg } from "pg";`, false},
+		{"type-only import of symbol as", `import { type as } from "pg";`, true},
+		{"type specifier with alias", `import { type Config as Pg } from "pg";`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseJSImports("src/database.ts", []byte(tc.source))
+			if len(got) != 1 || got[0].Name != "datastore:postgresql" {
+				t.Fatalf("import did not produce PostgreSQL evidence: %+v", got)
+			}
+			isTypeOnly := got[0].Properties["import_qualifier"] == "type_only"
+			if isTypeOnly != tc.typeOnly {
+				t.Fatalf("type-only = %v, want %v: %+v", isTypeOnly, tc.typeOnly, got[0])
+			}
+		})
+	}
+}
+
+func TestJSImportParserIgnoresRegexLiteralContents(t *testing.T) {
+	falsePositiveCases := []struct {
+		name   string
+		source string
+	}{
+		{"array element", `const patterns = [/import pg from "pg";/];`},
+		{"if consequent", `if (ready) /import pg from "pg";/.test(source);`},
+		{"if block then expression", `if (ready) {} /import pg from "pg";/.test(source);`},
+		{"function declaration then expression", `function helper() {} /import pg from "pg";/.test(source);`},
+		{"async function declaration then expression", `async function helper() {} /import pg from "pg";/.test(source);`},
+		{"generator declaration then expression", `function* helper() {} /import pg from "pg";/.test(source);`},
+		{"export function declaration then expression", `export function helper() {} /import pg from "pg";/.test(source);`},
+		{"default async function declaration then expression", `export default async function helper() {} /import pg from "pg";/.test(source);`},
+		{"class declaration then expression", `class Helper {} /import pg from "pg";/.test(source);`},
+		{"export class declaration then expression", `export class Helper extends Base {} /import pg from "pg";/.test(source);`},
+		{"default class declaration then expression", `export default class {} /import pg from "pg";/.test(source);`},
+		{"typeof operand", `const kind = typeof /import pg from "pg";/;`},
+		{"return operand", `function match() { return /import pg from "pg";/; }`},
+	}
+	for _, tc := range falsePositiveCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseJSImports("src/regex.js", []byte(tc.source)); len(got) != 0 {
+				t.Fatalf("regex literal contents produced import evidence: %+v", got)
+			}
+		})
+	}
+	validAfterRegex := parseJSImports("src/regex.js", []byte("const pattern = /value/;\nimport pg from \"pg\";"))
+	if len(validAfterRegex) != 1 || validAfterRegex[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a regular expression was lost: %+v", validAfterRegex)
+	}
+	validAfterObjectDivision := parseJSImports("src/regex.js", []byte("const ratio = ({value: 4}) / 2;\nimport pg from \"pg\";"))
+	if len(validAfterObjectDivision) != 1 || validAfterObjectDivision[0].Name != "datastore:postgresql" {
+		t.Fatalf("division after an object expression hid a following import: %+v", validAfterObjectDivision)
+	}
+	for _, tc := range []struct {
+		name, source string
+	}{
+		{"function expression division", "const quotient = function helper() {} / 2;\nimport pg from \"pg\";"},
+		{"class expression division", "const quotient = class Helper {} / 2;\nimport pg from \"pg\";"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseJSImports("src/regex.js", []byte(tc.source)); len(got) != 1 || got[0].Name != "datastore:postgresql" {
+				t.Fatalf("division after expression hid a valid import: %+v", got)
+			}
+		})
+	}
+}
+
+func TestLexerMasksNestedAndUnterminatedLiteralRegions(t *testing.T) {
+	cases := []struct {
+		name, lang, source string
+		want               bool
+	}{
+		{"Kotlin nested comment", "kotlin", "/* outer /* import org.postgresql.Driver */ still comment */\nimport org.postgresql.Driver", true},
+		{"C sharp four quote raw", "cs", "var s = \"\"\"\"\nusing Npgsql;\n\"\"\"\"; using Db = Npgsql;", true},
+		{"JS unterminated quote", "js", "const x = \"require('pg')\nrequire('pg')", false},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			tokens, _ := lexSource(tt.source, tt.lang)
+			found := false
+			for _, tk := range tokens {
+				if (tt.lang == "kotlin" && tk.text == "import") || (tt.lang == "cs" && tk.text == "using") || (tt.lang == "js" && tk.text == "require") {
+					found = true
+				}
+			}
+			if found != tt.want {
+				t.Fatalf("found code token=%v, want %v; tokens=%+v", found, tt.want, tokens)
+			}
+		})
+	}
+}
+
+func TestLexerEscapeParityAndImportBindingShadow(t *testing.T) {
+	if escapedAt(`\\\"`, 2) {
+		t.Fatal("quote after an even number of backslashes was considered escaped")
+	}
+	if !escapedAt(`\"`, 1) {
+		t.Fatal("quote after one backslash was not considered escaped")
+	}
+	got := parseJSImports("a.ts", []byte(`import { createRequire as require } from "node:module"; require("pg"); import type from "pg";`))
+	count := 0
+	for _, o := range got {
+		if o.Name == "datastore:postgresql" {
+			count++
+		}
+		if o.Properties["import_qualifier"] == "type_only" {
+			t.Fatal("default binding named type was mislabeled type-only")
+		}
+	}
+	if count != 1 {
+		t.Fatalf("ES imports should survive local require binding; module evidence count=%d observations=%+v", count, got)
+	}
+}
+
+func TestImportLexerTokenLimitMarksCoveragePartial(t *testing.T) {
+	content := []byte("import org.postgresql.Driver;\n" + strings.Repeat(";", DefaultMaxLexicalTokensPerFile+10))
+	d := New(Options{})
+	if _, err := d.Detect(context.Background(), profile.File{Path: "src/test/java/DbTest.java", Size: int64(len(content)), Content: content}); err != nil {
+		t.Fatal(err)
+	}
+	r, err := d.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Coverage.Status != "partial" || r.Coverage.Omissions["import_token_limit"] != 1 {
+		t.Fatalf("token overflow coverage = %+v", r.Coverage)
+	}
+	if len(r.Observations) == 0 || r.Observations[0].Name != "datastore:postgresql" {
+		t.Fatalf("evidence before the bounded cutoff was lost: %+v", r.Observations)
+	}
+}
+
+func TestImportLexerRetainsFixedTokenCountOnDenseSource(t *testing.T) {
+	source := strings.Repeat(";", 1<<20)
+	tokens, limited := lexSource(source, "cs")
+	if !limited {
+		t.Fatal("dense source did not report lexical token truncation")
+	}
+	if len(tokens) != DefaultMaxLexicalTokensPerFile {
+		t.Fatalf("retained %d tokens; want fixed cap %d", len(tokens), DefaultMaxLexicalTokensPerFile)
+	}
+}
+
+func BenchmarkLexVBREMIdentifiers(b *testing.B) {
+	for _, n := range []int{8 << 10, 48 << 10} {
+		source := strings.Repeat("x REM ", n/6)
+		b.Run(fmt.Sprintf("%d-bytes", len(source)), func(b *testing.B) {
+			b.SetBytes(int64(len(source)))
+			b.ReportAllocs()
+			for range b.N {
+				_, _ = lexSource(source, "vb")
+			}
+		})
+	}
+}
+
+func BenchmarkLexicalTokenLimitDenseSource(b *testing.B) {
+	source := strings.Repeat(";", 1<<20)
+	b.SetBytes(int64(len(source)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		_, _ = lexSource(source, "cs")
+	}
+}
+
+func TestVBRemAndTypeScriptInlineTypeImports(t *testing.T) {
+	vb := parseDotnetImports("src/App.vb", []byte("REM Imports Npgsql\nImports StackExchange.Redis"))
+	foundRedis, foundPg := false, false
+	for _, o := range vb {
+		foundRedis = foundRedis || o.Name == "cache:redis"
+		foundPg = foundPg || o.Name == "datastore:postgresql"
+	}
+	if !foundRedis || foundPg {
+		t.Fatalf("VB REM/import classification wrong: %+v", vb)
+	}
+	ts := parseJSImports("src/db.ts", []byte("import { type Pool, type Client } from 'pg';"))
+	for _, o := range ts {
+		if o.Name == "datastore:postgresql" && o.Properties["import_qualifier"] == "type_only" {
+			return
+		}
+	}
+	t.Fatalf("inline type-only import missing qualifier: %+v", ts)
+	mixed := parseJSImports("src/db.ts", []byte("import { type Pool, Client } from 'pg';"))
+	for _, o := range mixed {
+		if o.Name == "datastore:postgresql" && o.Properties["import_qualifier"] == "type_only" {
+			t.Fatalf("mixed value/type import marked type-only: %+v", mixed)
+		}
+	}
+}
+
+func TestTruncatedJavaScriptDoesNotInferUnverifiedCommonJSImports(t *testing.T) {
+	source := "import redis from 'redis'; require('pg');\n" + strings.Repeat(";", DefaultMaxLexicalTokensPerFile) + "\nfunction require(x) { return x; }"
+	observations, limited := parseJSImportsBounded("src/cache.js", []byte(source))
+	if !limited {
+		t.Fatal("expected token limit")
+	}
+	hasESM := false
+	for _, o := range observations {
+		if o.Kind == KindCapability && o.Name == "datastore:postgresql" {
+			t.Fatalf("inferred shadowed CommonJS capability: %+v", o)
+		}
+		if o.Kind == KindImport && o.Name == "pg" {
+			t.Fatalf("inferred unverified require import: %+v", o)
+		}
+		if o.Kind == KindCapability && o.Name == "cache:redis" {
+			hasESM = true
+		}
+	}
+	if !hasESM {
+		t.Fatalf("lost retained ESM evidence: %+v", observations)
+	}
+}
+
+func TestJSImportPackageMatchingDoesNotNormalizeSourceSpecifiers(t *testing.T) {
+	tests := []struct {
+		name, source string
+		want         string
+	}{
+		{"exact package", `import pg from "pg";`, "datastore:postgresql"},
+		{"package subpath", `require("pg/lib/client");`, "datastore:postgresql"},
+		{"scoped package subpath", `import s3 from "@aws-sdk/client-s3/dist/client";`, "storage:object"},
+		{"case sensitive", `require("PG");`, ""},
+		{"version-like at suffix", `require("redis@fake");`, ""},
+		{"node builtin scheme", `import fs from "node:fs";`, ""},
+		{"node builtin bare", `import path from "path";`, ""},
+		{"malformed scoped package suffix", `import x from "@aws-sdk/client@fake";`, ""},
+		{"uppercase scoped package name", `import x from "@aws-sdk/UPPER";`, ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := parseJSImports("src/app.js", []byte(tt.source))
+			found := false
+			for _, observation := range got {
+				if observation.Kind == KindCapability && observation.Name == tt.want && tt.want != "" {
+					found = true
+				}
+			}
+			if tt.want != "" && !found {
+				t.Fatalf("missing %s from %q: %+v", tt.want, tt.source, got)
+			}
+			if tt.want == "" && len(got) != 0 {
+				t.Fatalf("unexpected source capability for %q: %+v", tt.source, got)
+			}
+		})
+	}
+}
+
+func TestJSImportObservationClonesShortSpecifierFromLargeSource(t *testing.T) {
+	source := strings.Repeat(" ", 1<<20) + `import pg from "pg";`
+	tokens, limited := lexSource(source, "js")
+	if limited {
+		t.Fatal("short import in a large source unexpectedly hit token limit")
+	}
+	observations := parseJSImportsTokens("large.js", tokens, true)
+	if len(observations) != 1 || observations[0].Properties["import"] != "pg" {
+		t.Fatalf("unexpected import evidence: %+v", observations)
+	}
+	retained := observations[0].Properties["import"]
+	sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(source)))
+	retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+	if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(source)) {
+		t.Fatal("short specifier retained the large source string backing storage")
+	}
+}
+
+func TestJVMAndDotnetImportObservationsCloneNamespaces(t *testing.T) {
+	for _, tt := range []struct {
+		name, lang, source, capability string
+	}{
+		{"java", "java", strings.Repeat(" ", 1<<20) + "import org.postgresql.Driver;", "datastore:postgresql"},
+		{"csharp", "cs", strings.Repeat(" ", 1<<20) + "using Npgsql;", "datastore:postgresql"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			tokens, limited := lexSource(tt.source, tt.lang)
+			if limited {
+				t.Fatal("short namespace in large source unexpectedly hit token limit")
+			}
+			var observations []Observation
+			if tt.lang == "java" {
+				observations = parseJVMImportsTokens("large.java", tt.lang, tokens)
+			} else {
+				observations = parseDotnetImportsTokens("large.cs", false, tokens)
+			}
+			if len(observations) != 1 || observations[0].Name != tt.capability {
+				t.Fatalf("unexpected import evidence: %+v", observations)
+			}
+			retained := observations[0].Properties["import"]
+			sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(tt.source)))
+			retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+			if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(tt.source)) {
+				t.Fatal("namespace evidence retained the large source backing storage")
+			}
+		})
+	}
+}
+
+func TestJSImportLongSubpathRetainsOnlyPackageRoot(t *testing.T) {
+	source := `import client from "@aws-sdk/client-s3/` + strings.Repeat("x", 1<<20) + `";`
+	tokens, limited := lexSource(source, "js")
+	if limited {
+		t.Fatal("one long string token unexpectedly hit token limit")
+	}
+	observations := parseJSImportsTokens("large.js", tokens, true)
+	if len(observations) == 0 {
+		t.Fatal("long valid subpath should corroborate the known package root")
+	}
+	for _, observation := range observations {
+		if observation.Properties["import"] != "@aws-sdk/client-s3" || observation.Properties["import_representation"] != "package_root" {
+			t.Fatalf("long subpath should retain only validated package root: %+v", observation)
+		}
+		retained := observation.Properties["import"]
+		sourceStart := uintptr(unsafe.Pointer(unsafe.StringData(source)))
+		retainedStart := uintptr(unsafe.Pointer(unsafe.StringData(retained)))
+		if retainedStart >= sourceStart && retainedStart < sourceStart+uintptr(len(source)) {
+			t.Fatal("package-root evidence retained the complete large source backing storage")
+		}
 	}
 }

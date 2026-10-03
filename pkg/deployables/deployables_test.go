@@ -2,11 +2,14 @@ package deployables
 
 import (
 	"context"
+	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
 	"testing"
+	"unsafe"
 
 	"github.com/war-and-code/dircue/pkg/profile"
 )
@@ -58,6 +61,467 @@ func TestObserveStaticDeclarationKindsAndQualifications(t *testing.T) {
 	encoded, _ := json.Marshal(r)
 	if strings.Contains(string(encoded), "go test ./...") || strings.Contains(string(encoded), "handler.hello") {
 		t.Fatalf("retained arbitrary command/config value: %s", encoded)
+	}
+}
+
+func TestLaunchFacetsWithholdDockerArgumentsAndRetainCronSchedule(t *testing.T) {
+	docker := "FROM python:3.12\nENTRYPOINT [\"python3\", \"-m\", \"http.server\", \"--password\", \"DO_NOT_DISCLOSE\"]\nCMD [\"custom-launcher\", \"DO_NOT_DISCLOSE\"]\n"
+	kube := "# schedule: fake comment value\napiVersion: batch/v1\nkind: CronJob\nmetadata:\n  name: nightly\nspec:\n  schedule: \"0 3 * * *\"\n"
+	files := []Candidate{}
+	for name, body := range map[string]string{"Dockerfile": docker, "cron.yaml": kube} {
+		name, body := name, body
+		files = append(files, Candidate{Path: name, Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(body), int64(len(body)), nil }})
+	}
+	report, err := Observe(context.Background(), files, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var sawPython, sawWithheld, sawCustomWithheld, sawCron bool
+	for _, def := range report.Definitions {
+		for _, ref := range def.References {
+			switch ref.Kind {
+			case "docker_entrypoint":
+				sawPython = ref.Value == "python3 -m http.server" && ref.Qualification == "declared"
+			case "docker_entrypoint_arguments":
+				sawWithheld = ref.Qualification == "withheld_arguments" && ref.Value == ""
+			case "docker_cmd":
+				sawCustomWithheld = ref.Value == "" && ref.Qualification == "withheld_arguments"
+			case "cron_schedule":
+				sawCron = ref.Value == "0 3 * * *" && ref.Qualification == "declared" && ref.Evidence.Line == 0
+			}
+		}
+	}
+	if !sawPython || !sawWithheld || !sawCustomWithheld || !sawCron {
+		t.Fatalf("launch facets absent: python=%t withheld=%t custom=%t cron=%t defs=%+v", sawPython, sawWithheld, sawCustomWithheld, sawCron, report.Definitions)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "DO_NOT_DISCLOSE") || strings.Contains(string(encoded), "--password") || strings.Contains(string(encoded), "custom-launcher") {
+		t.Fatalf("Docker argv leaked into report: %s", encoded)
+	}
+
+	templated, recognized, err := parseYAML("cron.yaml", []byte("apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: dynamic}\nspec:\n  schedule: '{{ .Values.schedule }}'\n"))
+	if err != nil || !recognized || len(templated) != 1 || len(templated[0].References) != 1 || templated[0].References[0].Qualification != "unresolved" || templated[0].References[0].Value != "" {
+		t.Fatalf("templated schedule: defs=%+v recognized=%t err=%v", templated, recognized, err)
+	}
+}
+
+func TestDockerLaunchFormStageAndUnresolvedBoundaries(t *testing.T) {
+	body := `FROM alpine AS build
+ENTRYPOINT ["python3", "-m", "http.server", "--password", "DO_NOT_DISCLOSE"]
+RUN printf ok \\
+CMD ["node", "DO_NOT_DISCLOSE"]
+FROM alpine AS runtime
+CMD ["python3", "-m", "http.server"]
+ENTRYPOINT []
+ENTRYPOINT ["PyThOn", "app"]
+ENTRYPOINT 'python3' app
+CMD [
+  "node",
+  "app"
+]
+`
+	defs, recognized, err := parseDockerfile("Dockerfile", []byte(body))
+	if err != nil || !recognized || len(defs) != 1 {
+		t.Fatalf("Dockerfile parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+	}
+	var buildEntry, runtimeCmd, emptyExec, mixedCase, quotedShell, multilineCmd, runContinuationCmd int
+	for _, ref := range defs[0].References {
+		if ref.Kind == "docker_entrypoint" && ref.Stage == "build" {
+			buildEntry++
+			if ref.Value != "python3 -m http.server" || ref.Qualification != "declared" || ref.Evidence.Basis != "dockerfile-instruction-exec" {
+				t.Errorf("build stage entrypoint: %+v", ref)
+			}
+		}
+		if ref.Kind == "docker_cmd" && ref.Stage == "runtime" && ref.Evidence.Line == 6 {
+			runtimeCmd++
+			if ref.Value != "python3 -m http.server" || ref.Qualification != "declared" || ref.Evidence.Basis != "dockerfile-instruction-exec" {
+				t.Errorf("runtime command: %+v", ref)
+			}
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Qualification == "unresolved" && ref.Value == "" {
+			emptyExec++
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Evidence.Line == 8 && ref.Value == "" && ref.Qualification == "withheld_arguments" {
+			mixedCase++
+		}
+		if ref.Kind == "docker_entrypoint" && ref.Evidence.Line == 9 && ref.Value == "" && ref.Qualification == "withheld_arguments" {
+			quotedShell++
+		}
+		if ref.Kind == "docker_cmd" && ref.Evidence.Line == 10 && ref.Qualification == "unresolved" && ref.Value == "" && ref.Stage == "runtime" {
+			multilineCmd++
+		}
+		if ref.Kind == "docker_cmd" && ref.Evidence.Line == 4 {
+			runContinuationCmd++
+		}
+		if ref.Kind == "docker_cmd" && ref.Value == "node" && ref.Stage == "runtime" {
+			t.Fatalf("launch in continuation promoted: %+v", ref)
+		}
+		if ref.Kind == "docker_cmd" && ref.Value == "node" {
+			t.Fatalf("RUN continuation promoted to a launch instruction: %+v", ref)
+		}
+	}
+	if buildEntry != 1 || runtimeCmd != 1 || emptyExec != 1 || mixedCase != 1 || quotedShell != 1 || multilineCmd != 1 || runContinuationCmd != 0 {
+		t.Fatalf("launch boundaries build=%d runtime=%d empty=%d mixed=%d quoted=%d multiline=%d run-continuation=%d refs=%+v", buildEntry, runtimeCmd, emptyExec, mixedCase, quotedShell, multilineCmd, runContinuationCmd, defs[0].References)
+	}
+	if defs[0].DockerFinalStage != "runtime" {
+		t.Fatalf("final declared stage = %q", defs[0].DockerFinalStage)
+	}
+}
+
+func TestDockerLaunchContinuationCannotCreateStageOrOpcode(t *testing.T) {
+	body := "FROM alpine AS first\nCMD [\\\nFROM alpine AS fake\nENV LEAK=value\n]\nFROM alpine AS last\nCMD [\"node\"]\n"
+	defs, recognized, err := parseDockerfile("Dockerfile", []byte(body))
+	if err != nil || !recognized || len(defs) != 1 {
+		t.Fatalf("Dockerfile parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+	}
+	if defs[0].DockerFinalStage != "last" {
+		t.Fatalf("continuation text changed final stage: %q", defs[0].DockerFinalStage)
+	}
+	for _, ref := range defs[0].References {
+		if ref.Kind == "docker_cmd" && ref.Stage == "fake" {
+			t.Fatalf("continuation text created a stage-scoped launch fact: %+v", ref)
+		}
+	}
+}
+
+func TestCronJobFacetsAreTypedBoundedAndUnresolvedWhenUnsafe(t *testing.T) {
+	for _, tc := range []struct {
+		name, body                          string
+		wantSchedule, wantSuspend, wantZone string
+	}{
+		{"valid", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '*/5 * * * *'\n  suspend: false\n  timeZone: Etc/UTC\n", "declared", "declared", "withheld_value"},
+		{"invalid schedule", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '60 * * * *'\n  suspend: nonsense\n  timeZone: 'user:secret@example'\n", "", "", "withheld_value"},
+		{"missing schedule", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  suspend: true\n", "", "declared", ""},
+		{"dynamic", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: '{{ .Values.schedule }}'\n  suspend: '{{ .Values.suspend }}'\n  timeZone: '{{ .Values.zone }}'\n", "unresolved", "unresolved", "unresolved"},
+		{"wrong types", "apiVersion: batch/v1\nkind: CronJob\nmetadata: {name: x}\nspec:\n  schedule: [1, 2]\n  suspend: 1\n  timeZone: 7\n", "", "", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			defs, recognized, err := parseYAML("cron.yaml", []byte(tc.body))
+			if err != nil || !recognized || len(defs) != 1 {
+				t.Fatalf("parse: defs=%+v recognized=%t err=%v", defs, recognized, err)
+			}
+			if defs[0].Coverage != "qualified" {
+				t.Fatalf("a static CronJob declaration must remain qualified: %+v", defs[0])
+			}
+			got := map[string]Reference{}
+			for _, ref := range defs[0].References {
+				got[ref.Kind] = ref
+			}
+			for kind, want := range map[string]string{"cron_schedule": tc.wantSchedule, "cron_suspend": tc.wantSuspend, "cron_timezone": tc.wantZone} {
+				ref, ok := got[kind]
+				if want == "" {
+					if ok {
+						t.Errorf("unexpected %s: %+v", kind, ref)
+					}
+					continue
+				}
+				if !ok || ref.Qualification != want {
+					t.Errorf("%s = %+v, want %s", kind, ref, want)
+				}
+				if kind == "cron_timezone" && ref.Value != "" {
+					t.Errorf("timezone value leaked: %+v", ref)
+				}
+				if kind == "cron_schedule" && ref.Evidence.Line != 0 {
+					t.Errorf("unverified source coordinate: %+v", ref)
+				}
+			}
+		})
+	}
+}
+
+func TestMavenArchiveParserAcceptsSingleByteXML(t *testing.T) {
+	body := []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><project><artifactId>caf\xe9</artifactId><version>1</version><packaging>war</packaging></project>")
+	definitions, matched, err := parsePomXML("pom.xml", body)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "café-1.war" {
+		t.Fatalf("ISO-8859-1 WAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+	ascii := []byte(`<?xml version="1.0" encoding="US-ASCII"?><project><artifactId>web</artifactId><version>1</version><packaging>ear</packaging></project>`)
+	definitions, matched, err = parsePomXML("pom.xml", ascii)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "web-1.ear" {
+		t.Fatalf("US-ASCII EAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+	text := `<?xml version="1.0" encoding="utf-16"?><project><artifactId>web</artifactId><version>1</version><packaging>war</packaging></project>`
+	utf16Body := make([]byte, 2+2*len([]rune(text)))
+	utf16Body[0], utf16Body[1] = 0xff, 0xfe
+	for i, r := range text {
+		binary.LittleEndian.PutUint16(utf16Body[2+i*2:], uint16(r))
+	}
+	definitions, matched, err = parsePomXML("pom.xml", utf16Body)
+	if err != nil || !matched || len(definitions) != 1 || definitions[0].Name != "web-1.war" {
+		t.Fatalf("UTF-16 WAR omitted: matched=%t defs=%+v err=%v", matched, definitions, err)
+	}
+}
+
+func TestTerraformOnlyLiteralLocalModuleSourcesAreQualified(t *testing.T) {
+	defs, matched, err := parseTerraform("infra/main.tf", []byte(`resource "x_y" "z" {}
+module "local" {
+  source = "../modules/network" # literal local source
+}
+module "registry" { source = "example/network/aws" }
+module "dynamic" { source = "../${var.name}" }
+module "commented" {
+  # source = "../not-a-module"
+}
+`))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse Terraform: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	want := map[string]string{"../modules/network": "local", "example/network/aws": "external", "../${var.name}": "unresolved", "uninspected": "unresolved"}
+	for _, ref := range defs[0].References {
+		if ref.Kind != "module_source" {
+			continue
+		}
+		if q, ok := want[ref.Value]; !ok || q != ref.Qualification {
+			t.Errorf("unexpected module source %+v", ref)
+		}
+		delete(want, ref.Value)
+	}
+	if len(want) != 0 {
+		t.Fatalf("missing module source observations: %v", want)
+	}
+}
+
+func TestTerraformModuleSourcesDoNotReadCommentsNestedValuesOrAmbiguousSyntax(t *testing.T) {
+	body := []byte(`resource "x_y" "z" {}
+module "nested" {
+  local = { source = "../fake" }
+}
+module "duplicate" {
+  source = "../first"
+  source = "../second"
+}
+module "heredoc" {
+  marker = <<EOF
+source = "../fake"
+}
+EOF
+  source = "../real"
+}
+module "block-comment" {
+  /* source = "../fake" */
+  source = "../real"
+}
+`)
+	defs, matched, err := parseTerraform("infra/main.tf", body)
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse Terraform: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	for _, ref := range defs[0].References {
+		if ref.Kind == "module_source" && (ref.Qualification != "unresolved" || ref.Value != "uninspected") {
+			t.Errorf("ambiguous or nested Terraform source became linkable: %+v", ref)
+		}
+	}
+}
+
+func TestGitHubBuildPushActionRequiresExplicitStaticContext(t *testing.T) {
+	defs, matched, err := parseYAML(".github/workflows/build.yml", []byte(`name: build
+jobs:
+  image:
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+      - uses: docker/build-push-action@v6
+        with:
+          context: repo/services/api
+          file: services/api/Dockerfile
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ github.workspace }}
+`))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("parse workflow: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	contexts := 0
+	for _, ref := range defs[0].References {
+		if ref.Kind != "build_context" {
+			continue
+		}
+		contexts++
+		if ref.Value == "repo/services/api" && (ref.Qualification != "local" || ref.Checkout != "repo") {
+			t.Errorf("literal context/check-out binding lost: %+v", ref)
+		}
+		if strings.Contains(ref.Value, "${{") && ref.Qualification != "unresolved" {
+			t.Errorf("expression context was resolved: %+v", ref)
+		}
+	}
+	if contexts != 2 {
+		t.Fatalf("expected explicit context observations only, got %+v", defs[0].References)
+	}
+}
+
+func TestMakefileReadsOnlyStaticDockerBuildFileAndContext(t *testing.T) {
+	body := `OCI_BUILD := DOCKER_BUILDKIT=1 docker buildx build --load
+OCI_BUILD := DOCKER_BUILDKIT=1 docker build --load
+
+image:
+	$(OCI_BUILD) -t dircue -f cmd/loki/Dockerfile .
+	docker build -f cmd/api/Dockerfile services/api
+	docker build -f $(DOCKERFILE) .
+	$(UNKNOWN_BUILD) -f cmd/nope/Dockerfile .
+	$(OCI_BUILD) -f cmd/dynamic/Dockerfile $(BUILD_CONTEXT)
+`
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || !matched || len(defs) != 2 {
+		t.Fatalf("static Makefile builds: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	wanted := map[string]string{"cmd/loki/Dockerfile": ".", "cmd/api/Dockerfile": "services/api"}
+	for _, def := range defs {
+		file, context := "", ""
+		for _, ref := range def.References {
+			switch ref.Kind {
+			case "dockerfile":
+				file = ref.Value
+			case "build_context":
+				context = ref.Value
+			}
+		}
+		if wanted[file] != context || context == "" {
+			t.Errorf("unexpected build context pair: %+v", def.References)
+		}
+		delete(wanted, file)
+	}
+	if len(wanted) != 0 {
+		t.Fatalf("missing static build invocations: %v", wanted)
+	}
+	file := []byte(body)
+	report, err := Observe(context.Background(), []Candidate{{Path: "Makefile", Size: int64(len(file)), Read: func(context.Context, int64) ([]byte, int64, error) { return file, int64(len(file)), nil }}}, Options{})
+	if err != nil || len(report.BuildContexts) != 2 || len(report.Definitions) != 0 {
+		t.Fatalf("Makefile contexts should remain private observer metadata, report=%+v err=%v", report, err)
+	}
+	encoded, err := json.Marshal(report)
+	if err != nil || strings.Contains(string(encoded), "BuildContexts") || strings.Contains(string(encoded), "makefile") {
+		t.Fatalf("Makefile plumbing changed public report JSON: %s err=%v", encoded, err)
+	}
+	collector := NewCollector(Options{})
+	if _, err := collector.Detect(context.Background(), profile.File{Path: "Makefile", Size: int64(len(file)), Content: file}); err != nil {
+		t.Fatal(err)
+	}
+	collected := collector.Finish()
+	if len(collected.BuildContexts) != 2 || len(collected.Definitions) != 0 {
+		t.Fatalf("scanner collector dropped private Makefile contexts: %+v", collected)
+	}
+}
+
+func TestMakefileContinuationDoesNotReattributeBuildFromAnotherDirectory(t *testing.T) {
+	body := "image:\n\tdocker build -f services/api/Dockerfile .\n\nother:\n\tcd services && \\\n\t\tdocker build -f Dockerfile .\n"
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("only the complete literal invocation should be observed: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+	if got := defs[0].References[0].Value; got != "services/api/Dockerfile" {
+		t.Fatalf("continuation body was misattributed as root invocation: %q", got)
+	}
+}
+
+func TestMakefileOneshellDoesNotAssumeIndependentRecipeDirectories(t *testing.T) {
+	for _, oneshell := range []string{".ONESHELL:", ".ONESHELL :"} {
+		t.Run(oneshell, func(t *testing.T) {
+			body := oneshell + `
+image:
+	cd services
+	docker build -f Dockerfile .
+`
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf(".ONESHELL recipe state was attributed from the repository root: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+
+	ordinary := "image:\n\tdocker build -f services/api/Dockerfile services/api\n"
+	defs, matched, err := parseMakefile("Makefile", []byte(ordinary))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("ordinary independent recipe should retain its literal build: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+}
+
+func TestMakefileVariableContinuationIsNotParsedAsRecipe(t *testing.T) {
+	body := `DOCKER_BUILD = \
+	docker build -f Dockerfile .
+image:
+	$(DOCKER_BUILD)
+`
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || matched || len(defs) != 0 {
+		t.Fatalf("continued assignment body became a recipe: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+}
+
+func TestNestedMakefilesDoNotConsumeDeployableSelectionBudget(t *testing.T) {
+	if IsCandidate("services/api/Makefile") {
+		t.Fatal("nested Makefile is unsupported and must not consume a candidate slot")
+	}
+	if !IsCandidate("Dockerfile") {
+		t.Fatal("root Dockerfile must remain a selected deployable candidate")
+	}
+	files := make([]Candidate, 0, 4101)
+	for i := range 4100 {
+		files = append(files, makeCandidate(fmt.Sprintf("%04d/Makefile", i), "\tdocker build -f Dockerfile .\n"))
+	}
+	files = append(files, makeCandidate("Dockerfile", "FROM alpine:3\n"))
+	report, err := Observe(context.Background(), files, Options{Files: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Definitions) != 1 || report.Definitions[0].Path != "Dockerfile" || report.Omissions["file_limit"] != 0 || report.Coverage.CandidateFiles != 1 {
+		t.Fatalf("unsupported nested Makefile consumed the selection budget: defs=%+v omissions=%+v", report.Definitions, report.Omissions)
+	}
+}
+
+func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
+	for _, assignment := range []string{
+		"OCI_BUILD := docker build ; echo unsafe",
+		"OCI_BUILD := docker build -f hidden/Dockerfile .",
+		"OCI_BUILD := docker build hidden-context",
+		"OCI_BUILD := docker build $(ARGS)",
+		"OCI_BUILD := docker build --build-arg=$(ARGS)",
+		"OCI_BUILD := docker build --platform $(ARCH)",
+		"DOCKER := docker build DOCKER_BUILDKIT=$(ARGS)",
+	} {
+		t.Run(assignment, func(t *testing.T) {
+			body := assignment + "\nimage:\n\t$(OCI_BUILD) -f services/api/Dockerfile services/api\n"
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("unsafe variable command was attributed: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+}
+
+func TestMakefileRejectsDynamicDockerOptionValues(t *testing.T) {
+	for _, command := range []string{
+		"docker build -t $(IMAGE) -f Dockerfile .",
+		"docker build -t \"$(IMAGE)\" -f Dockerfile .",
+		"docker build --build-arg IMAGE=$(IMAGE) -f Dockerfile .",
+		"docker build --build-arg=$(ARGS) -f Dockerfile .",
+		"docker build --platform $(ARCH) -f Dockerfile .",
+		"DOCKER_BUILDKIT=$(BUILDKIT) docker build -f Dockerfile .",
+	} {
+		t.Run(command, func(t *testing.T) {
+			defs, matched, err := parseMakefile("Makefile", []byte("image:\n\t"+command+"\n"))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("unquoted expansion may alter Docker arguments and must remain unresolved: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+}
+
+func TestMakefileRejectsAmbiguousDirectDockerBuildArguments(t *testing.T) {
+	for _, command := range []string{
+		"docker build -f wrong/Dockerfile other-context -f services/api/Dockerfile services/api",
+		"docker build -f services/api/Dockerfile other-context services/api",
+	} {
+		t.Run(command, func(t *testing.T) {
+			body := "image:\n\t" + command + "\n"
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("ambiguous Docker command was attributed: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
 	}
 }
 
@@ -997,16 +1461,21 @@ func TestMavenWARProfilePackagingIsIgnored(t *testing.T) {
 	}
 }
 
-func TestMavenWARUnsupportedEncodingMatchesComponentParser(t *testing.T) {
-	body := `<?xml version="1.0" encoding="ISO-8859-1"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0">
-  <artifactId>web</artifactId>
-  <version>1.0</version>
-  <packaging>war</packaging>
-</project>
-`
-	r := observeOne(t, "pom.xml", body)
-	if len(r.Definitions) != 0 {
-		t.Errorf("an encoding the Maven component parser rejects must not yield an archive, got %+v", r.Definitions)
+func TestMavenWARSingleByteEncodingMatchesComponentParser(t *testing.T) {
+	body := []byte("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><project><artifactId>caf\xe9</artifactId><version>1</version><packaging>war</packaging></project>")
+	r := observeOne(t, "pom.xml", string(body))
+	if len(r.Definitions) != 1 || r.Definitions[0].Name != "café-1.war" {
+		t.Errorf("ISO-8859-1 WAR was not parsed consistently with Maven components: %+v", r.Definitions)
+	}
+}
+
+func TestDockerLaunchLabelDoesNotRetainArgumentsBackingStorage(t *testing.T) {
+	command := "python " + strings.Repeat("private-argument", 65536)
+	label := dockerLaunchAllowlistedValue(strings.Fields(command))
+	if label != "python" {
+		t.Fatalf("launch label = %q", label)
+	}
+	if unsafe.StringData(label) == unsafe.StringData(command) {
+		t.Fatal("small launch label retains the entire argument buffer")
 	}
 }

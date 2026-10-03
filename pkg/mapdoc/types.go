@@ -20,17 +20,18 @@ const (
 type EdgeType string
 
 const (
-	EdgeContains       EdgeType = "contains"
-	EdgeMemberOf       EdgeType = "member_of"
-	EdgeDependsOnLocal EdgeType = "depends_on_local"
-	EdgeDependsOn      EdgeType = "depends_on"
-	EdgeBuilds         EdgeType = "builds"
-	EdgeRuns           EdgeType = "runs"
-	EdgeExposes        EdgeType = "exposes"
-	EdgeDeclares       EdgeType = "declares"
-	EdgeUsesCapability EdgeType = "uses_capability"
-	EdgePackagedIn     EdgeType = "packaged_in"
-	EdgeAnalyzedBy     EdgeType = "analyzed_by"
+	EdgeContains           EdgeType = "contains"
+	EdgeMemberOf           EdgeType = "member_of"
+	EdgeDependsOnLocal     EdgeType = "depends_on_local"
+	EdgeDependsOn          EdgeType = "depends_on"
+	EdgeBuilds             EdgeType = "builds"
+	EdgeRuns               EdgeType = "runs"
+	EdgeExposes            EdgeType = "exposes"
+	EdgeDeclares           EdgeType = "declares"
+	EdgeUsesCapability     EdgeType = "uses_capability"
+	EdgePackagedIn         EdgeType = "packaged_in"
+	EdgeAnalyzedBy         EdgeType = "analyzed_by"
+	EdgeReferencesArtifact EdgeType = "references_artifact"
 	// EdgeConflictsWith is reserved for a later schema that has an observer
 	// capable of producing evidence-backed conflict relationships. Validation
 	// intentionally rejects it in schema 1.0.0.

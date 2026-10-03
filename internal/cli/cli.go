@@ -4,6 +4,7 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/war-and-code/dircue/pkg/detectors"
 	"github.com/war-and-code/dircue/pkg/focus"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -112,8 +114,65 @@ func ExecuteAs(ctx context.Context, name string, args []string, out, errOut io.W
 	}
 	root := newRootCommand(name, out, errOut)
 	root.SetArgs(args)
-	return safeCLIError(root.ExecuteContext(ctx))
+	command, executeErr := root.ExecuteContextC(ctx)
+	err := safeCLIError(executeErr)
+	if err == nil {
+		return nil
+	}
+	var outcome *comparisonExit
+	if !errors.As(err, &outcome) && command != nil && command.Name() == "compare" && command.Parent() != nil && command.Parent().Name() == "map" {
+		_, commandArgs, findErr := root.Find(args)
+		if findErr == nil && mapCompareExitCodesSelected(command, commandArgs) {
+			return &comparisonErrorExit{cause: err}
+		}
+	}
+	return err
 }
+
+// mapCompareExitCodesSelected reparses only the resolved command's arguments
+// with unknown flags ignored. This lets an explicit --exit-code after an
+// unrelated invalid flag select its error contract without scanning strings
+// in other commands' flag values or paths. Known non-contract flags are
+// registered as no-op values so malformed values do not stop this probe.
+func mapCompareExitCodesSelected(command *cobra.Command, args []string) bool {
+	var selected bool
+	flags := pflag.NewFlagSet("map compare exit-code probe", pflag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	command.Flags().VisitAll(func(flag *pflag.Flag) {
+		if flag.Name == "exit-code" {
+			flags.BoolVar(&selected, flag.Name, false, flag.Usage)
+			probe := flags.Lookup(flag.Name)
+			probe.Shorthand = flag.Shorthand
+			probe.NoOptDefVal = flag.NoOptDefVal
+			return
+		}
+		copy := *flag
+		copy.Value = ignoredFlagValue{kind: flag.Value.Type(), noOpt: flag.NoOptDefVal != ""}
+		copy.Changed = false
+		flags.AddFlag(&copy)
+	})
+	flags.ParseErrorsAllowlist.UnknownFlags = true
+	err := flags.Parse(args)
+	if flags.Lookup("exit-code").Changed && selected {
+		return true
+	}
+	return err != nil && strings.Contains(err.Error(), `--exit-code`)
+}
+
+type ignoredFlagValue struct {
+	kind  string
+	noOpt bool
+}
+
+func (v ignoredFlagValue) String() string   { return "" }
+func (v ignoredFlagValue) Type() string     { return v.kind }
+func (v ignoredFlagValue) Set(string) error { return nil }
+func (v ignoredFlagValue) IsBoolFlag() bool { return v.noOpt }
+
+type comparisonErrorExit struct{ cause error }
+
+func (e *comparisonErrorExit) Error() string { return e.cause.Error() }
+func (e *comparisonErrorExit) Unwrap() error { return e.cause }
 
 // newRootCommand builds the complete command tree under the given display
 // name. capabilities --cli describes a tree built as "dircue", so its JSON is
@@ -123,7 +182,7 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 	root := &cobra.Command{
 		Use:           name + " [path]",
 		Short:         "Profile source code repos and other directories of computer content",
-		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
+		Long:          "Analyze languages in a Git revision, or profile a plain directory without Git. With no subcommand, emit the github-linguist directory output format. Git repository roots use committed HEAD content by default; --source directory scans current files.\n\nAutomation: --json emits data on stdout; diagnostics and warnings go to stderr. Success exits 0; handled errors exit 1 except map compare --exit-code errors, which exit 3. Successful reports may have partial coverage: inspect module status, coverage, and omissions. Empty language statistics do not prove an empty directory; analyze discovery inventories metadata. Legacy --json and analyze all --json have different output contracts. Use capabilities --cli --json for CLI contracts, capabilities --guide for workflows, and capabilities --schema profile --json for an offline schema. Plain capabilities describes planning modules; plan creates inert saved-report follow-ups.",
 		Example:       "  " + name + " --json /checkout\n  " + name + " analyze discovery --source directory --json /content\n  " + name + " analyze all --declarations --json /checkout\n  " + name + " capabilities --cli --json",
 		Version:       effectiveVersion(),
 		Args:          pathArgs,

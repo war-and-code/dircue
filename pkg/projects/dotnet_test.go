@@ -50,6 +50,98 @@ func TestDotnetProjectDeclarations(t *testing.T) {
 	}
 }
 
+func TestDotnetDeclaredApplicationOutputPreservesConditionsAndExpressions(t *testing.T) {
+	doc := ParseDotnet("src/App/App.csproj", []byte(`<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'"><OutputType>WinExe</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>$(ChosenOutputType)</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>Library</OutputType></PropertyGroup>
+  <ItemGroup><OutputType>Exe</OutputType></ItemGroup>
+</Project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("projects: %+v", doc)
+	}
+	got := doc.Projects[0].Interfaces
+	if len(got) != 2 {
+		t.Fatalf("interfaces: %+v", got)
+	}
+	if got[0].Kind != "dotnet-application" || got[0].Name != "App" || got[0].Target != "WinExe" || got[0].State != "conditional" || got[0].Condition == "" || got[0].Line != 2 {
+		t.Fatalf("conditional application output: %+v", got[0])
+	}
+	if got[1].Target != "$(ChosenOutputType)" || got[1].State != "unresolved" || got[1].Line != 3 {
+		t.Fatalf("unresolved application output: %+v", got[1])
+	}
+}
+
+func TestDotnetOutputTypeSpanUsesOpeningLineForMultilineTags(t *testing.T) {
+	doc := ParseDotnet("App.csproj", []byte(`<Project>
+  <PropertyGroup>
+    <OutputType
+      Condition="'$(Configuration)' == 'Release'">
+      Exe
+    </OutputType>
+  </PropertyGroup>
+</Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].Interfaces) != 1 || doc.Projects[0].Interfaces[0].Line != 3 {
+		t.Fatalf("multiline declaration span: %+v", doc.Projects)
+	}
+	encoded, err := json.Marshal(doc.Projects[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "interfaces") {
+		t.Fatalf("launch-only internal field changed legacy project JSON: %s", encoded)
+	}
+}
+
+func BenchmarkParseDotnetLargeManifestLineAccounting(b *testing.B) {
+	var source strings.Builder
+	source.WriteString("<Project>\n")
+	for range 4096 {
+		source.WriteString("<PropertyGroup><OutputType>Library</OutputType></PropertyGroup>\n")
+	}
+	source.WriteString("<PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>\n</Project>")
+	content := []byte(source.String())
+	b.SetBytes(int64(len(content)))
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		_ = ParseDotnet("App.csproj", content)
+	}
+}
+
+func TestDotnetHintPathIsAConfinedLocalArtifactReference(t *testing.T) {
+	doc := ParseDotnet("src/App/App.csproj", []byte(`<Project><ItemGroup Condition="'$(Configuration)' == 'Release'">
+  <Reference Include="Helper"><HintPath>../../lib/Helper.dll</HintPath></Reference>
+  <Reference Include="Unknown"><HintPath>$(SharedDir)/Unknown.dll</HintPath></Reference>
+  <Reference Include="Escape"><HintPath>../../../outside.dll</HintPath></Reference>
+  <Reference Include="GAC" />
+</ItemGroup></Project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("project: %+v", doc)
+	}
+	refs := doc.Projects[0].References
+	if len(refs) != 3 {
+		t.Fatalf("HintPath refs: %+v", refs)
+	}
+	if refs[0].Target != "lib/Helper.dll" || refs[0].State != "conditional" || refs[0].Value != "../../lib/Helper.dll" {
+		t.Fatalf("resolved conditional HintPath: %+v", refs[0])
+	}
+	if refs[1].Target != "" || refs[1].State != "unresolved" || refs[2].Target != "" || refs[2].State != "unresolved" {
+		t.Fatalf("dynamic or out-of-root HintPath was accepted: %+v", refs)
+	}
+}
+
+func TestDotnetHintPathAttributeRetainsUnresolvedLocalArtifact(t *testing.T) {
+	doc := ParseDotnet("src/App.csproj", []byte(`<Project><ItemGroup><Reference Include="Json" HintPath="$(LibraryDir)\Json.dll" /></ItemGroup></Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].References) != 1 {
+		t.Fatalf("attribute HintPath was not retained: %+v", doc)
+	}
+	ref := doc.Projects[0].References[0]
+	if ref.Kind != "local-artifact" || ref.Value != `$(LibraryDir)\Json.dll` || ref.Target != "" || ref.State != "unresolved" {
+		t.Fatalf("dynamic HintPath was guessed or lost: %+v", ref)
+	}
+}
+
 func TestDotnetSharedConfiguration(t *testing.T) {
 	doc := ParseDotnet("Directory.Build.props", []byte(`<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003"><PropertyGroup><TargetFrameworkVersion>v4.8</TargetFrameworkVersion><LangVersion>$(ChosenVersion)</LangVersion></PropertyGroup><ImportGroup Condition="'$(OS)' == 'Windows_NT'"><Import Project="build/windows.props"/></ImportGroup></Project>`))
 	if len(doc.Projects) != 0 || len(doc.Requirements) != 2 || len(doc.References) != 1 {

@@ -6,7 +6,7 @@ Checks:
 - All asset names are unique
 - All sha256 values are valid lowercase hex (64 chars)
 - All sizes are > 0
-- All paths are absent from the working tree (evidence has been removed)
+- No archived paths are tracked in Git (local receipt restoration is allowed)
 - All URLs match the expected pattern for evidence-archive-1
 - Manifest loads as valid JSON with required keys
 
@@ -15,6 +15,7 @@ Network is NOT used. Run with: python3 -m unittest tests/receipts/test_evidence_
 import hashlib
 import json
 import re
+import subprocess
 import unittest
 from pathlib import Path
 
@@ -70,18 +71,12 @@ class TestEvidenceArchiveManifest(unittest.TestCase):
             self.assertEqual(e["url"], expected_url,
                              f"URL does not match asset name for {e['path']}")
 
-    def test_paths_are_absent_from_working_tree(self):
-        present = []
-        for e in self.entries:
-            p = REPO_ROOT / e["path"]
-            if p.exists():
-                present.append(e["path"])
-        self.assertFalse(
-            present,
-            f"These paths should be removed from the working tree but still exist:\n"
-            + "\n".join(f"  {p}" for p in present[:10])
-            + (f"\n  ... and {len(present) - 10} more" if len(present) > 10 else "")
-        )
+    def test_archived_paths_are_not_tracked(self):
+        tracked = set(subprocess.check_output(
+            ["git", "ls-files", "-z"], cwd=REPO_ROOT
+        ).decode().split("\0"))
+        self.assertFalse(tracked.intersection(e["path"] for e in self.entries),
+                         "Archived receipts belong in release assets, not Git")
 
     def test_path_prefixes_are_expected(self):
         expected_prefixes = (
@@ -89,6 +84,8 @@ class TestEvidenceArchiveManifest(unittest.TestCase):
             "tests/stress/results/",
             "tests/profiling/results/",
             "tests/release/results/",
+            "tests/compatibility_next/results/v110-",
+            "tests/performance/v110_candidate/results/",
         )
         for e in self.entries:
             self.assertTrue(

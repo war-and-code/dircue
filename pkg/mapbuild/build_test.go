@@ -1,20 +1,468 @@
 package mapbuild
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 
+	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/discovery"
 	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/pkg/scanner"
 )
+
+func TestDeclaredPythonScriptsRemainDistinctEvidenceBackedMapInterfaces(t *testing.T) {
+	doc := declarations.Parse("pyproject.toml", []byte(`[project]
+name = "weather"
+[project.scripts]
+weather = "weather.cli:main"
+[project.gui-scripts]
+weather-gui = "weather.ui:launch"
+`))
+	if doc == nil || len(doc.Project.Interfaces) != 2 {
+		t.Fatalf("Python interfaces: %+v", doc)
+	}
+	detector := intentmap.New(intentmap.Options{})
+	detector.AddDeclarations([]declarations.Project{*doc.Project})
+	report, err := detector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mapDoc := mapdoc.New()
+	addIntent(&mapDoc, report)
+	kinds := map[string]string{}
+	for _, n := range mapDoc.Nodes {
+		if n.Kind == mapdoc.NodeInterface {
+			kinds[n.Properties["interface_kind"]] = n.Properties["target"]
+		}
+	}
+	if kinds["python-console-script"] != "weather.cli:main" || kinds["python-gui-script"] != "weather.ui:launch" || len(kinds) != 2 {
+		t.Fatalf("Python entrypoint interfaces: %+v", kinds)
+	}
+}
+
+func TestDotnetLaunchInterfacePreservesConditionalAndUnresolvedOutputTypes(t *testing.T) {
+	parsed := declarations.Parse("src/App/App.csproj", []byte(`<Project>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'"><OutputType>WinExe</OutputType></PropertyGroup>
+  <PropertyGroup><OutputType>$(ChosenOutputType)</OutputType></PropertyGroup>
+</Project>`))
+	detector := intentmap.New(intentmap.Options{})
+	detector.AddDeclarations([]declarations.Project{*parsed.Project})
+	report, err := detector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	doc := mapdoc.New()
+	addIntent(&doc, report)
+	seen := map[string]mapdoc.Node{}
+	for _, n := range doc.Nodes {
+		if n.Properties["interface_kind"] == "dotnet-application" {
+			seen[n.Properties["target"]] = n
+		}
+	}
+	if len(seen) != 2 {
+		t.Fatalf("launch interfaces: %+v", seen)
+	}
+	conditional := seen["WinExe"]
+	if conditional.Name != "App" || conditional.Properties["condition"] == "" || conditional.Evidence[0].Span == nil || conditional.Evidence[0].Span.StartLine != 2 || conditional.Coverage.Status != mapdoc.CoveragePartial {
+		t.Fatalf("conditional output type: %+v", conditional)
+	}
+	unresolved := seen["$(ChosenOutputType)"]
+	if unresolved.Properties["state"] != "unresolved" || unresolved.Evidence[0].Span == nil || unresolved.Evidence[0].Span.StartLine != 3 {
+		t.Fatalf("unresolved output type: %+v", unresolved)
+	}
+}
+
+func TestDeployableLaunchFacetsRetainSafeValuesAndEvidence(t *testing.T) {
+	doc := mapdoc.New()
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{
+		{Provider: "dockerfile", Kind: "container_build", Name: "api", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "runtime", Evidence: []deployables.Evidence{{Field: "FROM", Value: "python:3", Line: 1, Basis: "dockerfile-instruction"}}, References: []deployables.Reference{
+			{Kind: "docker_entrypoint", Value: "python3 -m http.server", Qualification: "declared", Stage: "runtime", Evidence: deployables.Evidence{Field: "ENTRYPOINT", Line: 2, Basis: "dockerfile-instruction-exec"}},
+			{Kind: "docker_entrypoint_arguments", Qualification: "withheld_arguments", Stage: "runtime", Evidence: deployables.Evidence{Field: "ENTRYPOINT arguments withheld", Line: 2, Basis: "dockerfile-instruction-exec"}},
+		}},
+		{Provider: "kubernetes", Kind: "workload", Name: "nightly", Path: "cron.yaml", K8sKind: "CronJob", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "kind", Value: "CronJob", Line: 2, Basis: "kubernetes-field"}}, References: []deployables.Reference{{Kind: "cron_schedule", Value: "0 3 * * *", Qualification: "declared", Evidence: deployables.Evidence{Field: "schedule", Value: "0 3 * * *", Line: 6, Basis: "kubernetes-cronjob-field"}}}},
+	}})
+	found := map[string]mapdoc.Fact{}
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeDeployable {
+			continue
+		}
+		for _, fact := range n.Facts {
+			found[n.Name+":"+fact.Name] = fact
+		}
+	}
+	entrypoint := found["api:docker_entrypoint"]
+	withheld := found["api:docker_entrypoint_arguments"]
+	cron := found["nightly:cron_schedule"]
+	if entrypoint.Value != "python3 -m http.server" || entrypoint.Evidence[0].Span == nil || entrypoint.Evidence[0].Span.StartLine != 2 || entrypoint.Properties["instruction_form"] != "exec" || entrypoint.Properties["stage"] != "runtime" || entrypoint.Properties["stage_is_final"] != "true" {
+		t.Fatalf("Docker launch facet: %+v", entrypoint)
+	}
+	if withheld.State != "withheld_arguments" || withheld.Evidence[0].Span == nil {
+		t.Fatalf("Docker args withholding evidence: %+v", withheld)
+	}
+	if cron.Value != "0 3 * * *" || cron.Evidence[0].Span == nil || cron.Evidence[0].Span.StartLine != 6 {
+		t.Fatalf("CronJob schedule facet: %+v", cron)
+	}
+}
 
 func TestFilenameHintDoesNotClaimValidatedBinary(t *testing.T) {
 	n := fileNode("opaque.lib", "binary", "static_library", "extension", 20)
 	if n.Coverage.Status != mapdoc.CoveragePartial || n.Evidence[0].Basis != mapdoc.BasisFilenameHint {
 		t.Fatalf("unverified suffix claimed a complete binary: %+v", n)
+	}
+}
+
+func TestMakefileDockerfilePathIsInvocationRootRelative(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/package.json"}, "npm")
+	component.Name = "api"
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "npm"}
+	doc.Nodes = append(doc.Nodes, component)
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "api", Path: "services/api/Dockerfile", Coverage: "complete",
+		Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+	}
+	report := &deployables.Report{
+		Status: "complete", Definitions: []deployables.Definition{definition},
+		BuildContexts: []deployables.BuildContext{{SourcePath: "Makefile", Context: "services/api", Dockerfile: "services/api/Dockerfile",
+			ContextEvidence: deployables.Evidence{Field: "context", Value: "services/api", Line: 7, Basis: "makefile-docker-build"},
+			FileEvidence:    deployables.Evidence{Field: "-f", Value: "services/api/Dockerfile", Line: 7, Basis: "makefile-docker-build"}}},
+	}
+	addDeployables(&doc, report)
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile"}, "dockerfile:container_build:api").ID
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeBuilds && edge.From == dockerID && edge.To == component.ID {
+			return
+		}
+	}
+	t.Fatal("root-relative Docker -f path did not link the selected build context component")
+}
+
+func TestDockerCargoZigbuildSelectsOnlyUniqueDeclaredBinaryCrate(t *testing.T) {
+	makeDoc := func(duplicate bool) mapdoc.Document {
+		doc := mapdoc.New()
+		root := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root")
+		root.Name = "(root)"
+		root.Properties = map[string]string{"root": ".", "ecosystem": "cargo"}
+		python := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "pyproject.toml"}, "python-root")
+		python.Name = "ruff"
+		python.Properties = map[string]string{"root": ".", "ecosystem": "python-uv"}
+		crate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/ruff", "crates/ruff/Cargo.toml"}, "cargo-ruff")
+		crate.Name = "ruff"
+		crate.Properties = map[string]string{"root": "crates/ruff", "ecosystem": "cargo"}
+		doc.Nodes = append(doc.Nodes, root, python, crate)
+		if duplicate {
+			other := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/other", "crates/other/Cargo.toml"}, "cargo-ruff-other")
+			other.Name = "ruff"
+			other.Properties = map[string]string{"root": "crates/other", "ecosystem": "cargo"}
+			doc.Nodes = append(doc.Nodes, other)
+		}
+		return doc
+	}
+	definition := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "build",
+		Evidence:         []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}},
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "build", Evidence: deployables.Evidence{Field: "COPY source", Value: "crates", Line: 27, Basis: "dockerfile-instruction"}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff --target $(TARGET) --release", Stage: "build", Evidence: deployables.Evidence{Field: "RUN", Line: 30, Basis: "dockerfile-instruction"}}},
+	}
+	intent := &intentmap.Report{Observations: []intentmap.Observation{{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/ruff/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}}}}
+	for _, tc := range []struct {
+		name      string
+		duplicate bool
+		want      string
+	}{
+		{name: "unique declared bin and workspace root", want: "cargo-root"},
+		{name: "ambiguous package name", duplicate: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			doc := makeDoc(tc.duplicate)
+			observations := slices.Clone(intent.Observations)
+			if tc.duplicate {
+				observations = append(observations, intentmap.Observation{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/other/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}})
+			}
+			addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{definition}}, &intentmap.Report{Observations: observations})
+			dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"Dockerfile"}, "dockerfile:container_build:(root)").ID
+			rootID := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root").ID
+			baselineID := mapdoc.NewEdge(mapdoc.EdgeBuilds, dockerID, rootID, "dockerfile-multi:"+rootID).ID
+			for _, edge := range doc.Edges {
+				if edge.Type != mapdoc.EdgeBuilds || edge.From != dockerID {
+					continue
+				}
+				if tc.want == "" || edge.To != mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo-root").ID {
+					t.Fatalf("zigbuild attribution was not uniquely source-backed: %+v", edge)
+				}
+				if edge.Coverage.Status != mapdoc.CoveragePartial {
+					t.Fatalf("static build relationship must remain partial: %+v", edge.Coverage)
+				}
+				if edge.ID != baselineID {
+					t.Fatalf("strengthened edge changed its stable ID: got %s want %s", edge.ID, baselineID)
+				}
+				return
+			}
+			if tc.want != "" {
+				t.Fatal("unique declared binary crate did not receive build edge")
+			}
+		})
+	}
+}
+
+func TestDockerCargoZigbuildRejectsUnmatchedStageAndPseudocommands(t *testing.T) {
+	doc := mapdoc.New()
+	crate := mapdoc.NewNode(mapdoc.NodeComponent, []string{"crates/ruff", "crates/ruff/Cargo.toml"}, "cargo-ruff")
+	crate.Name = "ruff"
+	crate.Properties = map[string]string{"root": "crates/ruff", "ecosystem": "cargo"}
+	doc.Nodes = append(doc.Nodes, crate)
+	intent := &intentmap.Report{Observations: []intentmap.Observation{{Kind: intentmap.KindInterface, Name: "ruff", ProjectID: "crates/ruff/Cargo.toml", Properties: map[string]string{"interface_kind": "cargo-default-run"}}}}
+	base := deployables.Definition{
+		Kind: "container_build", Provider: "dockerfile", Name: "(root)", Path: "Dockerfile", Coverage: "complete", DockerFinalStage: "build-stage",
+		References:       []deployables.Reference{{Kind: "copy_source", Value: "crates", Qualification: "local", Stage: "copy-stage", Evidence: deployables.Evidence{Line: 1}}},
+		DockerPathWrites: []deployables.Reference{{Kind: "run_instruction", Value: "RUN cargo zigbuild --bin ruff", Stage: "build-stage", Evidence: deployables.Evidence{Line: 2}}},
+	}
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("crate copy from a different stage was combined with the zigbuild command")
+	}
+	base.References[0].Stage = "build-stage"
+	base.References[0].Value = "crates/other"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("copying a different crate subtree was treated as copying the selected bin crate")
+	}
+	base.References[0].Value = "crates"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); !ok {
+		t.Fatal("root Dockerfile with known context did not retain the Cargo component link")
+	}
+	base.Path = "services/api/Dockerfile"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("nested Dockerfile was treated as building the repository-root crates tree")
+	}
+	base.Path = "Dockerfile"
+	base.DockerContextUnknown = true
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("unknown Docker context was treated as the repository-root crates tree")
+	}
+	base.DockerContextUnknown = false
+	base.DockerPathWrites[0].Value = "RUN pseudocargo zigbuild --bin ruff"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok || dockerHasCargoZigbuild(base) {
+		t.Fatal("pseudocargo command was accepted as a literal Cargo zigbuild")
+	}
+	base.DockerPathWrites[0].Value = "RUN cargo zigbuild --bin $(BIN)"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("dynamic --bin name was treated as a static crate selection")
+	}
+	for _, command := range []string{
+		"RUN cargo zigbuild --bin ruff --manifest-path ../external/Cargo.toml",
+		"RUN cargo zigbuild --bin ruff -p another-package",
+		"RUN cargo zigbuild --bin ruff -panother-package",
+	} {
+		base.DockerPathWrites[0].Value = command
+		if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+			t.Fatalf("overridden workspace selection was attributed: %s", command)
+		}
+	}
+	for _, command := range []string{
+		"RUN cargo build --manifest-path ../external/Cargo.toml",
+		"RUN cargo build --package another-package",
+		"RUN cargo build -panother-package",
+	} {
+		base.DockerPathWrites[0].Value = command
+		if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+			t.Fatalf("overridden cargo build was attributed to the local workspace: %s", command)
+		}
+	}
+	base.DockerPathWrites[0].Value = "RUN cargo build --release"
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); !ok {
+		t.Fatal("literal cargo build --release stopped being accepted")
+	}
+	base.References[0].Evidence.Line = 3
+	if _, _, ok := dockerCargoComponent(base, []string{crate.ID}, &doc, intent); ok {
+		t.Fatal("COPY occurring after cargo build was treated as its source")
+	}
+}
+
+func TestTerraformLiteralLocalModuleSourcesLinkModuleDeployables(t *testing.T) {
+	root := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "infra", Path: "infra/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "module", Value: "child", Line: 1, Basis: "terraform-literal-block"}}, References: []deployables.Reference{{Kind: "module_source", Value: "../modules/network", Qualification: "local", Evidence: deployables.Evidence{Field: "source", Value: "../modules/network", Line: 2, Basis: "terraform-module-source"}}}}
+	child := deployables.Definition{Kind: "infrastructure", Provider: "terraform", Name: "network", Path: "modules/network/main.tf", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "resource", Value: "aws_vpc.main", Line: 1, Basis: "terraform-literal-block"}}}
+	doc := mapdoc.New()
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{root, child}})
+	from := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"infra"}, "terraform:infrastructure:infra").ID
+	to := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"modules/network"}, "terraform:infrastructure:network").ID
+	for _, e := range doc.Edges {
+		if e.From == from && e.To == to && e.Type == mapdoc.EdgeDependsOnLocal && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial local-module dependency edge: %+v", doc.Edges)
+}
+
+func TestComposeContextLinksReferencedDockerfileToComponent(t *testing.T) {
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"services/api", "services/api/package.json"}, "npm")
+	component.Name = "api"
+	component.Properties = map[string]string{"root": "services/api", "ecosystem": "npm"}
+	doc := mapdoc.New()
+	doc.Nodes = append(doc.Nodes, component)
+	compose := deployables.Definition{Kind: "service", Provider: "compose", Name: "api", Path: "deploy/compose.yaml", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "service", Value: "api", Line: 1, Basis: "compose-services-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: "../services/api", Qualification: "local", Evidence: deployables.Evidence{Field: "build_context", Value: "../services/api", Line: 4, Basis: "compose-field"}}, {Kind: "dockerfile", Value: "Dockerfile.api", Qualification: "local", Evidence: deployables.Evidence{Field: "dockerfile", Value: "Dockerfile.api", Line: 5, Basis: "compose-field"}}}}
+	docker := deployables.Definition{Kind: "container_build", Provider: "dockerfile", Name: "api", Path: "services/api/Dockerfile.api", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{compose, docker}})
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"services/api/Dockerfile.api"}, "dockerfile:container_build:api").ID
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.To == component.ID && e.Type == mapdoc.EdgeBuilds && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial context-derived Dockerfile edge: %+v", doc.Edges)
+}
+
+func TestMakefileStaticBuildContextLinksDockerfile(t *testing.T) {
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "Cargo.toml"}, "cargo")
+	component.Name = "app"
+	component.Properties = map[string]string{"root": ".", "ecosystem": "cargo"}
+	doc := mapdoc.New()
+	doc.Nodes = append(doc.Nodes, component)
+	docker := deployables.Definition{Kind: "container_build", Provider: "dockerfile", Name: "app", Path: "cmd/app/Dockerfile", Coverage: "complete", Evidence: []deployables.Evidence{{Field: "FROM", Line: 1, Basis: "dockerfile-instruction"}}}
+	report := &deployables.Report{Status: "complete", Definitions: []deployables.Definition{docker}, BuildContexts: []deployables.BuildContext{{SourcePath: "Makefile", Context: ".", Dockerfile: "cmd/app/Dockerfile", ContextEvidence: deployables.Evidence{Field: "context", Value: ".", Line: 7, Basis: "makefile-docker-build"}, FileEvidence: deployables.Evidence{Field: "-f", Value: "cmd/app/Dockerfile", Line: 7, Basis: "makefile-docker-build"}}}}
+	addDeployables(&doc, report)
+	dockerID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{"cmd/app/Dockerfile"}, "dockerfile:container_build:app").ID
+	for _, e := range doc.Edges {
+		if e.From == dockerID && e.To == component.ID && e.Type == mapdoc.EdgeBuilds && e.Coverage.Status == mapdoc.CoveragePartial {
+			return
+		}
+	}
+	t.Fatalf("missing partial Makefile-context Dockerfile edge: %+v", doc.Edges)
+}
+
+func TestGitHubContextUsesCheckoutSubdirectoryCoordinates(t *testing.T) {
+	doc := mapdoc.New()
+	for _, root := range []string{"services/api", "repo/services/api"} {
+		c := mapdoc.NewNode(mapdoc.NodeComponent, []string{root, root + "/go.mod"}, "go")
+		c.Name = root
+		c.Properties = map[string]string{"root": root, "ecosystem": "go"}
+		doc.Nodes = append(doc.Nodes, c)
+	}
+	wf := deployables.Definition{Provider: "github-actions", Kind: "workflow", Name: "build", Path: ".github/workflows/build.yml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "jobs", Value: "1", Line: 1, Basis: "github-workflow-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: "repo/services/api", Qualification: "local", Checkout: "repo", Evidence: deployables.Evidence{Field: "with.context", Value: "repo/services/api", Line: 8, Basis: "github-build-push-action"}}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{wf}})
+	wfID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{wf.Path}, "github-actions:workflow:build").ID
+	for _, edge := range doc.Edges {
+		if edge.From != wfID || edge.Type != mapdoc.EdgeBuilds {
+			continue
+		}
+		for _, node := range doc.Nodes {
+			if node.ID != edge.To || node.Kind != mapdoc.NodeComponent {
+				continue
+			}
+			if node.Properties["root"] != "services/api" {
+				t.Fatalf("checkout subdirectory was not stripped: attributed to %q", node.Properties["root"])
+			}
+			return
+		}
+	}
+	t.Fatalf("missing checkout-aware static context edge: %+v", doc.Edges)
+}
+
+func TestGitHubBuildContextAfterForeignRootCheckoutIsNotAttributed(t *testing.T) {
+	doc := mapdoc.New()
+	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{".", "go.mod"}, "go")
+	component.Name = "root"
+	component.Properties = map[string]string{"root": ".", "ecosystem": "go"}
+	doc.Nodes = append(doc.Nodes, component)
+	wf := deployables.Definition{Provider: "github-actions", Kind: "workflow", Name: "build", Path: ".github/workflows/build.yml", Coverage: "qualified", Evidence: []deployables.Evidence{{Field: "jobs", Value: "1", Line: 1, Basis: "github-workflow-map"}}, References: []deployables.Reference{{Kind: "build_context", Value: ".", Qualification: "external", Checkout: ".", CheckoutNamed: true, Evidence: deployables.Evidence{Field: "with.context", Value: ".", Line: 8, Basis: "github-build-push-action"}}}}
+	addDeployables(&doc, &deployables.Report{Status: "complete", Definitions: []deployables.Definition{wf}})
+	wfID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{wf.Path}, "github-actions:workflow:build").ID
+	for _, edge := range doc.Edges {
+		if edge.From == wfID && edge.Type == mapdoc.EdgeBuilds {
+			t.Fatalf("foreign repository checkout context was attributed to local component: %+v", edge)
+		}
+	}
+}
+
+func TestDeclaredLocalArtifactsLinkSelectedContentInventory(t *testing.T) {
+	root := t.TempDir()
+	files := map[string][]byte{
+		"app/pom.xml":    []byte(`<project><artifactId>app</artifactId><build><plugins><plugin><artifactId>generator</artifactId><dependencies><dependency><groupId>local</groupId><artifactId>helper</artifactId><scope>system</scope><systemPath>${basedir}/../lib/helper.jar</systemPath></dependency></dependencies></plugin></plugins></build></project>`),
+		"app/App.csproj": []byte(`<Project><ItemGroup><Reference Include="Helper"><HintPath>../lib/Helper.dll</HintPath></Reference><Reference Include="Dynamic" HintPath="$(LibraryDir)\Dynamic.dll" /></ItemGroup></Project>`),
+		"lib/helper.jar": []byte("not opened by the project parser"),
+		"lib/Helper.dll": []byte("also not opened by the project parser"),
+	}
+	for name, data := range files {
+		full := filepath.Join(root, filepath.FromSlash(name))
+		if err := os.MkdirAll(filepath.Dir(full), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, err := scanner.Scan(context.Background(), root, scanner.Options{Source: "directory", Discovery: true, Declarations: true, Workers: 1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Declarations == nil || report.Declarations.Status != "partial" {
+		t.Fatalf("declarations: %+v", report.Declarations)
+	}
+	// Discovery candidate retention is deliberately sparse. Removing these
+	// examples proves exact target lookup comes from the selected inventory.
+	report.Discovery.Candidates = nil
+	report.Formats = nil
+	doc, err := Build(report, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	wanted := map[string]bool{"maven->lib/helper.jar": false, "dotnet->lib/Helper.dll": false}
+	unresolvedAttributeFound := false
+	for _, node := range doc.Nodes {
+		if node.Kind != mapdoc.NodeComponent || node.Properties["ecosystem"] != "dotnet" {
+			continue
+		}
+		for _, fact := range node.Facts {
+			if fact.Kind == "artifact_reference" && fact.State == "unresolved" {
+				unresolvedAttributeFound = true
+			}
+		}
+	}
+	for _, edge := range doc.Edges {
+		if edge.Type != mapdoc.EdgeReferencesArtifact {
+			continue
+		}
+		from, to := "", ""
+		for _, node := range doc.Nodes {
+			if node.ID == edge.From {
+				from = node.Properties["ecosystem"]
+			}
+			if node.ID == edge.To {
+				to = node.Paths[0]
+			}
+		}
+		key := from + "->" + to
+		if _, ok := wanted[key]; !ok || wanted[key] || len(edge.Evidence) != 2 {
+			t.Fatalf("unexpected or duplicate artifact edge: %+v (%s)", edge, key)
+		}
+		wanted[key] = true
+	}
+	for key, found := range wanted {
+		if !found {
+			t.Errorf("missing artifact edge %s", key)
+		}
+	}
+	if !unresolvedAttributeFound {
+		t.Fatal("dynamic HintPath attribute did not survive as an unresolved artifact reference")
+	}
+	encoded, err := json.Marshal(doc)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "${basedir}") || strings.Contains(string(encoded), "../lib/") || strings.Contains(string(encoded), root) {
+		t.Fatalf("artifact map leaked raw declaration or host path: %s", encoded)
+	}
+	for _, edge := range doc.Edges {
+		if edge.Type == mapdoc.EdgeReferencesArtifact && edge.Coverage.Status != mapdoc.CoveragePartial {
+			t.Fatalf("selected path suffix was overstated as validated artifact evidence: %+v", edge)
+		}
 	}
 }
 
@@ -541,6 +989,76 @@ func TestCapabilityGranularityOneNodePerComponent(t *testing.T) {
 	}
 }
 
+func TestCapabilityEvidencePathCountDeduplicatesSourceImports(t *testing.T) {
+	for _, tc := range []struct {
+		name, path, source, capability string
+	}{
+		{"python", "src/app.py", "import psycopg\nimport psycopg2\n", "datastore:postgresql"},
+		{"javascript", "src/app.js", "require('pg');\nrequire('pg-promise');\n", "datastore:postgresql"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			detector := intentmap.New(intentmap.Options{})
+			content := []byte(tc.source)
+			if _, err := detector.Detect(context.Background(), profile.File{Path: tc.path, Size: int64(len(content)), Content: content}); err != nil {
+				t.Fatal(err)
+			}
+			report, err := detector.Finish(context.Background())
+			if err != nil {
+				t.Fatal(err)
+			}
+			var imports int
+			for _, observation := range report.Observations {
+				if observation.Kind == intentmap.KindCapability && observation.Name == tc.capability && observation.Path == tc.path {
+					imports++
+				}
+			}
+			if imports != 2 {
+				t.Fatalf("producer emitted %d same-file imports, want 2: %+v", imports, report.Observations)
+			}
+
+			doc := mapdoc.New()
+			addIntent(&doc, report)
+			for _, node := range doc.Nodes {
+				if node.Kind == mapdoc.NodeCapability && node.Name == tc.capability {
+					if got := node.Properties["evidence_path_count"]; got != "1" {
+						t.Fatalf("evidence_path_count = %q, want 1 for two imports in %s", got, tc.path)
+					}
+					if len(node.Evidence) != 2 || len(node.Paths) != 2 {
+						t.Fatalf("deduplicating the count changed the existing observation retention: paths=%v evidence=%+v", node.Paths, node.Evidence)
+					}
+					return
+				}
+			}
+			t.Fatalf("no %s capability emitted", tc.capability)
+		})
+	}
+}
+
+func TestCapabilityEvidencePathCountDeduplicatesAcrossBasisAndLines(t *testing.T) {
+	first := intentmap.Observation{Kind: intentmap.KindCapability, Name: "cache:redis", ProjectID: "svc/pyproject.toml", State: "observed", Basis: "imported", Path: "svc/src/app.py", StartLine: 3}
+	second := intentmap.Observation{Kind: intentmap.KindCapability, Name: "cache:redis", ProjectID: "svc/pyproject.toml", State: "conditional", Basis: "declared_dependency", Path: first.Path, StartLine: 8}
+	third := first
+	third.StartLine = 3
+	doc := mapdoc.New()
+	addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: []intentmap.Observation{first, second, third}})
+	for _, node := range doc.Nodes {
+		if node.Kind != mapdoc.NodeCapability || node.Name != "cache:redis" {
+			continue
+		}
+		if got := node.Properties["evidence_path_count"]; got != "1" {
+			t.Fatalf("evidence_path_count = %q, want 1 for one source path", got)
+		}
+		if len(node.Evidence) != 3 {
+			t.Fatalf("basis/state/line aggregation dropped evidence observations: %+v", node.Evidence)
+		}
+		if node.Properties["state"] != "observed" {
+			t.Fatalf("state aggregation changed to %q", node.Properties["state"])
+		}
+		return
+	}
+	t.Fatal("no cache:redis capability node created")
+}
+
 func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 	// Ensure that when total observations exceed maxCapabilityEvidencePaths,
 	// the node still stores only maxCapabilityEvidencePaths evidence entries
@@ -550,17 +1068,24 @@ func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 	component.Properties = map[string]string{"root": "svc"}
 	doc.Nodes = append(doc.Nodes, component)
 
-	total := maxCapabilityEvidencePaths + 10
+	uniquePaths := maxCapabilityEvidencePaths + 5
 	var obs []intentmap.Observation
-	for i := 0; i < total; i++ {
+	for i := 0; i < uniquePaths; i++ {
 		obs = append(obs, intentmap.Observation{
 			Kind:      intentmap.KindCapability,
 			Name:      "cache:redis",
 			ProjectID: "svc/go.mod",
 			State:     "observed",
 			Basis:     "imported",
-			Path:      "svc/pkg/f" + string(rune('a'+i%26)) + ".go",
+			Path:      fmt.Sprintf("svc/pkg/file-%02d.go", i),
 		})
+	}
+	// Duplicate paths with other lines and bases remain distinct evidence
+	// observations but do not inflate the count of source paths.
+	for _, observation := range obs[:5] {
+		observation.Basis = "declared_dependency"
+		observation.StartLine = 4
+		obs = append(obs, observation)
 	}
 	report := &intentmap.Report{
 		Coverage:     intentmap.Coverage{Status: "complete"},
@@ -570,8 +1095,11 @@ func TestCapabilityGranularityEvidencePathsAreCapped(t *testing.T) {
 
 	for _, n := range doc.Nodes {
 		if n.Kind == mapdoc.NodeCapability && n.Name == "cache:redis" {
-			if len(n.Evidence) > maxCapabilityEvidencePaths {
-				t.Errorf("evidence entries = %d, must not exceed maxCapabilityEvidencePaths=%d", len(n.Evidence), maxCapabilityEvidencePaths)
+			if got := n.Properties["evidence_path_count"]; got != fmt.Sprint(uniquePaths) {
+				t.Errorf("evidence_path_count = %q, want %d unique paths", got, uniquePaths)
+			}
+			if len(n.Evidence) != maxCapabilityEvidencePaths {
+				t.Errorf("evidence entries = %d, want observation cap %d", len(n.Evidence), maxCapabilityEvidencePaths)
 			}
 			return
 		}
@@ -1330,4 +1858,135 @@ func TestBuildContextRootEscapeIsNotAttributed(t *testing.T) {
 	if !strings.Contains(factReason, "outside_repository") {
 		t.Errorf("expected path_outside_repository reason; got %q", factReason)
 	}
+}
+
+func TestCapabilityEvidenceQualificationsRetainMixedBases(t *testing.T) {
+	cases := []struct {
+		name                                               string
+		observations                                       []intentmap.Observation
+		status, wantTestOnly, wantTest, wantProd, wantType string
+	}{
+		{"test-only imports complete", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
+		{"test-only Go client syntax", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "net:http-client", ProjectID: "app/go.mod", State: "observed", Basis: "code_syntax", Path: "app/mux_test.go", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "complete", "true", "true", "", ""},
+		{"mixed source imports", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/java/App.java", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}}}, "complete", "", "true", "true", ""},
+		{"test import and runtime declaration", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}, {Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "declared", Basis: "declared_dependency", Path: "app/pom.xml"}}, "complete", "", "true", "", ""},
+		{"test-only import but incomplete scan", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/Test.java", Properties: map[string]string{"evidence_scope": "test_path_convention"}}}, "partial", "true", "true", "", ""},
+		{"type-only import", []intentmap.Observation{{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/main/ts/a.ts", Properties: map[string]string{"import_qualifier": "type_only", "evidence_scope": "non_test_path_convention"}}}, "complete", "", "", "true", "true"},
+	}
+	for _, tt := range cases {
+		t.Run(tt.name, func(t *testing.T) {
+			doc := mapdoc.New()
+			c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
+			c.Properties = map[string]string{"root": "app"}
+			doc.Nodes = append(doc.Nodes, c)
+			addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: tt.status}, Observations: tt.observations})
+			for _, n := range doc.Nodes {
+				if n.Kind != mapdoc.NodeCapability {
+					continue
+				}
+				check := func(key, want string) {
+					if got := n.Properties[key]; got != want {
+						t.Errorf("%s=%q want %q", key, got, want)
+					}
+				}
+				check("test_only_evidence", tt.wantTestOnly)
+				check("test_path_evidence", tt.wantTest)
+				check("non_test_path_evidence", tt.wantProd)
+				check("type_only_import_evidence", tt.wantType)
+				return
+			}
+			t.Fatal("missing capability node")
+		})
+	}
+}
+
+func TestUnrelatedFileOmissionDoesNotHideObservedTestOnlyEvidence(t *testing.T) {
+	doc := mapdoc.New()
+	c := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app", "app/pom.xml"}, "app")
+	c.Properties = map[string]string{"root": "app"}
+	doc.Nodes = append(doc.Nodes, c)
+	addIntent(&doc, &intentmap.Report{
+		Coverage: intentmap.Coverage{Status: "partial", Omissions: map[string]int{"file_bytes": 1}},
+		Observations: []intentmap.Observation{{
+			Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/pom.xml", State: "observed", Basis: "imported", Path: "app/src/test/java/DbTest.java",
+			Properties: map[string]string{"evidence_scope": "test_path_convention"},
+		}},
+	})
+	for _, n := range doc.Nodes {
+		if n.Kind != mapdoc.NodeCapability {
+			continue
+		}
+		if n.Properties["test_path_evidence"] != "true" || n.Properties["test_only_evidence"] != "true" {
+			t.Fatalf("unrelated file omission hid the retained test-only evidence: %+v", n.Properties)
+		}
+		return
+	}
+	t.Fatal("missing retained capability despite the unrelated omission")
+}
+
+func TestOptionalDependencyImportQualificationsDoNotPromoteRuntimeState(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		qualifier   string
+		scope       string
+		condition   string
+		importFirst bool
+		basis       string
+	}{
+		{name: "optional type-only first", qualifier: "type_only", scope: "non_test_path_convention", condition: "optionalDependencies", importFirst: true},
+		{name: "optional test-only first", scope: "test_path_convention", condition: "optionalDependencies", importFirst: true},
+		{name: "optional type-only after", qualifier: "type_only", scope: "non_test_path_convention", condition: "optionalDependencies"},
+		{name: "optional test-only after", scope: "test_path_convention", condition: "optionalDependencies"},
+		{name: "peer type-only", qualifier: "type_only", scope: "non_test_path_convention", condition: "peerDependencies"},
+		{name: "peer test-only", scope: "test_path_convention", condition: "peerDependencies"},
+		{name: "optional Go test syntax first", scope: "test_path_convention", condition: "optionalDependencies", importFirst: true, basis: "code_syntax"},
+		{name: "optional Go test syntax after", scope: "test_path_convention", condition: "optionalDependencies", basis: "code_syntax"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			imported := intentmap.Observation{
+				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "observed", Basis: "imported", Path: "app/src/types.ts",
+				Properties: map[string]string{"evidence_scope": tc.scope, "import_qualifier": tc.qualifier},
+			}
+			if tc.basis != "" {
+				imported.Basis = tc.basis
+				imported.Path = "app/mux_test.go"
+			}
+			optional := intentmap.Observation{
+				Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "conditional", Basis: "declared_dependency", Path: "app/package.json",
+				Properties: map[string]string{"condition": tc.condition},
+			}
+			observations := []intentmap.Observation{optional, imported}
+			if tc.importFirst {
+				observations = []intentmap.Observation{imported, optional}
+			}
+			doc := mapdoc.New()
+			addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: observations})
+			for _, n := range doc.Nodes {
+				if n.Kind == mapdoc.NodeCapability && n.Name == "datastore:postgresql" {
+					if got := n.Properties["state"]; got != "conditional" {
+						t.Fatalf("state=%q, want conditional; node=%+v", got, n)
+					}
+					return
+				}
+			}
+			t.Fatal("missing optional PostgreSQL capability")
+		})
+	}
+}
+
+func TestRuntimeImportCanCorroborateOptionalDependency(t *testing.T) {
+	doc := mapdoc.New()
+	addIntent(&doc, &intentmap.Report{Coverage: intentmap.Coverage{Status: "complete"}, Observations: []intentmap.Observation{
+		{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "conditional", Basis: "declared_dependency", Path: "app/package.json", Properties: map[string]string{"condition": "optionalDependencies"}},
+		{Kind: intentmap.KindCapability, Name: "datastore:postgresql", ProjectID: "app/package.json", State: "observed", Basis: "imported", Path: "app/src/db.ts", Properties: map[string]string{"evidence_scope": "non_test_path_convention"}},
+	}})
+	for _, n := range doc.Nodes {
+		if n.Kind == mapdoc.NodeCapability && n.Name == "datastore:postgresql" {
+			if got := n.Properties["state"]; got != "observed" {
+				t.Fatalf("state=%q, want observed; node=%+v", got, n)
+			}
+			return
+		}
+	}
+	t.Fatal("missing optional PostgreSQL capability")
 }

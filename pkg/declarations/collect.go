@@ -39,6 +39,7 @@ func (h *candidates) Pop() any          { v := (*h)[len(*h)-1]; *h = (*h)[:len(*
 type Collector struct {
 	report        Report
 	files         map[string]bool
+	fileSizes     map[string]int64
 	paths         candidates
 	inventory     candidates
 	readLimit     int64
@@ -170,6 +171,19 @@ func (c *Collector) diagnostic(code, message string) {
 }
 
 func (c *Collector) Omit() { c.report.Coverage.OmittedFiles++ }
+
+// RecordSelectedFileSize retains bounded metadata for local artifact lookup.
+// It does not open the target or rely on the sparse discovery candidate list.
+func (c *Collector) RecordSelectedFileSize(name string, size int64) {
+	ext := strings.ToLower(path.Ext(name))
+	if (ext != ".jar" && ext != ".dll") || size < 0 || !c.files[name] {
+		return
+	}
+	if c.fileSizes == nil {
+		c.fileSizes = map[string]int64{}
+	}
+	c.fileSizes[name] = size
+}
 func (c *Collector) Skip(reason string) *Report {
 	c.report.Status = "skipped"
 	c.report.Diagnostics = append(c.report.Diagnostics, Diagnostic{Path: ".", Code: reason, Message: "The selected inventory was not analyzed."})
@@ -198,6 +212,7 @@ func (c *Collector) Add(name string, candidate *Candidate) {
 		c.diagnostic("inventory-limit", "The declaration inventory path limit was reached.")
 		if len(name) <= MaxStringBytes && len(c.inventory) > 0 && name < c.inventory[0].Path {
 			delete(c.files, c.inventory[0].Path)
+			delete(c.fileSizes, c.inventory[0].Path)
 			c.inventory[0] = Candidate{Path: name}
 			heap.Fix(&c.inventory, 0)
 			c.files[name] = true
@@ -300,7 +315,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 		}
 		resolve(docs, c.files)
 	}
-	resolveLegacy(docs, c.files)
+	resolveLegacy(docs, c.files, c.fileSizes)
 	resolveGradleNames(docs)
 	totalBytes := 0
 	for _, d := range docs {
@@ -334,11 +349,19 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 	if len(c.report.Diagnostics) > 0 || c.report.Coverage.OmittedFiles > 0 {
 		c.report.Status = "partial"
 	}
-	if c.report.Status == "partial" {
+	// A diagnostic in one manifest does not change the selected-file inventory
+	// and must not turn definite missing references into unresolved ones. Only
+	// an inventory omission can make an absent target uncertain.
+	if c.report.Coverage.OmittedFiles > 0 {
 		for i := range c.report.Projects {
 			for j := range c.report.Projects[i].References {
 				r := &c.report.Projects[i].References[j]
 				if r.TargetStatus == "missing" {
+					if r.Kind == "local-artifact" && c.report.Coverage.OmittedFiles > 0 {
+						r.TargetStatus = "unknown"
+						r.State = "unresolved"
+						continue
+					}
 					r.TargetStatus = "unresolved"
 					r.State = "unresolved"
 				}
@@ -365,6 +388,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 	// Adapter metadata and source callbacks need not survive the returned report.
 	c.paths = nil
 	c.files = nil
+	c.fileSizes = nil
 	c.inventory = nil
 	return &c.report, nil
 }
@@ -524,6 +548,9 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 		for _, r := range p.References {
 			addLegacyReference(d, r)
 		}
+		for _, iface := range p.Interfaces {
+			AddInterface(d, Interface{Kind: iface.Kind, Name: iface.Name, Target: iface.Target, State: iface.State, Evidence: iface.Evidence, Condition: iface.Condition, StartLine: iface.Line, EndLine: iface.Line})
+		}
 	}
 	for _, r := range legacy.Requirements {
 		addLegacyRequirement(d, r)
@@ -555,7 +582,7 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 
 type legacyData struct{}
 
-func resolveLegacy(docs []*Document, files map[string]bool) {
+func resolveLegacy(docs []*Document, files map[string]bool, sizes map[string]int64) {
 	dirs := map[string]bool{}
 	for filename := range files {
 		for dir := path.Dir(filename); !dirs[dir]; dir = path.Dir(dir) {
@@ -591,6 +618,7 @@ func resolveLegacy(docs []*Document, files map[string]bool) {
 			r.TargetStatus = "missing"
 			if present {
 				r.TargetStatus = "present"
+				r.TargetBytes = sizes[target]
 			}
 			if r.State == "declared" {
 				r.State = "missing"

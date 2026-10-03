@@ -410,11 +410,31 @@ func jvmMavenSection(name string, n *jvmNode, condition string, props map[string
 		if version := dep.value("version"); version != "" {
 			value += ":" + version
 		}
-		budget.requirement(jvmRequirement("maven-dependency", value, name, condition, props))
+		requirement := jvmRequirement("maven-dependency", value, name, condition, props)
+		requirement.Scope = dep.value("scope")
+		budget.requirement(requirement)
+		if strings.EqualFold(requirement.Scope, "system") {
+			if ref := jvmArtifactReference(name, dep.value("systemPath"), condition, props); ref.Kind != "" {
+				budget.reference(ref)
+			}
+		}
 	}
 	for _, plugin := range n.child("build").child("plugins").list("plugin") {
 		if budget.exceeded {
 			return
+		}
+		// Maven plugin dependencies can also declare system-scoped local
+		// artifacts. They are build inputs even though they are not application
+		// dependencies, so retain only the local-artifact relationship here.
+		for _, dep := range plugin.child("dependencies").list("dependency") {
+			if budget.exceeded {
+				return
+			}
+			if strings.EqualFold(dep.value("scope"), "system") {
+				if ref := jvmArtifactReference(name, dep.value("systemPath"), condition, props); ref.Kind != "" {
+					budget.reference(ref)
+				}
+			}
 		}
 		artifact := plugin.value("artifactId")
 		group := plugin.value("groupId")
@@ -447,6 +467,32 @@ func jvmMavenSection(name string, n *jvmNode, condition string, props map[string
 			budget.requirement(jvmRequirement("code-generation", value, name, condition, props))
 		}
 	}
+}
+
+func jvmArtifactReference(name, value, condition string, props map[string]string) Reference {
+	ref := Reference{Kind: "local-artifact", Value: value, State: "declared", Evidence: name, Condition: condition}
+	if condition != "" {
+		ref.State = "conditional"
+	}
+	if value == "" {
+		return Reference{}
+	}
+	// Maven's basedir is represented in the selected-source namespace, not by
+	// expanding to an absolute host path. Other properties must come from this
+	// POM; inherited or command-line values remain unresolved.
+	value = strings.ReplaceAll(value, "${basedir}", ".")
+	resolved, ok := jvmResolve(value, props)
+	if !ok || resolved == "" || strings.ContainsAny(resolved, "\\:*?[]\x00") || strings.HasPrefix(resolved, "/") || !strings.EqualFold(path.Ext(resolved), ".jar") {
+		ref.State = "unresolved"
+		return ref
+	}
+	target := path.Clean(path.Join(path.Dir(name), resolved))
+	if target == ".." || strings.HasPrefix(target, "../") {
+		ref.State = "unresolved"
+		return ref
+	}
+	ref.Target = target
+	return ref
 }
 func jvmParseToolchains(name string, content []byte, d *Document) {
 	budget := &jvmObservationBudget{document: d, name: name}

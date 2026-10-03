@@ -695,6 +695,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		if declarationCollector != nil {
 			if value.declarationSelected {
 				declarationCollector.Add(value.path, value.declarationFile)
+				declarationCollector.RecordSelectedFileSize(value.path, value.inventorySize)
 			} else if value.path != "" {
 				declarationCollector.Omit()
 			}

@@ -2,6 +2,7 @@ package deployables
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/war-and-code/dircue/internal/xmlencoding"
 	yaml "go.yaml.in/yaml/v2"
 )
 
@@ -45,6 +47,8 @@ func parse(name string, content []byte) ([]Definition, bool, error) {
 		return parseDockerfile(name, content)
 	case strings.HasSuffix(base, ".tf"):
 		return parseTerraform(name, content)
+	case strings.EqualFold(base, "makefile"):
+		return parseMakefile(name, content)
 	case base == "jenkinsfile" || strings.HasPrefix(base, "jenkinsfile."):
 		return parseJenkins(content)
 	case base == "program.cs" && isAppHostDir(path.Dir(name)):
@@ -95,10 +99,17 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 	vars := map[string]string{}
 	workdirKnown := false
 	inRunContinuation := false
+	inDockerLaunchContinuation := false
 	lastRunWrite := -1
+	launchInstructionSeen := false
 	for i, line := range lines {
 		trimmedLine := strings.TrimSpace(line)
-		if m := dockerFrom.FindStringSubmatch(line); m != nil {
+		launchInstructionSeen = false
+		// A backslash-continued Docker instruction is still one instruction.
+		// Do not let its body masquerade as FROM, ENV, COPY, or another opcode.
+		if inRunContinuation || inDockerLaunchContinuation {
+			// RUN body handling below still retains its existing bounded barriers.
+		} else if m := dockerFrom.FindStringSubmatch(line); m != nil {
 			// The base image's WORKDIR is not available from Dockerfile syntax
 			// alone, so relative destinations stay unresolved until WORKDIR is set.
 			workdir, workdirKnown = "", false
@@ -125,6 +136,41 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 				stages[strings.ToLower(m[2])] = true
 				d.Evidence = append(d.Evidence, Evidence{Field: "stage", Value: bounded(m[2]), Line: i + 1, Basis: "dockerfile-instruction"})
 			}
+		} else if dockerLaunchInstruction(trimmedLine) != "" {
+			launchInstructionSeen = true
+			// Record the declared launch facet and its source location, but never
+			// copy argv into the map: literal arguments can contain credentials,
+			// tokens, or private paths. The allowlist is a safe label vocabulary,
+			// not verification that the selected image contains the named program.
+			field := dockerLaunchInstruction(trimmedLine)
+			kind := "docker_" + strings.ToLower(field)
+			rest := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(trimmedLine), strings.Fields(trimmedLine)[0]))
+			form := "shell"
+			var argv []string
+			valid := true
+			if strings.HasPrefix(rest, "[") {
+				form = "exec"
+				valid = json.Unmarshal([]byte(rest), &argv) == nil && len(argv) > 0 && argv[0] != ""
+			} else {
+				argv = strings.Fields(rest)
+				valid = len(argv) > 0
+			}
+			qual := "declared"
+			if !valid || dynamic(trimmedLine) || strings.HasSuffix(trimmedLine, "\\") {
+				qual = "unresolved"
+				d.Coverage = "qualified"
+			}
+			value := ""
+			if valid && qual == "declared" {
+				value = dockerLaunchAllowlistedValue(argv)
+			}
+			if value == "" && qual == "declared" {
+				qual = "withheld_arguments"
+			}
+			d.References = append(d.References,
+				Reference{Kind: kind, Value: value, Qualification: qual, Evidence: Evidence{Field: field, Line: i + 1, Basis: "dockerfile-instruction-" + form}, Stage: currentStage},
+				Reference{Kind: kind + "_arguments", Qualification: "withheld_arguments", Evidence: Evidence{Field: field + " arguments withheld (" + form + " form)", Line: i + 1, Basis: "dockerfile-instruction-" + form}, Stage: currentStage},
+			)
 		} else if m := dockerArg.FindStringSubmatch(line); m != nil {
 			// Expand at declaration so chained defaults (B=$A) resolve.
 			vars[m[1]] = expandDockerVars(dockerUnquote(strings.TrimSpace(m[2])), vars)
@@ -266,14 +312,59 @@ func parseDockerfile(name string, content []byte) ([]Definition, bool, error) {
 			}
 		}
 		inRunContinuation = (isRunInstruction || inRunContinuation) && strings.HasSuffix(trimmedLine, "\\")
+		if inDockerLaunchContinuation {
+			inDockerLaunchContinuation = strings.HasSuffix(trimmedLine, "\\")
+		} else if launchInstructionSeen {
+			inDockerLaunchContinuation = strings.HasSuffix(trimmedLine, "\\")
+		}
 		if !inRunContinuation {
 			lastRunWrite = -1
 		}
 	}
+	d.DockerFinalStage = currentStage
 	if len(d.References) == 0 {
 		return nil, false, nil
 	}
 	return []Definition{d}, true, nil
+}
+
+// dockerLaunchAllowlistedValue exposes only a tiny fixed vocabulary of common
+// launch executables and Python modules. Arbitrary executable paths, module
+// names, and all arguments stay out of the portable map because they can
+// contain credentials or private deployment details.
+func dockerLaunchAllowlistedValue(argv []string) string {
+	if len(argv) == 0 {
+		return ""
+	}
+	allowed := map[string]bool{"python": true, "python3": true, "node": true, "java": true, "dotnet": true, "nginx": true, "httpd": true, "apache2": true, "gunicorn": true, "uvicorn": true, "flask": true}
+	if !allowed[argv[0]] {
+		return ""
+	}
+	// Keep only the small label, rather than its backing shell-command line.
+	value := strings.Clone(argv[0])
+	if (argv[0] == "python" || argv[0] == "python3") && len(argv) >= 3 && argv[1] == "-m" {
+		module := argv[2]
+		allowedModules := map[string]bool{"http.server": true, "uvicorn": true, "gunicorn": true}
+		if allowedModules[module] {
+			value += " -m " + module
+		}
+	}
+	return value
+}
+
+func dockerLaunchInstruction(line string) string {
+	fields := strings.Fields(line)
+	if len(fields) == 0 {
+		return ""
+	}
+	switch strings.ToUpper(fields[0]) {
+	case "ENTRYPOINT":
+		return "ENTRYPOINT"
+	case "CMD":
+		return "CMD"
+	default:
+		return ""
+	}
 }
 
 // parseTerraform returns ONE definition per file, representing the Terraform module
@@ -329,7 +420,28 @@ func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 		ev := Evidence{Field: kind, Value: bounded(blockName), Line: line, Basis: "terraform-literal-block"}
 		evidence = append(evidence, ev)
 		if kind == "module" {
-			refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+			open := bytes.IndexByte(content[m[0]:m[1]], '{') + m[0]
+			end := -1
+			if open >= m[0] {
+				end = terraformBlockEnd(content, open)
+			}
+			if end < 0 {
+				refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+				continue
+			}
+			body := content[open+1 : end]
+			source, sourceLine, sourceOK := terraformModuleSource(body)
+			if !sourceOK || bytes.Contains(content, []byte("/*")) || bytes.Contains(content, []byte("<<")) {
+				refs = append(refs, Reference{Kind: "module_source", Value: "uninspected", Qualification: "unresolved", Evidence: ev})
+				continue
+			}
+			q := "external"
+			if strings.Contains(source, "${") || strings.Contains(source, "%{") || strings.ContainsAny(source, "\\\x00") {
+				q = "unresolved"
+			} else if source == "." || strings.HasPrefix(source, "./") || strings.HasPrefix(source, "../") {
+				q = "local"
+			}
+			refs = append(refs, Reference{Kind: "module_source", Value: bounded(source), Qualification: q, Evidence: Evidence{Field: "source", Value: bounded(source), Line: line + sourceLine, Basis: "terraform-module-source"}})
 		}
 	}
 	if len(evidence) == 0 {
@@ -354,6 +466,61 @@ func parseTerraform(name string, content []byte) ([]Definition, bool, error) {
 		References: refs,
 	}
 	return []Definition{d}, true, nil
+}
+
+var terraformSourceAttribute = regexp.MustCompile(`^\s*source\s*=`)
+var terraformLiteralSource = regexp.MustCompile(`^\s*source\s*=\s*"([^"\r\n]+)"\s*(?://.*|#.*)?\s*$`)
+
+// terraformModuleSource reads one direct body-level quoted source attribute.
+// Comments and nested objects are skipped; duplicate or expression-valued
+// attributes are unresolved. Heredocs and block comments are rejected by the
+// caller because the small block-boundary lexer cannot safely delimit them.
+func terraformModuleSource(body []byte) (string, int, bool) {
+	depth := 0
+	quoted, escaped := false, false
+	count, line, sourceLine := 0, 0, 0
+	source := ""
+	for _, raw := range bytes.Split(body, []byte("\n")) {
+		line++
+		text := string(raw)
+		if depth == 0 && terraformSourceAttribute.MatchString(text) {
+			count++
+			if m := terraformLiteralSource.FindStringSubmatch(text); m != nil {
+				source, sourceLine = m[1], line-1
+			} else {
+				source = ""
+			}
+		}
+		for i := 0; i < len(text); i++ {
+			c := text[i]
+			if quoted {
+				if escaped {
+					escaped = false
+					continue
+				}
+				if c == '\\' {
+					escaped = true
+					continue
+				}
+				if c == '"' {
+					quoted = false
+				}
+				continue
+			}
+			if c == '#' || (c == '/' && i+1 < len(text) && text[i+1] == '/') {
+				break
+			}
+			switch c {
+			case '"':
+				quoted = true
+			case '{':
+				depth++
+			case '}':
+				depth--
+			}
+		}
+	}
+	return source, sourceLine, count == 1 && source != ""
 }
 
 var terraformAlias = regexp.MustCompile(`(?m)^\s*alias\s*=\s*"([A-Za-z0-9_-]+)"\s*(?:#.*)?$`)
@@ -494,6 +661,10 @@ var mavenPropertyRef = regexp.MustCompile(`\$\{([^}]+)\}`)
 // same file only; a name that still holds a ${...} expression (for example one
 // defined in a parent POM or supplied on the command line) is qualified.
 func parsePomXML(name string, content []byte) ([]Definition, bool, error) {
+	content, err := xmlencoding.Decode(content)
+	if err != nil {
+		return nil, false, nil
+	}
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, errors.New("pom.xml contains binary data")
 	}
@@ -836,7 +1007,11 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 			d.Evidence = append(d.Evidence, Evidence{Field: "job." + bounded(jobName) + ".defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"})
 			if !jobWDDynamic {
 				ref := Reference{Kind: "working_directory", Value: bounded(jobWDVal), Qualification: q, Evidence: Evidence{Field: "defaults.run.working-directory", Value: bounded(jobWDVal), Line: lineOf(content, "working-directory:"), Basis: "github-job-default"}}
-				d.References = append(d.References, withCheckout(ref, jobWDVal, jobCheckouts(job)))
+				ref = withCheckout(ref, jobWDVal, jobCheckouts(job))
+				if ref.CheckoutUnknown && ref.Qualification == "local" {
+					ref.Qualification = "unresolved"
+				}
+				d.References = append(d.References, ref)
 			}
 		}
 
@@ -849,6 +1024,26 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 				}
 				if uses, ok := stringValue(step, "uses"); ok {
 					d.References = append(d.References, workflowRef("action", uses, content))
+					// docker/build-push-action consumes an explicit local context. Keep
+					// this lexical: the action's default Git context and expressions
+					// cannot be resolved from the selected repository inventory.
+					if strings.HasPrefix(strings.ToLower(uses), "docker/build-push-action@") {
+						if inputs, ok := object(step, "with"); ok {
+							if context, ok := stringValue(inputs, "context"); ok {
+								q := "local"
+								if dynamic(context) || !safeRelative(context) {
+									q = "unresolved"
+								}
+								ref := withCheckout(Reference{Kind: "build_context", Value: bounded(context), Qualification: q, Evidence: Evidence{Field: "with.context", Value: bounded(context), Line: lineOf(content, "context:"), Basis: "github-build-push-action"}}, context, earlier)
+								if ref.CheckoutUnknown && ref.Qualification == "local" {
+									ref.Qualification = "unresolved"
+								} else if ref.CheckoutNamed && ref.Qualification == "local" {
+									ref.Qualification = "external"
+								}
+								d.References = append(d.References, ref)
+							}
+						}
+					}
 				}
 				// Record checkout path declarations (#48): actions/checkout with an explicit
 				// path: input establishes a checkout-relative coordinate for subsequent steps.
@@ -886,10 +1081,14 @@ func githubDefinitions(doc map[interface{}]interface{}, content []byte) ([]Defin
 						val = "unresolved"
 					}
 					ref := Reference{Kind: "working_directory", Value: val, Qualification: q, Evidence: Evidence{Field: "working-directory", Value: val, Line: lineOf(content, "working-directory:"), Basis: "github-step-field"}}
-					d.References = append(d.References, withCheckout(ref, prec.dir, earlier))
+					ref = withCheckout(ref, prec.dir, earlier)
+					if ref.CheckoutUnknown && ref.Qualification == "local" {
+						ref.Qualification = "unresolved"
+					}
+					d.References = append(d.References, ref)
 				}
-				if p, named, found := checkoutPath(step); found && safeRelative(p) && path.Clean(p) != "." {
-					earlier = append(earlier, workflowCheckout{path: path.Clean(p), named: named})
+				if context, found := checkoutContext(step); found {
+					earlier = append(earlier, context)
 				}
 			}
 		}
@@ -1090,6 +1289,33 @@ func resourceDefinition(doc map[interface{}]interface{}, content []byte, kind, p
 					q = "unresolved"
 				}
 				d.References = append(d.References, Reference{Kind: "image", Value: bounded(image), Qualification: q, Evidence: Evidence{Field: "image", Value: bounded(image), Line: lineOf(content, "image:"), Basis: "kubernetes-container-field"}})
+			}
+		}
+	}
+	if provider == "kubernetes" && fallback == "CronJob" {
+		if spec, ok := object(doc, "spec"); ok {
+			if schedule, ok := stringValue(spec, "schedule"); ok {
+				if dynamic(schedule) {
+					d.References = append(d.References, Reference{Kind: "cron_schedule", Qualification: "unresolved", Evidence: Evidence{Field: "schedule", Basis: "kubernetes-cronjob-field"}})
+				} else if validCronSchedule(schedule) {
+					d.References = append(d.References, Reference{Kind: "cron_schedule", Value: bounded(schedule), Qualification: "declared", Evidence: Evidence{Field: "schedule", Value: bounded(schedule), Basis: "kubernetes-cronjob-field"}})
+				}
+			}
+			if raw, found := spec["suspend"]; found {
+				if value, valid := cronBoolean(raw); valid {
+					d.References = append(d.References, Reference{Kind: "cron_suspend", Value: value, Qualification: "declared", Evidence: Evidence{Field: "suspend", Value: value, Basis: "kubernetes-cronjob-field"}})
+				} else if templatedScalar(raw) {
+					d.References = append(d.References, Reference{Kind: "cron_suspend", Qualification: "unresolved", Evidence: Evidence{Field: "suspend", Basis: "kubernetes-cronjob-field"}})
+				}
+			}
+			if raw, found := spec["timeZone"]; found {
+				if _, valid := raw.(string); valid {
+					qualification := "withheld_value"
+					if templatedScalar(raw) {
+						qualification = "unresolved"
+					}
+					d.References = append(d.References, Reference{Kind: "cron_timezone", Qualification: qualification, Evidence: Evidence{Field: "timeZone", Basis: "kubernetes-cronjob-field"}})
+				}
 			}
 		}
 	}
@@ -1341,6 +1567,63 @@ func lineOf(content []byte, needle string) int {
 	}
 	return 1 + bytes.Count(content[:i], []byte("\n"))
 }
+
+var cronFieldPattern = regexp.MustCompile(`^[0-9*/?,\-]+$`)
+
+// validCronSchedule checks only the bounded five-field Kubernetes syntax. It
+// does not prove that a controller accepts or runs the schedule.
+func validCronSchedule(value string) bool {
+	if value == "@yearly" || value == "@annually" || value == "@monthly" || value == "@weekly" || value == "@daily" || value == "@midnight" || value == "@hourly" {
+		return true
+	}
+	fields := strings.Fields(value)
+	if len(fields) != 5 {
+		return false
+	}
+	ranges := [][2]int{{0, 59}, {0, 23}, {1, 31}, {1, 12}, {0, 7}}
+	for i, field := range fields {
+		if !cronFieldPattern.MatchString(field) {
+			return false
+		}
+		for _, part := range strings.Split(field, ",") {
+			base := strings.Split(part, "/")[0]
+			if strings.Count(part, "/") > 1 {
+				return false
+			}
+			if base == "*" || base == "?" {
+				continue
+			}
+			rangeParts := strings.Split(base, "-")
+			if len(rangeParts) > 2 {
+				return false
+			}
+			for _, n := range rangeParts {
+				if n == "" {
+					return false
+				}
+				parsed, err := strconv.Atoi(n)
+				if err != nil || parsed < ranges[i][0] || parsed > ranges[i][1] {
+					return false
+				}
+			}
+		}
+	}
+	return true
+}
+
+func cronBoolean(value any) (string, bool) {
+	v, ok := value.(bool)
+	if !ok {
+		return "", false
+	}
+	return strconv.FormatBool(v), true
+}
+
+func templatedScalar(value any) bool {
+	v, ok := value.(string)
+	return ok && dynamic(v)
+}
+
 func tooDeep(content []byte, maxDepth int) bool {
 	for _, line := range strings.Split(string(content), "\n") {
 		spaces := len(line) - len(strings.TrimLeft(line, " "))

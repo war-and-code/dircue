@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	DetectorName           = "dircue-intent-map"
-	DetectorVersion        = "1.0.0"
-	DefaultMaxFileBytes    = 1 << 20
-	DefaultMaxObservations = 4096
+	DetectorName                   = "dircue-intent-map"
+	DetectorVersion                = "1.1.0"
+	DefaultMaxFileBytes            = 1 << 20
+	DefaultMaxObservations         = 4096
+	DefaultMaxLexicalTokensPerFile = 16384
 )
 
 type Kind string
@@ -78,9 +79,12 @@ func (d *Detector) AddDeclarations(projects []declarations.Project) {
 			d.projectNames[project.ID] = name
 		}
 		for _, v := range project.Interfaces {
-			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
+			d.addLocked(Observation{Kind: KindInterface, Name: v.Name, ProjectID: project.ID, State: v.State, Basis: "declared_manifest", Path: v.Evidence, StartLine: v.StartLine, EndLine: v.EndLine, Properties: compact(map[string]string{"interface_kind": v.Kind, "target": v.Target, "condition": v.Condition})})
 		}
 		for _, req := range project.Requirements {
+			if req.Kind == "maven-dependency" && strings.EqualFold(req.Scope, "test") {
+				continue
+			}
 			// PEP 735 dependency groups (dev, test, docs, lint) are never
 			// published with the package; like npm devDependencies they
 			// describe tooling, not what the component uses.

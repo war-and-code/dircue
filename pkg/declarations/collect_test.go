@@ -15,6 +15,23 @@ func candidateFor(name, content string) *Candidate {
 	return &Candidate{Path: name, Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) { return []byte(content), int64(len(content)), nil }}
 }
 
+func TestArtifactSizesDoNotDuplicateTheWholeContentInventory(t *testing.T) {
+	c := New("directory", "", 0)
+	for i := 0; i < 2000; i++ {
+		name := fmt.Sprintf("src/%04d.cs", i)
+		c.Add(name, nil)
+		c.RecordSelectedFileSize(name, 100)
+	}
+	for _, name := range []string{"lib/Helper.DLL", "lib/vendor.jar"} {
+		c.Add(name, nil)
+		c.RecordSelectedFileSize(name, 1024)
+	}
+	c.RecordSelectedFileSize("unselected.dll", 2048)
+	if len(c.fileSizes) != 2 || c.fileSizes["lib/Helper.DLL"] != 1024 || c.fileSizes["lib/vendor.jar"] != 1024 {
+		t.Fatalf("unexpected artifact size inventory: %+v", c.fileSizes)
+	}
+}
+
 func TestCollectorOutputBoundIncludesDiagnosticsAndEnvelope(t *testing.T) {
 	c := New("directory", "", 0)
 	for i := 0; i < 30; i++ {
@@ -78,6 +95,30 @@ func TestCollectorDeterministicAndSelectedOnly(t *testing.T) {
 			t.Fatal("finish is not idempotent")
 		}
 	}
+}
+
+func TestUnrelatedDiagnosticDoesNotRewriteMissingArtifactTarget(t *testing.T) {
+	c := New("directory", "", 0)
+	c.Add("app/App.csproj", candidateFor("app/App.csproj", `<Project><ItemGroup><Reference Include="Missing"><HintPath>lib/Missing.dll</HintPath></Reference></ItemGroup></Project>`))
+	c.Add("broken/Cargo.toml", candidateFor("broken/Cargo.toml", "[package\nname = \"broken\"\n"))
+	r, err := c.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || len(r.Diagnostics) == 0 {
+		t.Fatalf("expected the unrelated invalid manifest to make the report partial: %+v", r)
+	}
+	for _, project := range r.Projects {
+		for _, ref := range project.References {
+			if ref.Kind == "local-artifact" {
+				if ref.TargetStatus != "missing" || ref.State != "missing" {
+					t.Fatalf("unrelated diagnostic changed a definite missing artifact into %s/%s", ref.TargetStatus, ref.State)
+				}
+				return
+			}
+		}
+	}
+	t.Fatal("missing artifact reference was not retained")
 }
 
 func TestPythonRequirementsOnlyRootProducesComponent(t *testing.T) {

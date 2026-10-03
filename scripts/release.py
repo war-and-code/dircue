@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build reproducible local release archives from committed source. Never publishes."""
 import argparse
+import download_go_modules
 import gzip
 import hashlib
 import io
@@ -181,6 +182,11 @@ def main():
                 if not new.get('Version'):
                     local_replacement(source, new['Path'])
                     replacements.append({'module':replacement['Old']['Path'], 'path':new['Path']})
+            # The build intentionally uses a fresh module cache. Warm that exact
+            # cache through the same bounded, credential-redacting retry path as
+            # CI's preflight so transient proxy failures do not bypass retries.
+            if download_go_modules.download(command=str(compiler), cwd=source, env=environment) != 0:
+                raise ValueError('Go module download failed before release build')
             packaged = temporary/'archives'
             packaged.mkdir()
             flags = ['-mod=readonly', '-buildvcs=false', '-trimpath', '-ldflags', f'-s -w -X github.com/war-and-code/dircue/internal/cli.Version={args.version}']

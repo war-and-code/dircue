@@ -484,6 +484,8 @@ func questionForEdge(kind mapdoc.EdgeType) string {
 		return "components"
 	case mapdoc.EdgeBuilds, mapdoc.EdgeRuns:
 		return "deployables"
+	case mapdoc.EdgeReferencesArtifact:
+		return "content"
 	case mapdoc.EdgeExposes, mapdoc.EdgeDeclares:
 		return "interfaces"
 	case mapdoc.EdgeUsesCapability:
