@@ -21,6 +21,10 @@ func FuzzCandidateParsersDeterministicAndBounded(f *testing.F) {
 		{"serverless.yaml", "service: sample\nprovider:\n  name: aws\nfunctions:\n  api:\n    handler: app.run\n"},
 		{"deployment.yaml", "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: api\n"},
 		{"template.yaml", "AWSTemplateFormatVersion: '2010-09-09'\nResources:\n  Bucket:\n    Type: AWS::S3::Bucket\n"},
+		{"Procfile", "web: gunicorn api.app:app -b 0.0.0.0:$PORT\n"},
+		{"Procfile", "# comment-only Procfile\n\n"},
+		{"Host.AppHost/Program.cs", "var builder = DistributedApplication.CreateBuilder(args);\nbuilder.AddProject<Projects.Service>(\"service\");\n"},
+		{"Host.AppHost/Program.cs", "var builder = DistributedApplication.CreateBuilder(args);\nvar ignored = $$\"\"\"{{ builder.AddProject<Projects.Fake>(\"fake\") }}\"\"\";\nbuilder.AddProject<Projects.Real>(\"real\");\n"},
 	}
 	for _, seed := range seeds {
 		f.Add(seed.name, []byte(seed.body))

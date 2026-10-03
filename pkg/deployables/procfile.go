@@ -145,7 +145,7 @@ func parseProcfile(name string, content []byte) ([]Definition, bool, error) {
 	if len(issues) > 0 {
 		issueErr = &procfileIssuesError{counts: issues}
 	}
-	return definitions, true, issueErr
+	return definitions, len(definitions) > 0, issueErr
 }
 
 func safeProcfileName(name string) bool {

@@ -31,6 +31,19 @@ func TestProcfileBoundsExposeFixedLimits(t *testing.T) {
 	}
 }
 
+func TestProcfileWithoutProcessDeclarationsIsNotRecognized(t *testing.T) {
+	for _, content := range []string{"", "\n", "# a comment\n# another comment\n"} {
+		defs, recognized, err := parseProcfile("Procfile", []byte(content))
+		if err != nil || recognized || len(defs) != 0 {
+			t.Fatalf("empty/comment-only Procfile recognized: content=%q defs=%+v recognized=%t err=%v", content, defs, recognized, err)
+		}
+	}
+	defs, recognized, err := parseProcfile("Procfile", []byte("malformed\n"))
+	if err == nil || recognized || len(defs) != 0 {
+		t.Fatalf("malformed-only Procfile should report an omission but no declaration: defs=%+v recognized=%t err=%v", defs, recognized, err)
+	}
+}
+
 func TestParseProcfileKeepsOnlySafeProcessAndTargetIdentifiers(t *testing.T) {
 	input := `web: gunicorn autoapp:app -b 0.0.0.0:$PORT -w 3
 api: uvicorn service.api:application --host 0.0.0.0 --port $PORT
