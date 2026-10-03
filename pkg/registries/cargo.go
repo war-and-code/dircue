@@ -35,12 +35,29 @@ func cargoTOMLLimit(content []byte) string {
 	comment := false
 	keySegments := 1
 	keyContext := true
+	lineStart := true
+	header := false
+	headerCloses := 0
+	headerArrayTable := false
+	contextSegments := 0
+	valueSegments := 0
+	arrayDepth := 0
+	valueArrayDepth := 0
+	type inlineContext struct {
+		contextSegments int
+		valueSegments   int
+		arrayDepth      int
+		valueArrayDepth int
+	}
+	inlineTables := []inlineContext{}
 	for i := 0; i < len(content); i++ {
 		ch := content[i]
 		if comment {
 			if ch == '\n' || ch == '\r' {
 				comment = false
-				keySegments, keyContext = 1, true
+				keySegments = 1
+				keyContext = valueArrayDepth == 0
+				lineStart = true
 			}
 			continue
 		}
@@ -68,8 +85,25 @@ func cargoTOMLLimit(content []byte) string {
 			continue
 		}
 		if ch == '\n' || ch == '\r' {
-			keySegments, keyContext = 1, true
+			keySegments = 1
+			keyContext = valueArrayDepth == 0
+			lineStart = true
 			continue
+		}
+		if lineStart && (ch == ' ' || ch == '\t') {
+			continue
+		}
+		if lineStart {
+			lineStart = false
+			if ch == '[' && keyContext && valueArrayDepth == 0 && len(inlineTables) == 0 {
+				header = true
+				headerCloses = 1
+				headerArrayTable = i+1 < len(content) && content[i+1] == '['
+				if headerArrayTable {
+					headerCloses = 2
+				}
+				keySegments, keyContext = 1, true
+			}
 		}
 		if ch == '"' || ch == '\'' {
 			quote = ch
@@ -81,34 +115,88 @@ func cargoTOMLLimit(content []byte) string {
 		}
 		switch ch {
 		case '[', '{':
-			depth++
-			if depth > MaxTOMLDepth {
-				return "toml_depth_limit"
-			}
-			tokens++
-			if ch == '{' {
-				keySegments, keyContext = 1, true
+			if ch == '[' && header {
+				// Table headers contribute their absolute dotted path depth.
+				tokens++
+			} else {
+				depth++
+				if depth > MaxTOMLDepth {
+					return "toml_depth_limit"
+				}
+				tokens++
+				if ch == '[' {
+					arrayDepth++
+					if !keyContext {
+						valueArrayDepth++
+						if contextSegments+keySegments+valueArrayDepth+1 > MaxTOMLDepth {
+							return "toml_depth_limit"
+						}
+					}
+				} else {
+					inlineTables = append(inlineTables, inlineContext{contextSegments: contextSegments, valueSegments: valueSegments, arrayDepth: arrayDepth, valueArrayDepth: valueArrayDepth})
+					contextSegments = valueSegments + valueArrayDepth
+					valueArrayDepth = 0
+					keySegments, keyContext = 1, true
+				}
 			}
 		case ']', '}':
-			if depth > 0 {
-				depth--
-			}
-			tokens++
-			if ch == '}' {
-				keyContext = false
+			if ch == ']' && header {
+				tokens++
+				headerCloses--
+				if headerCloses == 0 {
+					header = false
+					contextSegments = keySegments
+					if headerArrayTable {
+						contextSegments++
+					}
+					keyContext = false
+					if contextSegments+1 > MaxTOMLDepth {
+						return "toml_depth_limit"
+					}
+				}
+			} else {
+				if depth > 0 {
+					depth--
+				}
+				tokens++
+				if ch == ']' {
+					if arrayDepth > 0 {
+						arrayDepth--
+					}
+					if valueArrayDepth > 0 {
+						valueArrayDepth--
+					}
+				} else if len(inlineTables) > 0 {
+					last := inlineTables[len(inlineTables)-1]
+					inlineTables = inlineTables[:len(inlineTables)-1]
+					contextSegments, valueSegments = last.contextSegments, last.valueSegments
+					valueArrayDepth = last.valueArrayDepth
+					keyContext = false
+				}
 			}
 		case '=', ',', '.':
 			tokens++
 			if ch == '=' {
+				if keyContext && contextSegments+keySegments+1 > MaxTOMLDepth {
+					return "toml_depth_limit"
+				}
+				valueSegments = contextSegments + keySegments
+				valueArrayDepth = 0
 				keyContext = false
 			} else if ch == ',' {
-				keySegments, keyContext = 1, true
+				if len(inlineTables) > 0 && arrayDepth == inlineTables[len(inlineTables)-1].arrayDepth {
+					keySegments, keyContext = 1, true
+				}
 			} else if keyContext {
 				keySegments++
-				// A dotted key creates one map layer per segment, below the
-				// root table. Enforce the resulting tree depth before Unmarshal
-				// constructs that tree.
-				if keySegments+1 > MaxTOMLDepth {
+				baseSegments := contextSegments
+				if header {
+					baseSegments = 0
+				}
+				// Each dotted-key segment creates a map layer. Include the
+				// enclosing table or inline-table path before Unmarshal builds
+				// the nested maps.
+				if baseSegments+keySegments+1 > MaxTOMLDepth {
 					return "toml_depth_limit"
 				}
 			}

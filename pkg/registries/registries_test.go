@@ -418,6 +418,43 @@ func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
 	}
 }
 
+func TestCargoTOMLDepthPreflightIncludesEnclosingTableAndInlineTables(t *testing.T) {
+	pathWithSegments := func(prefix string, count int) string {
+		return strings.TrimSuffix(strings.Repeat(prefix+".", count), ".")
+	}
+	for _, input := range []string{
+		"[" + pathWithSegments("a", MaxTOMLDepth-12) + "]\n" + pathWithSegments("b", 12) + " = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-1) + "]\nx = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-2) + "]\nx = [1]\n",
+		pathWithSegments("a", 2) + " = { " + pathWithSegments("b", MaxTOMLDepth-2) + " = 1 }\n",
+		`outer = { inner = { ` + pathWithSegments("b", MaxTOMLDepth-2) + ` = 1 } }` + "\n",
+	} {
+		if reason := cargoTOMLLimit([]byte(input)); reason != "toml_depth_limit" {
+			t.Fatalf("combined TOML nesting escaped preflight, reason=%q input-prefix=%q", reason, input[:min(80, len(input))])
+		}
+		cfg := mustParse(t, ".cargo/config", input)
+		if cfg.SyntaxStatus != "incomplete" || cfg.Omissions["toml_depth_limit"] != 1 || len(cfg.Declarations) != 0 {
+			t.Fatalf("combined TOML nesting was not safely omitted: %+v", cfg)
+		}
+	}
+
+	for _, withinLimit := range []string{
+		"[" + pathWithSegments("a", MaxTOMLDepth-12) + "]\n" + pathWithSegments("b", 11) + " = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-3) + "] # ignored . comment\nx = [1]\n",
+		pathWithSegments("a", 2) + " = { " + pathWithSegments("b", MaxTOMLDepth-3) + " = 1 }\n",
+		`outer = { inner = { ` + pathWithSegments("b", MaxTOMLDepth-3) + ` = 1 } }` + "\n",
+		`"a.b" = { "c.d" = 1 }` + "\n",
+	} {
+		if reason := cargoTOMLLimit([]byte(withinLimit)); reason != "" {
+			t.Fatalf("combined depth at the limit was rejected: %q", reason)
+		}
+		cfg := mustParse(t, ".cargo/config", withinLimit)
+		if cfg.SyntaxStatus != "complete" {
+			t.Fatalf("valid combined depth at the limit did not parse: %+v", cfg)
+		}
+	}
+}
+
 func TestCargoWrongTableKindsAndPathFieldsAreExplicit(t *testing.T) {
 	c := mustParse(t, ".cargo/config.toml", `registries = "not-a-table"
 source = []
