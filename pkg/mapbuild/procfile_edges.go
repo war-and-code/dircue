@@ -81,9 +81,7 @@ func addProcfileEdges(d *mapdoc.Document, report *deployables.Report) {
 				deployableEvidence(definition.Path, ref.Evidence),
 				{Basis: mapdoc.BasisResolvedReference, Path: ref.SourcePath, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/selected-inventory", Version: "1.0.0"}},
 			}
-			for _, evidence := range owner.Evidence {
-				e.Evidence = append(e.Evidence, evidence)
-			}
+			e.Evidence = append(e.Evidence, owner.Evidence...)
 			d.Edges = append(d.Edges, e)
 		}
 	}
