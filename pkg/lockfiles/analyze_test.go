@@ -2,7 +2,9 @@ package lockfiles
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
@@ -231,6 +233,28 @@ func TestBoundedAdmissionAndInputBytesAreDisclosed(t *testing.T) {
 	r, err = Analyze(context.Background(), in, Limits{Lockfiles: 1})
 	if err != nil || r.Coverage.LockCandidates != 1 || r.Coverage.LockfilesRead != 1 {
 		t.Fatalf("bounded report=%+v err=%v", r, err)
+	}
+}
+
+func TestUnconfinedCallerPathsAreOmittedWithoutEchoingThem(t *testing.T) {
+	good := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	badID := npmRecord("/Users/private/work/app", npmRef("a@1.0.0", "dependencies"))
+	badRoot := npmRecord("../private", npmRef("a@1.0.0", "dependencies"))
+	in := testInput([]declarations.ProjectRecord{good, badID, badRoot}, map[string]string{"app/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`}, true)
+	in.Inventory = append(in.Inventory, File{Path: "/Users/private/work/secret.json", Size: 1})
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.OmittedContexts != 2 || len(r.Contexts) != 1 {
+		t.Fatalf("invalid paths were not omitted: %+v", r)
+	}
+	b, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(b), "/Users/private") || strings.Contains(string(b), "../private") {
+		t.Fatalf("report echoed an unconfined input path: %s", b)
 	}
 }
 

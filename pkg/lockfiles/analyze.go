@@ -56,7 +56,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		if !ok {
 			r.Status = "partial"
 			inventoryComplete = false
-			r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: f.Path, Code: "invalid-inventory-path", Message: "Inventory path is not a confined root-relative path."})
+			r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: ".", Code: "invalid-inventory-path", Message: "An inventory path was not a confined root-relative path."})
 			continue
 		}
 		if _, exists := files[clean]; exists {
@@ -88,6 +88,20 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	}
 
 	records := recordsFor(in)
+	validRecords := records[:0]
+	for _, rec := range records {
+		manifest, root, ok := cleanProjectPaths(rec.Project.ID, rec.Project.Root)
+		if !ok {
+			r.Status = "partial"
+			r.Coverage.OmittedContexts++
+			r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: ".", Code: "invalid-project-record", Message: "A project record had an invalid or inconsistent root-relative path and was omitted."})
+			continue
+		}
+		rec.Project.ID = manifest
+		rec.Project.Root = root
+		validRecords = append(validRecords, rec)
+	}
+	records = validRecords
 	r.Coverage.ProjectRecords = len(records)
 	dotnetCountByRoot := map[string]int{}
 	for _, rec := range records {
@@ -649,6 +663,26 @@ func cleanRelative(p string) (string, bool) {
 		return "", false
 	}
 	return c, true
+}
+
+func cleanProjectPaths(id, root string) (string, string, bool) {
+	id = strings.ReplaceAll(id, "\\", "/")
+	root = strings.ReplaceAll(root, "\\", "/")
+	cleanID, ok := cleanRelative(id)
+	if !ok {
+		return "", "", false
+	}
+	cleanRoot := root
+	if cleanRoot != "." {
+		cleanRoot, ok = cleanRelative(cleanRoot)
+		if !ok {
+			return "", "", false
+		}
+	}
+	if path.Dir(cleanID) != cleanRoot {
+		return "", "", false
+	}
+	return cleanID, cleanRoot, true
 }
 
 func hasNuGetSharedInputs(paths []string, projectRoot string) bool {
