@@ -21,6 +21,15 @@ func TestAspireAdversarialCSharpLexingIsConservative(t *testing.T) {
 			wantRefs: 1,
 		},
 		{
+			name:     "escaped keyword is not treated as a using directive",
+			source:   "var @using = nameof(Projects.Service);\n" + base + call,
+			wantRefs: 1,
+		},
+		{
+			name:   "unqualified generic AddProject use fails closed in linear scan",
+			source: base + call + "static class Hostile { void M() { AddProject<AddProject<AddProject<T>>>(x); } }\n",
+		},
+		{
 			name:     "UTF-8 BOM does not hide top-level declaration",
 			source:   "\uFEFF" + base + call,
 			wantRefs: 1,
@@ -65,6 +74,11 @@ class FakeBuilder { public FakeBuilder AddProject<T>(string name) => this; }
 		{
 			name:   "verbatim DistributedApplication local cannot shadow type lookup",
 			source: "var @DistributedApplication = Custom.Fake;\n" + base + call,
+		},
+		{
+			name:     "verbatim keyword identifier is not a using directive",
+			source:   "var @using = nameof(Projects.Service);\n" + base + call,
+			wantRefs: 1,
 		},
 		{
 			name:    "Unicode escaped DistributedApplication local cannot shadow type lookup",

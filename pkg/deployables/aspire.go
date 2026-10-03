@@ -15,6 +15,7 @@ type csToken struct {
 	text        string
 	line        int
 	conditional bool
+	escaped     bool
 }
 
 const maxAspireCSharpTokens = 32768
@@ -158,48 +159,12 @@ func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error)
 // itself declares an unqualified generic AddProject method. Without C# symbol
 // binding we cannot prove which extension method a call resolves to.
 func hasVisibleAddProjectDeclaration(tokens []csToken) bool {
-	for i := 0; i+2 < len(tokens); i++ {
-		if tokens[i].text != "AddProject" || tokens[i+1].text != "<" || (i > 0 && tokens[i-1].text == ".") {
-			continue
-		}
-		depth := 0
-		j := i + 1
-		for ; j < len(tokens); j++ {
-			switch tokens[j].text {
-			case "<":
-				depth++
-			case ">":
-				depth--
-				if depth == 0 {
-					j++
-					goto genericClosed
-				}
-			}
-		}
-		continue
-	genericClosed:
-		if j >= len(tokens) || tokens[j].text != "(" {
-			continue
-		}
-		parenDepth := 0
-		for ; j < len(tokens); j++ {
-			switch tokens[j].text {
-			case "(":
-				parenDepth++
-			case ")":
-				parenDepth--
-				if parenDepth == 0 {
-					j++
-					goto parametersClosed
-				}
-			}
-		}
-		continue
-	parametersClosed:
-		// A method declaration is followed by a body, expression body,
-		// constraint, or interface/abstract terminator. Calls normally end in
-		// a semicolon, member access, or fluent continuation.
-		if j < len(tokens) && (tokens[j].text == "{" || tokens[j].text == "where" || tokens[j].text == ";" || j+1 < len(tokens) && tokens[j].text == "=" && tokens[j+1].text == ">") {
+	for i := 0; i+1 < len(tokens); i++ {
+		if tokens[i].kind == "ident" && tokens[i].text == "AddProject" && !tokens[i].escaped && tokens[i+1].text == "<" && (i == 0 || tokens[i-1].text != ".") {
+			// Any unqualified generic use may bind to a same-source custom
+			// declaration or extension. Do not try to parse the remainder here:
+			// a conservative linear guard avoids quadratic scans on malformed
+			// nested angle/parameter sequences.
 			return true
 		}
 	}
@@ -264,17 +229,17 @@ func hasCustomProjectsBinding(tokens []csToken) bool {
 		if t.kind != "ident" {
 			continue
 		}
-		if (t.text == "class" || t.text == "struct" || t.text == "interface" || t.text == "enum" || t.text == "record") && i+1 < len(tokens) && tokens[i+1].text == "Projects" {
+		if !t.escaped && (t.text == "class" || t.text == "struct" || t.text == "interface" || t.text == "enum" || t.text == "record") && i+1 < len(tokens) && tokens[i+1].text == "Projects" {
 			return true
 		}
-		if t.text == "namespace" {
+		if !t.escaped && t.text == "namespace" {
 			for j := i + 1; j < len(tokens) && tokens[j].text != "{" && tokens[j].text != ";"; j++ {
 				if tokens[j].text == "Projects" {
 					return true
 				}
 			}
 		}
-		if t.text == "using" || t.text == "global" && i+1 < len(tokens) && tokens[i+1].text == "using" {
+		if !t.escaped && (t.text == "using" || t.text == "global" && i+1 < len(tokens) && tokens[i+1].text == "using" && !tokens[i+1].escaped) {
 			start := i
 			if t.text == "global" {
 				start = i + 1
@@ -285,7 +250,7 @@ func hasCustomProjectsBinding(tokens []csToken) bool {
 				}
 			}
 		}
-		if t.text == "var" && i+1 < len(tokens) && tokens[i+1].text == "Projects" {
+		if !t.escaped && t.text == "var" && i+1 < len(tokens) && tokens[i+1].text == "Projects" {
 			return true
 		}
 		if t.text == "Projects" && i+1 < len(tokens) && (tokens[i+1].text == "=" || tokens[i+1].text == "++" || tokens[i+1].text == "--") && (i == 0 || tokens[i-1].text != ".") {
@@ -300,10 +265,10 @@ func hasCustomDistributedApplicationBinding(tokens []csToken) bool {
 		if t.kind != "ident" {
 			continue
 		}
-		if (t.text == "class" || t.text == "struct" || t.text == "interface" || t.text == "enum" || t.text == "record") && i+1 < len(tokens) && tokens[i+1].text == "DistributedApplication" {
+		if !t.escaped && (t.text == "class" || t.text == "struct" || t.text == "interface" || t.text == "enum" || t.text == "record") && i+1 < len(tokens) && tokens[i+1].text == "DistributedApplication" {
 			return true
 		}
-		if t.text == "using" {
+		if !t.escaped && t.text == "using" {
 			for j := i + 1; j < len(tokens) && tokens[j].text != ";"; j++ {
 				if tokens[j].text == "DistributedApplication" {
 					return true
@@ -456,7 +421,7 @@ func lexAspireCSharp(src string) ([]csToken, error) {
 			for i < len(src) && isCSharpIdentPart(src[i]) {
 				i++
 			}
-			out = append(out, csToken{kind: "ident", text: src[start+1 : i], line: tokLine, conditional: conditional > 0})
+			out = append(out, csToken{kind: "ident", text: src[start+1 : i], line: tokLine, conditional: conditional > 0, escaped: true})
 			if len(out) > maxAspireCSharpTokens {
 				return nil, fmt.Errorf("Aspire C# token limit exceeded")
 			}
