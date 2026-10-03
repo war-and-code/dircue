@@ -1084,6 +1084,14 @@ func TestJSImportParserIgnoresRegexLiteralContents(t *testing.T) {
 		{"array element", `const patterns = [/import pg from "pg";/];`},
 		{"if consequent", `if (ready) /import pg from "pg";/.test(source);`},
 		{"if block then expression", `if (ready) {} /import pg from "pg";/.test(source);`},
+		{"function declaration then expression", `function helper() {} /import pg from "pg";/.test(source);`},
+		{"async function declaration then expression", `async function helper() {} /import pg from "pg";/.test(source);`},
+		{"generator declaration then expression", `function* helper() {} /import pg from "pg";/.test(source);`},
+		{"export function declaration then expression", `export function helper() {} /import pg from "pg";/.test(source);`},
+		{"default async function declaration then expression", `export default async function helper() {} /import pg from "pg";/.test(source);`},
+		{"class declaration then expression", `class Helper {} /import pg from "pg";/.test(source);`},
+		{"export class declaration then expression", `export class Helper extends Base {} /import pg from "pg";/.test(source);`},
+		{"default class declaration then expression", `export default class {} /import pg from "pg";/.test(source);`},
 		{"typeof operand", `const kind = typeof /import pg from "pg";/;`},
 		{"return operand", `function match() { return /import pg from "pg";/; }`},
 	}
@@ -1101,6 +1109,18 @@ func TestJSImportParserIgnoresRegexLiteralContents(t *testing.T) {
 	validAfterObjectDivision := parseJSImports("src/regex.js", []byte("const ratio = ({value: 4}) / 2;\nimport pg from \"pg\";"))
 	if len(validAfterObjectDivision) != 1 || validAfterObjectDivision[0].Name != "datastore:postgresql" {
 		t.Fatalf("division after an object expression hid a following import: %+v", validAfterObjectDivision)
+	}
+	for _, tc := range []struct {
+		name, source string
+	}{
+		{"function expression division", "const quotient = function helper() {} / 2;\nimport pg from \"pg\";"},
+		{"class expression division", "const quotient = class Helper {} / 2;\nimport pg from \"pg\";"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseJSImports("src/regex.js", []byte(tc.source)); len(got) != 1 || got[0].Name != "datastore:postgresql" {
+				t.Fatalf("division after expression hid a valid import: %+v", got)
+			}
+		})
 	}
 }
 

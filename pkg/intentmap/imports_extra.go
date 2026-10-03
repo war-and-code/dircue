@@ -482,18 +482,107 @@ func jsRegexAfterControlBlock(t []sourceToken) bool {
 					return false
 				}
 				if t[i-1].text == ")" {
-					return jsRegexAfterControlHeader(t[:i])
+					beforeBlock := t[:i]
+					return jsRegexAfterControlHeader(beforeBlock) || jsRegexAfterFunctionDeclaration(beforeBlock)
 				}
 				switch t[i-1].text {
 				case "else", "try", "finally", "do":
 					return true
 				default:
-					return false
+					return jsRegexAfterClassDeclaration(t[:i])
 				}
 			}
 		}
 	}
 	return false
+}
+
+// Function and class declarations end in blocks after which a new expression
+// statement may begin. Keep this recognition bounded and require declaration
+// context so function/class expressions still leave a following slash as
+// division.
+func jsRegexAfterFunctionDeclaration(t []sourceToken) bool {
+	if len(t) == 0 || t[len(t)-1].text != ")" {
+		return false
+	}
+	depth, open := 0, -1
+parenScan:
+	for i := len(t) - 1; i >= 0; i-- {
+		switch t[i].text {
+		case ")":
+			depth++
+		case "(":
+			depth--
+			if depth == 0 {
+				open = i
+				break parenScan
+			}
+		}
+	}
+	if open < 0 {
+		return false
+	}
+	start := max(0, open-64)
+	for i := open - 1; i >= start; i-- {
+		switch t[i].text {
+		case "function":
+			return jsDeclarationBoundary(t, i)
+		case ";", "{", "}":
+			return false
+		}
+	}
+	return false
+}
+
+func jsRegexAfterClassDeclaration(t []sourceToken) bool {
+	paren, bracket, brace := 0, 0, 0
+	start := max(0, len(t)-64)
+	for i := len(t) - 1; i >= start; i-- {
+		switch t[i].text {
+		case ")":
+			paren++
+		case "(":
+			if paren > 0 {
+				paren--
+			}
+		case "]":
+			bracket++
+		case "[":
+			if bracket > 0 {
+				bracket--
+			}
+		case "}":
+			brace++
+		case "{":
+			if brace > 0 {
+				brace--
+			} else {
+				return false
+			}
+		case ";":
+			if paren == 0 && bracket == 0 && brace == 0 {
+				return false
+			}
+		}
+		if paren == 0 && bracket == 0 && brace == 0 && t[i].text == "class" {
+			return jsDeclarationBoundary(t, i)
+		}
+	}
+	return false
+}
+
+func jsDeclarationBoundary(t []sourceToken, declaration int) bool {
+	if declaration == 0 {
+		return true
+	}
+	switch t[declaration-1].text {
+	case ";", "{", "}", "export", "default":
+		return true
+	case "async", "abstract", "declare":
+		return jsDeclarationBoundary(t, declaration-1)
+	default:
+		return false
+	}
 }
 
 func escapedAt(s string, i int) bool {
