@@ -238,7 +238,14 @@ func cargoEndpoint(value string) *Endpoint {
 	} else if strings.HasPrefix(value, "sparse+http://") {
 		value = strings.TrimPrefix(value, "sparse+")
 	}
-	return endpoint(value)
+	e := endpoint(value)
+	// These Cargo fields are URLs, unlike NuGet packageSources where a local
+	// path is a valid source. Do not turn a malformed relative URL into a local
+	// path fact just because the shared sanitizer supports that other format.
+	if e.Status == "local_path" {
+		return &Endpoint{Status: "invalid"}
+	}
+	return e
 }
 
 func cargoLocalPath(value string) *Endpoint {

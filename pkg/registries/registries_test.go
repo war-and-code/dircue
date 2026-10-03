@@ -434,6 +434,32 @@ directory = "https://looks-like-a-registry.example/private?token=path-secret"
 	}
 }
 
+func TestCargoURLFieldsDoNotReportRelativeValuesAsLocalPaths(t *testing.T) {
+	c := mustParse(t, ".cargo/config.toml", `[registries.relative]
+index = "registry/index"
+
+[source.registry-relative]
+registry = "registry/index"
+
+[source.git-relative]
+git = "git/repo"
+`)
+	var endpoints []*Endpoint
+	for _, declaration := range c.Declarations {
+		if declaration.Endpoint != nil {
+			endpoints = append(endpoints, declaration.Endpoint)
+		}
+	}
+	if len(endpoints) != 3 {
+		t.Fatalf("expected all three URL declarations: %+v", c)
+	}
+	for _, got := range endpoints {
+		if got.Status != "invalid" || got.Origin != "" {
+			t.Fatalf("Cargo URL was misreported as a local path: %+v", got)
+		}
+	}
+}
+
 func TestRegistryConfigurationPathSelection(t *testing.T) {
 	for _, p := range []string{"settings.xml", "svc/settings.xml", ".cargo/config", "svc/.cargo/config.toml"} {
 		if _, ok := MatchPath(p); !ok {
