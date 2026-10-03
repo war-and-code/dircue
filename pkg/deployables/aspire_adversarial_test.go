@@ -44,6 +44,40 @@ func TestAspireAdversarialCSharpLexingIsConservative(t *testing.T) {
 			source: "using Projects = Custom.Fake;\n" + base + call,
 		},
 		{
+			name: "verbatim DistributedApplication type cannot shadow Aspire",
+			source: base + call + `
+static class @DistributedApplication { public static FakeBuilder CreateBuilder(string[] args) => new(); }
+class FakeBuilder { public FakeBuilder AddProject<T>(string name) => this; }
+`,
+		},
+		{
+			name:   "verbatim Projects type cannot shadow generated project identities",
+			source: base + call + "class @Projects { public class Service {} }\n",
+		},
+		{
+			name:   "verbatim DistributedApplication alias cannot bind creation",
+			source: "using @DistributedApplication = Custom.Fake;\n" + base + call,
+		},
+		{
+			name:   "verbatim Projects alias cannot bind generated project identities",
+			source: "using @Projects = Custom.Fake;\n" + base + call,
+		},
+		{
+			name:   "verbatim DistributedApplication local cannot shadow type lookup",
+			source: "var @DistributedApplication = Custom.Fake;\n" + base + call,
+		},
+		{
+			name:    "Unicode escaped DistributedApplication local cannot shadow type lookup",
+			source:  "var Distri\\u0062utedApplication = Custom.Fake;\n" + base + call,
+			wantErr: true,
+		},
+		{
+			name: "visible custom generic AddProject extension makes binding ambiguous",
+			source: base + call + `
+static class FakeExtensions { public static object AddProject<T>(this IDistributedApplicationBuilder builder, string name) => new(); }
+`,
+		},
+		{
 			name:     "call inside raw interpolated string is not observed",
 			source:   "var ignored = $$\"\"\"{{ builder.AddProject<Projects.Fake>(\"fake\") }}\"\"\";\n" + base + call,
 			wantRefs: 1,
@@ -69,6 +103,14 @@ func TestAspireAdversarialCSharpLexingIsConservative(t *testing.T) {
 				t.Fatalf("got %d refs, want %d; found=%t defs=%+v", got, tc.wantRefs, found, defs)
 			}
 		})
+	}
+}
+
+func TestAspireIrrelevantProgramSkipsTokenLimit(t *testing.T) {
+	source := "// ordinary .NET Program.cs with no Aspire calls\n" + strings.Repeat("var value = 1;\n", maxAspireCSharpTokens)
+	defs, found, err := parseAspireAppHost("src/Service/Program.cs", []byte(source))
+	if err != nil || found || len(defs) != 0 {
+		t.Fatalf("irrelevant Program.cs should be skipped before tokenization: found=%t defs=%+v err=%v", found, defs, err)
 	}
 }
 

@@ -1,6 +1,7 @@
 package mapbuild
 
 import (
+	"context"
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
@@ -9,6 +10,49 @@ import (
 	"github.com/war-and-code/dircue/pkg/mapdoc"
 	"github.com/war-and-code/dircue/pkg/profile"
 )
+
+func TestAspireCLIObservationDoesNotLinkEscapedOrCustomBindings(t *testing.T) {
+	base := "var builder = DistributedApplication.CreateBuilder(args);\nbuilder.AddProject<Projects.Service>(\"service\");\n"
+	cases := []struct {
+		name   string
+		source string
+	}{
+		{"escaped framework type", base + "static class @DistributedApplication { public static FakeBuilder CreateBuilder(string[] args) => new(); }\nclass FakeBuilder { public FakeBuilder AddProject<T>(string name) => this; }\n"},
+		{"escaped generated Projects type", base + "class @Projects { public class Service {} }\n"},
+		{"custom generic extension", base + "static class FakeExtensions { public static object AddProject<T>(this IDistributedApplicationBuilder builder, string name) => new(); }\n"},
+		{"Unicode escaped framework local", "var Distri\\u0062utedApplication = Custom.Fake;\n" + base},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			source := []byte(tc.source)
+			observed, err := deployables.Observe(context.Background(), []deployables.Candidate{{
+				Path: "src/AppHost/Program.cs", Size: int64(len(source)),
+				Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return source, int64(len(source)), nil },
+			}}, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			app := declarations.Project{
+				ID: "src/AppHost/AppHost.csproj", Root: "src/AppHost", Kind: "dotnet",
+				Requirements: []declarations.Requirement{{Kind: "dotnet-sdk", Value: "Aspire.AppHost.Sdk/9.0.0", State: "declared"}},
+				References:   []declarations.Reference{{Kind: "project-reference", Value: "../Service/Service.csproj", Target: "src/Service/Service.csproj", TargetStatus: "present", State: "declared", Evidence: "src/AppHost/AppHost.csproj"}},
+			}
+			report := &profile.Report{
+				Discovery:    &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory"}},
+				Declarations: &declarations.Report{Status: "complete", Projects: []declarations.Project{app, {ID: "src/Service/Service.csproj", Root: "src/Service", Kind: "dotnet"}}},
+			}
+			doc, err := Build(report, Options{Deployables: observed})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, edge := range doc.Edges {
+				if edge.Type == mapdoc.EdgeRuns {
+					t.Fatalf("ambiguous source binding produced a runs edge: %+v", edge)
+				}
+			}
+		})
+	}
+}
 
 func TestAspireRunsDoNotGuessAcrossCustomGeneratedNameReferences(t *testing.T) {
 	app := declarations.Project{

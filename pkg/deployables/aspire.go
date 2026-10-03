@@ -30,12 +30,18 @@ func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error)
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, fmt.Errorf("Aspire AppHost Program.cs contains binary data")
 	}
+	// Program.cs is a common candidate path across ordinary .NET projects.
+	// The supported subset always contains both spellings, so skip lexing
+	// irrelevant files with a cheap bounded fixed-string pre-screen.
+	if !bytes.Contains(content, []byte("DistributedApplication")) || !bytes.Contains(content, []byte("AddProject")) {
+		return nil, false, nil
+	}
 	source := strings.TrimPrefix(string(content), "\uFEFF")
 	tokens, err := lexAspireCSharp(source)
 	if err != nil {
 		return nil, false, err
 	}
-	if hasCustomProjectsBinding(tokens) || hasCustomDistributedApplicationBinding(tokens) {
+	if hasCustomProjectsBinding(tokens) || hasCustomDistributedApplicationBinding(tokens) || hasVisibleAddProjectDeclaration(tokens) {
 		return nil, false, nil
 	}
 	var statements [][]csToken
@@ -148,6 +154,58 @@ func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error)
 	return []Definition{d}, true, nil
 }
 
+// hasVisibleAddProjectDeclaration declines attribution when the AppHost source
+// itself declares an unqualified generic AddProject method. Without C# symbol
+// binding we cannot prove which extension method a call resolves to.
+func hasVisibleAddProjectDeclaration(tokens []csToken) bool {
+	for i := 0; i+2 < len(tokens); i++ {
+		if tokens[i].text != "AddProject" || tokens[i+1].text != "<" || (i > 0 && tokens[i-1].text == ".") {
+			continue
+		}
+		depth := 0
+		j := i + 1
+		for ; j < len(tokens); j++ {
+			switch tokens[j].text {
+			case "<":
+				depth++
+			case ">":
+				depth--
+				if depth == 0 {
+					j++
+					goto genericClosed
+				}
+			}
+		}
+		continue
+	genericClosed:
+		if j >= len(tokens) || tokens[j].text != "(" {
+			continue
+		}
+		parenDepth := 0
+		for ; j < len(tokens); j++ {
+			switch tokens[j].text {
+			case "(":
+				parenDepth++
+			case ")":
+				parenDepth--
+				if parenDepth == 0 {
+					j++
+					goto parametersClosed
+				}
+			}
+		}
+		continue
+	parametersClosed:
+		// A method declaration is followed by a body, expression body,
+		// constraint, or interface/abstract terminator. Calls normally end in
+		// a semicolon, member access, or fluent continuation.
+		if j < len(tokens) && (tokens[j].text == "{" || tokens[j].text == "where" || tokens[j].text == ";" || j+1 < len(tokens) && tokens[j].text == "=" && tokens[j+1].text == ">") {
+			return true
+		}
+	}
+	return false
+}
+
 func findAspireAddProject(s []csToken) int {
 	for i := 0; i+7 < len(s); i++ {
 		if s[i].text == "builder" && s[i+1].text == "." && s[i+2].text == "AddProject" && s[i+3].text == "<" && s[i+4].text == "Projects" && s[i+5].text == "." && s[i+6].kind == "ident" && s[i+7].text == ">" && i+8 < len(s) && s[i+8].text == "(" {
@@ -252,6 +310,12 @@ func hasCustomDistributedApplicationBinding(tokens []csToken) bool {
 				}
 			}
 		}
+		if t.text == "DistributedApplication" && i+1 < len(tokens) && tokens[i+1].text == "=" && (i == 0 || tokens[i-1].text != ".") {
+			// A local/value binding wins over the type name at an expression
+			// position. Refuse attribution rather than treating its factory as
+			// Aspire's CreateBuilder.
+			return true
+		}
 	}
 	return false
 }
@@ -321,6 +385,12 @@ func lexAspireCSharp(src string) ([]csToken, error) {
 			}
 		}
 		c := src[i]
+		if c == '\\' {
+			// C# Unicode escapes are permitted in identifiers. Until the lexer
+			// normalizes those code points, fail closed instead of letting an
+			// escaped binding evade the framework/generated-name shadow guards.
+			return nil, fmt.Errorf("unsupported C# escape outside literal")
+		}
 		if c == '\n' {
 			line++
 			i++
@@ -374,6 +444,22 @@ func lexAspireCSharp(src string) ([]csToken, error) {
 				return nil, fmt.Errorf("Aspire C# token limit exceeded")
 			}
 			i = end
+			continue
+		}
+		// C# permits @-escaped identifiers, including type names that would
+		// otherwise look like framework/generated bindings. Keep the semantic
+		// identifier spelling so shadow checks see `@Projects` and
+		// `@DistributedApplication` just like their unescaped forms. Verbatim
+		// strings have already been consumed by csharpString above.
+		if c == '@' && i+1 < len(src) && isCSharpIdentStart(src[i+1]) {
+			i += 2
+			for i < len(src) && isCSharpIdentPart(src[i]) {
+				i++
+			}
+			out = append(out, csToken{kind: "ident", text: src[start+1 : i], line: tokLine, conditional: conditional > 0})
+			if len(out) > maxAspireCSharpTokens {
+				return nil, fmt.Errorf("Aspire C# token limit exceeded")
+			}
 			continue
 		}
 		if isCSharpIdentStart(c) {
