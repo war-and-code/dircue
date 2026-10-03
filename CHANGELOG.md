@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.3.0 (unreleased)
+
+- Map literal Gradle settings includes to selected Gradle projects with `member_of` relationships. Settings-only workspace roots remain partial; dynamic directories, missing manifests, duplicate settings and ambiguous project roots stay qualified. The settings observer does not evaluate Gradle or composite builds.
+- Recognize processes declared in a root `Procfile`. Supported literal Python and Node entry files can produce partial `runs` relationships to their unique owning project. Commands, arguments and environment values are withheld; unsupported launch forms, duplicate process names and inventory limits remain visible.
+- Replace name-only Aspire project attribution with bounded C# observations corroborated by an AppHost SDK declaration and a direct, selected `ProjectReference`. Conditional, custom-name, ambiguous and unsupported calls do not establish run relationships. This corrects earlier heuristic links rather than treating an `AddProject` spelling as execution evidence.
+- Advance the deployable observer to 1.2.0 and expose Procfile and Aspire parser ceilings through `map settings --json`. Existing map field meanings and the language-only and default aggregate paths remain unchanged.
+- Wait for both public PyPI catalogs and a fresh `uv` lock to contain all seven verified wheel hashes before running installation smokes. Incomplete catalogs and transient transport failures receive bounded retries; a hash mismatch fails immediately. Publication and its protected environment are unchanged.
+
 ## 1.2.0 (2026-10-03)
 
 - Add `analyze lockfiles` and `analyze all --lockfiles`. The optional module associates supported npm and NuGet lockfiles with statically observed projects and reports named checks separately from association: exact npm direct-dependency declaration text, and observed NuGet direct-package presence. Ambiguous workspaces, shared MSBuild inputs, custom lock paths and parser limits remain explicit. The module does not verify dependency resolution, freshness or restore success. Aggregate profiles containing it use schema version 1.8.0.

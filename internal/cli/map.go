@@ -36,7 +36,7 @@ func newMapCommand(opts *options) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "map [path]",
 		Short:   "Map directory content and evidence-backed relationships in one pass",
-		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Use --forest to discover nested Git roots and produce a forest document. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
+		Long:    "Produce a portable, deterministic map from the selected Git tree or directory. Cheap native observers run together. JSON is the default when stdout is redirected; a terminal gets a compact summary. Use --json to force the map document or --summary to force the summary. Use --forest to discover nested Git roots and produce a forest document. Supported declarations include literal Gradle workspace includes, root Procfile processes and direct Aspire project calls backed by AppHost SDK and project references. Launch relationships remain partial; commands and arguments are withheld. Use map settings --json for observer limits. Unknown questions and limits remain visible as coverage. Inspected content is never executed.",
 		Example: "  " + opts.displayName + " map --json /checkout\n  " + opts.displayName + " map --summary --source directory /content\n  " + opts.displayName + " map --forest /disk\n  " + opts.displayName + " map --budget-files 50000 --json /checkout",
 		Args:    pathArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {

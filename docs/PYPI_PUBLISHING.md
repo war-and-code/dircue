@@ -71,11 +71,9 @@ The separate `publish` job waits for approval in the `pypi` environment. It
 receives only the verified files, rechecks their hashes, and obtains a
 short-lived PyPI credential through Trusted Publishing. Only this job has
 `id-token: write`; it has no checkout or repository write permission. After
-publication, a single universal `uv.lock` is created and fresh installations
-using that same lockfile run on Linux x64/ARM64, both Mac architectures, and
-Windows x64. A failure in these post-publication checks
-requires investigation and usually a new patch version; do not replace the
-published wheel files.
+publication, the workflow waits for both public PyPI catalogs to expose all seven verified wheel filenames and SHA-256 hashes. It then creates a universal `uv.lock` and verifies that the lock contains the same complete wheel inventory. Catalog requests and lock attempts have finite timeouts and a retry budget; a partial lock is never uploaded for the host checks. Fresh installations using that same lockfile run on Linux x64/ARM64, both Mac architectures, and Windows x64.
+
+Investigate any post-publication failure before changing source or versions. The 1.2.0 upload succeeded while the index was still propagating; its first smoke-test lock contained five wheels. Regenerating the lock after all seven appeared made every host check pass. For an index or transient transport failure, rerun the `lock-smoke` job and its dependent install jobs, leaving the completed `publish` job untouched. For a defective wheel, prepare a new patch release. Published wheel files cannot be replaced.
 
 ## Confirm use from a separate project
 
