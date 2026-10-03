@@ -179,6 +179,30 @@ func TestNPMComparisonBudgetHasDeterministicPartialLists(t *testing.T) {
 	}
 }
 
+func TestProducedReportRemainsValidForAdversarialNPMDependencyNames(t *testing.T) {
+	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	for _, name := range []string{strings.Repeat("x", 257), "bad\x01name"} {
+		lock, err := json.Marshal(map[string]any{
+			"lockfileVersion": 3,
+			"packages":        map[string]any{"": map[string]any{"dependencies": map[string]string{name: "1.0.0"}}},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		in := testInput([]declarations.ProjectRecord{record}, map[string]string{"app/package-lock.json": string(lock)}, true)
+		r, err := Analyze(context.Background(), in, Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := ValidateReport(r); err != nil {
+			t.Fatalf("analysis emitted an invalid report for dependency name %q: %v; report=%+v", name, err, r)
+		}
+		if r.Contexts[0].AssociationState != "unsupported" || len(r.Contexts[0].Checks) != 1 || r.Contexts[0].Checks[0].Status != "indeterminate" || len(r.Contexts[0].Checks[0].Unexpected) != 0 {
+			t.Fatalf("unsafe dependency name escaped as a discrepancy: %+v", r.Contexts[0])
+		}
+	}
+}
+
 func TestNPMUnsupportedMissingAndUnprovenWorkspaceStayDistinct(t *testing.T) {
 	record := npmRecord("app", npmRef("leftpad@1.0.0", "dependencies"))
 	for _, tc := range []struct {

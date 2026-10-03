@@ -12,6 +12,8 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/war-and-code/dircue/internal/xmlencoding"
 	"github.com/war-and-code/dircue/pkg/declarations"
@@ -402,7 +404,7 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 				d := map[string]string{}
 				for name, value := range m {
 					text, ok := value.(string)
-					if !ok || name == "" {
+					if !ok || !safeNPMReportName(name) {
 						return parsedLock{state: "unsupported", reason: "invalid-npm-direct-entry", version: strconv.Itoa(v)}
 					}
 					d[name] = text
@@ -457,6 +459,18 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 	default:
 		return parsedLock{state: "unsupported", reason: "unsupported-ecosystem"}
 	}
+}
+
+func safeNPMReportName(value string) bool {
+	if value == "" || len(value) > 256 || !utf8.ValidString(value) {
+		return false
+	}
+	for _, r := range value {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
 }
 
 var npmDependencyFields = []string{"dependencies", "devDependencies", "optionalDependencies", "peerDependencies"}
