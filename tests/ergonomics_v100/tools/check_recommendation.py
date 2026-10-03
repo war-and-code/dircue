@@ -97,6 +97,7 @@ def check(identifier, binary):
                 ('dircue', 'analyze', 'frameworks'),
                 ('dircue', 'analyze', 'graph'),
                 ('dircue', 'analyze', 'languages'),
+                ('dircue', 'analyze', 'lockfiles'),
                 ('dircue', 'analyze', 'metrics'),
                 ('dircue', 'analyze', 'packages'),
                 ('dircue', 'analyze', 'projects'),
@@ -114,6 +115,9 @@ def check(identifier, binary):
                 ('dircue', 'plan'),
             }
             actual_paths = {tuple(x['path']) for x in out['commands']}
+            assert ('dircue', 'analyze', 'lockfiles') in actual_paths, (
+                'CLI catalog omitted the intentionally added lockfiles command'
+            )
             assert actual_paths == EXPECTED_PATHS, (
                 'command set mismatch\n'
                 '  unexpected: {}\n'
@@ -136,7 +140,10 @@ def check(identifier, binary):
             guide = json.loads(run('capabilities','--guide','--json'))
             assert guide['kind'] == 'dircue-automation-guide'
             sections = guide['sections']
-            assert sum(x['title'].startswith('dircue analyze ') for x in sections) == 18
+            assert sum(x['title'].startswith('dircue analyze ') for x in sections) == 19
+            assert any(x['title'] == 'dircue analyze lockfiles' for x in sections), (
+                'offline guide omitted the lockfiles command'
+            )
             out = run('capabilities','--guide')
             assert all(text in out for text in ['--on-error', 'GOMEMLIMIT', 'not a sandbox', 'inert argv', '--functions', '--hotspots'])
         elif identifier == 'R-010':
