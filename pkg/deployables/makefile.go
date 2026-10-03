@@ -7,7 +7,10 @@ import (
 	"strings"
 )
 
-var makeAssignment = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*[:?+]?=\s*(.*)$`)
+var (
+	makeAssignment = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*)\s*[:?+]?=\s*(.*)$`)
+	makeOneshell   = regexp.MustCompile(`^\.ONESHELL\s*:`)
+)
 
 // parseMakefile observes only literal Docker build command lines. It never
 // expands Make or shell expressions; variables are accepted solely when every
@@ -26,7 +29,8 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 	// Docker paths. We do not model target and shell state, so omit these
 	// observations rather than treating each recipe as an independent shell.
 	for _, raw := range bytes.Split(content, []byte("\n")) {
-		if strings.HasPrefix(strings.TrimSpace(string(raw)), ".ONESHELL:") {
+		line := string(raw)
+		if !strings.HasPrefix(line, "\t") && makeOneshell.MatchString(strings.TrimSpace(line)) {
 			return nil, false, nil
 		}
 	}
@@ -101,15 +105,25 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 			if prefixLen == 0 {
 				continue
 			}
+			prefixHasExpansion := false
+			for _, field := range fields[:prefixLen] {
+				if strings.Contains(field, "$") {
+					prefixHasExpansion = true
+					break
+				}
+			}
+			if prefixHasExpansion {
+				continue
+			}
 		}
 		args := fields[prefixLen:]
 		file := ""
 		invalidFile := false
 		positionals := []string{}
 		for i := 0; i < len(args); i++ {
-			// Unquoted Make expansions can add shell words or operators after
-			// Make expands them. Even in a value-taking option they could inject
-			// another -f flag or build context, so do not derive a static link.
+			// Make expansions are textual substitutions before the shell parses
+			// the command. Without evaluating their values, even quoted-looking
+			// expansions could alter selectors or shell syntax.
 			if strings.Contains(args[i], "$") {
 				invalidFile = true
 			}
@@ -170,7 +184,7 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 // variable that appears to contain only build flags could introduce a file or
 // context selector when Make expands it.
 func safeDockerBuildAssignment(value string) bool {
-	if strings.ContainsAny(value, ";&|`<>\\\n\r") {
+	if strings.ContainsAny(value, "$;&|`<>\\\n\r") {
 		return false
 	}
 	fields := strings.Fields(value)
@@ -196,12 +210,6 @@ func safeDockerBuildAssignment(value string) bool {
 				i++
 				continue
 			}
-			return false
-		}
-		// A variable here expands into command-line words. It could add a
-		// Dockerfile selector, context operand, or shell syntax that changes
-		// the meaning of the recipe.
-		if strings.Contains(arg, "$") {
 			return false
 		}
 		if !strings.HasPrefix(arg, "-") {

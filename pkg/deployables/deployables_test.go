@@ -418,18 +418,22 @@ func TestMakefileContinuationDoesNotReattributeBuildFromAnotherDirectory(t *test
 }
 
 func TestMakefileOneshellDoesNotAssumeIndependentRecipeDirectories(t *testing.T) {
-	body := `.ONESHELL:
+	for _, oneshell := range []string{".ONESHELL:", ".ONESHELL :"} {
+		t.Run(oneshell, func(t *testing.T) {
+			body := oneshell + `
 image:
 	cd services
 	docker build -f Dockerfile .
 `
-	defs, matched, err := parseMakefile("Makefile", []byte(body))
-	if err != nil || matched || len(defs) != 0 {
-		t.Fatalf(".ONESHELL recipe state was attributed from the repository root: matched=%t defs=%+v err=%v", matched, defs, err)
+			defs, matched, err := parseMakefile("Makefile", []byte(body))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf(".ONESHELL recipe state was attributed from the repository root: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
 	}
 
 	ordinary := "image:\n\tdocker build -f services/api/Dockerfile services/api\n"
-	defs, matched, err = parseMakefile("Makefile", []byte(ordinary))
+	defs, matched, err := parseMakefile("Makefile", []byte(ordinary))
 	if err != nil || !matched || len(defs) != 1 {
 		t.Fatalf("ordinary independent recipe should retain its literal build: matched=%t defs=%+v err=%v", matched, defs, err)
 	}
@@ -474,6 +478,9 @@ func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
 		"OCI_BUILD := docker build -f hidden/Dockerfile .",
 		"OCI_BUILD := docker build hidden-context",
 		"OCI_BUILD := docker build $(ARGS)",
+		"OCI_BUILD := docker build --build-arg=$(ARGS)",
+		"OCI_BUILD := docker build --platform $(ARCH)",
+		"DOCKER := docker build DOCKER_BUILDKIT=$(ARGS)",
 	} {
 		t.Run(assignment, func(t *testing.T) {
 			body := assignment + "\nimage:\n\t$(OCI_BUILD) -f services/api/Dockerfile services/api\n"
@@ -485,11 +492,14 @@ func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
 	}
 }
 
-func TestMakefileRejectsUnquotedDynamicDockerOptionValues(t *testing.T) {
+func TestMakefileRejectsDynamicDockerOptionValues(t *testing.T) {
 	for _, command := range []string{
 		"docker build -t $(IMAGE) -f Dockerfile .",
 		"docker build -t \"$(IMAGE)\" -f Dockerfile .",
 		"docker build --build-arg IMAGE=$(IMAGE) -f Dockerfile .",
+		"docker build --build-arg=$(ARGS) -f Dockerfile .",
+		"docker build --platform $(ARCH) -f Dockerfile .",
+		"DOCKER_BUILDKIT=$(BUILDKIT) docker build -f Dockerfile .",
 	} {
 		t.Run(command, func(t *testing.T) {
 			defs, matched, err := parseMakefile("Makefile", []byte("image:\n\t"+command+"\n"))
