@@ -190,6 +190,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			}
 		}
 		lockPath, association, reason := associate(ecosystem, rec, records, locksByDir, dotnetCountByRoot)
+		selectedNPMShrinkwrap := ecosystem == "npm" && association == "observed" && path.Base(lockPath) == "npm-shrinkwrap.json"
 		if nugetCustomLockPath {
 			association = "indeterminate"
 			reason = "nuget-custom-lock-path-unresolved"
@@ -223,6 +224,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		if reason != "" {
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: reason})
 		}
+		if selectedNPMShrinkwrap {
+			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: "npm-v11-shrinkwrap-selection"})
+		}
 		if association != "observed" {
 			if association == "indeterminate" || association == "unsupported" {
 				r.Status = "partial"
@@ -245,10 +249,10 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				parsed = parsedLock{state: "indeterminate", reason: "lockfile-unreadable"}
 			} else {
 				data, size, err := in.ReadSelected(ctx, lockPath, limits.FileBytes+1)
+				if ctx.Err() != nil {
+					return nil, ctx.Err()
+				}
 				if err != nil {
-					if ctx.Err() != nil {
-						return nil, ctx.Err()
-					}
 					if errors.Is(err, context.Canceled) {
 						return nil, context.Canceled
 					}
@@ -286,6 +290,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			check.Status = "indeterminate"
 			check.Explanation += " The selected package manifest has dependency-field diagnostics, so its complete direct declaration table is unknown."
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
+		}
+		if selectedNPMShrinkwrap {
+			check.Explanation += " Shrinkwrap selection follows npm v11 static precedence; npm v12 ignores project npm-shrinkwrap.json files, so this does not establish which lockfile npm v12 would use."
 		}
 		if nugetSharedInputs {
 			check.Status = "indeterminate"

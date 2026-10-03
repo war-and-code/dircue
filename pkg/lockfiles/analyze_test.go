@@ -112,6 +112,9 @@ func TestNPMShrinkwrapTakesPrecedenceOverPackageLock(t *testing.T) {
 	if len(r.Contexts) != 1 || r.Contexts[0].LockfilePath != "app/npm-shrinkwrap.json" || r.Contexts[0].Checks[0].Status != "match" {
 		t.Fatalf("npm shrinkwrap did not take documented precedence: %+v", r.Contexts)
 	}
+	if len(r.Contexts[0].Boundaries) != 1 || r.Contexts[0].Boundaries[0].Reason != "npm-v11-shrinkwrap-selection" || !strings.Contains(r.Contexts[0].Checks[0].Explanation, "npm v12 ignores") {
+		t.Fatalf("npm shrinkwrap selection did not disclose its version scope: %+v", r.Contexts[0])
+	}
 }
 
 func TestNPMManifestDependencyDiagnosticsPreventFalseMatch(t *testing.T) {
@@ -285,6 +288,25 @@ func TestNuGetV1AndV2DirectPresenceAndMultiTargetUncertainty(t *testing.T) {
 	}
 	if got := r.Contexts[0].Checks[0].Status; got != "indeterminate" {
 		t.Fatalf("multi-target status=%q; want indeterminate", got)
+	}
+}
+
+func TestAnalyzeOutputWithUnsupportedNuGetVersionPassesReportValidation(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	for _, version := range []string{"3", "17"} {
+		t.Run(version, func(t *testing.T) {
+			lock := `{"version":` + version + `,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Contexts[0].AssociationState != "unsupported" {
+				t.Fatalf("unsupported NuGet version was not retained as unsupported: %+v", r.Contexts[0])
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatalf("analyzer output for unsupported NuGet version was rejected: %v; report=%+v", err, r)
+			}
+		})
 	}
 }
 

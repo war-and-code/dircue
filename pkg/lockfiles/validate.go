@@ -64,8 +64,8 @@ func ValidateReport(r *Report) error {
 		if ctx.LockfilePath != "" && !validRelative(ctx.LockfilePath) {
 			return errors.New("lockfile context path is invalid")
 		}
-		if ctx.AssociationState == "observed" && ctx.LockfilePath == "" {
-			return errors.New("observed lockfile association lacks a lockfile path")
+		if ctx.AssociationState == "observed" && (ctx.LockfilePath == "" || !validLockfileVersion(ctx.Ecosystem, ctx.LockfileVersion)) {
+			return errors.New("observed lockfile association lacks a selected path or supported version")
 		}
 		hasObservedAssociation = hasObservedAssociation || ctx.AssociationState == "observed"
 		if ctx.AssociationState == "missing" && ctx.LockfilePath != "" {
@@ -104,6 +104,17 @@ func ValidateReport(r *Report) error {
 		return errors.New("lockfile report exceeds output byte limit")
 	}
 	return nil
+}
+
+func validLockfileVersion(ecosystem, value string) bool {
+	switch ecosystem {
+	case "npm":
+		return value == "2" || value == "3"
+	case "nuget":
+		return value == "1" || value == "2"
+	default:
+		return false
+	}
 }
 
 func validCheck(ecosystem string, c Check, maxNames int) bool {

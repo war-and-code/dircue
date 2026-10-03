@@ -120,6 +120,20 @@ func TestValidateReportRejectsDuplicateProjectContexts(t *testing.T) {
 	}
 }
 
+func TestValidateReportRequiresObservedLockPathAndSupportedEcosystemVersion(t *testing.T) {
+	for _, mutate := range []func(*Report){
+		func(r *Report) { r.Contexts[0].LockfilePath = "" },
+		func(r *Report) { r.Contexts[0].LockfileVersion = "" },
+		func(r *Report) { r.Contexts[0].LockfileVersion = "1" },
+	} {
+		r := validNPMReport(t)
+		mutate(r)
+		if err := ValidateReport(r); err == nil {
+			t.Fatalf("inconsistent observed lock identity was accepted: %+v", r.Contexts[0])
+		}
+	}
+}
+
 func TestValidateReportRejectsUnconfinedPathsAndImpossibleCounters(t *testing.T) {
 	for _, mutate := range []func(*Report){
 		func(r *Report) { r.Contexts[0].LockfilePath = "../package-lock.json" },
