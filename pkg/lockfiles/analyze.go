@@ -96,6 +96,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	}
 
 	records := recordsFor(in)
+	r.Coverage.ProjectRecords = len(records)
 	validRecords := records[:0]
 	for _, rec := range records {
 		manifest, root, ok := cleanProjectPaths(rec.Project.ID, rec.Project.Root)
@@ -110,7 +111,6 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		validRecords = append(validRecords, rec)
 	}
 	records = validRecords
-	r.Coverage.ProjectRecords = len(records)
 	dotnetCountByRoot := map[string]int{}
 	for _, rec := range records {
 		if rec.Project.Kind == "dotnet" && isMSBuildProjectRecord(path.Ext(rec.Project.ID)) {
@@ -898,7 +898,7 @@ func safeNuGetPackageID(s string) bool {
 }
 
 func cleanRelative(p string) (string, bool) {
-	if p == "" || strings.Contains(p, "\\") || path.IsAbs(p) {
+	if p == "" || !validText(p, 8192) || strings.Contains(p, "\\") || path.IsAbs(p) {
 		return "", false
 	}
 	c := path.Clean(p)

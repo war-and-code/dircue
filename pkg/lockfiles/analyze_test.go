@@ -482,6 +482,41 @@ func TestUnconfinedCallerPathsAreOmittedWithoutEchoingThem(t *testing.T) {
 	}
 }
 
+func TestInvalidPathsAndProjectRecordCoverageRemainValidReports(t *testing.T) {
+	good := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	invalidProjects := []declarations.ProjectRecord{
+		npmRecord("bad\x00nul", npmRef("b@1.0.0", "dependencies")),
+		npmRecord(string([]byte{'b', 'a', 'd', 0xff}), npmRef("c@1.0.0", "dependencies")),
+		npmRecord(strings.Repeat("x", 8193), npmRef("d@1.0.0", "dependencies")),
+	}
+	records := append([]declarations.ProjectRecord{good}, invalidProjects...)
+	in := testInput(records, map[string]string{
+		"app/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`,
+	}, true)
+	in.Inventory = append(in.Inventory,
+		File{Path: "bad\x00nul/package-lock.json", Size: 1},
+		File{Path: string([]byte{'b', 'a', 'd', 0xff}) + "/package-lock.json", Size: 1},
+		File{Path: strings.Repeat("x", 8193) + "/package-lock.json", Size: 1},
+	)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.ProjectRecords != 4 || r.Coverage.OmittedContexts != 3 || len(r.Contexts) != 1 {
+		t.Fatalf("invalid records were not accounted for: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("analysis produced a report that fails its own validator: %v", err)
+	}
+	encoded, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "bad\\u0000nul") {
+		t.Fatalf("invalid path leaked into report: %s", encoded)
+	}
+}
+
 func join(a, b string) string {
 	if a == "" || a == "." {
 		return b
