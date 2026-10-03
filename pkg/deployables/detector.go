@@ -22,7 +22,8 @@ type Collector struct {
 	budgetDrops  int64
 	cutoff       string
 	dirs         map[string]bool
-	selected     map[string]bool
+	targets      procfileTargetInventory
+	procfileSeen bool
 }
 
 type pendingFile struct {
@@ -34,7 +35,7 @@ func NewCollector(options Options) *Collector {
 	limits := normalizedLimits(options)
 	return &Collector{report: Report{Provider: "dircue", ProviderVersion: ProviderVersion, Status: "complete", Source: options.Source,
 		Selection: "supported-static-declarations-in-selected-regular-files", Limits: limits,
-		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}, selected: map[string]bool{}}
+		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}, targets: newProcfileTargetInventory()}
 }
 
 func (*Collector) Name() string { return "deployables" }
@@ -45,7 +46,10 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 	}
 	c.mu.Lock()
 	addDirectories(c.dirs, file.Path)
-	c.selected[file.Path] = true
+	c.targets.add(file.Path)
+	if file.Path == "Procfile" {
+		c.procfileSeen = true
+	}
 	c.mu.Unlock()
 	if !IsCandidate(file.Path) {
 		c.mu.Lock()
@@ -103,9 +107,8 @@ func (c *Collector) Finish() *Report {
 	defer c.mu.Unlock()
 	out := c.report
 	out.Directories = c.dirs
-	selectedFiles := make(map[string]bool, len(c.selected))
-	for name, present := range c.selected {
-		selectedFiles[name] = present
+	if c.procfileSeen && c.targets.capped {
+		out.omit("procfile_inventory_limit", 1, "Procfile", "Procfile target binding was disabled because the selected source-path inventory exceeded its bound.")
 	}
 	out.Definitions = slices.Clone(c.report.Definitions)
 	out.Diagnostics = slices.Clone(c.report.Diagnostics)
@@ -141,7 +144,7 @@ func (c *Collector) Finish() *Report {
 		}
 		out.Coverage.ParsedFiles++
 		digest := fmt.Sprintf("%x", sha256.Sum256(file.content))
-		if unresolved := resolveProcfileTargets(defs, selectedFiles); unresolved > 0 {
+		if unresolved := resolveProcfileTargets(defs, c.targets); unresolved > 0 {
 			out.omit("procfile_target_unresolved", unresolved, file.path, "Some Procfile targets did not resolve to one selected source file.")
 		}
 		for i := range defs {

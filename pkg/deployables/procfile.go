@@ -11,7 +11,52 @@ import (
 const (
 	procfileLineBytes = 8192
 	procfileMaxLines  = 512
+	// Procfile target binding only needs selected Python and JavaScript source
+	// paths. Keep this private index bounded even for very large repositories.
+	procfileTargetInventoryFiles = 65536
+	procfileTargetInventoryBytes = 4 << 20
 )
+
+// ProcfileBounds returns the fixed parser and selected-source inventory
+// ceilings used by the Procfile observer. The values are informational and
+// cannot be changed by callers.
+func ProcfileBounds() (lineBytes, processLines, inventoryFiles, inventoryBytes int) {
+	return procfileLineBytes, procfileMaxLines, procfileTargetInventoryFiles, procfileTargetInventoryBytes
+}
+
+type procfileTargetInventory struct {
+	paths  map[string]bool
+	bytes  int
+	capped bool
+}
+
+func newProcfileTargetInventory() procfileTargetInventory {
+	return procfileTargetInventory{paths: map[string]bool{}}
+}
+
+func (inventory *procfileTargetInventory) add(name string) {
+	if inventory.capped || !procfilePotentialTarget(name) || inventory.paths[name] {
+		return
+	}
+	if len(inventory.paths) >= procfileTargetInventoryFiles || len(name) > procfileTargetInventoryBytes-inventory.bytes {
+		inventory.paths = nil
+		inventory.bytes = 0
+		inventory.capped = true
+		return
+	}
+	inventory.paths[name] = true
+	inventory.bytes += len(name)
+}
+
+func procfilePotentialTarget(name string) bool {
+	base := path.Base(name)
+	for _, ext := range []string{".py", ".js", ".mjs", ".cjs"} {
+		if strings.HasSuffix(base, ext) {
+			return true
+		}
+	}
+	return false
+}
 
 // procfileIssuesError carries bounded, command-free diagnostics while leaving
 // successfully parsed process declarations available to the caller.
@@ -267,7 +312,7 @@ func safeProcfileFile(value string, extensions ...string) (string, bool) {
 // resolveProcfileTargets binds a parsed target only to a unique selected file.
 // It retains no command text and keeps the matched source path private for the
 // map's owning-component pass.
-func resolveProcfileTargets(definitions []Definition, selected map[string]bool) int64 {
+func resolveProcfileTargets(definitions []Definition, inventory procfileTargetInventory) int64 {
 	var unresolved int64
 	for i := range definitions {
 		if definitions[i].Provider != "procfile" {
@@ -280,22 +325,30 @@ func resolveProcfileTargets(definitions []Definition, selected map[string]bool) 
 				continue
 			}
 			var matches []string
+			if inventory.capped {
+				ref.Kind = "process_target"
+				ref.Qualification = "unresolved"
+				ref.SourcePath = ""
+				definitions[i].Coverage = "qualified"
+				unresolved++
+				continue
+			}
 			switch kind {
 			case "procfile_node_file", "procfile_python_file":
-				if selected[ref.Value] {
+				if inventory.paths[ref.Value] {
 					matches = append(matches, ref.Value)
 				}
 			case "procfile_python_import":
 				base := strings.ReplaceAll(ref.Value, ".", "/")
 				for _, candidate := range []string{base + ".py", path.Join(base, "__init__.py")} {
-					if selected[candidate] {
+					if inventory.paths[candidate] {
 						matches = append(matches, candidate)
 					}
 				}
 			case "procfile_python_module":
 				base := strings.ReplaceAll(ref.Value, ".", "/")
 				for _, candidate := range []string{base + ".py", path.Join(base, "__main__.py")} {
-					if selected[candidate] {
+					if inventory.paths[candidate] {
 						matches = append(matches, candidate)
 					}
 				}

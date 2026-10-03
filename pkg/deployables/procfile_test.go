@@ -1,9 +1,14 @@
 package deployables
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/war-and-code/dircue/pkg/profile"
 )
 
 func TestProcfileCandidateIsExactRootCaseSensitive(t *testing.T) {
@@ -16,6 +21,13 @@ func TestProcfileCandidateIsExactRootCaseSensitive(t *testing.T) {
 		if got := IsCandidate(name); got != want {
 			t.Errorf("IsCandidate(%q) = %t, want %t", name, got, want)
 		}
+	}
+}
+
+func TestProcfileBoundsExposeFixedLimits(t *testing.T) {
+	lineBytes, processLines, inventoryFiles, inventoryBytes := ProcfileBounds()
+	if lineBytes != procfileLineBytes || processLines != procfileMaxLines || inventoryFiles != procfileTargetInventoryFiles || inventoryBytes != procfileTargetInventoryBytes {
+		t.Fatalf("ProcfileBounds() = %d, %d, %d, %d", lineBytes, processLines, inventoryFiles, inventoryBytes)
 	}
 }
 
@@ -70,12 +82,15 @@ func TestResolveProcfileTargetsRequiresUniqueSelectedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	selected := map[string]bool{
-		"app.py":             true,
-		"app/__init__.py":    true,
-		"src/server.js":      true,
-		"worker.py":          true,
-		"worker/__main__.py": true,
+	selected := newProcfileTargetInventory()
+	for _, name := range []string{
+		"app.py",
+		"app/__init__.py",
+		"src/server.js",
+		"worker.py",
+		"worker/__main__.py",
+	} {
+		selected.add(name)
 	}
 	if unresolved := resolveProcfileTargets(defs, selected); unresolved != 2 {
 		t.Fatalf("unresolved targets = %d, want 2", unresolved)
@@ -93,7 +108,10 @@ func TestResolveProcfileTargetsRequiresUniqueSelectedFile(t *testing.T) {
 			t.Errorf("ambiguous target linked: %+v", ref)
 		}
 	}
-	selected = map[string]bool{"app.py": true, "src/server.js": true, "worker.py": true}
+	selected = newProcfileTargetInventory()
+	for _, name := range []string{"app.py", "src/server.js", "worker.py"} {
+		selected.add(name)
+	}
 	defs, _, err = parseProcfile("Procfile", []byte("web: gunicorn app:main\nnode: node src/server.js\nmodule: python -m worker\n"))
 	if err != nil {
 		t.Fatal(err)
@@ -163,5 +181,82 @@ api: uvicorn app.main:application --app-dir /srv/app
 		if def.Coverage != "qualified" || def.References[0].Qualification != "unresolved" || def.References[0].Value != "unresolved" {
 			t.Errorf("search-path-changing option retained a target: %+v", def)
 		}
+	}
+}
+
+func TestProcfileTargetInventoryIsFilteredBoundedAndOrderIndependent(t *testing.T) {
+	unrelated := newProcfileTargetInventory()
+	for i := 0; i < procfileTargetInventoryFiles+1; i++ {
+		unrelated.add(fmt.Sprintf("src/file-%08d.txt", i))
+	}
+	if unrelated.capped || len(unrelated.paths) != 0 {
+		t.Fatalf("unrelated inventory was retained or capped: %+v", unrelated)
+	}
+
+	// Each path is long enough for the byte ceiling to trip before the count
+	// ceiling. The complete candidate set is identical in both insertion orders.
+	paths := []string{"app.js"}
+	for i := 0; i <= procfileTargetInventoryBytes/95; i++ {
+		paths = append(paths, fmt.Sprintf("src/%s%08d.js", strings.Repeat("a", 80), i))
+	}
+	build := func(reverse bool) procfileTargetInventory {
+		inventory := newProcfileTargetInventory()
+		if reverse {
+			for i := len(paths) - 1; i >= 0; i-- {
+				inventory.add(paths[i])
+			}
+		} else {
+			for _, name := range paths {
+				inventory.add(name)
+			}
+		}
+		return inventory
+	}
+	a, b := build(false), build(true)
+	if !a.capped || !b.capped || len(a.paths) != 0 || len(b.paths) != 0 {
+		t.Fatalf("over-limit inventory retained paths: forward=%+v reverse=%+v", a, b)
+	}
+
+	content := []byte("web: node app.js\n")
+	files := make([]Candidate, 0, len(paths)+1)
+	files = append(files, Candidate{Path: "Procfile", Size: int64(len(content)), Read: func(context.Context, int64) ([]byte, int64, error) {
+		return content, int64(len(content)), nil
+	}})
+	for _, name := range paths {
+		files = append(files, Candidate{Path: name})
+	}
+	report, err := Observe(context.Background(), files, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if report.Status != "partial" || report.Omissions["procfile_inventory_limit"] != 1 || len(report.Definitions) != 1 {
+		t.Fatalf("inventory cap not reported: status=%s omissions=%v definitions=%+v", report.Status, report.Omissions, report.Definitions)
+	}
+	if ref := report.Definitions[0].References[0]; ref.Qualification != "unresolved" || ref.SourcePath != "" {
+		t.Fatalf("target linked despite inventory cap: %+v", ref)
+	}
+
+	runCollector := func(reverse bool) *Report {
+		collector := NewCollector(Options{})
+		for i := range paths {
+			index := i
+			if reverse {
+				index = len(paths) - i - 1
+			}
+			if _, err := collector.Detect(context.Background(), profile.File{Path: paths[index]}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := collector.Detect(context.Background(), profile.File{Path: "Procfile", Size: int64(len(content)), Content: content}); err != nil {
+			t.Fatal(err)
+		}
+		return collector.Finish()
+	}
+	collected, reordered := runCollector(false), runCollector(true)
+	if !reflect.DeepEqual(collected, reordered) {
+		t.Fatalf("over-limit inventory result depends on traversal order:\n%+v\n%+v", collected, reordered)
+	}
+	if collected.Status != "partial" || collected.Omissions["procfile_inventory_limit"] != 1 || len(collected.Definitions) != 1 || collected.Definitions[0].References[0].Qualification != "unresolved" {
+		t.Fatalf("collector cap not reported or linked: status=%s omissions=%v definitions=%+v", collected.Status, collected.Omissions, collected.Definitions)
 	}
 }

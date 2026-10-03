@@ -22,10 +22,12 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 	r.Coverage.SelectedFiles = int64(len(files))
 	r.Directories = map[string]bool{}
 	candidates := make([]Candidate, 0)
-	selectedFiles := make(map[string]bool, len(files))
+	targetInventory := newProcfileTargetInventory()
+	procfilePresent := false
 	for _, f := range files {
 		addDirectories(r.Directories, f.Path)
-		selectedFiles[f.Path] = true
+		targetInventory.add(f.Path)
+		procfilePresent = procfilePresent || f.Path == "Procfile"
 		if IsCandidate(f.Path) {
 			r.Coverage.CandidateFiles++
 			candidates = append(candidates, f)
@@ -35,6 +37,9 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 	if len(candidates) > limits.Files {
 		r.omit("file_limit", int64(len(candidates)-limits.Files), "", "Only the lexically first supported declaration candidates were inspected.")
 		candidates = candidates[:limits.Files]
+	}
+	if procfilePresent && targetInventory.capped {
+		r.omit("procfile_inventory_limit", 1, "Procfile", "Procfile target binding was disabled because the selected source-path inventory exceeded its bound.")
 	}
 	// helmValuesRefs accumulates image references from values.yaml files keyed
 	// by the directory that contains them. These are used in the post-pass to
@@ -101,7 +106,7 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		} // A supported filename alone is never evidence.
 		r.Coverage.ParsedFiles++
 		digest := fmt.Sprintf("%x", sha256.Sum256(content))
-		if unresolved := resolveProcfileTargets(defs, selectedFiles); unresolved > 0 {
+		if unresolved := resolveProcfileTargets(defs, targetInventory); unresolved > 0 {
 			r.omit("procfile_target_unresolved", unresolved, candidate.Path, "Some Procfile targets did not resolve to one selected source file.")
 		}
 		for i := range defs {
