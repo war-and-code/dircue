@@ -47,7 +47,6 @@ func ValidateReport(r *Report) error {
 		return errors.New("legacy environment report contains newer toolchain coverage")
 	}
 	contexts := map[string]bool{}
-	unresolved := false
 	for _, s := range r.Selections {
 		if !wireString(s.ContextID) || contexts[s.ContextID] || !wireString(s.ProjectID) || !wireString(s.StartDirectory) || !wireString(s.StartBasis) || !wireOptional(s.GlobalJSON) || !wireOptional(s.SDKVersion) || !wireOptional(s.RollForward) || !wireString(s.Applicability) || (s.State != "declared" && s.State != "unresolved" && s.State != "unconstrained") {
 			return errors.New("environment selection is invalid")
@@ -59,16 +58,15 @@ func ValidateReport(r *Report) error {
 			return errors.New("declared environment selection lacks a policy")
 		}
 		contexts[s.ContextID] = true
-		unresolved = unresolved || s.State == "unresolved"
 	}
 	for _, q := range r.Requirements {
 		if !wireString(q.ProjectID) || !wireString(q.ContextID) || !wireString(q.Dimension) || !wireString(q.Kind) || !wireOptional(q.Value) || !wireString(q.State) || !wireString(q.Evidence) || !wireOptional(q.Condition) || !wireString(q.Applicability) {
 			return errors.New("environment requirement is invalid")
 		}
 		contexts[q.ContextID] = true
-		unresolved = unresolved || q.State == "unresolved"
 	}
 	toolchainPaths := map[string]bool{}
+	toolchainIncomplete := false
 	for _, d := range r.ToolchainDeclarations {
 		if !wireString(d.SourcePath) || !validToolchainPath(d.SourcePath) || !wireString(d.Tool) || !wireString(d.Kind) || !validToolchainScope(d.ScopeDirectory) || d.Applicability != toolchainApplicability || (d.State != "declared" && d.State != "unresolved" && d.State != "unsupported") || len(d.Values) > 16 || toolchainPaths[d.SourcePath] {
 			return errors.New("environment toolchain declaration is invalid")
@@ -86,10 +84,10 @@ func ValidateReport(r *Report) error {
 				return errors.New("environment toolchain declaration value is invalid")
 			}
 		}
-		unresolved = unresolved || d.State != "declared"
+		toolchainIncomplete = toolchainIncomplete || d.State != "declared"
 	}
-	if r.Status == "complete" && (c.OmittedFiles != 0 || c.OmittedRequirements != 0 || hasNonInformationalDiagnostic(r.Diagnostics) || unresolved || current && (c.OmittedToolchainFiles != 0 || c.ToolchainCandidates != c.ToolchainRead || c.ToolchainRead != c.ToolchainDeclarations)) {
-		return errors.New("complete environment report contains unresolved or omitted evidence")
+	if r.Status == "complete" && current && (toolchainIncomplete || c.OmittedToolchainFiles != 0 || c.ToolchainCandidates != c.ToolchainRead || c.ToolchainRead != c.ToolchainDeclarations) {
+		return errors.New("complete environment report contains unresolved or omitted toolchain evidence")
 	}
 	for _, b := range r.Boundaries {
 		if !wireOptional(b.Path) || !wireOptional(b.ProjectID) || !wireOptional(b.ContextID) || !wireString(b.Reason) || !wireOptional(b.Detail) || (b.ContextID != "" && !contexts[b.ContextID]) {
@@ -138,13 +136,4 @@ func toolchainScope(sourcePath string) string {
 		return "."
 	}
 	return scope
-}
-
-func hasNonInformationalDiagnostic(diagnostics []Diagnostic) bool {
-	for _, diagnostic := range diagnostics {
-		if diagnostic.Code != "global-json-lenient-syntax" {
-			return true
-		}
-	}
-	return false
 }

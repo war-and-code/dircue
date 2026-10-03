@@ -6,6 +6,8 @@ import (
 	"errors"
 	"strings"
 	"testing"
+
+	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
 func TestToolchainLiteralSubsetAndNoWinnerBoundaries(t *testing.T) {
@@ -223,6 +225,43 @@ func TestCompleteEnvironmentAllowsDocumentedJSONCLeniencyDiagnostic(t *testing.T
 	}
 	if err := ValidateReport(r); err != nil {
 		t.Fatalf("informational JSONC diagnostic must not invalidate complete coverage: %v", err)
+	}
+}
+
+func TestCompleteEnvironmentAllowsUnresolvedProjectRequirement(t *testing.T) {
+	// The eShop MAUI project declares a static target-framework list plus a
+	// conditional MSBuild expression that the observer intentionally leaves
+	// unresolved. That unresolved declaration does not make the environment
+	// inventory itself incomplete, and must not cause report validation to
+	// reject the report produced by Analyze.
+	body := `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup>` +
+		`<TargetFrameworks>net10.0-android;net10.0-ios;net10.0-maccatalyst;net10.0</TargetFrameworks>` +
+		`<TargetFrameworks Condition="$([MSBuild]::IsOSPlatform('windows'))">$(TargetFrameworks);net10.0-windows10.0.19041.0</TargetFrameworks>` +
+		`</PropertyGroup></Project>`
+	doc := declarations.Parse("src/ClientApp/ClientApp.csproj", []byte(body))
+	if doc == nil || !doc.Parsed || doc.Project == nil {
+		t.Fatalf("fixture did not parse as static project metadata: %+v", doc)
+	}
+	foundUnresolved := false
+	for _, requirement := range doc.Project.Requirements {
+		if requirement.Kind == "target-framework" && requirement.State == "unresolved" {
+			foundUnresolved = true
+		}
+	}
+	if !foundUnresolved {
+		t.Fatalf("fixture no longer exercises unresolved target-framework metadata: %+v", doc.Project.Requirements)
+	}
+	in := envInput(nil, nil)
+	in.ProjectRecords = []declarations.ProjectRecord{{Project: *doc.Project, Parsed: true, Complete: true}}
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "complete" {
+		t.Fatalf("unresolved project metadata changed environment coverage: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("valid complete report with unresolved project metadata was rejected: %v", err)
 	}
 }
 
