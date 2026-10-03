@@ -403,3 +403,7 @@ recorded as DISC-009 in `tests/conformance/DISCREPANCIES.md`; both JSON modes
 match. That run used commit `5c04f33bc38dd453f7a92bb4a1da217b3f3edc1b`
 and binary SHA-256
 `7bc6d72c4eb15c7fc6479eab977057f3136c514b0dc8c976fb3c8b2e6bfa6afd`.
+
+### Complete inputs for the golden gate
+
+`verify_golden.py` requires every labeled repository (or saved map) to be available and evaluable before a gated run can pass. Receipts record the expected/evaluated repository counts and missing or failed inputs. `--no-gate` is for partial diagnostics and does not report a passing gate. The final 1.1 candidate evaluated seven of seven pinned checkouts with 49 matching oracle-file hashes. Its unchanged-label score is 216/0/4 relationships and 47/0/0 interfaces (TP/FP/FN). Earlier candidate scores remain historical. The two variable-dependent Loki links are omitted by the final conservative Makefile rule; their labels were not changed to hide the misses. See the [measurement guide](../performance/v110_candidate/README.md#final-fresh-eyes-candidate).
