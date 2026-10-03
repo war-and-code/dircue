@@ -26,9 +26,18 @@ func Compare(base, head *Snapshot) (*Report, error) {
 			names = append(names, name)
 		}
 	}
-	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments"} {
+	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments", "lockfiles"} {
 		if a[name].present || b[name].present {
 			names = append(names, name)
+		}
+	}
+	if a["environments"].present && b["environments"].present && a["environments"].metadata["provider_version"] != b["environments"].metadata["provider_version"] {
+		for _, side := range []map[string]moduleData{a, b} {
+			m := side["environments"]
+			m.complete = false
+			m.observedOnly = true
+			m.reasons = appendReason(m.reasons, "environment_provider_scope_changed; absence across provider versions is not established")
+			side["environments"] = m
 		}
 	}
 	for _, name := range names {

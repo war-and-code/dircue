@@ -94,7 +94,7 @@ func Build(ctx context.Context, in Input) (*Report, error) {
 }
 
 func validateInput(in Input) error {
-	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
+	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
 		return ErrInvalid
 	}
 	if len(in.Selection.Modules)+len(in.Selection.Questions) > MaxRequests || len(in.Selection.Inputs) > MaxRequests || len(in.Selection.Projects) > MaxProjects {
@@ -281,6 +281,8 @@ func evidenceFor(d *discovery.Report, module string, languages []profile.Languag
 		switch module {
 		case "declarations", "environments":
 			return c.Kind == "manifest" || c.Kind == "shared_configuration"
+		case "lockfiles":
+			return c.Kind == "manifest" && (c.Format == "npm" || c.Format == "dotnet" || c.Format == "npm_lock" || c.Format == "nuget_lock")
 		case "focus":
 			return c.Kind == "manifest" && slices.Contains(projects, c.Path)
 		case "formats":
@@ -349,6 +351,10 @@ func retainedStatus(p *profile.Report, module string, projects []string) (string
 		if p.Environments != nil {
 			return p.Environments.Status, true
 		}
+	case "lockfiles":
+		if p.Lockfiles != nil {
+			return p.Lockfiles.Status, true
+		}
 	case "formats":
 		if p.Formats != nil {
 			return p.Formats.Status, true
@@ -401,6 +407,9 @@ func sourceIdentity(p *profile.Report) SourceIdentity {
 	}
 	if p.Environments != nil {
 		add(p.Environments.Source, p.Environments.Tree)
+	}
+	if p.Lockfiles != nil {
+		add(p.Lockfiles.Source, p.Lockfiles.Tree)
 	}
 	if p.Projects != nil {
 		add(p.Projects.Source, p.Projects.Tree)

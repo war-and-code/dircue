@@ -16,6 +16,7 @@ import (
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/explain"
 	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/lockfiles"
 	"github.com/war-and-code/dircue/pkg/profile"
 	"github.com/war-and-code/dircue/schema"
 )
@@ -75,7 +76,7 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 		return nil, ErrInvalid
 	}
 	level := -1
-	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0"} {
+	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"} {
 		if version == known {
 			level = i
 		}
@@ -83,7 +84,7 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 	if level < 0 {
 		return nil, ErrUnsupported
 	}
-	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6, "environments": 7} {
+	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6, "environments": 7, "lockfiles": 8} {
 		if _, found := object[field]; found && level < minimum {
 			return nil, ErrInvalid
 		}
@@ -353,6 +354,9 @@ func sourceMode(mode string) bool { return mode == "git" || mode == "directory" 
 // their focus plan. This does not authenticate a caller-supplied report.
 func validTargetedStates(p profile.Report) bool {
 	if p.Environments != nil && environments.ValidateReport(p.Environments) != nil {
+		return false
+	}
+	if p.Lockfiles != nil && lockfiles.ValidateReport(p.Lockfiles) != nil {
 		return false
 	}
 	if p.Explanation != nil && explain.ValidateReport(p.Explanation) != nil {
