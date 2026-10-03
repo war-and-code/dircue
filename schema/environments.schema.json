@@ -20,7 +20,10 @@
       "const": "dircue"
     },
     "provider_version": {
-      "const": "1.0.0"
+      "enum": [
+        "1.0.0",
+        "1.1.0"
+      ]
     },
     "status": {
       "enum": [
@@ -81,6 +84,13 @@
       "items": {
         "$ref": "#/$defs/diagnostic"
       }
+    },
+    "toolchain_declarations": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "$ref": "#/$defs/toolchainDeclaration"
+      }
     }
   },
   "additionalProperties": false,
@@ -108,6 +118,96 @@
           "required": [
             "tree"
           ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provider_version": {
+            "const": "1.0.0"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limits": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "toolchain_files"
+                  ]
+                },
+                {
+                  "required": [
+                    "toolchain_file_bytes"
+                  ]
+                },
+                {
+                  "required": [
+                    "toolchain_input_bytes"
+                  ]
+                }
+              ]
+            }
+          },
+          "coverage": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "toolchain_candidates"
+                  ]
+                },
+                {
+                  "required": [
+                    "toolchain_read"
+                  ]
+                },
+                {
+                  "required": [
+                    "toolchain_bytes"
+                  ]
+                },
+                {
+                  "required": [
+                    "toolchain_declarations"
+                  ]
+                },
+                {
+                  "required": [
+                    "omitted_toolchain_files"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "not": {
+          "required": [
+            "toolchain_declarations"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provider_version": {
+            "const": "1.1.0"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "limits": {
+            "required": [
+              "toolchain_files",
+              "toolchain_file_bytes",
+              "toolchain_input_bytes"
+            ]
+          }
         }
       }
     }
@@ -166,6 +266,21 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 16777216
+        },
+        "toolchain_files": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4096
+        },
+        "toolchain_file_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        },
+        "toolchain_input_bytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4194304
         }
       },
       "additionalProperties": false
@@ -213,6 +328,21 @@
           "$ref": "#/$defs/nonnegativeInteger"
         },
         "omitted_requirements": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "toolchain_candidates": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "toolchain_read": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "toolchain_bytes": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "toolchain_declarations": {
+          "$ref": "#/$defs/nonnegativeInteger"
+        },
+        "omitted_toolchain_files": {
           "$ref": "#/$defs/nonnegativeInteger"
         }
       },
@@ -386,6 +516,49 @@
           "$ref": "#/$defs/requiredText"
         },
         "message": {
+          "$ref": "#/$defs/requiredText"
+        }
+      },
+      "additionalProperties": false
+    },
+    "toolchainDeclaration": {
+      "type": "object",
+      "required": [
+        "source_path",
+        "tool",
+        "kind",
+        "state",
+        "scope_directory",
+        "applicability"
+      ],
+      "properties": {
+        "source_path": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "tool": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "kind": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "values": {
+          "type": "array",
+          "maxItems": 16,
+          "items": {
+            "$ref": "#/$defs/requiredText"
+          }
+        },
+        "state": {
+          "enum": [
+            "declared",
+            "unresolved",
+            "unsupported"
+          ]
+        },
+        "scope_directory": {
+          "$ref": "#/$defs/requiredText"
+        },
+        "applicability": {
           "$ref": "#/$defs/requiredText"
         }
       },

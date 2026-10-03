@@ -11,7 +11,9 @@ func ValidateReport(r *Report) error {
 	if r == nil {
 		return errors.New("environment report is required")
 	}
-	if r.Provider != Provider || r.ProviderVersion != ProviderVersion || r.SemanticsReference != semanticsReference {
+	legacy := r.ProviderVersion == LegacyProviderVersion && r.SemanticsReference == legacySemanticsReference
+	current := r.ProviderVersion == ProviderVersion && r.SemanticsReference == semanticsReference
+	if r.Provider != Provider || (!legacy && !current) {
 		return errors.New("environment report identity is invalid")
 	}
 	if r.Status != "complete" && r.Status != "partial" && r.Status != "skipped" {
@@ -24,9 +26,23 @@ func ValidateReport(r *Report) error {
 	if l.InventoryPaths < 1 || l.InventoryPaths > DefaultMaxInventoryPaths || l.GlobalJSONBytes < 1 || l.GlobalJSONBytes > DefaultMaxGlobalJSONBytes || l.InputBytes < 1 || l.InputBytes > DefaultMaxInputBytes || l.Requirements < 1 || l.Requirements > DefaultMaxRequirements || l.Contexts < 1 || l.Contexts > DefaultMaxContexts || l.OutputBytes < 1 || l.OutputBytes > DefaultMaxOutputBytes {
 		return errors.New("environment limits are invalid")
 	}
+	if current {
+		if l.ToolchainFiles < 1 || l.ToolchainFiles > DefaultMaxToolchainFiles || l.ToolchainFileBytes < 1 || l.ToolchainFileBytes > DefaultMaxToolchainFileBytes || l.ToolchainInputBytes < 1 || l.ToolchainInputBytes > DefaultMaxToolchainInputBytes {
+			return errors.New("environment toolchain limits are invalid")
+		}
+	} else if l.ToolchainFiles != 0 || l.ToolchainFileBytes != 0 || l.ToolchainInputBytes != 0 || len(r.ToolchainDeclarations) != 0 {
+		return errors.New("legacy environment report contains newer toolchain fields")
+	}
 	c := r.Coverage
 	if c.InventoryPaths < 0 || c.InventoryPaths > l.InventoryPaths || c.ProjectRecords < 0 || c.ParsedProjectRecords < 0 || c.ParsedProjectRecords > c.ProjectRecords || c.Contexts != len(r.Selections) || c.Contexts > l.Contexts || c.GlobalJSONCandidates < 0 || c.GlobalJSONRead < 0 || c.GlobalJSONRead > c.GlobalJSONCandidates || c.InputBytes < 0 || c.InputBytes > l.InputBytes || c.Requirements != len(r.Requirements) || c.Requirements > l.Requirements || c.OmittedFiles < 0 || c.OmittedRequirements < 0 {
 		return errors.New("environment coverage is inconsistent")
+	}
+	if current {
+		if c.ToolchainCandidates < 0 || c.ToolchainCandidates > c.InventoryPaths || c.ToolchainRead < 0 || c.ToolchainRead > c.ToolchainCandidates || c.ToolchainBytes < 0 || c.ToolchainBytes > l.ToolchainInputBytes || c.ToolchainDeclarations != len(r.ToolchainDeclarations) || c.ToolchainDeclarations > l.ToolchainFiles || c.OmittedToolchainFiles < 0 {
+			return errors.New("environment toolchain coverage is inconsistent")
+		}
+	} else if c.ToolchainCandidates != 0 || c.ToolchainRead != 0 || c.ToolchainBytes != 0 || c.ToolchainDeclarations != 0 || c.OmittedToolchainFiles != 0 {
+		return errors.New("legacy environment report contains newer toolchain coverage")
 	}
 	contexts := map[string]bool{}
 	for _, s := range r.Selections {
@@ -46,6 +62,19 @@ func ValidateReport(r *Report) error {
 			return errors.New("environment requirement is invalid")
 		}
 		contexts[q.ContextID] = true
+	}
+	for _, d := range r.ToolchainDeclarations {
+		if !wireString(d.SourcePath) || !wireString(d.Tool) || !wireString(d.Kind) || !wireString(d.ScopeDirectory) || !wireString(d.Applicability) || (d.State != "declared" && d.State != "unresolved" && d.State != "unsupported") || len(d.Values) > 16 {
+			return errors.New("environment toolchain declaration is invalid")
+		}
+		if d.State == "declared" && len(d.Values) == 0 || d.State != "declared" && len(d.Values) != 0 {
+			return errors.New("environment toolchain declaration values do not match its state")
+		}
+		for _, value := range d.Values {
+			if !wireString(value) {
+				return errors.New("environment toolchain declaration value is invalid")
+			}
+		}
 	}
 	for _, b := range r.Boundaries {
 		if !wireOptional(b.Path) || !wireOptional(b.ProjectID) || !wireOptional(b.ContextID) || !wireString(b.Reason) || !wireOptional(b.Detail) || (b.ContextID != "" && !contexts[b.ContextID]) {

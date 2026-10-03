@@ -17,7 +17,8 @@ import (
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
-const semanticsReference = "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json (last updated 2026-03-09; accessed 2026-09-21)"
+const legacySemanticsReference = "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json (last updated 2026-03-09; accessed 2026-09-21)"
+const semanticsReference = "https://learn.microsoft.com/en-us/dotnet/core/tools/global-json (last updated 2026-03-09; accessed 2026-09-21); https://github.com/pyenv/pyenv/blob/master/README.md; https://github.com/nvm-sh/nvm/blob/master/README.md; https://github.com/nodenv/nodenv/blob/master/README.md; https://rust-lang.github.io/rustup/overrides.html (accessed 2026-10-03)"
 
 // Skip returns a valid zero-evidence report when source traversal could not
 // safely supply the complete inventory required for environment selection.
@@ -77,6 +78,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			files[clean] = File{Path: clean, Size: f.Size, NonRegular: f.NonRegular}
 			r.Coverage.InventoryPaths++
 		}
+	}
+	if err := observeToolchainDeclarations(ctx, in, limits, files, r); err != nil {
+		return nil, err
 	}
 	records := slices.Clone(in.ProjectRecords)
 	slices.SortFunc(records, func(a, b declarations.ProjectRecord) int { return strings.Compare(a.Project.ID, b.Project.ID) })
@@ -343,6 +347,15 @@ func defaults(l Limits) Limits {
 	}
 	if l.GlobalJSONBytes <= 0 || l.GlobalJSONBytes > DefaultMaxGlobalJSONBytes {
 		l.GlobalJSONBytes = DefaultMaxGlobalJSONBytes
+	}
+	if l.ToolchainFiles <= 0 || l.ToolchainFiles > DefaultMaxToolchainFiles {
+		l.ToolchainFiles = DefaultMaxToolchainFiles
+	}
+	if l.ToolchainFileBytes <= 0 || l.ToolchainFileBytes > DefaultMaxToolchainFileBytes {
+		l.ToolchainFileBytes = DefaultMaxToolchainFileBytes
+	}
+	if l.ToolchainInputBytes <= 0 || l.ToolchainInputBytes > DefaultMaxToolchainInputBytes {
+		l.ToolchainInputBytes = DefaultMaxToolchainInputBytes
 	}
 	if l.InputBytes <= 0 || l.InputBytes > DefaultMaxInputBytes {
 		l.InputBytes = DefaultMaxInputBytes

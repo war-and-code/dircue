@@ -43,6 +43,35 @@ func TestNearestGlobalJSONAndExplicitStart(t *testing.T) {
 	}
 }
 
+func TestToolchainDeclarationsRetainSelectedSourceAndScopedValues(t *testing.T) {
+	in := envInput(map[string]string{
+		".python-version":                "3.11.8\n3.12.2\n# alternate interpreters\n",
+		"web/.nvmrc":                     "lts/* # current LTS\n",
+		"web/.node-version":              "22.13.1\n",
+		"rust-toolchain":                 "nightly-2025-02-01\n",
+		"crates/api/rust-toolchain.toml": "[toolchain]\nchannel = \"1.85.0\"\ncomponents = [\"rustfmt\"]\n",
+	}, nil)
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ToolchainDeclaration{
+		{SourcePath: ".python-version", Tool: "python", Kind: "python-version", Values: []string{"3.11.8", "3.12.2"}, State: "declared", ScopeDirectory: "."},
+		{SourcePath: "crates/api/rust-toolchain.toml", Tool: "rust", Kind: "rust-toolchain-toml", Values: []string{"1.85.0"}, State: "declared", ScopeDirectory: "crates/api"},
+		{SourcePath: "rust-toolchain", Tool: "rust", Kind: "rust-toolchain", Values: []string{"nightly-2025-02-01"}, State: "declared", ScopeDirectory: "."},
+		{SourcePath: "web/.node-version", Tool: "node", Kind: "node-version", Values: []string{"22.13.1"}, State: "declared", ScopeDirectory: "web"},
+		{SourcePath: "web/.nvmrc", Tool: "node", Kind: "nvmrc", Values: []string{"lts/*"}, State: "declared", ScopeDirectory: "web"},
+	}
+	if len(r.ToolchainDeclarations) != len(want) {
+		t.Fatalf("toolchain declarations: %+v", r.ToolchainDeclarations)
+	}
+	for i, got := range r.ToolchainDeclarations {
+		if got.SourcePath != want[i].SourcePath || got.Tool != want[i].Tool || got.Kind != want[i].Kind || got.State != want[i].State || got.ScopeDirectory != want[i].ScopeDirectory || !reflect.DeepEqual(got.Values, want[i].Values) || got.Applicability == "" {
+			t.Errorf("declaration[%d] = %+v, want %+v with applicability", i, got, want[i])
+		}
+	}
+}
+
 func TestMalformedAndUnsupportedGlobalJSON(t *testing.T) {
 	tests := []struct{ name, body, code string }{
 		{"malformed", `{"sdk":`, "invalid-global-json"},
