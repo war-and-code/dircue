@@ -3,6 +3,8 @@ package environments
 import (
 	"encoding/json"
 	"errors"
+	"path"
+	"strings"
 )
 
 // ValidateReport rejects decoded reports that are inconsistent or outside the
@@ -38,13 +40,14 @@ func ValidateReport(r *Report) error {
 		return errors.New("environment coverage is inconsistent")
 	}
 	if current {
-		if c.ToolchainCandidates < 0 || c.ToolchainCandidates > c.InventoryPaths || c.ToolchainRead < 0 || c.ToolchainRead > c.ToolchainCandidates || c.ToolchainBytes < 0 || c.ToolchainBytes > l.ToolchainInputBytes || c.ToolchainDeclarations != len(r.ToolchainDeclarations) || c.ToolchainDeclarations > l.ToolchainFiles || c.OmittedToolchainFiles < 0 {
+		if c.ToolchainCandidates < 0 || c.ToolchainCandidates > c.InventoryPaths || c.ToolchainRead < 0 || c.ToolchainRead > c.ToolchainCandidates || c.ToolchainBytes < 0 || c.ToolchainBytes > l.ToolchainInputBytes || c.ToolchainDeclarations != len(r.ToolchainDeclarations) || c.ToolchainDeclarations > c.ToolchainCandidates || c.ToolchainDeclarations > l.ToolchainFiles || c.ToolchainRead > c.ToolchainDeclarations || c.OmittedToolchainFiles < 0 || int64(c.ToolchainRead)+c.OmittedToolchainFiles != int64(c.ToolchainCandidates) {
 			return errors.New("environment toolchain coverage is inconsistent")
 		}
 	} else if c.ToolchainCandidates != 0 || c.ToolchainRead != 0 || c.ToolchainBytes != 0 || c.ToolchainDeclarations != 0 || c.OmittedToolchainFiles != 0 {
 		return errors.New("legacy environment report contains newer toolchain coverage")
 	}
 	contexts := map[string]bool{}
+	unresolved := false
 	for _, s := range r.Selections {
 		if !wireString(s.ContextID) || contexts[s.ContextID] || !wireString(s.ProjectID) || !wireString(s.StartDirectory) || !wireString(s.StartBasis) || !wireOptional(s.GlobalJSON) || !wireOptional(s.SDKVersion) || !wireOptional(s.RollForward) || !wireString(s.Applicability) || (s.State != "declared" && s.State != "unresolved" && s.State != "unconstrained") {
 			return errors.New("environment selection is invalid")
@@ -56,25 +59,37 @@ func ValidateReport(r *Report) error {
 			return errors.New("declared environment selection lacks a policy")
 		}
 		contexts[s.ContextID] = true
+		unresolved = unresolved || s.State == "unresolved"
 	}
 	for _, q := range r.Requirements {
 		if !wireString(q.ProjectID) || !wireString(q.ContextID) || !wireString(q.Dimension) || !wireString(q.Kind) || !wireOptional(q.Value) || !wireString(q.State) || !wireString(q.Evidence) || !wireOptional(q.Condition) || !wireString(q.Applicability) {
 			return errors.New("environment requirement is invalid")
 		}
 		contexts[q.ContextID] = true
+		unresolved = unresolved || q.State == "unresolved"
 	}
+	toolchainPaths := map[string]bool{}
 	for _, d := range r.ToolchainDeclarations {
-		if !wireString(d.SourcePath) || !wireString(d.Tool) || !wireString(d.Kind) || !wireString(d.ScopeDirectory) || !wireString(d.Applicability) || (d.State != "declared" && d.State != "unresolved" && d.State != "unsupported") || len(d.Values) > 16 {
+		if !wireString(d.SourcePath) || !validToolchainPath(d.SourcePath) || !wireString(d.Tool) || !wireString(d.Kind) || !validToolchainScope(d.ScopeDirectory) || d.Applicability != toolchainApplicability || (d.State != "declared" && d.State != "unresolved" && d.State != "unsupported") || len(d.Values) > 16 || toolchainPaths[d.SourcePath] {
 			return errors.New("environment toolchain declaration is invalid")
 		}
+		kind, ok := toolchainFilenames[path.Base(d.SourcePath)]
+		if !ok || d.Tool != kind.tool || d.Kind != kind.kind || d.ScopeDirectory != toolchainScope(d.SourcePath) {
+			return errors.New("environment toolchain declaration identity is inconsistent")
+		}
+		toolchainPaths[d.SourcePath] = true
 		if d.State == "declared" && len(d.Values) == 0 || d.State != "declared" && len(d.Values) != 0 {
 			return errors.New("environment toolchain declaration values do not match its state")
 		}
 		for _, value := range d.Values {
-			if !wireString(value) {
+			if !wireString(value) || !safeToolchainSelector(value) {
 				return errors.New("environment toolchain declaration value is invalid")
 			}
 		}
+		unresolved = unresolved || d.State != "declared"
+	}
+	if r.Status == "complete" && (c.OmittedFiles != 0 || c.OmittedRequirements != 0 || hasNonInformationalDiagnostic(r.Diagnostics) || unresolved || current && (c.OmittedToolchainFiles != 0 || c.ToolchainCandidates != c.ToolchainRead || c.ToolchainRead != c.ToolchainDeclarations)) {
+		return errors.New("complete environment report contains unresolved or omitted evidence")
 	}
 	for _, b := range r.Boundaries {
 		if !wireOptional(b.Path) || !wireOptional(b.ProjectID) || !wireOptional(b.ContextID) || !wireString(b.Reason) || !wireOptional(b.Detail) || (b.ContextID != "" && !contexts[b.ContextID]) {
@@ -105,3 +120,31 @@ func ValidateReport(r *Report) error {
 
 func wireString(v string) bool   { return v != "" && len(v) <= 8192 }
 func wireOptional(v string) bool { return len(v) <= 8192 }
+
+func validToolchainPath(value string) bool {
+	return value != "" && !path.IsAbs(value) && path.Clean(value) == value && value != "." && value != ".." && !strings.HasPrefix(value, "../") && !strings.ContainsAny(value, "\\\x00")
+}
+
+func validToolchainScope(value string) bool {
+	if value == "." {
+		return true
+	}
+	return validToolchainPath(value)
+}
+
+func toolchainScope(sourcePath string) string {
+	scope := path.Dir(sourcePath)
+	if scope == "" {
+		return "."
+	}
+	return scope
+}
+
+func hasNonInformationalDiagnostic(diagnostics []Diagnostic) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code != "global-json-lenient-syntax" {
+			return true
+		}
+	}
+	return false
+}

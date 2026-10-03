@@ -155,3 +155,86 @@ func TestToolchainDeclarationsOnlyComeFromSelectedInventory(t *testing.T) {
 		t.Fatalf("unselected path affected declarations: %+v", r.ToolchainDeclarations)
 	}
 }
+
+func TestValidateReportRejectsInvalidToolchainIdentityAndCompleteUnknowns(t *testing.T) {
+	valid, err := Analyze(t.Context(), envInput(map[string]string{"apps/café project/.nvmrc": "20\n"}, nil), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReport(valid); err != nil {
+		t.Fatalf("ordinary Unicode/space path should remain valid: %v", err)
+	}
+	mutations := []struct {
+		name   string
+		change func(*Report)
+	}{
+		{"traversal source", func(r *Report) {
+			r.ToolchainDeclarations[0].SourcePath = "../outside/.nvmrc"
+			r.ToolchainDeclarations[0].ScopeDirectory = "../outside"
+		}},
+		{"absolute source", func(r *Report) {
+			r.ToolchainDeclarations[0].SourcePath = "/outside/.nvmrc"
+			r.ToolchainDeclarations[0].ScopeDirectory = "/outside"
+		}},
+		{"noncanonical source", func(r *Report) { r.ToolchainDeclarations[0].SourcePath = "apps/../apps/café project/.nvmrc" }},
+		{"scope mismatch", func(r *Report) { r.ToolchainDeclarations[0].ScopeDirectory = "." }},
+		{"kind mismatch", func(r *Report) { r.ToolchainDeclarations[0].Kind = "python-version" }},
+		{"tool mismatch", func(r *Report) { r.ToolchainDeclarations[0].Tool = "python" }},
+		{"applicability overclaim", func(r *Report) { r.ToolchainDeclarations[0].Applicability = "installed and selected" }},
+	}
+	for _, tt := range mutations {
+		t.Run(tt.name, func(t *testing.T) {
+			candidate := cloneEnvironmentReport(t, valid)
+			tt.change(candidate)
+			if err := ValidateReport(candidate); err == nil {
+				t.Fatal("invalid toolchain identity was accepted")
+			}
+		})
+	}
+
+	unsupported, err := Analyze(t.Context(), envInput(map[string]string{".nvmrc": "20\n21\n"}, nil), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unsupported.Status = "complete"
+	unsupported.Diagnostics = []Diagnostic{}
+	if err := ValidateReport(unsupported); err == nil {
+		t.Fatal("complete report with unsupported toolchain selector was accepted")
+	}
+	unresolved, err := Analyze(t.Context(), envInput(map[string]string{".nvmrc": "20\n"}, nil), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	unresolved.Status = "complete"
+	unresolved.ToolchainDeclarations[0].State = "unresolved"
+	unresolved.ToolchainDeclarations[0].Values = nil
+	if err := ValidateReport(unresolved); err == nil {
+		t.Fatal("complete report with unresolved toolchain selector was accepted")
+	}
+}
+
+func TestCompleteEnvironmentAllowsDocumentedJSONCLeniencyDiagnostic(t *testing.T) {
+	r, err := Analyze(t.Context(), envInput(map[string]string{"global.json": "// pinned\n{\"sdk\":{\"version\":\"7.0.100\"}}"}, []Invocation{{"project", "."}}), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "complete" || len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "global-json-lenient-syntax" {
+		t.Fatalf("fixture did not exercise informational diagnostic: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("informational JSONC diagnostic must not invalidate complete coverage: %v", err)
+	}
+}
+
+func cloneEnvironmentReport(t *testing.T, r *Report) *Report {
+	t.Helper()
+	data, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var clone Report
+	if err := json.Unmarshal(data, &clone); err != nil {
+		t.Fatal(err)
+	}
+	return &clone
+}

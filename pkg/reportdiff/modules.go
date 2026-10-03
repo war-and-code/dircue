@@ -389,15 +389,24 @@ func environmentModule(r *environments.Report) moduleData {
 		"diagnostics": r.Diagnostics,
 	}
 	m.complete = r.Status == "complete" && r.Coverage.OmittedFiles == 0 && r.Coverage.OmittedRequirements == 0 &&
-		r.Coverage.OmittedToolchainFiles == 0 && len(r.Diagnostics) == 0
+		r.Coverage.OmittedToolchainFiles == 0 && !environmentsHasNonInformationalDiagnostic(r.Diagnostics)
 	m.reasons = append(m.reasons, "environment declarations are observations; installed versions and project applicability were not evaluated")
 	for _, item := range r.Requirements {
+		if item.State == "unresolved" {
+			m.complete = false
+		}
 		m.add("requirement:"+key(item.ProjectID, item.ContextID, item.Dimension, item.Kind, item.Value, item.Condition), item, item.Evidence)
 	}
 	for _, item := range r.Selections {
+		if item.State == "unresolved" {
+			m.complete = false
+		}
 		m.add("selection:"+key(item.ContextID, item.ProjectID, item.StartDirectory, item.StartBasis), item, nonemptyEvidence(item.GlobalJSON)...)
 	}
 	for _, item := range r.ToolchainDeclarations {
+		if item.State != "declared" {
+			m.complete = false
+		}
 		m.add("toolchain:"+key(item.SourcePath, item.Tool, item.Kind, item.ScopeDirectory), item, item.SourcePath)
 	}
 	for _, item := range r.Conflicts {
@@ -411,6 +420,15 @@ func environmentModule(r *environments.Report) moduleData {
 		m.add("diagnostic:"+key(item.Path, item.Code, item.Message), item, item.Path)
 	}
 	return m
+}
+
+func environmentsHasNonInformationalDiagnostic(diagnostics []environments.Diagnostic) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code != "global-json-lenient-syntax" {
+			return true
+		}
+	}
+	return false
 }
 
 func lockfilesModule(r *lockfiles.Report) moduleData {
