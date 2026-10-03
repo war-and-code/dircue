@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Unit tests for verify_golden.py."""
+import json
+import subprocess
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
 from verify_golden import (
     ECOSYSTEM_ALIASES,
@@ -410,10 +415,6 @@ class TestScoreCapabilities(unittest.TestCase):
         self.assertEqual(r.fn, 1)  # wrong owner
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 class TestEndpointNormalisationBoundaries(unittest.TestCase):
     def test_root_dockerfile_edge_endpoint_uses_path_matched_label(self):
         docker = {
@@ -495,3 +496,136 @@ class TestEndpointNormalisationBoundaries(unittest.TestCase):
                  "b": {"id": "b", "kind": "component", "name": "member", "properties": {}}}
         edge = {"type": "member_of", "from": "b", "to": "a"}
         self.assertTrue(match_edge({"type": "contains", "from": "root", "to": "member"}, edge, nodes))
+
+
+def _passing_cli_fixture():
+    labels = {
+        "repos": [{
+            "repo": "sample",
+            "commit": "fixture",
+            "oracle_files": [{"path": "package.json"}],
+            "components": [{"name": "app", "root": ".", "ecosystem": "npm"}],
+            "deployables": [{"kind": "container_build", "name": "api", "path": "Dockerfile"}],
+            "interfaces": [{"kind": "declared_port", "name": "8080"}],
+            "capabilities": [{"capability": "cache:redis"}],
+            "edges": [{"type": "uses_capability", "from": "app", "to": "cache:redis"}],
+        }],
+    }
+    map_doc = {
+        "nodes": [
+            {"id": "component", "kind": "component", "name": "app",
+             "properties": {"root": ".", "ecosystem": "npm"},
+             "evidence": [{"path": "package.json"}]},
+            {"id": "deployable", "kind": "deployable", "name": "api",
+             "properties": {"kind": "container_build"}, "paths": ["Dockerfile"],
+             "evidence": [{"path": "package.json"}]},
+            {"id": "interface", "kind": "interface", "name": "8080",
+             "properties": {"interface_kind": "declared_port"},
+             "evidence": [{"path": "package.json"}]},
+            {"id": "capability", "kind": "capability", "name": "cache:redis",
+             "properties": {}, "evidence": [{"path": "package.json"}]},
+        ],
+        "edges": [{"id": "uses", "type": "uses_capability", "from": "component",
+                   "to": "capability", "evidence": [{"path": "package.json"}]}],
+        "coverage": [],
+    }
+    return labels, map_doc
+
+
+class TestGoldenCLICorpusCompleteness(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name)
+        self.labels = self.root / "labels.json"
+        self.maps = self.root / "maps"
+        self.maps.mkdir()
+        self.output = self.root / "result.json"
+        label_doc, map_doc = _passing_cli_fixture()
+        self.labels.write_text(json.dumps(label_doc))
+        (self.maps / "sample.json").write_text(json.dumps(map_doc))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_maps(self, *extra):
+        return subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("verify_golden.py")),
+             "--labels", str(self.labels), "--maps", str(self.maps),
+             "--output", str(self.output), *extra],
+            text=True, capture_output=True, check=False,
+        )
+
+    def result(self):
+        return json.loads(self.output.read_text())
+
+    def test_complete_map_passes_after_evaluating_all_labeled_repos(self):
+        proc = self.run_maps()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("All gates passed.", proc.stderr)
+        doc = self.result()
+        self.assertEqual(doc["gate_status"], "passed")
+        self.assertTrue(doc["input_complete"])
+        self.assertEqual((doc["expected_repo_count"], doc["evaluated_repo_count"]), (1, 1))
+        self.assertFalse(doc["metric_scope"]["labels_modified"])
+        self.assertEqual(doc["repo_inputs"][0]["status"], "evaluated")
+
+    def test_missing_map_fails_and_is_receipted(self):
+        (self.maps / "sample.json").unlink()
+        proc = self.run_maps()
+        self.assertEqual(proc.returncode, 1)
+        self.assertNotIn("All gates passed.", proc.stderr)
+        doc = self.result()
+        self.assertEqual((doc["expected_repo_count"], doc["evaluated_repo_count"]), (1, 0))
+        self.assertEqual(doc["gate_status"], "failed")
+        self.assertEqual(doc["repo_inputs"][0]["status"], "missing")
+        self.assertIn("map file not found", doc["repo_inputs"][0]["detail"])
+
+    def test_missing_repo_fails_and_is_receipted(self):
+        binary = self.root / "dircue"
+        binary.write_text("#!/bin/sh\nexit 0\n")
+        binary.chmod(0o755)
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("verify_golden.py")),
+             "--labels", str(self.labels), "--binary", str(binary),
+             "--repos", str(self.root), "--output", str(self.output)],
+            text=True, capture_output=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 1)
+        self.assertNotIn("All gates passed.", proc.stderr)
+        doc = self.result()
+        self.assertEqual((doc["expected_repo_count"], doc["evaluated_repo_count"]), (1, 0))
+        self.assertEqual(doc["repo_inputs"][0]["status"], "missing")
+        self.assertIn("repository directory not found", doc["repo_inputs"][0]["detail"])
+
+    def test_binary_failure_fails_and_is_receipted(self):
+        repos = self.root / "repos"
+        (repos / "sample").mkdir(parents=True)
+        binary = self.root / "dircue"
+        binary.write_text("#!/bin/sh\necho failure >&2\nexit 7\n")
+        binary.chmod(0o755)
+        proc = subprocess.run(
+            [sys.executable, str(Path(__file__).with_name("verify_golden.py")),
+             "--labels", str(self.labels), "--binary", str(binary),
+             "--repos", str(repos), "--output", str(self.output)],
+            text=True, capture_output=True, check=False,
+        )
+        self.assertEqual(proc.returncode, 1)
+        doc = self.result()
+        self.assertEqual((doc["expected_repo_count"], doc["evaluated_repo_count"]), (1, 0))
+        self.assertEqual(doc["repo_inputs"][0]["status"], "failed")
+        self.assertIn("dircue failed for sample", doc["repo_inputs"][0]["detail"])
+
+    def test_no_gate_partial_run_never_claims_success(self):
+        (self.maps / "sample.json").unlink()
+        proc = self.run_maps("--no-gate")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("Diagnostics only (--no-gate)", proc.stderr)
+        self.assertNotIn("All gates passed.", proc.stderr)
+        doc = self.result()
+        self.assertEqual(doc["gate_status"], "not_run")
+        self.assertFalse(doc["input_complete"])
+        self.assertEqual(doc["repo_inputs"][0]["status"], "missing")
+
+
+if __name__ == "__main__":
+    unittest.main()
