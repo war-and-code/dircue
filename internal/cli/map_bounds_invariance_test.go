@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/formats"
 	"github.com/war-and-code/dircue/pkg/intentmap"
@@ -36,6 +37,8 @@ func TestFixedMapBoundsAreDiscoverableAndReadOnly(t *testing.T) {
 		values[s.Name] = s
 	}
 	lanes, singleLaneReaders, concurrentLaneReaders := scanner.GitStorageBounds()
+	lineBytes, processLines, inventoryFiles, inventoryBytes := deployables.ProcfileBounds()
+	aspireTokens, interpolationDepth, sourceReferences := deployables.AspireBounds()
 	want := map[string]struct {
 		value int64
 		unit  string
@@ -60,6 +63,13 @@ func TestFixedMapBoundsAreDiscoverableAndReadOnly(t *testing.T) {
 		"structure.report_functions":               {int64(scanner.FunctionReportLimit()), "functions"},
 		"structure.file_functions":                 {int64(structure.FunctionLimit), "functions"},
 		"intent.import_tokens_per_file":            {int64(intentmap.DefaultMaxLexicalTokensPerFile), "tokens"},
+		"deployables.procfile_line_bytes":          {int64(lineBytes), "bytes"},
+		"deployables.procfile_process_lines":       {int64(processLines), "lines"},
+		"deployables.procfile_inventory_paths":     {int64(inventoryFiles), "paths"},
+		"deployables.procfile_inventory_bytes":     {int64(inventoryBytes), "bytes"},
+		"deployables.aspire_tokens_per_file":       {int64(aspireTokens), "tokens"},
+		"deployables.aspire_interpolation_depth":   {int64(interpolationDepth), "levels"},
+		"deployables.aspire_source_references":     {int64(sourceReferences), "references"},
 	}
 	fixed := map[string]mapEffectiveSetting{}
 	for _, s := range report.Settings {

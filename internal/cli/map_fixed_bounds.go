@@ -3,6 +3,7 @@ package cli
 import (
 	"strconv"
 
+	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/formats"
 	"github.com/war-and-code/dircue/pkg/intentmap"
@@ -41,5 +42,14 @@ func fixedMapSettings() []mapEffectiveSetting {
 	add("structure.report_functions", int64(scanner.FunctionReportLimit()), "functions", "Maximum retained functions across an explicitly requested structural report; the optional worker is not enabled by map.")
 	add("structure.file_functions", structure.FunctionLimit, "functions", "Maximum retained function records per file for explicitly requested structural analysis.")
 	add("intent.import_tokens_per_file", intentmap.DefaultMaxLexicalTokensPerFile, "tokens", "Maximum retained lexical tokens per Java, Kotlin, C#, Visual Basic, JavaScript, or TypeScript import candidate; reaching this bound makes import coverage partial.")
+	lineBytes, processLines, inventoryFiles, inventoryBytes := deployables.ProcfileBounds()
+	add("deployables.procfile_line_bytes", int64(lineBytes), "bytes", "Maximum bytes per root Procfile declaration line; longer lines are omitted with a diagnostic.")
+	add("deployables.procfile_process_lines", int64(processLines), "lines", "Maximum nonblank process declaration lines inspected in a root Procfile.")
+	add("deployables.procfile_inventory_paths", int64(inventoryFiles), "paths", "Maximum retained Python/JavaScript paths for Procfile target binding; reaching the cap disables binding rather than choosing from an incomplete inventory.")
+	add("deployables.procfile_inventory_bytes", int64(inventoryBytes), "bytes", "Maximum retained path bytes for Procfile target binding; map reports qualification if a Procfile needs an incomplete inventory.")
+	tokens, interpolationDepth, sourceReferences := deployables.AspireBounds()
+	add("deployables.aspire_tokens_per_file", int64(tokens), "tokens", "Maximum lexical tokens per Aspire AppHost candidate; reaching the cap omits that source declaration with a diagnostic.")
+	add("deployables.aspire_interpolation_depth", int64(interpolationDepth), "levels", "Maximum nested C# string interpolation depth in an Aspire AppHost candidate.")
+	add("deployables.aspire_source_references", int64(sourceReferences), "references", "Maximum direct AddProject source observations per Aspire AppHost file; reaching the cap omits the candidate with a diagnostic.")
 	return settings
 }

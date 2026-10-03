@@ -46,8 +46,10 @@ func TestProcfileObserveToMapBuildUsesOnlySelectedSourceTarget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// This call is idempotent and also lets the focused test exercise the new
-	// helper before the central Build wiring lands.
+	if count := countProcfileEdges(mapDoc); count != 1 {
+		t.Fatalf("Build did not invoke Procfile mapping: edges=%+v", mapDoc.Edges)
+	}
+	// A repeated helper call must not duplicate the edge already emitted by Build.
 	addProcfileEdges(&mapDoc, deployableReport)
 	if count := countProcfileEdges(mapDoc); count != 1 {
 		t.Fatalf("Procfile run edges = %d; map: %+v", count, mapDoc.Edges)
@@ -77,6 +79,7 @@ func TestProcfileTargetMakesPartialRunEdgeToUniqueOwningComponent(t *testing.T) 
 	doc := mapdoc.New()
 	component := mapdoc.NewNode(mapdoc.NodeComponent, []string{"app/pyproject.toml", "app"}, "python")
 	component.Properties = map[string]string{"root": "app", "ecosystem": "python"}
+	component.Evidence = []mapdoc.Evidence{{Basis: mapdoc.BasisDeclaredConfig, Path: "app/pyproject.toml", SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/component-declarations", Version: "1.0.0"}}}
 	doc.Nodes = append(doc.Nodes, component)
 	report := &deployables.Report{Definitions: []deployables.Definition{{
 		Kind: "process", Provider: "procfile", Name: "web", Path: "Procfile", Coverage: "complete",
@@ -89,11 +92,14 @@ func TestProcfileTargetMakesPartialRunEdgeToUniqueOwningComponent(t *testing.T) 
 		t.Fatalf("Procfile run edge: %+v", doc.Edges)
 	}
 	edge := doc.Edges[0]
-	if edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Evidence) != 1 || edge.Evidence[0].Path != "Procfile" || edge.Evidence[0].Span == nil || edge.Evidence[0].Span.StartLine != 1 {
+	if edge.Coverage.Status != mapdoc.CoveragePartial || len(edge.Evidence) != 3 || edge.Evidence[0].Path != "Procfile" || edge.Evidence[0].Span == nil || edge.Evidence[0].Span.StartLine != 1 {
 		t.Fatalf("run edge lost static qualification or source evidence: %+v", edge)
 	}
 	if edge.Evidence[0].Rule == nil || edge.Evidence[0].Rule.ID != "dircue/deployables/procfile-target" {
 		t.Fatalf("unexpected evidence rule: %+v", edge.Evidence[0])
+	}
+	if edge.Properties["reason"] != "procfile_literal_target_matches_component" || edge.Evidence[1].Path != "app/main.py" || edge.Evidence[2].Path != "app/pyproject.toml" {
+		t.Fatalf("run edge does not explain its target/owner binding: %+v", edge)
 	}
 }
 

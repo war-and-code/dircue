@@ -15,9 +15,21 @@ func addProcfileEdges(d *mapdoc.Document, report *deployables.Report) {
 	if report == nil {
 		return
 	}
+	processFound := false
+	for _, definition := range report.Definitions {
+		if definition.Provider == "procfile" {
+			processFound = true
+			break
+		}
+	}
+	if !processFound {
+		return
+	}
 	componentsByRoot := map[string][]mapdoc.Node{}
+	nodeIndices := make(map[string]int, len(d.Nodes))
 	seenEdges := map[string]bool{}
-	for _, node := range d.Nodes {
+	for i, node := range d.Nodes {
+		nodeIndices[node.ID] = i
 		if node.Kind != mapdoc.NodeComponent {
 			continue
 		}
@@ -36,14 +48,8 @@ func addProcfileEdges(d *mapdoc.Document, report *deployables.Report) {
 			continue
 		}
 		probe := mapdoc.NewNode(mapdoc.NodeDeployable, []string{definition.Path}, definition.Provider+":"+definition.Kind+":"+definition.Name)
-		deployableIndex := -1
-		for i := range d.Nodes {
-			if d.Nodes[i].ID == probe.ID && d.Nodes[i].Kind == mapdoc.NodeDeployable {
-				deployableIndex = i
-				break
-			}
-		}
-		if deployableIndex < 0 {
+		deployableIndex, found := nodeIndices[probe.ID]
+		if !found || d.Nodes[deployableIndex].Kind != mapdoc.NodeDeployable {
 			continue
 		}
 		for _, ref := range definition.References {
@@ -70,7 +76,14 @@ func addProcfileEdges(d *mapdoc.Document, report *deployables.Report) {
 			}
 			seenEdges[e.ID] = true
 			e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"procfile_process_target_static"}}
-			e.Evidence = []mapdoc.Evidence{deployableEvidence(definition.Path, ref.Evidence)}
+			e.Properties = map[string]string{"reason": "procfile_literal_target_matches_component", "relationship_basis": "selected-source-and-component-root"}
+			e.Evidence = []mapdoc.Evidence{
+				deployableEvidence(definition.Path, ref.Evidence),
+				{Basis: mapdoc.BasisResolvedReference, Path: ref.SourcePath, SourceKind: mapdoc.SourceFile, Rule: &mapdoc.Producer{ID: "dircue/selected-inventory", Version: "1.0.0"}},
+			}
+			for _, evidence := range owner.Evidence {
+				e.Evidence = append(e.Evidence, evidence)
+			}
 			d.Edges = append(d.Edges, e)
 		}
 	}
