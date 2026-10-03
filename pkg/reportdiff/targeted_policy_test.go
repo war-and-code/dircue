@@ -32,6 +32,24 @@ func TestEnvironmentQualificationPreservesMeasuredLegacyPopulation(t *testing.T)
 	}
 }
 
+func TestUnresolvedToolchainRowsCannotProveEnvironmentAbsence(t *testing.T) {
+	base := &environments.Report{Provider: environments.Provider, ProviderVersion: environments.LegacyProviderVersion, Status: "complete", Source: "directory", Requirements: []environments.Requirement{{ProjectID: "app/package.json", ContextID: "app/package.json", Dimension: "runtime-constraint", Kind: "npm-engine", Value: ">=20", State: "declared", Evidence: "app/package.json", Applicability: "project declaration"}}}
+	head := &environments.Report{Provider: environments.Provider, ProviderVersion: environments.ProviderVersion, Status: "complete", Source: "directory", ToolchainDeclarations: []environments.ToolchainDeclaration{{SourcePath: ".nvmrc", Tool: "node", Kind: "nvmrc", State: "unsupported", ScopeDirectory: ".", Applicability: "literal declaration scope"}}}
+	a := moduleInputs(profile.Report{Environments: base})["environments"]
+	b := moduleInputs(profile.Report{Environments: head})["environments"]
+	if b.complete {
+		t.Fatal("unsupported toolchain declaration established complete coverage")
+	}
+	// Compare's provider-version guard also downgrades the old 1.0 population;
+	// mirror it here so the test isolates the unavailable-deletion rule.
+	a.complete = false
+	remaining, budget := 10, 1<<20
+	comparison := compareModule("environments", a, b, &remaining, &budget)
+	if comparison.Compatibility != "observed_only" || comparison.Counts.Added != 0 || comparison.Counts.Unavailable != 2 {
+		t.Fatalf("unresolved declaration promoted absence to a known addition: %+v", comparison)
+	}
+}
+
 func TestAvailabilityReferencesRemainComparableAcrossGitRevisions(t *testing.T) {
 	makeProfile := func(tree string) profile.Report {
 		return profile.Report{Declarations: &declarations.Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", Source: "git", Tree: tree}, Availability: &availability.Report{Provider: "dircue", ProviderVersion: "1.0.0", Status: "complete", Source: availability.Source{Mode: "git", Tree: tree, Consistency: "selected_git_tree", CheckoutMetadata: "not_inspected_for_git_tree"}, Coverage: availability.Coverage{SelectedInventoryComplete: true}}}

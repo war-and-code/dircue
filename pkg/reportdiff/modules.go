@@ -6,7 +6,9 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/focus"
+	"github.com/war-and-code/dircue/pkg/lockfiles"
 	"github.com/war-and-code/dircue/pkg/profile"
 )
 
@@ -364,17 +366,93 @@ func targetedModules(p profile.Report, result map[string]moduleData) {
 		result["explanation"] = m
 	}
 	if p.Environments != nil {
-		m := newModule()
-		m.present, m.status, m.unsupported = true, p.Environments.Status, true
-		m.reasons = append(m.reasons, "environment_comparison_not_supported")
-		result["environments"] = m
+		result["environments"] = environmentModule(p.Environments)
 		if p.Focus == nil && p.Formats == nil && p.Registries == nil && p.Rules == nil && p.PackageEvidence == nil && p.Discovery == nil && p.Graph == nil && p.Projects == nil && p.Structure == nil && p.Metrics == nil && legacyPopulationEmpty(p) {
 			qualifyLegacyPopulation(result, "repository_population_not_inspected_by_environment_report")
 		}
 	}
+	if p.Lockfiles != nil {
+		result["lockfiles"] = lockfilesModule(p.Lockfiles)
+	}
 	if p.Focus == nil && (p.Availability != nil || p.Explanation != nil) && p.Formats == nil && p.Declarations == nil && p.Registries == nil && p.Rules == nil && p.PackageEvidence == nil && p.Discovery == nil && p.Graph == nil && p.Projects == nil && p.Structure == nil && p.Metrics == nil {
 		qualifyLegacyPopulation(result, "repository_population_not_inspected_by_standalone_targeted_report")
 	}
+}
+
+func environmentModule(r *environments.Report) moduleData {
+	m := newModule()
+	m.present, m.status, m.observedOnly = true, r.Status, true
+	m.policy = map[string]any{"provider": r.Provider}
+	m.metadata = map[string]any{
+		"provider_version": r.ProviderVersion, "semantics_reference": r.SemanticsReference,
+		"source": r.Source, "tree": r.Tree, "limits": r.Limits, "coverage": r.Coverage,
+		"diagnostics": r.Diagnostics,
+	}
+	m.complete = r.Status == "complete" && r.Coverage.OmittedFiles == 0 && r.Coverage.OmittedRequirements == 0 &&
+		r.Coverage.OmittedToolchainFiles == 0 && !environmentsHasNonInformationalDiagnostic(r.Diagnostics)
+	m.reasons = append(m.reasons, "environment declarations are observations; installed versions and project applicability were not evaluated")
+	for _, item := range r.Requirements {
+		if item.State == "unresolved" {
+			m.complete = false
+		}
+		m.add("requirement:"+key(item.ProjectID, item.ContextID, item.Dimension, item.Kind, item.Value, item.Condition), item, item.Evidence)
+	}
+	for _, item := range r.Selections {
+		if item.State == "unresolved" {
+			m.complete = false
+		}
+		m.add("selection:"+key(item.ContextID, item.ProjectID, item.StartDirectory, item.StartBasis), item, nonemptyEvidence(item.GlobalJSON)...)
+	}
+	for _, item := range r.ToolchainDeclarations {
+		if item.State != "declared" {
+			m.complete = false
+		}
+		m.add("toolchain:"+key(item.SourcePath, item.Tool, item.Kind, item.ScopeDirectory), item, item.SourcePath)
+	}
+	for _, item := range r.Conflicts {
+		evidence := sortedStrings(item.Evidence)
+		m.add("conflict:"+key(item.ContextID, item.Dimension, strings.Join(evidence, "\x00")), item, evidence...)
+	}
+	for _, item := range r.Boundaries {
+		m.add("boundary:"+key(item.Reason, item.Path, item.ProjectID, item.ContextID), item, item.Path)
+	}
+	for _, item := range r.Diagnostics {
+		m.add("diagnostic:"+key(item.Path, item.Code, item.Message), item, item.Path)
+	}
+	return m
+}
+
+func environmentsHasNonInformationalDiagnostic(diagnostics []environments.Diagnostic) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Code != "global-json-lenient-syntax" {
+			return true
+		}
+	}
+	return false
+}
+
+func lockfilesModule(r *lockfiles.Report) moduleData {
+	m := newModule()
+	m.present, m.status, m.observedOnly = true, r.Status, true
+	m.policy = map[string]any{"provider": r.Provider, "provider_version": r.ProviderVersion, "semantics": r.Semantics, "limits": r.Limits}
+	m.metadata = map[string]any{"source": r.Source, "tree": r.Tree, "coverage": r.Coverage, "diagnostics": r.Diagnostics}
+	m.complete = r.Status == "complete" && r.Coverage.OmittedFiles == 0 && r.Coverage.OmittedContexts == 0 && len(r.Diagnostics) == 0
+	m.reasons = append(m.reasons, "lockfile checks cover named static subsets; resolved dependency graphs and restore success were not evaluated")
+	for _, item := range r.Contexts {
+		if item.AssociationState == "indeterminate" || item.AssociationState == "unsupported" {
+			m.complete = false
+		}
+		for _, check := range item.Checks {
+			if check.Status == "indeterminate" {
+				m.complete = false
+			}
+		}
+		m.add("context:"+item.ProjectID, item, nonemptyEvidence(item.ManifestPath, item.LockfilePath)...)
+	}
+	for _, item := range r.Diagnostics {
+		m.add("diagnostic:"+key(item.Path, item.Code, item.Message), item, item.Path)
+	}
+	return m
 }
 
 func legacyPopulationEmpty(p profile.Report) bool {
@@ -454,6 +532,16 @@ func sortedStrings(in []string) []string {
 	out := append([]string{}, in...)
 	slices.Sort(out)
 	return out
+}
+
+func nonemptyEvidence(values ...string) []string {
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
 }
 
 func availabilityModules(p profile.Report, result map[string]moduleData) {

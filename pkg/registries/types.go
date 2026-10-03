@@ -8,14 +8,17 @@ import (
 )
 
 const (
-	RuleVersion                           = "1.0.0"
+	RuleVersion                           = "1.1.0"
 	MaxConfigurationsPerEcosystem         = 64
 	MaxFileBytes                    int64 = 256 * 1024
 	MaxDeclarationsPerConfiguration       = 256
 	MaxDeclarationsPerEcosystem           = 1024
 	MaxXMLDepth                           = 32
 	MaxXMLTokens                          = 32768
+	MaxTOMLDepth                          = 32
+	MaxTOMLTokens                         = 32768
 	MaxNPMLineBytes                       = 8192
+	MaxMavenTextBytes                     = 8192
 )
 
 var (
@@ -88,15 +91,16 @@ type Configuration struct {
 	Omissions                map[string]int64 `json:"omissions"`
 }
 type Declaration struct {
-	Index     int64     `json:"index"`
-	Section   string    `json:"section"`
-	Operation string    `json:"operation"`
-	Semantics string    `json:"semantics"`
-	Name      *Label    `json:"name,omitempty"`
-	Scope     *Label    `json:"scope,omitempty"`
-	Pattern   *Label    `json:"pattern,omitempty"`
-	Endpoint  *Endpoint `json:"endpoint,omitempty"`
-	Disabled  *bool     `json:"disabled,omitempty"`
+	Index         int64     `json:"index"`
+	Section       string    `json:"section"`
+	Operation     string    `json:"operation"`
+	Semantics     string    `json:"semantics"`
+	Applicability string    `json:"applicability,omitempty"`
+	Name          *Label    `json:"name,omitempty"`
+	Scope         *Label    `json:"scope,omitempty"`
+	Pattern       *Label    `json:"pattern,omitempty"`
+	Endpoint      *Endpoint `json:"endpoint,omitempty"`
+	Disabled      *bool     `json:"disabled,omitempty"`
 }
 type Label struct {
 	Status string `json:"status"`

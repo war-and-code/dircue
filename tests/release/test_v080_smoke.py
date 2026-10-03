@@ -1,4 +1,4 @@
-"""Reject incomplete or unbound 0.8 context proof receipts."""
+"""Reject incomplete or unbound release context proof receipts."""
 import copy
 from pathlib import Path
 import sys
@@ -26,7 +26,7 @@ class ContextCapabilityProofContracts(unittest.TestCase):
     def test_version_gate_preserves_prior_releases(self):
         for version in ('0.1.0', '0.6.0', '0.7.0', '0.7.99'):
             self.assertFalse(context.required(version))
-        for version in ('0.8.0-alpha.1', '0.8.0-rc.1', '0.8.0', '1.0.0'):
+        for version in ('0.8.0-alpha.1', '0.8.0-rc.1', '0.8.0', '1.0.0', '1.1.0'):
             self.assertTrue(context.required(version))
         for version in ('', '0.8', '00.8.0', 'v0.8.0', '0.8.0;command'):
             with self.assertRaises(ValueError):
@@ -45,6 +45,8 @@ class ContextCapabilityProofContracts(unittest.TestCase):
             'checks missing': lambda r: r['checks'].pop(),
             'checks duplicate': lambda r: r['checks'].append(r['checks'][0]),
             'facts': lambda r: r['observed_facts'].update(sdk_version='9.0.100'),
+            'wrong environment provider': lambda r: r['observed_facts'].update(environment_provider_version='1.0.0'),
+            'wrong toolchain selector': lambda r: r['observed_facts']['toolchain_selector'].update(kind='nvmrc'),
             'stdout missing': lambda r: r['stdout_sha256'].pop('plan'),
             'stdout malformed': lambda r: r['stdout_sha256'].update(capabilities=''),
             'worker': lambda r: r.update(worker_required=True),
@@ -64,12 +66,43 @@ class ContextCapabilityProofContracts(unittest.TestCase):
                 context.validate_receipt(value, '0.8.0', 'a' * 64, 'linux-amd64')
 
     def test_requirements_are_independently_enumerated(self):
-        self.assertEqual(13, len(context.CHECKS))
-        self.assertEqual(7, len(context.FIXTURES))
+        self.assertEqual(14, len(context.CHECKS))
+        self.assertEqual(8, len(context.FIXTURES))
         self.assertEqual(set(context.FIXTURES), set(context.fixture_inputs()))
         self.assertEqual('>=3.12', context.FACTS['python_constraint'])
         self.assertEqual('8.0.300', context.FACTS['sdk_version'])
+        self.assertEqual('1.1.0', context.FACTS['environment_provider_version'])
+        self.assertEqual('.node-version', context.FACTS['toolchain_selector']['source_path'])
         self.assertTrue(all(context.valid_digest(value) for value in context.source_inputs().values()))
+
+    def test_environment_requires_exact_toolchain_selector_and_provider(self):
+        expected = context.FACTS['toolchain_selector']
+        row = {**expected, 'applicability': 'declared only', 'values': list(expected['values'])}
+        report = {
+            'schema_version': context.FACTS['profile_schema_version'],
+            'environments': {
+                'provider': 'dircue', 'provider_version': context.FACTS['environment_provider_version'],
+                'status': 'complete',
+                'requirements': [
+                    {'project_id': context.FACTS['dotnet_project'], 'kind': 'target-framework',
+                     'value': context.FACTS['dotnet_target']},
+                    {'project_id': context.FACTS['python_project'], 'kind': 'python-requires-python',
+                     'value': context.FACTS['python_constraint']},
+                ],
+                'selections': [{'project_id': context.FACTS['dotnet_project'],
+                                'sdk_version': context.FACTS['sdk_version'], 'global_json': 'global.json'}],
+                'toolchain_declarations': [row],
+            },
+        }
+        context.check_environment(report)
+        wrong_provider = copy.deepcopy(report)
+        wrong_provider['environments']['provider_version'] = '1.0.0'
+        with self.assertRaises(ValueError):
+            context.check_environment(wrong_provider)
+        wrong_selector = copy.deepcopy(report)
+        wrong_selector['environments']['toolchain_declarations'][0]['source_path'] = '.nvmrc'
+        with self.assertRaises(ValueError):
+            context.check_environment(wrong_selector)
 
     def test_negative_commands_require_empty_stdout_and_diagnostic(self):
         diagnostic = context.output([sys.executable, '-c',

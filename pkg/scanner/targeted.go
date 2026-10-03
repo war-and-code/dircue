@@ -11,8 +11,8 @@ import (
 )
 
 func validateTargetedOptions(opts Options) error {
-	if opts.Environments && (opts.Focus != nil || opts.ExplainPath != "" || opts.AvailabilityOnly || opts.DiscoveryOnly || opts.FormatsOnly || opts.RegistriesOnly || opts.RulesOnly) {
-		return errors.New("environments cannot run in another targeted or module-only scan")
+	if (opts.Environments || opts.Lockfiles) && (opts.Focus != nil || opts.ExplainPath != "" || opts.AvailabilityOnly || opts.DiscoveryOnly || opts.FormatsOnly || opts.RegistriesOnly || opts.RulesOnly) {
+		return errors.New("environments and lockfiles cannot run in another targeted or module-only scan")
 	}
 	if opts.Focus != nil {
 		if opts.Discovery || opts.Formats || opts.Rules != nil || opts.Registries || opts.Projects || opts.Structure != nil || len(opts.Detectors) != 0 || opts.Availability || opts.ExplainPath != "" || opts.DiscoveryOnly || opts.FormatsOnly || opts.DeclarationsOnly || opts.RegistriesOnly || opts.RulesOnly || opts.AvailabilityOnly {
@@ -69,7 +69,7 @@ func analyzeSelectedFile(ctx context.Context, root *os.Root, item job, opts Opti
 		return result{path: item.path, skipped: true, selectedJob: &item}, nil
 	}
 	value, err := analyzeFile(ctx, root, item, opts)
-	if opts.Availability || opts.Environments {
+	if opts.Availability || opts.Environments || opts.Lockfiles {
 		value.selectedJob = &item
 	}
 	return value, err

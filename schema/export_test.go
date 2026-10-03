@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -27,7 +28,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "map", "map-compare", "planning", "profile", "stats"}
+	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "lockfiles", "map", "map-compare", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -139,7 +140,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	base := targetedCLIReport(t, "analyze", "all", "--availability", "--declarations", "--environments", "--formats", "--json", "--source", "directory", root)
+	base := targetedCLIReport(t, "analyze", "all", "--availability", "--declarations", "--environments", "--formats", "--lockfiles", "--json", "--source", "directory", root)
 	focus := targetedCLIReport(t, "analyze", "focus", "--project", "App.csproj", "--json", "--source", "directory", root)
 	explanation := targetedCLIReport(t, "analyze", "explain", "--file", "main.go", "--json", "--source", "directory", root)
 
@@ -181,7 +182,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		"guide":            exportCLIValue(t, "capabilities", "--guide", "--json"),
 		"availability":     base["availability"], "capabilities": capabilities.Dircue("test"),
 		"comparison": comparison, "declarations": base["declarations"],
-		"environments": base["environments"], "explanation": explanation["explanation"],
+		"lockfiles": base["lockfiles"], "environments": base["environments"], "explanation": explanation["explanation"],
 		"findings": exportCLIValue(t, "analyze", "frameworks", "--json", "--source", "directory", root),
 		"focus":    focus["focus"], "formats": base["formats"], "hotspots": hotspots,
 		"languages": exportCLIValue(t, "--json", "--source", "directory", root),
@@ -355,5 +356,82 @@ func TestLanguagesSchemaAcceptsExistingNaNStringOnly(t *testing.T) {
 	// This correction accepts a JSON string, never nonstandard JSON NaN tokens.
 	if json.Valid([]byte(`{"Python":{"size":0,"percentage":NaN}}`)) {
 		t.Fatal("bare NaN unexpectedly became valid JSON")
+	}
+}
+
+func TestExportedToolchainSchemaRejectsFalseIdentityAndCompleteness(t *testing.T) {
+	before, after := compileExportPair(t, "environments")
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".nvmrc"), []byte("20\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	profile := exportCLIValue(t, "analyze", "environments", "--json", "--source", "directory", root).(map[string]any)
+	original := profile["environments"]
+	for _, tc := range []struct {
+		name   string
+		mutate func(map[string]any, map[string]any)
+	}{
+		{"traversal", func(_, d map[string]any) { d["source_path"] = "../.nvmrc" }},
+		{"absolute", func(_, d map[string]any) { d["source_path"] = "/.nvmrc" }},
+		{"unclean_scope", func(_, d map[string]any) { d["scope_directory"] = "nested/../other" }},
+		{"wrong_tool", func(_, d map[string]any) { d["tool"] = "python" }},
+		{"wrong_kind", func(_, d map[string]any) { d["kind"] = "rust-toolchain" }},
+		{"unsafe_selector", func(_, d map[string]any) { d["values"] = []any{"20; echo hello"} }},
+		{"traversal_selector", func(_, d map[string]any) { d["values"] = []any{"env/../other"} }},
+		{"multiple_node_selectors", func(_, d map[string]any) { d["values"] = []any{"20", "22"} }},
+		{"unsupported_complete", func(r, d map[string]any) { r["status"] = "complete"; d["state"] = "unsupported"; delete(d, "values") }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			raw, err := json.Marshal(original)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var report map[string]any
+			if err := json.Unmarshal(raw, &report); err != nil {
+				t.Fatal(err)
+			}
+			decl := report["toolchain_declarations"].([]any)[0].(map[string]any)
+			tc.mutate(report, decl)
+			if before.Validate(report) == nil || after.Validate(report) == nil {
+				t.Fatal("invalid toolchain declaration accepted by bundled or exported schema")
+			}
+		})
+	}
+	if before.Validate(original) != nil || after.Validate(original) != nil {
+		t.Fatal("actual toolchain report rejected")
+	}
+}
+
+func TestOptionalDependencySchemasPreserveUnusualSelectedFilenames(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not admit control characters in filesystem names")
+	}
+	root := t.TempDir()
+	folder := filepath.Join(root, "tab\tand\nnewline")
+	if err := os.Mkdir(folder, 0700); err != nil {
+		t.Fatal(err)
+	}
+	for name, content := range map[string]string{
+		"package.json":      `{"dependencies":{"left-pad":"1.3.0"}}`,
+		"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1.3.0"}}}}`,
+		".nvmrc":            "20\n",
+	} {
+		if err := os.WriteFile(filepath.Join(folder, name), []byte(content), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report := exportCLIValue(t, "analyze", "all", "--lockfiles", "--environments", "--json", "--source", "directory", root).(map[string]any)
+	for _, name := range []string{"profile", "lockfiles", "environments"} {
+		before, after := compileExportPair(t, name)
+		value := any(report)
+		if name != "profile" {
+			value = report[name]
+		}
+		if err := before.Validate(value); err != nil {
+			t.Fatalf("%s bundled schema: %v", name, err)
+		}
+		if err := after.Validate(value); err != nil {
+			t.Fatalf("%s exported schema: %v", name, err)
+		}
 	}
 }

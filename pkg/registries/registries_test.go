@@ -234,7 +234,7 @@ func TestScopeEmptyAndTreeSkipped(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(r.Scope.SupportedConfigurations, []string{"nuget_config_basename_case_insensitive", "npmrc_basename_exact"}) {
+		if !reflect.DeepEqual(r.Scope.SupportedConfigurations, supportedConfigurations()) {
 			t.Fatal(r.Scope)
 		}
 		if len(r.Configurations) != 0 || r.Scope.ExternalConfiguration || r.Scope.EnvironmentExpansion || r.Scope.NetworkAccess {
@@ -245,6 +245,327 @@ func TestScopeEmptyAndTreeSkipped(t *testing.T) {
 		}
 		if !skip && (r.Status != "complete" || !r.Coverage.EnumerationComplete) {
 			t.Fatal(r)
+		}
+	}
+}
+
+func TestMavenSettingsDeclarationsAreQualifiedAndSecretFree(t *testing.T) {
+	input := `<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mirrors><mirror><id>company-mirror</id><mirrorOf>central</mirrorOf><url>https://user:credential-sentinel@MIRROR.example:8443/private/path?token=query-sentinel#fragment-sentinel</url></mirror></mirrors>
+  <profiles><profile><id>release-profile</id><activation><property><name>password-sentinel</name></property></activation>
+    <repositories><repository><id>private-repo</id><url>https://repo.example/releases/private</url><releases><enabled>true</enabled></releases></repository></repositories>
+    <pluginRepositories><pluginRepository><id>plugins</id><url>${env.MAVEN_REPO}</url></pluginRepository></pluginRepositories>
+  </profile></profiles>
+  <activeProfiles><activeProfile>release-profile</activeProfile></activeProfiles>
+  <servers><server><id>secret-server</id><username>username-sentinel</username><password>password-sentinel</password><privateKey>/private/key-sentinel</privateKey></server></servers>
+  <proxies><proxy><username>proxy-user-sentinel</username><password>proxy-password-sentinel</password></proxy></proxies>
+</settings>`
+	c := mustParse(t, "build/settings.xml", input)
+	if c.Ecosystem != "maven" || c.SyntaxStatus != "complete" || c.Status != "partial" || c.ObservedDeclarations != 5 {
+		t.Fatalf("unexpected Maven result: %+v", c)
+	}
+	bySection := map[string][]Declaration{}
+	for _, d := range c.Declarations {
+		bySection[d.Section] = append(bySection[d.Section], d)
+		if d.Applicability != "unresolved" {
+			t.Fatalf("Maven applicability must stay unresolved: %+v", d)
+		}
+	}
+	mirror := bySection["mirrors"][0]
+	if mirror.Name.Value != "company-mirror" || mirror.Pattern.Value != "central" || mirror.Endpoint.Origin != "https://mirror.example:8443" {
+		t.Fatal(mirror)
+	}
+	repo := bySection["repositories"][0]
+	if repo.Name.Value != "private-repo" || repo.Scope.Value != "release-profile" || repo.Endpoint.Origin != "https://repo.example" {
+		t.Fatal(repo)
+	}
+	if len(bySection["pluginRepositories"]) != 1 || bySection["pluginRepositories"][0].Endpoint.Status != "unresolved" || len(bySection["activeProfiles"]) != 1 {
+		t.Fatal(bySection)
+	}
+	encoded, _ := json.Marshal(c)
+	for _, secret := range []string{"credential-sentinel", "private/path", "query-sentinel", "fragment-sentinel", "MAVEN_REPO", "password-sentinel", "username-sentinel", "private/key-sentinel", "proxy-user-sentinel", "proxy-password-sentinel"} {
+		if strings.Contains(string(encoded), secret) {
+			t.Fatalf("Maven output leaked %q: %s", secret, encoded)
+		}
+	}
+}
+
+func TestMavenRejectsMalformedNamespacesDepthAndDuplicateRecognizedFields(t *testing.T) {
+	for _, input := range []string{
+		`<settings xmlns="urn:foreign"><mirrors/></settings>`,
+		`<settings><mirrors><mirror><id>ok</id><url>https://example.test</url></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>first</id><id>second</id><url>https://example.test</url></mirror></mirrors></settings>`,
+		`<settings>` + strings.Repeat(`<x>`, MaxXMLDepth) + strings.Repeat(`</x>`, MaxXMLDepth) + `</settings>`,
+		`<settings>` + strings.Repeat(`<!--x-->`, MaxXMLTokens) + `</settings>`,
+	} {
+		c := mustParse(t, "settings.xml", input)
+		if c.Status != "partial" || c.DeclarationCountComplete == false && c.SyntaxStatus == "complete" && len(c.Declarations) > 0 {
+			t.Fatalf("unexpected invalid Maven result: %+v", c)
+		}
+		if c.SyntaxStatus != "complete" && len(c.Declarations) != 0 {
+			t.Fatalf("invalid Maven input leaked partial facts: %+v", c)
+		}
+	}
+}
+
+func TestMavenRepositoryScopeWaitsForUnambiguousProfileID(t *testing.T) {
+	lateID := mustParse(t, "settings.xml", `<settings><profiles><profile><repositories><repository><id>releases</id><url>https://repo.example/path</url></repository></repositories><id>late-profile</id></profile></profiles></settings>`)
+	if len(lateID.Declarations) != 2 || lateID.Declarations[0].Section != "profiles" || lateID.Declarations[1].Section != "repositories" || lateID.Declarations[1].Scope == nil || lateID.Declarations[1].Scope.Value != "late-profile" {
+		t.Fatalf("late profile ID was not bound correctly: %+v", lateID.Declarations)
+	}
+	duplicateID := mustParse(t, "settings.xml", `<settings><profiles><profile><repositories><repository><id>releases</id><url>https://repo.example/path</url></repository></repositories><id>first</id><id>second</id></profile></profiles></settings>`)
+	if duplicateID.Omissions["duplicate_maven_field"] != 1 || len(duplicateID.Declarations) != 1 || duplicateID.Declarations[0].Section != "repositories" || duplicateID.Declarations[0].Scope != nil {
+		t.Fatalf("duplicate profile ID produced a false scope: %+v", duplicateID)
+	}
+}
+
+func TestMavenUnsupportedCapturedDuplicateCannotPreserveFirstValue(t *testing.T) {
+	tooLong := strings.Repeat("x", MaxMavenTextBytes+1)
+	for _, input := range []string{
+		`<settings><mirrors><mirror><id>m</id><url>https://first.example</url><url>` + tooLong + `</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><url>` + tooLong + `</url><url>https://second.example</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><url>https://first.example</url><url><nested>https://second.example</nested></url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>first</id><id>` + tooLong + `</id><url>https://repo.example</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><mirrorOf>central</mirrorOf><mirrorOf>` + tooLong + `</mirrorOf><url>https://repo.example</url></mirror></mirrors></settings>`,
+		`<settings><profiles><profile><id>first</id><id>` + tooLong + `</id></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><repositories><repository><id>first</id><id>` + tooLong + `</id><url>https://repo.example</url></repository></repositories></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><repositories><repository><id>r</id><url>https://first.example</url><url>` + tooLong + `</url></repository></repositories></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><pluginRepositories><pluginRepository><id>r</id><url>https://first.example</url><url><nested>https://second.example</nested></url></pluginRepository></pluginRepositories></profile></profiles></settings>`,
+	} {
+		cfg := mustParse(t, "settings.xml", input)
+		if cfg.Omissions["duplicate_maven_field"] == 0 || cfg.Status != "partial" {
+			t.Fatalf("unretained duplicate did not invalidate its containing entry: %+v", cfg)
+		}
+		encoded, _ := json.Marshal(cfg)
+		for _, leaked := range []string{"first.example", "second.example", "xxxxxxxx"} {
+			if strings.Contains(string(encoded), leaked) {
+				t.Fatalf("unretained duplicate value leaked: %s", encoded)
+			}
+		}
+	}
+
+	// activeProfile is a repeatable list item rather than a singleton field.
+	// An unretained later item must not erase an earlier independently observed
+	// item or turn it into a duplicate-field ambiguity.
+	profiles := mustParse(t, "settings.xml", `<settings><activeProfiles><activeProfile>first</activeProfile><activeProfile>`+tooLong+`</activeProfile></activeProfiles></settings>`)
+	if profiles.Omissions["maven_text_limit"] != 1 || profiles.Omissions["duplicate_maven_field"] != 0 || len(profiles.Declarations) != 1 || profiles.Declarations[0].Name.Value != "first" {
+		t.Fatalf("repeatable active profile was incorrectly treated as a singleton: %+v", profiles)
+	}
+}
+
+func TestCargoRepositorySelectedRegistryDeclarations(t *testing.T) {
+	input := `
+[registry]
+default = "company"
+
+[registries.company]
+index = "sparse+https://user:credential-sentinel@INDEX.example:8443/private/path?token=query-sentinel#fragment-sentinel"
+token = "cargo-token-sentinel"
+
+[registries.dynamic]
+index = "sparse+https://${env.CARGO_INDEX}/private"
+
+[source.crates-io]
+replace-with = "company"
+
+[source.company]
+registry = "https://repo.example/private/index"
+
+[source.vendor]
+directory = "${workspace}/vendor/private"
+
+[source.local]
+local-registry = "../../private/local-registry"
+
+[source.git-mirror]
+git = "https://git-user:git-secret@GIT.example/private/repo?token=git-query#git-fragment"
+branch = "private-branch"
+`
+	c := mustParse(t, ".cargo/config.toml", input)
+	if c.Ecosystem != "cargo" || c.SyntaxStatus != "complete" || c.Status != "partial" || c.ObservedDeclarations != 13 {
+		t.Fatalf("unexpected Cargo result: %+v", c)
+	}
+	find := func(section, name, operation string) Declaration {
+		t.Helper()
+		for _, d := range c.Declarations {
+			if d.Section == section && d.Operation == operation && d.Name != nil && d.Name.Value == name {
+				return d
+			}
+		}
+		t.Fatalf("missing declaration %s/%s/%s: %+v", section, name, operation, c.Declarations)
+		return Declaration{}
+	}
+	index := find("cargoRegistry", "company", "add")
+	if index.Endpoint.Origin != "https://index.example:8443" || index.Applicability != "unresolved" {
+		t.Fatal(index)
+	}
+	dynamic := find("cargoRegistry", "dynamic", "add")
+	if dynamic.Endpoint.Status != "unresolved" {
+		t.Fatal(dynamic)
+	}
+	if got := find("cargoSource", "vendor", "source").Endpoint; got.Status != "unresolved" {
+		t.Fatal(got)
+	}
+	if got := find("cargoSource", "local", "source").Endpoint; got.Status != "local_path" {
+		t.Fatal(got)
+	}
+	if got := find("cargoSource", "crates-io", "replace"); got.Scope.Value != "company" {
+		t.Fatal(got)
+	}
+	git := find("cargoSource", "git-mirror", "source")
+	if git.Endpoint.Origin != "https://git.example" {
+		t.Fatal(git)
+	}
+	encoded, _ := json.Marshal(c)
+	for _, secret := range []string{"credential-sentinel", "private/path", "query-sentinel", "fragment-sentinel", "CARGO_INDEX", "cargo-token-sentinel", "workspace", "git-user", "git-secret", "git-query", "git-fragment", "private-branch"} {
+		if strings.Contains(string(encoded), secret) {
+			t.Fatalf("Cargo output leaked %q: %s", secret, encoded)
+		}
+	}
+}
+
+func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
+	dotted := strings.TrimSuffix(strings.Repeat("a.", MaxTOMLDepth), ".") + " = 1\n"
+	if reason := cargoTOMLLimit([]byte(dotted)); reason != "toml_depth_limit" {
+		t.Fatalf("dotted-key nesting was not rejected by preflight: %q", reason)
+	}
+	withinLimit := strings.TrimSuffix(strings.Repeat("a.", MaxTOMLDepth-1), ".") + " = 1\n"
+	if reason := cargoTOMLLimit([]byte(withinLimit)); reason != "" {
+		t.Fatalf("valid dotted-key depth rejected by preflight: %q", reason)
+	}
+	for _, input := range []string{
+		"[registries.foo\nindex='https://example.test'\n",
+		"[registries.foo]\nindex='https://example.test'\nindex='https://evil.test'\n",
+		"[registries.foo]\nindex = 'https://example.test'\n" + strings.Repeat("[x]\n", MaxTOMLTokens),
+		"value = " + strings.Repeat("[", MaxTOMLDepth+1) + "0" + strings.Repeat("]", MaxTOMLDepth+1) + "\n",
+		dotted,
+	} {
+		c := mustParse(t, ".cargo/config", input)
+		if c.Status != "partial" || len(c.Declarations) != 0 || c.DeclarationCountComplete {
+			t.Fatalf("nontransactional/underbounded TOML parse: %+v", c)
+		}
+	}
+	c := mustParse(t, ".cargo/config", dotted)
+	if c.Omissions["toml_depth_limit"] != 1 {
+		t.Fatalf("dotted-key nesting did not identify depth limit: %+v", c)
+	}
+}
+
+func TestCargoTOMLDepthPreflightIncludesEnclosingTableAndInlineTables(t *testing.T) {
+	pathWithSegments := func(prefix string, count int) string {
+		return strings.TrimSuffix(strings.Repeat(prefix+".", count), ".")
+	}
+	for _, input := range []string{
+		"[" + pathWithSegments("a", MaxTOMLDepth-12) + "]\n" + pathWithSegments("b", 12) + " = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-1) + "]\nx = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-2) + "]\nx = [1]\n",
+		pathWithSegments("a", 2) + " = { " + pathWithSegments("b", MaxTOMLDepth-2) + " = 1 }\n",
+		`outer = { inner = { ` + pathWithSegments("b", MaxTOMLDepth-2) + ` = 1 } }` + "\n",
+	} {
+		if reason := cargoTOMLLimit([]byte(input)); reason != "toml_depth_limit" {
+			t.Fatalf("combined TOML nesting escaped preflight, reason=%q input-prefix=%q", reason, input[:min(80, len(input))])
+		}
+		cfg := mustParse(t, ".cargo/config", input)
+		if cfg.SyntaxStatus != "incomplete" || cfg.Omissions["toml_depth_limit"] != 1 || len(cfg.Declarations) != 0 {
+			t.Fatalf("combined TOML nesting was not safely omitted: %+v", cfg)
+		}
+	}
+
+	for _, withinLimit := range []string{
+		"[" + pathWithSegments("a", MaxTOMLDepth-12) + "]\n" + pathWithSegments("b", 11) + " = 1\n",
+		"[" + pathWithSegments("a", MaxTOMLDepth-3) + "] # ignored . comment\nx = [1]\n",
+		pathWithSegments("a", 2) + " = { " + pathWithSegments("b", MaxTOMLDepth-3) + " = 1 }\n",
+		`outer = { inner = { ` + pathWithSegments("b", MaxTOMLDepth-3) + ` = 1 } }` + "\n",
+		`"a.b" = { "c.d" = 1 }` + "\n",
+	} {
+		if reason := cargoTOMLLimit([]byte(withinLimit)); reason != "" {
+			t.Fatalf("combined depth at the limit was rejected: %q", reason)
+		}
+		cfg := mustParse(t, ".cargo/config", withinLimit)
+		if cfg.SyntaxStatus != "complete" {
+			t.Fatalf("valid combined depth at the limit did not parse: %+v", cfg)
+		}
+	}
+}
+
+func TestCargoWrongTableKindsAndPathFieldsAreExplicit(t *testing.T) {
+	c := mustParse(t, ".cargo/config.toml", `registries = "not-a-table"
+source = []
+registry = 7
+`)
+	for _, reason := range []string{"unsupported_cargo_registries_table", "unsupported_cargo_source_table", "unsupported_cargo_registry_settings"} {
+		if c.Omissions[reason] != 1 {
+			t.Fatalf("missing explicit malformed-table omission %q: %+v", reason, c)
+		}
+	}
+
+	pathConfig := mustParse(t, ".cargo/config", `[source.url-shaped-directory]
+directory = "https://looks-like-a-registry.example/private?token=path-secret"
+`)
+	if len(pathConfig.Declarations) != 2 || pathConfig.Declarations[1].Endpoint.Status != "local_path" || pathConfig.Declarations[1].Endpoint.Origin != "" {
+		t.Fatalf("Cargo directory field was treated as a URL: %+v", pathConfig.Declarations)
+	}
+	encoded, _ := json.Marshal(pathConfig)
+	if strings.Contains(string(encoded), "path-secret") || strings.Contains(string(encoded), "looks-like-a-registry") {
+		t.Fatal("Cargo local path value escaped into output")
+	}
+}
+
+func TestCargoIncludedConfigCannotClaimCompleteRegistryCoverage(t *testing.T) {
+	input := `include = ["private/included.toml"]
+[registries.visible]
+index = "https://registry.example/index"
+`
+	cfg := mustParse(t, ".cargo/config.toml", input)
+	if cfg.Status != "partial" || cfg.SyntaxStatus != "complete" || cfg.Omissions["unsupported_cargo_include"] != 1 || len(cfg.Declarations) != 1 {
+		t.Fatalf("included registry declarations were silently treated as covered: %+v", cfg)
+	}
+	encoded, _ := json.Marshal(cfg)
+	if strings.Contains(string(encoded), "private/included.toml") {
+		t.Fatalf("included config path leaked: %s", encoded)
+	}
+	empty := mustParse(t, ".cargo/config.toml", "include = []\n")
+	if empty.Status != "complete" || empty.Omissions["unsupported_cargo_include"] != 0 {
+		t.Fatalf("empty include list hid no registry declarations: %+v", empty)
+	}
+}
+
+func TestCargoURLFieldsDoNotReportRelativeValuesAsLocalPaths(t *testing.T) {
+	c := mustParse(t, ".cargo/config.toml", `[registries.relative]
+index = "registry/index"
+
+[source.registry-relative]
+registry = "registry/index"
+
+[source.git-relative]
+git = "git/repo"
+`)
+	var endpoints []*Endpoint
+	for _, declaration := range c.Declarations {
+		if declaration.Endpoint != nil {
+			endpoints = append(endpoints, declaration.Endpoint)
+		}
+	}
+	if len(endpoints) != 3 {
+		t.Fatalf("expected all three URL declarations: %+v", c)
+	}
+	for _, got := range endpoints {
+		if got.Status != "invalid" || got.Origin != "" {
+			t.Fatalf("Cargo URL was misreported as a local path: %+v", got)
+		}
+	}
+}
+
+func TestRegistryConfigurationPathSelection(t *testing.T) {
+	for _, p := range []string{"settings.xml", "svc/settings.xml", ".cargo/config", "svc/.cargo/config.toml"} {
+		if _, ok := MatchPath(p); !ok {
+			t.Errorf("did not select %q", p)
+		}
+	}
+	for _, p := range []string{"SETTINGS.XML", "settings.xml.bak", "config.toml", ".cargo/credentials", "cargo/config.toml"} {
+		if _, ok := MatchPath(p); ok {
+			t.Errorf("unexpected selection %q", p)
 		}
 	}
 }
@@ -438,19 +759,31 @@ func TestChangedAndIncompleteReads(t *testing.T) {
 	}
 }
 func FuzzParseDeterminismAndBounds(f *testing.F) {
-	for _, s := range []string{"registry=https://u:p@example.com/path?token=secret", `<configuration><packageSources><clear/></packageSources></configuration>`, "registry=${SECRET}", "\x00\xff"} {
+	for _, s := range []string{
+		"registry=https://u:p@example.com/path?token=secret",
+		`<configuration><packageSources><clear/></packageSources></configuration>`,
+		`<settings><mirrors><mirror><id>corp</id><url>https://repo.example/maven</url><mirrorOf>*</mirrorOf></mirror></mirrors></settings>`,
+		"registry=${SECRET}",
+		"\x00\xff",
+		"[registry]\ndefault = \"crates-io\"\n[registries.private]\nindex = \"sparse+https://example.com/index/\"\n",
+		"[source.private]\nregistry = \"https://example.com/index/\"\n",
+		"[tool]\n" + strings.Repeat("nested.", 65) + "leaf = 1\n",
+	} {
 		f.Add(s)
 	}
 	f.Fuzz(func(t *testing.T, input string) {
-		if len(input) > int(MaxFileBytes)+1 {
+		if len(input) > 64<<10 {
 			t.Skip()
 		}
-		for _, name := range []string{"NuGet.Config", ".npmrc"} {
+		for _, name := range []string{"NuGet.Config", ".npmrc", "settings.xml", ".cargo/config", ".cargo/config.toml"} {
 			a, err := Parse(name, []byte(input))
 			if err != nil {
 				t.Fatal(err)
 			}
-			b, _ := Parse(name, []byte(input))
+			b, err := Parse(name, []byte(input))
+			if err != nil {
+				t.Fatal(err)
+			}
 			if !reflect.DeepEqual(a, b) {
 				t.Fatal("nondeterministic")
 			}

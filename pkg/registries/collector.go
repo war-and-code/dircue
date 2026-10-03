@@ -58,7 +58,7 @@ func New(source Source, opts Options) (*Collector, error) {
 		report: Report{
 			Status: "complete", Engine: "dircue-registry-declarations", RuleVersion: RuleVersion, Source: source,
 			Scope: Scope{
-				SupportedConfigurations:         []string{"nuget_config_basename_case_insensitive", "npmrc_basename_exact"},
+				SupportedConfigurations:         supportedConfigurations(),
 				Population:                      "selected_regular_files_including_vendor_and_data",
 				Evaluation:                      "declarations_only_no_effective_source_set",
 				IdentifierDisclosure:            "qualified_identifiers_and_origins_may_reveal_internal_names_not_secret_detection",

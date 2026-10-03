@@ -65,6 +65,7 @@ var exportResources = map[string][]byte{
 	"hotspots":         hotspotsJSON,
 	"guide":            guideJSON,
 	"languages":        languagesJSON,
+	"lockfiles":        lockfilesJSON,
 	"map":              mapJSON,
 	"map-compare":      mapCompareJSON,
 	"planning":         planningJSON,

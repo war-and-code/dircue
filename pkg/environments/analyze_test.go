@@ -43,6 +43,138 @@ func TestNearestGlobalJSONAndExplicitStart(t *testing.T) {
 	}
 }
 
+func TestToolchainDeclarationsRetainSelectedSourceAndScopedValues(t *testing.T) {
+	in := envInput(map[string]string{
+		".python-version":                "3.11.8\n3.12.2\n# alternate interpreters\n",
+		"web/.nvmrc":                     "lts/* # current LTS\n",
+		"web/.node-version":              "22.13.1\n",
+		"rust-toolchain":                 "nightly-2025-02-01\n",
+		"crates/api/rust-toolchain.toml": "[toolchain]\nchannel = \"1.85.0\"\ncomponents = [\"rustfmt\"]\n",
+	}, nil)
+	r, err := Analyze(t.Context(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []ToolchainDeclaration{
+		{SourcePath: ".python-version", Tool: "python", Kind: "python-version", Values: []string{"3.11.8", "3.12.2"}, State: "declared", ScopeDirectory: "."},
+		{SourcePath: "crates/api/rust-toolchain.toml", Tool: "rust", Kind: "rust-toolchain-toml", Values: []string{"1.85.0"}, State: "declared", ScopeDirectory: "crates/api"},
+		{SourcePath: "rust-toolchain", Tool: "rust", Kind: "rust-toolchain", Values: []string{"nightly-2025-02-01"}, State: "declared", ScopeDirectory: "."},
+		{SourcePath: "web/.node-version", Tool: "node", Kind: "node-version", Values: []string{"22.13.1"}, State: "declared", ScopeDirectory: "web"},
+		{SourcePath: "web/.nvmrc", Tool: "node", Kind: "nvmrc", Values: []string{"lts/*"}, State: "declared", ScopeDirectory: "web"},
+	}
+	if len(r.ToolchainDeclarations) != len(want) {
+		t.Fatalf("toolchain declarations: %+v", r.ToolchainDeclarations)
+	}
+	for i, got := range r.ToolchainDeclarations {
+		if got.SourcePath != want[i].SourcePath || got.Tool != want[i].Tool || got.Kind != want[i].Kind || got.State != want[i].State || got.ScopeDirectory != want[i].ScopeDirectory || !reflect.DeepEqual(got.Values, want[i].Values) || got.Applicability == "" {
+			t.Errorf("declaration[%d] = %+v, want %+v with applicability", i, got, want[i])
+		}
+	}
+}
+
+func TestAnalyzeRejectsNegativeInputOmissionCountBeforeReading(t *testing.T) {
+	called := false
+	in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+	in.OmittedFiles = -1
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		called = true
+		return []byte("20\n"), 3, nil
+	}
+	if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+		t.Fatalf("negative input omission count should be rejected: report=%+v err=%v", report, err)
+	}
+	if called {
+		t.Fatal("invalid input was read before validation")
+	}
+}
+
+func TestAnalyzeRejectsInvalidInputSourceIdentityBeforeReading(t *testing.T) {
+	validGit := envInput(nil, nil)
+	validGit.Source = "git"
+	validGit.Tree = strings.Repeat("a", 40)
+	report, err := Analyze(t.Context(), validGit, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReport(report); err != nil {
+		t.Fatalf("valid selected Git tree identity should be accepted: %v", err)
+	}
+
+	tests := []struct {
+		name string
+		edit func(*Input)
+	}{
+		{"unknown source", func(in *Input) { in.Source = "archive" }},
+		{"directory with tree", func(in *Input) { in.Tree = "deadbeef" }},
+		{"git without tree", func(in *Input) { in.Source = "git" }},
+		{"git malformed tree", func(in *Input) { in.Source = "git"; in.Tree = "not-a-tree" }},
+		{"git non-hex tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("g", 40) }},
+		{"git uppercase tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("A", 40) }},
+		{"oversized tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("a", 8193) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+			tt.edit(&in)
+			in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+				called = true
+				return []byte("20\n"), 3, nil
+			}
+			if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+				t.Fatalf("invalid source identity should be rejected: report=%+v err=%v", report, err)
+			}
+			if called {
+				t.Fatal("invalid input was read before validation")
+			}
+		})
+	}
+}
+
+func TestAnalyzeRejectsConflictingDeclarationSourceIdentityBeforeReading(t *testing.T) {
+	tree := strings.Repeat("a", 40)
+	otherTree := strings.Repeat("b", 40)
+	valid := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+	valid.Source, valid.Tree = "git", tree
+	valid.Declarations.Source, valid.Declarations.Tree = "git", tree
+	matchingReport, err := Analyze(t.Context(), valid, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReport(matchingReport); err != nil {
+		t.Fatalf("matching declaration source identity should validate: %v", err)
+	}
+
+	tests := []struct {
+		name   string
+		source string
+		tree   string
+	}{
+		{"tree mismatch", "git", otherTree},
+		{"mode mismatch", "directory", ""},
+		{"git identity missing tree", "git", ""},
+		{"tree without mode", "", otherTree},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+			in.Source, in.Tree = "git", tree
+			in.Declarations.Source, in.Declarations.Tree = tt.source, tt.tree
+			in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+				called = true
+				return []byte("20\n"), 3, nil
+			}
+			if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+				t.Fatalf("conflicting declaration provenance should be rejected: report=%+v err=%v", report, err)
+			}
+			if called {
+				t.Fatal("conflicting provenance was read before validation")
+			}
+		})
+	}
+}
+
 func TestMalformedAndUnsupportedGlobalJSON(t *testing.T) {
 	tests := []struct{ name, body, code string }{
 		{"malformed", `{"sdk":`, "invalid-global-json"},
@@ -172,6 +304,10 @@ func TestReportSourceIdentityValidation(t *testing.T) {
 	r.Source, r.Tree = "git", ""
 	if ValidateReport(r) == nil {
 		t.Fatal("accepted git source without tree")
+	}
+	r.Tree = "not-a-tree"
+	if ValidateReport(r) == nil {
+		t.Fatal("accepted malformed current git tree identity")
 	}
 }
 

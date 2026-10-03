@@ -24,13 +24,27 @@ func writeEnvironments(out io.Writer, report *environments.Report) error {
 			return err
 		}
 	}
+	for _, d := range report.ToolchainDeclarations {
+		if _, err := fmt.Fprintf(out, "Toolchain %q: %s/%s %q (%s; scope %q; %s)\n", d.SourcePath, d.Tool, d.Kind, d.Values, d.State, d.ScopeDirectory, d.Applicability); err != nil {
+			return err
+		}
+	}
 	for _, c := range report.Conflicts {
 		if _, err := fmt.Fprintf(out, "Conflict %q: %s %q (%s)\n", c.ContextID, c.Dimension, c.Values, c.Explanation); err != nil {
 			return err
 		}
 	}
 	for _, b := range report.Boundaries {
-		if _, err := fmt.Fprintf(out, "Unresolved %q: %s\n", b.ProjectID, b.Reason); err != nil {
+		subject := b.ProjectID
+		if subject == "" {
+			subject = b.Path
+		}
+		if _, err := fmt.Fprintf(out, "Unresolved %q: %s\n", subject, b.Reason); err != nil {
+			return err
+		}
+	}
+	for _, d := range report.Diagnostics {
+		if _, err := fmt.Fprintf(out, "Diagnostic %q: %s\n", d.Path, d.Code); err != nil {
 			return err
 		}
 	}

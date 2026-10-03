@@ -29,9 +29,13 @@ func setExtendedCommandHelp(cmd *cobra.Command, mode, name string) {
 		cmd.Long = "Run built-in detectors over selected files and return findings with evidence paths. Findings are hints under the supported detector rules, not proof of installed packages, runtime behavior, or build success. For bounded manifest parsing and workspace relationships, use analyze declarations."
 		cmd.Example = "  " + name + " analyze " + mode + " --json /checkout"
 
+	case "lockfiles":
+		cmd.Short = "Associate selected lockfiles and compare named dependency declarations"
+		cmd.Long = "Read supported npm lockfile v2/v3 and NuGet packages.lock.json v1/v2 from the selected source. Report association separately from named static checks: npm direct declaration text and NuGet direct package presence. Missing, unsupported, and indeterminate evidence remain distinct. This does not resolve dependency graphs, verify lockfile freshness, execute restore, or contact registries. Shared or ambiguous ownership remains explicit."
+		cmd.Example = "  " + name + " analyze lockfiles --json /checkout\n  " + name + " analyze all --lockfiles --environments --json /checkout"
 	case "environments":
 		cmd.Short = "Map declared project environments without running builds"
-		cmd.Long = "Reuse supported project requirements and inspect bounded global.json inputs from the selected source. SDK selection is modeled from each project root, not an observed build invocation. Requirements, conditions, missing context and unsupported constraints remain explicit; installed tools are never probed."
+		cmd.Long = "Reuse supported project requirements and inspect bounded global.json and Python, Node, and Rust toolchain declarations from the selected source. SDK selection is modeled from each project root, not an observed build invocation. Requirements, conditions, missing context and unsupported constraints remain explicit; installed tools are never probed."
 		cmd.Example = "  " + name + " analyze environments --json /checkout\n  " + name + " analyze all --environments --json /checkout"
 	case "availability":
 		cmd.Short = "Inspect source-acquisition boundaries without fetching content"
@@ -55,8 +59,8 @@ func setExtendedCommandHelp(cmd *cobra.Command, mode, name string) {
 		cmd.Long = "Apply a caller-supplied JSON ruleset to selected regular files, including files outside language statistics. Metadata predicates run before bounded complete-file literal matching. Rules add observations; they cannot disable modules, change language inclusion, execute commands, or load other configuration. Inspect coverage and omitted candidates before treating results as complete."
 		cmd.Example = "  " + name + " analyze rules --rules-file /trusted/observations.json --json /checkout\n  " + name + " analyze rules --discovery --rules-file /trusted/observations.json --source directory --json /content\n  " + name + " analyze all --rules-file /trusted/observations.json --json /checkout"
 	case "registries":
-		cmd.Short = "Observe selected NuGet and npm package-source declarations"
-		cmd.Long = "Read bounded NuGet.Config and .npmrc files from the selected source. Report declarations and sanitized URL origins, never an effective feed set. No configuration discovery outside the selected source, variable expansion, network requests, or package-manager execution. Qualified identifiers and origins can reveal internal infrastructure names. Inspect scope, syntax status, and omissions before interpreting absence."
+		cmd.Short = "Observe selected NuGet, npm, Maven, and Cargo package-source declarations"
+		cmd.Long = "Read bounded NuGet.Config, .npmrc, Maven settings.xml, and Cargo .cargo/config inputs from the selected source. Report declarations and sanitized URL origins, never an effective feed set. No configuration discovery outside the selected source, variable expansion, network requests, or package-manager execution. Qualified identifiers and origins can reveal internal infrastructure names. Inspect scope, syntax status, and omissions before interpreting absence."
 		cmd.Example = "  " + name + " analyze registries --discovery --source directory --json /content\n  " + name + " analyze all --projects --registries --json /checkout"
 	case "graph":
 		cmd.Short = "Describe static .NET project-reference graphs"
