@@ -8,6 +8,7 @@ import (
 )
 
 var componentRule = &mapdoc.Producer{ID: "dircue/component-declarations", Version: "1.0.0"}
+var gradleWorkspaceRule = &mapdoc.Producer{ID: "dircue/gradle-workspace", Version: "1.0.0"}
 
 // MapFacts converts a fragment into map document nodes and edges. Qualified
 // references become attributable facts on their source component.
@@ -24,7 +25,11 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 		n := mapdoc.NewNode(mapdoc.NodeComponent, paths, c.Kind)
 		n.Name = c.Name
 		n.Coverage = mapCoverage(c.Coverage, "declaration input was incomplete")
-		n.Evidence = []mapdoc.Evidence{evidence(mapdoc.BasisDeclaredConfig, c.Manifest)}
+		rule := componentRule
+		if c.gradleSettingsRoot {
+			rule = gradleWorkspaceRule
+		}
+		n.Evidence = []mapdoc.Evidence{evidenceWithRule(mapdoc.BasisDeclaredConfig, c.Manifest, rule)}
 		n.Properties = map[string]string{"root": c.Root, "ecosystem": c.Ecosystem, "project_kind": c.Kind}
 		if language := primaryProjectLanguage(c.Manifest); language != "" {
 			n.Properties["language"] = language
@@ -57,7 +62,11 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 		if q.TargetStatus != "" {
 			properties["target_status"] = q.TargetStatus
 		}
-		nodes[i].Facts = append(nodes[i].Facts, mapdoc.Fact{Kind: "qualified_local_reference", Value: q.Value, State: q.State, Condition: q.Condition, Properties: properties, Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{q.Reason}}, Evidence: []mapdoc.Evidence{evidence(mapdoc.BasisDeclaredConfig, q.Evidence)}})
+		rule := componentRule
+		if q.gradleSettingsEvidence {
+			rule = gradleWorkspaceRule
+		}
+		nodes[i].Facts = append(nodes[i].Facts, mapdoc.Fact{Kind: "qualified_local_reference", Value: q.Value, State: q.State, Condition: q.Condition, Properties: properties, Coverage: mapdoc.Coverage{Status: mapdoc.CoverageUnknown, Reasons: []string{q.Reason}}, Evidence: []mapdoc.Evidence{evidenceWithRule(mapdoc.BasisDeclaredConfig, q.Evidence, rule)}})
 	}
 	for _, r := range fragment.Relationships {
 		from, fromOK := ids[r.From]
@@ -73,7 +82,11 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 		if r.DeclarationKind == "root-containment" {
 			basis = mapdoc.BasisRuleInferred
 		}
-		e.Evidence = []mapdoc.Evidence{evidence(basis, r.Evidence)}
+		rule := componentRule
+		if r.gradleSettingsEvidence {
+			rule = gradleWorkspaceRule
+		}
+		e.Evidence = []mapdoc.Evidence{evidenceWithRule(basis, r.Evidence, rule)}
 		e.Properties = map[string]string{"declaration_kind": r.DeclarationKind, "state": r.State}
 		if r.Condition != "" {
 			e.Properties["condition"] = r.Condition
@@ -97,7 +110,11 @@ func primaryProjectLanguage(manifest string) string {
 }
 
 func evidence(basis mapdoc.EvidenceBasis, filename string) mapdoc.Evidence {
-	return mapdoc.Evidence{Basis: basis, Path: filename, SourceKind: mapdoc.SourceConfiguration, Rule: componentRule}
+	return evidenceWithRule(basis, filename, componentRule)
+}
+
+func evidenceWithRule(basis mapdoc.EvidenceBasis, filename string, rule *mapdoc.Producer) mapdoc.Evidence {
+	return mapdoc.Evidence{Basis: basis, Path: filename, SourceKind: mapdoc.SourceConfiguration, Rule: rule}
 }
 
 func mapCoverage(status, reason string) mapdoc.Coverage {
