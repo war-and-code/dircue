@@ -40,7 +40,8 @@ func (a *lockfileAccumulator) add(value result) error {
 		}
 	}
 	base := path.Base(value.path)
-	lockCandidate := base == "package-lock.json" || base == "npm-shrinkwrap.json" || base == "packages.lock.json" || (strings.HasPrefix(base, "packages.") && strings.HasSuffix(base, ".lock.json"))
+	nugetBase := strings.ToLower(base)
+	lockCandidate := base == "package-lock.json" || base == "npm-shrinkwrap.json" || nugetBase == "packages.lock.json" || (strings.HasPrefix(nugetBase, "packages.") && strings.HasSuffix(nugetBase, ".lock.json"))
 	manifest := strings.EqualFold(path.Ext(base), ".csproj")
 	sharedInput := strings.EqualFold(base, "Directory.Build.props") || strings.EqualFold(base, "Directory.Build.targets") || strings.EqualFold(base, "Directory.Packages.props")
 	relevant := lockCandidate || manifest || sharedInput
@@ -54,7 +55,9 @@ func (a *lockfileAccumulator) add(value result) error {
 		return nil
 	}
 	if len(a.files) >= lockfiles.DefaultMaxInventoryPaths {
-		return errors.New("lockfile inventory limit reached")
+		a.inventoryComplete = false
+		a.inventoryOmission = "inventory_path_limit"
+		return nil
 	}
 	if _, ok := a.files[value.path]; ok {
 		return errors.New("duplicate lockfile path")
@@ -72,6 +75,9 @@ func (a *lockfileAccumulator) add(value result) error {
 }
 
 func (a *lockfileAccumulator) finish(ctx context.Context, root *os.Root, collector *declarations.Collector, report *profile.Report) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if !a.inventoryComplete {
 		source, tree := "directory", ""
 		if report.Declarations != nil {

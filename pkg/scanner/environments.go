@@ -57,7 +57,9 @@ func (a *environmentAccumulator) add(value result) error {
 		return nil
 	}
 	if len(a.files) >= environments.DefaultMaxInventoryPaths {
-		return errors.New("environment configuration inventory limit reached")
+		a.inventoryComplete = false
+		a.inventoryOmission = "inventory_path_limit"
+		return nil
 	}
 	if _, ok := a.files[value.path]; ok {
 		return errors.New("duplicate environment configuration path")
@@ -77,6 +79,9 @@ func (a *environmentAccumulator) add(value result) error {
 }
 
 func (a *environmentAccumulator) finish(ctx context.Context, root *os.Root, collector *declarations.Collector, report *profile.Report) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
 	if !a.inventoryComplete {
 		source, tree := "directory", ""
 		if report.Declarations != nil {
