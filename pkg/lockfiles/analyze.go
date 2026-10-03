@@ -111,7 +111,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	r.Coverage.ProjectRecords = len(records)
 	dotnetCountByRoot := map[string]int{}
 	for _, rec := range records {
-		if rec.Project.Kind == "dotnet" && strings.EqualFold(path.Ext(rec.Project.ID), ".csproj") {
+		if rec.Project.Kind == "dotnet" && isMSBuildProjectRecord(path.Ext(rec.Project.ID)) {
 			dotnetCountByRoot[rec.Project.Root]++
 		}
 	}
@@ -284,6 +284,15 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func isMSBuildProjectRecord(ext string) bool {
+	switch strings.ToLower(ext) {
+	case ".csproj", ".fsproj", ".vbproj", ".vcxproj", ".sqlproj", ".wixproj", ".shproj", ".proj":
+		return true
+	default:
+		return false
+	}
 }
 
 func hasNPMComparisonDiagnostics(diagnostics []declarations.Diagnostic, manifest string) bool {

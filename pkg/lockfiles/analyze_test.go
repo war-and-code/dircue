@@ -290,6 +290,43 @@ func TestNuGetProjectSpecificLocksRequireUniqueFilenameOwnership(t *testing.T) {
 	}
 }
 
+func TestNuGetGenericLockOwnerCountsAllMSBuildProjectTypes(t *testing.T) {
+	contents := map[string]string{
+		"src/App/App.csproj":    `<Project><ItemGroup><PackageReference Include="A" Version="1.0" /></ItemGroup></Project>`,
+		"src/App/Worker.fsproj": `<Project><ItemGroup><PackageReference Include="B" Version="1.0" /></ItemGroup></Project>`,
+	}
+	collector := declarations.New("directory", "", 0)
+	collector.EnableProjectRecords()
+	for name, content := range contents {
+		content := content
+		collector.Add(name, &declarations.Candidate{
+			Path: name, Size: int64(len(content)),
+			Read: func(context.Context, int64) ([]byte, int64, error) {
+				return []byte(content), int64(len(content)), nil
+			},
+		})
+	}
+	collector.Add("src/App/packages.lock.json", nil)
+	report, err := collector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := collector.ProjectRecords()
+	if len(records) != 2 {
+		t.Fatalf("fixture did not discover both C# and F# projects: %+v", records)
+	}
+	contents["src/App/packages.lock.json"] = `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"},"B":{"type":"Direct"}}}}`
+	in := testInput(records, contents, true)
+	in.Declarations = *report
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Contexts) != 1 || r.Contexts[0].AssociationState != "indeterminate" || r.Contexts[0].Boundaries[0].Reason != "ambiguous-nuget-lockfile-owner" {
+		t.Fatalf("generic NuGet lock was assigned despite a same-directory F# owner: %+v", r.Contexts)
+	}
+}
+
 func TestNuGetCustomLockPathIsUnresolvedFromSelectedProjectXML(t *testing.T) {
 	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
 	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
