@@ -1396,6 +1396,97 @@
       "size": 26035530,
       "asset": "v110-review-corrected-raw-captures.tar.gz",
       "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-review-corrected-raw-captures.tar.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-build.json.gz",
+      "sha256": "64be3a8db36c42f060ace0d37fa99dce190f96bcedadfe952b4cb81880aef7e4",
+      "size": 21313,
+      "asset": "v110-final-review-build.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-build.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-source-binding.json.gz",
+      "sha256": "7ba086765da668e4c503ddf2db3f87fd355f3746e3731c502c71d8d99420da87",
+      "size": 579,
+      "asset": "v110-final-review-source-binding.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-source-binding.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-compatibility.json.gz",
+      "sha256": "9e004ac59b45da23b417b5a9a3affbd60c4f1614e8102177fc0d73bf105835b7",
+      "size": 183858,
+      "asset": "v110-final-review-compatibility.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-compatibility.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-legacy-corpus.json.gz",
+      "sha256": "c9af039031e2cc571ee125b3342a24a505c6f61ce4d7e43ee5399de46aacd353",
+      "size": 6607,
+      "asset": "v110-final-review-legacy-corpus.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-legacy-corpus.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-large-macos-arm64.json.gz",
+      "sha256": "0b948db5be8769961282b37b2af3833ce769e6f9c53c269b933e5b2731f7c716",
+      "size": 6268,
+      "asset": "v110-final-review-large-macos-arm64.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-large-macos-arm64.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-go-gates.json.gz",
+      "sha256": "72e78e709fa077a84f38b0ffc3b0b319478d356e34d2d0409365241097620d10",
+      "size": 1146,
+      "asset": "v110-final-review-go-gates.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-go-gates.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-import-mutations.json.gz",
+      "sha256": "4bcdc319757a60522f8205e217cd605c380d4c73dab97063174dacb066b6765b",
+      "size": 5820,
+      "asset": "v110-final-review-import-mutations.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-import-mutations.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-golden.json.gz",
+      "sha256": "7ddf33928342b31637fef07b50093126ca0e1115d86d2e8f4f892f8ae9a194e4",
+      "size": 4350,
+      "asset": "v110-final-review-golden.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-golden.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-public-quality.json.gz",
+      "sha256": "06f47c63ce8afab2d3415b8b2d5aaffb0dd4d8161e8672a2a5eb4d85118cfada",
+      "size": 1905,
+      "asset": "v110-final-review-public-quality.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-public-quality.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-public-qualitative.json.gz",
+      "sha256": "34850e048760e9f3699386c5a9746c38f6dd4fdf20438d08ec51d7da4ca8156c",
+      "size": 3393,
+      "asset": "v110-final-review-public-qualitative.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-public-qualitative.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-corpus-checks.json.gz",
+      "sha256": "96092c17288724d52817c8f093bcd3d3296b7eb67ddf93df0a4fae3f38368796",
+      "size": 6605,
+      "asset": "v110-final-review-corpus-checks.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-corpus-checks.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-additional-checks.json.gz",
+      "sha256": "a688cf6fecc7081f8974822972a1b96bc4aafcaa0dceadd56a8e4eb90fe49c89",
+      "size": 5410,
+      "asset": "v110-final-review-additional-checks.json.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-additional-checks.json.gz"
+    },
+    {
+      "path": "tests/performance/v110_candidate/results/v110-final-review-raw-captures.tar.gz",
+      "sha256": "edce1e60c1196b5445eb9320cd52c7c861112942c9ea64c09f33e6c2cf48eded",
+      "size": 26033844,
+      "asset": "v110-final-review-raw-captures.tar.gz",
+      "url": "https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-raw-captures.tar.gz"
     }
   ]
 }
