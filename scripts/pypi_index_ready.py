@@ -2,6 +2,7 @@
 """Wait for public PyPI catalogs and a uv lock to contain every verified wheel."""
 
 import argparse
+from http.client import IncompleteRead
 import json
 import os
 from pathlib import Path
@@ -54,7 +55,7 @@ def fetch_json(url):
     # urllib wraps connection errors during request setup in URLError, but a
     # reset while reading the response body can escape as a bare OSError.
     # Both are transient transport failures and belong to the bounded retry.
-    except OSError as error:
+    except (OSError, IncompleteRead) as error:
         raise NotReady('public catalog request failed or timed out') from error
     if len(data) > MAX_RESPONSE_BYTES:
         raise ValueError('public catalog exceeded the response byte limit')

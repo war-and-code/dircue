@@ -1,6 +1,7 @@
 """An incomplete PyPI view must not become the shared installation lock."""
 
 import contextlib
+from http.client import IncompleteRead
 import io
 import json
 from pathlib import Path
@@ -170,9 +171,10 @@ class PyPIReadinessTests(unittest.TestCase):
         # connection reset here rather than wrapping it in URLError.
         with patch.object(ready, 'urlopen') as opening:
             response = opening.return_value.__enter__.return_value
-            response.read.side_effect = ConnectionResetError('connection reset during body')
-            with self.assertRaises(ready.NotReady):
-                ready.fetch_json('https://pypi.org/simple/dircue/')
+            for failure in (ConnectionResetError('connection reset during body'), IncompleteRead(b'{', 10)):
+                response.read.side_effect = failure
+                with self.subTest(failure=type(failure).__name__), self.assertRaises(ready.NotReady):
+                    ready.fetch_json('https://pypi.org/simple/dircue/')
 
     def test_workflow_binds_readiness_to_verified_release_hashes(self):
         workflow = (ROOT / '.github/workflows/publish-pypi.yml').read_text()
