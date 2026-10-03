@@ -566,8 +566,19 @@ class TestGoldenCLICorpusCompleteness(unittest.TestCase):
         self.assertEqual(doc["gate_status"], "passed")
         self.assertTrue(doc["input_complete"])
         self.assertEqual((doc["expected_repo_count"], doc["evaluated_repo_count"]), (1, 1))
-        self.assertFalse(doc["metric_scope"]["labels_modified"])
+        self.assertFalse(doc["metric_scope"]["scoring_modifies_labels"])
         self.assertEqual(doc["repo_inputs"][0]["status"], "evaluated")
+
+    def test_receipt_preserves_caller_supplied_label_origin(self):
+        label_doc = json.loads(self.labels.read_text())
+        label_doc["labeled_by"] = "curated"
+        self.labels.write_text(json.dumps(label_doc))
+        proc = self.run_maps()
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        doc = self.result()
+        self.assertEqual(doc["labeled_by"], "curated")
+        self.assertIn("not an independent accuracy estimate", doc["metric_scope"]["description"])
+        self.assertIn("informed development", doc["metric_scope"]["description"])
 
     def test_missing_map_fails_and_is_receipted(self):
         (self.maps / "sample.json").unlink()

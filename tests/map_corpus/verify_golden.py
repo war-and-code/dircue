@@ -947,15 +947,15 @@ def main() -> int:
 
     out_doc = {
         "gate": "golden-map-corpus",
-        "labeled_by": "blind",
+        "labeled_by": label_doc.get("labeled_by", "unspecified"),
         "repos": [r.as_dict() for r in results],
         "repo_inputs": inputs,
         "expected_repo_count": len(entries),
         "evaluated_repo_count": len(results),
         "input_complete": input_complete,
         "metric_scope": {
-            "description": "The unchanged blind labels are adjudicated against every labeled repository; incomplete input produces a partial diagnostic and cannot pass the gate.",
-            "labels_modified": False,
+            "description": "This run is regression evidence for the supplied labels over the selected repositories, not an independent accuracy estimate; initially blind repository sets have since informed development.",
+            "scoring_modifies_labels": False,
             "required_repo_count": len(entries),
             "evaluated_repo_count": len(results),
         },
