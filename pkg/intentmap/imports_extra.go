@@ -421,15 +421,79 @@ func jsRegexMayStart(t []sourceToken) bool {
 		return true
 	}
 	x := t[len(t)-1]
-	if x.kind == 'i' || x.kind == 's' || x.text == ")" || x.text == "]" || x.text == "}" || x.text == "++" || x.text == "--" {
-		return x.kind == 'i' && (x.text == "return" || x.text == "throw" || x.text == "case" || x.text == "delete" || x.text == "void" || x.text == "typeof" || x.text == "instanceof" || x.text == "in" || x.text == "of" || x.text == "yield" || x.text == "await")
+	if x.text == ")" {
+		return jsRegexAfterControlHeader(t)
+	}
+	if x.text == "}" {
+		return jsRegexAfterControlBlock(t)
+	}
+	if x.kind == 'i' || x.kind == 's' || x.text == "]" || x.text == "++" || x.text == "--" {
+		return x.kind == 'i' && (x.text == "return" || x.text == "throw" || x.text == "case" || x.text == "delete" || x.text == "void" || x.text == "typeof" || x.text == "instanceof" || x.text == "in" || x.text == "of" || x.text == "yield" || x.text == "await" || x.text == "else" || x.text == "do")
 	}
 	switch x.text {
-	case "(", "=", "=>", ":", ",", "!", "?", "&", "|", "+", "-", "*", "%", "{", ";":
+	case "(", "[", "=", "=>", ":", ",", "!", "?", "&", "|", "+", "-", "*", "%", "{", ";":
 		return true
 	default:
 		return false
 	}
+}
+
+// A control-statement header closes with `)`, after which an expression
+// statement may begin (and therefore a regexp literal may follow). A call or
+// grouping expression ending in `)` instead expects an operator or another
+// continuation, so a slash there remains division.
+func jsRegexAfterControlHeader(t []sourceToken) bool {
+	depth := 0
+	for i := len(t) - 1; i >= 0; i-- {
+		switch t[i].text {
+		case ")":
+			depth++
+		case "(":
+			depth--
+			if depth == 0 {
+				if i == 0 || t[i-1].kind != 'i' {
+					return false
+				}
+				switch t[i-1].text {
+				case "if", "while", "for", "with", "switch", "catch":
+					return true
+				default:
+					return false
+				}
+			}
+		}
+	}
+	return false
+}
+
+// A closing control block can also be followed by a new expression
+// statement. Object literals are excluded by checking the matching opener's
+// immediate context.
+func jsRegexAfterControlBlock(t []sourceToken) bool {
+	depth := 0
+	for i := len(t) - 1; i >= 0; i-- {
+		switch t[i].text {
+		case "}":
+			depth++
+		case "{":
+			depth--
+			if depth == 0 {
+				if i == 0 {
+					return false
+				}
+				if t[i-1].text == ")" {
+					return jsRegexAfterControlHeader(t[:i])
+				}
+				switch t[i-1].text {
+				case "else", "try", "finally", "do":
+					return true
+				default:
+					return false
+				}
+			}
+		}
+	}
+	return false
 }
 
 func escapedAt(s string, i int) bool {
@@ -856,7 +920,9 @@ func tsImportTypeOnly(t []sourceToken, i int) bool {
 			break
 		}
 	}
-	if open < 0 {
+	if open < 0 || open != i+1 {
+		// A default binding before the named imports is runtime evidence even
+		// when every named specifier is qualified with `type`.
 		return false
 	}
 	groups := [][]sourceToken{{}}
@@ -881,7 +947,13 @@ func tsImportTypeOnly(t []sourceToken, i int) bool {
 			continue
 		}
 		seen = true
-		if g[0].text != "type" || len(g) < 2 || g[1].kind != 'i' {
+		typeOnlySpecifier := g[0].text == "type" && len(g) >= 2 && g[1].kind == 'i'
+		if typeOnlySpecifier && g[1].text == "as" {
+			// `{ type as }` imports the type-only name `as`; `{ type as X }`
+			// imports the runtime export `type` under the local name `X`.
+			typeOnlySpecifier = len(g) == 2
+		}
+		if !typeOnlySpecifier {
 			return false
 		}
 	}

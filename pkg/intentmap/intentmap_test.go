@@ -1053,6 +1053,57 @@ func TestJSImportParserIgnoresTemplateAndJSXText(t *testing.T) {
 	}
 }
 
+func TestJSImportParserPreservesMixedDefaultAndTypeImports(t *testing.T) {
+	for _, tc := range []struct {
+		name, source string
+		typeOnly     bool
+	}{
+		{"default plus type specifier", `import Pg, { type Config } from "pg";`, false},
+		{"value named type alias", `import { type as Pg } from "pg";`, false},
+		{"type-only import of symbol as", `import { type as } from "pg";`, true},
+		{"type specifier with alias", `import { type Config as Pg } from "pg";`, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := parseJSImports("src/database.ts", []byte(tc.source))
+			if len(got) != 1 || got[0].Name != "datastore:postgresql" {
+				t.Fatalf("import did not produce PostgreSQL evidence: %+v", got)
+			}
+			isTypeOnly := got[0].Properties["import_qualifier"] == "type_only"
+			if isTypeOnly != tc.typeOnly {
+				t.Fatalf("type-only = %v, want %v: %+v", isTypeOnly, tc.typeOnly, got[0])
+			}
+		})
+	}
+}
+
+func TestJSImportParserIgnoresRegexLiteralContents(t *testing.T) {
+	falsePositiveCases := []struct {
+		name   string
+		source string
+	}{
+		{"array element", `const patterns = [/import pg from "pg";/];`},
+		{"if consequent", `if (ready) /import pg from "pg";/.test(source);`},
+		{"if block then expression", `if (ready) {} /import pg from "pg";/.test(source);`},
+		{"typeof operand", `const kind = typeof /import pg from "pg";/;`},
+		{"return operand", `function match() { return /import pg from "pg";/; }`},
+	}
+	for _, tc := range falsePositiveCases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := parseJSImports("src/regex.js", []byte(tc.source)); len(got) != 0 {
+				t.Fatalf("regex literal contents produced import evidence: %+v", got)
+			}
+		})
+	}
+	validAfterRegex := parseJSImports("src/regex.js", []byte("const pattern = /value/;\nimport pg from \"pg\";"))
+	if len(validAfterRegex) != 1 || validAfterRegex[0].Name != "datastore:postgresql" {
+		t.Fatalf("valid import after a regular expression was lost: %+v", validAfterRegex)
+	}
+	validAfterObjectDivision := parseJSImports("src/regex.js", []byte("const ratio = ({value: 4}) / 2;\nimport pg from \"pg\";"))
+	if len(validAfterObjectDivision) != 1 || validAfterObjectDivision[0].Name != "datastore:postgresql" {
+		t.Fatalf("division after an object expression hid a following import: %+v", validAfterObjectDivision)
+	}
+}
+
 func TestLexerMasksNestedAndUnterminatedLiteralRegions(t *testing.T) {
 	cases := []struct {
 		name, lang, source string
