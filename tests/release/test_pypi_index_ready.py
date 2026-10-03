@@ -153,7 +153,9 @@ class PyPIReadinessTests(unittest.TestCase):
         self.assertEqual(len(calls), ready.MAX_ATTEMPTS)
 
     def test_request_timeout_status_and_byte_bound(self):
-        for error in (URLError('network failure'), TimeoutError(), HTTPError('url', 404, '', {}, None)):
+        for error in (
+                URLError('network failure'), TimeoutError(),
+                ConnectionResetError('connection reset'), HTTPError('url', 404, '', {}, None)):
             with patch.object(ready, 'urlopen', side_effect=error), self.assertRaises(ready.NotReady):
                 ready.fetch_json('https://pypi.org/simple/dircue/')
         with patch.object(ready, 'urlopen', side_effect=HTTPError('url', 403, '', {}, None)), self.assertRaises(ValueError):
@@ -163,6 +165,14 @@ class PyPIReadinessTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'byte limit'):
                 ready.fetch_json('https://pypi.org/simple/dircue/')
             self.assertEqual(opening.call_args.kwargs['timeout'], ready.REQUEST_TIMEOUT)
+
+        # A body read happens after urlopen succeeds; urllib can surface a bare
+        # connection reset here rather than wrapping it in URLError.
+        with patch.object(ready, 'urlopen') as opening:
+            response = opening.return_value.__enter__.return_value
+            response.read.side_effect = ConnectionResetError('connection reset during body')
+            with self.assertRaises(ready.NotReady):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
 
     def test_workflow_binds_readiness_to_verified_release_hashes(self):
         workflow = (ROOT / '.github/workflows/publish-pypi.yml').read_text()

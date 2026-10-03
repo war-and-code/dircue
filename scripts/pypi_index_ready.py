@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 import tomllib
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError
 from urllib.parse import unquote, urlsplit
 from urllib.request import Request, urlopen
 
@@ -51,7 +51,10 @@ def fetch_json(url):
         if error.code == 404 or error.code == 429 or 500 <= error.code <= 599:
             raise NotReady(f'public catalog returned HTTP {error.code}') from error
         raise ValueError(f'public catalog returned HTTP {error.code}') from error
-    except (URLError, TimeoutError) as error:
+    # urllib wraps connection errors during request setup in URLError, but a
+    # reset while reading the response body can escape as a bare OSError.
+    # Both are transient transport failures and belong to the bounded retry.
+    except OSError as error:
         raise NotReady('public catalog request failed or timed out') from error
     if len(data) > MAX_RESPONSE_BYTES:
         raise ValueError('public catalog exceeded the response byte limit')
