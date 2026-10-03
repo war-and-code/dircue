@@ -1032,7 +1032,7 @@ func explanationFor(reason string) string {
 	case "unsupported-npm-lockfile-version":
 		return "Only npm lockfile versions 2 and 3 are supported; no dependency-resolution claim is made."
 	case "unsupported-nuget-lockfile-version":
-		return "Only NuGet packages.lock.json format version 1 is supported."
+		return "Only NuGet packages.lock.json format versions 1 and 2 are supported; v2 Project and CentralTransitive records remain outside the direct-package presence check."
 	case "invalid-lockfile-json":
 		return "The selected lockfile is invalid or contains duplicate JSON keys; no comparison was made."
 	default:

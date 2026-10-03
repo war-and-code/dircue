@@ -47,4 +47,4 @@ The module never runs npm, NuGet, MSBuild, install scripts, or restore; it does 
 | Project contexts | 4,096 |
 | Serialized module report | 16 MiB |
 
-`--max-file-bytes` can lower the file-read ceiling for a scan. Reaching a bound or losing selected-file coverage is disclosed through partial or skipped status, coverage counts, boundaries, and diagnostics; it is not treated as a successful comparison.
+`--max-file-bytes` can lower the file-read ceiling for a scan. Input and observation bounds, or lost selected-file coverage, are disclosed through partial or skipped status, coverage counts, boundaries, and diagnostics; they are not treated as successful comparisons. If the serialized report itself exceeds its output ceiling, the command returns an error rather than a truncated success-shaped report.

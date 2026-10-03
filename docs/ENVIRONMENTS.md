@@ -44,6 +44,8 @@ Requirement evidence identifies the declaring file, and `global.json` evidence i
 
 The fixed maxima are 200,000 selected inventory paths, 4,096 toolchain declaration files, 64 KiB per toolchain file, 4 MiB total toolchain file input, 16 version selectors per `.python-version` file, 128 bytes per selector, 64 TOML nesting levels, 4,096 modeled contexts, 65,536 normalized requirements, 1 MiB per `global.json`, 16 MiB total `global.json` input, 128 JSON nesting levels, 100,000 decoded JSON values, 8,192 bytes per retained string, and 16 MiB of serialized environment output. A lower `--max-file-bytes` also lowers the per-file `global.json` and toolchain read limits. Coverage counters and boundaries disclose omissions; limits do not describe process-memory use. `environments.ValidateReport` validates decoded reports before comparison or other reuse.
 
+Exhausting the scanner's relevant inventory budget produces a skipped module with an `inventory_path_limit` boundary. Exceeding the serialized output ceiling returns an error rather than a truncated success-shaped report. Cancellation remains an error, including cancellation observed after a selected read completes.
+
 ## Known boundaries
 
 Environment coverage is limited to the dimensions above; other ecosystems' environment declarations are not modeled yet. See [capabilities](CAPABILITIES.md) and [#65](https://github.com/war-and-code/dircue/issues/65).
