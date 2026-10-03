@@ -89,6 +89,17 @@ func TestAnalyzeRejectsNegativeInputOmissionCountBeforeReading(t *testing.T) {
 }
 
 func TestAnalyzeRejectsInvalidInputSourceIdentityBeforeReading(t *testing.T) {
+	validGit := envInput(nil, nil)
+	validGit.Source = "git"
+	validGit.Tree = strings.Repeat("a", 40)
+	report, err := Analyze(t.Context(), validGit, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReport(report); err != nil {
+		t.Fatalf("valid selected Git tree identity should be accepted: %v", err)
+	}
+
 	tests := []struct {
 		name string
 		edit func(*Input)
@@ -96,6 +107,9 @@ func TestAnalyzeRejectsInvalidInputSourceIdentityBeforeReading(t *testing.T) {
 		{"unknown source", func(in *Input) { in.Source = "archive" }},
 		{"directory with tree", func(in *Input) { in.Tree = "deadbeef" }},
 		{"git without tree", func(in *Input) { in.Source = "git" }},
+		{"git malformed tree", func(in *Input) { in.Source = "git"; in.Tree = "not-a-tree" }},
+		{"git non-hex tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("g", 40) }},
+		{"git uppercase tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("A", 40) }},
 		{"oversized tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("a", 8193) }},
 	}
 	for _, tt := range tests {
@@ -246,6 +260,10 @@ func TestReportSourceIdentityValidation(t *testing.T) {
 	r.Source, r.Tree = "git", ""
 	if ValidateReport(r) == nil {
 		t.Fatal("accepted git source without tree")
+	}
+	r.Tree = "not-a-tree"
+	if ValidateReport(r) == nil {
+		t.Fatal("accepted malformed current git tree identity")
 	}
 }
 

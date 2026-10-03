@@ -34,7 +34,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if in.OmittedFiles < 0 {
 		return nil, errors.New("environment input omission count is invalid")
 	}
-	if (in.Source != "git" && in.Source != "directory") || (in.Source == "git") != (in.Tree != "") || !wireOptional(in.Tree) {
+	if (in.Source != "git" && in.Source != "directory") || (in.Source == "git") != (in.Tree != "") || !wireOptional(in.Tree) || in.Source == "git" && !validEnvironmentGitTree(in.Tree) {
 		return nil, errors.New("environment input source identity is invalid")
 	}
 	limits = defaults(limits)

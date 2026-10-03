@@ -24,6 +24,9 @@ func ValidateReport(r *Report) error {
 	if (r.Source != "git" && r.Source != "directory") || (r.Source == "git") != (r.Tree != "") || !wireOptional(r.Tree) {
 		return errors.New("environment source identity is invalid")
 	}
+	if current && r.Source == "git" && !validEnvironmentGitTree(r.Tree) {
+		return errors.New("environment source tree is invalid")
+	}
 	l := r.Limits
 	if l.InventoryPaths < 1 || l.InventoryPaths > DefaultMaxInventoryPaths || l.GlobalJSONBytes < 1 || l.GlobalJSONBytes > DefaultMaxGlobalJSONBytes || l.InputBytes < 1 || l.InputBytes > DefaultMaxInputBytes || l.Requirements < 1 || l.Requirements > DefaultMaxRequirements || l.Contexts < 1 || l.Contexts > DefaultMaxContexts || l.OutputBytes < 1 || l.OutputBytes > DefaultMaxOutputBytes {
 		return errors.New("environment limits are invalid")
@@ -141,4 +144,16 @@ func toolchainScope(sourcePath string) string {
 		return "."
 	}
 	return scope
+}
+
+func validEnvironmentGitTree(value string) bool {
+	if len(value) != 40 {
+		return false
+	}
+	for _, r := range value {
+		if !(r >= '0' && r <= '9' || r >= 'a' && r <= 'f') {
+			return false
+		}
+	}
+	return true
 }

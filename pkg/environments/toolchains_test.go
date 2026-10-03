@@ -125,6 +125,8 @@ func TestToolchainCancellationAndOldReportCompatibility(t *testing.T) {
 	}
 	current.ProviderVersion = LegacyProviderVersion
 	current.SemanticsReference = legacySemanticsReference
+	current.Source = "git"
+	current.Tree = "legacy-opaque-tree"
 	current.Limits.ToolchainFiles = 0
 	current.Limits.ToolchainFileBytes = 0
 	current.Limits.ToolchainInputBytes = 0
