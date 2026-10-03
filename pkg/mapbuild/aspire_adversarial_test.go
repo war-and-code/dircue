@@ -40,3 +40,53 @@ func TestAspireRunsDoNotGuessAcrossCustomGeneratedNameReferences(t *testing.T) {
 		}
 	}
 }
+
+func TestAspireRunsDoNotIgnoreUncertainGeneratedNameCollisions(t *testing.T) {
+	baseApp := declarations.Project{
+		ID: "src/AppHost/AppHost.csproj", Root: "src/AppHost", Kind: "dotnet",
+		Requirements: []declarations.Requirement{{Kind: "dotnet-sdk", Value: "Aspire.AppHost.Sdk/9.0.0", State: "declared"}},
+	}
+	defaultRef := declarations.Reference{Kind: "project-reference", Value: "../Service/Service.csproj", Target: "src/Service/Service.csproj", TargetStatus: "present", State: "declared", Evidence: "src/AppHost/AppHost.csproj"}
+	service := declarations.Project{ID: "src/Service/Service.csproj", Root: "src/Service", Kind: "dotnet"}
+	deployable := deployables.Definition{
+		Kind: "service", Provider: "aspire-apphost", Name: "AppHost", Path: "src/AppHost/Program.cs", Coverage: "qualified",
+		Evidence:   []deployables.Evidence{{Field: "apphost", Line: 1, Basis: "aspire-apphost-top-level-builder"}},
+		References: []deployables.Reference{{Kind: "aspire_project", Value: "Service", Qualification: "declared", Evidence: deployables.Evidence{Field: "AddProject", Line: 4, Basis: "aspire-csharp-top-level-static"}}},
+	}
+	cases := []struct {
+		name string
+		ref  declarations.Reference
+	}{
+		{
+			name: "duplicate excluded target",
+			ref:  declarations.Reference{Kind: "project-reference", Value: "../Service/Service.csproj", Target: "src/Service/Service.csproj", TargetStatus: "present", State: "declared", AspireResource: "false", Evidence: "src/AppHost/AppHost.csproj"},
+		},
+		{
+			name: "conditional duplicate target",
+			ref:  declarations.Reference{Kind: "project-reference", Value: "../Service/Service.csproj", Target: "src/Service/Service.csproj", TargetStatus: "present", State: "conditional", Condition: "'$(Flavor)' == 'service'", Evidence: "src/AppHost/AppHost.csproj"},
+		},
+		{
+			name: "dynamic unresolved target could generate same identifier",
+			ref:  declarations.Reference{Kind: "project-reference", Value: "../$(ServiceDirectory)/Service.csproj", State: "unresolved", Evidence: "src/AppHost/AppHost.csproj"},
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			app := baseApp
+			app.References = []declarations.Reference{defaultRef, tc.ref}
+			report := &profile.Report{
+				Discovery:    &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory"}},
+				Declarations: &declarations.Report{Status: "complete", Projects: []declarations.Project{app, service}},
+			}
+			doc, err := Build(report, Options{Deployables: &deployables.Report{Status: "complete", Definitions: []deployables.Definition{deployable}}})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, edge := range doc.Edges {
+				if edge.Type == mapdoc.EdgeRuns {
+					t.Fatalf("uncertain same-name reference was ignored: %+v", edge)
+				}
+			}
+		})
+	}
+}
