@@ -80,3 +80,14 @@ CI completed in two runs on nearby revisions. [Cross-platform CI and conformance
 The [final compatibility receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-compatibility.json.gz) matches **278/278** inherited cases with the pinned published 1.0.1 executable and native worker. The final candidate SHA-256 is `9391da949c0a91b05ea9d980909c72fcdc54da998ccbd48727a6cbca91916953`; its [build receipt](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-build.json.gz) records clean source `74c14ecb5761092f5b9a1ce09bdd9e2e47ffd989`. New lexer and Makefile fixes mean the earlier candidate receipts above are historical.
 
 The [final legacy-corpus replay](https://github.com/war-and-code/dircue/releases/download/evidence-archive-1/v110-final-review-legacy-corpus.json.gz) matches **58/58** results across 29 pinned repositories, with all 232 raw stdout/stderr streams preserved and hash-checked. It uses the same relative inputs and logical `PWD` alias described above; no captured bytes were edited. [Cross-platform CI](https://github.com/war-and-code/dircue/actions/runs/37126064763) and [native archive/wheel/worker smoke tests](https://github.com/war-and-code/dircue/actions/runs/37126066688) passed on the final production source at `74c14ec`. The later changes strengthen the Python evidence and packaging tests and update documentation; their separate preflight and source-binding checks preserve that distinction. No tag, release or PyPI upload was performed.
+
+## 1.2.0 candidate
+
+The 1.2 candidate is compared with the published 1.1.0 binary using the same 278-case matrix and published native worker. The raw comparison has 274 exact matches and four differences. Each difference is confined to `registries.rule_version` and `registries.scope.supported_configurations`; existing npm/NuGet facts, coverage, other modules, stderr and exit status are unchanged. These are deliberate observer metadata changes described in [the compatibility policy](../../docs/COMPATIBILITY.md). The raw exact-match gate remains false.
+
+`v120.py` reads that receipt without modifying it and verifies the four reviewed exceptions separately. It rejects other case IDs, changed facts, schema values, warnings, exits, streams or counters. The Python unit suite includes mutations of these fields. This check does not authenticate a supplied receipt or prove behavior on inputs outside the recorded matrix.
+
+```sh
+python3 tests/compatibility_next/v120.py /path/to/raw-minor-receipt.json
+python3 -m unittest discover -s tests/compatibility_next -p 'test_*.py' -v
+```
