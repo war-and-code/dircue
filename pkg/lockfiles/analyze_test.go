@@ -132,6 +132,29 @@ func TestAnalyzeRejectsLimitsAboveReportMaximums(t *testing.T) {
 	}
 }
 
+func TestAnalyzeRejectsInputAboveReportMaximums(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		input func() Input
+	}{
+		{"inventory", func() Input {
+			return Input{Source: "directory", Inventory: make([]File, DefaultMaxInventoryPaths+1)}
+		}},
+		{"project records", func() Input {
+			return Input{Source: "directory", ProjectRecords: make([]declarations.ProjectRecord, DefaultMaxInventoryPaths+1)}
+		}},
+		{"declaration projects", func() Input {
+			return Input{Source: "directory", Declarations: declarations.Report{Projects: make([]declarations.Project, DefaultMaxInventoryPaths+1)}}
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if report, err := Analyze(context.Background(), tc.input(), Limits{}); err == nil {
+				t.Fatalf("over-maximum caller input produced a report: %+v", report.Coverage)
+			}
+		})
+	}
+}
+
 func TestConflictingDuplicateInventoryMetadataKeepsAssociationIndeterminate(t *testing.T) {
 	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
 	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`

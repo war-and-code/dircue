@@ -38,6 +38,13 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if in.OmittedFiles < 0 || in.Declarations.Coverage.OmittedFiles < 0 || in.Declarations.Coverage.OmittedDiagnostics < 0 {
 		return nil, errors.New("lockfile input omission counts cannot be negative")
 	}
+	projectRecordCount := len(in.ProjectRecords)
+	if projectRecordCount == 0 {
+		projectRecordCount = len(in.Declarations.Projects)
+	}
+	if len(in.Inventory) > DefaultMaxInventoryPaths || projectRecordCount > DefaultMaxInventoryPaths {
+		return nil, errors.New("lockfile input exceeds the supported inventory maximum")
+	}
 	if (in.Source != "directory" && in.Source != "git") ||
 		(in.Source == "git" && !validGitTree(in.Tree)) ||
 		(in.Source == "directory" && in.Tree != "") {
@@ -66,6 +73,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	paths := make([]string, 0, min(len(in.Inventory), limits.InventoryPaths))
 	ordered := slices.Clone(in.Inventory)
 	slices.SortFunc(ordered, func(a, b File) int { return strings.Compare(a.Path, b.Path) })
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	for _, f := range ordered {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -118,6 +128,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	}
 
 	records := recordsFor(in)
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	r.Coverage.ProjectRecords = len(records)
 	validRecords := records[:0]
 	recordIndex := map[string]int{}
@@ -288,6 +301,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 					r.Coverage.InputBytes += size
 					r.Coverage.LockfilesRead++
 					parsed = parseLock(ecosystem, data)
+					if err := ctx.Err(); err != nil {
+						return nil, err
+					}
 				}
 			}
 			lockReadCache[lockPath] = parsed
@@ -302,6 +318,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			continue
 		}
 		check, count, checkReason := compare(ecosystem, rec, parsed, limits.PackageNames-r.Coverage.PackageNames)
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
 		if ecosystem == "npm" && in.Declarations.Coverage.OmittedDiagnostics > 0 {
 			check.Status = "indeterminate"
 			check.Explanation = "Declaration diagnostics were omitted, so the complete direct package table cannot be established."
@@ -337,8 +356,14 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		return r.Contexts[i].ManifestPath < r.Contexts[j].ManifestPath
 	})
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	if err := enforceOutputLimit(r, limits.OutputBytes); err != nil {
 		return nil, err
+	}
+	if err := ValidateReport(r); err != nil {
+		return nil, fmt.Errorf("validate lockfile report: %w", err)
 	}
 	return r, nil
 }
