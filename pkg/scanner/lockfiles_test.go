@@ -10,6 +10,7 @@ import (
 
 	"github.com/war-and-code/dircue/pkg/lockfiles"
 	"github.com/war-and-code/dircue/pkg/profile"
+	"github.com/war-and-code/dircue/schema"
 )
 
 const lockfilesNPMManifest = `{"name":"app","dependencies":{"left-pad":"1.0.0"}}`
@@ -199,6 +200,34 @@ func TestLockfilesReportIsStableAcrossRepeatedDirectoryScans(t *testing.T) {
 	}
 	if !reflect.DeepEqual(first.Lockfiles, second.Lockfiles) {
 		t.Fatalf("repeated reports differ:\n%+v\n%+v", first.Lockfiles, second.Lockfiles)
+	}
+}
+
+func TestLockfilesSkippedAggregateRetainsHighestSchema(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "package.json"), []byte(lockfilesNPMManifest), 0600); err != nil {
+		t.Fatal(err)
+	}
+	for _, opts := range []Options{
+		{Source: "directory", Lockfiles: true, DeclarationsOnly: true, MaxTreeSize: 1},
+		{Source: "directory", Lockfiles: true, Environments: true, Availability: true, Formats: true, Discovery: true, MaxTreeSize: 1},
+		{Source: "directory", Environments: true, DeclarationsOnly: true, MaxTreeSize: 1},
+	} {
+		r, err := Scan(context.Background(), root, opts)
+		if err != nil {
+			t.Fatal(err)
+		}
+		b, err := json.Marshal(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var v any
+		if err := json.Unmarshal(b, &v); err != nil {
+			t.Fatal(err)
+		}
+		if err := schema.ValidateProfile(v); err != nil {
+			t.Fatalf("skipped aggregate options %+v: %v", opts, err)
+		}
 	}
 }
 
