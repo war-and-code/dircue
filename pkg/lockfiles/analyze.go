@@ -35,6 +35,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if (in.Source != "directory" && in.Source != "git") ||
+		(in.Source == "git" && !validGitTree(in.Tree)) ||
+		(in.Source == "directory" && in.Tree != "") {
+		return nil, errors.New("lockfile input source identity is invalid")
+	}
 	limits = defaults(limits)
 	r := &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "complete", Source: in.Source, Tree: in.Tree, Semantics: []string{npmSemantics, nugetSemantics}, Limits: limits, Contexts: []Context{}, Diagnostics: []Diagnostic{}}
 	r.Coverage.OmittedFiles = in.OmittedFiles
