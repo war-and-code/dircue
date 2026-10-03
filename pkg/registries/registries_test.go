@@ -381,16 +381,22 @@ branch = "private-branch"
 }
 
 func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
+	dotted := strings.TrimSuffix(strings.Repeat("a.", MaxTOMLDepth), ".") + " = 1\n"
 	for _, input := range []string{
 		"[registries.foo\nindex='https://example.test'\n",
 		"[registries.foo]\nindex='https://example.test'\nindex='https://evil.test'\n",
 		"[registries.foo]\nindex = 'https://example.test'\n" + strings.Repeat("[x]\n", MaxTOMLTokens),
 		"value = " + strings.Repeat("[", MaxTOMLDepth+1) + "0" + strings.Repeat("]", MaxTOMLDepth+1) + "\n",
+		dotted,
 	} {
 		c := mustParse(t, ".cargo/config", input)
 		if c.Status != "partial" || len(c.Declarations) != 0 || c.DeclarationCountComplete {
 			t.Fatalf("nontransactional/underbounded TOML parse: %+v", c)
 		}
+	}
+	c := mustParse(t, ".cargo/config", dotted)
+	if c.Omissions["toml_depth_limit"] != 1 {
+		t.Fatalf("dotted-key nesting did not identify depth limit: %+v", c)
 	}
 }
 
