@@ -34,8 +34,22 @@ func MatchPath(filename string) (string, bool) {
 		return "nuget", true
 	case path.Base(filename) == ".npmrc":
 		return "npm", true
+	case path.Base(filename) == "settings.xml":
+		return "maven", true
+	case (path.Base(filename) == "config" || path.Base(filename) == "config.toml") && path.Base(path.Dir(filename)) == ".cargo":
+		return "cargo", true
 	default:
 		return "", false
+	}
+}
+
+func supportedConfigurations() []string {
+	return []string{
+		"cargo_dot_cargo_config_basename_exact",
+		"cargo_dot_cargo_config_toml_basename_exact",
+		"maven_settings_xml_basename_exact",
+		"nuget_config_basename_case_insensitive",
+		"npmrc_basename_exact",
 	}
 }
 func safePath(value string) bool {

@@ -22,10 +22,15 @@ func Parse(filename string, content []byte) (Configuration, error) {
 		return c, nil
 	}
 	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
-	if eco == "nuget" {
+	switch eco {
+	case "nuget":
 		parseXML(&c, content)
-	} else {
+	case "npm":
 		parseNPM(&c, content)
+	case "maven":
+		parseMavenSettings(&c, content)
+	case "cargo":
+		parseCargoConfig(&c, content)
 	}
 	return c, nil
 }

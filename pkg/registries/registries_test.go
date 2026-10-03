@@ -234,7 +234,7 @@ func TestScopeEmptyAndTreeSkipped(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if !reflect.DeepEqual(r.Scope.SupportedConfigurations, []string{"nuget_config_basename_case_insensitive", "npmrc_basename_exact"}) {
+		if !reflect.DeepEqual(r.Scope.SupportedConfigurations, supportedConfigurations()) {
 			t.Fatal(r.Scope)
 		}
 		if len(r.Configurations) != 0 || r.Scope.ExternalConfiguration || r.Scope.EnvironmentExpansion || r.Scope.NetworkAccess {
@@ -245,6 +245,164 @@ func TestScopeEmptyAndTreeSkipped(t *testing.T) {
 		}
 		if !skip && (r.Status != "complete" || !r.Coverage.EnumerationComplete) {
 			t.Fatal(r)
+		}
+	}
+}
+
+func TestMavenSettingsDeclarationsAreQualifiedAndSecretFree(t *testing.T) {
+	input := `<?xml version="1.0" encoding="UTF-8"?>
+<settings xmlns="http://maven.apache.org/SETTINGS/1.2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mirrors><mirror><id>company-mirror</id><mirrorOf>central</mirrorOf><url>https://user:credential-sentinel@MIRROR.example:8443/private/path?token=query-sentinel#fragment-sentinel</url></mirror></mirrors>
+  <profiles><profile><id>release-profile</id><activation><property><name>password-sentinel</name></property></activation>
+    <repositories><repository><id>private-repo</id><url>https://repo.example/releases/private</url><releases><enabled>true</enabled></releases></repository></repositories>
+    <pluginRepositories><pluginRepository><id>plugins</id><url>${env.MAVEN_REPO}</url></pluginRepository></pluginRepositories>
+  </profile></profiles>
+  <activeProfiles><activeProfile>release-profile</activeProfile></activeProfiles>
+  <servers><server><id>secret-server</id><username>username-sentinel</username><password>password-sentinel</password><privateKey>/private/key-sentinel</privateKey></server></servers>
+  <proxies><proxy><username>proxy-user-sentinel</username><password>proxy-password-sentinel</password></proxy></proxies>
+</settings>`
+	c := mustParse(t, "build/settings.xml", input)
+	if c.Ecosystem != "maven" || c.SyntaxStatus != "complete" || c.Status != "partial" || c.ObservedDeclarations != 5 {
+		t.Fatalf("unexpected Maven result: %+v", c)
+	}
+	bySection := map[string][]Declaration{}
+	for _, d := range c.Declarations {
+		bySection[d.Section] = append(bySection[d.Section], d)
+		if d.Applicability != "unresolved" {
+			t.Fatalf("Maven applicability must stay unresolved: %+v", d)
+		}
+	}
+	mirror := bySection["mirrors"][0]
+	if mirror.Name.Value != "company-mirror" || mirror.Pattern.Value != "central" || mirror.Endpoint.Origin != "https://mirror.example:8443" {
+		t.Fatal(mirror)
+	}
+	repo := bySection["repositories"][0]
+	if repo.Name.Value != "private-repo" || repo.Scope.Value != "release-profile" || repo.Endpoint.Origin != "https://repo.example" {
+		t.Fatal(repo)
+	}
+	if len(bySection["pluginRepositories"]) != 1 || bySection["pluginRepositories"][0].Endpoint.Status != "unresolved" || len(bySection["activeProfiles"]) != 1 {
+		t.Fatal(bySection)
+	}
+	encoded, _ := json.Marshal(c)
+	for _, secret := range []string{"credential-sentinel", "private/path", "query-sentinel", "fragment-sentinel", "MAVEN_REPO", "password-sentinel", "username-sentinel", "private/key-sentinel", "proxy-user-sentinel", "proxy-password-sentinel"} {
+		if strings.Contains(string(encoded), secret) {
+			t.Fatalf("Maven output leaked %q: %s", secret, encoded)
+		}
+	}
+}
+
+func TestMavenRejectsMalformedNamespacesDepthAndDuplicateRecognizedFields(t *testing.T) {
+	for _, input := range []string{
+		`<settings xmlns="urn:foreign"><mirrors/></settings>`,
+		`<settings><mirrors><mirror><id>ok</id><url>https://example.test</url></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>first</id><id>second</id><url>https://example.test</url></mirror></mirrors></settings>`,
+		`<settings>` + strings.Repeat(`<x>`, MaxXMLDepth) + strings.Repeat(`</x>`, MaxXMLDepth) + `</settings>`,
+		`<settings>` + strings.Repeat(`<!--x-->`, MaxXMLTokens) + `</settings>`,
+	} {
+		c := mustParse(t, "settings.xml", input)
+		if c.Status != "partial" || c.DeclarationCountComplete == false && c.SyntaxStatus == "complete" && len(c.Declarations) > 0 {
+			t.Fatalf("unexpected invalid Maven result: %+v", c)
+		}
+		if c.SyntaxStatus != "complete" && len(c.Declarations) != 0 {
+			t.Fatalf("invalid Maven input leaked partial facts: %+v", c)
+		}
+	}
+}
+
+func TestCargoRepositorySelectedRegistryDeclarations(t *testing.T) {
+	input := `
+[registry]
+default = "company"
+
+[registries.company]
+index = "sparse+https://user:credential-sentinel@INDEX.example:8443/private/path?token=query-sentinel#fragment-sentinel"
+token = "cargo-token-sentinel"
+
+[registries.dynamic]
+index = "sparse+https://${env.CARGO_INDEX}/private"
+
+[source.crates-io]
+replace-with = "company"
+
+[source.company]
+registry = "https://repo.example/private/index"
+
+[source.vendor]
+directory = "${workspace}/vendor/private"
+
+[source.local]
+local-registry = "../../private/local-registry"
+
+[source.git-mirror]
+git = "https://git-user:git-secret@GIT.example/private/repo?token=git-query#git-fragment"
+branch = "private-branch"
+`
+	c := mustParse(t, ".cargo/config.toml", input)
+	if c.Ecosystem != "cargo" || c.SyntaxStatus != "complete" || c.Status != "partial" || c.ObservedDeclarations != 13 {
+		t.Fatalf("unexpected Cargo result: %+v", c)
+	}
+	find := func(section, name, operation string) Declaration {
+		t.Helper()
+		for _, d := range c.Declarations {
+			if d.Section == section && d.Operation == operation && d.Name != nil && d.Name.Value == name {
+				return d
+			}
+		}
+		t.Fatalf("missing declaration %s/%s/%s: %+v", section, name, operation, c.Declarations)
+		return Declaration{}
+	}
+	index := find("cargoRegistry", "company", "add")
+	if index.Endpoint.Origin != "https://index.example:8443" || index.Applicability != "unresolved" {
+		t.Fatal(index)
+	}
+	dynamic := find("cargoRegistry", "dynamic", "add")
+	if dynamic.Endpoint.Status != "unresolved" {
+		t.Fatal(dynamic)
+	}
+	if got := find("cargoSource", "vendor", "source").Endpoint; got.Status != "unresolved" {
+		t.Fatal(got)
+	}
+	if got := find("cargoSource", "local", "source").Endpoint; got.Status != "local_path" {
+		t.Fatal(got)
+	}
+	if got := find("cargoSource", "crates-io", "replace"); got.Scope.Value != "company" {
+		t.Fatal(got)
+	}
+	git := find("cargoSource", "git-mirror", "source")
+	if git.Endpoint.Origin != "https://git.example" {
+		t.Fatal(git)
+	}
+	encoded, _ := json.Marshal(c)
+	for _, secret := range []string{"credential-sentinel", "private/path", "query-sentinel", "fragment-sentinel", "CARGO_INDEX", "cargo-token-sentinel", "workspace", "git-user", "git-secret", "git-query", "git-fragment", "private-branch"} {
+		if strings.Contains(string(encoded), secret) {
+			t.Fatalf("Cargo output leaked %q: %s", secret, encoded)
+		}
+	}
+}
+
+func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
+	for _, input := range []string{
+		"[registries.foo\nindex='https://example.test'\n",
+		"[registries.foo]\nindex='https://example.test'\nindex='https://evil.test'\n",
+		"[registries.foo]\nindex = 'https://example.test'\n" + strings.Repeat("[x]\n", MaxTOMLTokens),
+		"value = " + strings.Repeat("[", MaxTOMLDepth+1) + "0" + strings.Repeat("]", MaxTOMLDepth+1) + "\n",
+	} {
+		c := mustParse(t, ".cargo/config", input)
+		if c.Status != "partial" || len(c.Declarations) != 0 || c.DeclarationCountComplete {
+			t.Fatalf("nontransactional/underbounded TOML parse: %+v", c)
+		}
+	}
+}
+
+func TestRegistryConfigurationPathSelection(t *testing.T) {
+	for _, p := range []string{"settings.xml", "svc/settings.xml", ".cargo/config", "svc/.cargo/config.toml"} {
+		if _, ok := MatchPath(p); !ok {
+			t.Errorf("did not select %q", p)
+		}
+	}
+	for _, p := range []string{"SETTINGS.XML", "settings.xml.bak", "config.toml", ".cargo/credentials", "cargo/config.toml"} {
+		if _, ok := MatchPath(p); ok {
+			t.Errorf("unexpected selection %q", p)
 		}
 	}
 }
