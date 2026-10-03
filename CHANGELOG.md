@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.2.0 (unreleased)
+## 1.2.0 (2026-10-03)
 
 - Add `analyze lockfiles` and `analyze all --lockfiles`. The optional module associates supported npm and NuGet lockfiles with statically observed projects and reports named checks separately from association: exact npm direct-dependency declaration text, and observed NuGet direct-package presence. Ambiguous workspaces, shared MSBuild inputs, custom lock paths and parser limits remain explicit. The module does not verify dependency resolution, freshness or restore success. Aggregate profiles containing it use schema version 1.8.0.
 - Expand `analyze environments` with selected `.python-version`, `.node-version`, `.nvmrc`, `rust-toolchain` and `rust-toolchain.toml` declarations. Preserve nested scopes and conflicts without guessing manager precedence or installed versions. The environment provider advances to 1.1.0; existing .NET selection semantics remain unchanged, and current readers retain support for older 1.0.0 environment reports.
