@@ -49,6 +49,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if in.Declarations.Status != "" && in.Declarations.Status != "complete" {
 		r.Status = "partial"
 	}
+	projectInventoryComplete := in.Declarations.Status != "" && in.Declarations.Status != "skipped" && in.Declarations.Coverage.OmittedFiles == 0
 
 	files := make(map[string]File)
 	inventoryComplete := in.InventoryComplete && in.OmittedFiles == 0
@@ -85,7 +86,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	lockAllowed := map[string]bool{}
 	for _, p := range paths {
 		base := path.Base(p)
-		if base == "package-lock.json" || base == "npm-shrinkwrap.json" || base == "packages.lock.json" || strings.HasPrefix(base, "packages.") && strings.HasSuffix(base, ".lock.json") {
+		if base == "package-lock.json" || base == "npm-shrinkwrap.json" || isNuGetLockCandidateName(base) {
 			r.Coverage.LockCandidates++
 			locksByDir[path.Dir(p)] = append(locksByDir[path.Dir(p)], p)
 			if r.Coverage.LockCandidates <= limits.Lockfiles {
@@ -103,6 +104,8 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	records := recordsFor(in)
 	r.Coverage.ProjectRecords = len(records)
 	validRecords := records[:0]
+	recordIndex := map[string]int{}
+	duplicateDiagnostics := map[string]bool{}
 	for _, rec := range records {
 		manifest, root, ok := cleanProjectPaths(rec.Project.ID, rec.Project.Root)
 		if !ok {
@@ -113,6 +116,18 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		rec.Project.ID = manifest
 		rec.Project.Root = root
+		if index, exists := recordIndex[manifest]; exists {
+			validRecords[index].Parsed = false
+			validRecords[index].Complete = false
+			r.Status = "partial"
+			r.Coverage.OmittedContexts++
+			if !duplicateDiagnostics[manifest] {
+				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: manifest, Code: "duplicate-project-record", Message: "Duplicate project records were found; their dependency evidence was treated as incomplete."})
+				duplicateDiagnostics[manifest] = true
+			}
+			continue
+		}
+		recordIndex[manifest] = len(validRecords)
 		validRecords = append(validRecords, rec)
 	}
 	records = validRecords
@@ -184,6 +199,10 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		} else if nugetImportedInputs {
 			association = "indeterminate"
 			reason = "nuget-imported-project-input-unresolved"
+		}
+		if ecosystem == "nuget" && association == "observed" && !projectInventoryComplete {
+			association = "indeterminate"
+			reason = "project-inventory-incomplete-association"
 		}
 		if association == "observed" && !inventoryComplete {
 			association = "indeterminate"
@@ -470,6 +489,20 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 	}
 }
 
+// NuGet's conventional lockfile names are case-insensitive on common
+// case-insensitive filesystems. Preserve case-variant candidates so they do
+// not turn into a false "missing" result; association decides whether the
+// spelling is strong enough to claim ownership.
+func isNuGetLockCandidateName(base string) bool {
+	if strings.EqualFold(base, "packages.lock.json") {
+		return true
+	}
+	const prefix, suffix = "packages.", ".lock.json"
+	return len(base) > len(prefix)+len(suffix) &&
+		strings.EqualFold(base[:len(prefix)], prefix) &&
+		strings.EqualFold(base[len(base)-len(suffix):], suffix)
+}
+
 func safeNPMReportName(value string) bool {
 	if value == "" || len(value) > 256 || !utf8.ValidString(value) {
 		return false
@@ -729,10 +762,17 @@ func associate(ecosystem string, rec declarations.ProjectRecord, records []decla
 		}
 		base := path.Base(candidates[0])
 		if strings.EqualFold(base, "packages.lock.json") {
+			if base != "packages.lock.json" {
+				return "", "indeterminate", "nuget-lockfile-case-unresolved"
+			}
 			if len(allCandidates) != 1 || dotnetCountByRoot[root] != 1 {
 				return "", "indeterminate", "ambiguous-nuget-lockfile-owner"
 			}
 		} else {
+			projectLockName := "packages." + strings.TrimSuffix(path.Base(rec.Project.ID), path.Ext(rec.Project.ID)) + ".lock.json"
+			if !strings.EqualFold(base, projectLockName) || base != projectLockName {
+				return "", "indeterminate", "nuget-lockfile-case-unresolved"
+			}
 			// Project-specific lock filenames are accepted only when every
 			// selected NuGet lock in this directory maps uniquely to one project.
 			// Arbitrary NuGetLockFilePath settings are not evaluated.

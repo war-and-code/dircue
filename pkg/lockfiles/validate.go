@@ -46,11 +46,18 @@ func ValidateReport(r *Report) error {
 		return errors.New("skipped lockfile report contains contexts")
 	}
 	hasObservedAssociation := false
+	seenProjectIDs := make(map[string]bool, len(r.Contexts))
+	seenManifestPaths := make(map[string]bool, len(r.Contexts))
 	for _, ctx := range r.Contexts {
 		if !requiredText(ctx.ProjectID, 8192) || !validRelative(ctx.ProjectID) || !requiredText(ctx.ManifestPath, 8192) || !validRelative(ctx.ManifestPath) || ctx.ProjectID != ctx.ManifestPath ||
 			(ctx.Ecosystem != "npm" && ctx.Ecosystem != "nuget") || !validAssociation(ctx.AssociationState) || !validText(ctx.LockfilePath, 8192) || !validText(ctx.LockfileVersion, 128) {
 			return errors.New("lockfile context identity is invalid")
 		}
+		if seenProjectIDs[ctx.ProjectID] || seenManifestPaths[ctx.ManifestPath] {
+			return errors.New("lockfile report contains duplicate project contexts")
+		}
+		seenProjectIDs[ctx.ProjectID] = true
+		seenManifestPaths[ctx.ManifestPath] = true
 		if ctx.Ecosystem == "npm" && path.Base(ctx.ManifestPath) != "package.json" || ctx.Ecosystem == "nuget" && !strings.EqualFold(path.Ext(ctx.ManifestPath), ".csproj") {
 			return errors.New("lockfile context manifest does not match its ecosystem")
 		}

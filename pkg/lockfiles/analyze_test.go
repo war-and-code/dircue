@@ -35,7 +35,7 @@ func testInput(records []declarations.ProjectRecord, content map[string]string, 
 			}
 		}
 	}
-	in := Input{Source: "directory", InventoryComplete: complete, ProjectRecords: records, Inventory: []File{}}
+	in := Input{Source: "directory", InventoryComplete: complete, Declarations: declarations.Report{Status: "complete"}, ProjectRecords: records, Inventory: []File{}}
 	for p, body := range content {
 		in.Inventory = append(in.Inventory, File{Path: p, Size: int64(len(body))})
 	}
@@ -75,6 +75,25 @@ func TestNPMDirectTablesMatchAndDifferenceAreNamedSyntacticChecks(t *testing.T) 
 	check := r.Contexts[0].Checks[0]
 	if check.Status != "different" || len(check.Mismatched) != 1 || check.Mismatched[0] != "react" {
 		t.Fatalf("text difference: %+v", check)
+	}
+}
+
+func TestDuplicateProjectRecordsAreConservativeAndDoNotEmitDuplicateContexts(t *testing.T) {
+	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{record, record}, map[string]string{"app/package-lock.json": lock}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.ProjectRecords != 2 || r.Coverage.OmittedContexts != 1 || len(r.Contexts) != 1 || r.Contexts[0].AssociationState != "indeterminate" || len(r.Contexts[0].Checks) != 0 {
+		t.Fatalf("duplicate project evidence was silently trusted or emitted twice: %+v", r)
+	}
+	if len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "duplicate-project-record" {
+		t.Fatalf("duplicate evidence was not disclosed: %+v", r.Diagnostics)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("duplicate-record handling emitted an invalid report: %v", err)
 	}
 }
 
@@ -226,6 +245,9 @@ func TestNPMUnsupportedMissingAndUnprovenWorkspaceStayDistinct(t *testing.T) {
 			if r.Contexts[0].AssociationState != tc.association {
 				t.Fatalf("association=%q want %q, report=%+v", r.Contexts[0].AssociationState, tc.association, r.Contexts[0])
 			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatalf("analysis emitted an invalid report: %v; report=%+v", err, r)
+			}
 		})
 	}
 }
@@ -311,6 +333,46 @@ func TestNuGetProjectSpecificLocksRequireUniqueFilenameOwnership(t *testing.T) {
 	}
 	if r.Contexts[0].AssociationState != "indeterminate" {
 		t.Fatalf("custom lock path guessed: %+v", r.Contexts[0])
+	}
+}
+
+func TestNuGetCaseVariantLockNamesRemainUnresolved(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	for _, name := range []string{"Packages.lock.json", "packages.app.lock.json"} {
+		t.Run(name, func(t *testing.T) {
+			path := "src/App/" + name
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{path: lock}, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ctx := r.Contexts[0]
+			if r.Coverage.LockCandidates != 1 || ctx.AssociationState != "indeterminate" || len(ctx.Checks) != 0 || len(ctx.Boundaries) != 1 || ctx.Boundaries[0].Reason != "nuget-lockfile-case-unresolved" {
+				t.Fatalf("case-variant NuGet lock name was missed or confidently associated: report=%+v", r)
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatalf("case-variant report is invalid: %v", err)
+			}
+		})
+	}
+}
+
+func TestNuGetLockOwnershipIsUnresolvedWhenProjectInventoryWasOmitted(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true)
+	in.Declarations.Status = "partial"
+	in.Declarations.Coverage.OmittedFiles = 1
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := r.Contexts[0]
+	if ctx.AssociationState != "indeterminate" || len(ctx.Checks) != 0 || len(ctx.Boundaries) != 1 || ctx.Boundaries[0].Reason != "project-inventory-incomplete-association" {
+		t.Fatalf("incomplete project inventory was used to claim NuGet lock ownership: %+v", ctx)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("incomplete-inventory report is invalid: %v", err)
 	}
 }
 

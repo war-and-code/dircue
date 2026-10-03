@@ -111,6 +111,15 @@ func TestValidateReportRejectsInconsistentCompleteCoverage(t *testing.T) {
 	}
 }
 
+func TestValidateReportRejectsDuplicateProjectContexts(t *testing.T) {
+	r := validNPMReport(t)
+	r.Coverage.ProjectRecords = 2
+	r.Contexts = append(r.Contexts, r.Contexts[0])
+	if err := ValidateReport(r); err == nil {
+		t.Fatal("duplicate project context was accepted")
+	}
+}
+
 func TestValidateReportRejectsUnconfinedPathsAndImpossibleCounters(t *testing.T) {
 	for _, mutate := range []func(*Report){
 		func(r *Report) { r.Contexts[0].LockfilePath = "../package-lock.json" },
