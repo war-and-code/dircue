@@ -22,6 +22,9 @@ func Parse(filename string, content []byte) (Configuration, error) {
 		return c, nil
 	}
 	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
+	// XML declarations can be validated before any endpoint or label sanitizer
+	// runs, so prepare the shared expressions on the registry opt-in path.
+	preparePatterns()
 	switch eco {
 	case "nuget":
 		parseXML(&c, content)

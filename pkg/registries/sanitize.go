@@ -16,13 +16,6 @@ import (
 var patternOnce sync.Once
 var variable, feedName, npmScope, packagePattern, dnsLabel, xmlDeclaration *regexp.Regexp
 
-func init() {
-	// XML readers consult xmlDeclaration before any label/endpoint sanitizer
-	// necessarily runs. Initialize the shared patterns at package startup so
-	// Maven-only and NuGet-only inputs cannot observe a nil expression.
-	preparePatterns()
-}
-
 func preparePatterns() {
 	patternOnce.Do(func() {
 		variable = regexp.MustCompile(`\$|%[A-Za-z_][A-Za-z0-9_]*%`)
