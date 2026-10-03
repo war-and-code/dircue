@@ -31,9 +31,8 @@ func newMavenEntry() *mavenEntry {
 }
 
 type mavenFrame struct {
-	name      string
-	entry     *mavenEntry
-	profileID *Label
+	name  string
+	entry *mavenEntry
 }
 
 // parseMavenSettings retains only bounded, allowlisted declaration fields.
