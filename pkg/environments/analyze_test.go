@@ -72,6 +72,51 @@ func TestToolchainDeclarationsRetainSelectedSourceAndScopedValues(t *testing.T) 
 	}
 }
 
+func TestAnalyzeRejectsNegativeInputOmissionCountBeforeReading(t *testing.T) {
+	called := false
+	in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+	in.OmittedFiles = -1
+	in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+		called = true
+		return []byte("20\n"), 3, nil
+	}
+	if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+		t.Fatalf("negative input omission count should be rejected: report=%+v err=%v", report, err)
+	}
+	if called {
+		t.Fatal("invalid input was read before validation")
+	}
+}
+
+func TestAnalyzeRejectsInvalidInputSourceIdentityBeforeReading(t *testing.T) {
+	tests := []struct {
+		name string
+		edit func(*Input)
+	}{
+		{"unknown source", func(in *Input) { in.Source = "archive" }},
+		{"directory with tree", func(in *Input) { in.Tree = "deadbeef" }},
+		{"git without tree", func(in *Input) { in.Source = "git" }},
+		{"oversized tree", func(in *Input) { in.Source = "git"; in.Tree = strings.Repeat("a", 8193) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+			tt.edit(&in)
+			in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+				called = true
+				return []byte("20\n"), 3, nil
+			}
+			if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+				t.Fatalf("invalid source identity should be rejected: report=%+v err=%v", report, err)
+			}
+			if called {
+				t.Fatal("invalid input was read before validation")
+			}
+		})
+	}
+}
+
 func TestMalformedAndUnsupportedGlobalJSON(t *testing.T) {
 	tests := []struct{ name, body, code string }{
 		{"malformed", `{"sdk":`, "invalid-global-json"},
