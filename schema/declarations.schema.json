@@ -320,6 +320,14 @@
                 "condition": {
                   "type": "string",
                   "maxLength": 8192
+                },
+                "start_line": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "end_line": {
+                  "type": "integer",
+                  "minimum": 1
                 }
               },
               "required": [
