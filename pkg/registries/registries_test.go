@@ -393,6 +393,13 @@ branch = "private-branch"
 
 func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
 	dotted := strings.TrimSuffix(strings.Repeat("a.", MaxTOMLDepth), ".") + " = 1\n"
+	if reason := cargoTOMLLimit([]byte(dotted)); reason != "toml_depth_limit" {
+		t.Fatalf("dotted-key nesting was not rejected by preflight: %q", reason)
+	}
+	withinLimit := strings.TrimSuffix(strings.Repeat("a.", MaxTOMLDepth-1), ".") + " = 1\n"
+	if reason := cargoTOMLLimit([]byte(withinLimit)); reason != "" {
+		t.Fatalf("valid dotted-key depth rejected by preflight: %q", reason)
+	}
 	for _, input := range []string{
 		"[registries.foo\nindex='https://example.test'\n",
 		"[registries.foo]\nindex='https://example.test'\nindex='https://evil.test'\n",

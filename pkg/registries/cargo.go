@@ -33,11 +33,14 @@ func cargoTOMLLimit(content []byte) string {
 	triple := false
 	escape := false
 	comment := false
+	keySegments := 1
+	keyContext := true
 	for i := 0; i < len(content); i++ {
 		ch := content[i]
 		if comment {
 			if ch == '\n' || ch == '\r' {
 				comment = false
+				keySegments, keyContext = 1, true
 			}
 			continue
 		}
@@ -64,6 +67,10 @@ func cargoTOMLLimit(content []byte) string {
 			comment = true
 			continue
 		}
+		if ch == '\n' || ch == '\r' {
+			keySegments, keyContext = 1, true
+			continue
+		}
 		if ch == '"' || ch == '\'' {
 			quote = ch
 			triple = i+2 < len(content) && content[i+1] == ch && content[i+2] == ch
@@ -79,13 +86,32 @@ func cargoTOMLLimit(content []byte) string {
 				return "toml_depth_limit"
 			}
 			tokens++
+			if ch == '{' {
+				keySegments, keyContext = 1, true
+			}
 		case ']', '}':
 			if depth > 0 {
 				depth--
 			}
 			tokens++
+			if ch == '}' {
+				keyContext = false
+			}
 		case '=', ',', '.':
 			tokens++
+			if ch == '=' {
+				keyContext = false
+			} else if ch == ',' {
+				keySegments, keyContext = 1, true
+			} else if keyContext {
+				keySegments++
+				// A dotted key creates one map layer per segment, below the
+				// root table. Enforce the resulting tree depth before Unmarshal
+				// constructs that tree.
+				if keySegments+1 > MaxTOMLDepth {
+					return "toml_depth_limit"
+				}
+			}
 		}
 		if tokens > MaxTOMLTokens {
 			return "toml_token_limit"
