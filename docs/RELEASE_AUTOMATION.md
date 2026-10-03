@@ -61,7 +61,7 @@ GitHub requires write access to dispatch a workflow. Builds have read-only repos
 
 ## What the workflow checks
 
-Five native runners build Linux AMD64/ARM64, macOS AMD64/ARM64 and Windows AMD64 packages. Go uses the exact patch version in `go.mod`; the worker uses Rust 1.94.0 and its locked dependencies. All actions are pinned to commits.
+Five native runners build Linux AMD64/ARM64, macOS AMD64/ARM64 and Windows AMD64 packages. Go uses the exact patch version in `go.mod`; the worker uses Rust 1.94.0 and its locked dependencies. Each release build downloads into its own fresh Go module cache with bounded retries and sanitized failure diagnostics. All actions are pinned to commits.
 
 Each runner builds one core archive and its matching wheels, tests the native Rust worker, and packages the worker with dependency source archives. The Linux AMD64 job also runs the Go race suite and vet. The final smoke check extracts the **packaged** core and worker, verifies the core version, and runs the existing 21-fixture/20-language structural harness. That harness includes direct worker comparison, one/eight-worker determinism, combined projects/metrics/structure, parser recovery and explicit omissions.
 
@@ -73,7 +73,7 @@ Candidates starting with 0.5.0 must also pass `scripts/declarations_release_smok
 
 Assembly requires all five declaration receipts for 0.5.0 and later. Each binds the core executable hash, version, helper and fixture hashes, expected facts, output hashes and complete check inventory. Missing or altered evidence prevents assembly. Earlier versions retain their existing gates; they do not acquire a dependency on declaration or comparison commands.
 
-The separate **Structural worker** workflow also runs the function smoke on all five native platforms, without requiring a release tag. It gives the core and worker the same CI-only fixture version, `0.4.0-rc.1`; this label neither selects nor creates a release. After the existing native tests and structural breadth check, it verifies the worker archive's provenance, checksums and source inputs, extracts its executable, and runs the function helper against that packaged worker and the newly built core. The existing per-platform Actions artifact retains `functions-<platform>.json` alongside the breadth receipt and worker archive for seven days. Draft pull requests remain skipped unless the workflow is manually dispatched. This workflow has read-only repository permissions and creates no tags or releases.
+The separate **Structural worker** workflow packages and smoke-tests the core archive and wheel before testing the native worker on all five native platforms; it does not require a release tag. It gives the core and worker the same CI-only fixture version, `0.8.0-rc.1`; this label neither selects nor creates a release. After the native tests and structural breadth check, it verifies the worker archive's provenance, checksums and source inputs, extracts its executable, and runs the function helper against that packaged worker and the newly built core. It also runs the format, hotspot, targeted-analysis and context release smokes against the core. Per-platform Actions artifacts retain the wheel smoke, breadth, worker and helper receipts for seven days. Draft pull requests remain skipped unless the workflow is manually dispatched. This workflow has read-only repository permissions and creates no tags or releases.
 
 The final job requires all five platform artifacts. It verifies:
 
@@ -104,7 +104,7 @@ Inspect the draft description, assets, receipts, workflow logs and checksums. Pu
 gh release edit v1.2.3 --draft=false
 ```
 
-This command publishes the GitHub release to the repository's existing audience; it does not publish wheels to PyPI. PyPI publishing, signing/attestation policy and package-manager notifications are outside this workflow.
+This command publishes the GitHub release to the repository's existing audience; it does not publish wheels to PyPI. PyPI publication and package-manager notifications are separate from draft preparation. The release workflow's signing and attestation checks are described above.
 
 The workflow serializes preparation for a version and rechecks remote release/tag state immediately before draft creation. Repository rules should prevent another actor moving the tag during release preparation. An independently performed concurrent GitHub mutation is not covered by a transactional lock.
 
@@ -126,7 +126,7 @@ The 0.5 declaration gate has local real-core smoke coverage and receipt/assembly
 
 Local Darwin arm64 archives built from clean commit `58ed625` with the validation version `0.4.0-rc.1` passed both packaged smoke checks. The function check covered all 21 fixtures across 20 languages and the 11 counterexamples described above. An actual v0.3.0 worker rejected the new opt-in request with an update instruction and empty stdout; the helper's prior-version path also passed against the v0.3.0 archives. No tag or release was created for this local check.
 
-The uploader requires GitHub.com Actions URLs and fixes every gh subprocess to `GH_HOST=github.com`. It does not promise GitHub Enterprise compatibility, cryptographic build attestations, automatic tag management or idempotent replacement of drafts. Wheel validation deliberately retains the existing reviewed Go 1.26.6 requirement; changing the compiler needs a coordinated packager update and validation. These limitations fail explicitly rather than silently broadening support.
+The uploader requires GitHub.com Actions URLs and fixes every gh subprocess to `GH_HOST=github.com`. The workflow creates and verifies GitHub build-provenance attestations for every release asset and a keyless Sigstore signature for `SHA256SUMS`, as described above. It does not promise GitHub Enterprise compatibility, automatic tag management or idempotent replacement of drafts. PyPI publication is a separate manually dispatched workflow with its own protected approval environment. Wheel validation deliberately retains the reviewed Go 1.26.6 requirement; changing the compiler needs a coordinated packager update and validation. These limitations fail explicitly rather than silently broadening support.
 
 References: [manual workflow dispatch](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows#workflow_dispatch), [GitHub CLI release creation](https://cli.github.com/manual/gh_release_create), and [GitHub CLI release editing](https://cli.github.com/manual/gh_release_edit).
 

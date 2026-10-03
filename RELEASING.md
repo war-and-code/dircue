@@ -108,6 +108,7 @@ After the GitHub Release is public, use the separate, manually dispatched [PyPI 
 
 - The release workflow enforces a clean committed checkout with `scripts/draft_release.py validate`.
 - Builds use `CGO_ENABLED=0 -trimpath -mod=readonly -buildvcs=false` and pinned Go and Rust toolchains.
+- Go dependencies are downloaded into each clean release build's fresh module cache with bounded retries and credential-redacted diagnostics before compilation.
 - `GOENV=off GOFLAGS='' GOEXPERIMENT='' GOAMD64=v1 GOARM64=v8.0` are set to eliminate host-environment variation.
 
 ## No Dependabot or scheduled automation

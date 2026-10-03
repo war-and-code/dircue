@@ -56,8 +56,8 @@ def show_diagnostics(stream):
         print("Go download diagnostics truncated at 64 KiB", file=sys.stderr, flush=True)
 
 
-def download(*, run=subprocess.run, sleep=time.sleep):
-    env = dict(os.environ)
+def download(*, run=subprocess.run, sleep=time.sleep, command="go", cwd=None, env=None):
+    env = dict(os.environ if env is None else env)
     env["GOFLAGS"] = "-mod=readonly"
     for attempt in range(1, 4):
         print(f"Go module download attempt {attempt}/3", file=sys.stderr, flush=True)
@@ -65,7 +65,7 @@ def download(*, run=subprocess.run, sleep=time.sleep):
         # memory. Only failed attempts display a sanitized, bounded excerpt.
         with tempfile.TemporaryFile() as diagnostics:
             try:
-                result = run(["go", "mod", "download"], env=env, timeout=180,
+                result = run([command, "mod", "download"], cwd=cwd, env=env, timeout=180,
                              check=False, stdout=diagnostics, stderr=subprocess.STDOUT)
                 code = result.returncode
             except subprocess.TimeoutExpired:

@@ -59,6 +59,26 @@ class GoDownloadRetryTests(unittest.TestCase):
         code, calls, sleeps, _ = self.invoke([0])
         self.assertEqual((code, len(calls), sleeps), (0, 1, []))
 
+    def test_release_cache_uses_selected_toolchain_snapshot_and_environment(self):
+        calls = []
+        source = Path('/tmp/committed-source-snapshot')
+        environment = {'GOTOOLCHAIN': 'local', 'GOMODCACHE': '/tmp/fresh-mod-cache'}
+        def run(command, **kwargs):
+            calls.append((command, kwargs))
+            return subprocess.CompletedProcess(command, 0)
+        with contextlib.redirect_stderr(io.StringIO()):
+            result = downloader.download(command='/tmp/go/bin/go', cwd=source,
+                                         env=environment, run=run, sleep=lambda _: None)
+        self.assertEqual(result, 0)
+        self.assertEqual(len(calls), 1)
+        command, kwargs = calls[0]
+        self.assertEqual(command, ['/tmp/go/bin/go', 'mod', 'download'])
+        self.assertEqual(kwargs['cwd'], source)
+        self.assertEqual(kwargs['env']['GOTOOLCHAIN'], 'local')
+        self.assertEqual(kwargs['env']['GOMODCACHE'], '/tmp/fresh-mod-cache')
+        self.assertEqual(kwargs['env']['GOFLAGS'], '-mod=readonly')
+        self.assertNotIn('GOFLAGS', environment)
+
     def test_public_failures_remain_visible_and_private_urls_are_redacted(self):
         payload = ("go: example.org/pkg@v1.2.3: reading https://proxy.golang.org/example.org/pkg/@v/v1.2.3.zip: 404 Not Found\n"
                    "https://username:password@example.invalid/private/token?api=secret#fragment\n"
