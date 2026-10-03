@@ -131,6 +131,50 @@ func TestAnalyzeRejectsInvalidInputSourceIdentityBeforeReading(t *testing.T) {
 	}
 }
 
+func TestAnalyzeRejectsConflictingDeclarationSourceIdentityBeforeReading(t *testing.T) {
+	tree := strings.Repeat("a", 40)
+	otherTree := strings.Repeat("b", 40)
+	valid := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+	valid.Source, valid.Tree = "git", tree
+	valid.Declarations.Source, valid.Declarations.Tree = "git", tree
+	matchingReport, err := Analyze(t.Context(), valid, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateReport(matchingReport); err != nil {
+		t.Fatalf("matching declaration source identity should validate: %v", err)
+	}
+
+	tests := []struct {
+		name   string
+		source string
+		tree   string
+	}{
+		{"tree mismatch", "git", otherTree},
+		{"mode mismatch", "directory", ""},
+		{"git identity missing tree", "git", ""},
+		{"tree without mode", "", otherTree},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			in := envInput(map[string]string{".nvmrc": "20\n"}, nil)
+			in.Source, in.Tree = "git", tree
+			in.Declarations.Source, in.Declarations.Tree = tt.source, tt.tree
+			in.ReadSelected = func(context.Context, string, int64) ([]byte, int64, error) {
+				called = true
+				return []byte("20\n"), 3, nil
+			}
+			if report, err := Analyze(t.Context(), in, Limits{}); err == nil || report != nil {
+				t.Fatalf("conflicting declaration provenance should be rejected: report=%+v err=%v", report, err)
+			}
+			if called {
+				t.Fatal("conflicting provenance was read before validation")
+			}
+		})
+	}
+}
+
 func TestMalformedAndUnsupportedGlobalJSON(t *testing.T) {
 	tests := []struct{ name, body, code string }{
 		{"malformed", `{"sdk":`, "invalid-global-json"},

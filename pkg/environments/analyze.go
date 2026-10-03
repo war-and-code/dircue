@@ -37,6 +37,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if (in.Source != "git" && in.Source != "directory") || (in.Source == "git") != (in.Tree != "") || !wireOptional(in.Tree) || in.Source == "git" && !validEnvironmentGitTree(in.Tree) {
 		return nil, errors.New("environment input source identity is invalid")
 	}
+	if (in.Declarations.Source != "" || in.Declarations.Tree != "") && (in.Declarations.Source != in.Source || in.Declarations.Tree != in.Tree) {
+		return nil, errors.New("environment declaration source identity conflicts with selected input")
+	}
 	limits = defaults(limits)
 	r := &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "complete", Source: in.Source, Tree: in.Tree, SemanticsReference: semanticsReference, Limits: limits, Requirements: []Requirement{}, Selections: []Selection{}, Conflicts: []Conflict{}, Boundaries: []Boundary{}, Diagnostics: []Diagnostic{}}
 	r.Coverage.OmittedFiles = in.OmittedFiles
