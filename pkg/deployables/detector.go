@@ -22,6 +22,7 @@ type Collector struct {
 	budgetDrops  int64
 	cutoff       string
 	dirs         map[string]bool
+	selected     map[string]bool
 }
 
 type pendingFile struct {
@@ -33,7 +34,7 @@ func NewCollector(options Options) *Collector {
 	limits := normalizedLimits(options)
 	return &Collector{report: Report{Provider: "dircue", ProviderVersion: ProviderVersion, Status: "complete", Source: options.Source,
 		Selection: "supported-static-declarations-in-selected-regular-files", Limits: limits,
-		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}}
+		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}, selected: map[string]bool{}}
 }
 
 func (*Collector) Name() string { return "deployables" }
@@ -44,6 +45,7 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 	}
 	c.mu.Lock()
 	addDirectories(c.dirs, file.Path)
+	c.selected[file.Path] = true
 	c.mu.Unlock()
 	if !IsCandidate(file.Path) {
 		c.mu.Lock()
@@ -101,6 +103,10 @@ func (c *Collector) Finish() *Report {
 	defer c.mu.Unlock()
 	out := c.report
 	out.Directories = c.dirs
+	selectedFiles := make(map[string]bool, len(c.selected))
+	for name, present := range c.selected {
+		selectedFiles[name] = present
+	}
 	out.Definitions = slices.Clone(c.report.Definitions)
 	out.Diagnostics = slices.Clone(c.report.Diagnostics)
 	out.Omissions = make(map[string]int64, len(c.report.Omissions))
@@ -116,13 +122,18 @@ func (c *Collector) Finish() *Report {
 		out.Coverage.InspectedBytes += int64(len(file.content))
 		defs, recognized, err := parse(file.path, file.content)
 		if err != nil {
-			var limitErr *yamlDocLimitError
-			if errors.As(err, &limitErr) {
-				out.omit("yaml_document_limit", 1, file.path, "File has more than 128 YAML documents; only the first 128 were parsed.")
-				// fall through and use partial defs
+			var procfileErr *procfileIssuesError
+			if errors.As(err, &procfileErr) {
+				recordProcfileIssues(&out, file.path, procfileErr)
 			} else {
-				out.omit("parse_error", 1, file.path, err.Error())
-				continue
+				var limitErr *yamlDocLimitError
+				if errors.As(err, &limitErr) {
+					out.omit("yaml_document_limit", 1, file.path, "File has more than 128 YAML documents; only the first 128 were parsed.")
+					// fall through and use partial defs
+				} else {
+					out.omit("parse_error", 1, file.path, err.Error())
+					continue
+				}
 			}
 		}
 		if !recognized {
@@ -130,6 +141,9 @@ func (c *Collector) Finish() *Report {
 		}
 		out.Coverage.ParsedFiles++
 		digest := fmt.Sprintf("%x", sha256.Sum256(file.content))
+		if unresolved := resolveProcfileTargets(defs, selectedFiles); unresolved > 0 {
+			out.omit("procfile_target_unresolved", unresolved, file.path, "Some Procfile targets did not resolve to one selected source file.")
+		}
 		for i := range defs {
 			defs[i].Path, defs[i].SourceSHA256 = file.path, digest
 			defs[i].ID = stableID(defs[i])

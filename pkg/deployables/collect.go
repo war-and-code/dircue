@@ -22,8 +22,10 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 	r.Coverage.SelectedFiles = int64(len(files))
 	r.Directories = map[string]bool{}
 	candidates := make([]Candidate, 0)
+	selectedFiles := make(map[string]bool, len(files))
 	for _, f := range files {
 		addDirectories(r.Directories, f.Path)
+		selectedFiles[f.Path] = true
 		if IsCandidate(f.Path) {
 			r.Coverage.CandidateFiles++
 			candidates = append(candidates, f)
@@ -79,14 +81,19 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		}
 		defs, recognized, parseErr := parse(candidate.Path, content)
 		if parseErr != nil {
-			var limitErr *yamlDocLimitError
-			if errors.As(parseErr, &limitErr) {
-				// Keep definitions parsed before the limit; record a distinct reason.
-				r.omit("yaml_document_limit", 1, candidate.Path, "File has more than 128 YAML documents; only the first 128 were parsed.")
-				// fall through and use partial defs if any were recognized
+			var procfileErr *procfileIssuesError
+			if errors.As(parseErr, &procfileErr) {
+				recordProcfileIssues(r, candidate.Path, procfileErr)
 			} else {
-				r.omit("parse_error", 1, candidate.Path, parseErr.Error())
-				continue
+				var limitErr *yamlDocLimitError
+				if errors.As(parseErr, &limitErr) {
+					// Keep definitions parsed before the limit; record a distinct reason.
+					r.omit("yaml_document_limit", 1, candidate.Path, "File has more than 128 YAML documents; only the first 128 were parsed.")
+					// fall through and use partial defs if any were recognized
+				} else {
+					r.omit("parse_error", 1, candidate.Path, parseErr.Error())
+					continue
+				}
 			}
 		}
 		if !recognized {
@@ -94,6 +101,9 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		} // A supported filename alone is never evidence.
 		r.Coverage.ParsedFiles++
 		digest := fmt.Sprintf("%x", sha256.Sum256(content))
+		if unresolved := resolveProcfileTargets(defs, selectedFiles); unresolved > 0 {
+			r.omit("procfile_target_unresolved", unresolved, candidate.Path, "Some Procfile targets did not resolve to one selected source file.")
+		}
 		for i := range defs {
 			defs[i].Path = candidate.Path
 			defs[i].SourceSHA256 = digest
@@ -189,6 +199,11 @@ func normalizedLimits(o Options) Limits {
 func IsCandidate(name string) bool {
 	if documentationPath(name) {
 		return false
+	}
+	// Procfile is a root-level, case-sensitive platform convention. Nested
+	// files and case variants are not treated as launch configuration.
+	if name == "Procfile" {
+		return true
 	}
 	base, ext := strings.ToLower(path.Base(name)), strings.ToLower(path.Ext(name))
 	// parseMakefile only supports root-level recipes because nested Makefiles
