@@ -72,7 +72,7 @@ func ValidateReport(r *Report) error {
 			return errors.New("environment toolchain declaration is invalid")
 		}
 		kind, ok := toolchainFilenames[path.Base(d.SourcePath)]
-		if !ok || d.Tool != kind.tool || d.Kind != kind.kind || d.ScopeDirectory != toolchainScope(d.SourcePath) {
+		if !ok || d.Tool != kind.tool || d.Kind != kind.kind || d.ScopeDirectory != toolchainScope(d.SourcePath) || d.Tool != "python" && len(d.Values) > 1 {
 			return errors.New("environment toolchain declaration identity is inconsistent")
 		}
 		toolchainPaths[d.SourcePath] = true

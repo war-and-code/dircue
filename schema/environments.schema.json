@@ -580,7 +580,10 @@
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+/*-]*$"
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+/*-]*$",
+            "not": {
+              "pattern": "\\.\\.|//|/\\.$|/\\./|/$"
+            }
           }
         },
         "state": {
@@ -716,6 +719,25 @@
               },
               "source_path": {
                 "pattern": "(^|/)rust-toolchain\\.toml$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "tool": {
+                "enum": [
+                  "node",
+                  "rust"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "values": {
+                "maxItems": 1
               }
             }
           }

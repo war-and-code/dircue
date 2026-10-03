@@ -277,3 +277,15 @@ func cloneEnvironmentReport(t *testing.T, r *Report) *Report {
 	}
 	return &clone
 }
+
+func TestValidatorRejectsMultipleNodeSelectors(t *testing.T) {
+	in := Input{Source: "directory", InventoryComplete: true, Inventory: []File{{Path: ".nvmrc", Size: 3}}, ReadSelected: func(context.Context, string, int64) ([]byte, int64, error) { return []byte("20\n"), 3, nil }}
+	report, err := Analyze(context.Background(), in, Limits{})
+	if err != nil || ValidateReport(report) != nil {
+		t.Fatalf("valid single-selector input failed: %v", err)
+	}
+	report.ToolchainDeclarations[0].Values = []string{"20", "22"}
+	if ValidateReport(report) == nil {
+		t.Fatal("multiple Node selectors accepted as one declared toolchain")
+	}
+}

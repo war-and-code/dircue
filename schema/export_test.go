@@ -377,6 +377,8 @@ func TestExportedToolchainSchemaRejectsFalseIdentityAndCompleteness(t *testing.T
 		{"wrong_tool", func(_, d map[string]any) { d["tool"] = "python" }},
 		{"wrong_kind", func(_, d map[string]any) { d["kind"] = "rust-toolchain" }},
 		{"unsafe_selector", func(_, d map[string]any) { d["values"] = []any{"20; echo hello"} }},
+		{"traversal_selector", func(_, d map[string]any) { d["values"] = []any{"env/../other"} }},
+		{"multiple_node_selectors", func(_, d map[string]any) { d["values"] = []any{"20", "22"} }},
 		{"unsupported_complete", func(r, d map[string]any) { r["status"] = "complete"; d["state"] = "unsupported"; delete(d, "values") }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
