@@ -42,6 +42,38 @@ func TestValidateReportAcceptsAnalyzerOutput(t *testing.T) {
 	}
 }
 
+func TestValidateReportAcceptsCompleteShrinkwrapPrecedence(t *testing.T) {
+	manifest := `{"dependencies":{"left-pad":"1.0.0"}}`
+	shrinkwrap := `{"name":"fixture","lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1.0.0"}},"node_modules/left-pad":{"version":"1.0.0"}}}`
+	files := map[string][]byte{
+		"package.json":        []byte(manifest),
+		"npm-shrinkwrap.json": []byte(shrinkwrap),
+		// The lower-precedence sibling is intentionally not opened when npm
+		// associates this project with its selected shrinkwrap.
+		"package-lock.json": []byte(`not-json`),
+	}
+	reads := map[string]int{}
+	r, err := Analyze(context.Background(), Input{
+		Source: "directory", InventoryComplete: true,
+		Inventory:      []File{{Path: "package.json", Size: int64(len(manifest))}, {Path: "npm-shrinkwrap.json", Size: int64(len(shrinkwrap))}, {Path: "package-lock.json", Size: int64(len(files["package-lock.json"]))}},
+		ProjectRecords: []declarations.ProjectRecord{{Project: declarations.Project{ID: "package.json", Root: ".", Kind: "npm"}, Parsed: true, Complete: true}},
+		ReadSelected: func(_ context.Context, name string, _ int64) ([]byte, int64, error) {
+			reads[name]++
+			data := files[name]
+			return data, int64(len(data)), nil
+		},
+	}, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "complete" || r.Coverage.LockCandidates != 2 || r.Coverage.LockfilesRead != 1 || reads["package-lock.json"] != 0 || len(r.Contexts) != 1 || r.Contexts[0].LockfilePath != "npm-shrinkwrap.json" {
+		t.Fatalf("unexpected shrinkwrap precedence report: coverage=%+v contexts=%+v reads=%v", r.Coverage, r.Contexts, reads)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("valid scoped report rejected: %v", err)
+	}
+}
+
 func TestValidateReportRejectsInconsistentCompleteCoverage(t *testing.T) {
 	tests := []struct {
 		name   string
