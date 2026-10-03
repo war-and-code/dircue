@@ -42,6 +42,19 @@ func TestValidateReportAcceptsAnalyzerOutput(t *testing.T) {
 	}
 }
 
+func TestValidateReportGitTreeMatchesScannerSHA1Scope(t *testing.T) {
+	r := validNPMReport(t)
+	r.Source = "git"
+	r.Tree = strings.Repeat("a", 40)
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("scanner-supported SHA-1 tree rejected: %v", err)
+	}
+	r.Tree = strings.Repeat("a", 64)
+	if err := ValidateReport(r); err == nil {
+		t.Fatal("SHA-256 tree accepted although the selected Git scanner requires a 40-character tree ID")
+	}
+}
+
 func TestValidateReportAcceptsCompleteShrinkwrapPrecedence(t *testing.T) {
 	manifest := `{"dependencies":{"left-pad":"1.0.0"}}`
 	shrinkwrap := `{"name":"fixture","lockfileVersion":3,"packages":{"":{"dependencies":{"left-pad":"1.0.0"}},"node_modules/left-pad":{"version":"1.0.0"}}}`

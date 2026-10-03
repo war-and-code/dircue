@@ -148,7 +148,7 @@ func validRelative(value string) bool {
 }
 
 func validGitTree(value string) bool {
-	if len(value) != 40 && len(value) != 64 {
+	if len(value) != 40 {
 		return false
 	}
 	for _, r := range value {
