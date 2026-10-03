@@ -95,6 +95,46 @@ func TestNPMShrinkwrapTakesPrecedenceOverPackageLock(t *testing.T) {
 	}
 }
 
+func TestNPMManifestDependencyDiagnosticsPreventFalseMatch(t *testing.T) {
+	manifest := `{"name":"app","dependencies":{"a":"1.0.0","broken":false}}`
+	collector := declarations.New("directory", "", 0)
+	collector.EnableProjectRecords()
+	collector.Add("app/package.json", &declarations.Candidate{
+		Path: "app/package.json", Size: int64(len(manifest)),
+		Read: func(context.Context, int64) ([]byte, int64, error) {
+			return []byte(manifest), int64(len(manifest)), nil
+		},
+	})
+	declarationReport, err := collector.Finish(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	records := collector.ProjectRecords()
+	if len(records) != 1 || records[0].Project.References == nil || len(declarationReport.Diagnostics) == 0 {
+		t.Fatalf("fixture did not produce a valid declaration plus a bad entry: records=%+v diagnostics=%+v", records, declarationReport.Diagnostics)
+	}
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput(records, map[string]string{"app/package-lock.json": lock}, true)
+	in.Declarations = *declarationReport
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	check := r.Contexts[0].Checks[0]
+	if check.Status != "indeterminate" || r.Status != "partial" || len(r.Contexts[0].Boundaries) == 0 || r.Contexts[0].Boundaries[0].Reason != "npm-manifest-declarations-unresolved" {
+		t.Fatalf("invalid/unobserved manifest fields still yielded a conclusive match: %+v", r.Contexts[0])
+	}
+	unrelated := in
+	unrelated.Declarations.Diagnostics = []declarations.Diagnostic{{Path: "other/package.json", Code: "invalid-npm-dependency", Message: "unrelated fixture"}}
+	r, err = Analyze(context.Background(), unrelated, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := r.Contexts[0].Checks[0].Status; got != "match" || r.Status != "partial" {
+		t.Fatalf("unrelated manifest diagnostics poisoned a valid independent check: report=%+v", r)
+	}
+}
+
 func TestNPMDeclarationSplitPreservesScopedNamesAndRejectsAliasSpecs(t *testing.T) {
 	record := npmRecord("app",
 		npmRef("plain@^1.2.3", "dependencies"),

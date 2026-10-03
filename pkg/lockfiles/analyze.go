@@ -39,6 +39,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if !in.InventoryComplete || in.OmittedFiles > 0 {
 		r.Status = "partial"
 	}
+	if in.Declarations.Status != "" && in.Declarations.Status != "complete" {
+		r.Status = "partial"
+	}
 
 	files := make(map[string]File)
 	inventoryComplete := in.InventoryComplete && in.OmittedFiles == 0
@@ -249,6 +252,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			continue
 		}
 		check, count, checkReason := compare(ecosystem, rec, parsed, limits.PackageNames-r.Coverage.PackageNames)
+		if ecosystem == "npm" && hasNPMComparisonDiagnostics(in.Declarations.Diagnostics, manifest) {
+			check.Status = "indeterminate"
+			check.Explanation += " The selected package manifest has dependency-field diagnostics, so its complete direct declaration table is unknown."
+			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
+		}
 		if nugetSharedInputs {
 			check.Status = "indeterminate"
 			check.Explanation += " Ancestor Directory.Build.props/targets or Directory.Packages.props can add, condition, or version package references and was not evaluated."
@@ -276,6 +284,19 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+func hasNPMComparisonDiagnostics(diagnostics []declarations.Diagnostic, manifest string) bool {
+	for _, diagnostic := range diagnostics {
+		if diagnostic.Path != manifest {
+			continue
+		}
+		switch diagnostic.Code {
+		case "invalid-npm-manifest", "invalid-npm-field", "invalid-npm-dependency", "unsupported-npm-dependency", "unsupported-npm-workspace-dependency", "unsupported-npm-workspaces", "unsupported-npm-workspace-pattern", "unsupported-npm-workspace-field", "npm-workspace-match-limit":
+			return true
+		}
+	}
+	return false
 }
 
 // inspectNuGetProjectConfig reads only the already-selected project snapshot.
