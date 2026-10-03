@@ -356,7 +356,15 @@ func validTargetedStates(p profile.Report) bool {
 	if p.Environments != nil && environments.ValidateReport(p.Environments) != nil {
 		return false
 	}
+	if p.Environments != nil && p.Declarations != nil &&
+		(p.Environments.Source != p.Declarations.Source || p.Environments.Tree != p.Declarations.Tree) {
+		return false
+	}
 	if p.Lockfiles != nil && lockfiles.ValidateReport(p.Lockfiles) != nil {
+		return false
+	}
+	if p.Lockfiles != nil && p.Declarations != nil &&
+		(p.Lockfiles.Source != p.Declarations.Source || p.Lockfiles.Tree != p.Declarations.Tree) {
 		return false
 	}
 	if p.Explanation != nil && explain.ValidateReport(p.Explanation) != nil {

@@ -98,6 +98,27 @@
     {
       "if": {
         "properties": {
+          "provider_version": {
+            "const": "1.1.0"
+          },
+          "source": {
+            "const": "git"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "tree": {
+            "minLength": 40,
+            "maxLength": 40,
+            "pattern": "^[0-9a-f]{40}$"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
           "source": {
             "const": "git"
           }

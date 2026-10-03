@@ -27,13 +27,13 @@ The standard same-directory `packages.lock.json` is associated only when one pro
 
 ## Coverage and source selection
 
-Omitted project inventory prevents a certain NuGet association. Case-variant lockfile names remain indeterminate because a selected source tree does not establish the host filesystem's case behavior. An observed association identifies a candidate under the documented ownership rule; it does not prove which file restore would use, and its check can still be indeterminate.
+Omitted project inventory prevents a certain NuGet association. Duplicate NuGet package IDs within a target group, compared without regard to case, make the check indeterminate rather than selecting one entry. Case-variant lockfile names remain indeterminate because a selected source tree does not establish the host filesystem's case behavior. An observed association identifies a candidate under the documented ownership rule; it does not prove which file restore would use, and its check can still be indeterminate.
 
 `association_state` distinguishes `observed`, `missing`, `unsupported`, `indeterminate`, and `not_applicable`. A missing lockfile is reported as `missing` only when the selected inventory is complete and a relevant declaration exists. With incomplete inventory, absence cannot be established and remains indeterminate. Unsupported formats and ambiguous ownership also remain distinct from absence.
 
 Coverage describes the supported project contexts and named checks, not a parse of every lockfile in the directory. A lower-priority `package-lock.json` is not read when shrinkwrap takes precedence. Orphan lockfiles without a supported project context do not establish a comparison population. Only `.csproj` projects receive NuGet checks; other MSBuild project types are counted when determining whether a shared lockfile has an unambiguous owner.
 
-Git scans read the selected commit or tree, not dirty working-tree changes. Directory scans read the current selected directory, including untracked files. In either mode, lockfile contents come from that same selected source. Symlink and other non-regular candidates are not followed as lockfile content.
+Git scans read the selected commit or tree, not dirty working-tree changes. Directory scans read the current selected directory, including untracked files. In either mode, lockfile contents come from that same selected source. The analyzer rejects conflicting declaration-source metadata, and saved aggregate reports must bind lockfile observations to the declaration source they reused. Symlink and other non-regular candidates are not followed as lockfile content.
 
 The module never runs npm, NuGet, MSBuild, install scripts, or restore; it does not contact registries or use ambient package-manager configuration. Defaults are disclosed in the report's `limits` object:
 
@@ -48,3 +48,5 @@ The module never runs npm, NuGet, MSBuild, install scripts, or restore; it does 
 | Serialized module report | 16 MiB |
 
 `--max-file-bytes` can lower the file-read ceiling for a scan. Input and observation bounds, or lost selected-file coverage, are disclosed through partial or skipped status, coverage counts, boundaries, and diagnostics; they are not treated as successful comparisons. If the serialized report itself exceeds its output ceiling, the command returns an error rather than a truncated success-shaped report.
+
+The Go analyzer rejects negative omission counts, conflicting source identities, and inputs or requested limits above its fixed maxima. Contradictory inventory entries and omitted declaration diagnostics qualify the resulting evidence instead of permitting a certain comparison. Successful reports pass the native report validator before being returned.
