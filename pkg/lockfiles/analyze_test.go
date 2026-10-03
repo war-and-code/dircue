@@ -1,9 +1,11 @@
 package lockfiles
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -23,6 +25,16 @@ func npmRef(value, section string) declarations.Reference {
 }
 
 func testInput(records []declarations.ProjectRecord, content map[string]string, complete bool) Input {
+	if content == nil {
+		content = map[string]string{}
+	}
+	for _, record := range records {
+		if record.Project.Kind == "dotnet" && strings.HasSuffix(strings.ToLower(record.Project.ID), ".csproj") {
+			if _, ok := content[record.Project.ID]; !ok {
+				content[record.Project.ID] = "<Project />"
+			}
+		}
+	}
 	in := Input{Source: "directory", InventoryComplete: complete, ProjectRecords: records, Inventory: []File{}}
 	for p, body := range content {
 		in.Inventory = append(in.Inventory, File{Path: p, Size: int64(len(body))})
@@ -63,6 +75,67 @@ func TestNPMDirectTablesMatchAndDifferenceAreNamedSyntacticChecks(t *testing.T) 
 	check := r.Contexts[0].Checks[0]
 	if check.Status != "different" || len(check.Mismatched) != 1 || check.Mismatched[0] != "react" {
 		t.Fatalf("text difference: %+v", check)
+	}
+}
+
+func TestNPMShrinkwrapTakesPrecedenceOverPackageLock(t *testing.T) {
+	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	packageLock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"2.0.0"}}}}`
+	shrinkwrap := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"app/package-lock.json":   packageLock,
+		"app/npm-shrinkwrap.json": shrinkwrap,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Contexts) != 1 || r.Contexts[0].LockfilePath != "app/npm-shrinkwrap.json" || r.Contexts[0].Checks[0].Status != "match" {
+		t.Fatalf("npm shrinkwrap did not take documented precedence: %+v", r.Contexts)
+	}
+}
+
+func TestNPMDeclarationSplitPreservesScopedNamesAndRejectsAliasSpecs(t *testing.T) {
+	record := npmRecord("app",
+		npmRef("plain@^1.2.3", "dependencies"),
+		npmRef("@scope/widget@~4.5", "dependencies"),
+		npmRef("alias@npm:@scope/real-widget@^8", "dependencies"),
+		npmRef("gitpkg@git+ssh://git@github.com/org/repo#refs/tags/v1", "dependencies"),
+	)
+	lock := parseLock("npm", []byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"plain":"^1.2.3","@scope/widget":"~4.5"}}}}`))
+	check, count, reason := compareNPM(record, lock, DefaultMaxPackageNames)
+	if reason != "" || count != 2 || check.Compared != 2 || check.Status != "indeterminate" || len(check.Missing)+len(check.Mismatched)+len(check.Unexpected) != 0 {
+		t.Fatalf("unsupported alias/URL specs became package-name comparisons: check=%+v count=%d reason=%q", check, count, reason)
+	}
+	for _, tc := range []struct {
+		input string
+		name  string
+		spec  string
+	}{
+		{"plain@^1", "plain", "^1"},
+		{"@scope/pkg@~2", "@scope/pkg", "~2"},
+	} {
+		name, spec, ok := splitNPMDeclaration(tc.input)
+		if !ok || name != tc.name || spec != tc.spec {
+			t.Fatalf("split %q = %q %q %v", tc.input, name, spec, ok)
+		}
+	}
+}
+
+func TestNPMComparisonBudgetHasDeterministicPartialLists(t *testing.T) {
+	record := npmRecord("app", npmRef("b@1", "dependencies"), npmRef("a@1", "dependencies"))
+	lock := parseLock("npm", []byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"2","b":"2","c":"1"}}}}`))
+	var first []byte
+	for i := 0; i < 50; i++ {
+		check, count, reason := compareNPM(record, lock, 2)
+		if reason != "package-name-limit" || count != 2 || check.Compared != 2 || !reflect.DeepEqual(check.Mismatched, []string{"a", "b"}) {
+			t.Fatalf("unexpected budget result: %+v count=%d reason=%q", check, count, reason)
+		}
+		encoded, _ := json.Marshal(check)
+		if i > 0 && !bytes.Equal(first, encoded) {
+			t.Fatalf("map iteration changed partial report: %s vs %s", first, encoded)
+		}
+		first = encoded
 	}
 }
 
@@ -174,6 +247,39 @@ func TestNuGetProjectSpecificLocksRequireUniqueFilenameOwnership(t *testing.T) {
 	}
 	if r.Contexts[0].AssociationState != "indeterminate" {
 		t.Fatalf("custom lock path guessed: %+v", r.Contexts[0])
+	}
+}
+
+func TestNuGetCustomLockPathIsUnresolvedFromSelectedProjectXML(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	for _, tc := range []struct {
+		name    string
+		project string
+		want    string
+		reason  string
+	}{
+		{"custom property", `<Project><PropertyGroup><NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath></PropertyGroup></Project>`, "indeterminate", "nuget-custom-lock-path-unresolved"},
+		{"comment does not count", `<Project><!-- <NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath> --></Project>`, "observed", ""},
+		{"malformed XML unresolved", `<Project><NuGetLockFilePath>elsewhere.lock.json</Project>`, "indeterminate", "nuget-custom-lock-path-unresolved"},
+		{"malformed before property unresolved", `<Project><PropertyGroup></Project>`, "indeterminate", "nuget-project-config-unresolved"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+				"src/App/App.csproj":         tc.project,
+				"src/App/packages.lock.json": lock,
+			}, true)
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := r.Contexts[0].AssociationState; got != tc.want {
+				t.Fatalf("association=%q want %q: %+v", got, tc.want, r.Contexts[0])
+			}
+			if tc.want == "indeterminate" && (len(r.Contexts[0].Checks) != 0 || r.Contexts[0].Boundaries[0].Reason != tc.reason) {
+				t.Fatalf("custom or malformed project config was treated as comparable: %+v", r.Contexts[0])
+			}
+		})
 	}
 }
 

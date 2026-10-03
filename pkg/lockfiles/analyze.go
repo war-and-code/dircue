@@ -3,14 +3,17 @@ package lockfiles
 import (
 	"context"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 	"slices"
 	"sort"
 	"strconv"
 	"strings"
 
+	"github.com/war-and-code/dircue/internal/xmlencoding"
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
@@ -111,6 +114,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	}
 
 	lockReadCache := map[string]parsedLock{}
+	nugetProjectConfigCache := map[string]string{}
 	for _, rec := range records {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -132,7 +136,41 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		ctxResult := Context{ProjectID: rec.Project.ID, Ecosystem: ecosystem, ManifestPath: manifest, AssociationState: "indeterminate", Checks: []Check{}, Boundaries: []Boundary{}}
 		nugetSharedInputs := ecosystem == "nuget" && hasNuGetSharedInputs(paths, rec.Project.Root)
+		nugetCustomLockPath := false
+		nugetProjectConfigUnresolved := false
+		if ecosystem == "nuget" {
+			state, ok := nugetProjectConfigCache[manifest]
+			if !ok {
+				var inspectErr error
+				state, inspectErr = inspectNuGetProjectConfig(ctx, in, files[manifest], manifest, limits, &r.Coverage.InputBytes)
+				if inspectErr != nil {
+					if ctx.Err() != nil {
+						return nil, ctx.Err()
+					}
+					if in.ErrorPolicy != "continue" {
+						return nil, fmt.Errorf("read selected project file %q: %w", manifest, inspectErr)
+					}
+				}
+				nugetProjectConfigCache[manifest] = state
+			}
+			switch state {
+			case "custom-lock-path":
+				nugetCustomLockPath = true
+			case "unresolved":
+				nugetProjectConfigUnresolved = true
+				r.Status = "partial"
+				r.Coverage.OmittedFiles++
+				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: manifest, Code: "nuget-project-config-unresolved", Message: "The selected project XML could not be fully inspected within the bounded input limits."})
+			}
+		}
 		lockPath, association, reason := associate(ecosystem, rec, records, locksByDir, dotnetCountByRoot)
+		if nugetCustomLockPath {
+			association = "indeterminate"
+			reason = "nuget-custom-lock-path-unresolved"
+		} else if nugetProjectConfigUnresolved {
+			association = "indeterminate"
+			reason = "nuget-project-config-unresolved"
+		}
 		if association == "observed" && !inventoryComplete {
 			association = "indeterminate"
 			reason = "inventory-incomplete-association"
@@ -238,6 +276,61 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		return nil, err
 	}
 	return r, nil
+}
+
+// inspectNuGetProjectConfig reads only the already-selected project snapshot.
+// It recognizes the presence of an explicit NuGetLockFilePath property but
+// deliberately does not evaluate its value or associate a custom path.
+func inspectNuGetProjectConfig(ctx context.Context, in Input, file File, manifest string, limits Limits, inputBytes *int64) (string, error) {
+	if file.Path == "" || file.NonRegular || file.Size < 0 || file.Size > limits.FileBytes || file.Size > limits.InputBytes-*inputBytes || in.ReadSelected == nil {
+		return "unresolved", nil
+	}
+	data, size, err := in.ReadSelected(ctx, manifest, limits.FileBytes+1)
+	if err != nil {
+		return "unresolved", err
+	}
+	if size != int64(len(data)) || size != file.Size || size > limits.FileBytes || size > limits.InputBytes-*inputBytes {
+		return "unresolved", nil
+	}
+	*inputBytes += size
+	decoded, err := xmlencoding.Decode(data)
+	if err != nil {
+		return "unresolved", nil
+	}
+	decoder := xml.NewDecoder(strings.NewReader(string(decoded)))
+	decoder.Strict = true
+	depth, tokens := 0, 0
+	for {
+		if err := ctx.Err(); err != nil {
+			return "unresolved", err
+		}
+		token, err := decoder.Token()
+		if err != nil {
+			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+				return "unresolved", err
+			}
+			if errors.Is(err, io.EOF) {
+				return "clear", nil
+			}
+			return "unresolved", nil
+		}
+		tokens++
+		if tokens > 100_000 {
+			return "unresolved", nil
+		}
+		switch value := token.(type) {
+		case xml.StartElement:
+			depth++
+			if depth > 128 {
+				return "unresolved", nil
+			}
+			if strings.EqualFold(value.Name.Local, "NuGetLockFilePath") {
+				return "custom-lock-path", nil
+			}
+		case xml.EndElement:
+			depth--
+		}
+	}
 }
 
 type parsedLock struct {
@@ -364,14 +457,17 @@ func compareNPM(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (
 			unknown = true
 			continue
 		}
-		at := strings.LastIndexByte(ref.Value, '@')
-		if at < 0 || at == 0 || at == len(ref.Value)-1 || ref.Condition == "" {
+		name, value, ok := splitNPMDeclaration(ref.Value)
+		if !ok || ref.Condition == "" {
 			unknown = true
 			continue
 		}
-		name, value := ref.Value[:at], ref.Value[at+1:]
 		if manifest[ref.Condition] == nil {
 			manifest[ref.Condition] = map[string]string{}
+		}
+		if previous, exists := manifest[ref.Condition][name]; exists && previous != value {
+			unknown = true
+			continue
 		}
 		manifest[ref.Condition][name] = value
 	}
@@ -382,10 +478,12 @@ func compareNPM(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (
 	for _, field := range npmDependencyFields {
 		declared := manifest[field]
 		locked := lock.npmRoot[field]
-		for name, value := range declared {
+		for _, name := range sortedStringMapKeys(declared) {
+			value := declared[name]
 			count++
 			if count > maxNames {
 				c.Status = "indeterminate"
+				sortCheckNames(&c)
 				return c, maxNames, "package-name-limit"
 			}
 			c.Compared++
@@ -396,11 +494,12 @@ func compareNPM(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (
 				c.Mismatched = append(c.Mismatched, name)
 			}
 		}
-		for name := range locked {
+		for _, name := range sortedStringMapKeys(locked) {
 			if _, ok := declared[name]; !ok {
 				count++
 				if count > maxNames {
 					c.Status = "indeterminate"
+					sortCheckNames(&c)
 					return c, maxNames, "package-name-limit"
 				}
 				c.Unexpected = append(c.Unexpected, name)
@@ -412,10 +511,83 @@ func compareNPM(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (
 			c.Status = "different"
 		}
 	}
-	for _, values := range [][]string{c.Missing, c.Mismatched, c.Unexpected} {
-		slices.Sort(values)
-	}
+	sortCheckNames(&c)
 	return c, count, ""
+}
+
+func splitNPMDeclaration(value string) (name, spec string, ok bool) {
+	separator := -1
+	if strings.HasPrefix(value, "@") {
+		slash := strings.IndexByte(value, '/')
+		if slash <= 1 {
+			return "", "", false
+		}
+		relative := strings.IndexByte(value[slash+1:], '@')
+		if relative < 0 {
+			return "", "", false
+		}
+		separator = slash + 1 + relative
+	} else {
+		separator = strings.IndexByte(value, '@')
+	}
+	if separator <= 0 || separator == len(value)-1 {
+		return "", "", false
+	}
+	name, spec = value[:separator], value[separator+1:]
+	if !safeNPMName(name) || !safeNPMRange(spec) {
+		return "", "", false
+	}
+	return name, spec, true
+}
+
+func safeNPMName(value string) bool {
+	if len(value) > 214 || value == "" {
+		return false
+	}
+	if strings.HasPrefix(value, "@") {
+		scope, name, ok := strings.Cut(value[1:], "/")
+		return ok && safeNPMIdentifier(scope) && safeNPMIdentifier(name)
+	}
+	return safeNPMIdentifier(value)
+}
+
+func safeNPMIdentifier(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune("-_.", r)) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeNPMRange(value string) bool {
+	if len(value) > 1024 || value == "" {
+		return false
+	}
+	for _, r := range value {
+		if !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || strings.ContainsRune(".-_+*^~<>=| ", r)) {
+			return false
+		}
+	}
+	return true
+}
+
+func sortedStringMapKeys[V any](values map[string]V) []string {
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	return keys
+}
+
+func sortCheckNames(c *Check) {
+	slices.Sort(c.Missing)
+	slices.Sort(c.Mismatched)
+	slices.Sort(c.Unexpected)
 }
 
 func compareNuGet(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (Check, int, string) {
@@ -448,7 +620,7 @@ func compareNuGet(rec declarations.ProjectRecord, lock parsedLock, maxNames int)
 		c.Status = "indeterminate"
 	}
 	count := 0
-	for name := range refs {
+	for _, name := range sortedStringMapKeys(refs) {
 		count++
 		if count > maxNames {
 			c.Status = "indeterminate"
@@ -531,10 +703,24 @@ func associate(ecosystem string, rec declarations.ProjectRecord, records []decla
 		return candidates[0], "observed", ""
 	case "npm":
 		own := npmLocks(locksByDir[root])
-		if len(own) == 1 {
-			return own[0], "observed", ""
+		var shrinkwraps, packageLocks []string
+		for _, candidate := range own {
+			if path.Base(candidate) == "npm-shrinkwrap.json" {
+				shrinkwraps = append(shrinkwraps, candidate)
+			} else {
+				packageLocks = append(packageLocks, candidate)
+			}
 		}
-		if len(own) > 1 {
+		if len(shrinkwraps) == 1 {
+			return shrinkwraps[0], "observed", ""
+		}
+		if len(shrinkwraps) > 1 {
+			return "", "indeterminate", "multiple-npm-shrinkwraps-at-project-root"
+		}
+		if len(packageLocks) == 1 {
+			return packageLocks[0], "observed", ""
+		}
+		if len(packageLocks) > 1 {
 			return "", "indeterminate", "multiple-npm-lockfiles-at-project-root"
 		}
 		// An ancestor lockfile is not associated by path alone. Workspace
