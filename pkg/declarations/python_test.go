@@ -123,6 +123,32 @@ path = "src/main.rs"
 	}
 }
 
+func TestMaturinBinaryHonorsDeclaredCargoDefaultRun(t *testing.T) {
+	python := ParsePython("python/pyproject.toml", []byte(`[project]
+name = "my-tool"
+version = "1"
+[tool.maturin]
+bindings = "bin"
+manifest-path = "../rust/Cargo.toml"
+`))
+	cargo := ParseCargo("rust/Cargo.toml", []byte(`[package]
+name = "mtcli-package"
+version = "1"
+default-run = "mtcli"
+[[bin]]
+name = "mtcli"
+path = "src/main.rs"
+[[bin]]
+name = "helper"
+path = "src/helper.rs"
+`))
+	ResolveCargo([]*Document{python, cargo}, map[string]bool{"rust/Cargo.toml": true, "rust/src/main.rs": true, "rust/src/helper.rs": true})
+	got := python.Project.Interfaces[0]
+	if got.Name != "mtcli" || got.State != "declared" {
+		t.Fatalf("maturin binary should use Cargo's valid default-run target, got %+v", got)
+	}
+}
+
 func TestMaturinBinaryNameRemainsUnknownWhenCargoTargetsAreAmbiguous(t *testing.T) {
 	python := ParsePython("python/pyproject.toml", []byte(`[project]
 name = "my-tool"
