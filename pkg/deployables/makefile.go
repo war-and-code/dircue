@@ -21,6 +21,15 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 	if bytes.IndexByte(content, 0) >= 0 {
 		return nil, false, nil
 	}
+	// With .ONESHELL, recipe lines in a target share shell state. In
+	// particular, a preceding `cd` changes the base used by later literal
+	// Docker paths. We do not model target and shell state, so omit these
+	// observations rather than treating each recipe as an independent shell.
+	for _, raw := range bytes.Split(content, []byte("\n")) {
+		if strings.HasPrefix(strings.TrimSpace(string(raw)), ".ONESHELL:") {
+			return nil, false, nil
+		}
+	}
 	assignments := map[string][]bool{}
 	for _, raw := range bytes.Split(content, []byte("\n")) {
 		line := strings.TrimSpace(string(raw))
@@ -98,6 +107,12 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 		invalidFile := false
 		positionals := []string{}
 		for i := 0; i < len(args); i++ {
+			// Unquoted Make expansions can add shell words or operators after
+			// Make expands them. Even in a value-taking option they could inject
+			// another -f flag or build context, so do not derive a static link.
+			if strings.Contains(args[i], "$") {
+				invalidFile = true
+			}
 			switch {
 			case args[i] == "-f" || args[i] == "--file":
 				if i+1 >= len(args) || file != "" {
@@ -120,6 +135,9 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 				if i+1 >= len(args) {
 					invalidFile = true
 					continue
+				}
+				if strings.Contains(args[i+1], "$") {
+					invalidFile = true
 				}
 				i++
 			case strings.HasPrefix(args[i], "-"):
@@ -147,10 +165,10 @@ func parseMakefile(name string, content []byte) ([]Definition, bool, error) {
 	return defs, len(defs) > 0, nil
 }
 
-// safeDockerBuildAssignment accepts the simple Docker command prefix and
-// option-only trailing expansions used by build Makefiles. It rejects shell
-// control syntax and positional/file arguments, either of which could change
-// which Dockerfile or context the recipe actually selects.
+// safeDockerBuildAssignment accepts only a literal Docker command prefix and
+// selector-neutral static options. Expansions are not evaluated, so even a
+// variable that appears to contain only build flags could introduce a file or
+// context selector when Make expands it.
 func safeDockerBuildAssignment(value string) bool {
 	if strings.ContainsAny(value, ";&|`<>\\\n\r") {
 		return false
@@ -180,8 +198,11 @@ func safeDockerBuildAssignment(value string) bool {
 			}
 			return false
 		}
-		if isSimpleMakeVariable(arg) {
-			continue
+		// A variable here expands into command-line words. It could add a
+		// Dockerfile selector, context operand, or shell syntax that changes
+		// the meaning of the recipe.
+		if strings.Contains(arg, "$") {
+			return false
 		}
 		if !strings.HasPrefix(arg, "-") {
 			return false
@@ -192,10 +213,6 @@ func safeDockerBuildAssignment(value string) bool {
 
 func safeMakeArgument(value string) bool {
 	return value != "" && !strings.ContainsAny(value, ";&|`<>\\\n\r") && !strings.HasPrefix(value, "-")
-}
-
-func isSimpleMakeVariable(value string) bool {
-	return strings.HasPrefix(value, "$(") && strings.HasSuffix(value, ")") && !strings.ContainsAny(value[2:len(value)-1], "()")
 }
 
 func directDockerBuildPrefix(fields []string) int {

@@ -354,11 +354,11 @@ jobs:
 }
 
 func TestMakefileReadsOnlyStaticDockerBuildFileAndContext(t *testing.T) {
-	body := `OCI_BUILD := DOCKER_BUILDKIT=1 docker buildx build $(BUILD_ARGS)
-OCI_BUILD := DOCKER_BUILDKIT=1 docker build $(BUILD_ARGS)
+	body := `OCI_BUILD := DOCKER_BUILDKIT=1 docker buildx build --load
+OCI_BUILD := DOCKER_BUILDKIT=1 docker build --load
 
 image:
-	$(OCI_BUILD) -t $(IMAGE) -f cmd/loki/Dockerfile .
+	$(OCI_BUILD) -t dircue -f cmd/loki/Dockerfile .
 	docker build -f cmd/api/Dockerfile services/api
 	docker build -f $(DOCKERFILE) .
 	$(UNKNOWN_BUILD) -f cmd/nope/Dockerfile .
@@ -417,6 +417,24 @@ func TestMakefileContinuationDoesNotReattributeBuildFromAnotherDirectory(t *test
 	}
 }
 
+func TestMakefileOneshellDoesNotAssumeIndependentRecipeDirectories(t *testing.T) {
+	body := `.ONESHELL:
+image:
+	cd services
+	docker build -f Dockerfile .
+`
+	defs, matched, err := parseMakefile("Makefile", []byte(body))
+	if err != nil || matched || len(defs) != 0 {
+		t.Fatalf(".ONESHELL recipe state was attributed from the repository root: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+
+	ordinary := "image:\n\tdocker build -f services/api/Dockerfile services/api\n"
+	defs, matched, err = parseMakefile("Makefile", []byte(ordinary))
+	if err != nil || !matched || len(defs) != 1 {
+		t.Fatalf("ordinary independent recipe should retain its literal build: matched=%t defs=%+v err=%v", matched, defs, err)
+	}
+}
+
 func TestMakefileVariableContinuationIsNotParsedAsRecipe(t *testing.T) {
 	body := `DOCKER_BUILD = \
 	docker build -f Dockerfile .
@@ -455,12 +473,28 @@ func TestMakefileRejectsUnsafeDockerBuildVariablePrefixes(t *testing.T) {
 		"OCI_BUILD := docker build ; echo unsafe",
 		"OCI_BUILD := docker build -f hidden/Dockerfile .",
 		"OCI_BUILD := docker build hidden-context",
+		"OCI_BUILD := docker build $(ARGS)",
 	} {
 		t.Run(assignment, func(t *testing.T) {
 			body := assignment + "\nimage:\n\t$(OCI_BUILD) -f services/api/Dockerfile services/api\n"
 			defs, matched, err := parseMakefile("Makefile", []byte(body))
 			if err != nil || matched || len(defs) != 0 {
 				t.Fatalf("unsafe variable command was attributed: matched=%t defs=%+v err=%v", matched, defs, err)
+			}
+		})
+	}
+}
+
+func TestMakefileRejectsUnquotedDynamicDockerOptionValues(t *testing.T) {
+	for _, command := range []string{
+		"docker build -t $(IMAGE) -f Dockerfile .",
+		"docker build -t \"$(IMAGE)\" -f Dockerfile .",
+		"docker build --build-arg IMAGE=$(IMAGE) -f Dockerfile .",
+	} {
+		t.Run(command, func(t *testing.T) {
+			defs, matched, err := parseMakefile("Makefile", []byte("image:\n\t"+command+"\n"))
+			if err != nil || matched || len(defs) != 0 {
+				t.Fatalf("unquoted expansion may alter Docker arguments and must remain unresolved: matched=%t defs=%+v err=%v", matched, defs, err)
 			}
 		})
 	}
