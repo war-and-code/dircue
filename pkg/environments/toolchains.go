@@ -611,10 +611,3 @@ type toolchainScopeKey struct {
 	tool  string
 	scope string
 }
-
-func isNestedScope(parent, child string) bool {
-	if parent == "." {
-		return child != "."
-	}
-	return child != parent && strings.HasPrefix(child, parent+"/")
-}
