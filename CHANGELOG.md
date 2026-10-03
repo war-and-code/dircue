@@ -6,6 +6,7 @@
 - Expand `analyze environments` with selected `.python-version`, `.node-version`, `.nvmrc`, `rust-toolchain` and `rust-toolchain.toml` declarations. Preserve nested scopes and conflicts without guessing manager precedence or installed versions. The environment provider advances to 1.1.0; existing .NET selection semantics remain unchanged, and current readers retain support for older 1.0.0 environment reports.
 - Expand `analyze registries` with selected Maven `settings.xml` and Cargo `.cargo/config` / `.cargo/config.toml`. Keep declarations separate from effective configuration, preserve unresolved applicability, and sanitize qualified identifiers and URL origins under the existing disclosure rules. The registry rule version advances to 1.1.0. No user-home configuration, package-manager execution or network lookup is introduced.
 - Include the new observations in saved-profile comparison, inert follow-up planning, offline schemas, command help and the CLI capability catalog. The language-only path and default `analyze all` remain unchanged.
+- Correct the declarations schema to accept its existing optional interface `start_line` and `end_line` fields. Report content and the declaration provider version are unchanged.
 
 ## 1.1.0 (2026-10-03)
 
