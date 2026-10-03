@@ -97,6 +97,59 @@ func TestDuplicateProjectRecordsAreConservativeAndDoNotEmitDuplicateContexts(t *
 	}
 }
 
+func TestAnalyzeRejectsNegativeOmissionCounts(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		mutate func(*Input)
+	}{
+		{"inventory", func(in *Input) { in.OmittedFiles = -1 }},
+		{"declarations", func(in *Input) { in.Declarations.Coverage.OmittedFiles = -1 }},
+		{"declaration diagnostics", func(in *Input) { in.Declarations.Coverage.OmittedDiagnostics = -1 }},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := Input{Source: "directory", InventoryComplete: true}
+			tc.mutate(&in)
+			if report, err := Analyze(context.Background(), in, Limits{}); err == nil {
+				t.Fatalf("negative omission count produced a report: %+v", report)
+			}
+		})
+	}
+}
+
+func TestAnalyzeRejectsLimitsAboveReportMaximums(t *testing.T) {
+	for _, limits := range []Limits{
+		{InventoryPaths: DefaultMaxInventoryPaths + 1},
+		{Lockfiles: DefaultMaxLockfiles + 1},
+		{FileBytes: DefaultMaxFileBytes + 1},
+		{InputBytes: DefaultMaxInputBytes + 1},
+		{PackageNames: DefaultMaxPackageNames + 1},
+		{Contexts: DefaultMaxContexts + 1},
+		{OutputBytes: DefaultMaxOutputBytes + 1},
+	} {
+		if report, err := Analyze(context.Background(), Input{Source: "directory"}, limits); err == nil {
+			t.Fatalf("over-maximum limit produced an unverifiable report: %+v", report.Limits)
+		}
+	}
+}
+
+func TestConflictingDuplicateInventoryMetadataKeepsAssociationIndeterminate(t *testing.T) {
+	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{"app/package-lock.json": lock}, true)
+	in.Inventory = append(in.Inventory, File{Path: "app/package-lock.json", Size: int64(len(lock)) + 1})
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Coverage.OmittedFiles == 0 || len(r.Diagnostics) != 1 || r.Diagnostics[0].Code != "conflicting-inventory-entry" ||
+		len(r.Contexts) != 1 || r.Contexts[0].AssociationState != "indeterminate" || len(r.Contexts[0].Checks) != 0 {
+		t.Fatalf("conflicting inventory metadata was treated as certain: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("qualified duplicate-inventory report was invalid: %v", err)
+	}
+}
+
 func TestNPMShrinkwrapTakesPrecedenceOverPackageLock(t *testing.T) {
 	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
 	packageLock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"2.0.0"}}}}`
@@ -154,6 +207,23 @@ func TestNPMManifestDependencyDiagnosticsPreventFalseMatch(t *testing.T) {
 	}
 	if got := r.Contexts[0].Checks[0].Status; got != "match" || r.Status != "partial" {
 		t.Fatalf("unrelated manifest diagnostics poisoned a valid independent check: report=%+v", r)
+	}
+}
+
+func TestOmittedDeclarationDiagnosticsPreventNPMMatch(t *testing.T) {
+	record := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{"app/package-lock.json": lock}, true)
+	in.Declarations.Coverage.OmittedDiagnostics = 1
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || len(r.Contexts) != 1 || r.Contexts[0].Checks[0].Status != "indeterminate" || len(r.Contexts[0].Boundaries) != 1 || r.Contexts[0].Boundaries[0].Reason != "npm-manifest-declarations-unresolved" {
+		t.Fatalf("omitted diagnostics still allowed a conclusive npm match: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("qualified omitted-diagnostic report was invalid: %v", err)
 	}
 }
 
@@ -291,6 +361,28 @@ func TestNuGetV1AndV2DirectPresenceAndMultiTargetUncertainty(t *testing.T) {
 	}
 }
 
+func TestNuGetCaseFoldedDuplicatePackageIDsAreUnsupported(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Foo@1.0", State: "declared"})
+	for _, entries := range []string{
+		`"Foo":{"type":"transitive"},"foo":{"type":"direct"}`,
+		`"Foo":{"type":"direct"},"foo":{"type":"direct"}`,
+	} {
+		lock := `{"version":1,"dependencies":{"net8.0":{` + entries + `}}}`
+		r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true), Limits{})
+		if err != nil {
+			t.Fatal(err)
+		}
+		ctx := r.Contexts[0]
+		if r.Status != "partial" || ctx.AssociationState != "unsupported" || len(ctx.Checks) != 1 || ctx.Checks[0].Status != "indeterminate" ||
+			len(ctx.Checks[0].Missing)+len(ctx.Checks[0].Mismatched)+len(ctx.Checks[0].Unexpected) != 0 {
+			t.Fatalf("case-folded duplicate package IDs became direct-presence evidence: %+v", r)
+		}
+		if err := ValidateReport(r); err != nil {
+			t.Fatalf("qualified duplicate-package report was invalid: %v", err)
+		}
+	}
+}
+
 func TestAnalyzeOutputWithUnsupportedNuGetVersionPassesReportValidation(t *testing.T) {
 	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
 	for _, version := range []string{"3", "17"} {
@@ -395,6 +487,23 @@ func TestNuGetLockOwnershipIsUnresolvedWhenProjectInventoryWasOmitted(t *testing
 	}
 	if err := ValidateReport(r); err != nil {
 		t.Fatalf("incomplete-inventory report is invalid: %v", err)
+	}
+}
+
+func TestDeclaredCompleteStatusCannotHideOmittedProjectInventory(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true)
+	in.Declarations.Coverage.OmittedFiles = 1
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Status != "partial" || r.Contexts[0].AssociationState != "indeterminate" || len(r.Contexts[0].Checks) != 0 {
+		t.Fatalf("mis-stated complete declaration coverage produced a complete association: %+v", r)
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("qualified omitted-project report was invalid: %v", err)
 	}
 }
 

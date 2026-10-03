@@ -35,18 +35,28 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
+	if in.OmittedFiles < 0 || in.Declarations.Coverage.OmittedFiles < 0 || in.Declarations.Coverage.OmittedDiagnostics < 0 {
+		return nil, errors.New("lockfile input omission counts cannot be negative")
+	}
 	if (in.Source != "directory" && in.Source != "git") ||
 		(in.Source == "git" && !validGitTree(in.Tree)) ||
 		(in.Source == "directory" && in.Tree != "") {
 		return nil, errors.New("lockfile input source identity is invalid")
 	}
 	limits = defaults(limits)
+	if limits.InventoryPaths > DefaultMaxInventoryPaths || limits.Lockfiles > DefaultMaxLockfiles ||
+		limits.FileBytes > DefaultMaxFileBytes || limits.InputBytes > DefaultMaxInputBytes ||
+		limits.PackageNames > DefaultMaxPackageNames || limits.Contexts > DefaultMaxContexts ||
+		limits.OutputBytes > DefaultMaxOutputBytes {
+		return nil, errors.New("lockfile limits exceed the supported maximum")
+	}
 	r := &Report{Provider: Provider, ProviderVersion: ProviderVersion, Status: "complete", Source: in.Source, Tree: in.Tree, Semantics: []string{npmSemantics, nugetSemantics}, Limits: limits, Contexts: []Context{}, Diagnostics: []Diagnostic{}}
 	r.Coverage.OmittedFiles = in.OmittedFiles
 	if !in.InventoryComplete || in.OmittedFiles > 0 {
 		r.Status = "partial"
 	}
-	if in.Declarations.Status != "" && in.Declarations.Status != "complete" {
+	if in.Declarations.Status != "" && in.Declarations.Status != "complete" ||
+		in.Declarations.Coverage.OmittedFiles > 0 || in.Declarations.Coverage.OmittedDiagnostics > 0 {
 		r.Status = "partial"
 	}
 	projectInventoryComplete := in.Declarations.Status != "" && in.Declarations.Status != "skipped" && in.Declarations.Coverage.OmittedFiles == 0
@@ -73,7 +83,13 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: ".", Code: "invalid-inventory-path", Message: "An inventory path was not a confined root-relative path."})
 			continue
 		}
-		if _, exists := files[clean]; exists {
+		if existing, exists := files[clean]; exists {
+			if existing.Size != f.Size || existing.NonRegular != f.NonRegular {
+				r.Status = "partial"
+				r.Coverage.OmittedFiles++
+				inventoryComplete = false
+				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: clean, Code: "conflicting-inventory-entry", Message: "Conflicting metadata was supplied for the same selected inventory path."})
+			}
 			continue
 		}
 		f.Path = clean
@@ -286,7 +302,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			continue
 		}
 		check, count, checkReason := compare(ecosystem, rec, parsed, limits.PackageNames-r.Coverage.PackageNames)
-		if ecosystem == "npm" && hasNPMComparisonDiagnostics(in.Declarations.Diagnostics, manifest) {
+		if ecosystem == "npm" && in.Declarations.Coverage.OmittedDiagnostics > 0 {
+			check.Status = "indeterminate"
+			check.Explanation = "Declaration diagnostics were omitted, so the complete direct package table cannot be established."
+			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
+		} else if ecosystem == "npm" && hasNPMComparisonDiagnostics(in.Declarations.Diagnostics, manifest) {
 			check.Status = "indeterminate"
 			check.Explanation += " The selected package manifest has dependency-field diagnostics, so its complete direct declaration table is unknown."
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
@@ -464,7 +484,13 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 			if !ok {
 				return parsedLock{state: "unsupported", reason: "invalid-nuget-target", version: strconv.Itoa(v)}
 			}
+			targetNames := make(map[string]bool, len(target))
 			for name, raw := range target {
+				foldedName := strings.ToLower(name)
+				if targetNames[foldedName] {
+					return parsedLock{state: "unsupported", reason: "duplicate-nuget-package-id", version: strconv.Itoa(v)}
+				}
+				targetNames[foldedName] = true
 				entry, ok := raw.(map[string]any)
 				if !ok {
 					return parsedLock{state: "unsupported", reason: "invalid-nuget-package-entry", version: strconv.Itoa(v)}
@@ -481,7 +507,7 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 					return parsedLock{state: "unsupported", reason: "unsupported-nuget-package-type", version: strconv.Itoa(v)}
 				}
 				if strings.EqualFold(kind, "direct") {
-					direct[strings.ToLower(name)] = true
+					direct[foldedName] = true
 				}
 			}
 		}
