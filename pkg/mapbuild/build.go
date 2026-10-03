@@ -222,6 +222,8 @@ func Build(r *profile.Report, opts Options) (mapdoc.Document, error) {
 	)
 	if opts.Deployables != nil {
 		addDeployables(&d, opts.Deployables, opts.Intent)
+		addProcfileEdges(&d, opts.Deployables)
+		addAspireDeclaredRuns(&d, opts.Deployables, r.Declarations)
 		addWorkflowComponentEdges(&d, opts.Deployables)
 	}
 	if opts.Intent != nil {

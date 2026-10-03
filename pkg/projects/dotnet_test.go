@@ -268,6 +268,36 @@ func TestDotnetAcceptsBOMUTF16WithoutWeakeningXML(t *testing.T) {
 	}
 }
 
+func TestDotnetAspireProjectReferenceMetadataStaysPrivateAndConservative(t *testing.T) {
+	doc := ParseDotnet("Host.csproj", []byte(`<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup>
+<ProjectReference Include="A.csproj" IsAspireProjectResource="false"/>
+<ProjectReference Include="B.csproj"><AspireProjectMetadataTypeName>CustomB</AspireProjectMetadataTypeName></ProjectReference>
+<ProjectReference Include="C.csproj"><IsAspireProjectResource Condition="'$(Configuration)' == 'Release'">true</IsAspireProjectResource></ProjectReference>
+<ProjectReference Include="D.csproj" IsAspireProjectResource="true"><IsAspireProjectResource>false</IsAspireProjectResource></ProjectReference>
+<ProjectReference Include="E.csproj" ProjectName="AliasE"/>
+</ItemGroup></Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].References) != 5 {
+		t.Fatalf("references: %+v", doc.Projects)
+	}
+	want := []struct {
+		resource string
+		custom   bool
+	}{{"false", false}, {"default", true}, {"unresolved", false}, {"unresolved", false}, {"default", true}}
+	for i, expected := range want {
+		got := doc.Projects[0].References[i]
+		if got.AspireResource != expected.resource || got.AspireCustomName != expected.custom {
+			t.Errorf("ref %s metadata=(resource %q custom %v), want (%q %v)", got.Value, got.AspireResource, got.AspireCustomName, expected.resource, expected.custom)
+		}
+	}
+	encoded, err := json.Marshal(doc.Projects[0].References)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "AspireResource") || strings.Contains(string(encoded), "AspireCustomName") || strings.Contains(string(encoded), "CustomB") || strings.Contains(string(encoded), "AliasE") {
+		t.Fatalf("private metadata escaped into JSON: %s", encoded)
+	}
+}
+
 func TestDotnetSolutionFilterIsPassiveAndBounded(t *testing.T) {
 	doc := ParseDotnet("filters/App.slnf", []byte(`{"solution":{"path":"../solutions/App.sln","projects":["../src/App.csproj"]}}`))
 	if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 || len(doc.Projects[0].References) != 2 {
