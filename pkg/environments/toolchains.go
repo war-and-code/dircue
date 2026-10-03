@@ -207,7 +207,7 @@ func parseNVMRC(content []byte) ([]string, string, string) {
 }
 
 func parseRustToolchainTOML(content []byte) ([]string, string, string) {
-	if !tomlNestingWithinBound(content, 64) {
+	if !tomlNestingWithinBound(content, 64) || !tomlDottedNestingWithinBound(content, 64) {
 		return nil, "unresolved", "invalid-toolchain-toml"
 	}
 	var root map[string]any
@@ -243,11 +243,11 @@ func parseRustToolchainTOML(content []byte) ([]string, string, string) {
 	if hasChannel == hasPath {
 		return nil, "unresolved", "invalid-toolchain-toml"
 	}
-	if !hasChannel {
-		return nil, "unresolved", "unresolved-toolchain-path"
-	}
 	if _, ok := toolchainPath.(string); hasPath && !ok {
 		return nil, "unresolved", "invalid-toolchain-toml"
+	}
+	if !hasChannel {
+		return nil, "unresolved", "unresolved-toolchain-path"
 	}
 	value, ok := channel.(string)
 	if !ok || !safeToolchainSelector(value) {
@@ -257,6 +257,185 @@ func parseRustToolchainTOML(content []byte) ([]string, string, string) {
 		return []string{value}, "declared", "unsupported-toolchain-toml"
 	}
 	return []string{value}, "declared", ""
+}
+
+// tomlDottedNestingWithinBound counts key path components in table headers and
+// assignments before decoding. Dotted keys build nested maps just like arrays
+// and inline tables, so bracket depth alone does not bound TOML decoder depth.
+func tomlDottedNestingWithinBound(content []byte, maxDepth int) bool {
+	depth := 0
+	quote := byte(0)
+	triple := false
+	comment := false
+	keySegments := 1
+	keyContext := true
+	lineStart := true
+	header := false
+	headerCloses := 0
+	headerArrayTable := false
+	contextSegments := 0
+	valueSegments := 0
+	arrayDepth := 0
+	valueArrayDepth := 0
+	assignmentPending := false
+	type inlineContext struct {
+		contextSegments int
+		valueSegments   int
+		arrayDepth      int
+		valueArrayDepth int
+	}
+	inlineTables := []inlineContext{}
+	for i := 0; i < len(content); i++ {
+		ch := content[i]
+		if comment {
+			if ch == '\n' || ch == '\r' {
+				comment = false
+				keySegments = 1
+				if !assignmentPending {
+					keyContext = valueArrayDepth == 0
+				}
+				lineStart = true
+			}
+			continue
+		}
+		if quote != 0 {
+			if quote == '"' && ch == '\\' {
+				i++
+				continue
+			}
+			if triple {
+				if ch == quote && i+2 < len(content) && content[i+1] == quote && content[i+2] == quote {
+					i += 2
+					quote, triple = 0, false
+				}
+			} else if ch == quote {
+				quote = 0
+			}
+			continue
+		}
+		if ch == '#' {
+			comment = true
+			continue
+		}
+		if ch == '\n' || ch == '\r' {
+			keySegments = 1
+			if !assignmentPending {
+				keyContext = valueArrayDepth == 0
+			}
+			lineStart = true
+			continue
+		}
+		if lineStart && (ch == ' ' || ch == '\t') {
+			continue
+		}
+		if lineStart {
+			lineStart = false
+			if ch == '[' && keyContext && valueArrayDepth == 0 && len(inlineTables) == 0 {
+				header = true
+				headerCloses = 1
+				headerArrayTable = i+1 < len(content) && content[i+1] == '['
+				if headerArrayTable {
+					headerCloses = 2
+				}
+				keySegments, keyContext = 1, true
+			}
+		}
+		if ch == '"' || ch == '\'' {
+			if assignmentPending {
+				assignmentPending = false
+			}
+			quote = ch
+			triple = i+2 < len(content) && content[i+1] == ch && content[i+2] == ch
+			if triple {
+				i += 2
+			}
+			continue
+		}
+		if assignmentPending && ch != '=' && ch != '#' && ch != ' ' && ch != '\t' && ch != '\r' {
+			assignmentPending = false
+		}
+		switch ch {
+		case '[', '{':
+			if ch == '[' && header {
+				continue
+			}
+			depth++
+			if depth > maxDepth {
+				return false
+			}
+			if ch == '[' {
+				arrayDepth++
+				if !keyContext {
+					valueArrayDepth++
+					if contextSegments+keySegments+valueArrayDepth+1 > maxDepth {
+						return false
+					}
+				}
+			} else {
+				inlineTables = append(inlineTables, inlineContext{contextSegments: contextSegments, valueSegments: valueSegments, arrayDepth: arrayDepth, valueArrayDepth: valueArrayDepth})
+				contextSegments = valueSegments + valueArrayDepth
+				valueArrayDepth = 0
+				keySegments, keyContext = 1, true
+			}
+		case ']', '}':
+			if ch == ']' && header {
+				headerCloses--
+				if headerCloses == 0 {
+					header = false
+					contextSegments = keySegments
+					if headerArrayTable {
+						contextSegments++
+					}
+					keyContext = false
+					if contextSegments+1 > maxDepth {
+						return false
+					}
+				}
+			} else {
+				if depth > 0 {
+					depth--
+				}
+				if ch == ']' {
+					if arrayDepth > 0 {
+						arrayDepth--
+					}
+					if valueArrayDepth > 0 {
+						valueArrayDepth--
+					}
+				} else if len(inlineTables) > 0 {
+					last := inlineTables[len(inlineTables)-1]
+					inlineTables = inlineTables[:len(inlineTables)-1]
+					contextSegments, valueSegments = last.contextSegments, last.valueSegments
+					valueArrayDepth = last.valueArrayDepth
+					keyContext = false
+				}
+			}
+		case '=', ',', '.':
+			if ch == '=' {
+				if keyContext && contextSegments+keySegments+1 > maxDepth {
+					return false
+				}
+				valueSegments = contextSegments + keySegments
+				valueArrayDepth = 0
+				keyContext = false
+				assignmentPending = true
+			} else if ch == ',' {
+				if len(inlineTables) > 0 && arrayDepth == inlineTables[len(inlineTables)-1].arrayDepth {
+					keySegments, keyContext = 1, true
+				}
+			} else if keyContext {
+				keySegments++
+				baseSegments := contextSegments
+				if header {
+					baseSegments = 0
+				}
+				if baseSegments+keySegments+1 > maxDepth {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 func rustupStringArray(value any) bool {
@@ -377,23 +556,43 @@ func credentialLookingSelector(value string) bool {
 }
 
 func detectToolchainConflicts(r *Report) {
-	declarations := r.ToolchainDeclarations
-	for i, declaration := range declarations {
-		for j := i + 1; j < len(declarations); j++ {
-			other := declarations[j]
-			if other.Tool != declaration.Tool {
+	byScope := make(map[toolchainScopeKey][]ToolchainDeclaration, len(r.ToolchainDeclarations))
+	for _, declaration := range r.ToolchainDeclarations {
+		key := toolchainScopeKey{tool: declaration.Tool, scope: declaration.ScopeDirectory}
+		byScope[key] = append(byScope[key], declaration)
+	}
+	for _, declaration := range r.ToolchainDeclarations {
+		if declaration.ScopeDirectory == "." {
+			continue
+		}
+		for parent := path.Dir(declaration.ScopeDirectory); ; parent = path.Dir(parent) {
+			if len(byScope[toolchainScopeKey{tool: declaration.Tool, scope: parent}]) > 0 {
+				r.Boundaries = append(r.Boundaries, Boundary{Path: declaration.SourcePath, Reason: "nested-toolchain-declaration", Detail: "Nested declarations were retained separately; manager-specific lookup and the applicable winner were not determined."})
+				break
+			}
+			if parent == "." {
+				break
+			}
+		}
+	}
+	scopes := make([]toolchainScopeKey, 0, len(byScope))
+	for scope := range byScope {
+		scopes = append(scopes, scope)
+	}
+	slices.SortFunc(scopes, func(a, b toolchainScopeKey) int {
+		if a.tool != b.tool {
+			return strings.Compare(a.tool, b.tool)
+		}
+		return strings.Compare(a.scope, b.scope)
+	})
+	for _, scope := range scopes {
+		declarations := byScope[scope]
+		for i, declaration := range declarations {
+			if declaration.State != "declared" || len(declaration.Values) == 0 {
 				continue
 			}
-			nested := isNestedScope(declaration.ScopeDirectory, other.ScopeDirectory) || isNestedScope(other.ScopeDirectory, declaration.ScopeDirectory)
-			if nested {
-				r.Boundaries = append(r.Boundaries, Boundary{Path: other.SourcePath, Reason: "nested-toolchain-declaration", Detail: "Nested declarations were retained separately; manager-specific lookup and the applicable winner were not determined."})
-				continue
-			}
-			if declaration.State != "declared" || len(declaration.Values) == 0 || other.State != "declared" || len(other.Values) == 0 {
-				continue
-			}
-			if other.ScopeDirectory == declaration.ScopeDirectory {
-				if slices.Equal(declaration.Values, other.Values) {
+			for _, other := range declarations[i+1:] {
+				if other.State != "declared" || len(other.Values) == 0 || slices.Equal(declaration.Values, other.Values) {
 					continue
 				}
 				r.Conflicts = append(r.Conflicts, Conflict{
@@ -403,10 +602,14 @@ func detectToolchainConflicts(r *Report) {
 					Evidence:    []string{declaration.SourcePath, other.SourcePath},
 					Explanation: "Same-directory declarations for this tool disagree; manager-specific precedence was not inferred.",
 				})
-				continue
 			}
 		}
 	}
+}
+
+type toolchainScopeKey struct {
+	tool  string
+	scope string
 }
 
 func isNestedScope(parent, child string) bool {

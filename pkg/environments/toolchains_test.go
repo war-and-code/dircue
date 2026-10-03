@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"path"
 	"strings"
 	"testing"
 
@@ -35,7 +36,7 @@ func TestToolchainLiteralSubsetAndNoWinnerBoundaries(t *testing.T) {
 			nested++
 		}
 	}
-	if nested != 3 {
+	if nested != 2 {
 		t.Fatalf("nested declarations should be retained in both ecosystems without selecting winners: %+v", r.Boundaries)
 	}
 	if err := ValidateReport(r); err != nil {
@@ -222,6 +223,65 @@ func TestToolchainReaderCancellationAfterSuccessfulReadIsFatal(t *testing.T) {
 	}
 	if _, err := Analyze(ctx, in, Limits{}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("successful read after cancellation should abort analysis, got %v", err)
+	}
+}
+
+func TestRustTOMLPreflightBoundsDottedKeyDepth(t *testing.T) {
+	exactDepthKey := strings.TrimSuffix(strings.Repeat("segment.", 63), ".")
+	if !tomlDottedNestingWithinBound([]byte(exactDepthKey+" = 1\n"), 64) {
+		t.Fatal("dotted key exactly at the depth bound should pass")
+	}
+	deepKey := strings.TrimSuffix(strings.Repeat("segment.", 65), ".")
+	if tomlDottedNestingWithinBound([]byte(deepKey+" = 1\n"), 64) {
+		t.Fatal("deep dotted key passed the structural depth bound")
+	}
+	compound := "[toolchain]\n" + strings.TrimSuffix(strings.Repeat("segment.", 64), ".") + " = 1\n"
+	if tomlDottedNestingWithinBound([]byte(compound), 64) {
+		t.Fatal("table and dotted-key depth must share one bound")
+	}
+	combinedAtLimit := "[toolchain]\n" + strings.TrimSuffix(strings.Repeat("segment.", 62), ".") + " = 1\n"
+	if !tomlDottedNestingWithinBound([]byte(combinedAtLimit), 64) {
+		t.Fatal("combined table and dotted-key depth exactly at the bound should pass")
+	}
+	inlineKey := strings.TrimSuffix(strings.Repeat("segment.", 65), ".")
+	inline := "[toolchain]\nchannel = \"stable\"\ncomponents = { " + inlineKey + " = 1 }\n"
+	if tomlDottedNestingWithinBound([]byte(inline), 64) {
+		t.Fatal("dotted keys nested in inline tables must share the structural depth bound")
+	}
+	if values, state, _ := parseRustToolchainTOML([]byte(inline)); state != "unresolved" || len(values) != 0 {
+		t.Fatalf("inline dotted-key depth should be rejected before TOML decoding: values=%v state=%s", values, state)
+	}
+	multilineArray := "[toolchain]\ncomponents = [\n  [\"rustfmt\"]\n]\n"
+	if !tomlDottedNestingWithinBound([]byte(multilineArray), 64) {
+		t.Fatal("array continuation beginning with `[` must not be interpreted as a table header")
+	}
+	validMultilineArray := "[toolchain]\nchannel = \"stable\"\ncomponents = [\n  \"rustfmt\"\n]\n"
+	if values, state, code := parseRustToolchainTOML([]byte(validMultilineArray)); state != "declared" || code != "" || len(values) != 1 || values[0] != "stable" {
+		t.Fatalf("valid rustup array should pass preflight: values=%v state=%s code=%s", values, state, code)
+	}
+	ordinary := "[\"tool.chain\"]\nvalue = \"a.b.c\" # comment.with.dots\n"
+	if !tomlDottedNestingWithinBound([]byte(ordinary), 64) {
+		t.Fatal("dots inside quoted keys, values, and comments should not count as nesting")
+	}
+}
+
+func TestToolchainNestedConflictBoundariesGrowLinearly(t *testing.T) {
+	declarations := make([]ToolchainDeclaration, 4090)
+	scope := "."
+	for i := range declarations {
+		if i > 0 {
+			scope = path.Join(scope, "a")
+		}
+		source := path.Join(scope, ".node-version")
+		declarations[i] = ToolchainDeclaration{SourcePath: source, Tool: "node", Kind: "node-version", Values: []string{"20"}, State: "declared", ScopeDirectory: scope}
+	}
+	report := &Report{ToolchainDeclarations: declarations}
+	detectToolchainConflicts(report)
+	if len(report.Boundaries) != len(declarations)-1 {
+		t.Fatalf("nested boundaries should be capped at one per nested candidate, got %d for %d declarations", len(report.Boundaries), len(declarations))
+	}
+	if len(report.Conflicts) != 0 {
+		t.Fatalf("identical nested selectors should not produce same-scope conflicts: %+v", report.Conflicts)
 	}
 }
 
