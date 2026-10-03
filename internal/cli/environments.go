@@ -24,6 +24,11 @@ func writeEnvironments(out io.Writer, report *environments.Report) error {
 			return err
 		}
 	}
+	for _, d := range report.ToolchainDeclarations {
+		if _, err := fmt.Fprintf(out, "Toolchain %q: %s/%s %q (%s; scope %q; %s)\n", d.SourcePath, d.Tool, d.Kind, d.Values, d.State, d.ScopeDirectory, d.Applicability); err != nil {
+			return err
+		}
+	}
 	for _, c := range report.Conflicts {
 		if _, err := fmt.Fprintf(out, "Conflict %q: %s %q (%s)\n", c.ContextID, c.Dimension, c.Values, c.Explanation); err != nil {
 			return err
