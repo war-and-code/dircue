@@ -133,8 +133,13 @@ func sortedMapKeys(m map[string]any) []string {
 }
 
 func parseCargoRegistries(c *Configuration, root map[string]any) {
-	registries, ok := stringMap(root["registries"])
+	value, exists := root["registries"]
+	if !exists {
+		return
+	}
+	registries, ok := stringMap(value)
 	if !ok {
+		c.omit("unsupported_cargo_registries_table")
 		return
 	}
 	for _, name := range sortedMapKeys(registries) {
@@ -160,8 +165,13 @@ func parseCargoRegistries(c *Configuration, root map[string]any) {
 }
 
 func parseCargoSources(c *Configuration, root map[string]any) {
-	sources, ok := stringMap(root["source"])
+	value, exists := root["source"]
+	if !exists {
+		return
+	}
+	sources, ok := stringMap(value)
 	if !ok {
+		c.omit("unsupported_cargo_source_table")
 		return
 	}
 	for _, name := range sortedMapKeys(sources) {
@@ -181,7 +191,11 @@ func parseCargoSources(c *Configuration, root map[string]any) {
 				c.omit("unsupported_cargo_source_value")
 				continue
 			}
-			d := Declaration{Section: "cargoSource", Operation: "source", Semantics: "declared", Applicability: "unresolved", Name: label(name, "name"), Scope: label(field, "name"), Endpoint: cargoEndpoint(raw)}
+			endpointValue := cargoEndpoint(raw)
+			if field == "directory" || field == "local-registry" {
+				endpointValue = cargoLocalPath(raw)
+			}
+			d := Declaration{Section: "cargoSource", Operation: "source", Semantics: "declared", Applicability: "unresolved", Name: label(name, "name"), Scope: label(field, "name"), Endpoint: endpointValue}
 			c.add(qualify(c, d))
 		}
 		if target, exists := entry["replace-with"]; exists {
@@ -198,13 +212,18 @@ func parseCargoSources(c *Configuration, root map[string]any) {
 }
 
 func parseCargoDefault(c *Configuration, root map[string]any) {
-	registry, ok := stringMap(root["registry"])
-	if !ok {
+	value, exists := root["registry"]
+	if !exists {
 		return
 	}
-	value, exists := registry["default"]
+	registry, ok := stringMap(value)
+	if !ok {
+		c.omit("unsupported_cargo_registry_settings")
+		return
+	}
+	defaultValue, exists := registry["default"]
 	if exists {
-		if name, ok := value.(string); ok {
+		if name, ok := defaultValue.(string); ok {
 			c.add(qualify(c, Declaration{Section: "cargoRegistry", Operation: "default", Semantics: "declared", Applicability: "unresolved", Name: label(name, "name")}))
 		} else {
 			c.omit("unsupported_cargo_default")
@@ -220,6 +239,14 @@ func cargoEndpoint(value string) *Endpoint {
 		value = strings.TrimPrefix(value, "sparse+")
 	}
 	return endpoint(value)
+}
+
+func cargoLocalPath(value string) *Endpoint {
+	preparePatterns()
+	if variable.MatchString(value) {
+		return &Endpoint{Status: "unresolved"}
+	}
+	return &Endpoint{Status: "local_path"}
 }
 
 func stringMap(value any) (map[string]any, bool) {

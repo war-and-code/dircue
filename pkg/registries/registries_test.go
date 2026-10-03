@@ -309,6 +309,17 @@ func TestMavenRejectsMalformedNamespacesDepthAndDuplicateRecognizedFields(t *tes
 	}
 }
 
+func TestMavenRepositoryScopeWaitsForUnambiguousProfileID(t *testing.T) {
+	lateID := mustParse(t, "settings.xml", `<settings><profiles><profile><repositories><repository><id>releases</id><url>https://repo.example/path</url></repository></repositories><id>late-profile</id></profile></profiles></settings>`)
+	if len(lateID.Declarations) != 2 || lateID.Declarations[0].Section != "profiles" || lateID.Declarations[1].Section != "repositories" || lateID.Declarations[1].Scope == nil || lateID.Declarations[1].Scope.Value != "late-profile" {
+		t.Fatalf("late profile ID was not bound correctly: %+v", lateID.Declarations)
+	}
+	duplicateID := mustParse(t, "settings.xml", `<settings><profiles><profile><repositories><repository><id>releases</id><url>https://repo.example/path</url></repository></repositories><id>first</id><id>second</id></profile></profiles></settings>`)
+	if duplicateID.Omissions["duplicate_maven_field"] != 1 || len(duplicateID.Declarations) != 1 || duplicateID.Declarations[0].Section != "repositories" || duplicateID.Declarations[0].Scope != nil {
+		t.Fatalf("duplicate profile ID produced a false scope: %+v", duplicateID)
+	}
+}
+
 func TestCargoRepositorySelectedRegistryDeclarations(t *testing.T) {
 	input := `
 [registry]
@@ -397,6 +408,29 @@ func TestCargoMalformedDuplicateAndStructuralLimits(t *testing.T) {
 	c := mustParse(t, ".cargo/config", dotted)
 	if c.Omissions["toml_depth_limit"] != 1 {
 		t.Fatalf("dotted-key nesting did not identify depth limit: %+v", c)
+	}
+}
+
+func TestCargoWrongTableKindsAndPathFieldsAreExplicit(t *testing.T) {
+	c := mustParse(t, ".cargo/config.toml", `registries = "not-a-table"
+source = []
+registry = 7
+`)
+	for _, reason := range []string{"unsupported_cargo_registries_table", "unsupported_cargo_source_table", "unsupported_cargo_registry_settings"} {
+		if c.Omissions[reason] != 1 {
+			t.Fatalf("missing explicit malformed-table omission %q: %+v", reason, c)
+		}
+	}
+
+	pathConfig := mustParse(t, ".cargo/config", `[source.url-shaped-directory]
+directory = "https://looks-like-a-registry.example/private?token=path-secret"
+`)
+	if len(pathConfig.Declarations) != 2 || pathConfig.Declarations[1].Endpoint.Status != "local_path" || pathConfig.Declarations[1].Endpoint.Origin != "" {
+		t.Fatalf("Cargo directory field was treated as a URL: %+v", pathConfig.Declarations)
+	}
+	encoded, _ := json.Marshal(pathConfig)
+	if strings.Contains(string(encoded), "path-secret") || strings.Contains(string(encoded), "looks-like-a-registry") {
+		t.Fatal("Cargo local path value escaped into output")
 	}
 }
 

@@ -15,9 +15,15 @@ const (
 )
 
 type mavenEntry struct {
-	fields    map[string]string
-	counts    map[string]int
-	duplicate bool
+	fields       map[string]string
+	counts       map[string]int
+	duplicate    bool
+	repositories []mavenRepositoryEntry
+}
+
+type mavenRepositoryEntry struct {
+	section string
+	entry   *mavenEntry
 }
 
 func newMavenEntry() *mavenEntry {
@@ -174,10 +180,17 @@ func parseMavenSettings(c *Configuration, content []byte) {
 						id := frame.entry.fields["id"]
 						c.add(qualify(c, Declaration{Section: "profiles", Operation: "add", Semantics: "declared", Applicability: "unresolved", Name: label(id, "name")}))
 					}
+					profileID := frame.entry.fields["id"]
+					if frame.entry.duplicate {
+						profileID = ""
+					}
+					for _, repo := range frame.entry.repositories {
+						emitMavenRepository(c, repo.entry, repo.section, profileID)
+					}
 				case len(pathNames) == 5 && pathNames[1] == "profiles" && pathNames[2] == "profile" && pathNames[3] == "repositories":
-					emitMavenRepository(c, frame.entry, "repositories", profileIDFromFrames(stack))
+					queueMavenRepository(c, stack, frame.entry, "repositories")
 				case len(pathNames) == 5 && pathNames[1] == "profiles" && pathNames[2] == "profile" && pathNames[3] == "pluginRepositories":
-					emitMavenRepository(c, frame.entry, "pluginRepositories", profileIDFromFrames(stack))
+					queueMavenRepository(c, stack, frame.entry, "pluginRepositories")
 				}
 			}
 			stack = stack[:len(stack)-1]
@@ -245,16 +258,14 @@ func emitMavenMirror(c *Configuration, entry *mavenEntry) {
 	c.add(qualify(c, d))
 }
 
-func profileIDFromFrames(stack []mavenFrame) string {
+func queueMavenRepository(c *Configuration, stack []mavenFrame, entry *mavenEntry, section string) {
 	for i := len(stack) - 1; i >= 0; i-- {
 		if stack[i].name == "profile" && stack[i].entry != nil {
-			if stack[i].entry.duplicate {
-				return ""
-			}
-			return stack[i].entry.fields["id"]
+			stack[i].entry.repositories = append(stack[i].entry.repositories, mavenRepositoryEntry{section: section, entry: entry})
+			return
 		}
 	}
-	return ""
+	c.omit("unsupported_maven_repository_scope")
 }
 
 func emitMavenRepository(c *Configuration, entry *mavenEntry, section, profileID string) {
