@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -400,6 +401,9 @@ func TestExportedToolchainSchemaRejectsFalseIdentityAndCompleteness(t *testing.T
 }
 
 func TestOptionalDependencySchemasPreserveUnusualSelectedFilenames(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows does not admit control characters in filesystem names")
+	}
 	root := t.TempDir()
 	folder := filepath.Join(root, "tab\tand\nnewline")
 	if err := os.Mkdir(folder, 0700); err != nil {
