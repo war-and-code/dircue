@@ -50,6 +50,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		(in.Source == "directory" && in.Tree != "") {
 		return nil, errors.New("lockfile input source identity is invalid")
 	}
+	if in.Declarations.Source != "" || in.Declarations.Tree != "" {
+		if in.Declarations.Source != in.Source || in.Declarations.Tree != in.Tree {
+			return nil, errors.New("lockfile declaration source identity does not match selected input")
+		}
+	}
 	limits = defaults(limits)
 	if limits.InventoryPaths > DefaultMaxInventoryPaths || limits.Lockfiles > DefaultMaxLockfiles ||
 		limits.FileBytes > DefaultMaxFileBytes || limits.InputBytes > DefaultMaxInputBytes ||
