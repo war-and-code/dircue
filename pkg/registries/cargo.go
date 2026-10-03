@@ -22,6 +22,14 @@ func parseCargoConfig(c *Configuration, content []byte) {
 		c.fail(reason, "incomplete")
 		return
 	}
+	// Cargo can merge additional configuration files into this one. Those
+	// files are outside the selected declaration and cannot be represented as
+	// complete registry coverage by this reader.
+	if include, exists := root["include"]; exists {
+		if values, isArray := include.([]any); !isArray || len(values) > 0 {
+			c.omit("unsupported_cargo_include")
+		}
+	}
 	parseCargoRegistries(c, root)
 	parseCargoSources(c, root)
 	parseCargoDefault(c, root)

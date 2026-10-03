@@ -320,6 +320,40 @@ func TestMavenRepositoryScopeWaitsForUnambiguousProfileID(t *testing.T) {
 	}
 }
 
+func TestMavenUnsupportedCapturedDuplicateCannotPreserveFirstValue(t *testing.T) {
+	tooLong := strings.Repeat("x", MaxMavenTextBytes+1)
+	for _, input := range []string{
+		`<settings><mirrors><mirror><id>m</id><url>https://first.example</url><url>` + tooLong + `</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><url>` + tooLong + `</url><url>https://second.example</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><url>https://first.example</url><url><nested>https://second.example</nested></url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>first</id><id>` + tooLong + `</id><url>https://repo.example</url></mirror></mirrors></settings>`,
+		`<settings><mirrors><mirror><id>m</id><mirrorOf>central</mirrorOf><mirrorOf>` + tooLong + `</mirrorOf><url>https://repo.example</url></mirror></mirrors></settings>`,
+		`<settings><profiles><profile><id>first</id><id>` + tooLong + `</id></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><repositories><repository><id>first</id><id>` + tooLong + `</id><url>https://repo.example</url></repository></repositories></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><repositories><repository><id>r</id><url>https://first.example</url><url>` + tooLong + `</url></repository></repositories></profile></profiles></settings>`,
+		`<settings><profiles><profile><id>p</id><pluginRepositories><pluginRepository><id>r</id><url>https://first.example</url><url><nested>https://second.example</nested></url></pluginRepository></pluginRepositories></profile></profiles></settings>`,
+	} {
+		cfg := mustParse(t, "settings.xml", input)
+		if cfg.Omissions["duplicate_maven_field"] == 0 || cfg.Status != "partial" {
+			t.Fatalf("unretained duplicate did not invalidate its containing entry: %+v", cfg)
+		}
+		encoded, _ := json.Marshal(cfg)
+		for _, leaked := range []string{"first.example", "second.example", "xxxxxxxx"} {
+			if strings.Contains(string(encoded), leaked) {
+				t.Fatalf("unretained duplicate value leaked: %s", encoded)
+			}
+		}
+	}
+
+	// activeProfile is a repeatable list item rather than a singleton field.
+	// An unretained later item must not erase an earlier independently observed
+	// item or turn it into a duplicate-field ambiguity.
+	profiles := mustParse(t, "settings.xml", `<settings><activeProfiles><activeProfile>first</activeProfile><activeProfile>`+tooLong+`</activeProfile></activeProfiles></settings>`)
+	if profiles.Omissions["maven_text_limit"] != 1 || profiles.Omissions["duplicate_maven_field"] != 0 || len(profiles.Declarations) != 1 || profiles.Declarations[0].Name.Value != "first" {
+		t.Fatalf("repeatable active profile was incorrectly treated as a singleton: %+v", profiles)
+	}
+}
+
 func TestCargoRepositorySelectedRegistryDeclarations(t *testing.T) {
 	input := `
 [registry]
@@ -475,6 +509,25 @@ directory = "https://looks-like-a-registry.example/private?token=path-secret"
 	encoded, _ := json.Marshal(pathConfig)
 	if strings.Contains(string(encoded), "path-secret") || strings.Contains(string(encoded), "looks-like-a-registry") {
 		t.Fatal("Cargo local path value escaped into output")
+	}
+}
+
+func TestCargoIncludedConfigCannotClaimCompleteRegistryCoverage(t *testing.T) {
+	input := `include = ["private/included.toml"]
+[registries.visible]
+index = "https://registry.example/index"
+`
+	cfg := mustParse(t, ".cargo/config.toml", input)
+	if cfg.Status != "partial" || cfg.SyntaxStatus != "complete" || cfg.Omissions["unsupported_cargo_include"] != 1 || len(cfg.Declarations) != 1 {
+		t.Fatalf("included registry declarations were silently treated as covered: %+v", cfg)
+	}
+	encoded, _ := json.Marshal(cfg)
+	if strings.Contains(string(encoded), "private/included.toml") {
+		t.Fatalf("included config path leaked: %s", encoded)
+	}
+	empty := mustParse(t, ".cargo/config.toml", "include = []\n")
+	if empty.Status != "complete" || empty.Omissions["unsupported_cargo_include"] != 0 {
+		t.Fatalf("empty include list hid no registry declarations: %+v", empty)
 	}
 }
 

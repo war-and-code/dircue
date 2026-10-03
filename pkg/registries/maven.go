@@ -150,20 +150,12 @@ func parseMavenSettings(c *Configuration, content []byte) {
 				text := strings.TrimSpace(capture.String())
 				if captureOverflow {
 					c.omit("maven_text_limit")
+					recordMavenField(&stack, node.Name.Local, "", false)
 				} else if captureNested {
 					c.omit("unsupported_maven_nested_field")
-				} else if len(stack) >= 2 {
-					parent := &stack[len(stack)-2]
-					if parent.entry != nil {
-						parent.entry.counts[node.Name.Local]++
-						if parent.entry.counts[node.Name.Local] > 1 {
-							parent.entry.duplicate = true
-						} else {
-							parent.entry.fields[node.Name.Local] = text
-						}
-					} else if node.Name.Local == "activeProfile" {
-						c.add(qualify(c, Declaration{Section: "activeProfiles", Operation: "add", Semantics: "declared", Applicability: "unresolved", Name: label(text, "name")}))
-					}
+					recordMavenField(&stack, node.Name.Local, "", false)
+				} else if !recordMavenField(&stack, node.Name.Local, text, true) && node.Name.Local == "activeProfile" {
+					c.add(qualify(c, Declaration{Section: "activeProfiles", Operation: "add", Semantics: "declared", Applicability: "unresolved", Name: label(text, "name")}))
 				}
 				captureField = ""
 			}
@@ -213,6 +205,26 @@ func parseMavenSettings(c *Configuration, content []byte) {
 	if !rootSeen || !closed || len(stack) != 0 {
 		c.fail("invalid_xml", "invalid")
 	}
+}
+
+// recordMavenField reserves every recognized occurrence, including a value
+// that could not be retained. Otherwise a later duplicate could be silently
+// ignored and an earlier value would be presented as unambiguous.
+func recordMavenField(stack *[]mavenFrame, name, value string, valid bool) bool {
+	if len(*stack) < 2 {
+		return false
+	}
+	parent := &(*stack)[len(*stack)-2]
+	if parent.entry == nil {
+		return false
+	}
+	parent.entry.counts[name]++
+	if parent.entry.counts[name] > 1 {
+		parent.entry.duplicate = true
+	} else if valid {
+		parent.entry.fields[name] = value
+	}
+	return true
 }
 
 func supportedMavenNamespace(uri string) bool {
