@@ -29,5 +29,10 @@ func writeLockfiles(out io.Writer, report *lockfiles.Report) error {
 			}
 		}
 	}
+	for _, d := range report.Diagnostics {
+		if _, err := fmt.Fprintf(out, "Diagnostic %q: %s\n", d.Path, d.Code); err != nil {
+			return err
+		}
+	}
 	return nil
 }
