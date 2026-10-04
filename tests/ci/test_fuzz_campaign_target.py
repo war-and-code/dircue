@@ -75,6 +75,11 @@ class TestFuzzCampaignTarget(unittest.TestCase):
 
     @unittest.skipUnless(shutil.which("make"), "make is required for the fuzz target regression")
     def test_successful_discovery_runs_the_named_package_and_target(self):
+        for cache in (False, True):
+            with self.subTest(explicit_cache=cache):
+                self.assert_successful_discovery(cache)
+
+    def assert_successful_discovery(self, cache):
         make = shutil.which("make")
         with tempfile.TemporaryDirectory() as temporary:
             fake_bin = Path(temporary)
@@ -84,7 +89,13 @@ class TestFuzzCampaignTarget(unittest.TestCase):
 for arg do printf '%s\\n' "$arg" >> "$FAKE_GO_LOG"; done
 if [ "$1" = "list" ]; then echo ./pkg/demo; exit 0; fi
 if [ "$1" = "test" ] && [ "$2" = "-list" ]; then echo FuzzDemo; exit 0; fi
-if [ "$1" = "test" ] && [ "$3" = "-fuzz=^FuzzDemo$" ] && [ "$5" = "./pkg/demo" ]; then exit 0; fi
+if [ "$1" = "test" ] && [ "$2" = "./pkg/demo" ] && [ "$3" = "-run=^$" ] && [ "$4" = "-fuzz=^FuzzDemo$" ] && [ "$5" = "-fuzztime=1s" ]; then
+  if [ "$FAKE_GO_CACHE" = "yes" ]; then
+    [ "$#" = "6" ] && [ "$6" = "-test.fuzzcachedir=$FAKE_GO_CACHE_PATH" ] && exit 0
+  else
+    [ "$#" = "5" ] && exit 0
+  fi
+fi
 echo "unexpected go arguments: $*" >&2
 exit 7
 """)
@@ -93,8 +104,14 @@ exit 7
             environment["PATH"] = str(fake_bin) + os.pathsep + environment.get("PATH", "")
             environment["FAKE_GO_MODE"] = "success"
             environment["FAKE_GO_LOG"] = str(log)
+            environment["FAKE_GO_CACHE"] = "yes" if cache else "no"
+            cache_path = fake_bin / "cache with spaces"
+            environment["FAKE_GO_CACHE_PATH"] = str(cache_path)
+            command = [make, "fuzz-campaign", "FUZZ_TIME=1", "FUZZ_PKG=./pkg/mapdiff"]
+            if cache:
+                command.append("FUZZ_CACHE=" + str(cache_path))
             result = subprocess.run(
-                [make, "fuzz-campaign", "FUZZ_TIME=1", "FUZZ_PKG=./pkg/mapdiff"],
+                command,
                 cwd=REPO_ROOT, env=environment, capture_output=True, text=True,
             )
             arguments = log.read_text().splitlines()

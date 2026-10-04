@@ -157,6 +157,11 @@ jobs:
       - name: Kill focused topology attribution mutations (Linux only)
         if: runner.os == 'Linux'
         run: python3 tests/mutation/topology.py --output "$RUNNER_TEMP/topology-mutations.json"
+      - name: Exercise topology fuzz targets with an explicit cache (Linux only)
+        if: runner.os == 'Linux'
+        env:
+          GOMAXPROCS: '4'
+        run: make fuzz-campaign FUZZ_TIME=1 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"
       - name: Exercise benchmark assertions and whole-CLI equality (Linux only)
         if: runner.os == 'Linux'
         env:
