@@ -59,7 +59,7 @@ class PyPIUvxReadinessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             output = Path(temporary) / 'diagnostics'
             ready.smoke(VERSION, EXPECTED, output, fetch=fetch, run=run, sleep=sleeps.append)
-            self.assertEqual([p.name for p in output.iterdir()], ['attempt-1', 'attempt-2'])
+            self.assertCountEqual([p.name for p in output.iterdir()], ['attempt-1', 'attempt-2'])
             self.assertIn('missing', (output / 'attempt-1/result.txt').read_text())
             self.assertEqual((output / 'attempt-2/result.txt').read_text(), 'success\n')
 
