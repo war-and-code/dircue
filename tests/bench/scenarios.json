@@ -73,6 +73,13 @@
       "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "bounded file-format evidence"}
     },
     {
+      "name": "analyze-lockfiles",
+      "args": ["analyze", "lockfiles", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/syft-oracle/fixtures/multi",
+      "inputs": ["tests/syft-oracle/fixtures/multi"],
+      "provenance": {"fixture": "tests/syft-oracle/fixtures/multi", "purpose": "declared npm dependencies matched against a real npm lockfile"}
+    },
+    {
       "name": "map",
       "args": ["map", "--source", "directory", "--json", "{cwd}"],
       "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",

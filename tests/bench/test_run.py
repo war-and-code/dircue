@@ -100,8 +100,10 @@ class BenchmarkPreflightTests(unittest.TestCase):
         self.assertTrue({'legacy-languages', 'analyze-all-default', 'map', 'saved-report-compare',
                          'map-attachment'} <= names)
         self.assertTrue({'analyze-projects', 'analyze-declarations', 'analyze-metrics',
-                         'analyze-formats', 'analyze-discovery', 'analyze-ecosystems',
+                         'analyze-formats', 'analyze-lockfiles', 'analyze-discovery', 'analyze-ecosystems',
                          'analyze-frameworks'} <= names)
+        lockfile_scenario = next(item for item in scenarios if item['name'] == 'analyze-lockfiles')
+        self.assertEqual(lockfile_scenario['inputs'], ['tests/syft-oracle/fixtures/multi'])
         self.assertEqual(normal['schema_version'], 1)
         _, worker_scenarios = run.load_manifest(root / 'tests/bench/scenarios.worker.example.json', root)
         self.assertTrue(any('{worker}' in arg for scenario in worker_scenarios for arg in scenario['args']))
