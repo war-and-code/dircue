@@ -87,6 +87,14 @@ func MapFacts(fragment Fragment) ([]mapdoc.Node, []mapdoc.Edge) {
 			rule = gradleWorkspaceRule
 		}
 		e.Evidence = []mapdoc.Evidence{evidenceWithRule(basis, r.Evidence, rule)}
+		if r.gradleSettingsEvidence {
+			// The settings file declares membership; the selected member's
+			// manifest establishes the component to which that declaration joins.
+			member := nodes[indices[r.From]]
+			if len(member.Evidence) > 0 && member.Evidence[0].Path != r.Evidence {
+				e.Evidence = append(e.Evidence, member.Evidence[0])
+			}
+		}
 		e.Properties = map[string]string{"declaration_kind": r.DeclarationKind, "state": r.State}
 		if r.Condition != "" {
 			e.Properties["condition"] = r.Condition

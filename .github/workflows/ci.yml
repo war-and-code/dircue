@@ -42,6 +42,7 @@ jobs:
           python -m unittest discover -s tests/projects/graph -p 'test_*.py' -v
           python -m unittest discover -s tests/resources -p 'test_*.py' -v
           python -m unittest discover -s tests/bench -p 'test_*.py' -v
+          python -m unittest discover -s tests/mutation -p 'test_*.py' -v
       - name: Test optional proof-evidence validation without Bend
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
@@ -118,6 +119,7 @@ jobs:
       - name: staticcheck (Linux only)
         if: runner.os == 'Linux'
         run: |
+          set -euo pipefail
           GOBIN="$RUNNER_TEMP/staticcheck" CGO_ENABLED=0 go install honnef.co/go/tools/cmd/staticcheck@v0.6.0
           # Exclude embedded upstream code: the jsonschema snapshot, third_party
           # forks and the vendored scc processor.
@@ -125,6 +127,7 @@ jobs:
       - name: Coverage summary (Linux only)
         if: runner.os == 'Linux'
         run: |
+          set -euo pipefail
           go test -coverprofile="$RUNNER_TEMP/coverage.out" ./... -count=1 | tee "$RUNNER_TEMP/cover-run.txt"
           {
             echo '## Per-package test coverage'
@@ -151,6 +154,30 @@ jobs:
           python3 tests/map_corpus/metamorphic.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Kill focused topology attribution mutations (Linux only)
+        if: runner.os == 'Linux'
+        run: python3 tests/mutation/topology.py --output "$RUNNER_TEMP/topology-mutations.json"
+      - name: Exercise benchmark assertions and whole-CLI equality (Linux only)
+        if: runner.os == 'Linux'
+        env:
+          CGO_ENABLED: '0'
+        run: |
+          go test ./pkg/deployables ./pkg/projects -run '^$' -bench 'Benchmark(Procfile|Gradle|Aspire)' -benchtime=1x -benchmem
+          # Different packaging of the same source makes two distinct binaries.
+          # This exercises the harness; its timings are not a performance claim.
+          go build -trimpath -ldflags '-s -w' -o "$RUNNER_TEMP/dircue-bench-smoke" .
+          python3 tests/bench/run.py --baseline bin/dircue --candidate "$RUNNER_TEMP/dircue-bench-smoke" \
+            --manifest tests/bench/scenarios.json --corpus-root "$GITHUB_WORKSPACE" \
+            --runs 1 --warmup 0 --output "$RUNNER_TEMP/bench-smoke.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && runner.os == 'Linux'
+        with:
+          retention-days: 7
+          name: topology-and-benchmark-gates
+          path: |
+            ${{ runner.temp }}/topology-mutations.json
+            ${{ runner.temp }}/bench-smoke.json
+            ${{ runner.temp }}/bench-smoke-outputs/
       - name: Reproduce the review holdout score from committed receipts
         # Offline. The scorer checks the labels against the frozen blobs in
         # 0fb6277, so a squash or rebase merge that drops that commit fails here.

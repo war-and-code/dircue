@@ -28,6 +28,9 @@ jobs:
   mutate:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    env:
+      PACKAGES_INPUT: ${{ inputs.packages }}
+      TIMEOUT_INPUT: ${{ inputs.timeout_coefficient }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -35,21 +38,46 @@ jobs:
           go-version-file: go.mod
           cache: true
           cache-dependency-path: go.sum
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
       - name: Install gremlins
         run: |
           GOBIN="$RUNNER_TEMP/gremlins" CGO_ENABLED=0 \
             go install github.com/go-gremlins/gremlins/cmd/gremlins@v0.6.0
       - name: Run mutation testing
         run: |
+          set -eu
           mkdir -p tests/mutation/run
-          for pkg in ${{ inputs.packages }}; do
-            safe=$(echo "$pkg" | tr '/.' '--')
-            echo "=== $pkg ==="
-            "$RUNNER_TEMP/gremlins/gremlins" unleash \
-              --timeout-coefficient "${{ inputs.timeout_coefficient }}" \
-              -o "tests/mutation/run/${safe}.json" \
-              "$pkg" || true
-          done
+          python3 - <<'PY'
+          import os, re, subprocess
+          from pathlib import Path
+          packages = os.environ['PACKAGES_INPUT'].split()
+          coefficient = os.environ['TIMEOUT_INPUT']
+          if not packages or len(packages) > 50:
+              raise SystemExit('select between 1 and 50 local Go packages')
+          if not re.fullmatch(r'[1-9][0-9]{0,2}', coefficient):
+              raise SystemExit('timeout coefficient must be an integer from 1 through 999')
+          root = Path.cwd().resolve()
+          failed = []
+          for package in packages:
+              if (not re.fullmatch(r'\./pkg/[A-Za-z0-9_/-]+', package)
+                      or not (root / package).is_dir()
+                      or not (root / package).resolve().is_relative_to(root / 'pkg')):
+                  raise SystemExit('packages must name existing local pkg/ directories')
+          for index, package in enumerate(packages):
+              output = root / 'tests/mutation/run' / f'{index:02d}-{package[6:].replace("/", "-")}.json'
+              command = [str(Path(os.environ['RUNNER_TEMP']) / 'gremlins/gremlins'),
+                         'unleash', '--timeout-coefficient', coefficient,
+                         '--threshold-efficacy', '0', '--threshold-mcover', '0',
+                         '-o', str(output), package]
+              print(f'Mutating {package}', flush=True)
+              result = subprocess.run(command, check=False)
+              if result.returncode != 0 or not output.is_file():
+                  failed.append(package)
+          if failed:
+              raise SystemExit('mutation execution failed or produced no receipt: ' + ', '.join(failed))
+          PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:

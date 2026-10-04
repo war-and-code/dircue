@@ -1,0 +1,9 @@
+web: gunicorn api.app:app --bind 0.0.0.0:$PORT
+worker: python -m api.tasks
+node: node web/server.js
+missing: python missing.py
+shell: python api/app.py && curl https://example.invalid
+unicode: node web/server.js
+duplicate: python api/app.py
+duplicate: node web/server.js
+searchpath: gunicorn api.app:app --chdir other

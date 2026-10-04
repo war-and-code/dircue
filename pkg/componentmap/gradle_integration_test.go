@@ -75,8 +75,8 @@ func TestActualGradleSettingsBecomeConditionalMapMembership(t *testing.T) {
 	if membership.Coverage.Status != mapdoc.CoveragePartial || membership.Properties["state"] != "conditional" || membership.Properties["condition"] != "condition-present; expression-withheld" {
 		t.Fatalf("Gradle membership overstated evaluation: %+v", membership)
 	}
-	if len(membership.Evidence) != 1 || membership.Evidence[0].Path != "settings.gradle" {
-		t.Fatalf("membership evidence must name settings.gradle: %+v", membership.Evidence)
+	if len(membership.Evidence) != 2 || membership.Evidence[0].Path != "settings.gradle" || membership.Evidence[1].Path != "app/build.gradle.kts" {
+		t.Fatalf("membership evidence must name the settings declaration and selected member manifest: %+v", membership.Evidence)
 	}
 }
 
@@ -133,7 +133,7 @@ func TestNestedGradleSettingsRootsRetainOverlappingMembershipClaims(t *testing.T
 		if edge.Type != mapdoc.EdgeMemberOf || edge.From != serviceID {
 			continue
 		}
-		if len(edge.Evidence) != 1 || (edge.Evidence[0].Path != "settings.gradle" && edge.Evidence[0].Path != "nested/settings.gradle.kts") {
+		if len(edge.Evidence) != 2 || (edge.Evidence[0].Path != "settings.gradle" && edge.Evidence[0].Path != "nested/settings.gradle.kts") || edge.Evidence[1].Path != "nested/service/build.gradle" {
 			t.Fatalf("overlapping claim lost its source settings file: %+v", edge)
 		}
 	}
