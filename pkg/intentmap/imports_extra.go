@@ -3,6 +3,7 @@ package intentmap
 import (
 	"path"
 	"strings"
+	"sync"
 	"unicode"
 )
 
@@ -20,10 +21,35 @@ type sourceToken struct {
 // lexer, not a language parser: malformed or unsupported constructs simply do
 // not produce import evidence.
 func lexSource(src string, lang string) ([]sourceToken, bool) {
-	// Reserve for a typical token density, not one 40-byte slot per source
-	// byte. Append growth preserves the same retained-token limit and order.
-	capacity := min(DefaultMaxLexicalTokensPerFile, len(src)/4+1)
-	toks := make([]sourceToken, 0, capacity)
+	return lexSourceInto(src, lang, nil)
+}
+
+// Each lease belongs to one parser call. Clearing before return prevents the
+// reusable array from retaining source contents after the observations finish.
+type tokenBuffer struct {
+	tokens []sourceToken
+}
+
+var importTokenBuffers = sync.Pool{New: func() any { return new(tokenBuffer) }}
+
+func (b *tokenBuffer) release() {
+	clear(b.tokens)
+	if cap(b.tokens) > DefaultMaxLexicalTokensPerFile {
+		// Append may grow past the lexical limit; do not retain that capacity.
+		b.tokens = nil
+	} else {
+		b.tokens = b.tokens[:0]
+	}
+	importTokenBuffers.Put(b)
+}
+
+func lexSourceInto(src string, lang string, toks []sourceToken) ([]sourceToken, bool) {
+	if toks == nil {
+		// Reserve for typical token density, preserving the retained-token cap.
+		toks = make([]sourceToken, 0, min(DefaultMaxLexicalTokensPerFile, len(src)/4+1))
+	} else {
+		toks = toks[:0]
+	}
 	line, depth := 1, 0
 	vbStatementStart := true
 	overflow := false
@@ -603,7 +629,10 @@ func parseJVMImportsBounded(name string, content []byte) ([]Observation, bool) {
 	if strings.HasSuffix(strings.ToLower(name), ".kt") {
 		lang = "kotlin"
 	}
-	toks, limited := lexSource(string(content), lang)
+	buffer := importTokenBuffers.Get().(*tokenBuffer)
+	defer buffer.release()
+	toks, limited := lexSourceInto(string(content), lang, buffer.tokens)
+	buffer.tokens = toks
 	return parseJVMImportsTokens(name, lang, toks), limited
 }
 
@@ -718,7 +747,10 @@ func parseDotnetImportsBounded(name string, content []byte) ([]Observation, bool
 	if vb {
 		lang = "vb"
 	}
-	toks, limited := lexSource(string(content), lang)
+	buffer := importTokenBuffers.Get().(*tokenBuffer)
+	defer buffer.release()
+	toks, limited := lexSourceInto(string(content), lang, buffer.tokens)
+	buffer.tokens = toks
 	return parseDotnetImportsTokens(name, vb, toks), limited
 }
 
@@ -822,7 +854,10 @@ func parseJSImports(name string, content []byte) []Observation {
 }
 
 func parseJSImportsBounded(name string, content []byte) ([]Observation, bool) {
-	toks, limited := lexSource(string(content), "js")
+	buffer := importTokenBuffers.Get().(*tokenBuffer)
+	defer buffer.release()
+	toks, limited := lexSourceInto(string(content), "js", buffer.tokens)
+	buffer.tokens = toks
 	return parseJSImportsTokens(name, toks, !limited), limited
 }
 
