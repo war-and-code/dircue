@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Check the fuzz-campaign target, failure handling, and discovered command.
-
-This test fails on 427c2f8 (target absent) and passes after the fix.
-"""
+"""Check fuzz discovery, failure handling and exact package/cache arguments."""
 import subprocess
 import os
 import shutil

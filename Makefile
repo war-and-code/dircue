@@ -85,8 +85,8 @@ release-archives:
 #   make fuzz-campaign FUZZ_PKG=./pkg/mapdiff    # restrict to one package
 #   make fuzz-campaign FUZZ_CACHE=/tmp/fuzz-out  # store corpus in a known dir
 #
-# FUZZ_CACHE is passed as -test.fuzzcachedir so crashers are written there.
-# If FUZZ_CACHE is empty the Go default ($GOCACHE/fuzz) is used.
+# FUZZ_CACHE stores generated coverage inputs; failure reproducers still go
+# under each package's testdata/fuzz. An empty value uses $GOCACHE/fuzz.
 
 FUZZ_TIME  ?= 60
 FUZZ_PKG   ?= ./...

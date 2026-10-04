@@ -50,6 +50,8 @@ go test ./pkg/scanner ./pkg/projects ./pkg/deployables ./pkg/declarations \
 
 The Procfile, Gradle and Aspire benchmarks check their fixture answers before timing. They cover supported and guarded parser paths; they do not replace map-level relationship tests. Full Linux CI executes these benchmark assertions once with `-benchtime=1x`.
 
+Full Linux CI also runs the deployable fuzz targets for one second each with an explicit cache. Locally, `make fuzz-campaign FUZZ_TIME=30 FUZZ_CACHE=.cache/fuzz` discovers and runs every Go fuzz target. Discovery errors, missing targets and failing executions stop the campaign. Generated coverage inputs use the chosen cache; failure reproducers go into the affected package's `testdata/fuzz` directory.
+
 Use `benchstat` to compare repeated measurements from the same machine and build configuration. Time and allocation figures both need interpretation: scheduling, worker counts, runtime versions and new functionality can change them. No automatic allocation threshold is currently enforced.
 
 ## Deterministic work counters
