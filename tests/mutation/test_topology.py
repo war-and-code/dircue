@@ -16,7 +16,7 @@ SPEC.loader.exec_module(topology)
 class TopologyMutationGateTests(unittest.TestCase):
     def test_catalog_has_unique_exact_operators_for_all_topology_areas(self):
         mutations = topology.validate_catalog()
-        self.assertGreaterEqual(len(mutations), 8)
+        self.assertGreaterEqual(len(mutations), 14)
         self.assertEqual(len({mutation["name"] for mutation in mutations}), len(mutations))
         self.assertEqual(
             {Path(mutation["source"]).name for mutation in mutations},
@@ -32,6 +32,22 @@ class TopologyMutationGateTests(unittest.TestCase):
             "stderr": "",
         }
         self.assertEqual(topology.classify_mutant(compile_ok, named_failure, "TestExpected")[0], "killed")
+
+    def test_named_test_discovery_requires_exactly_one_matching_source(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "pkg/example"
+            package.mkdir(parents=True)
+            item = {"name": "test guard", "package": "./pkg/example", "test": "TestExpected"}
+            (package / "unrelated_test.go").write_text("func TestOther(t *testing.T) {}\n")
+            with self.assertRaises(ValueError):
+                topology.selected_test_source(item, root)
+            declaration = "func TestExpected(t *testing.T) {}\n"
+            (package / "new_context_test.go").write_text(declaration)
+            self.assertEqual(topology.selected_test_source(item, root), "pkg/example/new_context_test.go")
+            (package / "duplicate_test.go").write_text(declaration)
+            with self.assertRaises(ValueError):
+                topology.selected_test_source(item, root)
 
     def test_recovered_panic_reported_by_test_assertion_is_a_kill(self):
         compile_ok = {"returncode": 0, "timed_out": False}

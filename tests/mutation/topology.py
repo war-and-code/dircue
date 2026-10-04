@@ -119,6 +119,20 @@ MUTATIONS = [
         'if strings.ContainsRune("+-?&|^/%*", rune(s[i+1].text[0])) {',
         "./pkg/deployables", "TestAspireMalformedStatementDoesNotPanic",
     ),
+    mutation(
+        "selected CSharp global alias is ignored",
+        "pkg/deployables/aspire.go",
+        "func hasGlobalAspireAlias(tokens []csToken) bool {\n",
+        "func hasGlobalAspireAlias(tokens []csToken) bool {\n\tif len(tokens) > 0 { return false }\n",
+        "./pkg/deployables", "TestCollectorAspireGlobalAliasGuardUsesSelectedProjectScope",
+    ),
+    mutation(
+        "SDK generated global alias is ignored",
+        "pkg/deployables/aspire.go",
+        "func projectUsingAlias(data []byte) (bool, error) {\n",
+        "func projectUsingAlias(data []byte) (bool, error) {\n\tif len(data) > 0 { return false, nil }\n",
+        "./pkg/deployables", "TestAppHostProjectUsingAliasesAreScopedAndCommentSafe",
+    ),
 ]
 
 STATUSES = {"killed", "survived", "invalid", "timeout", "error"}
@@ -209,7 +223,7 @@ def validate_catalog(root: Path = ROOT) -> list[dict]:
             raise ValueError(f"{item['name']}: expected one exact source anchor, found {count}")
         if item["old"] == item["new"]:
             raise ValueError(f"{item['name']}: mutation is a no-op")
-        test_path = selected_test_source(item)
+        test_path = selected_test_source(item, root)
         test_file = root / test_path
         if not test_file.is_file():
             raise ValueError(f"{item['name']}: selected test source missing: {test_path}")
@@ -219,16 +233,14 @@ def validate_catalog(root: Path = ROOT) -> list[dict]:
     return MUTATIONS
 
 
-def selected_test_source(item: dict[str, str]) -> str:
-    if item["test"].startswith("TestAspire"):
-        if item["package"] == "./pkg/mapbuild":
-            return "pkg/mapbuild/aspire_adversarial_test.go"
-        return "pkg/deployables/aspire_adversarial_test.go"
-    if item["package"] == "./pkg/componentmap":
-        return "pkg/componentmap/gradle_integration_test.go"
-    if item["package"] == "./pkg/mapbuild":
-        return "pkg/mapbuild/procfile_edges_test.go"
-    return "pkg/deployables/procfile_test.go"
+def selected_test_source(item: dict[str, str], root: Path = ROOT) -> str:
+    pattern = re.compile(rf"^func {re.escape(item['test'])}\(t \*testing\.T\)", re.MULTILINE)
+    directory = root / item["package"].removeprefix("./")
+    matches = [path for path in sorted(directory.glob("*_test.go"))
+               if pattern.search(path.read_text(encoding="utf-8"))]
+    if len(matches) != 1:
+        raise ValueError(f"{item['name']}: expected one named test source, found {len(matches)}")
+    return matches[0].relative_to(root).as_posix()
 
 
 def make_output(path: str | None, commit: str) -> Path:
