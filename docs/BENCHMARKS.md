@@ -24,6 +24,7 @@ The starter manifests are:
 | --- | --- |
 | `tests/bench/scenarios.json` | Legacy language JSON, default `analyze all`, standalone languages, discovery, ecosystems, frameworks, projects, declarations, metrics, formats and lockfiles, maps, saved-report comparison and a report attachment. |
 | `tests/bench/scenarios.topology.json` | Maps and projects from the Gradle, Procfile and Aspire fixture. |
+| `tests/bench/scenarios.imports.example.json` | Five map workloads on pinned Spring Framework, Roslyn, uv and microservices-demo checkouts. Supply their parent directory as `BENCH_CORPUS`; these checkouts are not bundled or fetched by the harness. |
 | `tests/bench/scenarios.worker.example.json` | Explicit structural-worker function and hotspot analysis. Supply `BENCH_WORKER=/path/to/dircue-structural-worker`. |
 
 These small fixtures exercise the harness and named command paths. They do not represent every ecosystem, repository size, source mode, attachment format or option combination. For a representative workload, supply `BENCH_MANIFEST` with pinned repository inputs and their provenance. Include every source tree, saved report and external file that can affect a command; hashing only a convenient subset would give incomplete input provenance. Commands should read inputs, not modify them. The before/after digest check does not enforce a read-only filesystem or detect a write that is undone before the final digest; use immutable inputs and trusted builds for an optimization comparison. Git-mode scenarios need a repository root and declared Git metadata as well as source files.
@@ -48,9 +49,9 @@ go test ./pkg/scanner ./pkg/projects ./pkg/deployables ./pkg/declarations \
   -run '^$' -bench . -benchmem -count=5
 ```
 
-The Procfile, Gradle and Aspire benchmarks check their fixture answers before timing. They cover supported and guarded parser paths; they do not replace map-level relationship tests. Full Linux CI executes these benchmark assertions once with `-benchtime=1x`.
+The Procfile, Gradle, Aspire and import-observation benchmarks check their fixture answers before timing. They cover supported and guarded parser paths; they do not replace map-level relationship tests. Full Linux CI executes these benchmark assertions once with `-benchtime=1x`.
 
-Full Linux CI also runs the deployable fuzz targets with a 1,000-execution budget and an explicit cache. Locally, `make fuzz-campaign FUZZ_TIME=30 FUZZ_CACHE=.cache/fuzz` discovers and runs every Go fuzz target. `FUZZ_COUNT=10000` instead uses Go's execution-count limit, including corpus processing and minimization work, with at most 100 minimization attempts per input. This avoids the wall-clock cancellation race documented in [Go issue 75804](https://github.com/golang/go/issues/75804) without treating timeout failures as successes. Discovery errors, missing targets and failing executions stop the campaign. Generated coverage inputs use the chosen cache; failure reproducers go into the affected package's `testdata/fuzz` directory.
+Full Linux CI also runs the deployable fuzz targets and the fresh-versus-reused import-token differential target with a 1,000-execution budget per target and explicit caches. Locally, `make fuzz-campaign FUZZ_TIME=30 FUZZ_CACHE=.cache/fuzz` discovers and runs every Go fuzz target. `FUZZ_COUNT=10000` instead uses Go's execution-count limit, including corpus processing and minimization work, with at most 100 minimization attempts per input. This avoids the wall-clock cancellation race documented in [Go issue 75804](https://github.com/golang/go/issues/75804) without treating timeout failures as successes. Discovery errors, missing targets and failing executions stop the campaign. Generated coverage inputs use the chosen cache; failure reproducers go into the affected package's `testdata/fuzz` directory.
 
 Use `benchstat` to compare repeated measurements from the same machine and build configuration. Time and allocation figures both need interpretation: scheduling, worker counts, runtime versions and new functionality can change them. No automatic allocation threshold is currently enforced.
 
@@ -64,10 +65,13 @@ dircue map --source directory --stats-json .cache/stats.json /path/to/input
 
 The `deterministic_costs` section describes enumerated files, reads, requested bytes and limit hits. The `measurements` section contains observed wall time, phase times, sampled peak heap and GC count. Heap measurements are not process RSS or an enforced memory quota.
 
-The `counter-regression` CI job maps corpus fixtures with a non-draft pull request's head and base builds and reports changes in logical work. It is report-only: a new observer can legitimately read more files. Timings are not compared. Locally:
+The `counter-regression` CI job validates the exact fixture inventory and its content hashes, then enforces reviewed ceilings from `tests/bench/counter_budget.json`. It runs on event-driven CI, including draft pull requests. Base/head differences remain context; the gate uses the committed 1.3.0 baseline rather than automatically accepting the previous commit's costs. Missing or malformed statistics and unexpected fixture changes fail the check.
+
+File and requested-byte ceilings allow 25% growth, with small absolute allowances for tiny fixtures; limit hits must remain zero. These logical counters are not CPU, memory or exhaustive I/O quotas. A legitimate new observer may require a reviewed budget update, supported by new measurements. Without `--budget`, the local command remains report-only. A dedicated stable-hardware runner is still unconfigured. See [the budget contract](../tests/bench/COUNTER_BUDGET.md). Locally:
 
 ```sh
-python3 tests/bench/counter_compare.py --base OLD --head NEW tests/map_corpus/fixtures/*/
+python3 tests/bench/counter_compare.py --base OLD --head NEW \
+  --budget tests/bench/counter_budget.json tests/map_corpus/fixtures/*/
 ```
 
 ## Manual performance workflow
@@ -81,3 +85,11 @@ Results and failures are uploaded as `perf-paired-results`. A changed map preven
 `map --cpuprofile PATH` and `map --memprofile PATH` write Go diagnostic profiles. These flags add overhead and are off by default. Inspect profiles with `go tool pprof`; the scanner profiling harness is documented in `tests/profiling/README.md`.
 
 Release validation combines compatibility, schemas, corpus expectations, mutation tests and appropriate performance measurements. Historical reports in `docs/releases/` describe the actual scope of each run; they are not a promise that every release benchmarks every tool or every resource preset. Preserve first-run and frozen receipts, and label later adjudicated runs as regression evidence. See `docs/RESOURCE_BUDGETS.md` for the distinction between cooperative settings and externally enforced resource limits.
+
+## Generated-tree and Git-storage checks
+
+`make test-map-generated` runs three fixed seeds spanning npm + Go, Python + Cargo, and .NET + Maven. The generated trees include more than 50 nested directories, Unicode filenames and, where supported, control characters and symlinks. Checks cover worker counts, resource settings, relocation, creation order, documentation changes, limits, saved-map comparison and source identity. Fixture assertions verify expected component and language populations, so equality between two incomplete results cannot pass merely because both lost the same generated source file.
+
+The storage checks require the same entire map document from loose objects, packed objects, aggressive delta repacking, a shallow clone and a linked worktree at the same commit and tree. The harness verifies that the storage transformations took place. Git/directory comparisons permit only the documented source-identity differences; coverage, evidence and IDs still have to agree.
+
+Use `make test-map-generated MAP_GENERATED_TIER=manual` for twelve seeds. The public-quality workflow runs this larger tier only when manually dispatched. Every generated input lives in temporary storage; applicability and storage evidence appear in the result. Output-corruption probes test the assertions themselves. They are not a production-source mutation coverage score or an independent accuracy estimate.
