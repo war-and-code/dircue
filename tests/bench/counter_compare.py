@@ -11,7 +11,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import math
 import os
 import re
 import stat
@@ -20,6 +19,9 @@ import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+import smoke_process
 
 COUNTER_KEYS = (
     "files_enumerated",
@@ -83,7 +85,8 @@ def fixture_digest(root: Path) -> str:
     return digest.hexdigest()
 
 
-def validate_inventory(fixtures: list[Path], budget: dict[str, Any]) -> dict[str, dict[str, Any]]:
+def budget_items(budget: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Validate the complete fixture manifest before any binaries run."""
     expected = budget.get("fixtures")
     if not isinstance(expected, list) or not expected:
         raise GateError("budget fixtures must be a non-empty list")
@@ -94,7 +97,15 @@ def validate_inventory(fixtures: list[Path], budget: dict[str, Any]) -> dict[str
         name = item["id"]
         if name in by_name:
             raise GateError(f"budget contains duplicate fixture id: {name}")
+        expected_hash = item.get("input_sha256")
+        if not isinstance(expected_hash, str) or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None:
+            raise GateError(f"{name}: budget is missing a valid input_sha256")
         by_name[name] = item
+    return by_name
+
+
+def validate_inventory(fixtures: list[Path], budget: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    by_name = budget_items(budget)
     names = [fixture.name for fixture in fixtures]
     if len(names) != len(set(names)):
         raise GateError("fixture arguments contain duplicate directory names")
@@ -110,9 +121,7 @@ def validate_inventory(fixtures: list[Path], budget: dict[str, Any]) -> dict[str
             details.append("unbudgeted fixtures: " + ", ".join(extra))
         raise GateError("fixture inventory mismatch: " + "; ".join(details))
     for fixture in fixtures:
-        expected_hash = by_name[fixture.name].get("input_sha256")
-        if not isinstance(expected_hash, str) or re.fullmatch(r"[0-9a-f]{64}", expected_hash) is None:
-            raise GateError(f"{fixture.name}: budget is missing a valid input_sha256")
+        expected_hash = by_name[fixture.name]["input_sha256"]
         actual_hash = fixture_digest(fixture)
         if actual_hash != expected_hash:
             raise GateError(
@@ -216,8 +225,9 @@ def counters(binary: str, fixture: Path, scratch: Path) -> dict[str, int]:
     stats.unlink(missing_ok=True)
     command = [binary, "map", "--source", "directory", "--json", "--stats-json", str(stats), str(fixture)]
     try:
-        result = subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
-                                text=True, timeout=TIMEOUT_SECONDS, check=False)
+        result = smoke_process.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                                text=True, encoding="utf-8", errors="replace",
+                                timeout=TIMEOUT_SECONDS, check=False)
     except subprocess.TimeoutExpired as exc:
         raise GateError(f"{binary} timed out after {TIMEOUT_SECONDS}s on {fixture}") from exc
     except OSError as exc:
@@ -229,7 +239,7 @@ def counters(binary: str, fixture: Path, scratch: Path) -> dict[str, int]:
         raise GateError(f"{binary} succeeded on {fixture} but did not write stats JSON")
     try:
         doc = json.loads(stats.read_text(encoding="utf-8"), object_pairs_hook=unique_json_object)
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
         raise GateError(f"{binary} wrote invalid stats JSON on {fixture}: {exc}") from exc
     return validate_stats(doc, binary, fixture)
 
@@ -237,7 +247,7 @@ def counters(binary: str, fixture: Path, scratch: Path) -> dict[str, int]:
 def load_budget(path: Path) -> dict[str, Any]:
     try:
         budget = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_json_object)
-    except (OSError, UnicodeError, ValueError) as exc:
+    except (OSError, UnicodeError, ValueError, RecursionError) as exc:
         raise GateError(f"cannot read budget {path}: {exc}") from exc
     if (not isinstance(budget, dict) or type(budget.get("schema_version")) is not int
             or budget.get("schema_version") != 1):
@@ -253,6 +263,8 @@ def load_budget(path: Path) -> dict[str, Any]:
         raise GateError(f"{path}: growth policy floors must be files=2, bytes=256")
     if policy.get("limit_hits") != "no-increase":
         raise GateError(f"{path}: limit_hits policy must be no-increase")
+    for item in budget_items(budget).values():
+        ceilings(item, policy)
     return budget
 
 
@@ -271,7 +283,13 @@ def ceilings(item: dict[str, Any], policy: dict[str, Any]) -> dict[str, int]:
             result[key] = 0
             continue
         floor = policy["bytes_absolute_floor"] if key == "bytes_requested" else policy["files_absolute_floor"]
-        result[key] = value + max(floor, math.ceil(value * policy["percent"] / 100))
+        # Keep uint-sized logical counters exact; float conversion can round
+        # an otherwise valid ceiling down (or overflow for malformed input).
+        result[key] = value + max(floor, (value * policy["percent"] + 99) // 100)
+    if baseline["files_content_read"] > baseline["files_enumerated"]:
+        raise GateError(f"{item['id']}: baseline files_content_read exceeds files_enumerated")
+    if baseline["files_content_read"] == 0 and baseline["bytes_requested"] != 0:
+        raise GateError(f"{item['id']}: baseline bytes_requested is non-zero when no files were content-read")
     return result
 
 

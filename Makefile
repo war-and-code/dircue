@@ -25,7 +25,7 @@ bench:
 # Self-tests for the benchmark correctness gate and PyPI readiness validator.
 test-bench:
 	python3 -m unittest discover -s tests/bench -p 'test_*.py'
-	python3 -m unittest tests/release/test_pypi_index_ready.py tests/release/test_pypi_uvx_ready.py tests/ci/test_fuzz_campaign_target.py
+	python3 -m unittest tests/release/test_pypi_index_ready.py tests/release/test_pypi_uvx_ready.py tests/release/test_smoke_process.py tests/ci/test_fuzz_campaign_target.py
 
 # Paired whole-CLI baseline/candidate comparison. Supply explicit binaries and
 # a manifest; the harness never builds or selects a baseline automatically.

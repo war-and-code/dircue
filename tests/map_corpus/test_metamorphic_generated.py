@@ -11,6 +11,14 @@ from metamorphic_generated import _assert_generated_evidence, _assert_limit_effe
 
 
 class GeneratedTreeTests(unittest.TestCase):
+    def test_generator_rejects_a_nonempty_root(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "tree"
+            root.mkdir()
+            (root / "stale.txt").write_text("stale", encoding="utf-8")
+            with self.assertRaisesRegex(ValueError, "root must be empty"):
+                create_tree(root, *CI_SEEDS[0])
+
     def test_seed_repeats_same_paths_and_contents(self):
         with tempfile.TemporaryDirectory() as temporary:
             parent = Path(temporary)
@@ -80,6 +88,8 @@ class GeneratedTreeTests(unittest.TestCase):
             self.assertIn("deep-python-path-omitted", caught)
             self.assertIn("unicode-go-path-omitted", caught)
             self.assertIn("ecosystem-component-omitted", caught)
+            self.assertIn("exact-ecosystem-manifest-path-omitted", caught)
+            self.assertIn("manifest-on-wrong-kind-node-rejected", caught)
             self.assertIn("ignored-file-byte-limit", caught)
             self.assertIn("ignored-inventory-budget", caught)
             if evidence["control_path"]:
@@ -118,7 +128,7 @@ class GeneratedTreeTests(unittest.TestCase):
                              require_lower_language_population=True)
 
     def test_cli_and_git_capture_are_decoded_as_utf8(self):
-        with tempfile.TemporaryDirectory() as temporary, patch("metamorphic_generated.subprocess.run") as run:
+        with tempfile.TemporaryDirectory() as temporary, patch("metamorphic_generated.smoke_process.run") as run:
             run.return_value = SimpleNamespace(returncode=0, stdout='{"雪":"ok"}', stderr="")
             self.assertEqual(invoke(Path("dircue"), "map", "--json"), {"雪": "ok"})
             self.assertEqual(run.call_args.kwargs["encoding"], "utf-8")
@@ -136,7 +146,7 @@ class GeneratedTreeTests(unittest.TestCase):
             "GIT_CONFIG_KEY_0": "core.hooksPath", "GIT_CONFIG_VALUE_0": "/unrelated/hooks",
             "GIT_CONFIG_PARAMETERS": "poison", "GIT_AUTHOR_DATE": "2030-01-01",
         }
-        with patch("metamorphic_generated.os.environ", poisoned), patch("metamorphic_generated.subprocess.run") as run:
+        with patch("metamorphic_generated.os.environ", poisoned), patch("metamorphic_generated.smoke_process.run") as run:
             run.return_value = SimpleNamespace(returncode=0, stdout="ok", stderr="")
             git(Path("temporary"), "status")
             environment = run.call_args.kwargs["env"]

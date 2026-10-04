@@ -14,13 +14,16 @@ import os
 import shutil
 import subprocess
 import tempfile
+import sys
 from pathlib import Path
 
 from generated_trees import CI_SEEDS, MANUAL_SEEDS, create_tree
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts"))
+import smoke_process
 
 
 def invoke(binary: Path, *args) -> dict:
-    result = subprocess.run([str(binary), *map(str, args)], capture_output=True,
+    result = smoke_process.run([str(binary), *map(str, args)], capture_output=True,
                             text=True, encoding="utf-8", timeout=180)
     if result.returncode != 0:
         raise AssertionError(f"{' '.join(map(str, args))}: exit={result.returncode}; stderr={result.stderr}")
@@ -40,7 +43,7 @@ def git(directory: Path, *args, cwd: Path | None = None) -> str:
         "GIT_AUTHOR_DATE": "2000-01-01T00:00:00Z",
         "GIT_COMMITTER_DATE": "2000-01-01T00:00:00Z",
     })
-    result = subprocess.run(["git", "-c", "core.longpaths=true", *args], cwd=cwd or directory, capture_output=True,
+    result = smoke_process.run(["git", "-c", "core.longpaths=true", *args], cwd=cwd or directory, capture_output=True,
                             text=True, encoding="utf-8", timeout=120, env=env)
     if result.returncode != 0:
         raise AssertionError(f"git {' '.join(args)} failed in {cwd or directory}: {result.stderr}")
@@ -121,11 +124,25 @@ def _assert_generated_evidence(document: dict, evidence: dict) -> None:
         }[ecosystem]
         if not any(path.endswith(manifest) for path in represented_paths):
             raise AssertionError(f"generated {ecosystem} manifest was not represented in the map")
+    missing_manifests = set(evidence["expected_manifest_paths"]) - represented_paths
+    if missing_manifests:
+        raise AssertionError(f"generated ecosystem manifest path(s) were not represented exactly: {sorted(missing_manifests)}")
     if not document.get("nodes"):
         raise AssertionError("generated tree produced an empty map")
     components = [node for node in document["nodes"] if node.get("kind") == "component"]
     if len(components) < 2:
         raise AssertionError(f"generated tree expected two ecosystem components, found {len(components)}")
+    component_indexes = []
+    for manifest_path in evidence["expected_manifest_paths"]:
+        owners = [index for index, node in enumerate(components)
+                  if manifest_path in node.get("paths", [])]
+        if len(owners) != 1:
+            raise AssertionError(
+                f"generated manifest {manifest_path!r} must belong to exactly one component node; found {len(owners)}"
+            )
+        component_indexes.append(owners[0])
+    if len(set(component_indexes)) != len(evidence["expected_manifest_paths"]):
+        raise AssertionError("generated ecosystem manifests were not assigned to distinct component nodes")
     observed_languages = {
         node.get("properties", {}).get("language") or node.get("name")
         for node in document["nodes"]
@@ -231,6 +248,33 @@ def validate_output_guard_mutants(document: dict, evidence: dict, language_repor
     else:
         raise AssertionError("generated evidence guard survived projected mutant ecosystem-component-omitted")
 
+    mutated = copy.deepcopy(document)
+    expected_manifest = evidence["expected_manifest_paths"][0]
+    for node in mutated["nodes"]:
+        if expected_manifest in node.get("paths", []):
+            node["paths"].remove(expected_manifest)
+    manifest_node = next(node for node in mutated["nodes"] if node.get("kind") == "component")
+    manifest_node["paths"].append("misleading/relocated/" + expected_manifest.rsplit("/", 1)[-1])
+    try:
+        _assert_generated_evidence(mutated, evidence)
+    except AssertionError:
+        mutants.append("exact-ecosystem-manifest-path-omitted")
+    else:
+        raise AssertionError("generated evidence guard survived projected mutant exact-ecosystem-manifest-path-omitted")
+
+    mutated = copy.deepcopy(document)
+    expected_manifest = evidence["expected_manifest_paths"][0]
+    for node in mutated["nodes"]:
+        if node.get("kind") == "component" and expected_manifest in node.get("paths", []):
+            node["paths"].remove(expected_manifest)
+    mutated["nodes"].append({"kind": "interface", "paths": [expected_manifest]})
+    try:
+        _assert_generated_evidence(mutated, evidence)
+    except AssertionError:
+        mutants.append("manifest-on-wrong-kind-node-rejected")
+    else:
+        raise AssertionError("generated evidence guard survived projected mutant manifest-on-wrong-kind-node-rejected")
+
     if any(link["created"] for link in evidence["symlinks"]):
         mutated = copy.deepcopy(document)
         coverage = next(item for item in mutated["coverage"] if item.get("question") == "content")
@@ -278,25 +322,25 @@ def run_directory_properties(binary: Path, seed: int, pair, workspace: Path) -> 
     language_report = invoke(binary, "analyze", "languages", "--source", "directory", "--breakdown", "--json", source)
     _assert_generated_language_paths(language_report, evidence)
     guard_mutants = validate_output_guard_mutants(baseline, evidence, language_report)
-    passed = 1  # Literal path membership in the legacy language breakdown.
+    relation_cases = 1  # Literal path membership in the legacy language breakdown.
 
     parallel = invoke(binary, "map", "--source", "directory", "--workers", "4", "--json", source)
     if baseline != parallel:
         raise AssertionError(f"seed {seed}: worker count changed map semantics")
-    passed += 1
+    relation_cases += 1
 
     relocated = invoke(binary, "map", "--source", "directory", "--workers", "1", "--json", reverse)
     if baseline != relocated:
         raise AssertionError(f"seed {seed}: relocation or creation order changed portable output")
     assert_no_absolute_strings(baseline, (source, reverse, workspace))
-    passed += 2
+    relation_cases += 2
 
     for controls in (("--preset", "low-memory"), ("--set", "workers=3"),
                      ("--set", "workers=16", "--set", "git.object_cache_bytes=128MiB")):
         controlled = invoke(binary, "map", "--source", "directory", *controls, "--json", source)
         if baseline != controlled:
             raise AssertionError(f"seed {seed}: answer-preserving control changed output: {controls}")
-        passed += 1
+        relation_cases += 1
 
     readme = source / "README.md"
     original_readme = readme.read_text(encoding="utf-8")
@@ -305,16 +349,16 @@ def run_directory_properties(binary: Path, seed: int, pair, workspace: Path) -> 
     if non_documentation_projection(baseline) != non_documentation_projection(documentation):
         raise AssertionError(f"seed {seed}: documentation mutation changed non-documentation facts")
     readme.write_text(original_readme, encoding="utf-8")
-    passed += 1
+    relation_cases += 1
 
     limited = invoke(binary, "map", "--source", "directory", "--max-file-bytes", "1", "--json", reverse)
     _assert_limit_effect(baseline, limited, "file_too_large", f"seed {seed} file-byte limit")
-    passed += 1
+    relation_cases += 1
 
     budgeted = invoke(binary, "map", "--source", "directory", "--budget-files", "1", "--json", reverse)
     _assert_limit_effect(baseline, budgeted, "tree_size_limit", f"seed {seed} inventory budget",
                          require_lower_language_population=True)
-    passed += 1
+    relation_cases += 1
 
     before, after = workspace / f"before-{seed}.json", workspace / f"after-{seed}.json"
     before.write_text(json.dumps(baseline), encoding="utf-8")
@@ -322,7 +366,7 @@ def run_directory_properties(binary: Path, seed: int, pair, workspace: Path) -> 
     unchanged = invoke(binary, "map", "compare", "--json", before, after)
     if unchanged.get("status") != "unchanged" or unchanged.get("counts", {}).get("material") != 0:
         raise AssertionError(f"seed {seed}: identical generated maps did not compare unchanged")
-    passed += 1
+    relation_cases += 1
 
     # Compare symmetry is meaningful only when the maps contain material change.
     changed_file = source / "services" / f"{pair.first}-service"
@@ -347,17 +391,17 @@ def run_directory_properties(binary: Path, seed: int, pair, workspace: Path) -> 
         raise AssertionError(f"seed {seed}: source mutation did not produce material map change")
     if forward.get("counts", {}).get("material") != backward.get("counts", {}).get("material"):
         raise AssertionError(f"seed {seed}: comparison material count is not symmetric")
-    passed += 1
+    relation_cases += 1
 
     renamed = workspace / f"renamed-root-{seed}"
     shutil.copytree(reverse, renamed, symlinks=True)
     renamed_map = invoke(binary, "map", "--source", "directory", "--workers", "1", "--json", renamed)
     if baseline != renamed_map:
         raise AssertionError(f"seed {seed}: root directory name changed portable output")
-    passed += 1
+    relation_cases += 1
 
     _assert_non_doc_locality(binary, reverse, baseline, workspace)
-    passed += 1
+    relation_cases += 1
 
     git_repo = workspace / f"git-source-{seed}"
     shutil.copytree(reverse, git_repo, symlinks=True)
@@ -370,8 +414,8 @@ def run_directory_properties(binary: Path, seed: int, pair, workspace: Path) -> 
     _validate_source_identity(dir_map, "directory")
     if {k: v for k, v in git_map.items() if k != "source"} != {k: v for k, v in dir_map.items() if k != "source"}:
         raise AssertionError(f"seed {seed}: Git and directory mode differ outside the source identity object")
-    passed += 1
-    return passed, evidence, guard_mutants
+    relation_cases += 1
+    return relation_cases, evidence, guard_mutants
 
 
 def _validate_source_identity(document: dict, mode: str) -> None:
@@ -526,7 +570,9 @@ def main() -> int:
                 storage_evidence.append({"seed": seed, "evidence": evidence})
 
     print(json.dumps({"gate": "map-generated-metamorphic", "tier": args.tier,
-                      "generated_trees": len(seeds), "checks": checks,
+                      "generated_trees": len(seeds),
+                      "relation_cases": checks,
+                      "relation_case_scope": "explicitly counted source-path, portability, coverage, input-transformation and storage cases; additional setup/evidence guards are not counted separately; not a count of independent properties",
                       "generated_evidence": generated_evidence,
                       "guard_mutants": {"scope": "real CLI JSON with synthetic output corruption; harness guards only",
                                         "caught": guard_mutants, "count": len(guard_mutants)},

@@ -119,12 +119,25 @@ class PyPIUvxReadinessTests(unittest.TestCase):
                 b'error: No solution found when resolving dependencies:\n'
                 b'Because there is no version of dircue==1.3.0 and you require it. wheel hash mismatch',
                 b'error: Request failed after 3 retries: https://other.example/simple',
+                b'error: Request failed after 3 retries: https://evilpypi.org.attacker.invalid/simple',
+                b'error: Request failed after 3 retries: https://pypi.org.attacker.invalid/simple',
+                b'error: command failed: https://evilpypi.org.attacker.invalid/simple; application timed out',
+                b'error: Request failed after 3 retries: https://user:pass@pypi.org/simple',
+                b'error: Request failed after 3 retries: https://pypi.org:444/simple',
+                b'error: Request failed after 3 retries: http://pypi.org/simple',
+                b'error: Application timed out while opening https://other.example/error/pypi.org',
+                b'error: Request failed after 3 retries: https://pypi.org:bad/simple',
                 b'dircue exited with an application error'):
             with self.subTest(failure=failure):
                 self.assertIsNone(ready.classify_uv_failure(VERSION, 2, b'', failure))
         with self.assertRaises(ready.RetryableUvFailure):
             ready.classify_uv_failure(
                 VERSION, 2, b'', b'error: Request failed after 3 retries: https://pypi.org/simple')
+        for public_url in (b'https://pypi.org:443/simple/dircue/',
+                           b'https://files.pythonhosted.org/packages/dircue.whl'):
+            with self.subTest(public_url=public_url), self.assertRaises(ready.RetryableUvFailure):
+                ready.classify_uv_failure(
+                    VERSION, 2, b'', b'error: Request failed after 3 retries: ' + public_url)
         for returncode, stdout, stderr in (
                 (1, b'', retry), (126, b'', retry), (127, b'', retry), (-9, b'', retry),
                 (2, b'dircue 1.2.9\n', retry)):
@@ -181,7 +194,8 @@ class PyPIUvxReadinessTests(unittest.TestCase):
     def test_uvx_command_environment_is_pinned_and_diagnostics_are_bounded(self):
         poisoned = {'PATH': '/bin', 'UV_INDEX_URL': 'https://user:secret@private.example/simple',
                     'UV_CONFIG_FILE': '/tmp/evil.toml', 'UV_EXTRA_INDEX_URL': 'https://secret.example',
-                    'PIP_INDEX_URL': 'https://private.example/simple', 'HOME': '/tmp'}
+                    'PIP_INDEX_URL': 'https://private.example/simple', 'PYTHONPATH': '/tmp/shadow',
+                    'PYTHONHOME': '/tmp/poisoned-python', 'HOME': '/tmp'}
         self.assertEqual(ready.uv_environment(poisoned), {'PATH': '/bin', 'HOME': '/tmp'})
         logged = ready.redact_diagnostic(b'https://user:secret@example.test/path')
         self.assertNotIn(b'secret', logged)

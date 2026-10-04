@@ -84,6 +84,8 @@ def create_tree(root: Path, seed: int, pair: EcosystemPair) -> dict:
     """Populate an empty root and return deterministic applicability evidence."""
     rng = random.Random(seed)
     root.mkdir(parents=True, exist_ok=True)
+    if any(root.iterdir()):
+        raise ValueError(f"generated tree root must be empty: {root}")
     _write(root, "README.md", f"# Generated {pair.name} repository\nSeed: {seed}\n")
     _write(root, ".gitignore", "target/\nnode_modules/\n")
 
@@ -129,6 +131,14 @@ def create_tree(root: Path, seed: int, pair: EcosystemPair) -> dict:
         "npm": "JavaScript", "go": "Go", "python": "Python",
         "cargo": "Rust", "dotnet": "C#", "maven": "Java",
     }
+    expected_manifest_paths = {
+        "npm": "services/npm-service/package.json",
+        "go": "services/go-service/go.mod",
+        "python": "services/python-service/pyproject.toml",
+        "cargo": "services/cargo-service/Cargo.toml",
+        "dotnet": "services/dotnet-service/dotnet-service.csproj",
+        "maven": "services/maven-service/pom.xml",
+    }
     expected_language_paths = {"Go": [unicode_name], "Python": [str(deep_file.relative_to(root).as_posix())]}
     if control_supported:
         expected_language_paths["Python"].append(control_name)
@@ -157,6 +167,8 @@ def create_tree(root: Path, seed: int, pair: EcosystemPair) -> dict:
         "ecosystem_pair": pair.name,
         "expected_language_markers": sorted(set(language_markers + ["Go", "Python"])),
         "expected_language_paths": expected_language_paths,
+        "expected_manifest_paths": [expected_manifest_paths[ecosystem]
+                                     for ecosystem in (pair.first, pair.second)],
         "expected_language_file_counts": {
             "Go": 1 + int(pair.first == "go" or pair.second == "go"),
             "Python": 1 + int(pair.first == "python" or pair.second == "python") + int(control_supported),

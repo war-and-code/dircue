@@ -192,19 +192,73 @@ class CounterCompareTests(unittest.TestCase):
             with self.subTest(value=value), self.assertRaisesRegex(counter_compare.GateError, "invalid baseline"):
                 counter_compare.ceilings(invalid, budget["growth_policy"])
 
+    def test_growth_ceiling_preserves_large_integer_precision(self):
+        budget = counter_compare.load_budget(BUDGET)
+        for value in (2**53 + 1, 2**60 + 1, 2**64 - 1):
+            item = json.loads(json.dumps(budget["fixtures"][0]))
+            item["baseline"]["bytes_requested"] = value
+            expected = value + (value + 3) // 4
+            with self.subTest(value=value):
+                self.assertEqual(expected, counter_compare.ceilings(item, budget["growth_policy"])["bytes_requested"])
+
+    def test_all_budget_baselines_are_validated_before_starting_binaries(self):
+        mutations = (
+            (lambda item: item["baseline"].update(bytes_requested="typo"), "invalid baseline"),
+            (lambda item: item["baseline"].pop("bytes_requested"), "exactly the known counters"),
+            (lambda item: item["baseline"].update(files_content_read=100), "exceeds files_enumerated"),
+            (lambda item: item["baseline"].update(files_content_read=0), "no files were content-read"),
+            (lambda item: item.update(input_sha256="bad"), "valid input_sha256"),
+        )
+        fixture_paths = sorted(path for path in FIXTURES.iterdir() if path.is_dir())
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "budget.json"
+            for mutate, diagnostic in mutations:
+                budget = counter_compare.load_budget(BUDGET)
+                # The last entry matters: validation must not wait for its turn
+                # after earlier fixtures have already executed both binaries.
+                mutate(budget["fixtures"][-1])
+                path.write_text(json.dumps(budget))
+                with self.subTest(diagnostic=diagnostic), \
+                     mock.patch.object(counter_compare.smoke_process, "run") as run, \
+                     redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()) as stderr:
+                    status = counter_compare.main([
+                        "--base", "base", "--head", "head", "--budget", str(path),
+                        *map(str, fixture_paths),
+                    ])
+                    self.assertEqual(1, status)
+                    self.assertIn(diagnostic, stderr.getvalue())
+                    run.assert_not_called()
+
+    def test_deep_json_fails_with_a_gate_diagnostic(self):
+        deep_json = "[" * 20_000 + "0" + "]" * 20_000
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "budget.json"
+            path.write_text(deep_json)
+            with self.assertRaisesRegex(counter_compare.GateError, "cannot read budget"):
+                counter_compare.load_budget(path)
+
+            def malformed_stats(command, **kwargs):
+                Path(command[command.index("--stats-json") + 1]).write_text(deep_json)
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            with mock.patch.object(counter_compare.smoke_process, "run", side_effect=malformed_stats), \
+                 self.assertRaisesRegex(counter_compare.GateError, "invalid stats JSON"):
+                counter_compare.counters("dircue", FIXTURES / "non-source", root)
+
     def test_counter_command_fails_closed_on_process_or_stats_errors(self):
         fixture = FIXTURES / "non-source"
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             command = ["dircue", "map", "--stats-json", str(root / "stats.json"), str(fixture)]
-            with mock.patch.object(counter_compare.subprocess, "run",
+            with mock.patch.object(counter_compare.smoke_process, "run",
                                    return_value=subprocess.CompletedProcess(command, 3, "", "bad input")):
                 with self.assertRaisesRegex(counter_compare.GateError, "bad input"):
                     counter_compare.counters("dircue", fixture, root)
-            with mock.patch.object(counter_compare.subprocess, "run", side_effect=OSError("missing binary")):
+            with mock.patch.object(counter_compare.smoke_process, "run", side_effect=OSError("missing binary")):
                 with self.assertRaisesRegex(counter_compare.GateError, "cannot run"):
                     counter_compare.counters("dircue", fixture, root)
-            with mock.patch.object(counter_compare.subprocess, "run",
+            with mock.patch.object(counter_compare.smoke_process, "run",
                                    side_effect=subprocess.TimeoutExpired(command, 60)):
                 with self.assertRaisesRegex(counter_compare.GateError, "timed out"):
                     counter_compare.counters("dircue", fixture, root)
@@ -213,11 +267,11 @@ class CounterCompareTests(unittest.TestCase):
                 Path(cmd[cmd.index("--stats-json") + 1]).write_text("{")
                 return subprocess.CompletedProcess(cmd, 0, "", "")
 
-            with mock.patch.object(counter_compare.subprocess, "run", side_effect=malformed_stats):
+            with mock.patch.object(counter_compare.smoke_process, "run", side_effect=malformed_stats):
                 with self.assertRaisesRegex(counter_compare.GateError, "invalid stats JSON"):
                     counter_compare.counters("dircue", fixture, root)
 
-            with mock.patch.object(counter_compare.subprocess, "run",
+            with mock.patch.object(counter_compare.smoke_process, "run",
                                    return_value=subprocess.CompletedProcess(command, 0, "", "")):
                 with self.assertRaisesRegex(counter_compare.GateError, "did not write stats JSON"):
                     counter_compare.counters("dircue", fixture, root)
@@ -246,7 +300,7 @@ class CounterCompareTests(unittest.TestCase):
             return subprocess.CompletedProcess(command, 0, "", "")
 
         stdout, stderr = io.StringIO(), io.StringIO()
-        with mock.patch.object(counter_compare.subprocess, "run", side_effect=run_with_stats), \
+        with mock.patch.object(counter_compare.smoke_process, "run", side_effect=run_with_stats), \
              redirect_stdout(stdout), redirect_stderr(stderr):
             status = counter_compare.main([
                 "--base", "base", "--head", "head", "--budget", str(BUDGET),
@@ -277,7 +331,7 @@ class CounterCompareTests(unittest.TestCase):
              "did not write stats JSON"),
         ):
             stdout, stderr = io.StringIO(), io.StringIO()
-            with mock.patch.object(counter_compare.subprocess, "run", side_effect=runner), \
+            with mock.patch.object(counter_compare.smoke_process, "run", side_effect=runner), \
                  redirect_stdout(stdout), redirect_stderr(stderr):
                 status = counter_compare.main([
                     "--base", "base", "--head", "head", "--budget", str(BUDGET),
@@ -314,7 +368,7 @@ class CounterCompareTests(unittest.TestCase):
 
         stdout, stderr = io.StringIO(), io.StringIO()
         with mock.patch.object(counter_compare, "fixture_digest", side_effect=changed_after_first_check), \
-             mock.patch.object(counter_compare.subprocess, "run", side_effect=run_with_stats), \
+             mock.patch.object(counter_compare.smoke_process, "run", side_effect=run_with_stats), \
              redirect_stdout(stdout), redirect_stderr(stderr):
             status = counter_compare.main([
                 "--base", "base", "--head", "head", "--budget", str(BUDGET),

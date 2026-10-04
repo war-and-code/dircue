@@ -135,11 +135,86 @@ func BenchmarkImportObservations(b *testing.B) {
 			if len(observed) != 1 || observed[0].Name != "datastore:postgresql" || limited != (size == 48<<10) {
 				b.Fatalf("unexpected import evidence: observations=%+v limited=%t", observed, limited)
 			}
-			b.SetBytes(int64(len(source)))
+			// A truncated stream does not inspect all offered bytes. Avoid
+			// presenting that input size as scanned-byte throughput.
+			if !limited {
+				b.SetBytes(int64(len(source)))
+			}
 			b.ReportAllocs()
 			b.ResetTimer()
 			for range b.N {
 				parseJVMImportsBounded("Api.java", source)
+			}
+			b.ReportMetric(float64(len(source)), "input-B/op")
+		})
+	}
+}
+
+// Keep a literal oracle: lexSource and lexSourceInto share their scanner, so
+// comparing only those functions cannot catch a common lexical regression.
+func TestReusableTokensMatchLiteralOracle(t *testing.T) {
+	cases := []struct {
+		lang, source string
+		want         []sourceToken
+	}{
+		{"java", "/* hidden import */\nimport org.postgresql.Driver;\n{ \"opaque\" }", []sourceToken{
+			{"import", 'i', 2, 0}, {"org", 'i', 2, 0}, {".", 'p', 2, 0},
+			{"postgresql", 'i', 2, 0}, {".", 'p', 2, 0}, {"Driver", 'i', 2, 0},
+			{";", 'p', 2, 0}, {"{", 'p', 3, 0}, {"opaque", 's', 3, 1}, {"}", 'p', 3, 0},
+		}},
+		{"kotlin", "/* outer\n/* inner */ */\nimport pg as db", []sourceToken{
+			{"import", 'i', 3, 0}, {"pg", 'i', 3, 0}, {"as", 'i', 3, 0}, {"db", 'i', 3, 0},
+		}},
+		{"cs", "using X = Npgsql;\n{ @\"a\"\"b\" }", []sourceToken{
+			{"using", 'i', 1, 0}, {"X", 'i', 1, 0}, {"=", 'p', 1, 0}, {"Npgsql", 'i', 1, 0},
+			{";", 'p', 1, 0}, {"{", 'p', 2, 0}, {"a\"\"b", 's', 2, 1}, {"}", 'p', 2, 0},
+		}},
+		{"vb", "REM Imports Fake\nImports Npgsql\n' hidden\n\"opaque\" : REM hidden\nImports Redis", []sourceToken{
+			{"Imports", 'i', 2, 0}, {"Npgsql", 'i', 2, 0}, {"opaque", 's', 4, 0},
+			{":", 'p', 4, 0}, {"Imports", 'i', 5, 0}, {"Redis", 'i', 5, 0},
+		}},
+		{"js", "const r = /import fake/;\nrequire('pg');", []sourceToken{
+			{"const", 'i', 1, 0}, {"r", 'i', 1, 0}, {"=", 'p', 1, 0}, {";", 'p', 1, 0},
+			{"require", 'i', 2, 0}, {"(", 'p', 2, 0}, {"pg", 's', 2, 0},
+			{")", 'p', 2, 0}, {";", 'p', 2, 0},
+		}},
+	}
+	reused := make([]sourceToken, 0, 32)
+	for _, tc := range cases {
+		t.Run(tc.lang, func(t *testing.T) {
+			for _, storage := range [][]sourceToken{nil, reused} {
+				got, limited := lexSourceInto(tc.source, tc.lang, storage)
+				if limited || !reflect.DeepEqual(got, tc.want) {
+					t.Fatalf("literal token oracle mismatch: limited=%t\ngot:  %+v\nwant: %+v", limited, got, tc.want)
+				}
+				clear(got)
+				reused = got[:0]
+			}
+		})
+	}
+}
+
+func TestReusableTokenLimitExactBoundary(t *testing.T) {
+	reused := make([]sourceToken, 0, DefaultMaxLexicalTokensPerFile)
+	for _, tc := range []struct {
+		name, source string
+		wantCount    int
+		wantLimited  bool
+	}{
+		{"exact", strings.Repeat(";", DefaultMaxLexicalTokensPerFile), DefaultMaxLexicalTokensPerFile, false},
+		{"ignored suffix", strings.Repeat(";", DefaultMaxLexicalTokensPerFile) + " \n/* ignored */", DefaultMaxLexicalTokensPerFile, false},
+		{"extra token", strings.Repeat(";", DefaultMaxLexicalTokensPerFile+1), DefaultMaxLexicalTokensPerFile, true},
+		{"empty after dense", "", 0, false},
+		{"small after dense", "import pg;", 3, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			for _, storage := range [][]sourceToken{nil, reused} {
+				got, limited := lexSourceInto(tc.source, "java", storage)
+				if len(got) != tc.wantCount || limited != tc.wantLimited {
+					t.Fatalf("token boundary: len=%d limited=%t; want len=%d limited=%t", len(got), limited, tc.wantCount, tc.wantLimited)
+				}
+				clear(got)
+				reused = got[:0]
 			}
 		})
 	}

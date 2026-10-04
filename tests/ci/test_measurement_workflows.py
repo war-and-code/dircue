@@ -32,6 +32,7 @@ class MeasurementWorkflowTests(unittest.TestCase):
         self.assertIn('make fuzz-campaign FUZZ_COUNT=1000 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"', text)
         self.assertIn("-fuzz '^FuzzReusableImportTokens$' -fuzztime=1000x", text)
         self.assertIn("-bench '^BenchmarkImportObservations$'", text)
+        self.assertIn("discover -s tests/release -p 'test_smoke_process.py'", text)
 
     def test_cost_and_generated_guards_are_wired_into_event_ci(self):
         text = (WORKFLOWS / "ci.yml").read_text()

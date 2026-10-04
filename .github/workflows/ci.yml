@@ -155,6 +155,8 @@ jobs:
           python3 tests/map_corpus/metamorphic_generated.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --tier ci
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Verify smoke-command timeout cleanup on each OS
+        run: python3 -m unittest discover -s tests/release -p 'test_smoke_process.py' -v
       - name: Kill focused topology attribution mutations (Linux only)
         if: runner.os == 'Linux'
         run: python3 tests/mutation/topology.py --output "$RUNNER_TEMP/topology-mutations.json"

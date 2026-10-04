@@ -8,8 +8,10 @@ import re
 import subprocess
 import sys
 import time
+from urllib.parse import urlsplit
 
 import pypi_index_ready
+import smoke_process
 
 
 MAX_ATTEMPTS = 6
@@ -21,14 +23,14 @@ PUBLIC_INDEX = 'https://pypi.org/simple'
 
 
 class RetryableUvFailure(Exception):
-    """A resolver or transport failure that is safe to retry before execution."""
+    """A recognized resolver or transport signature that may be safe to retry."""
 
 
 def uv_environment(source=None):
-    """Remove ambient package-index and tool configuration from uvx's environment."""
+    """Remove ambient Python, package-index, and tool configuration from uvx."""
     source = os.environ if source is None else source
     return {key: value for key, value in source.items()
-            if not key.upper().startswith(('UV_', 'PIP_'))}
+            if not key.upper().startswith(('PYTHON', 'UV_', 'PIP_'))}
 
 
 def redact_diagnostic(data):
@@ -47,7 +49,7 @@ def redact_diagnostic(data):
 
 
 def classify_uv_failure(version, returncode, stdout, stderr):
-    """Classify only explicit uv pre-execution failures safe to retry."""
+    """Recognize retryable-looking uv stderr; merged output cannot prove pre-execution."""
     # stdout means the command may have started the package executable. Never
     # retry it, even when stderr also contains a uv-looking diagnostic.
     if returncode != 2 or stdout:
@@ -64,13 +66,28 @@ def classify_uv_failure(version, returncode, stdout, stderr):
         raise RetryableUvFailure('uv could not resolve the exact dircue version from its public index')
 
     # A resolver envelope or failed-download header alone can also describe a
-    # bad hash. Require an explicit transport cause plus the public host.
+    # bad hash. Require a transport cause and a parsed HTTPS URL on a public
+    # PyPI host. uv forwards native stderr into the same stream, so even these
+    # signatures remain text heuristics rather than proof of pre-execution.
     transport_cause = re.search(
         r'(?i)(?:request failed after\s+\d+\s+retries|dns lookup failed|name or service not known|'
         r'temporary failure in name resolution|connection refused|connection reset by peer|'
         r'network is unreachable|tls handshake failed|timed out|timeout)', output)
     uv_error_header = re.search(r'(?im)^\s*error:\s*', output)
-    if uv_error_header and transport_cause and 'pypi.org' in lowered and 'hash' not in lowered:
+    public_hosts = {'pypi.org', 'files.pythonhosted.org'}
+    has_public_url = False
+    for candidate in re.findall(r'https?://[^\s<>"\']+', output, re.IGNORECASE):
+        try:
+            parsed = urlsplit(candidate)
+            host = parsed.hostname
+            if (parsed.scheme.lower() == 'https' and host in public_hosts
+                    and parsed.username is None and parsed.password is None
+                    and parsed.netloc.lower() in (host, host + ':443')):
+                has_public_url = True
+                break
+        except ValueError:
+            continue
+    if uv_error_header and transport_cause and has_public_url and 'hash' not in lowered:
         raise RetryableUvFailure('uv could not connect to public PyPI')
 
 
@@ -84,7 +101,7 @@ def save_attempt(directory, attempt, stdout=b'', stderr=b'', note=''):
 
 
 def smoke(version, expected, output, fetch=pypi_index_ready.fetch_json,
-          run=subprocess.run, sleep=time.sleep, monotonic=time.monotonic):
+          run=smoke_process.run, sleep=time.sleep, monotonic=time.monotonic):
     """Check both public catalogs, then run a fresh exact-version uvx attempt."""
     if output.exists() or output.is_symlink():
         raise ValueError('diagnostics output directory must be fresh')
