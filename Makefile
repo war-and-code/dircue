@@ -5,7 +5,7 @@ WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden corpus-availability fetch-receipts
+.PHONY: build test check bench test-bench bench-cli reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden corpus-availability fetch-receipts
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -21,6 +21,26 @@ check:
 
 bench:
 	go test ./pkg/scanner -run '^$$' -bench . -benchmem
+
+# Self-tests for the benchmark correctness gate and PyPI readiness validator.
+test-bench:
+	python3 -m unittest tests/bench/test_run.py tests/release/test_pypi_index_ready.py tests/ci/test_fuzz_campaign_target.py
+
+# Paired whole-CLI baseline/candidate comparison. Supply explicit binaries and
+# a manifest; the harness never builds or selects a baseline automatically.
+BENCH_BASELINE ?=
+BENCH_CANDIDATE ?=
+BENCH_MANIFEST ?= tests/bench/scenarios.json
+BENCH_CORPUS ?=
+BENCH_OUTPUT ?= .cache/bench/report.json
+BENCH_RUNS ?= 20
+BENCH_WARMUP ?= 3
+BENCH_WORKER ?=
+BENCH_WORKER_FLAG = $(if $(BENCH_WORKER),--worker "$(BENCH_WORKER)")
+bench-cli:
+	python3 tests/bench/run.py --baseline "$(BENCH_BASELINE)" --candidate "$(BENCH_CANDIDATE)" \
+	  --manifest "$(BENCH_MANIFEST)" --corpus-root "$(BENCH_CORPUS)" \
+	  --runs "$(BENCH_RUNS)" --warmup "$(BENCH_WARMUP)" --output "$(BENCH_OUTPUT)" $(BENCH_WORKER_FLAG)
 
 hostile-fs: build
 	python3 tests/hostile_fs/run.py --binary bin/dircue
@@ -81,16 +101,26 @@ fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... 
 	  mkdir -p "$(FUZZ_CACHE)"; \
 	  _flags="$$_flags -test.fuzzcachedir=$(FUZZ_CACHE)"; \
 	fi; \
+	_tmpdir=$$(mktemp -d); \
+	trap 'rm -rf "$$_tmpdir"' EXIT HUP INT TERM; \
+	if ! CGO_ENABLED=0 go list $(FUZZ_PKG) >"$$_tmpdir/packages"; then \
+	  echo "Failed to list Go packages for $(FUZZ_PKG)" >&2; exit 1; \
+	fi; \
+	sort -u "$$_tmpdir/packages" >"$$_tmpdir/packages.sorted"; \
 	_found=0; \
-	for _pkg in $$(CGO_ENABLED=0 go list $(FUZZ_PKG) 2>/dev/null | sort); do \
-	  _targets=$$(CGO_ENABLED=0 go test -list 'Fuzz' "$$_pkg" 2>/dev/null | grep '^Fuzz' || true); \
-	  for _t in $$_targets; do \
+	while IFS= read -r _pkg; do \
+	  [ -n "$$_pkg" ] || continue; \
+	  if ! CGO_ENABLED=0 go test -list '^Fuzz' "$$_pkg" >"$$_tmpdir/targets"; then \
+	    echo "Failed to discover fuzz targets in $$_pkg" >&2; exit 1; \
+	  fi; \
+	  while IFS= read -r _t; do \
+	    case "$$_t" in Fuzz*) ;; *) continue ;; esac; \
 	    _found=1; \
 	    echo "==> $$_pkg: $$_t ($(FUZZ_TIME)s)"; \
 	    CGO_ENABLED=0 go test -run='^$$' -fuzz='^'"$$_t"'$$' $$_flags "$$_pkg"; \
-	  done; \
-	done; \
-	if [ "$$_found" -eq 0 ]; then echo "No fuzz targets found in $(FUZZ_PKG)"; fi
+	  done <"$$_tmpdir/targets"; \
+	done <"$$_tmpdir/packages.sorted"; \
+	if [ "$$_found" -eq 0 ]; then echo "No fuzz targets found in $(FUZZ_PKG)" >&2; exit 1; fi
 
 # ---------------------------------------------------------------------------
 # Atlas parity and accuracy targets

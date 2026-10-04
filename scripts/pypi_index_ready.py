@@ -47,6 +47,16 @@ def fetch_json(url):
     })
     try:
         with urlopen(request, timeout=REQUEST_TIMEOUT) as response:
+            # urllib follows redirects automatically. Keep the public index
+            # check pinned to the expected HTTPS origin even if that origin
+            # unexpectedly starts redirecting elsewhere.
+            final = urlsplit(response.geturl())
+            original = urlsplit(url)
+            if (final.scheme != 'https' or final.hostname != original.hostname
+                    or final.path != original.path
+                    or final.username is not None or final.password is not None
+                    or final.port is not None):
+                raise ValueError('public catalog redirected away from its expected HTTPS URL')
             data = response.read(MAX_RESPONSE_BYTES + 1)
     except HTTPError as error:
         if error.code == 404 or error.code == 429 or 500 <= error.code <= 599:
@@ -118,7 +128,8 @@ def validate_lock(lock, version, expected):
     for wheel in wheels:
         url = urlsplit(wheel.get('url', ''))
         name = unquote(url.path.rsplit('/', 1)[-1])
-        if url.scheme != 'https' or url.netloc != 'files.pythonhosted.org' or name not in expected or name in found:
+        if (url.scheme != 'https' or url.netloc != 'files.pythonhosted.org'
+                or url.query or url.fragment or name not in expected or name in found):
             raise ValueError('lock contains an unexpected wheel URL or duplicate file')
         if wheel.get('hash') != 'sha256:' + expected[name]:
             raise ValueError(f'lock wheel hash differs: {name}')

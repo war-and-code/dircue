@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "description": "Optional structural-worker cases. Supply the same explicit worker with --worker.",
+  "scenarios": [
+    {
+      "name": "structure-functions",
+      "args": ["analyze", "structure", "--functions", "--structural-worker", "{worker}", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "function observations with an explicit worker"}
+    },
+    {
+      "name": "structure-hotspots",
+      "args": ["analyze", "structure", "--hotspots", "--structural-worker", "{worker}", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "function hotspots with an explicit worker"}
+    }
+  ]
+}

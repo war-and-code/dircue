@@ -8,6 +8,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from unittest.mock import patch
 from urllib.error import HTTPError, URLError
@@ -90,13 +91,18 @@ class PyPIReadinessTests(unittest.TestCase):
         ready.validate_lock(lock(), VERSION, EXPECTED)
         with self.assertRaises(ready.NotReady):
             ready.validate_lock(lock(2), VERSION, EXPECTED)
-        for mutation in ('hash', 'origin', 'version', 'duplicate', 'registry'):
+        for mutation in ('hash', 'origin', 'credentials', 'query', 'fragment', 'version', 'duplicate', 'registry'):
             data = lock()
             package = data['package'][0]
             if mutation == 'hash':
                 package['wheels'][0]['hash'] = 'sha256:' + 'b' * 64
             elif mutation == 'origin':
                 package['wheels'][0]['url'] = package['wheels'][0]['url'].replace('files.pythonhosted.org', 'other.example')
+            elif mutation == 'credentials':
+                package['wheels'][0]['url'] = package['wheels'][0]['url'].replace(
+                    'https://files.pythonhosted.org', 'https://user@files.pythonhosted.org')
+            elif mutation in ('query', 'fragment'):
+                package['wheels'][0]['url'] += '?' + 'x=1' if mutation == 'query' else '#other-file'
             elif mutation == 'version':
                 package['version'] = '0.0.0'
             elif mutation == 'duplicate':
@@ -139,6 +145,29 @@ class PyPIReadinessTests(unittest.TestCase):
             self.assertEqual(len(attempts), ready.MAX_ATTEMPTS)
             self.assertEqual(len(sleeps), ready.MAX_ATTEMPTS - 1)
 
+    def test_malformed_uv_lock_is_fatal_and_does_not_retry(self):
+        calls, sleeps = [], []
+        def run(command, **options):
+            calls.append(1)
+            (options['cwd'] / 'uv.lock').write_text('[[package]\nname = "dircue"\nversion = [')
+            return subprocess.CompletedProcess(command, 0)
+
+        responses = iter([catalog(), catalog(True)])
+        with tempfile.TemporaryDirectory() as temporary:
+            with self.assertRaises(tomllib.TOMLDecodeError):
+                ready.lock_ready(VERSION, EXPECTED, Path(temporary), fetch=lambda _: next(responses),
+                                 run=run, sleep=sleeps.append)
+        self.assertEqual(calls, [1])
+        self.assertEqual(sleeps, [])
+
+    def test_cli_reports_malformed_inventory_with_failure_exit(self):
+        with patch.object(sys, 'argv', ['pypi_index_ready.py', '--version', VERSION,
+                                        '--directory', '.']), patch.dict('os.environ',
+                                                                          {'EXPECTED_WHEELS_JSON': '[1]'}):
+            with contextlib.redirect_stderr(io.StringIO()) as error:
+                self.assertEqual(ready.main(), 1)
+        self.assertIn('PyPI readiness failed:', error.getvalue())
+
     def test_failed_resolver_is_retried_without_hiding_output(self):
         calls = []
         def run(command, **options):
@@ -162,7 +191,9 @@ class PyPIReadinessTests(unittest.TestCase):
         with patch.object(ready, 'urlopen', side_effect=HTTPError('url', 403, '', {}, None)), self.assertRaises(ValueError):
             ready.fetch_json('https://pypi.org/simple/dircue/')
         with patch.object(ready, 'urlopen') as opening:
-            opening.return_value.__enter__.return_value.read.return_value = b'x' * (ready.MAX_RESPONSE_BYTES + 1)
+            response = opening.return_value.__enter__.return_value
+            response.geturl.return_value = 'https://pypi.org/simple/dircue/'
+            response.read.return_value = b'x' * (ready.MAX_RESPONSE_BYTES + 1)
             with self.assertRaisesRegex(ValueError, 'byte limit'):
                 ready.fetch_json('https://pypi.org/simple/dircue/')
             self.assertEqual(opening.call_args.kwargs['timeout'], ready.REQUEST_TIMEOUT)
@@ -171,10 +202,34 @@ class PyPIReadinessTests(unittest.TestCase):
         # connection reset here rather than wrapping it in URLError.
         with patch.object(ready, 'urlopen') as opening:
             response = opening.return_value.__enter__.return_value
+            response.geturl.return_value = 'https://pypi.org/simple/dircue/'
             for failure in (ConnectionResetError('connection reset during body'), IncompleteRead(b'{', 10)):
                 response.read.side_effect = failure
                 with self.subTest(failure=type(failure).__name__), self.assertRaises(ready.NotReady):
                     ready.fetch_json('https://pypi.org/simple/dircue/')
+
+        with patch.object(ready, 'urlopen') as opening:
+            response = opening.return_value.__enter__.return_value
+            response.geturl.return_value = 'https://pypi.org/simple/dircue/'
+            response.read.return_value = b'{'
+            with self.assertRaises(ValueError):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
+
+    def test_catalog_redirect_must_stay_on_the_expected_https_origin(self):
+        with patch.object(ready, 'urlopen') as opening:
+            response = opening.return_value.__enter__.return_value
+            response.geturl.return_value = 'https://attacker.example/simple/dircue/'
+            with self.assertRaisesRegex(ValueError, 'redirected away'):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
+            response.geturl.return_value = 'http://pypi.org/simple/dircue/'
+            with self.assertRaisesRegex(ValueError, 'redirected away'):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
+            response.geturl.return_value = 'https://pypi.org/simple/other/'
+            with self.assertRaisesRegex(ValueError, 'redirected away'):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
+            response.geturl.return_value = 'https://user@pypi.org/simple/dircue/'
+            with self.assertRaisesRegex(ValueError, 'redirected away'):
+                ready.fetch_json('https://pypi.org/simple/dircue/')
 
     def test_workflow_binds_readiness_to_verified_release_hashes(self):
         workflow = (ROOT / '.github/workflows/publish-pypi.yml').read_text()

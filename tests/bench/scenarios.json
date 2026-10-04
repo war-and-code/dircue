@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "description": "Strict same-corpus whole-CLI scenarios for stable, worker-free output paths.",
+  "scenarios": [
+    {
+      "name": "legacy-languages",
+      "args": ["--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "legacy language JSON"}
+    },
+    {
+      "name": "analyze-all-default",
+      "args": ["analyze", "all", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "default aggregate profile"}
+    },
+    {
+      "name": "analyze-languages",
+      "args": ["analyze", "languages", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "explicit language analysis"}
+    },
+    {
+      "name": "analyze-discovery",
+      "args": ["analyze", "discovery", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "metadata and candidate artifacts"}
+    },
+    {
+      "name": "analyze-ecosystems",
+      "args": ["analyze", "ecosystems", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "ecosystem evidence"}
+    },
+    {
+      "name": "analyze-frameworks",
+      "args": ["analyze", "frameworks", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "framework evidence"}
+    },
+    {
+      "name": "analyze-projects",
+      "args": ["analyze", "projects", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "project declarations and references"}
+    },
+    {
+      "name": "analyze-declarations",
+      "args": ["analyze", "declarations", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "declared identities and relationships"}
+    },
+    {
+      "name": "analyze-metrics",
+      "args": ["analyze", "metrics", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "source metrics"}
+    },
+    {
+      "name": "analyze-formats",
+      "args": ["analyze", "formats", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "bounded file-format evidence"}
+    },
+    {
+      "name": "map",
+      "args": ["map", "--source", "directory", "--json", "{cwd}"],
+      "cwd": "{corpus}/tests/map_corpus/fixtures/polyglot-deployable",
+      "inputs": ["tests/map_corpus/fixtures/polyglot-deployable"],
+      "provenance": {"fixture": "tests/map_corpus/fixtures/polyglot-deployable", "purpose": "portable map"}
+    },
+    {
+      "name": "saved-report-compare",
+      "args": ["compare", "{corpus}/tests/compatibility_next/composition/results/canonical/composition-baseline.json", "{corpus}/tests/compatibility_next/composition/results/canonical/composition-enriched.json", "--json"],
+      "cwd": "{corpus}/tests/compatibility_next/composition/results/canonical",
+      "inputs": ["tests/compatibility_next/composition/results/canonical/composition-baseline.json", "tests/compatibility_next/composition/results/canonical/composition-enriched.json"],
+      "provenance": {"fixtures": ["tests/compatibility_next/composition/results/canonical/composition-baseline.json", "tests/compatibility_next/composition/results/canonical/composition-enriched.json"], "purpose": "saved aggregate report diff"}
+    },
+    {
+      "name": "map-attachment",
+      "args": ["map", "--source", "directory", "--json", "--attach", "noir-json={corpus}/tests/tools/fixtures/flask-app.noir.json", "{cwd}"],
+      "cwd": "{corpus}/tests/tools/fixtures/flask-app",
+      "inputs": ["tests/tools/fixtures/flask-app", "tests/tools/fixtures/flask-app.noir.json"],
+      "provenance": {"fixture": "tests/tools/fixtures/flask-app", "attachment": "tests/tools/fixtures/flask-app.noir.json", "purpose": "map with saved Noir attachment"}
+    }
+  ]
+}
