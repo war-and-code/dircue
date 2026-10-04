@@ -242,6 +242,27 @@ class BenchmarkPreflightTests(unittest.TestCase):
             self.assertIsNone(report['performance_passed'])
             self.assertIsNone(report['scenarios'][0]['timing'])
 
+    def test_existing_details_directory_is_preserved_and_old_success_invalidated(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            corpus, _, _, _, output, argv = self.main_fixture(root)
+            old = {'passed': True, 'performance_passed': True, 'status': 'complete',
+                   'corpus_root': str(corpus), 'scenarios': [{'inputs': {'input': 'old-hash'},
+                   'timing': {'baseline': {'median_seconds': .1}}, 'paired_speedup_median': 2.0}]}
+            output.write_text(json.dumps(old))
+            details = output.parent / (output.stem + '-outputs')
+            details.mkdir()
+            sentinel = details / 'unowned.txt'
+            sentinel.write_text('preserve me')
+
+            self.assertEqual(run.main(argv), 1)
+            self.assertEqual(sentinel.read_text(), 'preserve me')
+            report = json.loads(output.read_text())
+            self.assertFalse(report['passed'])
+            self.assertIsNone(report['performance_passed'])
+            self.assertIsNone(report['scenarios'][0]['timing'])
+            self.assertIn('must be fresh and absent', report['failure'])
+
 
 if __name__ == '__main__':
     unittest.main()

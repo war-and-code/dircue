@@ -19,7 +19,6 @@ from pathlib import Path
 import platform
 import re
 import signal
-import shutil
 import statistics
 import subprocess
 import sys
@@ -103,8 +102,8 @@ def validate_output_paths(output, details, root, input_paths, protected_paths):
                 raise HarnessError(f'{label} output overlaps measured input tree {relative}: {source}')
     if output.is_symlink() or (output.exists() and not output.is_file()):
         raise HarnessError(f'report output must be a regular file path: {output}')
-    if details.is_symlink() or (details.exists() and not details.is_dir()):
-        raise HarnessError(f'correctness output path must be a directory path: {details}')
+    if details.is_symlink() or details.exists():
+        raise HarnessError(f'correctness output directory must be fresh and absent: {details}')
 
 
 def invalidate_previous_report(output, failure, protected_paths):
@@ -374,11 +373,13 @@ def main(argv=None, execute=run_process):
                 if destination == cwd or destination in cwd.parents:
                     raise HarnessError(f'output path would replace a scenario working directory: {cwd}')
         output.parent.mkdir(parents=True, exist_ok=True)
-        if output.exists():
-            output.unlink()
-        if details.exists():
-            shutil.rmtree(details)
         details.mkdir()
+        try:
+            if output.exists():
+                output.unlink()
+        except OSError:
+            details.rmdir()
+            raise
 
         report = {'schema_version': '1.0.0', 'started_at_utc': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
                   'manifest_path': str(manifest_path), 'manifest_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
