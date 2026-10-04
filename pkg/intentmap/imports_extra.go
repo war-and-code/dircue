@@ -35,7 +35,7 @@ var importTokenBuffers = sync.Pool{New: func() any { return new(tokenBuffer) }}
 func (b *tokenBuffer) release() {
 	clear(b.tokens)
 	if cap(b.tokens) > DefaultMaxLexicalTokensPerFile {
-		// Append may grow past the lexical limit; do not retain that capacity.
+		// Never retain a buffer larger than the lexical window.
 		b.tokens = nil
 	} else {
 		b.tokens = b.tokens[:0]

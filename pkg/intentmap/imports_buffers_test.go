@@ -131,8 +131,13 @@ func BenchmarkImportObservations(b *testing.B) {
 	for _, size := range []int{8 << 10, 48 << 10} {
 		source := []byte("import org.postgresql.Driver;\n" + strings.Repeat("class A { int x = 1; }\n", size/23))
 		b.Run(fmt.Sprintf("java-%d", size), func(b *testing.B) {
+			observed, limited := parseJVMImportsBounded("Api.java", source)
+			if len(observed) != 1 || observed[0].Name != "datastore:postgresql" || limited != (size == 48<<10) {
+				b.Fatalf("unexpected import evidence: observations=%+v limited=%t", observed, limited)
+			}
 			b.SetBytes(int64(len(source)))
 			b.ReportAllocs()
+			b.ResetTimer()
 			for range b.N {
 				parseJVMImportsBounded("Api.java", source)
 			}
