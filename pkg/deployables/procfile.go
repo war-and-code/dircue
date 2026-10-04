@@ -221,6 +221,12 @@ func procfileChangesPythonSearchPath(executable string, arguments []string) bool
 		if executable == "gunicorn" && (flag == "-C" || flag == "-c") {
 			return true
 		}
+		// Gunicorn accepts attached short-option values such as -C/srv/app
+		// and -cconfig.py. Those forms can change the working directory or
+		// application loading, so they must not retain a repository-local target.
+		if executable == "gunicorn" && (strings.HasPrefix(argument, "-C") || strings.HasPrefix(argument, "-c")) {
+			return true
+		}
 	}
 	return false
 }

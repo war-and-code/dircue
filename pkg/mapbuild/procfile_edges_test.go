@@ -108,6 +108,46 @@ func TestProcfileUnicodeWhitespaceCannotInventShellTokensOrRunEdges(t *testing.T
 	}
 }
 
+func TestProcfileGunicornAttachedOptionsCannotCreateRunEdges(t *testing.T) {
+	for _, command := range []string{
+		"gunicorn app.main:app -cconfig.py",
+		"gunicorn app.main:app -C/srv/app",
+	} {
+		t.Run(strings.ReplaceAll(command, "/", "_"), func(t *testing.T) {
+			inputs := map[string]string{
+				"Procfile":           "web: " + command + "\n",
+				"app/main.py":        "app = object()\n",
+				"app/pyproject.toml": "[project]\nname='app'\n",
+			}
+			candidates := make([]deployables.Candidate, 0, len(inputs))
+			for name, body := range inputs {
+				name, body := name, body
+				candidates = append(candidates, deployables.Candidate{Path: name, Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) {
+					return []byte(body), int64(len(body)), nil
+				}})
+			}
+			report, err := deployables.Observe(context.Background(), candidates, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(report.Definitions) != 1 || report.Definitions[0].Coverage != "qualified" || report.Definitions[0].References[0].Qualification != "unresolved" {
+				t.Fatalf("attached Gunicorn option retained a repository-local target: %+v", report.Definitions)
+			}
+			profileReport := &profile.Report{
+				Discovery:    &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory", Consistency: "live_directory_metadata"}},
+				Declarations: &declarations.Report{Status: "complete", Projects: []declarations.Project{{ID: "app/pyproject.toml", Root: "app", Kind: "python"}}},
+			}
+			mapDoc, err := Build(profileReport, Options{Deployables: report})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if countProcfileEdges(mapDoc) != 0 {
+				t.Fatalf("attached Gunicorn option produced a false run edge: %+v", mapDoc.Edges)
+			}
+		})
+	}
+}
+
 func countProcfileEdges(doc mapdoc.Document) int {
 	count := 0
 	for _, edge := range doc.Edges {
