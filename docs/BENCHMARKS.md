@@ -22,7 +22,7 @@ The starter manifests are:
 
 | Manifest | Work exercised |
 | --- | --- |
-| `tests/bench/scenarios.json` | Legacy language JSON, default `analyze all`, standalone languages, discovery, ecosystems, frameworks, projects, declarations, metrics and formats, maps, saved-report comparison and a report attachment. |
+| `tests/bench/scenarios.json` | Legacy language JSON, default `analyze all`, standalone languages, discovery, ecosystems, frameworks, projects, declarations, metrics, formats and lockfiles, maps, saved-report comparison and a report attachment. |
 | `tests/bench/scenarios.topology.json` | Maps and projects from the Gradle, Procfile and Aspire fixture. |
 | `tests/bench/scenarios.worker.example.json` | Explicit structural-worker function and hotspot analysis. Supply `BENCH_WORKER=/path/to/dircue-structural-worker`. |
 
