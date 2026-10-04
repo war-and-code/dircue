@@ -230,6 +230,11 @@ class PyPIReadinessTests(unittest.TestCase):
             response.geturl.return_value = 'https://user@pypi.org/simple/dircue/'
             with self.assertRaisesRegex(ValueError, 'redirected away'):
                 ready.fetch_json('https://pypi.org/simple/dircue/')
+            for suffix in ('?package=other', '#other', ':443'):
+                response.geturl.return_value = ('https://pypi.org:443/simple/dircue/' if suffix == ':443'
+                                                else 'https://pypi.org/simple/dircue/' + suffix)
+                with self.subTest(suffix=suffix), self.assertRaisesRegex(ValueError, 'redirected away'):
+                    ready.fetch_json('https://pypi.org/simple/dircue/')
 
     def test_workflow_binds_readiness_to_verified_release_hashes(self):
         workflow = (ROOT / '.github/workflows/publish-pypi.yml').read_text()

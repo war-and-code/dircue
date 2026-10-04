@@ -54,6 +54,7 @@ def fetch_json(url):
             original = urlsplit(url)
             if (final.scheme != 'https' or final.hostname != original.hostname
                     or final.path != original.path
+                    or final.query != original.query or final.fragment != original.fragment
                     or final.username is not None or final.password is not None
                     or final.port is not None):
                 raise ValueError('public catalog redirected away from its expected HTTPS URL')
