@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.0 (unreleased)
+## 1.3.0 (2026-10-04)
 
 - Map literal Gradle settings includes to selected Gradle projects with `member_of` relationships. Settings-only workspace roots remain partial; dynamic directories, missing manifests, duplicate settings and ambiguous project roots stay qualified. The settings observer does not evaluate Gradle or composite builds.
 - Recognize processes declared in a root `Procfile`. Supported literal Python and Node entry files can produce partial `runs` relationships to their unique owning project. Commands, arguments and environment values are withheld; unsupported launch forms, duplicate process names and inventory limits remain visible.

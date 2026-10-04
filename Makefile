@@ -1,4 +1,4 @@
-VERSION ?= 1.3.0-dev
+VERSION ?= 1.3.0
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
