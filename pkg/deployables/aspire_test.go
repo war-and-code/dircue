@@ -39,7 +39,11 @@ func TestAspireOnlyAcceptsUnconditionalTopLevelDirectCalls(t *testing.T) {
 		{"lookalike", `var builder = DistributedApplication.CreateBuilder(args);\nother.AddProject<Projects.Other>("x");\n`, 0},
 		{"helper", `var builder = DistributedApplication.CreateBuilder(args);\nRegister(builder, Projects.Helper);\n`, 0},
 		{"shadow", `var builder = DistributedApplication.CreateBuilder(args);\nbuilder = Other.CreateBuilder();\nbuilder.AddProject<Projects.AfterShadow>("x");\n`, 0},
+		{"ref shadow", `var builder = DistributedApplication.CreateBuilder(args);\nReplace(ref builder);\nbuilder.AddProject<Projects.AfterRef>("x");\n`, 0},
+		{"out shadow", `var builder = DistributedApplication.CreateBuilder(args);\nReplace(out builder);\nbuilder.AddProject<Projects.AfterOut>("x");\n`, 0},
 		{"control-flow", `var builder = DistributedApplication.CreateBuilder(args);\nif (enabled) builder.AddProject<Projects.Conditional>("x");\n`, 0},
+		{"conditional initializer", `var builder = DistributedApplication.CreateBuilder(args);\nvar maybe = enabled ? builder.AddProject<Projects.Conditional>("x") : null;\n`, 0},
+		{"null-coalescing initializer", `var builder = DistributedApplication.CreateBuilder(args);\nvar maybe = existing ?? builder.AddProject<Projects.Conditional>("x");\n`, 0},
 		{"lambda-body", `var builder = DistributedApplication.CreateBuilder(args);\nbuilder.AddProject<Projects.Direct>("x", configure: x => { x.WithAnnotation("a"); });\n`, 1},
 	}
 	for _, tc := range cases {

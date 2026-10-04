@@ -54,6 +54,39 @@ func TestAspireCLIObservationDoesNotLinkEscapedOrCustomBindings(t *testing.T) {
 	}
 }
 
+func TestAspireCLIObservationDoesNotLinkAfterBuilderPassedByReference(t *testing.T) {
+	for _, mode := range []string{"ref", "out"} {
+		t.Run(mode, func(t *testing.T) {
+			source := []byte("var builder = DistributedApplication.CreateBuilder(args);\nReplace(" + mode + " builder);\nbuilder.AddProject<Projects.Service>(\"service\");\nstatic void Replace(" + mode + " IDistributedApplicationBuilder value) { value = null!; }\n")
+			observed, err := deployables.Observe(context.Background(), []deployables.Candidate{{
+				Path: "src/AppHost/Program.cs", Size: int64(len(source)),
+				Read: func(_ context.Context, _ int64) ([]byte, int64, error) { return source, int64(len(source)), nil },
+			}}, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			app := declarations.Project{
+				ID: "src/AppHost/AppHost.csproj", Root: "src/AppHost", Kind: "dotnet",
+				Requirements: []declarations.Requirement{{Kind: "dotnet-sdk", Value: "Aspire.AppHost.Sdk/9.0.0", State: "declared"}},
+				References:   []declarations.Reference{{Kind: "project-reference", Value: "../Service/Service.csproj", Target: "src/Service/Service.csproj", TargetStatus: "present", State: "declared", Evidence: "src/AppHost/AppHost.csproj"}},
+			}
+			report := &profile.Report{
+				Discovery:    &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory"}},
+				Declarations: &declarations.Report{Status: "complete", Projects: []declarations.Project{app, {ID: "src/Service/Service.csproj", Root: "src/Service", Kind: "dotnet"}}},
+			}
+			doc, err := Build(report, Options{Deployables: observed})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, edge := range doc.Edges {
+				if edge.Type == mapdoc.EdgeRuns {
+					t.Fatalf("builder passed by %s reference produced a runs edge: %+v", mode, edge)
+				}
+			}
+		})
+	}
+}
+
 func TestAspireRunsDoNotGuessAcrossCustomGeneratedNameReferences(t *testing.T) {
 	app := declarations.Project{
 		ID: "src/AppHost/AppHost.csproj", Root: "src/AppHost", Kind: "dotnet",

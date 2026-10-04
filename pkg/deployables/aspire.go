@@ -289,6 +289,11 @@ func reassignsAspireBuilder(s []csToken) bool {
 		if t.kind != "ident" || t.text != "builder" {
 			continue
 		}
+		// A ref/out argument lets the callee replace the top-level local. Its
+		// later AddProject calls may therefore target a different builder.
+		if i > 0 && (s[i-1].text == "ref" || s[i-1].text == "out") {
+			return true
+		}
 		if i > 0 && (s[i-1].text == "var" || s[i-1].text == "DistributedApplicationBuilder") {
 			return true
 		}
@@ -297,8 +302,14 @@ func reassignsAspireBuilder(s []csToken) bool {
 				return true
 			}
 		}
-		if i+2 < len(s) && s[i+2].text == "=" && strings.ContainsRune("+-?&|^/%*", rune(s[i+1].text[0])) {
-			return true
+		if i+2 < len(s) && s[i+2].text == "=" {
+			// Opaque string/interpolation tokens have no text. Treat an empty
+			// token in this malformed compound-assignment shape as an unknown
+			// builder use instead of indexing an empty string or trusting later
+			// calls.
+			if s[i+1].text == "" || strings.ContainsRune("+-?&|^/%*", rune(s[i+1].text[0])) {
+				return true
+			}
 		}
 	}
 	return false

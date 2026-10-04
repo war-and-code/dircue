@@ -2,6 +2,7 @@ package deployables
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -153,4 +154,63 @@ func TestAspireRawInterpolationBraceArityDoesNotPromoteEmbeddedCalls(t *testing.
 	if err != nil || !found || len(defs) != 1 || len(defs[0].References) != 1 || defs[0].References[0].Value != "Real" {
 		t.Fatalf("raw interpolation leaked or obscured references: found=%t defs=%+v err=%v", found, defs, err)
 	}
+}
+
+func TestAspireMalformedStatementDoesNotPanic(t *testing.T) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			t.Fatalf("malformed C# input panicked: %v", recovered)
+		}
+	}()
+	source := "var builder = DistributedApplication.CreateBuilder(args);\nbuilder $\"x\" = 1;\nbuilder.AddProject<Projects.Real>(\"real\");\n"
+	defs, found, err := parseAspireAppHost("src/AppHost/Program.cs", []byte(source))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if found || len(defs) != 0 {
+		t.Fatalf("call after malformed builder use was attributed: found=%t defs=%+v", found, defs)
+	}
+}
+
+func FuzzAspireAppHostParser(f *testing.F) {
+	for _, seed := range []string{
+		`builder.AddProject<Projects.Api>("api");`,
+		`// builder.AddProject<Projects.Comment>("fake");`,
+		`var text = "builder.AddProject<Projects.String>(\"fake\")";`,
+		`var text = $$"""{{ builder.AddProject<Projects.Raw>("fake") }}""";`,
+		`var ignored = enabled ? builder.AddProject<Projects.Conditional>("fake") : null;`,
+		`Replace(ref builder); builder.AddProject<Projects.AfterRef>("fake");`,
+		`builder $"x" = 1; builder.AddProject<Projects.AfterMalformed>("fake");`,
+	} {
+		f.Add(seed)
+	}
+	f.Fuzz(func(t *testing.T, tail string) {
+		if int64(len(tail)) > DefaultFileBytes {
+			t.Skip()
+		}
+		source := "var builder = DistributedApplication.CreateBuilder(args);\n" + tail + "\n"
+		first, firstFound, firstErr := parseAspireAppHost("src/AppHost/Program.cs", []byte(source))
+		second, secondFound, secondErr := parseAspireAppHost("src/AppHost/Program.cs", []byte(source))
+		if (firstErr == nil) != (secondErr == nil) || firstFound != secondFound || !reflect.DeepEqual(first, second) {
+			t.Fatalf("Aspire parser is nondeterministic: found=%t/%t err=%v/%v", firstFound, secondFound, firstErr, secondErr)
+		}
+		if firstErr != nil {
+			if firstFound || len(first) != 0 {
+				t.Fatalf("failed parse retained declarations: found=%t defs=%+v err=%v", firstFound, first, firstErr)
+			}
+			return
+		}
+		lines := 1 + strings.Count(source, "\n")
+		for _, def := range first {
+			if len(def.References) > maxAspireSourceReferences {
+				t.Fatalf("Aspire parser exceeded reference cap: %d", len(def.References))
+			}
+			for _, ref := range def.References {
+				if len(ref.Value) > DefaultStringBytes {
+					t.Fatalf("Aspire reference value exceeded string cap: %d", len(ref.Value))
+				}
+				assertFuzzEvidenceLine(t, ref.Evidence, lines)
+			}
+		}
+	})
 }
