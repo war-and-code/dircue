@@ -23,7 +23,7 @@ The variable is `Version` in `internal/cli/cli.go`. `scripts/release.py` applies
 
 ## Pre-tag checklist
 
-Before creating a release tag, finalize the version entry in `CHANGELOG.md` (remove the `(unreleased)` marker only as part of the release), review `docs/releases/1.0.0.md` for release-ready wording, and confirm its claims and receipts describe the exact commit to tag.
+Before creating a release tag, finalize the version entry in `CHANGELOG.md` (remove the `(unreleased)` marker only as part of the release), review the committed release notes for that version, and confirm their claims and receipts describe the exact commit to tag.
 
 The release notes are copied into the draft GitHub Release as written.
 
@@ -59,13 +59,17 @@ The workflow:
 Download and inspect the draft assets. Run:
 
 ```sh
+set -eu
+
 # Download all draft assets (requires GitHub token with read access, e.g. GH_TOKEN)
 gh release download v1.0.0 --repo war-and-code/dircue --dir /tmp/dircue-review
 
 cd /tmp/dircue-review
 
-# Verify the SLSA build-provenance attestation for every asset
-for f in *.tar.gz *.zip *.whl SHA256SUMS; do
+# Verify every attested archive, wheel, JSON receipt and checksum manifest.
+for f in *.tar.gz *.zip *.whl *.json SHA256SUMS; do
+  # The signature bundle is created after the attestation step and verified below.
+  [ "$f" = SHA256SUMS.sigstore.json ] && continue
   gh attestation verify "$f" \
     --repo war-and-code/dircue \
     --signer-workflow war-and-code/dircue/.github/workflows/release-candidate.yml \
