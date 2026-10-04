@@ -52,8 +52,8 @@ func fixedMapSettings() []mapEffectiveSetting {
 	add("deployables.aspire_interpolation_depth", int64(interpolationDepth), "levels", "Maximum nested C# string interpolation depth in an Aspire AppHost candidate.")
 	add("deployables.aspire_source_references", int64(sourceReferences), "references", "Maximum direct AddProject source observations per Aspire AppHost file; reaching the cap omits the candidate with a diagnostic.")
 	aliasFiles, aliasFileBytes, aliasInputBytes := deployables.AspireAliasBounds()
-	add("deployables.aspire_alias_source_files", int64(aliasFiles), "files", "Maximum selected C# files inspected in each AppHost source subtree for project-wide aliases, only after an AppHost declaration is found.")
-	add("deployables.aspire_alias_source_file_bytes", int64(aliasFileBytes), "bytes", "Maximum complete size of one selected C# file inspected in an AppHost source subtree; oversize files qualify that AppHost as incomplete.")
-	add("deployables.aspire_alias_source_input_bytes", aliasInputBytes, "bytes", "Separate selected C# alias-context budget per AppHost source subtree; it does not consume the deployable declaration input budget.")
+	add("deployables.aspire_alias_source_files", int64(aliasFiles), "files", "Maximum selected helper C# files and same-root C# project declarations in each AppHost alias context; the host's own Program.cs has a separate declaration budget.")
+	add("deployables.aspire_alias_source_file_bytes", int64(aliasFileBytes), "bytes", "Maximum complete size of one selected file in an AppHost alias context; oversize files qualify that AppHost as incomplete.")
+	add("deployables.aspire_alias_source_input_bytes", aliasInputBytes, "bytes", "Separate alias-context budget per AppHost source subtree; it does not consume the deployable declaration input budget.")
 	return settings
 }

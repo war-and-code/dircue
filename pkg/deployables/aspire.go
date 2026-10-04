@@ -131,17 +131,40 @@ func projectUsingAlias(data []byte) (bool, error) {
 	stack := make([]string, 0, 8)
 	appHostSDK := false
 	usingAlias := false
+	unresolvedAlias := false
 	projectNS := ""
+	observeAlias := func(alias string) {
+		alias = strings.TrimSpace(alias)
+		if alias == "Projects" || alias == "DistributedApplication" {
+			usingAlias = true
+		}
+		if strings.Contains(alias, "$(") || strings.Contains(alias, "@(") || strings.Contains(alias, "%(") {
+			unresolvedAlias = true
+		}
+	}
 	for {
 		tok, err := decoder.Token()
 		if err != nil {
 			if err == io.EOF {
+				if appHostSDK && unresolvedAlias {
+					return false, fmt.Errorf("unresolved SDK global alias metadata")
+				}
 				return appHostSDK && usingAlias, nil
 			}
 			return false, err
 		}
 		switch elem := tok.(type) {
 		case xml.StartElement:
+			// MSBuild item metadata may be attributes or child elements:
+			// https://learn.microsoft.com/en-us/visualstudio/msbuild/msbuild-items
+			if len(stack) == 3 && stack[0] == "Project" && stack[1] == "ItemGroup" && stack[2] == "Using" && elem.Name.Local == "Alias" && elem.Name.Space == projectNS {
+				var alias string
+				if err := decoder.DecodeElement(&alias, &elem); err != nil {
+					return false, err
+				}
+				observeAlias(alias)
+				continue
+			}
 			if len(stack) == 0 && elem.Name.Local == "Project" {
 				projectNS = elem.Name.Space
 				for _, attr := range elem.Attr {
@@ -159,8 +182,8 @@ func projectUsingAlias(data []byte) (bool, error) {
 			}
 			if len(stack) == 2 && stack[0] == "Project" && stack[1] == "ItemGroup" && elem.Name.Local == "Using" && elem.Name.Space == projectNS {
 				for _, attr := range elem.Attr {
-					if attr.Name.Local == "Alias" && (attr.Value == "Projects" || attr.Value == "DistributedApplication") {
-						usingAlias = true
+					if attr.Name.Local == "Alias" && attr.Name.Space == "" {
+						observeAlias(attr.Value)
 					}
 				}
 			}
@@ -203,13 +226,10 @@ func inspectAspireGlobalAliases(ctx context.Context, appRoot, appProgram string,
 			}
 			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
 		}
-		if size != file.Size {
+		if size != file.Size || int64(len(content)) != size {
 			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
 		}
 		if strings.EqualFold(path.Ext(file.Path), ".csproj") {
-			if int64(len(content)) != size || size != file.Size {
-				return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
-			}
 			aliased, inspectErr := projectUsingAlias(content)
 			if inspectErr != nil {
 				return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil

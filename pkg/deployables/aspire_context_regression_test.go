@@ -26,6 +26,11 @@ func TestAppHostProjectUsingAliasesAreScopedAndCommentSafe(t *testing.T) {
 	}{
 		{"distributed-application alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake.DistributedApplication" Alias="DistributedApplication" /></ItemGroup></Project>`, "aspire_global_alias"},
 		{"projects alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake.Projects" Alias="Projects" /></ItemGroup></Project>`, "aspire_global_alias"},
+		{"child distributed-application alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake"><Alias>DistributedApplication</Alias></Using></ItemGroup></Project>`, "aspire_global_alias"},
+		{"child projects alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake"><Alias> Projects </Alias></Using></ItemGroup></Project>`, "aspire_global_alias"},
+		{"unrelated child alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake"><Alias>Unrelated</Alias></Using></ItemGroup></Project>`, ""},
+		{"unresolved alias attribute", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake" Alias="$(BindingName)" /></ItemGroup></Project>`, "aspire_alias_context_incomplete"},
+		{"unresolved alias child", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><Using Include="Fake"><Alias>$(BindingName)</Alias></Using></ItemGroup></Project>`, "aspire_alias_context_incomplete"},
 		{"unrelated alias", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><Using Include="Fake" Alias="Other" /></Project>`, ""},
 		{"comment lookalike", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><!-- <Using Include="Fake" Alias="Projects" /> --></Project>`, ""},
 		{"foreign lookalike", `<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup><x:Using xmlns:x="urn:fake" Alias="Projects" /></ItemGroup></Project>`, ""},
