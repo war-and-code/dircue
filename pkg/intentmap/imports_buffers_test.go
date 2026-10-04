@@ -53,6 +53,20 @@ func TestTokenBufferReleaseClearsSourceReferencesAndCapsRetention(t *testing.T) 
 	}
 }
 
+func TestDenseTokenGrowthRetainsOnlyTheReusableWindow(t *testing.T) {
+	source := strings.Repeat("word;", (48<<10)/5)
+	tokens, limited := lexSource(source, "java")
+	if !limited || len(tokens) != DefaultMaxLexicalTokensPerFile || cap(tokens) != DefaultMaxLexicalTokensPerFile {
+		t.Fatalf("dense token window: len=%d cap=%d limited=%t", len(tokens), cap(tokens), limited)
+	}
+	backing := &tokens[0]
+	clear(tokens)
+	reused, limited := lexSourceInto(source, "java", tokens[:0])
+	if !limited || len(reused) != len(tokens) || &reused[0] != backing {
+		t.Fatal("dense token window was reallocated or its cutoff changed")
+	}
+}
+
 func TestImportObservationsSurviveConcurrentBufferReuse(t *testing.T) {
 	parsers := []struct {
 		name, source string

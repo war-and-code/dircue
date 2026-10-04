@@ -58,6 +58,13 @@ func lexSourceInto(src string, lang string, toks []sourceToken) ([]sourceToken, 
 			overflow = true
 			return false
 		}
+		if len(toks) == cap(toks) {
+			// Keep growth within the retained-token limit so dense files can
+			// return their storage for reuse without retaining excess capacity.
+			next := make([]sourceToken, len(toks), min(DefaultMaxLexicalTokensPerFile, max(1, 2*cap(toks))))
+			copy(next, toks)
+			toks = next
+		}
 		toks = append(toks, t)
 		return true
 	}
