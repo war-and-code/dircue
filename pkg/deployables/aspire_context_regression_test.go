@@ -12,13 +12,6 @@ import (
 
 const contextTestProgram = "var builder = DistributedApplication.CreateBuilder(args);\nbuilder.AddProject<Projects.Api>(\"api\");\n"
 
-func candidateWith(data []byte, read func(context.Context, int64) ([]byte, int64, error)) Candidate {
-	if read == nil {
-		read = func(context.Context, int64) ([]byte, int64, error) { return data, int64(len(data)), nil }
-	}
-	return Candidate{Path: "src/AppHost/GlobalUsings.cs", Size: int64(len(data)), Read: read}
-}
-
 func TestAppHostProjectUsingAliasesAreScopedAndCommentSafe(t *testing.T) {
 	for _, tc := range []struct {
 		name, project string
