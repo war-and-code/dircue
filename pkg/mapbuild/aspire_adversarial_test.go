@@ -18,6 +18,7 @@ func TestAspireCLIObservationDoesNotLinkEscapedOrCustomBindings(t *testing.T) {
 		source string
 	}{
 		{"escaped framework type", base + "static class @DistributedApplication { public static FakeBuilder CreateBuilder(string[] args) => new(); }\nclass FakeBuilder { public FakeBuilder AddProject<T>(string name) => this; }\n"},
+		{"deconstruction local shadows framework type", "var (DistributedApplication, ignored) = (new Fake(), 0);\n" + base},
 		{"escaped generated Projects type", base + "class @Projects { public class Service {} }\n"},
 		{"custom generic extension", base + "static class FakeExtensions { public static object AddProject<T>(this IDistributedApplicationBuilder builder, string name) => new(); }\n"},
 		{"Unicode escaped framework local", "var Distri\\u0062utedApplication = Custom.Fake;\n" + base},

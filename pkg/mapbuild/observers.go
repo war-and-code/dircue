@@ -261,7 +261,13 @@ func dockerHasCargoZigbuild(def deployables.Definition) bool {
 }
 
 func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*intentmap.Report) {
-	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
+	deployableReasons := []string{"bounded_deployable_catalog"}
+	for _, code := range []string{"aspire_alias_context_incomplete", "aspire_alias_context_limit", "aspire_global_alias"} {
+		if r.Omissions[code] > 0 {
+			deployableReasons = append(deployableReasons, code)
+		}
+	}
+	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: deployableReasons})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
 	mavenComponents := map[string]bool{}

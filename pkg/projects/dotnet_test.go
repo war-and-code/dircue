@@ -298,6 +298,32 @@ func TestDotnetAspireProjectReferenceMetadataStaysPrivateAndConservative(t *test
 	}
 }
 
+func TestDotnetAspireProjectReferenceUpdateMetadataGuardsMatchingReferences(t *testing.T) {
+	doc := ParseDotnet("src/AppHost/AppHost.csproj", []byte(`<Project Sdk="Aspire.AppHost.Sdk/9.0.0"><ItemGroup>
+<ProjectReference Include="../Service/Service.csproj" />
+<ProjectReference Include="../Worker/Worker.csproj" />
+<ProjectReference Update="../Service/Service.csproj" AspireProjectMetadataTypeName="AliasService" />
+<ProjectReference Update="../Worker/Worker.csproj"><IsAspireProjectResource>false</IsAspireProjectResource></ProjectReference>
+</ItemGroup></Project>`))
+	if len(doc.Projects) != 1 || len(doc.Projects[0].References) != 2 {
+		t.Fatalf("references: %+v", doc.Projects)
+	}
+	service, worker := doc.Projects[0].References[0], doc.Projects[0].References[1]
+	if !service.AspireCustomName || service.AspireResource != "default" {
+		t.Fatalf("ProjectReference Update name override not applied: %+v", service)
+	}
+	if worker.AspireCustomName || worker.AspireResource != "false" {
+		t.Fatalf("ProjectReference Update resource metadata not applied: %+v", worker)
+	}
+	encoded, err := json.Marshal(doc.Projects[0].References)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(encoded), "AspireCustomName") || strings.Contains(string(encoded), "AliasService") || strings.Contains(string(encoded), "AspireResource") {
+		t.Fatalf("private metadata escaped into JSON: %s", encoded)
+	}
+}
+
 func TestDotnetSolutionFilterIsPassiveAndBounded(t *testing.T) {
 	doc := ParseDotnet("filters/App.slnf", []byte(`{"solution":{"path":"../solutions/App.sln","projects":["../src/App.csproj"]}}`))
 	if len(doc.Diagnostics) != 0 || len(doc.Projects) != 1 || len(doc.Projects[0].References) != 2 {

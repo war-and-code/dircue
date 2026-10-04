@@ -131,6 +131,10 @@ func ParseDotnet(name string, content []byte) Document {
 	var refs []Reference
 	var interfaces []Interface
 	projectNameCustomized := false
+	updatedAspireNames := map[string]bool{}
+	unknownAspireNameUpdate := false
+	updatedAspireResources := map[string]string{}
+	unknownAspireResourceUpdate := false
 	budget := dotnetBudget{remaining: dotnetMaxExpandedBytes}
 	addReq := func(kind, value, condition string) {
 		value = strings.TrimSpace(value)
@@ -225,6 +229,68 @@ func ParseDotnet(name string, content []byte) Document {
 			}
 		case "ProjectReference":
 			if parent != "ItemGroup" && parent != "Project" {
+				break
+			}
+			if strings.TrimSpace(n.attrs["Include"]) == "" && strings.TrimSpace(n.attrs["Update"]) != "" {
+				customName := false
+				resource, resourceSeen, resourceConflict := "", false, false
+				setUpdatedResource := func(value, updateCondition string) {
+					value = aspireResourceValue(value, updateCondition)
+					if resourceSeen && resource != value {
+						resourceConflict = true
+					}
+					resourceSeen = true
+					resource = value
+				}
+				for key, value := range n.attrs {
+					switch strings.ToLower(key) {
+					case "aspireprojectmetadatatypename", "projectname", "name":
+						customName = true
+					case "isaspireprojectresource":
+						setUpdatedResource(value, condition)
+					}
+				}
+				for _, child := range n.children {
+					switch strings.ToLower(child.name) {
+					case "aspireprojectmetadatatypename", "projectname", "name":
+						customName = true
+					case "isaspireprojectresource":
+						childCondition := budget.condition(condition, child.attrs["Condition"])
+						setUpdatedResource(strings.TrimSpace(child.text.String()), childCondition)
+					}
+				}
+				if resourceConflict {
+					resource = "unresolved"
+				}
+				if customName || resourceSeen {
+					for update := range strings.SplitSeq(n.attrs["Update"], ";") {
+						update = strings.TrimSpace(update)
+						if update == "" {
+						continue
+					}
+					if !budget.observation(len(update) + len(condition) + 128) {
+						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+						break
+					}
+					target := dotnetReference(name, "project-reference", update, condition).Target
+					if target == "" {
+						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+						continue
+					}
+					if customName {
+						updatedAspireNames[target] = true
+					}
+					if resourceSeen {
+						if previous, exists := updatedAspireResources[target]; exists && previous != resource {
+							updatedAspireResources[target] = "unresolved"
+						} else {
+						updatedAspireResources[target] = resource
+						}
+					}
+				}
+				}
 				break
 			}
 			for v := range strings.SplitSeq(n.attrs["Include"], ";") {
@@ -411,6 +477,19 @@ func ParseDotnet(name string, content []byte) Document {
 		}
 	}
 	visit(root, "", "")
+	for i := range refs {
+		if refs[i].Kind != "project-reference" {
+			continue
+		}
+		if unknownAspireNameUpdate || updatedAspireNames[refs[i].Target] {
+			refs[i].AspireCustomName = true
+		}
+		if unknownAspireResourceUpdate {
+			refs[i].AspireResource = "unresolved"
+		} else if resource, ok := updatedAspireResources[refs[i].Target]; ok {
+			refs[i].AspireResource = resource
+		}
+	}
 	if projectNameCustomized || hasAspireReferenceDefaults(root, "") {
 		for i := range refs {
 			if refs[i].Kind == "project-reference" {

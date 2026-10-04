@@ -5,6 +5,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"maps"
+	"path"
 	"slices"
 	"strings"
 	"sync"
@@ -15,15 +17,25 @@ import (
 // Collector is a concurrent scanner detector. It retains the lexically first
 // declaration views within its input budget and parses them after scanning.
 type Collector struct {
-	mu           sync.Mutex
-	report       Report
-	pending      []pendingFile
-	pendingBytes int64
-	budgetDrops  int64
-	cutoff       string
-	dirs         map[string]bool
-	targets      procfileTargetInventory
-	procfileSeen bool
+	mu                  sync.Mutex
+	report              Report
+	pending             []pendingFile
+	pendingBytes        int64
+	budgetDrops         int64
+	cutoff              string
+	dirs                map[string]bool
+	targets             procfileTargetInventory
+	procfileSeen        bool
+	aspireAliasFiles    map[string]int
+	aspireAliasBytes    map[string]int64
+	aspireAliasIssues   map[string]aspireAliasObservation
+	aspireAliasOverflow map[string]bool
+}
+
+type aspireAliasObservation struct {
+	root string
+	path string
+	code string
 }
 
 type pendingFile struct {
@@ -35,7 +47,8 @@ func NewCollector(options Options) *Collector {
 	limits := normalizedLimits(options)
 	return &Collector{report: Report{Provider: "dircue", ProviderVersion: ProviderVersion, Status: "complete", Source: options.Source,
 		Selection: "supported-static-declarations-in-selected-regular-files", Limits: limits,
-		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}, targets: newProcfileTargetInventory()}
+		Definitions: []Definition{}, Diagnostics: []Diagnostic{}, Omissions: map[string]int64{}}, dirs: map[string]bool{}, targets: newProcfileTargetInventory(),
+		aspireAliasFiles: map[string]int{}, aspireAliasBytes: map[string]int64{}, aspireAliasIssues: map[string]aspireAliasObservation{}, aspireAliasOverflow: map[string]bool{}}
 }
 
 func (*Collector) Name() string { return "deployables" }
@@ -51,6 +64,20 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 		c.procfileSeen = true
 	}
 	c.mu.Unlock()
+	if isCSharpSource(file.Path) {
+		for _, hostRoot := range aspireHostRootsForSource(file.Path) {
+			if path.Dir(file.Path) == hostRoot && strings.EqualFold(path.Base(file.Path), "Program.cs") {
+				continue // the host's own Program.cs is parsed as the declaration, not context
+			}
+			c.observeAspireAliasSource(file.Path, hostRoot, file.Size, file.Content)
+		}
+	}
+	if isDotnetProjectFile(file.Path) {
+		hostRoot := path.Dir(file.Path)
+		if strings.EqualFold(path.Ext(file.Path), ".csproj") && isAppHostDir(hostRoot) {
+			c.observeAspireAliasSource(file.Path, hostRoot, file.Size, file.Content)
+		}
+	}
 	if !IsCandidate(file.Path) {
 		c.mu.Lock()
 		c.report.Coverage.SelectedFiles++
@@ -100,21 +127,62 @@ func (c *Collector) Detect(ctx context.Context, file profile.File) ([]profile.Fi
 	return nil, nil
 }
 
+func (c *Collector) observeAspireAliasSource(filePath, hostRoot string, size int64, content []byte) {
+	code := ""
+	c.mu.Lock()
+	if c.aspireAliasFiles[hostRoot] >= maxAspireAliasFiles || size < 0 || size > maxAspireAliasFileBytes || size > maxAspireAliasInputBytes-c.aspireAliasBytes[hostRoot] {
+		c.aspireAliasOverflow[hostRoot] = true
+		c.mu.Unlock()
+		return
+	}
+	c.aspireAliasFiles[hostRoot]++
+	c.aspireAliasBytes[hostRoot] += size
+	c.mu.Unlock()
+	if size != int64(len(content)) {
+		code = "aspire_alias_context_incomplete"
+	} else if strings.EqualFold(path.Ext(filePath), ".csproj") {
+		aliased, err := projectUsingAlias(content)
+		if err != nil {
+			code = "aspire_alias_context_incomplete"
+		} else if aliased {
+			code = "aspire_global_alias"
+		}
+	} else {
+		aliased, err := inspectAspireAliasSource(aspireAliasSource{path: filePath, data: content, size: size})
+		if err != nil {
+			code = "aspire_alias_context_incomplete"
+		} else if aliased {
+			code = "aspire_global_alias"
+		} else {
+			return
+		}
+	}
+	if code == "" {
+		return
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	issue := aspireAliasObservation{root: hostRoot, path: filePath, code: code}
+	if prior, ok := c.aspireAliasIssues[hostRoot]; !ok || strings.Compare(issue.path+"\x00"+issue.code, prior.path+"\x00"+prior.code) < 0 {
+		c.aspireAliasIssues[hostRoot] = issue
+	}
+}
+
 // Finish snapshots the deterministic fragment accumulated by Detect. Calls may
 // follow Detect only after scanner workers have joined.
 func (c *Collector) Finish() *Report {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	out := c.report
-	out.Directories = c.dirs
-	if c.procfileSeen && c.targets.capped {
-		out.omit("procfile_inventory_limit", 1, "Procfile", "Procfile target binding was disabled because the selected source-path inventory exceeded its bound.")
-	}
+	out.Directories = maps.Clone(c.dirs)
 	out.Definitions = slices.Clone(c.report.Definitions)
 	out.Diagnostics = slices.Clone(c.report.Diagnostics)
 	out.Omissions = make(map[string]int64, len(c.report.Omissions))
 	for k, v := range c.report.Omissions {
 		out.Omissions[k] = v
+	}
+	if c.procfileSeen && c.targets.capped {
+		out.omit("procfile_inventory_limit", 1, "Procfile", "Procfile target binding was disabled because the selected source-path inventory exceeded its bound.")
 	}
 	if c.budgetDrops > 0 {
 		out.omit("selection_budget", c.budgetDrops, "", "Only the lexically first declaration candidates within the file and input-byte budgets were parsed.")
@@ -171,6 +239,7 @@ func (c *Collector) Finish() *Report {
 			out.Definitions = append(out.Definitions, defs[i])
 		}
 	}
+	c.suppressAspireDefinitionsForAliases(&out)
 	slices.SortFunc(out.Definitions, func(a, b Definition) int { return strings.Compare(a.ID, b.ID) })
 	if len(out.Definitions) > out.Limits.Definitions {
 		out.Omissions["definition_limit"] += int64(len(out.Definitions) - out.Limits.Definitions)
@@ -202,6 +271,43 @@ func (c *Collector) Finish() *Report {
 	out.Coverage.RetainedReferences = refs
 	slices.SortFunc(out.Diagnostics, func(a, b Diagnostic) int { return strings.Compare(a.Path+"\x00"+a.Code, b.Path+"\x00"+b.Code) })
 	return &out
+}
+
+func (c *Collector) suppressAspireDefinitionsForAliases(report *Report) {
+	if len(report.Definitions) == 0 || len(c.aspireAliasIssues) == 0 && len(c.aspireAliasOverflow) == 0 {
+		return
+	}
+	// Issues are stored as one deterministic lexically-selected entry per host;
+	// the number of hosts cannot be truncated by a global issue cap.
+	kept := report.Definitions[:0]
+	blocked := map[string]bool{}
+	for _, def := range report.Definitions {
+		if def.Provider != "aspire-apphost" {
+			kept = append(kept, def)
+			continue
+		}
+		root := path.Dir(def.Path)
+		if blocked[root] {
+			continue
+		}
+		var issue *aspireAliasObservation
+		if c.aspireAliasOverflow[root] {
+			issue = &aspireAliasObservation{root: root, path: root, code: "aspire_alias_context_limit"}
+		} else if candidate, ok := c.aspireAliasIssues[root]; ok && isPathWithin(root, candidate.path) {
+			issue = &candidate
+		}
+		if issue == nil {
+			kept = append(kept, def)
+			continue
+		}
+		message := "A selected C# source may change the AppHost symbol binding; the Aspire declaration was withheld."
+		if issue.code == "aspire_global_alias" {
+			message = "A project-wide C# alias changes an Aspire binding; the AppHost declaration was withheld."
+		}
+		report.omit(issue.code, 1, issue.path, message)
+		blocked[root] = true
+	}
+	report.Definitions = kept
 }
 
 var _ profile.Detector = (*Collector)(nil)

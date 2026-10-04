@@ -33,6 +33,12 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 			candidates = append(candidates, f)
 		}
 	}
+	projectRoots := make(map[string]bool)
+	for _, f := range files {
+		if isDotnetProjectFile(f.Path) {
+			projectRoots[path.Dir(f.Path)] = true
+		}
+	}
 	slices.SortFunc(candidates, func(a, b Candidate) int { return strings.Compare(a.Path, b.Path) })
 	if len(candidates) > limits.Files {
 		r.omit("file_limit", int64(len(candidates)-limits.Files), "", "Only the lexically first supported declaration candidates were inspected.")
@@ -168,6 +174,33 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 			}
 			slices.SortFunc(r.Definitions[i].References, compareReference)
 			r.Definitions[i].ID = stableID(r.Definitions[i])
+		}
+	}
+	if len(projectRoots) > 0 {
+		kept := r.Definitions[:0]
+		withheldReferences := 0
+		for _, def := range r.Definitions {
+			if def.Provider == "aspire-apphost" {
+				issue, err := inspectAspireGlobalAliases(ctx, path.Dir(def.Path), def.Path, files, projectRoots)
+				if err != nil {
+					return nil, err
+				}
+				if issue != nil {
+					message := "A selected C# source may change the AppHost symbol binding; the Aspire declaration was withheld."
+					if issue.code == "aspire_global_alias" {
+						message = "A project-wide C# alias changes an Aspire binding; the AppHost declaration was withheld."
+					}
+					r.omit(issue.code, 1, issue.path, message)
+					withheldReferences += len(def.References)
+					continue
+				}
+			}
+			kept = append(kept, def)
+		}
+		r.Definitions = kept
+		r.Coverage.RetainedReferences -= withheldReferences
+		if r.Coverage.RetainedReferences < 0 {
+			return nil, fmt.Errorf("negative retained reference coverage after Aspire suppression")
 		}
 	}
 	slices.SortFunc(r.Definitions, func(a, b Definition) int { return strings.Compare(a.ID, b.ID) })

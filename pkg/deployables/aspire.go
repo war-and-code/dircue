@@ -2,10 +2,15 @@ package deployables
 
 import (
 	"bytes"
+	"context"
+	"encoding/xml"
 	"fmt"
+	"io"
 	"path"
+	"slices"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 // This lexer intentionally recognizes only enough C# to bind the common
@@ -21,10 +26,208 @@ type csToken struct {
 const maxAspireCSharpTokens = 32768
 const maxAspireSourceReferences = 2048
 const maxAspireInterpolationDepth = 64
+const maxAspireAliasFiles = 512
+const maxAspireAliasFileBytes = 256 << 10
+const maxAspireAliasInputBytes = 4 << 20
 
 // AspireBounds exposes the finite parser limits for deterministic map settings.
 func AspireBounds() (tokens, interpolationDepth, sourceReferences int) {
 	return maxAspireCSharpTokens, maxAspireInterpolationDepth, maxAspireSourceReferences
+}
+
+// AspireAliasBounds exposes the separate selected-source global-using scan
+// limits. The scan runs only when a supported AppHost declaration is present.
+func AspireAliasBounds() (files, fileBytes int, inputBytes int64) {
+	return maxAspireAliasFiles, maxAspireAliasFileBytes, maxAspireAliasInputBytes
+}
+
+type aspireAliasIssue struct {
+	path string
+	code string
+}
+
+type aspireAliasSource struct {
+	path string
+	data []byte
+	size int64
+}
+
+func isCSharpSource(name string) bool {
+	return strings.EqualFold(path.Ext(name), ".cs")
+}
+
+func isDotnetProjectFile(name string) bool {
+	switch strings.ToLower(path.Ext(name)) {
+	case ".csproj", ".fsproj", ".vbproj":
+		return true
+	default:
+		return false
+	}
+}
+
+func aspireHostRootsForSource(file string) []string {
+	var roots []string
+	dir := path.Dir(file)
+	for dir != "." && dir != "/" {
+		if isAppHostDir(dir) {
+			roots = append(roots, dir)
+		}
+		dir = path.Dir(dir)
+	}
+	return roots
+}
+
+func isPathWithin(root, file string) bool {
+	return file == root || strings.HasPrefix(file, strings.TrimSuffix(root, "/")+"/")
+}
+
+func possibleAspireGlobalAlias(content []byte) bool {
+	if !bytes.Contains(content, []byte("global")) || !bytes.Contains(content, []byte("using")) {
+		return false
+	}
+	return bytes.Contains(content, []byte("Projects")) || bytes.Contains(content, []byte("DistributedApplication")) || bytes.Contains(content, []byte("Project")) || bytes.Contains(content, []byte("Distributed")) || bytes.Contains(content, []byte("\\"))
+}
+
+func hasGlobalAspireAlias(tokens []csToken) bool {
+	for i := 0; i+3 < len(tokens); i++ {
+		if tokens[i].text == "global" && tokens[i+1].text == "using" &&
+			(tokens[i+2].text == "Projects" || tokens[i+2].text == "DistributedApplication") && tokens[i+3].text == "=" {
+			return true
+		}
+	}
+	return false
+}
+
+func inspectAspireAliasSource(source aspireAliasSource) (bool, error) {
+	if int64(len(source.data)) != source.size || source.size > maxAspireAliasFileBytes {
+		return false, fmt.Errorf("incomplete or oversized C# source")
+	}
+	// The token prefilter is byte-oriented. UTF-16 or embedded NUL input must
+	// not bypass it and then be treated as a complete source view.
+	if bytes.IndexByte(source.data, 0) >= 0 || bytes.HasPrefix(source.data, []byte{0xff, 0xfe}) || bytes.HasPrefix(source.data, []byte{0xfe, 0xff}) {
+		return false, fmt.Errorf("unsupported C# source encoding")
+	}
+	if !utf8.Valid(source.data) {
+		return false, fmt.Errorf("invalid UTF-8 C# source")
+	}
+	if !possibleAspireGlobalAlias(source.data) {
+		return false, nil
+	}
+	tokens, err := lexAspireCSharp(string(source.data))
+	if err != nil {
+		return false, err
+	}
+	return hasGlobalAspireAlias(tokens), nil
+}
+
+// projectUsingAlias detects the supported SDK-generated global alias forms in
+// an AppHost project file. XML decoding ensures comments and lookalike text do
+// not trigger the guard.
+func projectUsingAlias(data []byte) (bool, error) {
+	if bytes.IndexByte(data, 0) >= 0 || bytes.HasPrefix(data, []byte{0xff, 0xfe}) || bytes.HasPrefix(data, []byte{0xfe, 0xff}) || !utf8.Valid(data) {
+		return false, fmt.Errorf("unsupported project file encoding")
+	}
+	decoder := xml.NewDecoder(bytes.NewReader(data))
+	stack := make([]string, 0, 8)
+	appHostSDK := false
+	usingAlias := false
+	projectNS := ""
+	for {
+		tok, err := decoder.Token()
+		if err != nil {
+			if err == io.EOF {
+				return appHostSDK && usingAlias, nil
+			}
+			return false, err
+		}
+		switch elem := tok.(type) {
+		case xml.StartElement:
+			if len(stack) == 0 && elem.Name.Local == "Project" {
+				projectNS = elem.Name.Space
+				for _, attr := range elem.Attr {
+					if attr.Name.Local == "Sdk" && strings.Contains(attr.Value, "Aspire.AppHost.Sdk") {
+						appHostSDK = true
+					}
+				}
+			}
+			if len(stack) == 1 && stack[0] == "Project" && elem.Name.Local == "Sdk" && elem.Name.Space == projectNS {
+				for _, attr := range elem.Attr {
+					if attr.Name.Local == "Name" && strings.Contains(attr.Value, "Aspire.AppHost.Sdk") {
+						appHostSDK = true
+					}
+				}
+			}
+			if len(stack) == 2 && stack[0] == "Project" && stack[1] == "ItemGroup" && elem.Name.Local == "Using" && elem.Name.Space == projectNS {
+				for _, attr := range elem.Attr {
+					if attr.Name.Local == "Alias" && (attr.Value == "Projects" || attr.Value == "DistributedApplication") {
+						usingAlias = true
+					}
+				}
+			}
+			stack = append(stack, elem.Name.Local)
+		case xml.EndElement:
+			if len(stack) == 0 || stack[len(stack)-1] != elem.Name.Local {
+				return false, fmt.Errorf("malformed project XML nesting")
+			}
+			stack = stack[:len(stack)-1]
+		}
+	}
+}
+
+func inspectAspireGlobalAliases(ctx context.Context, appRoot, appProgram string, files []Candidate, projectRoots map[string]bool) (*aspireAliasIssue, error) {
+	if !projectRoots[appRoot] {
+		return nil, nil
+	}
+	sources := make([]Candidate, 0)
+	for _, file := range files {
+		projectInScope := strings.EqualFold(path.Ext(file.Path), ".csproj") && path.Dir(file.Path) == appRoot
+		if file.Path == appProgram || (!isCSharpSource(file.Path) && !projectInScope) || !isPathWithin(appRoot, file.Path) {
+			continue
+		}
+		sources = append(sources, file)
+	}
+	slices.SortFunc(sources, func(a, b Candidate) int { return strings.Compare(a.Path, b.Path) })
+	var total int64
+	for i, file := range sources {
+		if i >= maxAspireAliasFiles || file.Size < 0 || file.Size > maxAspireAliasFileBytes || file.Size > maxAspireAliasInputBytes-total {
+			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_limit"}, nil
+		}
+		total += file.Size
+		if file.Read == nil {
+			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+		}
+		content, size, err := file.Read(ctx, int64(maxAspireAliasFileBytes)+1)
+		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+		}
+		if size != file.Size {
+			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+		}
+		if strings.EqualFold(path.Ext(file.Path), ".csproj") {
+			if int64(len(content)) != size || size != file.Size {
+				return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+			}
+			aliased, inspectErr := projectUsingAlias(content)
+			if inspectErr != nil {
+				return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+			}
+			if aliased {
+				return &aspireAliasIssue{path: file.Path, code: "aspire_global_alias"}, nil
+			}
+			continue
+		}
+		aliased, inspectErr := inspectAspireAliasSource(aspireAliasSource{path: file.Path, data: content, size: size})
+		if inspectErr != nil {
+			return &aspireAliasIssue{path: file.Path, code: "aspire_alias_context_incomplete"}, nil
+		}
+		if aliased {
+			return &aspireAliasIssue{path: file.Path, code: "aspire_global_alias"}, nil
+		}
+	}
+	return nil, nil
 }
 
 func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error) {
@@ -225,6 +428,10 @@ func containsConditional(s []csToken) bool {
 	return false
 }
 func hasCustomProjectsBinding(tokens []csToken) bool {
+	if hasVarDeconstructionBinding(tokens, "Projects") {
+		return true
+	}
+	ranges := newAspireBindingRanges(tokens)
 	for i, t := range tokens {
 		if t.kind != "ident" {
 			continue
@@ -233,10 +440,8 @@ func hasCustomProjectsBinding(tokens []csToken) bool {
 			return true
 		}
 		if !t.escaped && t.text == "namespace" {
-			for j := i + 1; j < len(tokens) && tokens[j].text != "{" && tokens[j].text != ";"; j++ {
-				if tokens[j].text == "Projects" {
-					return true
-				}
+			if ranges.containsProjectsBeforeNamespaceBoundary(i) {
+				return true
 			}
 		}
 		if !t.escaped && (t.text == "using" || t.text == "global" && i+1 < len(tokens) && tokens[i+1].text == "using" && !tokens[i+1].escaped) {
@@ -244,10 +449,8 @@ func hasCustomProjectsBinding(tokens []csToken) bool {
 			if t.text == "global" {
 				start = i + 1
 			}
-			for j := start + 1; j < len(tokens) && tokens[j].text != ";"; j++ {
-				if tokens[j].text == "Projects" {
-					return true
-				}
+			if ranges.containsProjectsBeforeSemicolon(start) {
+				return true
 			}
 		}
 		if !t.escaped && t.text == "var" && i+1 < len(tokens) && tokens[i+1].text == "Projects" {
@@ -261,6 +464,10 @@ func hasCustomProjectsBinding(tokens []csToken) bool {
 }
 
 func hasCustomDistributedApplicationBinding(tokens []csToken) bool {
+	if hasVarDeconstructionBinding(tokens, "DistributedApplication") {
+		return true
+	}
+	ranges := newAspireBindingRanges(tokens)
 	for i, t := range tokens {
 		if t.kind != "ident" {
 			continue
@@ -269,10 +476,8 @@ func hasCustomDistributedApplicationBinding(tokens []csToken) bool {
 			return true
 		}
 		if !t.escaped && t.text == "using" {
-			for j := i + 1; j < len(tokens) && tokens[j].text != ";"; j++ {
-				if tokens[j].text == "DistributedApplication" {
-					return true
-				}
+			if ranges.containsDistributedApplicationBeforeSemicolon(i) {
+				return true
 			}
 		}
 		if t.text == "DistributedApplication" && i+1 < len(tokens) && tokens[i+1].text == "=" && (i == 0 || tokens[i-1].text != ".") {
@@ -284,6 +489,49 @@ func hasCustomDistributedApplicationBinding(tokens []csToken) bool {
 	}
 	return false
 }
+
+// hasVarDeconstructionBinding detects locals introduced by
+// `var (name, ...) = ...`. It builds delimiter and prefix indexes in linear
+// time so hostile repeated or nested token sequences cannot make the shadow
+// check quadratic.
+func hasVarDeconstructionBinding(tokens []csToken, name string) bool {
+	closing := make([]int, len(tokens))
+	for i := range closing {
+		closing[i] = -1
+	}
+	prefix := make([]int, len(tokens)+1)
+	stack := make([]int, 0)
+	for i, t := range tokens {
+		prefix[i+1] = prefix[i]
+		if t.text == name {
+			prefix[i+1]++
+		}
+		switch t.text {
+		case "(":
+			stack = append(stack, i)
+		case ")":
+			if len(stack) > 0 {
+				open := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				closing[open] = i
+			}
+		}
+	}
+	for i, t := range tokens {
+		if t.text == "(" {
+			end := closing[i]
+			if end > i && end+1 < len(tokens) && tokens[end+1].text == "=" && prefix[end]-prefix[i] > 0 {
+				// This includes both `var (x, y) = ...` and typed declaration
+				// forms such as `(int x, var y) = ...`. It can also reject an
+				// assignment tuple to an existing variable, which is safer than
+				// attributing a possibly shadowed builder.
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func reassignsAspireBuilder(s []csToken) bool {
 	for i, t := range s {
 		if t.kind != "ident" || t.text != "builder" {
