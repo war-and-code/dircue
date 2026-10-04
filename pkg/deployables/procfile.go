@@ -86,7 +86,7 @@ func parseProcfile(name string, content []byte) ([]Definition, bool, error) {
 	for index, raw := range lines {
 		lineNumber := index + 1
 		line := strings.TrimSuffix(raw, "\r")
-		trimmed := strings.TrimSpace(line)
+		trimmed := procfileASCIITrim(line)
 		if trimmed == "" || strings.HasPrefix(trimmed, "#") {
 			continue
 		}
@@ -104,8 +104,8 @@ func parseProcfile(name string, content []byte) ([]Definition, bool, error) {
 			issues["procfile_malformed_line"]++
 			continue
 		}
-		processName := strings.TrimSpace(line[:colon])
-		command := strings.TrimSpace(line[colon+1:])
+		processName := procfileASCIITrim(line[:colon])
+		command := procfileASCIITrim(line[colon+1:])
 		if !safeProcfileName(processName) || command == "" {
 			issues["procfile_malformed_line"]++
 			continue
@@ -244,7 +244,11 @@ func procfileFields(command string) ([]string, bool) {
 	if strings.ContainsAny(command, "\r\n\x00\\\"'`;&|<>(){}[]") || strings.Contains(command, "$(") || strings.Contains(command, "${") {
 		return nil, false
 	}
-	fields := strings.Fields(command)
+	// Procfile commands use shell-style tokens. Go's strings.Fields also splits
+	// Unicode whitespace (for example NBSP and EM SPACE), which a POSIX shell
+	// keeps inside a token. Treating those runes as separators can invent a
+	// Python or Node executable/target pair that the command does not contain.
+	fields := strings.FieldsFunc(command, func(r rune) bool { return r == ' ' || r == '\t' })
 	if len(fields) == 0 {
 		return nil, false
 	}
@@ -257,6 +261,10 @@ func procfileFields(command string) ([]string, bool) {
 		}
 	}
 	return fields, true
+}
+
+func procfileASCIITrim(value string) string {
+	return strings.Trim(value, " \t")
 }
 
 func safeDottedIdentifier(value string) bool {

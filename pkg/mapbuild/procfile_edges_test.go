@@ -3,6 +3,7 @@ package mapbuild
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -62,6 +63,48 @@ func TestProcfileObserveToMapBuildUsesOnlySelectedSourceTarget(t *testing.T) {
 		if strings.Contains(string(encoded), withheld) {
 			t.Errorf("Procfile command detail %q leaked into map", withheld)
 		}
+	}
+}
+
+func TestProcfileUnicodeWhitespaceCannotInventShellTokensOrRunEdges(t *testing.T) {
+	for _, separator := range []string{"\u00a0", "\u2003", "\v"} {
+		t.Run(fmt.Sprintf("separator_%x", []rune(separator)[0]), func(t *testing.T) {
+			inputs := map[string]string{
+				"Procfile":      "web: node" + separator + "src/server.js\n",
+				"src/server.js": "console.log('server')\n",
+				"package.json":  `{"name":"service"}`,
+			}
+			candidates := make([]deployables.Candidate, 0, len(inputs))
+			for name, body := range inputs {
+				name, body := name, body
+				candidates = append(candidates, deployables.Candidate{Path: name, Size: int64(len(body)), Read: func(context.Context, int64) ([]byte, int64, error) {
+					return []byte(body), int64(len(body)), nil
+				}})
+			}
+			report, err := deployables.Observe(context.Background(), candidates, deployables.Options{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(report.Definitions) != 1 {
+				t.Fatalf("Procfile process missing: %+v", report)
+			}
+			ref := report.Definitions[0].References[0]
+			if report.Definitions[0].Coverage != "qualified" || ref.Qualification != "unresolved" || ref.SourcePath != "" {
+				t.Fatalf("Unicode whitespace invented a shell token split: definition=%+v", report.Definitions[0])
+			}
+
+			profileReport := &profile.Report{
+				Discovery:    &discovery.Report{Status: "complete", Source: discovery.Source{Mode: "directory", Consistency: "live_directory_metadata"}},
+				Declarations: &declarations.Report{Status: "complete", Projects: []declarations.Project{{ID: "package.json", Root: ".", Kind: "npm"}}},
+			}
+			mapDoc, err := Build(profileReport, Options{Deployables: report})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if countProcfileEdges(mapDoc) != 0 {
+				t.Fatalf("Unicode whitespace produced a false Procfile run edge: %+v", mapDoc.Edges)
+			}
+		})
 	}
 }
 
