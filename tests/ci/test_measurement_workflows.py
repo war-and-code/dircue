@@ -29,7 +29,7 @@ class MeasurementWorkflowTests(unittest.TestCase):
         self.assertIn("python3 tests/bench/run.py --baseline", text)
         self.assertIn("-benchtime=1x", text)
         self.assertIn("discover -s tests/mutation", text)
-        self.assertIn('make fuzz-campaign FUZZ_TIME=1 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"', text)
+        self.assertIn('make fuzz-campaign FUZZ_COUNT=1000 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"', text)
 
     @unittest.skipIf(os.name == "nt", "the manually dispatched Linux job uses POSIX executable scripts")
     def test_mutation_tool_failures_or_missing_receipts_fail_the_job(self):

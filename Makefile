@@ -89,6 +89,7 @@ release-archives:
 # under each package's testdata/fuzz. An empty value uses $GOCACHE/fuzz.
 
 FUZZ_TIME  ?= 60
+FUZZ_COUNT ?=
 FUZZ_PKG   ?= ./...
 FUZZ_CACHE ?=
 
@@ -97,6 +98,9 @@ FUZZ_CACHE ?=
 fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... FUZZ_CACHE=dir)
 	@set -e; \
 	set -- "-fuzztime=$(FUZZ_TIME)s"; \
+	if [ -n "$(FUZZ_COUNT)" ]; then \
+	  set -- "-fuzztime=$(FUZZ_COUNT)x" "-fuzzminimizetime=100x"; \
+	fi; \
 	if [ -n "$(FUZZ_CACHE)" ]; then \
 	  mkdir -p "$(FUZZ_CACHE)"; \
 	  _fuzz_cache=$$(cd "$(FUZZ_CACHE)" && pwd); \
@@ -117,7 +121,7 @@ fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... 
 	  while IFS= read -r _t; do \
 	    case "$$_t" in Fuzz*) ;; *) continue ;; esac; \
 	    _found=1; \
-	    echo "==> $$_pkg: $$_t ($(FUZZ_TIME)s)"; \
+	    echo "==> $$_pkg: $$_t ($(if $(FUZZ_COUNT),$(FUZZ_COUNT)x,$(FUZZ_TIME)s))"; \
 	    CGO_ENABLED=0 go test "$$_pkg" -run='^$$' -fuzz='^'"$$_t"'$$' "$$@"; \
 	  done <"$$_tmpdir/targets"; \
 	done <"$$_tmpdir/packages.sorted"; \

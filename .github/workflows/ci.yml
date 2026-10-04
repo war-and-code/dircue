@@ -161,7 +161,7 @@ jobs:
         if: runner.os == 'Linux'
         env:
           GOMAXPROCS: '4'
-        run: make fuzz-campaign FUZZ_TIME=1 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"
+        run: make fuzz-campaign FUZZ_COUNT=1000 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"
       - name: Exercise benchmark assertions and whole-CLI equality (Linux only)
         if: runner.os == 'Linux'
         env:
