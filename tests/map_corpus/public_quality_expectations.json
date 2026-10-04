@@ -2043,6 +2043,384 @@
           "evidence_paths": [
             "src/eShop.AppHost/eShop.AppHost.csproj"
           ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Identity.API",
+            "paths": [
+              "src/Identity.API",
+              "src/Identity.API/Identity.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/Identity.API"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/Identity.API/Identity.API.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Basket.API",
+            "paths": [
+              "src/Basket.API",
+              "src/Basket.API/Basket.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/Basket.API"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/Basket.API/Basket.API.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Catalog.API",
+            "paths": [
+              "src/Catalog.API",
+              "src/Catalog.API/Catalog.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/Catalog.API"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/Catalog.API/Catalog.API.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Ordering.API",
+            "paths": [
+              "src/Ordering.API",
+              "src/Ordering.API/Ordering.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/Ordering.API"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/Ordering.API/Ordering.API.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "OrderProcessor",
+            "paths": [
+              "src/OrderProcessor",
+              "src/OrderProcessor/OrderProcessor.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/OrderProcessor"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/OrderProcessor/OrderProcessor.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "PaymentProcessor",
+            "paths": [
+              "src/PaymentProcessor",
+              "src/PaymentProcessor/PaymentProcessor.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/PaymentProcessor"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/PaymentProcessor/PaymentProcessor.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "Webhooks.API",
+            "paths": [
+              "src/Webhooks.API",
+              "src/Webhooks.API/Webhooks.API.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/Webhooks.API"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/Webhooks.API/Webhooks.API.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "WebhookClient",
+            "paths": [
+              "src/WebhookClient",
+              "src/WebhookClient/WebhookClient.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/WebhookClient"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/WebhookClient/WebhookClient.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
+        },
+        {
+          "type": "runs",
+          "from": {
+            "kind": "deployable",
+            "name": "eShop.AppHost",
+            "paths": [
+              "src/eShop.AppHost/Program.cs"
+            ],
+            "properties": {
+              "kind": "service",
+              "provider": "aspire-apphost",
+              "source_sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1"
+            }
+          },
+          "to": {
+            "kind": "component",
+            "name": "WebApp",
+            "paths": [
+              "src/WebApp",
+              "src/WebApp/WebApp.csproj"
+            ],
+            "properties": {
+              "ecosystem": "dotnet",
+              "language": "C#",
+              "language_basis": "project_file_extension",
+              "language_scope": "declared_primary_project_language",
+              "project_kind": "dotnet",
+              "role": "primary",
+              "role_basis": "path_name",
+              "root": "src/WebApp"
+            }
+          },
+          "properties": {
+            "reason": "aspire_addproject_declares_run",
+            "relationship_basis": "apphost-sdk-and-project-reference"
+          },
+          "evidence_paths": [
+            "src/WebApp/WebApp.csproj",
+            "src/eShop.AppHost/Program.cs",
+            "src/eShop.AppHost/eShop.AppHost.csproj"
+          ]
         }
       ],
       "expected_coverage": [
@@ -2133,6 +2511,11 @@
           "path": "src/eShop.ServiceDefaults/eShop.ServiceDefaults.csproj",
           "sha256": "14d9f6aa35b60de92a730f9b12ec8ab236296e17a8e60882faa00e9d4b4a99a8",
           "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/eShop.ServiceDefaults/eShop.ServiceDefaults.csproj"
+        },
+        {
+          "path": "src/eShop.AppHost/Program.cs",
+          "sha256": "53c0c7002931b4fac15ce62d9420be7ecd45fb7498c73d1ffe70441a56643fa1",
+          "url": "https://github.com/dotnet/eShop/blob/b4a40872005d4bb29e5b1fa1ff7e244143d39215/src/eShop.AppHost/Program.cs"
         }
       ]
     },

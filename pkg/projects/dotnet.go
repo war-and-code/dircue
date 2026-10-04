@@ -130,6 +130,11 @@ func ParseDotnet(name string, content []byte) Document {
 	var reqs []Requirement
 	var refs []Reference
 	var interfaces []Interface
+	projectNameCustomized := false
+	updatedAspireNames := map[string]bool{}
+	unknownAspireNameUpdate := false
+	updatedAspireResources := map[string]string{}
+	unknownAspireResourceUpdate := false
 	budget := dotnetBudget{remaining: dotnetMaxExpandedBytes}
 	addReq := func(kind, value, condition string) {
 		value = strings.TrimSpace(value)
@@ -152,6 +157,10 @@ func ParseDotnet(name string, content []byte) Document {
 		value := strings.TrimSpace(n.text.String())
 		semanticName := dotnetSemanticName(parent, n.name)
 		switch semanticName {
+		case "ProjectName":
+			if (parent == "PropertyGroup" || parent == "Project") && value != "" {
+				projectNameCustomized = true
+			}
 		case "Project":
 			if ext == ".slnx" {
 				if v := n.attrs["Path"]; v != "" {
@@ -222,12 +231,117 @@ func ParseDotnet(name string, content []byte) Document {
 			if parent != "ItemGroup" && parent != "Project" {
 				break
 			}
+			if strings.TrimSpace(n.attrs["Include"]) == "" && strings.TrimSpace(n.attrs["Update"]) != "" {
+				customName := false
+				resource, resourceSeen, resourceConflict := "", false, false
+				setUpdatedResource := func(value, updateCondition string) {
+					value = aspireResourceValue(value, updateCondition)
+					if resourceSeen && resource != value {
+						resourceConflict = true
+					}
+					resourceSeen = true
+					resource = value
+				}
+				for key, value := range n.attrs {
+					switch strings.ToLower(key) {
+					case "aspireprojectmetadatatypename", "projectname", "name":
+						customName = true
+					case "isaspireprojectresource":
+						setUpdatedResource(value, condition)
+					}
+				}
+				for _, child := range n.children {
+					switch strings.ToLower(child.name) {
+					case "aspireprojectmetadatatypename", "projectname", "name":
+						customName = true
+					case "isaspireprojectresource":
+						childCondition := budget.condition(condition, child.attrs["Condition"])
+						setUpdatedResource(strings.TrimSpace(child.text.String()), childCondition)
+					}
+				}
+				if resourceConflict {
+					resource = "unresolved"
+				}
+				if customName || resourceSeen {
+					for update := range strings.SplitSeq(n.attrs["Update"], ";") {
+						update = strings.TrimSpace(update)
+						if update == "" {
+						continue
+					}
+					if !budget.observation(len(update) + len(condition) + 128) {
+						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+						break
+					}
+					target := dotnetReference(name, "project-reference", update, condition).Target
+					if target == "" {
+						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+						continue
+					}
+					if customName {
+						updatedAspireNames[target] = true
+					}
+					if resourceSeen {
+						if previous, exists := updatedAspireResources[target]; exists && previous != resource {
+							updatedAspireResources[target] = "unresolved"
+						} else {
+						updatedAspireResources[target] = resource
+						}
+					}
+				}
+				}
+				break
+			}
 			for v := range strings.SplitSeq(n.attrs["Include"], ";") {
 				if budget.exceeded {
 					break
 				}
 				if strings.TrimSpace(v) != "" {
-					addRef(dotnetReference(name, "project-reference", v, condition))
+					ref := dotnetReference(name, "project-reference", v, condition)
+					ref.AspireResource = "default"
+					resourceSeen := false
+					resourceConflict := false
+					setResource := func(value string) {
+						value = aspireResourceValue(value, condition)
+						if resourceSeen && ref.AspireResource != value {
+							resourceConflict = true
+						}
+						resourceSeen = true
+						ref.AspireResource = value
+					}
+					for key, value := range n.attrs {
+						switch strings.ToLower(key) {
+						case "aspireprojectmetadatatypename":
+							ref.AspireCustomName = true
+						case "projectname", "name":
+							ref.AspireCustomName = true
+						case "isaspireprojectresource":
+							setResource(value)
+						}
+					}
+					for _, child := range n.children {
+						key := strings.ToLower(child.name)
+						value := strings.TrimSpace(child.text.String())
+						childCondition := budget.condition(condition, child.attrs["Condition"])
+						switch key {
+						case "aspireprojectmetadatatypename":
+							ref.AspireCustomName = true
+						case "projectname", "name":
+							ref.AspireCustomName = true
+						case "isaspireprojectresource":
+							value = aspireResourceValue(value, childCondition)
+							if resourceSeen && ref.AspireResource != value {
+								resourceConflict = true
+							}
+							resourceSeen = true
+							ref.AspireResource = value
+						}
+					}
+					if resourceConflict {
+						ref.AspireResource = "unresolved"
+					}
+					addRef(ref)
 				}
 			}
 		case "Reference":
@@ -363,6 +477,26 @@ func ParseDotnet(name string, content []byte) Document {
 		}
 	}
 	visit(root, "", "")
+	for i := range refs {
+		if refs[i].Kind != "project-reference" {
+			continue
+		}
+		if unknownAspireNameUpdate || updatedAspireNames[refs[i].Target] {
+			refs[i].AspireCustomName = true
+		}
+		if unknownAspireResourceUpdate {
+			refs[i].AspireResource = "unresolved"
+		} else if resource, ok := updatedAspireResources[refs[i].Target]; ok {
+			refs[i].AspireResource = resource
+		}
+	}
+	if projectNameCustomized || hasAspireReferenceDefaults(root, "") {
+		for i := range refs {
+			if refs[i].Kind == "project-reference" {
+				refs[i].AspireCustomName = true
+			}
+		}
+	}
 	if budget.exceeded {
 		doc.Diagnostics = append(doc.Diagnostics, Diagnostic{Path: name, Code: "declaration-limit", Message: "Declaration extraction exceeded its condition, observation, or expanded-text limit; remaining declarations were omitted."})
 	}
@@ -379,6 +513,44 @@ func ParseDotnet(name string, content []byte) Document {
 	return doc
 }
 
+func hasAspireReferenceDefaults(n *dotnetNode, parent string) bool {
+	if strings.EqualFold(parent, "ItemDefinitionGroup") && strings.EqualFold(n.name, "ProjectReference") {
+		for key := range n.attrs {
+			switch strings.ToLower(key) {
+			case "aspireprojectmetadatatypename", "projectname", "name", "isaspireprojectresource":
+				return true
+			}
+		}
+		for _, child := range n.children {
+			switch strings.ToLower(child.name) {
+			case "aspireprojectmetadatatypename", "projectname", "name", "isaspireprojectresource":
+				return true
+			}
+		}
+	}
+	for _, child := range n.children {
+		if hasAspireReferenceDefaults(child, n.name) {
+			return true
+		}
+	}
+	return false
+}
+
+func aspireResourceValue(value, condition string) string {
+	value = strings.TrimSpace(value)
+	if condition != "" || dotnetDynamic(value) {
+		return "unresolved"
+	}
+	switch strings.ToLower(value) {
+	case "true":
+		return "true"
+	case "false":
+		return "false"
+	default:
+		return "unresolved"
+	}
+}
+
 // MSBuild's XML vocabulary is case-sensitive, while property, item and item
 // metadata names are case-insensitive. Canonicalize only declarations whose
 // exact structural parent establishes one of those name domains.
@@ -386,7 +558,7 @@ func dotnetSemanticName(parent, name string) string {
 	var supported []string
 	switch parent {
 	case "PropertyGroup":
-		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers", "OutputType"}
+		supported = []string{"TargetFramework", "TargetFrameworks", "TargetFrameworkVersion", "LangVersion", "RuntimeIdentifier", "RuntimeIdentifiers", "OutputType", "ProjectName"}
 	case "ItemGroup":
 		supported = []string{"ProjectReference", "Reference", "PackageReference", "PackageVersion", "Protobuf", "OpenApiReference", "WCFMetadata", "WCFMetadataStorage"}
 	default:

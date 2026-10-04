@@ -15,14 +15,16 @@ type Requirement struct {
 // Reference is an edge declared by a manifest. Target is root-relative when
 // statically resolvable; unresolved references retain their original Value.
 type Reference struct {
-	TargetStatus string `json:"target_status,omitempty"`
-	Kind         string `json:"kind"`
-	Value        string `json:"value"`
-	Target       string `json:"target,omitempty"`
-	State        string `json:"state"`
-	Evidence     string `json:"evidence"`
-	Condition    string `json:"condition,omitempty"`
-	TargetBytes  int64  `json:"-"` // Selected-source size used by map assembly; never serialized.
+	TargetStatus     string `json:"target_status,omitempty"`
+	Kind             string `json:"kind"`
+	Value            string `json:"value"`
+	Target           string `json:"target,omitempty"`
+	State            string `json:"state"`
+	Evidence         string `json:"evidence"`
+	Condition        string `json:"condition,omitempty"`
+	TargetBytes      int64  `json:"-"` // Selected-source size used by map assembly; never serialized.
+	AspireResource   string `json:"-"` // default, true, false, or unresolved.
+	AspireCustomName bool   `json:"-"` // A custom name can change generated Projects identifiers.
 }
 
 // Interface is a bounded, source-declared launch or service interface. It is

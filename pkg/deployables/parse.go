@@ -30,8 +30,7 @@ var (
 	// Only a two-operand cp can establish a source-to-destination transfer.
 	// A third path makes the final operand a directory; matching the first two
 	// would invent a transfer that the command does not perform.
-	dockerRunCopy    = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-a\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
-	aspireAddProject = regexp.MustCompile(`AddProject\s*<\s*Projects\.([A-Za-z][A-Za-z0-9_]*)`)
+	dockerRunCopy = regexp.MustCompile(`(?i)(?:^RUN\s+|&&\s+)cp\s+(?:-a\s+)?(\S+)\s+(\S+)(?:\s*(?:\\|&&|;|#|\|\||$))`)
 )
 
 // yamlDocLimitError is returned by parseYAML when the 128-document limit is hit.
@@ -43,6 +42,8 @@ func (e *yamlDocLimitError) Error() string { return "yaml_document_limit" }
 func parse(name string, content []byte) ([]Definition, bool, error) {
 	base := strings.ToLower(path.Base(name))
 	switch {
+	case name == "Procfile":
+		return parseProcfile(name, content)
 	case base == "dockerfile" || strings.HasPrefix(base, "dockerfile."):
 		return parseDockerfile(name, content)
 	case strings.HasSuffix(base, ".tf"):
@@ -580,48 +581,6 @@ func parseJenkins(content []byte) ([]Definition, bool, error) {
 		return nil, false, errors.New("malformed declarative Jenkins pipeline")
 	}
 	d := Definition{Kind: "workflow", Provider: "jenkins", Name: "pipeline", Coverage: "qualified", Evidence: []Evidence{{Field: "pipeline", Line: lineOf(content, "pipeline"), Basis: "declarative-pipeline-block"}}, References: []Reference{}}
-	return []Definition{d}, true, nil
-}
-
-// parseAspireAppHost extracts AddProject<Projects.X>() references from a
-// .NET Aspire AppHost Program.cs. This is static text pattern matching: only
-// the declared project identifiers are captured; no C# is evaluated.
-// The discovered references become `runs` edges in addDeployables.
-func parseAspireAppHost(name string, content []byte) ([]Definition, bool, error) {
-	if bytes.IndexByte(content, 0) >= 0 {
-		return nil, false, errors.New("Aspire AppHost Program.cs contains binary data")
-	}
-	matches := aspireAddProject.FindAllSubmatch(content, -1)
-	if len(matches) == 0 {
-		return nil, false, nil
-	}
-	appHostName := path.Base(path.Dir(name))
-	d := Definition{
-		Kind:       "service",
-		Provider:   "aspire-apphost",
-		Name:       bounded(appHostName),
-		Coverage:   "qualified",
-		Evidence:   []Evidence{{Field: "aspire-apphost", Value: bounded(appHostName), Line: 1, Basis: "aspire-apphost-program"}},
-		References: []Reference{},
-	}
-	seen := map[string]bool{}
-	for _, m := range matches {
-		ident := string(m[1])
-		if seen[ident] {
-			continue
-		}
-		seen[ident] = true
-		line := lineOf(content, "AddProject")
-		d.References = append(d.References, Reference{
-			Kind:          "aspire_project",
-			Value:         bounded(ident),
-			Qualification: "local",
-			Evidence:      Evidence{Field: "AddProject", Value: bounded(ident), Line: line, Basis: "aspire-csharp-static"},
-		})
-	}
-	if len(d.References) == 0 {
-		return nil, false, nil
-	}
 	return []Definition{d}, true, nil
 }
 

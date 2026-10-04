@@ -61,7 +61,9 @@ func Build(report *declarations.Report) Fragment {
 	f.Coverage.InputStatus = report.Status
 	byManifest := make(map[string]Component, len(report.Projects))
 	byRoot := make(map[string]Component, len(report.Projects))
+	gradleComponentsByRoot := make(map[string][]Component)
 	ambiguousRoot := make(map[string]bool)
+	gradleSettings := make([]declarations.Project, 0)
 	projects := slices.Clone(report.Projects)
 	slices.SortFunc(projects, func(a, b declarations.Project) int { return strings.Compare(a.ID, b.ID) })
 	unnamedDotnetNames := map[string]int{}
@@ -76,6 +78,9 @@ func Build(report *declarations.Report) Fragment {
 		}
 	}
 	for _, p := range projects {
+		if isGradleSettingsManifest(p.ID) {
+			gradleSettings = append(gradleSettings, p)
+		}
 		if p.ID == "" || byManifest[p.ID].Key != "" || !componentKind(p.Kind) {
 			continue
 		}
@@ -93,6 +98,9 @@ func Build(report *declarations.Report) Fragment {
 		}
 		c := Component{Key: p.ID, Root: cleanRoot(p.Root), Manifest: p.ID, Ecosystem: ecosystem(p.Kind), Kind: p.Kind, Name: name, Version: p.Version, Coverage: coverage, Requirements: declaredRequirements(p)}
 		byManifest[p.ID] = c
+		if c.Ecosystem == "gradle" {
+			gradleComponentsByRoot[c.Root] = append(gradleComponentsByRoot[c.Root], c)
+		}
 		if _, exists := byRoot[c.Root]; exists {
 			ambiguousRoot[c.Root] = true
 		} else {
@@ -100,10 +108,17 @@ func Build(report *declarations.Report) Fragment {
 		}
 		f.Components = append(f.Components, c)
 	}
+	syntheticGradleRoots := addGradleSettingsMembership(&f, gradleSettings, gradleComponentsByRoot)
 
 	// Physical containment is independently true and does not imply workspace
 	// membership or a build dependency. Link only the nearest containing root.
 	for _, child := range f.Components {
+		// A settings-only Gradle workspace is a container for qualified workspace
+		// declarations, not an evaluated project that physically owns arbitrary
+		// files or projects beneath its path.
+		if syntheticGradleRoots[child.Key] {
+			continue
+		}
 		parent := nearestParent(child, byRoot, ambiguousRoot)
 		if parent == "" {
 			continue
@@ -117,6 +132,12 @@ func Build(report *declarations.Report) Fragment {
 			continue
 		}
 		for _, ref := range p.References {
+			// Gradle settings references are joined below against exact-root
+			// Gradle components. Do not treat a settings configuration as a
+			// component merely because a legacy/test report labels it "gradle".
+			if ref.Kind == "gradle-module" && isGradleSettingsManifest(p.ID) {
+				continue
+			}
 			typ, reverse, relevant := relationshipKind(ref.Kind)
 			if !relevant {
 				continue
@@ -247,6 +268,136 @@ func packageRequirementKind(kind string) bool {
 func componentKind(kind string) bool {
 	_, found := slices.BinarySearch(componentKinds, kind)
 	return found
+}
+
+func isGradleSettingsManifest(id string) bool {
+	base := path.Base(id)
+	return base == "settings.gradle" || base == "settings.gradle.kts"
+}
+
+// addGradleSettingsMembership materializes the passive settings-file references
+// retained by declarations as map relationships. It never evaluates Gradle or
+// associates a target by proximity or name: both ends must be uniquely
+// identified by their selected manifest roots.
+func addGradleSettingsMembership(f *Fragment, settings []declarations.Project, gradleByRoot map[string][]Component) map[string]bool {
+	synthetic := make(map[string]bool)
+	if len(settings) == 0 {
+		return synthetic
+	}
+
+	settingsByRoot := make(map[string]int, len(settings))
+	for _, p := range settings {
+		settingsByRoot[cleanRoot(p.Root)]++
+	}
+
+	seenSynthetic := make(map[string]bool)
+	seenEdges := make(map[string]bool)
+	for _, setting := range settings {
+		root := cleanRoot(setting.Root)
+		rootComponents := gradleByRoot[root]
+		workspaceKey := ""
+		sourceReason := ""
+		if len(rootComponents) == 1 {
+			workspaceKey = rootComponents[0].Key
+		} else {
+			workspaceKey = setting.ID
+			if len(rootComponents) > 1 {
+				sourceReason = "ambiguous_gradle_root_component"
+			}
+		}
+
+		if len(rootComponents) != 1 {
+			if !seenSynthetic[setting.ID] {
+				f.Components = append(f.Components, Component{
+					Key:                setting.ID,
+					Root:               root,
+					Manifest:           setting.ID,
+					Ecosystem:          "gradle",
+					Kind:               "gradle",
+					Name:               setting.Name,
+					Coverage:           "partial",
+					gradleSettingsRoot: true,
+				})
+				seenSynthetic[setting.ID] = true
+				synthetic[setting.ID] = true
+			}
+		}
+
+		for _, ref := range setting.References {
+			if ref.Kind != "gradle-module" {
+				continue
+			}
+			if sourceReason != "" {
+				f.QualifiedReferences = append(f.QualifiedReferences, gradleQualified(workspaceKey, ref, sourceReason))
+				continue
+			}
+			if settingsByRoot[root] != 1 {
+				f.QualifiedReferences = append(f.QualifiedReferences, gradleQualified(workspaceKey, ref, "ambiguous_gradle_settings_root"))
+				continue
+			}
+			if ref.Target == "" || ref.State == "unresolved" || ref.TargetStatus == "unresolved" {
+				q := qualified(workspaceKey, ref, false)
+				q.gradleSettingsEvidence = true
+				f.QualifiedReferences = append(f.QualifiedReferences, q)
+				continue
+			}
+			if ref.TargetStatus != "present" {
+				q := qualified(workspaceKey, ref, false)
+				q.gradleSettingsEvidence = true
+				f.QualifiedReferences = append(f.QualifiedReferences, q)
+				continue
+			}
+
+			targets := gradleByRoot[cleanRoot(ref.Target)]
+			if len(targets) != 1 {
+				reason := "target_not_a_retained_gradle_component"
+				if len(targets) > 1 {
+					reason = "ambiguous_gradle_target_root"
+				}
+				f.QualifiedReferences = append(f.QualifiedReferences, gradleQualified(workspaceKey, ref, reason))
+				continue
+			}
+			if targets[0].Key == workspaceKey {
+				f.QualifiedReferences = append(f.QualifiedReferences, gradleQualified(workspaceKey, ref, "self_gradle_workspace_reference"))
+				continue
+			}
+			relationship := Relationship{
+				Type:                   "member_of",
+				From:                   targets[0].Key,
+				To:                     workspaceKey,
+				DeclarationKind:        ref.Kind,
+				Evidence:               ref.Evidence,
+				State:                  ref.State,
+				Condition:              ref.Condition,
+				Coverage:               "complete",
+				gradleSettingsEvidence: true,
+			}
+			if ref.State == "conditional" || ref.State == "unresolved" || ref.Condition != "" {
+				relationship.Coverage = "partial"
+			}
+			key := relationshipKey(relationship)
+			if !seenEdges[key] {
+				seenEdges[key] = true
+				f.Relationships = append(f.Relationships, relationship)
+			}
+		}
+	}
+	return synthetic
+}
+
+func gradleQualified(from string, ref declarations.Reference, reason string) QualifiedReference {
+	return QualifiedReference{
+		From:                   from,
+		DeclarationKind:        ref.Kind,
+		Value:                  ref.Value,
+		Target:                 ref.Target,
+		TargetStatus:           ref.TargetStatus,
+		Evidence:               ref.Evidence,
+		State:                  ref.State,
+		Condition:              ref.Condition,
+		Reason:                 reason,
+		gradleSettingsEvidence: true,
+	}
 }
 
 func relationshipKind(kind string) (typ string, reverse, relevant bool) {

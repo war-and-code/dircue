@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Test that the fuzz-campaign Makefile target exists and produces a dry-run plan.
-
-This test fails on 427c2f8 (target absent) and passes after the fix.
-"""
+"""Check fuzz discovery, failure handling and exact package/cache arguments."""
 import subprocess
+import os
+import shutil
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -36,6 +36,7 @@ class TestFuzzCampaignTarget(unittest.TestCase):
             output,
             "make -n fuzz-campaign should include the -fuzz flag",
         )
+        self.assertNotIn("/usr/bin/makepkg", output, "make must preserve shell loop variables")
 
     def test_fuzz_campaign_target_in_makefile(self):
         """The Makefile must declare a fuzz-campaign target."""
@@ -47,15 +48,114 @@ class TestFuzzCampaignTarget(unittest.TestCase):
         )
 
     def test_workflow_references_fuzz_campaign(self):
-        """The fuzz-campaign workflow must call make fuzz-campaign."""
+        """The fuzz-campaign workflow uses the input-validating Make launcher."""
         wf = REPO_ROOT / ".github" / "workflows" / "fuzz-campaign.yml"
         self.assertTrue(wf.exists(), f"workflow file not found: {wf}")
         content = wf.read_text()
         self.assertIn(
-            "make fuzz-campaign",
+            "run: python3 scripts/run_fuzz_workflow.py",
             content,
-            "fuzz-campaign.yml must call make fuzz-campaign",
+            "fuzz-campaign.yml must invoke its validated launcher",
         )
+
+    @unittest.skipUnless(shutil.which("make"), "make is required for the fuzz target regression")
+    def test_package_discovery_failure_is_not_reported_as_no_fuzz_targets(self):
+        self.assert_fake_go_fails("list", "go list failed deliberately")
+
+    @unittest.skipUnless(shutil.which("make"), "make is required for the fuzz target regression")
+    def test_test_list_failure_is_not_silenced(self):
+        self.assert_fake_go_fails("test-list", "go test -list failed deliberately")
+
+    @unittest.skipUnless(shutil.which("make"), "make is required for the fuzz target regression")
+    def test_empty_target_set_fails_instead_of_returning_green(self):
+        self.assert_fake_go_fails("empty", "No fuzz targets found")
+
+    @unittest.skipUnless(shutil.which("make"), "make is required for the fuzz target regression")
+    def test_successful_discovery_runs_the_named_package_and_target(self):
+        for cache in (False, True):
+            for count in (False, True):
+                with self.subTest(explicit_cache=cache, count_limit=count):
+                    self.assert_successful_discovery(cache, count)
+
+    def assert_successful_discovery(self, cache, count):
+        make = shutil.which("make")
+        with tempfile.TemporaryDirectory() as temporary:
+            fake_bin = Path(temporary)
+            fake_go = fake_bin / "go"
+            log = fake_bin / "go-args.log"
+            fake_go.write_text(f"#!{sys.executable}\n" + """import os, pathlib, sys
+args = sys.argv[1:]
+with pathlib.Path(os.environ['FAKE_GO_LOG']).open('a') as log:
+    for arg in args: log.write(arg + '\\n')
+if args[0] == 'list': print('./pkg/demo'); sys.exit(0)
+if args[:2] == ['test', '-list']: print('FuzzDemo'); sys.exit(0)
+expected = ['test', './pkg/demo', '-run=^$', '-fuzz=^FuzzDemo$']
+if os.environ['FAKE_GO_COUNT'] == 'yes':
+    expected += ['-fuzztime=500x', '-fuzzminimizetime=100x']
+else:
+    expected += ['-fuzztime=1s']
+if os.environ['FAKE_GO_CACHE'] == 'yes':
+    expected += ['-test.fuzzcachedir=' + os.environ['FAKE_GO_CACHE_PATH']]
+if args == expected: sys.exit(0)
+print('unexpected go arguments: ' + repr(args), file=sys.stderr)
+sys.exit(7)
+""")
+            fake_go.chmod(0o755)
+            environment = os.environ.copy()
+            environment["PATH"] = str(fake_bin) + os.pathsep + environment.get("PATH", "")
+            environment["FAKE_GO_MODE"] = "success"
+            environment["FAKE_GO_LOG"] = str(log)
+            environment["FAKE_GO_CACHE"] = "yes" if cache else "no"
+            environment["FAKE_GO_COUNT"] = "yes" if count else "no"
+            cache_path = fake_bin / "cache with spaces"
+            environment["FAKE_GO_CACHE_PATH"] = str(cache_path)
+            command = [make, "fuzz-campaign", "FUZZ_TIME=1", "FUZZ_PKG=./pkg/mapdiff"]
+            if cache:
+                command.append("FUZZ_CACHE=" + str(cache_path))
+            if count:
+                command.append("FUZZ_COUNT=500")
+            result = subprocess.run(
+                command,
+                cwd=REPO_ROOT, env=environment, capture_output=True, text=True,
+            )
+            arguments = log.read_text().splitlines()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("./pkg/demo", arguments)
+        self.assertIn("-list", arguments)
+        self.assertIn("^Fuzz", arguments)
+        self.assertIn("-fuzz=^FuzzDemo$", arguments)
+        self.assertIn("-fuzztime=500x" if count else "-fuzztime=1s", arguments)
+        self.assertIn("==> ./pkg/demo: FuzzDemo (500x)" if count else "==> ./pkg/demo: FuzzDemo (1s)", result.stdout)
+
+    def assert_fake_go_fails(self, mode, diagnostic):
+        make = shutil.which("make")
+        with tempfile.TemporaryDirectory() as temporary:
+            fake_bin = Path(temporary)
+            fake_go = fake_bin / "go"
+            fake_go.write_text("""#!/bin/sh
+if [ "$1" = "list" ]; then
+  if [ "$FAKE_GO_MODE" = "list" ]; then echo "go list failed deliberately" >&2; exit 9; fi
+  echo ./pkg/demo
+  exit 0
+fi
+if [ "$1" = "test" ] && [ "$2" = "-list" ]; then
+  if [ "$FAKE_GO_MODE" = "test-list" ]; then echo "go test -list failed deliberately" >&2; exit 8; fi
+  if [ "$FAKE_GO_MODE" = "empty" ]; then exit 0; fi
+  echo FuzzDemo
+  exit 0
+fi
+exit 0
+""")
+            fake_go.chmod(0o755)
+            environment = os.environ.copy()
+            environment["PATH"] = str(fake_bin) + os.pathsep + environment.get("PATH", "")
+            environment["FAKE_GO_MODE"] = mode
+            result = subprocess.run(
+                [make, "fuzz-campaign", "FUZZ_TIME=1", "FUZZ_PKG=./pkg/mapdiff"],
+                cwd=REPO_ROOT, env=environment, capture_output=True, text=True,
+            )
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn(diagnostic, result.stdout + result.stderr)
 
 
 if __name__ == "__main__":

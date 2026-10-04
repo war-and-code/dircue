@@ -32,21 +32,20 @@ jobs:
           cache-dependency-path: go.sum
       - name: Run fuzz campaign
         id: fuzz
-        run: |
-          make fuzz-campaign \
-            FUZZ_TIME="${{ inputs.fuzz_time }}" \
-            FUZZ_PKG="${{ inputs.packages }}" \
-            FUZZ_CACHE="$RUNNER_TEMP/fuzz-cache"
+        env:
+          FUZZ_SECONDS_INPUT: ${{ inputs.fuzz_time }}
+          FUZZ_PACKAGES_INPUT: ${{ inputs.packages }}
+          GOMAXPROCS: '4'
+        run: python3 scripts/run_fuzz_workflow.py
         continue-on-error: true
       - name: Collect crashers
         if: always()
         run: |
-          # Collect any crashers written to testdata/fuzz/*/
-          find . -path '*/testdata/fuzz/*/*' -newer go.sum -not -path '*/.git/*' \
-            -print > /tmp/new-seeds.txt || true
-          if [ -s /tmp/new-seeds.txt ]; then
-            echo "New fuzz seeds (potential crashers or corpus additions):"
-            cat /tmp/new-seeds.txt
+          find . -path '*/testdata/fuzz/*/*' -type f -not -path '*/.git/*' \
+            -print > "$RUNNER_TEMP/fuzz-reproducers.txt"
+          if [ -s "$RUNNER_TEMP/fuzz-reproducers.txt" ]; then
+            echo "Fuzz reproducers (including committed seeds):"
+            cat "$RUNNER_TEMP/fuzz-reproducers.txt"
           else
             echo "No new seeds found."
           fi
@@ -57,9 +56,11 @@ jobs:
           retention-days: 30
           path: |
             ${{ runner.temp }}/fuzz-cache/
+            ${{ runner.temp }}/fuzz-reproducers.txt
+            **/testdata/fuzz/**
       - name: Report outcome
         if: steps.fuzz.outcome == 'failure'
         run: |
-          echo "::error::Fuzz campaign found at least one crasher."
-          echo "Retrieve the artifact 'fuzz-campaign-results' to find the failing inputs."
+          echo "::error::Fuzz campaign failed; inspect its logs for a finding or infrastructure error."
+          echo "Retrieve 'fuzz-campaign-results' for retained coverage inputs and failure reproducers."
           exit 1

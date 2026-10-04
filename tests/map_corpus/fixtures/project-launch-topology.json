@@ -1,0 +1,143 @@
+{
+  "questions": [
+    {
+      "id": "declared-project-launch-topology",
+      "oracle": {
+        "source": "Literal Gradle includes, Heroku process declarations, selected Python/Node targets, and Aspire SDK project-reference declarations",
+        "url": "https://docs.gradle.org/current/userguide/multi_project_builds.html",
+        "additional_urls": [
+          "https://devcenter.heroku.com/articles/procfile",
+          "https://docs.python.org/3/using/cmdline.html",
+          "https://aspire.dev/get-started/aspire-sdk/"
+        ],
+        "fixture_evidence": "Hand-written inputs: one custom Gradle projectDir, one missing include, three literal Procfile entry targets with selected owners, unsupported/ambiguous commands, and one direct plus one conditional Aspire call. Expected partial relationships require all supporting declaration/target paths."
+      },
+      "must_include": [
+        {
+          "kind": "component",
+          "path": "settings.gradle.kts",
+          "properties": {
+            "ecosystem": "gradle"
+          }
+        },
+        {
+          "kind": "edge",
+          "type": "member_of",
+          "from_path": "java-service/build.gradle.kts",
+          "to_path": "settings.gradle.kts",
+          "coverage": {
+            "status": "partial"
+          },
+          "evidence_paths": [
+            "settings.gradle.kts",
+            "java-service/build.gradle.kts"
+          ]
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "web",
+          "to_path": "api/pyproject.toml",
+          "coverage": {
+            "status": "partial"
+          },
+          "evidence_paths": [
+            "Procfile",
+            "api/app.py",
+            "api/pyproject.toml"
+          ]
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "worker",
+          "to_path": "api/pyproject.toml",
+          "coverage": {
+            "status": "partial"
+          },
+          "evidence_paths": [
+            "Procfile",
+            "api/tasks.py",
+            "api/pyproject.toml"
+          ]
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "node",
+          "to_path": "web/package.json",
+          "coverage": {
+            "status": "partial"
+          },
+          "evidence_paths": [
+            "Procfile",
+            "web/server.js",
+            "web/package.json"
+          ]
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Host.AppHost/Program.cs",
+          "to_path": "Service/Service.csproj",
+          "coverage": {
+            "status": "partial"
+          },
+          "evidence_paths": [
+            "Host.AppHost/Program.cs",
+            "Host.AppHost/Host.AppHost.csproj",
+            "Service/Service.csproj"
+          ]
+        }
+      ],
+      "must_not_include": [
+        {
+          "kind": "component",
+          "path": "absent"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Host.AppHost/Program.cs",
+          "to_path": "Fake/Fake.csproj"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "missing"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "shell"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "unicode"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "duplicate"
+        },
+        {
+          "kind": "edge",
+          "type": "runs",
+          "from_path": "Procfile",
+          "from_name": "searchpath"
+        }
+      ],
+      "allowed_unknown": [
+        "Launch success, ports, arbitrary shell execution, evaluated Gradle/MSBuild behavior, and cross-file C# name binding."
+      ]
+    }
+  ]
+}

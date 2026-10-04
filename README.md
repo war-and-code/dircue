@@ -7,7 +7,7 @@ If/when faced with an unfamiliar repository, you want to know what's in it: prog
 `dircue map` answers *all that* in one deterministic, offline pass, without running anything in the directory. It conditionally reads a committed Git tree, or just the ordinary directory. Then it writes one portable document covering:
 
 - **components:** projects from 36 component kinds, reported under 27 `ecosystem` values;
-- **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless and CI;
+- **deployables:** containers, Compose, Kubernetes, Helm, Terraform, serverless, CI, Procfile and Aspire;
 - **interfaces:** binaries, ports, gRPC and OpenAPI;
 - **capabilities:** datastores, caches, messaging, auth and cloud SDKs;
 - **relationships:** what builds, runs, depends on and contains what.

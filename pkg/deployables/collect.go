@@ -22,17 +22,30 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 	r.Coverage.SelectedFiles = int64(len(files))
 	r.Directories = map[string]bool{}
 	candidates := make([]Candidate, 0)
+	targetInventory := newProcfileTargetInventory()
+	procfilePresent := false
 	for _, f := range files {
 		addDirectories(r.Directories, f.Path)
+		targetInventory.add(f.Path)
+		procfilePresent = procfilePresent || f.Path == "Procfile"
 		if IsCandidate(f.Path) {
 			r.Coverage.CandidateFiles++
 			candidates = append(candidates, f)
+		}
+	}
+	projectRoots := make(map[string]bool)
+	for _, f := range files {
+		if isDotnetProjectFile(f.Path) {
+			projectRoots[path.Dir(f.Path)] = true
 		}
 	}
 	slices.SortFunc(candidates, func(a, b Candidate) int { return strings.Compare(a.Path, b.Path) })
 	if len(candidates) > limits.Files {
 		r.omit("file_limit", int64(len(candidates)-limits.Files), "", "Only the lexically first supported declaration candidates were inspected.")
 		candidates = candidates[:limits.Files]
+	}
+	if procfilePresent && targetInventory.capped {
+		r.omit("procfile_inventory_limit", 1, "Procfile", "Procfile target binding was disabled because the selected source-path inventory exceeded its bound.")
 	}
 	// helmValuesRefs accumulates image references from values.yaml files keyed
 	// by the directory that contains them. These are used in the post-pass to
@@ -79,14 +92,19 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		}
 		defs, recognized, parseErr := parse(candidate.Path, content)
 		if parseErr != nil {
-			var limitErr *yamlDocLimitError
-			if errors.As(parseErr, &limitErr) {
-				// Keep definitions parsed before the limit; record a distinct reason.
-				r.omit("yaml_document_limit", 1, candidate.Path, "File has more than 128 YAML documents; only the first 128 were parsed.")
-				// fall through and use partial defs if any were recognized
+			var procfileErr *procfileIssuesError
+			if errors.As(parseErr, &procfileErr) {
+				recordProcfileIssues(r, candidate.Path, procfileErr)
 			} else {
-				r.omit("parse_error", 1, candidate.Path, parseErr.Error())
-				continue
+				var limitErr *yamlDocLimitError
+				if errors.As(parseErr, &limitErr) {
+					// Keep definitions parsed before the limit; record a distinct reason.
+					r.omit("yaml_document_limit", 1, candidate.Path, "File has more than 128 YAML documents; only the first 128 were parsed.")
+					// fall through and use partial defs if any were recognized
+				} else {
+					r.omit("parse_error", 1, candidate.Path, parseErr.Error())
+					continue
+				}
 			}
 		}
 		if !recognized {
@@ -94,6 +112,9 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 		} // A supported filename alone is never evidence.
 		r.Coverage.ParsedFiles++
 		digest := fmt.Sprintf("%x", sha256.Sum256(content))
+		if unresolved := resolveProcfileTargets(defs, targetInventory); unresolved > 0 {
+			r.omit("procfile_target_unresolved", unresolved, candidate.Path, "Some Procfile targets did not resolve to one selected source file.")
+		}
 		for i := range defs {
 			defs[i].Path = candidate.Path
 			defs[i].SourceSHA256 = digest
@@ -155,6 +176,33 @@ func Observe(ctx context.Context, files []Candidate, options Options) (*Report, 
 			r.Definitions[i].ID = stableID(r.Definitions[i])
 		}
 	}
+	if len(projectRoots) > 0 {
+		kept := r.Definitions[:0]
+		withheldReferences := 0
+		for _, def := range r.Definitions {
+			if def.Provider == "aspire-apphost" {
+				issue, err := inspectAspireGlobalAliases(ctx, path.Dir(def.Path), def.Path, files, projectRoots)
+				if err != nil {
+					return nil, err
+				}
+				if issue != nil {
+					message := "A selected C# source may change the AppHost symbol binding; the Aspire declaration was withheld."
+					if issue.code == "aspire_global_alias" {
+						message = "A project-wide C# alias changes an Aspire binding; the AppHost declaration was withheld."
+					}
+					r.omit(issue.code, 1, issue.path, message)
+					withheldReferences += len(def.References)
+					continue
+				}
+			}
+			kept = append(kept, def)
+		}
+		r.Definitions = kept
+		r.Coverage.RetainedReferences -= withheldReferences
+		if r.Coverage.RetainedReferences < 0 {
+			return nil, fmt.Errorf("negative retained reference coverage after Aspire suppression")
+		}
+	}
 	slices.SortFunc(r.Definitions, func(a, b Definition) int { return strings.Compare(a.ID, b.ID) })
 	r.Coverage.RetainedDefinitions = len(r.Definitions)
 	return r, nil
@@ -189,6 +237,11 @@ func normalizedLimits(o Options) Limits {
 func IsCandidate(name string) bool {
 	if documentationPath(name) {
 		return false
+	}
+	// Procfile is a root-level, case-sensitive platform convention. Nested
+	// files and case variants are not treated as launch configuration.
+	if name == "Procfile" {
+		return true
 	}
 	base, ext := strings.ToLower(path.Base(name)), strings.ToLower(path.Ext(name))
 	// parseMakefile only supports root-level recipes because nested Makefiles

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ProviderVersion    = "1.1.0"
+	ProviderVersion    = "1.2.0"
 	DefaultFileBytes   = int64(256 << 10)
 	DefaultInputBytes  = int64(16 << 20)
 	DefaultFiles       = 4096
@@ -86,7 +86,7 @@ type Reference struct {
 // provisioned resource, running service, effective permission, or network exposure.
 type Definition struct {
 	ID           string      `json:"id"`
-	Kind         string      `json:"kind"` // container_build, service, workload, infrastructure, workflow, resource, archive
+	Kind         string      `json:"kind"` // container_build, service, process, workload, infrastructure, workflow, resource, archive
 	Provider     string      `json:"provider"`
 	Name         string      `json:"name"`
 	Path         string      `json:"path"`

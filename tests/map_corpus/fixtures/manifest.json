@@ -71,6 +71,11 @@
       "id": "attribution-boundaries",
       "description": "SAM CodeUri path resolution: out-of-repository paths not attributed, infra-subdirectory parent-ref attributed, ambiguous component roots not attributed",
       "expectations": "attribution-boundaries.json"
+    },
+    {
+      "id": "project-launch-topology",
+      "description": "Gradle custom projectDir, selected Procfile launch targets and corroborated Aspire project calls with unsupported/conditional negative cases",
+      "expectations": "project-launch-topology.json"
     }
   ]
 }

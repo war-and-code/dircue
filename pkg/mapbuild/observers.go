@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/intentmap"
 	"github.com/war-and-code/dircue/pkg/mapdoc"
@@ -260,7 +261,13 @@ func dockerHasCargoZigbuild(def deployables.Definition) bool {
 }
 
 func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*intentmap.Report) {
-	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"bounded_deployable_catalog"}})
+	deployableReasons := []string{"bounded_deployable_catalog"}
+	for _, code := range []string{"aspire_alias_context_incomplete", "aspire_alias_context_limit", "aspire_global_alias"} {
+		if r.Omissions[code] > 0 {
+			deployableReasons = append(deployableReasons, code)
+		}
+	}
+	setQuestion(d, "deployables", mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: deployableReasons})
 	componentsByRoot := map[string][]string{}
 	componentsByName := map[string][]string{}
 	mavenComponents := map[string]bool{}
@@ -484,13 +491,6 @@ func addDeployables(d *mapdoc.Document, r *deployables.Report, intents ...*inten
 					name     string
 					evidence mapdoc.Evidence
 				}{ref.Value, deployableEvidence(def.Path, ref.Evidence)})
-			}
-			// Aspire AppHost: AddProject<Projects.X>() → runs edge to project component.
-			if ref.Kind == "aspire_project" && ref.Qualification == "local" {
-				owners := aspireProjectOwners(componentsByRoot, componentsByName, ref.Value)
-				if len(owners) == 1 {
-					addRelationship(mapdoc.EdgeRuns, n.ID, owners[0], "aspire-project:"+ref.Value, "aspire_addproject_declares_run", deployableEvidence(def.Path, ref.Evidence))
-				}
 			}
 		}
 		// Maven WAR/EAR: the pom.xml declares the packaging and the deployable
@@ -1393,35 +1393,6 @@ func componentAncestorOwners(componentsByRoot map[string][]string, resolvedPath 
 	return nil, false
 }
 
-// aspireProjectOwners resolves an Aspire Projects.X identifier to a component.
-// It tries exact match, then replaces underscores with dots (the Aspire
-// convention maps "Identity_API" to the project named "Identity.API").
-func aspireProjectOwners(componentsByRoot, componentsByName map[string][]string, projectIdent string) []string {
-	// Exact match by project identifier (e.g. Projects.OrderProcessor → "OrderProcessor").
-	if ids := componentsByName[projectIdent]; len(ids) == 1 {
-		return ids
-	}
-	// Convert underscores to dots: Projects.Basket_API → "Basket.API"
-	normalized := strings.ReplaceAll(projectIdent, "_", ".")
-	if normalized != projectIdent {
-		if ids := componentsByName[normalized]; len(ids) == 1 {
-			return ids
-		}
-	}
-	// Try root suffix match: find a component whose root ends with the identifier.
-	var candidates []string
-	for root, ids := range componentsByRoot {
-		base := path.Base(root)
-		if strings.EqualFold(base, projectIdent) || strings.EqualFold(base, normalized) {
-			candidates = append(candidates, ids...)
-		}
-	}
-	if len(candidates) == 1 {
-		return candidates
-	}
-	return nil
-}
-
 // normalizedImageRepository removes only an image tag or digest. Keeping the
 // registry and namespace avoids linking unrelated images that share a basename.
 func normalizedImageRepository(image string) string {
@@ -1433,6 +1404,171 @@ func normalizedImageRepository(image string) string {
 		image = image[:tag]
 	}
 	return strings.ToLower(image)
+}
+
+// addAspireDeclaredRuns binds the bounded C# declaration to exact project
+// references in the same AppHost manifest. It does not infer by component
+// name or claim that the declared resources are launched at runtime.
+func addAspireDeclaredRuns(d *mapdoc.Document, report *deployables.Report, decls *declarations.Report) {
+	if report == nil || decls == nil {
+		return
+	}
+	definitions := make([]deployables.Definition, 0)
+	for _, def := range report.Definitions {
+		if def.Provider == "aspire-apphost" && def.Path != "" {
+			definitions = append(definitions, def)
+		}
+	}
+	if len(definitions) == 0 {
+		return
+	}
+	componentsAt := map[string][]mapdoc.Node{}
+	deployablesByID := map[string]bool{}
+	for _, n := range d.Nodes {
+		if n.Kind == mapdoc.NodeComponent && n.Properties["ecosystem"] == "dotnet" {
+			componentsAt[n.Properties["root"]] = append(componentsAt[n.Properties["root"]], n)
+		}
+		if n.Kind == mapdoc.NodeDeployable {
+			deployablesByID[n.ID] = true
+		}
+	}
+	projectsByID := map[string][]declarations.Project{}
+	projectsByRoot := map[string][]declarations.Project{}
+	for _, p := range decls.Projects {
+		projectsByID[p.ID] = append(projectsByID[p.ID], p)
+		if p.Kind == "dotnet" {
+			projectsByRoot[p.Root] = append(projectsByRoot[p.Root], p)
+		}
+	}
+	seen := map[string]bool{}
+	for _, edge := range d.Edges {
+		seen[edge.ID] = true
+	}
+	for _, def := range definitions {
+		appRoot := path.Dir(def.Path)
+		appProjects := projectsByRoot[appRoot]
+		if len(appProjects) != 1 || !hasAspireAppHostSDK(appProjects[0]) {
+			continue
+		}
+		appComponents := componentsAt[appRoot]
+		if len(appComponents) != 1 {
+			continue
+		}
+		app := appComponents[0]
+		if hasCustomAspireProjectNames(appProjects[0]) {
+			continue
+		}
+		deployID := mapdoc.NewNode(mapdoc.NodeDeployable, []string{def.Path}, def.Provider+":"+def.Kind+":"+def.Name).ID
+		if !deployablesByID[deployID] {
+			continue
+		}
+		type binding struct {
+			ref    declarations.Reference
+			target declarations.Project
+			valid  bool
+		}
+		byType := map[string][]binding{}
+		ambiguousAll := false
+		for _, ref := range appProjects[0].References {
+			if ref.Kind != "project-reference" {
+				continue
+			}
+			if ref.Target == "" {
+				ambiguousAll = true
+				continue
+			}
+			name := defaultAspireTypeName(ref.Target)
+			if name == "" {
+				ambiguousAll = true
+				continue
+			}
+			targets := projectsByID[ref.Target]
+			valid := (ref.State == "declared" || ref.State == "resolved") && ref.Condition == "" && ref.TargetStatus == "present" && !ref.AspireCustomName && ref.AspireResource != "false" && ref.AspireResource != "unresolved" && len(targets) == 1 && targets[0].Kind == "dotnet"
+			var target declarations.Project
+			if len(targets) == 1 {
+				target = targets[0]
+			}
+			byType[name] = append(byType[name], binding{ref: ref, target: target, valid: valid})
+		}
+		for _, observed := range def.References {
+			if observed.Kind != "aspire_project" || observed.Qualification != "declared" || observed.Value == "" {
+				continue
+			}
+			matches := byType[observed.Value]
+			if ambiguousAll || len(matches) != 1 || !matches[0].valid || matches[0].target.ID == "" {
+				continue
+			}
+			selectedRef, targetProject := matches[0].ref, matches[0].target
+			targetNodes := componentsAt[targetProject.Root]
+			if len(targetNodes) != 1 || targetNodes[0].ID == app.ID {
+				continue
+			}
+			e := mapdoc.NewEdge(mapdoc.EdgeRuns, deployID, targetNodes[0].ID, "aspire-project:"+observed.Value+":"+targetNodes[0].ID)
+			if seen[e.ID] {
+				continue
+			}
+			seen[e.ID] = true
+			e.Coverage = mapdoc.Coverage{Status: mapdoc.CoveragePartial, Reasons: []string{"aspire_static_declaration_not_executed"}}
+			e.Properties = map[string]string{"reason": "aspire_addproject_declares_run", "relationship_basis": "apphost-sdk-and-project-reference"}
+			sdkEvidence := aspireSDKEvidence(appProjects[0])
+			refEvidence := mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: selectedRef.Evidence, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/dotnet-project-reference", Version: "1.0.0"}}
+			targetEvidence := mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: targetProject.ID, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/project-declaration", Version: "1.0.0"}}
+			e.Evidence = []mapdoc.Evidence{deployableEvidence(def.Path, observed.Evidence), sdkEvidence, refEvidence, targetEvidence}
+			d.Edges = append(d.Edges, e)
+		}
+	}
+}
+
+func hasAspireAppHostSDK(p declarations.Project) bool {
+	found := false
+	for _, r := range p.Requirements {
+		if r.Kind == "dotnet-sdk" && r.State == "declared" && r.Condition == "" && (r.Value == "Aspire.AppHost.Sdk" || strings.HasPrefix(r.Value, "Aspire.AppHost.Sdk/")) {
+			found = true
+		}
+	}
+	return found
+}
+
+func hasCustomAspireProjectNames(p declarations.Project) bool {
+	for _, r := range p.References {
+		if r.Kind == "project-reference" && r.AspireCustomName {
+			return true
+		}
+	}
+	return false
+}
+
+func aspireSDKEvidence(p declarations.Project) mapdoc.Evidence {
+	for _, r := range p.Requirements {
+		if r.Kind == "dotnet-sdk" && r.State == "declared" && r.Condition == "" && (r.Value == "Aspire.AppHost.Sdk" || strings.HasPrefix(r.Value, "Aspire.AppHost.Sdk/")) {
+			return mapdoc.Evidence{Basis: mapdoc.BasisDeclaredConfig, Path: r.Evidence, SourceKind: mapdoc.SourceConfiguration, Rule: &mapdoc.Producer{ID: "dircue/aspire-apphost-sdk", Version: "1.0.0"}}
+		}
+	}
+	return mapdoc.Evidence{}
+}
+
+func defaultAspireTypeName(manifest string) string {
+	// Aspire's generated Projects type normalizes the project name by replacing
+	// periods, dashes, and spaces with underscores. See the official
+	// ProjectResourceBuilderExtensions implementation:
+	// https://github.com/microsoft/aspire/blob/main/src/Aspire.Hosting/ProjectResourceBuilderExtensions.cs
+	base := strings.TrimSuffix(path.Base(manifest), path.Ext(manifest))
+	if base == "" {
+		return ""
+	}
+	var b strings.Builder
+	for _, r := range base {
+		switch r {
+		case '.', '-', ' ':
+			b.WriteByte('_')
+		default:
+			if r > 127 || !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9' || r == '_') {
+				return ""
+			}
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
 }
 
 func referenceCoverage(qualification string) mapdoc.Coverage {

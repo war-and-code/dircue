@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/formats"
 	"github.com/war-and-code/dircue/pkg/intentmap"
@@ -36,30 +37,43 @@ func TestFixedMapBoundsAreDiscoverableAndReadOnly(t *testing.T) {
 		values[s.Name] = s
 	}
 	lanes, singleLaneReaders, concurrentLaneReaders := scanner.GitStorageBounds()
+	lineBytes, processLines, inventoryFiles, inventoryBytes := deployables.ProcfileBounds()
+	aspireTokens, interpolationDepth, sourceReferences := deployables.AspireBounds()
+	aliasFiles, aliasFileBytes, aliasInputBytes := deployables.AspireAliasBounds()
 	want := map[string]struct {
 		value int64
 		unit  string
 	}{
-		"git.object_lanes":                         {int64(lanes), "lanes"},
-		"git.retained_readers_single_lane":         {int64(singleLaneReaders), "readers"},
-		"git.retained_readers_per_concurrent_lane": {int64(concurrentLaneReaders), "readers"},
-		"formats.files":                            {int64(formats.MaxFiles), "files"},
-		"formats.file_bytes":                       {formats.MaxFileBytes, "bytes"},
-		"formats.input_bytes":                      {formats.MaxInputBytes, "bytes"},
-		"formats.output_bytes":                     {formats.MaxOutputBytes, "bytes"},
-		"formats.parser_depth":                     {int64(formats.MaxDepth), "levels"},
-		"formats.parser_tokens":                    {int64(formats.MaxTokens), "tokens"},
-		"manifests.file_bytes":                     {projects.MaxManifestBytes, "bytes"},
-		"registries.file_bytes":                    {registries.MaxFileBytes, "bytes"},
-		"environments.inventory_paths":             {int64(environments.DefaultMaxInventoryPaths), "paths"},
-		"environments.file_bytes":                  {environments.DefaultMaxGlobalJSONBytes, "bytes"},
-		"environments.input_bytes":                 {environments.DefaultMaxInputBytes, "bytes"},
-		"environments.requirements":                {int64(environments.DefaultMaxRequirements), "requirements"},
-		"environments.contexts":                    {int64(environments.DefaultMaxContexts), "contexts"},
-		"environments.output_bytes":                {int64(environments.DefaultMaxOutputBytes), "bytes"},
-		"structure.report_functions":               {int64(scanner.FunctionReportLimit()), "functions"},
-		"structure.file_functions":                 {int64(structure.FunctionLimit), "functions"},
-		"intent.import_tokens_per_file":            {int64(intentmap.DefaultMaxLexicalTokensPerFile), "tokens"},
+		"git.object_lanes":                            {int64(lanes), "lanes"},
+		"git.retained_readers_single_lane":            {int64(singleLaneReaders), "readers"},
+		"git.retained_readers_per_concurrent_lane":    {int64(concurrentLaneReaders), "readers"},
+		"formats.files":                               {int64(formats.MaxFiles), "files"},
+		"formats.file_bytes":                          {formats.MaxFileBytes, "bytes"},
+		"formats.input_bytes":                         {formats.MaxInputBytes, "bytes"},
+		"formats.output_bytes":                        {formats.MaxOutputBytes, "bytes"},
+		"formats.parser_depth":                        {int64(formats.MaxDepth), "levels"},
+		"formats.parser_tokens":                       {int64(formats.MaxTokens), "tokens"},
+		"manifests.file_bytes":                        {projects.MaxManifestBytes, "bytes"},
+		"registries.file_bytes":                       {registries.MaxFileBytes, "bytes"},
+		"environments.inventory_paths":                {int64(environments.DefaultMaxInventoryPaths), "paths"},
+		"environments.file_bytes":                     {environments.DefaultMaxGlobalJSONBytes, "bytes"},
+		"environments.input_bytes":                    {environments.DefaultMaxInputBytes, "bytes"},
+		"environments.requirements":                   {int64(environments.DefaultMaxRequirements), "requirements"},
+		"environments.contexts":                       {int64(environments.DefaultMaxContexts), "contexts"},
+		"environments.output_bytes":                   {int64(environments.DefaultMaxOutputBytes), "bytes"},
+		"structure.report_functions":                  {int64(scanner.FunctionReportLimit()), "functions"},
+		"structure.file_functions":                    {int64(structure.FunctionLimit), "functions"},
+		"intent.import_tokens_per_file":               {int64(intentmap.DefaultMaxLexicalTokensPerFile), "tokens"},
+		"deployables.procfile_line_bytes":             {int64(lineBytes), "bytes"},
+		"deployables.procfile_process_lines":          {int64(processLines), "lines"},
+		"deployables.procfile_inventory_paths":        {int64(inventoryFiles), "paths"},
+		"deployables.procfile_inventory_bytes":        {int64(inventoryBytes), "bytes"},
+		"deployables.aspire_tokens_per_file":          {int64(aspireTokens), "tokens"},
+		"deployables.aspire_interpolation_depth":      {int64(interpolationDepth), "levels"},
+		"deployables.aspire_source_references":        {int64(sourceReferences), "references"},
+		"deployables.aspire_alias_source_files":       {int64(aliasFiles), "files"},
+		"deployables.aspire_alias_source_file_bytes":  {int64(aliasFileBytes), "bytes"},
+		"deployables.aspire_alias_source_input_bytes": {aliasInputBytes, "bytes"},
 	}
 	fixed := map[string]mapEffectiveSetting{}
 	for _, s := range report.Settings {

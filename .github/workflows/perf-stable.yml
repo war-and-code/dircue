@@ -1,29 +1,29 @@
-name: Stable-hardware performance run
+name: Paired CLI performance
 
 on:
   workflow_dispatch:
     inputs:
+      baseline_ref:
+        description: "Explicit baseline commit or tag. Answers must match before timing is accepted."
+        required: true
       fixture:
-        description: >
-          Fixture path relative to the repository root, e.g.
-          tests/map_corpus/fixtures/polyglot-deployable. The fixture must be a
-          plain directory (--source directory is used).
+        description: "Measured input path relative to the repository root. Git mode requires a repository root."
         required: false
         default: tests/map_corpus/fixtures/polyglot-deployable
       source_mode:
-        description: "Source mode: directory or git (default: directory)"
+        description: "Source mode: directory or git"
         required: false
         default: directory
       workers:
-        description: "Worker count for map (default: 0 = auto)"
+        description: "Map worker count (0 = auto)"
         required: false
         default: "0"
       runs:
-        description: "Number of repeated timed runs (default: 5)"
+        description: "Number of alternating sample pairs"
         required: false
         default: "5"
       notes:
-        description: "Free-text notes to embed in the results artifact (e.g. hardware description)"
+        description: "Hardware or workload notes included in the receipt"
         required: false
         default: ""
 
@@ -32,126 +32,112 @@ permissions:
 
 jobs:
   run:
-    # Intended for a self-hosted stable-hardware runner. When no self-hosted
-    # runner is registered with the label 'stable-perf', the job falls back to
-    # ubuntu-latest automatically by GitHub's runner matching rules. Results
-    # from hosted runners include significant noise and must not be committed
-    # as authoritative baselines. Set the label to a dedicated quiet machine.
+    # Hosted-runner timings are descriptive. For a quiet dedicated machine,
+    # change this to an explicitly registered self-hosted runner in a fork.
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 30
+    env:
+      BASELINE_REF: ${{ inputs.baseline_ref }}
+      FIXTURE_INPUT: ${{ inputs.fixture }}
+      SOURCE_INPUT: ${{ inputs.source_mode }}
+      WORKERS_INPUT: ${{ inputs.workers }}
+      RUNS_INPUT: ${{ inputs.runs }}
+      NOTES_INPUT: ${{ inputs.notes }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
           cache: true
           cache-dependency-path: go.sum
-      - name: Build dircue
-        run: CGO_ENABLED=0 go build -trimpath -o bin/dircue .
-      - name: Collect repeated timing runs
-        run: |
-          mkdir -p .cache/perf-stable
-          FIXTURE="${{ inputs.fixture }}"
-          SOURCE="${{ inputs.source_mode }}"
-          WORKERS="${{ inputs.workers }}"
-          RUNS="${{ inputs.runs }}"
-          for i in $(seq 1 "${RUNS}"); do
-            OUT=".cache/perf-stable/run-${i}.json"
-            bin/dircue map \
-              --source "${SOURCE}" \
-              --workers "${WORKERS}" \
-              --json \
-              --stats-json "${OUT}" \
-              "${FIXTURE}" > /dev/null
-          done
-      - name: Write results summary
-        run: |
-          python3 - <<'EOF'
-          import json, os, statistics
-          from pathlib import Path
-
-          runs_dir = Path(".cache/perf-stable")
-          docs = [json.load(open(p)) for p in sorted(runs_dir.glob("run-*.json"))]
-          if not docs:
-              print("No run files found.")
-              exit(1)
-
-          det = docs[0]["deterministic_costs"]
-          wall_ms = [d["measurements"]["wall_time_ns"] // 1_000_000 for d in docs]
-          heap_mb = [d["measurements"]["peak_heap_inuse_bytes"] / (1024 ** 2) for d in docs]
-
-          lines = [
-              "## Stable-hardware performance results",
-              "",
-              f"**Fixture:** `{os.environ.get('FIXTURE_INPUT', docs[0].get('source_mode','?'))}`  ",
-              f"**Runs:** {len(docs)}  ",
-              f"**Notes:** {os.environ.get('NOTES_INPUT', '')}",
-              "",
-              "### Deterministic cost counters (identical across all runs)",
-              "",
-              "| Counter | Value |",
-              "| --- | ---: |",
-              f"| `files_enumerated` | {det['files_enumerated']} |",
-              f"| `files_content_read` | {det['files_content_read']} |",
-              f"| `bytes_requested` | {det['bytes_requested']} |",
-              "",
-              "### Wall-time distribution (ms)",
-              "",
-              "| Stat | ms |",
-              "| --- | ---: |",
-              f"| min | {min(wall_ms)} |",
-              f"| median | {statistics.median(wall_ms):.1f} |",
-              f"| max | {max(wall_ms)} |",
-              f"| stdev | {statistics.stdev(wall_ms):.1f} |" if len(wall_ms) > 1 else "",
-              "",
-              "### Peak heap in-use distribution (MiB)",
-              "",
-              "| Stat | MiB |",
-              "| --- | ---: |",
-              f"| min | {min(heap_mb):.2f} |",
-              f"| median | {statistics.median(heap_mb):.2f} |",
-              f"| max | {max(heap_mb):.2f} |",
-          ]
-          text = "\n".join(l for l in lines)
-          print(text)
-          summary = os.environ.get("GITHUB_STEP_SUMMARY", "")
-          if summary:
-              with open(summary, "a") as f:
-                  f.write(text + "\n")
-          EOF
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.12'
+      - name: Build explicit baseline and candidate
         env:
-          FIXTURE_INPUT: ${{ inputs.fixture }}
-          NOTES_INPUT: ${{ inputs.notes }}
-      - name: Package results as artifact
+          CGO_ENABLED: '0'
         run: |
-          python3 - <<'EOF'
+          set -eu
+          mkdir -p "$RUNNER_TEMP/dircue-perf-build" "$RUNNER_TEMP/dircue-perf-evidence"
+          baseline_sha=$(git rev-parse --verify --end-of-options "$BASELINE_REF^{commit}")
+          git worktree add --detach "$RUNNER_TEMP/dircue-perf-baseline" "$baseline_sha"
+          (cd "$RUNNER_TEMP/dircue-perf-baseline" && go build -buildvcs=false -trimpath -o "$RUNNER_TEMP/dircue-perf-build/baseline" .)
+          go build -buildvcs=false -trimpath -o "$RUNNER_TEMP/dircue-perf-build/candidate" .
+          export BASELINE_SHA="$baseline_sha"
+          export CANDIDATE_SHA="$(git rev-parse HEAD)"
+          python3 - <<'PY'
+          import json, os, platform, subprocess
+          from pathlib import Path
+          receipt = {
+              "baseline_ref": os.environ["BASELINE_REF"],
+              "baseline_commit": os.environ["BASELINE_SHA"],
+              "candidate_commit": os.environ["CANDIDATE_SHA"],
+              "go_version": subprocess.check_output(["go", "version"], text=True).strip(),
+              "build_flags": ["CGO_ENABLED=0", "-buildvcs=false", "-trimpath"],
+              "runner": platform.platform(),
+              "notes": os.environ["NOTES_INPUT"],
+          }
+          out = Path(os.environ["RUNNER_TEMP"]) / "dircue-perf-evidence/builds.json"
+          out.write_text(json.dumps(receipt, indent=2) + "\n")
+          PY
+      - name: Verify answers and collect alternating timing pairs
+        run: |
+          set -eu
+          python3 - <<'PY'
           import json, os
           from pathlib import Path
-          import datetime
-
-          runs_dir = Path(".cache/perf-stable")
-          docs = [json.load(open(p)) for p in sorted(runs_dir.glob("run-*.json"))]
-
-          result = {
-              "recorded_at": datetime.datetime.utcnow().isoformat() + "Z",
-              "fixture": os.environ.get("FIXTURE_INPUT", ""),
-              "source_mode": os.environ.get("SOURCE_INPUT", "directory"),
-              "workers": os.environ.get("WORKERS_INPUT", "0"),
-              "notes": os.environ.get("NOTES_INPUT", ""),
-              "runs": docs,
-          }
-          out = Path(".cache/perf-stable/summary.json")
-          with open(out, "w") as f:
-              json.dump(result, f, indent=2)
-          print(f"Written: {out}")
-          EOF
-        env:
-          FIXTURE_INPUT: ${{ inputs.fixture }}
-          SOURCE_INPUT: ${{ inputs.source_mode }}
-          WORKERS_INPUT: ${{ inputs.workers }}
-          NOTES_INPUT: ${{ inputs.notes }}
+          root = Path.cwd()
+          fixture = Path(os.environ["FIXTURE_INPUT"])
+          if fixture.is_absolute() or ".." in fixture.parts or not (root / fixture).is_dir():
+              raise SystemExit("fixture must name an existing directory inside the checkout")
+          source = os.environ["SOURCE_INPUT"]
+          workers = int(os.environ["WORKERS_INPUT"])
+          runs = int(os.environ["RUNS_INPUT"])
+          if source not in ("git", "directory") or not 0 <= workers <= 1024 or not 1 <= runs <= 100:
+              raise SystemExit("invalid source, worker count or sample count (runs must be 1..100)")
+          manifest = {"schema_version": 1, "scenarios": [{
+              "name": "map", "cwd": "{corpus}/" + fixture.as_posix(),
+              "args": ["map", "--source", source, "--workers", str(workers), "--json", "{cwd}"],
+              "inputs": [fixture.as_posix()],
+              "provenance": {"notes": os.environ["NOTES_INPUT"], "selection": source},
+          }]}
+          output = Path(os.environ["RUNNER_TEMP"]) / "dircue-perf-evidence/manifest.json"
+          output.write_text(json.dumps(manifest, indent=2) + "\n")
+          PY
+          python3 tests/bench/run.py \
+            --baseline "$RUNNER_TEMP/dircue-perf-build/baseline" \
+            --candidate "$RUNNER_TEMP/dircue-perf-build/candidate" \
+            --manifest "$RUNNER_TEMP/dircue-perf-evidence/manifest.json" \
+            --corpus-root "$GITHUB_WORKSPACE" \
+            --runs "$RUNS_INPUT" --warmup 1 \
+            --output "$RUNNER_TEMP/dircue-perf-evidence/report.json"
+      - name: Describe correctness result and timing limits
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          report = Path(os.environ["RUNNER_TEMP"]) / "dircue-perf-evidence/report.json"
+          lines = ["## Paired CLI performance", "", "Hosted-runner timing is descriptive; no speed threshold is enforced."]
+          if report.exists():
+              data = json.loads(report.read_text())
+              lines += ["", "Correctness comparison passed: " + str(data.get("passed", False))]
+              if data.get("passed"):
+                  for scenario in data["scenarios"]:
+                      ratio = scenario["paired_speedup_median"]
+                      lines.append(f"{scenario['name']}: median paired baseline/candidate ratio {ratio:.3f}")
+              else:
+                  lines.append("Timing comparisons withheld; inspect the failure receipt.")
+          else:
+              lines += ["", "No successful comparison receipt was produced."]
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as summary:
+              summary.write("\n".join(lines) + "\n")
+          PY
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
-          retention-days: 90
-          name: perf-stable-results
-          path: .cache/perf-stable/
+          retention-days: 30
+          name: perf-paired-results
+          path: ${{ runner.temp }}/dircue-perf-evidence/
