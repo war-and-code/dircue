@@ -239,10 +239,15 @@ def expand(value, corpus, cwd, worker=None):
             .replace('{worker}', str(worker) if worker is not None else ''))
 
 
-def run_process(binary, scenario, corpus, worker=None):
-    cwd = Path(expand(scenario['_cwd_template'], corpus, corpus, worker))
+def resolve_cwd(template, corpus, worker=None):
+    cwd = Path(expand(template, corpus, corpus, worker))
     if not cwd.is_absolute():
         cwd = corpus / cwd
+    return cwd.resolve(strict=True)
+
+
+def run_process(binary, scenario, corpus, worker=None):
+    cwd = resolve_cwd(scenario['_cwd_template'], corpus, worker)
     args = [str(binary)] + [expand(arg, corpus, cwd, worker) for arg in scenario['args']]
     env = os.environ.copy()
     env.update({key: expand(value, corpus, cwd, worker) for key, value in scenario.get('env', {}).items()})
@@ -364,7 +369,7 @@ def main(argv=None, execute=run_process):
             raise HarnessError('manifest requires {worker}; pass --worker with an explicit structural worker')
         cwd_paths = []
         for scenario in scenarios:
-            cwd = Path(expand(scenario['_cwd_template'], corpus, corpus, worker)).resolve(strict=True)
+            cwd = resolve_cwd(scenario['_cwd_template'], corpus, worker)
             try:
                 cwd.relative_to(corpus)
             except ValueError as error:

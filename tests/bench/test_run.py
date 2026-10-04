@@ -191,6 +191,25 @@ class BenchmarkPreflightTests(unittest.TestCase):
                 self.assertEqual(sample['seconds'], 3 / 1000)
             self.assertTrue(Path(report['scenarios'][0]['output_artifacts']['baseline']['stdout']).is_file())
 
+    def test_main_runs_real_executables_with_corpus_relative_cwd(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            corpus, _, binaries, manifest, output, argv = self.main_fixture(root)
+            for name, label in (('baseline', 'baseline stub'), ('candidate', 'candidate stub')):
+                binaries[name].write_text(
+                    '#!/usr/bin/env python3\n# ' + label + '\nprint("same output")\n')
+                binaries[name].chmod(0o755)
+            manifest.write_text(json.dumps({'schema_version': 1, 'scenarios': [{
+                'name': 'relative-cwd', 'args': ['{cwd}'], 'cwd': 'input', 'inputs': ['input']}]}))
+            argv.extend(['--warmup', '0'])
+
+            self.assertEqual(run.main(argv), 0)
+            report = json.loads(output.read_text())
+            self.assertTrue(report['passed'])
+            expected_cwd = str((corpus / 'input').resolve())
+            self.assertEqual(report['scenarios'][0]['commands']['baseline']['cwd'], expected_cwd)
+            self.assertEqual(report['scenarios'][0]['commands']['candidate']['cwd'], expected_cwd)
+
     def test_main_mutated_input_invalidates_samples(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
