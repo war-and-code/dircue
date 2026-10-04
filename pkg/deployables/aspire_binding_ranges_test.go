@@ -25,7 +25,9 @@ func TestAspireBindingRangesMatchLinearReference(t *testing.T) {
 				t.Fatalf("trial %d start %d Projects before namespace boundary = %v, want %v; tokens=%v", trial, start, got, want, tokenTexts(tokens))
 			}
 		}
-		if indexed.containsProjectsBeforeSemicolon(-1) || indexed.containsProjectsBeforeSemicolon(len(tokens)) {
+		maxInt := int(^uint(0) >> 1)
+		if indexed.containsProjectsBeforeSemicolon(-1) || indexed.containsProjectsBeforeSemicolon(len(tokens)) ||
+			indexed.containsProjectsBeforeSemicolon(maxInt) {
 			t.Fatalf("out-of-range start matched in trial %d", trial)
 		}
 	}

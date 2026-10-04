@@ -60,7 +60,7 @@ func (ranges aspireBindingRanges) containsProjectsBeforeNamespaceBoundary(start 
 // start is the using/namespace keyword token. The searched range begins at
 // the following token and excludes the first applicable delimiter.
 func (ranges aspireBindingRanges) containsBefore(start int, prefix, nextBoundary []uint32) bool {
-	if start < 0 || start+1 >= len(prefix) || len(nextBoundary) != len(prefix) {
+	if start < 0 || start >= len(prefix)-1 || len(nextBoundary) != len(prefix) {
 		return false
 	}
 	from := start + 1
