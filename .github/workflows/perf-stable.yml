@@ -66,7 +66,8 @@ jobs:
           (cd "$RUNNER_TEMP/dircue-perf-baseline" && go build -buildvcs=false -trimpath -o "$RUNNER_TEMP/dircue-perf-build/baseline" .)
           go build -buildvcs=false -trimpath -o "$RUNNER_TEMP/dircue-perf-build/candidate" .
           export BASELINE_SHA="$baseline_sha"
-          export CANDIDATE_SHA="$(git rev-parse HEAD)"
+          candidate_sha=$(git rev-parse HEAD)
+          export CANDIDATE_SHA="$candidate_sha"
           python3 - <<'PY'
           import json, os, platform, subprocess
           from pathlib import Path

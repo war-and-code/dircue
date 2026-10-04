@@ -1,4 +1,4 @@
-VERSION ?= 1.3.0
+VERSION ?= 1.3.1-dev
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
@@ -24,7 +24,8 @@ bench:
 
 # Self-tests for the benchmark correctness gate and PyPI readiness validator.
 test-bench:
-	python3 -m unittest tests/bench/test_run.py tests/release/test_pypi_index_ready.py tests/ci/test_fuzz_campaign_target.py
+	python3 -m unittest discover -s tests/bench -p 'test_*.py'
+	python3 -m unittest tests/release/test_pypi_index_ready.py tests/release/test_pypi_uvx_ready.py tests/ci/test_fuzz_campaign_target.py
 
 # Paired whole-CLI baseline/candidate comparison. Supply explicit binaries and
 # a manifest; the harness never builds or selects a baseline automatically.
@@ -318,3 +319,10 @@ regenerate-tool-fixtures: ## Regenerate tool fixture reports with pinned images 
 	  semgrep --config /rules/python-checks.yaml --metrics off --sarif /src 2>/dev/null \
 	  > tests/tools/fixtures/python-lint-sample.semgrep.sarif.json
 	@echo "==> Reports regenerated; run make tool-oracles to validate"
+
+# Deterministic generated-tree relations; the larger tier is manual only.
+.PHONY: test-map-generated
+MAP_BINARY ?= bin/dircue
+MAP_GENERATED_TIER ?= ci
+test-map-generated:
+	python3 tests/map_corpus/metamorphic_generated.py --binary "$(MAP_BINARY)" --tier "$(MAP_GENERATED_TIER)"

@@ -273,7 +273,7 @@ class WorkflowExpressionTests(unittest.TestCase):
             for action in ("synchronize", "converted_to_draft"):
                 with self.subTest(workflow=workflow, action=action):
                     context = pull_request_context(workflow, action, True)
-                    expected = {"preflight"} if workflow == "CI" else set()
+                    expected = {"preflight", "counter-regression"} if workflow == "CI" else set()
                     self.assertEqual(expected, selected_jobs(path, context))
 
     def test_full_pr_events_retain_expensive_job_selection(self) -> None:
@@ -291,7 +291,7 @@ class WorkflowExpressionTests(unittest.TestCase):
         ci = non_pr_context("CI", "push", "refs/heads/main")
         worker = non_pr_context("Structural worker", "push", "refs/heads/main")
         self.assertEqual(
-            {"preflight", "test", "linguist-conformance", "metrics-conformance"},
+            {"preflight", "test", "linguist-conformance", "metrics-conformance", "counter-regression"},
             selected_jobs(WORKFLOWS["CI"], ci),
         )
         self.assertEqual({"package"}, selected_jobs(WORKFLOWS["Structural worker"], worker))
@@ -383,7 +383,7 @@ class ConcurrencyAdmissionTests(unittest.TestCase):
                 converted_group = render(expression, context)
                 full_group, _ = self.groups(workflow)
                 self.assertEqual(full_group, converted_group)
-                expected = {"preflight"} if workflow == "CI" else set()
+                expected = {"preflight", "counter-regression"} if workflow == "CI" else set()
                 self.assertEqual(expected, selected_jobs(path, context))
 
                 state = ConcurrencyState()

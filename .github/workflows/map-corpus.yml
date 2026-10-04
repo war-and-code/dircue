@@ -21,6 +21,8 @@ jobs:
         run: go build -trimpath -o bin/dircue .
         env:
           CGO_ENABLED: '0'
+      - name: Exercise the larger seeded metamorphic tier
+        run: python3 tests/map_corpus/metamorphic_generated.py --binary bin/dircue --tier manual
       - name: Fetch exact public corpus revisions
         run: |
           python3 tests/map_corpus/fetch_public.py --destination "$RUNNER_TEMP/map-corpus" \
