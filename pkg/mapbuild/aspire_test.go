@@ -35,6 +35,13 @@ func TestAspireRunsNeedsExactAppHostReferenceAndSDK(t *testing.T) {
 	if len(runs) != 1 || runs[0].To != components["src/Api"] || runs[0].From == "" {
 		t.Fatalf("Aspire edge must bind exact referenced .NET project: runs=%+v components=%v", runs, components)
 	}
+	// A strengthened source proof must retain the identity of the supported
+	// relationship from the 1.2 observer. The historical discriminator used
+	// the generated type and target node ID, independently of its evidence.
+	legacyID := mapdoc.NewEdge(mapdoc.EdgeRuns, runs[0].From, components["src/Api"], "aspire-project:Api:"+components["src/Api"]).ID
+	if runs[0].ID != legacyID {
+		t.Fatalf("corroborating Aspire evidence changed a retained edge ID: got %s want %s", runs[0].ID, legacyID)
+	}
 	if runs[0].Coverage.Status != mapdoc.CoveragePartial {
 		t.Fatalf("declared launch must remain partial: %+v", runs[0])
 	}

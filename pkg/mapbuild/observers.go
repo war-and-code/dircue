@@ -1497,7 +1497,7 @@ func addAspireDeclaredRuns(d *mapdoc.Document, report *deployables.Report, decls
 			if len(targetNodes) != 1 || targetNodes[0].ID == app.ID {
 				continue
 			}
-			e := mapdoc.NewEdge(mapdoc.EdgeRuns, deployID, targetNodes[0].ID, "aspire-project:"+observed.Value+":"+targetProject.ID)
+			e := mapdoc.NewEdge(mapdoc.EdgeRuns, deployID, targetNodes[0].ID, "aspire-project:"+observed.Value+":"+targetNodes[0].ID)
 			if seen[e.ID] {
 				continue
 			}
