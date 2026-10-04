@@ -30,6 +30,17 @@ class HarnessError(Exception):
     pass
 
 
+MAX_MANIFEST_BYTES = 8 * 1024 * 1024
+
+
+def read_manifest(path):
+    with path.open('rb') as stream:
+        raw = stream.read(MAX_MANIFEST_BYTES + 1)
+    if len(raw) > MAX_MANIFEST_BYTES:
+        raise HarnessError(f'manifest exceeds the {MAX_MANIFEST_BYTES}-byte limit')
+    return raw
+
+
 def sha256_file(path):
     digest = hashlib.sha256()
     with path.open('rb') as stream:
@@ -113,7 +124,7 @@ def invalidate_previous_report(output, failure, protected_paths):
         return
     try:
         previous = json.loads(output.read_text(encoding='utf-8'))
-    except (OSError, UnicodeError, json.JSONDecodeError):
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError):
         return
     if not isinstance(previous, dict) or previous.get('passed') is not True:
         return
@@ -153,9 +164,9 @@ def invalidate_previous_report(output, failure, protected_paths):
 def load_manifest(path, corpus_root, raw=None):
     try:
         if raw is None:
-            raw = path.read_bytes()
+            raw = read_manifest(path)
         value = json.loads(raw)
-    except (OSError, UnicodeError, json.JSONDecodeError) as error:
+    except (OSError, UnicodeError, json.JSONDecodeError, RecursionError) as error:
         raise HarnessError(f'cannot read manifest: {error}') from error
     if (not isinstance(value, dict) or type(value.get('schema_version')) is not int
             or value.get('schema_version') != 1):
@@ -344,7 +355,7 @@ def main(argv=None, execute=run_process):
         if not corpus.is_dir():
             raise HarnessError('corpus root must be a directory')
         manifest_path = args.manifest.resolve(strict=True)
-        manifest_bytes = manifest_path.read_bytes()
+        manifest_bytes = read_manifest(manifest_path)
         manifest, scenarios = load_manifest(manifest_path, corpus, raw=manifest_bytes)
         binaries = {name: path.resolve() for name, path in
                     (('baseline', args.baseline), ('candidate', args.candidate))}
@@ -482,7 +493,7 @@ def main(argv=None, execute=run_process):
                 raise HarnessError(f'{name} binary changed during the run')
         if worker is not None and sha256_file(worker) != report['structural_worker']['sha256']:
             raise HarnessError('structural worker changed during the run')
-        if hashlib.sha256(manifest_path.read_bytes()).hexdigest() != report['manifest_sha256']:
+        if hashlib.sha256(read_manifest(manifest_path)).hexdigest() != report['manifest_sha256']:
             raise HarnessError('manifest changed during the run')
         report['finished_at_utc'] = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
         report['passed'] = True

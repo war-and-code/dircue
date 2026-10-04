@@ -242,6 +242,38 @@ class BenchmarkPreflightTests(unittest.TestCase):
             self.assertIsNone(report['performance_passed'])
             self.assertIsNone(report['scenarios'][0]['timing'])
 
+    def test_deeply_nested_manifest_invalidates_old_success_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            corpus, _, _, manifest, output, argv = self.main_fixture(root)
+            old = {'passed': True, 'performance_passed': True, 'status': 'complete',
+                   'corpus_root': str(corpus), 'scenarios': []}
+            output.write_text(json.dumps(old))
+            nesting = 10_000
+            manifest.write_text('[' * nesting + '0' + ']' * nesting)
+
+            self.assertEqual(run.main(argv), 1)
+            report = json.loads(output.read_text())
+            self.assertFalse(report['passed'])
+            self.assertIsNone(report['performance_passed'])
+            self.assertEqual(report['status'], 'failed')
+            self.assertIn('cannot read manifest', report['failure'])
+
+    def test_manifest_byte_limit_invalidates_old_success_receipt(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            corpus, _, _, manifest, output, argv = self.main_fixture(root)
+            old = {'passed': True, 'performance_passed': True, 'status': 'complete',
+                   'corpus_root': str(corpus), 'scenarios': []}
+            output.write_text(json.dumps(old))
+            manifest.write_bytes(b' ' * (run.MAX_MANIFEST_BYTES + 1))
+
+            self.assertEqual(run.main(argv), 1)
+            report = json.loads(output.read_text())
+            self.assertFalse(report['passed'])
+            self.assertIsNone(report['performance_passed'])
+            self.assertIn('manifest exceeds', report['failure'])
+
     def test_existing_details_directory_is_preserved_and_old_success_invalidated(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
