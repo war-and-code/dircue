@@ -12,7 +12,6 @@ import copy
 import json
 import os
 import shutil
-import subprocess
 import tempfile
 import sys
 from pathlib import Path

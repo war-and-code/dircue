@@ -5,7 +5,7 @@
 - Reuse cleared, bounded import-lexer token buffers without changing detected imports, coverage or language results. Dense-token growth also stays within the existing retained-token limit.
 - Enforce reviewed deterministic map-work budgets in event-driven CI. Changed fixtures, missing statistics and unexpected counters fail instead of silently weakening the comparison; timings and heap measurements remain descriptive.
 - Test seeded mixed-ecosystem trees and equivalent Git storage layouts, including deep paths, Unicode, relocation, worker counts and resource limits. A larger seed set remains available on demand.
-- Verify fresh `uvx` installation on each publication runner with bounded PyPI propagation retries and retained diagnostics. Wrong versions, hash mismatches, execution failures and exhausted retries fail the check.
+- Verify fresh `uvx` installation on each publication runner with bounded PyPI propagation retries and retained diagnostics. Wrong versions, hash mismatches, unrecognized failures, execution timeouts and exhausted retries fail the check.
 
 ## 1.3.0 (2026-10-04)
 
