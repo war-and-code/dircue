@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.4.0 (unreleased)
+## 1.4.0 (2026-10-05)
 
 - Add optional `analyze assessment` and `analyze all --assessment` reports combining existing language statistics with selected file and logical-byte totals (including Linguist-vendored subsets), filename-selected manifest counts with ecosystem and kind, parsed project roots with per-role breakdowns, explicit workspace and local references, and npm/NuGet lockfile associations with per-role and outcome-reason detail. Each metric states its population and completeness; capped evidence samples remain separate from incomplete counts. The module works without Git, Syft, build execution, or package restoration and emits no monorepo or size verdict.
 - Add `--npm-workspace-locks` to `analyze lockfiles` and `analyze all`. It applies npm's workspace-root selection, checked against npm 11.12.1: the nearest ancestor whose `workspaces` list a project owns its lockfile, and the member is compared with its own entry there. The module's `semantics` array then names `npm-workspace-member-lock-descriptors-v1`. Assessment always applies it.
