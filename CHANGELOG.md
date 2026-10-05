@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.3.1 (unreleased)
+## 1.3.1 (2026-10-04)
 
 - Reuse cleared, bounded import-lexer token buffers without changing detected imports, coverage or language results. Dense-token growth also stays within the existing retained-token limit.
 - Enforce reviewed deterministic map-work budgets in event-driven CI. Changed fixtures, missing statistics and unexpected counters fail instead of silently weakening the comparison; timings and heap measurements remain descriptive.
