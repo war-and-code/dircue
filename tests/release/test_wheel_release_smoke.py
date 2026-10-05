@@ -28,17 +28,27 @@ class NativeWheelSmokeTests(unittest.TestCase):
 
     def receipt(self, version='0.5.0', target='linux-amd64'):
         required = smoke.declarations.declarations_required(version)
+        assess = smoke.declarations.assessment_required(version)
         tag = smoke.wheels.PLATFORMS[tuple(target.split('-'))][0]
-        keys = {'default_languages', 'default_all'} | ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set())
+        keys = ({'default_languages', 'default_all'} |
+                ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set()) |
+                ({'assessment', 'assessment_all'} if assess else set()))
         receipt = {'schema_version': '1.0.0', 'passed': True, 'version': version, 'platform': target,
                 'wheel': f'dircue-{smoke.wheels.python_version(version)}-py3-none-{tag}.whl',
                 'wheel_sha256': 'a' * 64, 'wheel_tag_executed': tag, 'installed_core_sha256': 'b' * 64,
                 'launcher_sha256': 'c' * 64, 'installation': smoke.INSTALLATION, 'scope': smoke.SCOPE,
-                'checks': sorted(smoke.declarations.DEFAULT_CHECKS | (smoke.declarations.DECLARATION_CHECKS if required else set())),
+                'checks': sorted(smoke.declarations.DEFAULT_CHECKS |
+                                 (smoke.declarations.DECLARATION_CHECKS if required else set()) |
+                                 (smoke.declarations.ASSESSMENT_CHECKS if assess else set())),
                 'stdout_sha256': {key: 'd' * 64 for key in keys}, 'source_removed_before_compare': required,
-                'fixture_sha256': smoke.declarations.fixture_inputs(), 'observed_facts': smoke.declarations.FACTS if required else {},
+                'fixture_sha256': smoke.declarations.fixture_inputs(),
+                'observed_facts': ({'declarations': smoke.declarations.FACTS,
+                                    'assessment': smoke.declarations.ASSESSMENT_FACTS} if assess else
+                                   smoke.declarations.FACTS if required else {}),
                 'negative_cases': ['duplicate-json-key', 'malformed-json'] if required else [],
                 'harness_sha256': smoke.source_inputs()}
+        if assess:
+            receipt['assessment_required'] = True
         if smoke.formats.required(version):
             from test_v060_smoke import formats_receipt
             receipt['formats'] = formats_receipt(version)
@@ -75,6 +85,49 @@ class NativeWheelSmokeTests(unittest.TestCase):
             changed['formats'] = value
             with self.assertRaises(ValueError):
                 validate(changed)
+
+    def test_140_requires_assessment_smoke_inventory_and_receipt_gate(self):
+        version = '1.4.0-rc.1'
+        receipt = self.receipt(version)
+
+        def validate(value):
+            return smoke.validate_receipt(value, version, 'linux-amd64', 'b' * 64, receipt['wheel'], 'a' * 64)
+
+        self.assertEqual(receipt, validate(receipt))
+        for mutate in (
+            lambda value: value['checks'].remove('assessment_lock_partition'),
+            lambda value: value['stdout_sha256'].pop('assessment_all'),
+            lambda value: value['observed_facts']['assessment'].update(parsed_projects=smoke.declarations.ASSESSMENT_FACTS['parsed_projects'] + 1),
+            lambda value: value.pop('assessment_required'),
+            lambda value: value.update(assessment_required=False),
+        ):
+            changed = copy.deepcopy(receipt)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                validate(changed)
+
+    def test_pre_140_wheel_receipts_keep_the_previous_shape(self):
+        version = '1.3.99'
+        receipt = self.receipt(version)
+        self.assertNotIn('assessment_required', receipt)
+        self.assertEqual(smoke.declarations.DEFAULT_CHECKS | smoke.declarations.DECLARATION_CHECKS,
+                         set(receipt['checks']))
+        self.assertEqual({'default_languages', 'default_all', 'declarations', 'combined',
+                          'changed_compare', 'identical_compare', 'partial_compare'},
+                         set(receipt['stdout_sha256']))
+        self.assertEqual(smoke.declarations.FACTS, receipt['observed_facts'])
+        self.assertEqual(receipt, smoke.validate_receipt(receipt, version, 'linux-amd64', 'b' * 64,
+                                                         receipt['wheel'], 'a' * 64))
+
+    def test_assessment_gate_is_taken_from_validated_launcher_receipt(self):
+        inner = {'assessment_required': True}
+        with mock.patch.object(smoke.declarations, 'validate_receipt', return_value=inner) as validate:
+            self.assertIs(smoke.validated_assessment_gate(inner, '1.4.0-rc.1', 'c' * 64), True)
+            validate.assert_called_once_with(inner, '1.4.0-rc.1', 'c' * 64)
+        older = {}
+        with mock.patch.object(smoke.declarations, 'validate_receipt', return_value=older) as validate:
+            self.assertIsNone(smoke.validated_assessment_gate(older, '1.3.99', 'c' * 64))
+            validate.assert_called_once_with(older, '1.3.99', 'c' * 64)
 
     def test_inherited_python_and_pip_controls_removed(self):
         env = smoke.environment({'PATH': 'keep', 'SystemRoot': 'keep-windows', 'PYTHONPATH': 'bad',

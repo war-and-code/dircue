@@ -3,6 +3,8 @@ package profile
 
 import (
 	"context"
+
+	"github.com/war-and-code/dircue/pkg/assessment"
 	"github.com/war-and-code/dircue/pkg/availability"
 	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/discovery"
@@ -85,6 +87,8 @@ const EnvironmentSchemaVersion = "1.7.0"
 
 const LockfilesSchemaVersion = "1.8.0"
 
+const AssessmentSchemaVersion = "1.9.0"
+
 // SummarizedTree records a recognized environment or build-output tree that
 // was counted rather than scanned in detail.
 type SummarizedTree struct {
@@ -101,6 +105,7 @@ type SummarizedTree struct {
 }
 
 type Report struct {
+	Assessment      *assessment.Report      `json:"assessment,omitempty"`
 	Lockfiles       *lockfiles.Report       `json:"lockfiles,omitempty"`
 	Environments    *environments.Report    `json:"environments,omitempty"`
 	Explanation     *explain.Report         `json:"explanation,omitempty"`

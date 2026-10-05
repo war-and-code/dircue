@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
@@ -62,6 +63,41 @@ func TestCollectorOutputBoundIncludesDiagnosticsAndEnvelope(t *testing.T) {
 	}
 	if retained != r.Coverage.RetainedObservations {
 		t.Fatal("trimming left stale retained-observation count")
+	}
+	// Lockfile ownership and assessment rely on every dropped manifest being
+	// attributed, whichever limit dropped it.
+	omitted, trees, attributed := c.OmittedPaths()
+	if !attributed || len(trees) != 0 {
+		t.Fatalf("omissions attributed=%v trees=%v", attributed, trees)
+	}
+	for i := 0; i < 30; i++ {
+		name := fmt.Sprintf("%02d.csproj", i)
+		kept := slices.ContainsFunc(r.Projects, func(p Project) bool { return p.ID == name })
+		if kept == slices.Contains(omitted, name) {
+			t.Fatalf("%s retained=%v but omitted=%v", name, kept, !kept)
+		}
+	}
+}
+
+func TestOmissionsRetainOnlyPathsThatCanHideManifests(t *testing.T) {
+	c := New("directory", "", 0)
+	for _, name := range []string{"bin/tool", "web/package.json", "app/node_modules/x/package.json"} {
+		c.OmitPath(name)
+	}
+	c.OmitTree("locked")
+	c.OmitTree("app/node_modules/broken")
+	omitted, trees, attributed := c.OmittedPaths()
+	if !attributed || !slices.Equal(omitted, []string{"web/package.json"}) || !slices.Equal(trees, []string{"locked"}) {
+		t.Fatalf("omitted=%v trees=%v attributed=%v", omitted, trees, attributed)
+	}
+	if c.report.Coverage.OmittedFiles != 5 {
+		t.Fatalf("omitted files = %d, want every omission counted", c.report.Coverage.OmittedFiles)
+	}
+	for i := 0; i < MaxOmittedPaths; i++ {
+		c.OmitPath(fmt.Sprintf("p%d/package.json", i))
+	}
+	if _, _, attributed := c.OmittedPaths(); attributed {
+		t.Fatal("omissions beyond the attribution limit must not be reported as attributed")
 	}
 }
 

@@ -20,6 +20,11 @@ const MaxInputBytes int64 = 64 << 20
 const MaxOutputBytes = 16 << 20
 const MaxDiagnostics = 1024
 
+// MaxOmittedPaths bounds the internal record of omitted manifests and
+// unreadable directories. Beyond it, omissions remain counted but are no longer
+// attributable to a path.
+const MaxOmittedPaths = 4096
+
 // Candidate reads only the already selected source snapshot.
 type Candidate struct {
 	Path   string
@@ -53,6 +58,16 @@ type Collector struct {
 	// boundary.
 	errorPolicy string
 	readErrors  []string
+	// omittedPaths and omittedTrees attribute omissions for internal consumers
+	// that only need to know whether a manifest could have been omitted. They
+	// are never serialized. Unattributed omissions are counted separately.
+	omittedPaths        []string
+	omittedTrees        []string
+	unattributedOmitted int64
+	// interpreted lists manifests read in full that parsed into a document or
+	// held no declarations, including documents later merged into another
+	// project record.
+	interpreted []string
 }
 
 // SetErrorPolicy configures how Finish reacts to per-manifest read failures.
@@ -170,7 +185,59 @@ func (c *Collector) diagnostic(code, message string) {
 	c.report.Diagnostics = append(c.report.Diagnostics, Diagnostic{Path: ".", Code: code, Message: message})
 }
 
-func (c *Collector) Omit() { c.report.Coverage.OmittedFiles++ }
+// Omit records an omission whose selected path is not known.
+func (c *Collector) Omit() {
+	c.report.Coverage.OmittedFiles++
+	c.unattributedOmitted++
+}
+
+// OmitPath records an omission of one known selected file. Only a manifest
+// name is retained: any other omitted file cannot hide a declaration.
+func (c *Collector) OmitPath(name string) {
+	c.report.Coverage.OmittedFiles++
+	if IsManifest(name) {
+		c.attribute(&c.omittedPaths, name)
+	}
+}
+
+// OmitTree records a selected directory that could not be read, which can hide
+// a manifest at any depth below it unless it is inside installed npm contents.
+func (c *Collector) OmitTree(dir string) {
+	c.report.Coverage.OmittedFiles++
+	if !strings.Contains("/"+dir+"/", "/node_modules/") {
+		c.attribute(&c.omittedTrees, dir)
+	}
+}
+
+func (c *Collector) attribute(list *[]string, name string) {
+	if len(c.omittedPaths)+len(c.omittedTrees) >= MaxOmittedPaths {
+		c.unattributedOmitted++
+		return
+	}
+	*list = append(*list, name)
+}
+
+// OmittedPaths returns the omitted manifest paths, the unreadable directories,
+// and whether every other omission is known to be a file that is not a
+// manifest. Paths are sorted and may contain text that is not valid UTF-8;
+// callers must not serialize them without validation.
+func (c *Collector) OmittedPaths() (manifests, trees []string, attributed bool) {
+	manifests, trees = slices.Clone(c.omittedPaths), slices.Clone(c.omittedTrees)
+	slices.Sort(manifests)
+	slices.Sort(trees)
+	return manifests, trees, c.unattributedOmitted == 0
+}
+
+// InterpretedPaths returns selected manifests that were read in full and
+// either parsed into a declaration document or held no declarations, such as a
+// pyproject.toml with only tool settings. A parsed document merged into
+// another project record, such as requirements.txt beside pyproject.toml, is
+// included. Like OmittedPaths, the result is never serialized.
+func (c *Collector) InterpretedPaths() []string {
+	out := slices.Clone(c.interpreted)
+	slices.Sort(out)
+	return out
+}
 
 // RecordSelectedFileSize retains bounded metadata for local artifact lookup.
 // It does not open the target or rely on the sparse discovery candidate list.
@@ -193,7 +260,7 @@ func (c *Collector) Skip(reason string) *Report {
 func (c *Collector) Add(name string, candidate *Candidate) {
 	c.report.Coverage.SelectedFiles++
 	if !utf8.ValidString(name) || (candidate != nil && !utf8.ValidString(candidate.Path)) {
-		c.Omit()
+		c.OmitPath(name)
 		c.diagnostic("invalid-path-text", "A selected filename cannot be represented faithfully as UTF-8.")
 		if candidate != nil {
 			c.report.Coverage.ManifestCandidates++
@@ -208,21 +275,23 @@ func (c *Collector) Add(name string, candidate *Candidate) {
 		c.files[name] = true
 		heap.Push(&c.inventory, Candidate{Path: name})
 	} else {
-		c.Omit()
 		c.diagnostic("inventory-limit", "The declaration inventory path limit was reached.")
 		if len(name) <= MaxStringBytes && len(c.inventory) > 0 && name < c.inventory[0].Path {
+			c.OmitPath(c.inventory[0].Path)
 			delete(c.files, c.inventory[0].Path)
 			delete(c.fileSizes, c.inventory[0].Path)
 			c.inventory[0] = Candidate{Path: name}
 			heap.Fix(&c.inventory, 0)
 			c.files[name] = true
+		} else {
+			c.OmitPath(name)
 		}
 	}
 	if candidate == nil {
 		return
 	}
 	if len(candidate.Path) > MaxStringBytes {
-		c.Omit()
+		c.OmitPath(candidate.Path)
 		return
 	}
 	c.report.Coverage.ManifestCandidates++
@@ -231,10 +300,12 @@ func (c *Collector) Add(name string, candidate *Candidate) {
 		return
 	}
 	c.diagnostic("manifest-count-limit", "Only the lexically first supported manifests were retained.")
-	c.Omit()
 	if candidate.Path < c.paths[0].Path {
+		c.OmitPath(c.paths[0].Path)
 		c.paths[0] = *candidate
 		heap.Fix(&c.paths, 0)
+	} else {
+		c.OmitPath(candidate.Path)
 	}
 }
 
@@ -252,7 +323,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 			return nil, err
 		}
 		if candidate.Size > c.readLimit || candidate.Size < 0 || candidate.Size > MaxInputBytes-bytesRead {
-			c.Omit()
+			c.OmitPath(candidate.Path)
 			c.diagnostic("manifest-read-limit", "One or more manifests exceeded the per-file or total manifest read limit.")
 			continue
 		}
@@ -282,7 +353,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 					// Preserve remaining manifests. The per-path diagnostic
 					// keeps the omission attributable and stays disjoint
 					// from the module's other incompleteness reasons.
-					c.Omit()
+					c.OmitPath(candidate.Path)
 					c.report.Status = "partial"
 					if len(c.report.Diagnostics) < MaxDiagnostics {
 						c.report.Diagnostics = append(c.report.Diagnostics, Diagnostic{Path: candidate.Path, Code: "file-read-error", Message: "A selected manifest could not be read."})
@@ -295,12 +366,15 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 				return nil, errors.New("could not read a selected declaration manifest")
 			}
 			if size != int64(len(content)) || size > c.readLimit || size > MaxInputBytes-bytesRead {
-				c.Omit()
+				c.OmitPath(candidate.Path)
 				c.diagnostic("incomplete-manifest", "One or more manifests changed, were incomplete, or exceeded a read limit.")
 				continue
 			}
 			bytesRead += size
 			d = Parse(candidate.Path, content)
+		}
+		if d == nil || d.Parsed {
+			c.interpreted = append(c.interpreted, candidate.Path)
 		}
 		if d != nil {
 			docs = append(docs, d)
@@ -338,7 +412,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 		n := len(p.Requirements) + len(p.References) + len(p.Interfaces)
 		encoded, _ := json.Marshal(p)
 		if n > MaxTotalObservations-c.report.Coverage.RetainedObservations || len(encoded) > MaxOutputBytes-totalBytes {
-			c.Omit()
+			c.OmitPath(p.ID)
 			c.diagnostic("report-limit", "The retained declaration report limit was reached.")
 			continue
 		}
@@ -380,7 +454,11 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 				continue
 			}
 			if p, ok := retained[d.Project.ID]; ok {
-				c.records = append(c.records, ProjectRecord{Project: p, Parsed: d.Parsed, Complete: !d.limited})
+				record := ProjectRecord{Project: p, Parsed: d.Parsed, Complete: !d.limited}
+				if data, ok := d.Data.(*pythonData); ok {
+					record.PythonBuildSystemSeen = data.buildSystemPresent
+				}
+				c.records = append(c.records, record)
 			}
 		}
 		slices.SortFunc(c.records, func(a, b ProjectRecord) int { return strings.Compare(a.Project.ID, b.Project.ID) })
@@ -419,7 +497,7 @@ func (c *Collector) boundOutput() {
 		data, _ := json.Marshal(p)
 		size -= len(data)
 		c.report.Coverage.RetainedObservations -= len(p.Requirements) + len(p.References) + len(p.Interfaces)
-		c.report.Coverage.OmittedFiles++
+		c.OmitPath(p.ID)
 		c.report.Projects = c.report.Projects[:last]
 	}
 	for size > MaxOutputBytes-256 && len(c.report.Diagnostics) > 1 {

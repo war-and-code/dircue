@@ -3,6 +3,7 @@
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -17,6 +18,9 @@ DECLARATION_CHECKS = {'six_ecosystem_facts', 'workspace_relationships', 'named_i
                       'one_eight_workers', 'standalone_combined_parity', 'default_fields_unchanged',
                       'offline_compare_after_source_removal', 'identical_report_compare',
                       'malformed_report_rejection', 'partial_coverage_qualified'}
+ASSESSMENT_CHECKS = {'assessment_inventory_and_projects', 'assessment_lock_partition',
+                     'assessment_offline_standalone_all_parity', 'assessment_no_external_tools',
+                     'assessment_preserves_legacy_defaults'}
 SCRIPT_SENTINEL = 'DIRCUE_RELEASE_SMOKE_SCRIPT_BODY_DO_NOT_EXECUTE'
 FIXTURES = {
     'npm/package.json': '{"name":"suite","version":"1.0.0","workspaces":["packages/*"],"scripts":{"start":"node server.js","check":"echo ' + SCRIPT_SENTINEL + ' > EXECUTED"}}\n',
@@ -38,6 +42,18 @@ EXPECTED_MANIFESTS = sorted(name for name in FIXTURES if not name.endswith(('.go
 FACTS = {'ecosystems': ['cargo', 'dotnet', 'go', 'maven', 'npm', 'python-uv'],
          'manifest_ids': EXPECTED_MANIFESTS, 'go_minimum': '1.24.0', 'python_minimum': '>=3.11',
          'cargo_version': '1.2.3', 'cargo_edition': '2021', 'dotnet_framework': 'net8.0', 'java_release': '21'}
+ASSESSMENT_FACTS = {
+    'regular_files': len(FIXTURES),
+    'logical_bytes': sum(len(content.encode('utf-8')) for content in FIXTURES.values()),
+    'manifest_candidates': len(EXPECTED_MANIFESTS),
+    # go.work and the Cargo [workspace]-only manifest are virtual roots, not projects.
+    'parsed_projects': 10,
+    'distinct_project_roots': 10,
+    # Only the npm workspace root has something to lock (its members) and no
+    # lockfile; the npm member and both .NET projects declare no packages.
+    'eligible_lockfile_projects': 1,
+    'lockfile_state_partition': ['covered', 'missing', 'not_applicable', 'unsupported', 'unknown'],
+}
 
 
 def require(condition, message):
@@ -53,9 +69,17 @@ def file_sha(path):
     return sha(path.read_bytes())
 
 
-def declarations_required(version):
+def release_tuple(version):
     wheels.python_version(version)
-    return tuple(int(value) for value in version.split('-')[0].split('.')) >= (0, 5, 0)
+    return tuple(int(value) for value in version.split('-')[0].split('.'))
+
+
+def declarations_required(version):
+    return release_tuple(version) >= (0, 5, 0)
+
+
+def assessment_required(version):
+    return release_tuple(version) >= (1, 4, 0)
 
 
 def source_inputs():
@@ -73,22 +97,28 @@ def valid_digest(value):
 def validate_receipt(receipt, version, candidate_sha256):
     require(isinstance(receipt, dict), 'declaration smoke receipt must be an object')
     required = declarations_required(version)
+    assess = assessment_required(version)
     require(receipt.get('schema_version') == '1.0.0' and receipt.get('passed') is True and
             receipt.get('version') == version and receipt.get('declarations_required') is required,
             'declaration smoke version/status mismatch')
+    require((receipt.get('assessment_required') is True) if assess else ('assessment_required' not in receipt),
+            'declaration smoke assessment gate mismatch')
     require(valid_digest(candidate_sha256) and receipt.get('candidate_sha256') == candidate_sha256,
             'declaration smoke executable identity mismatch')
     require(receipt.get('source_sha256') == source_inputs() and receipt.get('fixture_sha256') == fixture_inputs(),
             'declaration smoke input identity mismatch')
-    expected = DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set())
+    expected = DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set()) | (ASSESSMENT_CHECKS if assess else set())
     checks = receipt.get('checks')
     require(isinstance(checks, list) and all(isinstance(c, str) for c in checks) and len(checks) == len(expected) and set(checks) == expected,
             'declaration smoke check inventory mismatch')
     digests = receipt.get('stdout_sha256')
-    keys = {'default_languages', 'default_all'} | ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set())
+    keys = {'default_languages', 'default_all'} | ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set()) | ({'assessment', 'assessment_all'} if assess else set())
     require(isinstance(digests, dict) and set(digests) == keys and all(valid_digest(d) for d in digests.values()),
             'declaration smoke output identity missing')
-    require(receipt.get('observed_facts') == (FACTS if required else {}), 'declaration smoke fact coverage mismatch')
+    facts = {} if not required else FACTS
+    if assess:
+        facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS}
+    require(receipt.get('observed_facts') == facts, 'declaration smoke fact coverage mismatch')
     require(receipt.get('source_removed_before_compare') is required and receipt.get('worker_required') is False,
             'declaration smoke execution scope mismatch')
     negatives = receipt.get('negative_cases')
@@ -97,8 +127,8 @@ def validate_receipt(receipt, version, candidate_sha256):
     return receipt
 
 
-def execute(candidate, args, success=True):
-    result = subprocess.run([str(candidate), *args], capture_output=True, timeout=120)
+def execute(candidate, args, success=True, env=None, cwd=None):
+    result = subprocess.run([str(candidate), *args], capture_output=True, timeout=120, env=env, cwd=cwd)
     if success:
         require(result.returncode == 0 and not result.stderr, f'declaration release smoke failed: exit {result.returncode}, stderr SHA256={sha(result.stderr)}')
     else:
@@ -106,8 +136,8 @@ def execute(candidate, args, success=True):
     return result
 
 
-def output(candidate, args):
-    return execute(candidate, args).stdout
+def output(candidate, args, env=None, cwd=None):
+    return execute(candidate, args, env=env, cwd=cwd).stdout
 
 
 def contains(rows, **facts):
@@ -153,6 +183,48 @@ def check_facts(report):
     require(SCRIPT_SENTINEL not in json.dumps(report), 'raw script body disclosed')
 
 
+def check_assessment_facts(report):
+    require(report.get('schema_version') == '1.9.0', 'assessment schema mismatch')
+    assessment = report.get('assessment')
+    require(isinstance(assessment, dict), 'native assessment output is missing')
+    inventory = assessment['inventory']
+    require(inventory['files']['count'] == ASSESSMENT_FACTS['regular_files'] and
+            inventory['files']['completeness'] == 'complete' and
+            inventory['bytes']['count'] == ASSESSMENT_FACTS['logical_bytes'] and
+            inventory['bytes']['completeness'] == 'complete', 'selected-file inventory or logical bytes differ')
+    require(assessment['manifest_candidate_population']['count'] == ASSESSMENT_FACTS['manifest_candidates'] and
+            assessment['manifest_candidate_population']['completeness'] == 'complete', 'selected manifest population differs')
+    require(assessment['projects']['count'] == ASSESSMENT_FACTS['parsed_projects'] and
+            assessment['projects']['completeness'] == 'complete' and
+            assessment['project_roots']['count'] == ASSESSMENT_FACTS['distinct_project_roots'] and
+            assessment['project_roots']['completeness'] == 'complete',
+            'parsed projects or distinct roots differ (Go and Cargo virtual workspace roots are excluded)')
+    lockfiles = assessment['lockfiles_overall']
+    require(lockfiles['eligible']['count'] == ASSESSMENT_FACTS['eligible_lockfile_projects'], 'eligible npm/NuGet project count differs')
+    states = ASSESSMENT_FACTS['lockfile_state_partition']
+    require(sum(lockfiles[state]['count'] for state in states) == assessment['projects']['count'],
+            'lock outcome states do not partition the project population')
+    require(lockfiles['covered']['count'] == 0 and lockfiles['unknown']['count'] == 0,
+            'fixture unexpectedly observed a lock or unresolved lock association')
+    return assessment
+
+
+def check_assessment_parity(standalone_raw, combined_raw):
+    standalone = json.loads(standalone_raw)
+    combined = json.loads(combined_raw)
+    require(standalone.get('schema_version') == combined.get('schema_version') and
+            standalone.get('languages') == combined.get('languages') and
+            standalone.get('assessment') == combined.get('assessment'),
+            'standalone and all --assessment observations differ')
+    # Compare the exact assessment payload after canonical JSON encoding. The
+    # enclosing all report also carries opt-in modules, so its whole-document
+    # bytes are not the relevant parity contract.
+    canonical = lambda value: json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
+    require(canonical(standalone['assessment']) == canonical(combined['assessment']),
+            'standalone and all --assessment JSON differ')
+    return standalone
+
+
 def module(report, name):
     rows = [row for row in report['modules'] if row['name'] == name]
     require(len(rows) == 1, 'comparison module missing or duplicated')
@@ -161,6 +233,7 @@ def module(report, name):
 
 def run(candidate, version):
     required = declarations_required(version)
+    assess = assessment_required(version)
     candidate = candidate.resolve()
     binary_sha = file_sha(candidate)
     require(output(candidate, ['--version']) == f'dircue {version}\n'.encode(), 'packaged core version mismatch')
@@ -168,6 +241,8 @@ def run(candidate, version):
                'candidate_sha256': binary_sha, 'source_sha256': source_inputs(), 'fixture_sha256': fixture_inputs(),
                'stdout_sha256': {}, 'worker_required': False, 'source_removed_before_compare': False,
                'observed_facts': {}, 'negative_cases': []}
+    if assess:
+        receipt['assessment_required'] = True
     with tempfile.TemporaryDirectory(prefix='dircue-packaged-declarations-') as temp:
         area = Path(temp)
         root = area / 'source'
@@ -194,6 +269,21 @@ def run(candidate, version):
             require(combined == default, 'declarations changed existing aggregate observations')
             require(not list(root.rglob('EXECUTED')), 'repository script executed')
             receipt['stdout_sha256'].update(declarations=sha(first), combined=sha(combined_raw))
+        if assess:
+            tool_bin = area / 'empty-bin'
+            tool_bin.mkdir()
+            offline_env = os.environ.copy()
+            offline_env['PATH'] = str(tool_bin)
+            standalone_args = ['analyze', 'assessment', *common]
+            combined_args = ['analyze', 'all', '--assessment', *common]
+            standalone_raw = output(candidate, standalone_args, env=offline_env, cwd=area)
+            combined_assessment_raw = output(candidate, combined_args, env=offline_env, cwd=area)
+            assessment_report = check_assessment_parity(standalone_raw, combined_assessment_raw)
+            check_assessment_facts(assessment_report)
+            require('package_evidence' not in assessment_report or assessment_report['package_evidence'] is None,
+                    'native assessment unexpectedly imported package evidence')
+            require(not list(root.rglob('EXECUTED')), 'repository script executed during assessment')
+            receipt['stdout_sha256'].update(assessment=sha(standalone_raw), assessment_all=sha(combined_assessment_raw))
         require(language == output(candidate, common) and ordinary == output(candidate, ['analyze', 'all', *common]), 'default output changed after opt-in checks')
         if required:
             (area / 'base.json').write_bytes(first)
@@ -231,10 +321,12 @@ def run(candidate, version):
                 result = execute(candidate, ['compare', str(bad), str(area / 'head.json'), '--json'], success=False)
                 require(b'RAW_PRIVATE_MARKER' not in result.stderr, 'invalid report payload leaked into error')
             receipt['stdout_sha256'].update(changed_compare=sha(changed_compare), identical_compare=sha(identical), partial_compare=sha(qualified))
-            receipt.update(observed_facts=FACTS, source_removed_before_compare=True,
+            observed_facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS} if assess else FACTS
+            receipt.update(observed_facts=observed_facts, source_removed_before_compare=True,
                            negative_cases=['duplicate-json-key', 'malformed-json'])
     require(file_sha(candidate) == binary_sha, 'candidate changed during smoke checks')
-    receipt.update(checks=sorted(DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set())), passed=True)
+    receipt.update(checks=sorted(DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set()) |
+                                  (ASSESSMENT_CHECKS if assess else set())), passed=True)
     return validate_receipt(receipt, version, binary_sha)
 
 

@@ -15,6 +15,9 @@ import (
 //go:embed profile.schema.json
 var profileJSON []byte
 
+//go:embed assessment.schema.json
+var assessmentJSON []byte
+
 //go:embed lockfiles.schema.json
 var lockfilesJSON []byte
 
@@ -48,6 +51,7 @@ var compileProfile = sync.OnceValues(func() (*jsonschema.Schema, error) {
 	}
 	for name, data := range map[string][]byte{
 		"profile.schema.json":      profileJSON,
+		"assessment.schema.json":   assessmentJSON,
 		"lockfiles.schema.json":    lockfilesJSON,
 		"environments.schema.json": environmentsJSON,
 		"focus.schema.json":        focusJSON,

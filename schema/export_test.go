@@ -28,7 +28,7 @@ import (
 const exportResourceBase = "https://dircue.invalid/schema/"
 
 func TestSchemaExportNamesAndIsolation(t *testing.T) {
-	want := []string{"availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "lockfiles", "map", "map-compare", "planning", "profile", "stats"}
+	want := []string{"assessment", "availability", "capabilities", "cli-capabilities", "comparison", "declarations", "environments", "explanation", "findings", "focus", "forest", "formats", "guide", "hotspots", "languages", "lockfiles", "map", "map-compare", "planning", "profile", "stats"}
 	if got := schema.Names(); !reflect.DeepEqual(got, want) {
 		t.Fatalf("schema export allowlist: got %v, want %v", got, want)
 	}
@@ -178,6 +178,7 @@ func TestExportedSchemasMatchOriginalResourcesOffline(t *testing.T) {
 		t.Fatal(err)
 	}
 	values := map[string]any{
+		"assessment":       exportCLIValue(t, "analyze", "assessment", "--json", "--source", "directory", root).(map[string]any)["assessment"],
 		"cli-capabilities": exportCLIValue(t, "capabilities", "--cli", "--json"),
 		"guide":            exportCLIValue(t, "capabilities", "--guide", "--json"),
 		"availability":     base["availability"], "capabilities": capabilities.Dircue("test"),

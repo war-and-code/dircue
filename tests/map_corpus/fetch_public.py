@@ -2,7 +2,9 @@
 """Manually materialize selected commit-pinned public corpus repositories.
 
 This helper is intentionally not called by CI. It never updates an existing
-checkout and requires each repository ID explicitly.
+checkout and requires each repository ID explicitly. Pins come from the map
+corpus manifests unless --manifest names others, such as
+tests/assessment/corpus/expectations.json.
 """
 import argparse
 import json
@@ -21,11 +23,11 @@ def main():
     parser.add_argument("--destination", type=Path, required=True)
     parser.add_argument("--id", action="append", required=True,
                         help="Repository ID to fetch (repeat for more; there is deliberately no --all)")
+    parser.add_argument("--manifest", type=Path, action="append",
+                        help="Pin manifest to read (repeatable; defaults to the map corpus manifests)")
     args = parser.parse_args()
-    manifests = [
-        json.loads((HERE / "public_expectations.json").read_text()),
-        json.loads((HERE / "public_quality_expectations.json").read_text()),
-    ]
+    paths = args.manifest or [HERE / "public_expectations.json", HERE / "public_quality_expectations.json"]
+    manifests = [json.loads(path.read_text()) for path in paths]
     by_id = {}
     for manifest in manifests:
         for entry in manifest["repositories"]:

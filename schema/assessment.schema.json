@@ -1,0 +1,888 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "dircue factual repository assessment",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "source",
+    "inventory",
+    "manifest_candidates",
+    "candidate_evidence",
+    "omitted_candidate_evidence",
+    "project_roots",
+    "projects",
+    "project_root_evidence",
+    "omitted_project_root_evidence",
+    "workspace_membership",
+    "workspace_by_kind",
+    "workspace_evidence",
+    "omitted_workspace_evidence",
+    "local_dependencies",
+    "local_dependency_by_kind",
+    "local_dependency_evidence",
+    "omitted_local_dependency_evidence",
+    "lockfiles",
+    "lockfiles_overall",
+    "definitions",
+    "manifest_candidate_population",
+    "unparsed_manifest_candidates",
+    "filename_candidate_population",
+    "unsupported_ecosystem_projects",
+    "filename_candidates",
+    "projects_by_role",
+    "project_roots_by_role"
+  ],
+  "properties": {
+    "version": {
+      "const": "1.0.0"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mode",
+        "consistency"
+      ],
+      "properties": {
+        "mode": {
+          "enum": [
+            "directory",
+            "git"
+          ]
+        },
+        "tree": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "consistency": {
+          "enum": [
+            "live_directory_metadata",
+            "selected_git_tree"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "git"
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "tree"
+            ],
+            "properties": {
+              "consistency": {
+                "const": "selected_git_tree"
+              }
+            }
+          },
+          "else": {
+            "not": {
+              "anyOf": [
+                {
+                  "required": [
+                    "tree"
+                  ]
+                },
+                {
+                  "required": [
+                    "commit"
+                  ]
+                }
+              ]
+            },
+            "properties": {
+              "consistency": {
+                "const": "live_directory_metadata"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "inventory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "files",
+        "bytes",
+        "vendored_files",
+        "vendored_bytes"
+      ],
+      "properties": {
+        "files": {
+          "$ref": "#/$defs/metric"
+        },
+        "bytes": {
+          "$ref": "#/$defs/metric"
+        },
+        "vendored_files": {
+          "$ref": "#/$defs/metric"
+        },
+        "vendored_bytes": {
+          "$ref": "#/$defs/metric"
+        }
+      }
+    },
+    "manifest_candidates": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "filename",
+          "kind",
+          "ecosystem",
+          "files",
+          "bytes"
+        ],
+        "properties": {
+          "kind": {
+            "enum": [
+              "configuration",
+              "manifest",
+              "solution",
+              "toolchain",
+              "workspace"
+            ]
+          },
+          "ecosystem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "filename": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        }
+      }
+    },
+    "candidate_evidence": {
+      "type": "array",
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "root",
+          "kind",
+          "format",
+          "basis",
+          "bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "format": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "basis": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    "omitted_candidate_evidence": {
+      "type": "object",
+      "maxProperties": 128,
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9223372036854775807
+      }
+    },
+    "project_roots": {
+      "$ref": "#/$defs/metric"
+    },
+    "projects": {
+      "$ref": "#/$defs/metric"
+    },
+    "project_root_evidence": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 8192
+      }
+    },
+    "omitted_project_root_evidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "workspace_membership": {
+      "$ref": "#/$defs/metric"
+    },
+    "workspace_by_kind": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "count"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    "workspace_evidence": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "state"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "source_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "source_project": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_project": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        }
+      }
+    },
+    "omitted_workspace_evidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "local_dependencies": {
+      "$ref": "#/$defs/metric"
+    },
+    "local_dependency_by_kind": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "count"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    "local_dependency_evidence": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "state"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "source_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_root": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "source_project": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_project": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "target_path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        }
+      }
+    },
+    "omitted_local_dependency_evidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9223372036854775807
+    },
+    "lockfiles": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ecosystem",
+          "projects",
+          "eligible",
+          "covered",
+          "missing",
+          "not_applicable",
+          "unsupported",
+          "unknown",
+          "by_role",
+          "outcome_reasons"
+        ],
+        "properties": {
+          "ecosystem": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "projects": {
+            "$ref": "#/$defs/metric"
+          },
+          "eligible": {
+            "$ref": "#/$defs/metric"
+          },
+          "covered": {
+            "$ref": "#/$defs/metric"
+          },
+          "missing": {
+            "$ref": "#/$defs/metric"
+          },
+          "not_applicable": {
+            "$ref": "#/$defs/metric"
+          },
+          "unsupported": {
+            "$ref": "#/$defs/metric"
+          },
+          "unknown": {
+            "$ref": "#/$defs/metric"
+          },
+          "by_role": {
+            "type": "array",
+            "maxItems": 7,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "projects",
+                "eligible",
+                "covered",
+                "missing",
+                "not_applicable",
+                "unsupported",
+                "unknown"
+              ],
+              "properties": {
+                "role": {
+                  "enum": [
+                    "docs",
+                    "example",
+                    "fixture",
+                    "primary",
+                    "test",
+                    "tooling",
+                    "vendored"
+                  ]
+                },
+                "projects": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9223372036854775807
+                },
+                "eligible": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "missing": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "not_applicable": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "unsupported": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                }
+              }
+            }
+          },
+          "outcome_reasons": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason",
+                "count"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "missing",
+                    "not_applicable",
+                    "unknown",
+                    "unsupported"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9223372036854775807
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "lockfiles_overall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "ecosystem",
+        "projects",
+        "eligible",
+        "covered",
+        "missing",
+        "not_applicable",
+        "unsupported",
+        "unknown",
+        "by_role",
+        "outcome_reasons"
+      ],
+      "properties": {
+        "ecosystem": {
+          "const": "all"
+        },
+        "projects": {
+          "$ref": "#/$defs/metric"
+        },
+        "eligible": {
+          "$ref": "#/$defs/metric"
+        },
+        "covered": {
+          "$ref": "#/$defs/metric"
+        },
+        "missing": {
+          "$ref": "#/$defs/metric"
+        },
+        "not_applicable": {
+          "$ref": "#/$defs/metric"
+        },
+        "unsupported": {
+          "$ref": "#/$defs/metric"
+        },
+        "unknown": {
+          "$ref": "#/$defs/metric"
+        },
+        "by_role": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "projects",
+              "eligible",
+              "covered",
+              "missing",
+              "not_applicable",
+              "unsupported",
+              "unknown"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "docs",
+                  "example",
+                  "fixture",
+                  "primary",
+                  "test",
+                  "tooling",
+                  "vendored"
+                ]
+              },
+              "projects": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "eligible": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "covered": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "missing": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "not_applicable": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "unsupported": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "unknown": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
+        },
+        "outcome_reasons": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason",
+              "count"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "missing",
+                  "not_applicable",
+                  "unknown",
+                  "unsupported"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
+        }
+      }
+    },
+    "definitions": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "description"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          }
+        }
+      }
+    },
+    "manifest_candidate_population": {
+      "$ref": "#/$defs/metric"
+    },
+    "unparsed_manifest_candidates": {
+      "$ref": "#/$defs/metric"
+    },
+    "filename_candidate_population": {
+      "$ref": "#/$defs/metric"
+    },
+    "unsupported_ecosystem_projects": {
+      "$ref": "#/$defs/metric"
+    },
+    "filename_candidates": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "files",
+          "bytes"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 8192
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    },
+    "projects_by_role": {
+      "$ref": "#/$defs/role_counts"
+    },
+    "project_roots_by_role": {
+      "$ref": "#/$defs/role_counts"
+    }
+  },
+  "$defs": {
+    "metric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "count",
+        "scope",
+        "completeness",
+        "reasons"
+      ],
+      "properties": {
+        "count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "scope": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024
+        },
+        "completeness": {
+          "enum": [
+            "complete",
+            "lower_bound"
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "maxItems": 128,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "completeness": {
+                "const": "complete"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reasons": {
+                "maxItems": 0
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "completeness": {
+                "const": "lower_bound"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reasons": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "role_counts": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "count"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "docs",
+              "example",
+              "fixture",
+              "primary",
+              "test",
+              "tooling",
+              "vendored"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
+    }
+  }
+}

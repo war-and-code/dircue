@@ -50,7 +50,11 @@ func analyzeFile(ctx context.Context, root *os.Root, item job, opts Options) (re
 	}
 	var metadata *discovery.File
 	if opts.Discovery {
-		metadata = &discovery.File{Path: item.path, Size: item.size, Vendored: item.attrs.vendored, Generated: item.attrs.generated, Documentation: item.attrs.documentation}
+		// Evaluate the vendor path rule once, in this worker, for discovery,
+		// assessment, and language statistics.
+		vendorPath := enry.IsVendor(item.path)
+		item.vendorPath = &vendorPath
+		metadata = &discovery.File{Path: item.path, Size: item.size, Vendored: item.attrs.vendored, Generated: item.attrs.generated, Documentation: item.attrs.documentation, VendorPath: &vendorPath}
 		if opts.DiscoveryOnly {
 			if err := ctx.Err(); err != nil {
 				return result{}, err

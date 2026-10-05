@@ -185,7 +185,7 @@ func describeCLI(root *cobra.Command) cliContract {
 	for _, name := range schema.Names() {
 		scope, pointer := "whole output", ""
 		switch name {
-		case "availability", "declarations", "environments", "explanation", "focus", "formats", "lockfiles":
+		case "assessment", "availability", "declarations", "environments", "explanation", "focus", "formats", "lockfiles":
 			scope, pointer = "profile component", "/"+name
 		case "hotspots":
 			scope, pointer = "profile component", "/structure/hotspots"
@@ -289,7 +289,7 @@ func commandRestrictions(cmd *cobra.Command) []string {
 	}
 	switch cmd.Name() {
 	case "all":
-		r = append(r, "Optional modules require explicit flags; --environments and --lockfiles reuse declarations, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
+		r = append(r, "Optional modules require explicit flags; --environments and --lockfiles reuse declarations, --npm-workspace-locks implies --lockfiles, --assessment implies discovery, declarations, and lockfiles with npm workspace semantics, --graph includes projects. --files and metrics options require --metrics unless --files is used with --structure. Structural options require --structure.")
 	case "map":
 		r = append(r, "At most one directory path. --budget-files and --tree-size are alternative inventory limits. Named resource flags override --set, which overrides --preset. --json and --summary are mutually exclusive. --attach is repeatable KIND=PATH and accepts syft-json, sarif, noir-json, and bifrost-code-query-json reports. Coverage remains explicit when the source exceeds a budget or an observer cannot answer a question.")
 	case "route":

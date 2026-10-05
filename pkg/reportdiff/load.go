@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/war-and-code/dircue/internal/jsontext"
+	"github.com/war-and-code/dircue/pkg/assessment"
 	"github.com/war-and-code/dircue/pkg/environments"
 	"github.com/war-and-code/dircue/pkg/explain"
 	"github.com/war-and-code/dircue/pkg/focus"
@@ -76,7 +77,7 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 		return nil, ErrInvalid
 	}
 	level := -1
-	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"} {
+	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"} {
 		if version == known {
 			level = i
 		}
@@ -84,7 +85,7 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 	if level < 0 {
 		return nil, ErrUnsupported
 	}
-	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6, "environments": 7, "lockfiles": 8} {
+	for field, minimum := range map[string]int{"metrics": 1, "projects": 2, "structure": 2, "discovery": 3, "graph": 3, "package_evidence": 3, "registries": 3, "rules": 3, "declarations": 4, "formats": 5, "focus": 6, "focused_metrics": 6, "availability": 6, "explanation": 6, "environments": 7, "lockfiles": 8, "assessment": 9} {
 		if _, found := object[field]; found && level < minimum {
 			return nil, ErrInvalid
 		}
@@ -353,6 +354,25 @@ func sourceMode(mode string) bool { return mode == "git" || mode == "directory" 
 // Targeted metrics must keep the source and population identity declared by
 // their focus plan. This does not authenticate a caller-supplied report.
 func validTargetedStates(p profile.Report) bool {
+	if p.Assessment != nil {
+		if assessment.ValidateReport(p.Assessment) != nil || p.Declarations == nil || p.Lockfiles == nil || p.Discovery == nil {
+			return false
+		}
+		if p.Assessment.Source.Mode != p.Declarations.Source || p.Assessment.Source.Tree != p.Declarations.Tree {
+			return false
+		}
+		if p.Assessment.Source.Mode != p.Discovery.Source.Mode || p.Assessment.Source.Tree != p.Discovery.Source.Tree {
+			return false
+		}
+		// Companion reports must describe the same selected metadata population.
+		// This establishes internal coherence, not authenticity of supplied JSON.
+		if p.Assessment.Inventory.Files.Count != p.Discovery.Inventory.Files || p.Assessment.Inventory.Bytes.Count != p.Discovery.Inventory.Bytes {
+			return false
+		}
+		if !assessmentManifestPopulationMatches(p) {
+			return false
+		}
+	}
 	if p.Environments != nil && environments.ValidateReport(p.Environments) != nil {
 		return false
 	}
@@ -412,6 +432,44 @@ func validTargetedStates(p profile.Report) bool {
 		seen[r.Project] = true
 	}
 	return len(seen) == len(selected)
+}
+
+// assessmentManifestPopulationMatches reconciles two intentionally different
+// omission boundaries. Assessment counts recognized selected paths even when
+// bounded declaration parsing cannot retain an unusually long path; for an
+// invalid UTF-8 path, declarations can count the recognized filename while
+// assessment must exclude it from its representable population.
+func assessmentManifestPopulationMatches(p profile.Report) bool {
+	assessmentCount := p.Assessment.ManifestCandidatePopulation.Count
+	declarationCount := p.Declarations.Coverage.ManifestCandidates
+	if assessmentCount == declarationCount {
+		return true
+	}
+	omitted := p.Declarations.Coverage.OmittedFiles
+	if omitted <= 0 {
+		return false
+	}
+	if assessmentCount > declarationCount {
+		return assessmentCount-declarationCount <= omitted
+	}
+	// The reverse direction is valid only when assessment explicitly marks its
+	// manifest population as a lower bound because invalid UTF-8 paths could
+	// not be classified there. General partial status is not enough to excuse a
+	// mismatch between the two populations.
+	if p.Assessment.ManifestCandidatePopulation.Completeness != "lower_bound" ||
+		!containsReason(p.Assessment.ManifestCandidatePopulation.Reasons, "invalid_utf8_path") {
+		return false
+	}
+	return declarationCount-assessmentCount <= omitted
+}
+
+func containsReason(reasons []string, want string) bool {
+	for _, reason := range reasons {
+		if reason == want {
+			return true
+		}
+	}
+	return false
 }
 
 func validFocusIdentity(p profile.Report) bool {

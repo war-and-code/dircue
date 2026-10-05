@@ -22,7 +22,8 @@ func ValidateReport(r *Report) error {
 	if r.Source == "git" && !validGitTree(r.Tree) {
 		return errors.New("lockfile report tree is invalid")
 	}
-	if len(r.Semantics) != 2 || r.Semantics[0] != npmSemantics || r.Semantics[1] != nugetSemantics {
+	workspacePaths := len(r.Semantics) == 3 && r.Semantics[2] == npmWorkspaceSemantics
+	if (len(r.Semantics) != 2 && !workspacePaths) || r.Semantics[0] != npmSemantics || r.Semantics[1] != nugetSemantics {
 		return errors.New("lockfile report semantics are invalid")
 	}
 	l := r.Limits
@@ -49,7 +50,7 @@ func ValidateReport(r *Report) error {
 	seenProjectIDs := make(map[string]bool, len(r.Contexts))
 	seenManifestPaths := make(map[string]bool, len(r.Contexts))
 	for _, ctx := range r.Contexts {
-		if !requiredText(ctx.ProjectID, 8192) || !validRelative(ctx.ProjectID) || !requiredText(ctx.ManifestPath, 8192) || !validRelative(ctx.ManifestPath) || ctx.ProjectID != ctx.ManifestPath ||
+		if !requiredText(ctx.ProjectID, 8192) || !validSelectedRelative(ctx.ProjectID, workspacePaths) || !requiredText(ctx.ManifestPath, 8192) || !validSelectedRelative(ctx.ManifestPath, workspacePaths) || ctx.ProjectID != ctx.ManifestPath ||
 			(ctx.Ecosystem != "npm" && ctx.Ecosystem != "nuget") || !validAssociation(ctx.AssociationState) || !validText(ctx.LockfilePath, 8192) || !validText(ctx.LockfileVersion, 128) {
 			return errors.New("lockfile context identity is invalid")
 		}
@@ -58,10 +59,10 @@ func ValidateReport(r *Report) error {
 		}
 		seenProjectIDs[ctx.ProjectID] = true
 		seenManifestPaths[ctx.ManifestPath] = true
-		if ctx.Ecosystem == "npm" && path.Base(ctx.ManifestPath) != "package.json" || ctx.Ecosystem == "nuget" && !strings.EqualFold(path.Ext(ctx.ManifestPath), ".csproj") {
+		if ctx.Ecosystem == "npm" && path.Base(ctx.ManifestPath) != "package.json" || ctx.Ecosystem == "nuget" && !IsNuGetLockProject(ctx.ManifestPath) {
 			return errors.New("lockfile context manifest does not match its ecosystem")
 		}
-		if ctx.LockfilePath != "" && !validRelative(ctx.LockfilePath) {
+		if ctx.LockfilePath != "" && !validSelectedRelative(ctx.LockfilePath, workspacePaths) {
 			return errors.New("lockfile context path is invalid")
 		}
 		if ctx.AssociationState == "observed" && (ctx.LockfilePath == "" || !validLockfileVersion(ctx.Ecosystem, ctx.LockfileVersion)) {
@@ -86,7 +87,7 @@ func ValidateReport(r *Report) error {
 			}
 		}
 		for _, boundary := range ctx.Boundaries {
-			if !validText(boundary.Path, 8192) || boundary.Path != "" && !validRelative(boundary.Path) || !requiredText(boundary.Reason, 256) || !validText(boundary.Detail, 8192) {
+			if !validText(boundary.Path, 8192) || boundary.Path != "" && !validSelectedRelative(boundary.Path, workspacePaths) || !requiredText(boundary.Reason, 256) || !validText(boundary.Detail, 8192) {
 				return errors.New("lockfile boundary is invalid")
 			}
 		}
@@ -95,7 +96,7 @@ func ValidateReport(r *Report) error {
 		return errors.New("observed lockfile association lacks a successful selected read")
 	}
 	for _, diagnostic := range r.Diagnostics {
-		if !requiredText(diagnostic.Path, 8192) || diagnostic.Path != "." && !validRelative(diagnostic.Path) || !requiredText(diagnostic.Code, 256) || !requiredText(diagnostic.Message, 8192) {
+		if !requiredText(diagnostic.Path, 8192) || diagnostic.Path != "." && !validSelectedRelative(diagnostic.Path, workspacePaths) || !requiredText(diagnostic.Code, 256) || !requiredText(diagnostic.Message, 8192) {
 			return errors.New("lockfile diagnostic is invalid")
 		}
 	}
@@ -163,6 +164,13 @@ func requiredText(value string, max int) bool {
 
 func validRelative(value string) bool {
 	return value != "" && value != "." && !path.IsAbs(value) && path.Clean(value) == value && value != ".." && !strings.HasPrefix(value, "../") && !strings.Contains(value, "\\") && !strings.ContainsRune(value, '\x00')
+}
+
+func validSelectedRelative(value string, preservePOSIXBackslash bool) bool {
+	if !preservePOSIXBackslash {
+		return validRelative(value)
+	}
+	return value != "" && value != "." && !path.IsAbs(value) && path.Clean(value) == value && value != ".." && !strings.HasPrefix(value, "../") && !strings.ContainsRune(value, '\x00')
 }
 
 func validGitTree(value string) bool {

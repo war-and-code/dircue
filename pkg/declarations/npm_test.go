@@ -59,6 +59,25 @@ func TestNPMDeclarationsDoNotRetainCommandsOrURLs(t *testing.T) {
 	}
 }
 
+func TestNPMAcceptsUTF8BOM(t *testing.T) {
+	d := ParseNPM("package.json", append([]byte{0xef, 0xbb, 0xbf}, []byte(`{"name":"bom-check","dependencies":{"left-pad":"^1.0.0"}}`)...))
+	if !d.Parsed || d.Project.Name != "bom-check" || len(d.Project.References) != 1 || d.Project.References[0].Value != "left-pad@^1.0.0" {
+		t.Fatalf("BOM-prefixed package.json was not parsed: %+v", d)
+	}
+}
+
+func TestNPMBOMDoesNotBypassJSONValidation(t *testing.T) {
+	for _, content := range []string{
+		"\ufeff{",
+		"\ufeff\ufeff" + `{"name":"double-bom"}`,
+		"\ufeff" + `{"name":"first","name":"duplicate"}`,
+	} {
+		if d := ParseNPM("package.json", []byte(content)); d.Parsed {
+			t.Fatalf("invalid BOM-prefixed JSON was accepted: %q", content)
+		}
+	}
+}
+
 func TestLegacyWindowsPathsAreWithheldAnywhereInValues(t *testing.T) {
 	d := Parse("App.csproj", []byte(`<Project><PropertyGroup><LangVersion>@C:\config.txt</LangVersion><TargetFramework>.\..\secret</TargetFramework><RuntimeIdentifier>@/private/host/token</RuntimeIdentifier></PropertyGroup><ItemGroup><PackageReference Include="Example" Version="C:\Users\me\token.txt"/></ItemGroup></Project>`))
 	if d == nil || d.Project == nil {

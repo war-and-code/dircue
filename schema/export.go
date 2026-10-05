@@ -51,6 +51,7 @@ const resourceBase = "https://dircue.invalid/schema/"
 // The explicit registry is also the export allowlist. In particular, a name
 // supplied by a caller is never interpreted as a filename or a URL.
 var exportResources = map[string][]byte{
+	"assessment":       assessmentJSON,
 	"availability":     availabilityJSON,
 	"capabilities":     capabilitiesJSON,
 	"cli-capabilities": cliCapabilitiesJSON,

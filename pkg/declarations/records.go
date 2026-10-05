@@ -9,6 +9,9 @@ type ProjectRecord struct {
 	Project  Project
 	Parsed   bool
 	Complete bool
+	// PythonBuildSystemSeen preserves an empty pyproject build-system table,
+	// which has no corresponding requirement observation.
+	PythonBuildSystemSeen bool
 }
 
 // EnableProjectRecords retains bounded eligibility metadata when Finish runs.
