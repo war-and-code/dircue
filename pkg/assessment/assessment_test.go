@@ -23,7 +23,7 @@ func TestDotnetBackslashSelectedPathBoundsProjectMetrics(t *testing.T) {
 	collector := New("directory", "")
 	collector.Add(discovery.File{Path: name, Size: int64(len(files[name]))})
 	locks := &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}
-	report, err := collector.Finish(decls, locks, records)
+	report, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: records})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,7 +58,7 @@ func TestGoWorkIsAWorkspaceRecordNotPackageProject(t *testing.T) {
 	for name, content := range files {
 		collector.Add(discovery.File{Path: name, Size: int64(len(content))})
 	}
-	report, err := collector.Finish(decls, &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}, records)
+	report, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}, Records: records})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -86,7 +86,7 @@ func TestDuplicateProjectRecordsLowerBoundAllProjectPopulationMetrics(t *testing
 	collector := New("directory", "")
 	collector.Add(discovery.File{Path: project.ID, Size: 1})
 	locks := &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}
-	report, err := collector.Finish(decls, locks, records)
+	report, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: records})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -131,7 +131,7 @@ func TestFinishSeparatesExactCountsFromBoundedEvidence(t *testing.T) {
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 300, ParsedManifests: 300}}
 	locks := &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}
-	report, err := c.Finish(decls, locks, projectRecords(decls.Projects))
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: projectRecords(decls.Projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,7 +159,7 @@ func TestUnsupportedProjectFormsPartitionPopulationOutsideEligibility(t *testing
 	c := New("directory", "")
 	projects := []declarations.Project{
 		{ID: "py/pyproject.toml", Root: "py", Kind: "python"},
-		{ID: "dotnet/lib.fsproj", Root: "dotnet", Kind: "dotnet"},
+		{ID: "native/lib.vcxproj", Root: "native", Kind: "dotnet"},
 		{ID: "web/package.json", Root: "web", Kind: "npm"},
 	}
 	for _, p := range projects {
@@ -167,13 +167,16 @@ func TestUnsupportedProjectFormsPartitionPopulationOutsideEligibility(t *testing
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 3, ParsedManifests: 3}, Projects: projects}
 	locks := &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{{ProjectID: "web/package.json", Ecosystem: "npm", AssociationState: "missing"}}}
-	report, err := c.Finish(decls, locks, projectRecords(projects))
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: projectRecords(projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
 	o := report.LockfilesOverall
 	if o.Projects.Count != 3 || o.Eligible.Count != 1 || o.Missing.Count != 1 || o.Unsupported.Count != 2 {
 		t.Fatalf("project partition incorrect: %+v", o)
+	}
+	if len(o.OutcomeReasons) != 2 || o.OutcomeReasons[1] != (OutcomeReason{State: "unsupported", Reason: "ecosystem-outside-association-scope", Count: 2}) {
+		t.Fatalf("outcome reasons: %+v", o.OutcomeReasons)
 	}
 	if err := ValidateReport(report); err != nil {
 		t.Fatalf("ValidateReport: %v", err)
@@ -195,7 +198,7 @@ func TestProjectTotalsExcludeDotnetConfigurationsAndSolutions(t *testing.T) {
 	projects = append(projects, props, sln)
 	records = append(records, declarations.ProjectRecord{Project: props, Parsed: true, Complete: true}, declarations.ProjectRecord{Project: sln, Parsed: true, Complete: true})
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 16, ParsedManifests: 16}, Projects: projects}
-	report, err := c.Finish(decls, &lockfiles.Report{Source: "directory", Status: "complete"}, records)
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete"}, Records: records})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +219,7 @@ func TestManifestGroupNormalizesProjectFilenames(t *testing.T) {
 		c.Add(discovery.File{Path: fmt.Sprintf("projects/p%d.csproj", i), Size: 2})
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 300, ParsedManifests: 300}}
-	r, err := c.Finish(decls, nil)
+	r, err := c.Finish(Evidence{Declarations: decls})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +241,7 @@ func TestFinishBoundsEscapedEvidenceBytesWithoutChangingTotals(t *testing.T) {
 		c.Add(discovery.File{Path: p.ID, Size: 8})
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: int64(len(projects)), ParsedManifests: len(projects)}, Projects: projects}
-	r, err := c.Finish(decls, &lockfiles.Report{Source: "directory", Status: "complete"}, projectRecords(projects))
+	r, err := c.Finish(Evidence{Declarations: decls, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete"}, Records: projectRecords(projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -275,7 +278,7 @@ func TestFinishCountsParsedRootsAndSeparateRelationships(t *testing.T) {
 		{ProjectID: "repo/package.json", Ecosystem: "npm", AssociationState: "observed"},
 		{ProjectID: "repo/packages/lib/package.json", Ecosystem: "npm", AssociationState: "indeterminate"},
 	}}
-	report, err := c.Finish(decls, locks, projectRecords(decls.Projects))
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: projectRecords(decls.Projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -297,7 +300,7 @@ func TestFinishQualifiesInvalidPathAndSourceMismatch(t *testing.T) {
 	c := New("directory", "")
 	c.Add(discovery.File{Path: "../../escape/package.json", Size: 7})
 	decls := &declarations.Report{Source: "directory", Status: "complete"}
-	report, err := c.Finish(decls, nil)
+	report, err := c.Finish(Evidence{Declarations: decls})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +310,7 @@ func TestFinishQualifiesInvalidPathAndSourceMismatch(t *testing.T) {
 	if err := ValidateReport(report); err != nil {
 		t.Fatalf("ValidateReport: %v", err)
 	}
-	if _, err := New("git", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Finish(decls, nil); err == nil {
+	if _, err := New("git", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa").Finish(Evidence{Declarations: decls}); err == nil {
 		t.Fatal("expected source mismatch error")
 	}
 }
@@ -316,7 +319,7 @@ func TestFinishAcceptsLiteralBackslashInPOSIXFilename(t *testing.T) {
 	c := New("directory", "")
 	c.Add(discovery.File{Path: "odd\\dir/package.json", Size: 4})
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 1, ParsedManifests: 1}, Projects: []declarations.Project{{ID: "odd\\dir/package.json", Root: "odd\\dir", Kind: "npm"}}}
-	report, err := c.Finish(decls, &lockfiles.Report{Source: "directory", Status: "complete"}, projectRecords(decls.Projects))
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete"}, Records: projectRecords(decls.Projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -334,7 +337,7 @@ func TestValidateReportRejectsCounterfeitAggregateAfterSampling(t *testing.T) {
 		c.Add(discovery.File{Path: fmt.Sprintf("%03d/package.json", i), Size: 1})
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete"}
-	report, err := c.Finish(decls, &lockfiles.Report{Source: "directory", Status: "complete"}, projectRecords(decls.Projects))
+	report, err := c.Finish(Evidence{Declarations: decls, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete"}, Records: projectRecords(decls.Projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -357,7 +360,7 @@ func BenchmarkCollectorAddAndFinish50K(b *testing.B) {
 			}
 			c.Add(discovery.File{Path: name, Size: 256})
 		}
-		if _, err := c.Finish(decls, locks); err != nil {
+		if _, err := c.Finish(Evidence{Declarations: decls, Lockfiles: locks}); err != nil {
 			b.Fatal(err)
 		}
 	}

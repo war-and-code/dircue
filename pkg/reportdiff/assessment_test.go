@@ -167,7 +167,7 @@ func collectorAssessmentProfile(t *testing.T, name string) profile.Report {
 
 	assessmentCollector := assessmentpkg.New("directory", "")
 	assessmentCollector.Add(file)
-	assessmentReport, err := assessmentCollector.Finish(declarationReport, p.Lockfiles)
+	assessmentReport, err := assessmentCollector.Finish(assessmentpkg.Evidence{Declarations: declarationReport, Lockfiles: p.Lockfiles})
 	if err != nil {
 		t.Fatal(err)
 	}

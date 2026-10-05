@@ -34,6 +34,10 @@ type pythonData struct {
 	managed   bool
 	workspace bool
 	auxiliary bool
+	// buildSystemPresent preserves the table/key signal used to distinguish
+	// package pyprojects from tool-only files, even when the table is empty and
+	// therefore emits no backend or build-requirement observations.
+	buildSystemPresent bool
 	// includeOnly marks a document that exists only to be resolved via a -r include;
 	// it never becomes a standalone component. Set for files inside requirements/.
 	includeOnly        bool
@@ -78,7 +82,8 @@ func ParsePython(name string, content []byte) *Document {
 	if pyprojectIsToolOnly(raw) {
 		return nil
 	}
-	data := &pythonData{managed: true, sources: map[string][]pythonSource{}}
+	_, hasBuildSystem := raw["build-system"]
+	data := &pythonData{managed: true, buildSystemPresent: hasBuildSystem, sources: map[string][]pythonSource{}}
 	d.Data = data
 	AddRequirement(d, Requirement{Kind: "declaration-semantics", Value: "pyproject+uv-0.12.17", State: "declared", Evidence: name})
 	project, hasProject := raw["project"]

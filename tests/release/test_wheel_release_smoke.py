@@ -97,7 +97,7 @@ class NativeWheelSmokeTests(unittest.TestCase):
         for mutate in (
             lambda value: value['checks'].remove('assessment_lock_partition'),
             lambda value: value['stdout_sha256'].pop('assessment_all'),
-            lambda value: value['observed_facts']['assessment'].update(parsed_projects=10),
+            lambda value: value['observed_facts']['assessment'].update(parsed_projects=smoke.declarations.ASSESSMENT_FACTS['parsed_projects'] + 1),
             lambda value: value.pop('assessment_required'),
             lambda value: value.update(assessment_required=False),
         ):

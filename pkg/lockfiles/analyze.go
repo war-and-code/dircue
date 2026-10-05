@@ -76,7 +76,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		in.Declarations.Coverage.OmittedFiles > 0 || in.Declarations.Coverage.OmittedDiagnostics > 0 {
 		r.Status = "partial"
 	}
-	projectInventoryComplete := in.Declarations.Status != "" && in.Declarations.Status != "skipped" && in.Declarations.Coverage.OmittedFiles == 0
+	omissions := newOmissionScope(in)
 
 	files := make(map[string]File)
 	inventoryComplete := in.InventoryComplete && in.OmittedFiles == 0
@@ -120,8 +120,12 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 
 	locksByDir := map[string][]string{}
 	lockAllowed := map[string]bool{}
+	markersByDir := map[string][]string{}
 	for _, p := range paths {
 		base := path.Base(p)
+		if IsAlternativeNPMMarker(base) {
+			markersByDir[path.Dir(p)] = append(markersByDir[path.Dir(p)], p)
+		}
 		if base == "package-lock.json" || base == "npm-shrinkwrap.json" || isNuGetLockCandidateName(base) {
 			r.Coverage.LockCandidates++
 			locksByDir[path.Dir(p)] = append(locksByDir[path.Dir(p)], p)
@@ -135,6 +139,9 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	}
 	for dir := range locksByDir {
 		slices.Sort(locksByDir[dir])
+	}
+	for dir := range markersByDir {
+		slices.Sort(markersByDir[dir])
 	}
 
 	records := recordsFor(in)
@@ -177,6 +184,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 	}
 
+	npm := newNPMResolver(in, records, locksByDir, markersByDir, omissions)
 	lockReadCache := map[string]parsedLock{}
 	nugetProjectConfigCache := map[string]string{}
 	for _, rec := range records {
@@ -191,7 +199,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		switch {
 		case rec.Project.Kind == "npm" && path.Base(manifest) == "package.json":
 			ecosystem = "npm"
-		case rec.Project.Kind == "dotnet" && strings.EqualFold(path.Ext(manifest), ".csproj"):
+		case rec.Project.Kind == "dotnet" && IsNuGetLockProject(manifest):
 			ecosystem = "nuget"
 		default:
 			continue
@@ -231,50 +239,45 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: manifest, Code: "nuget-project-config-unresolved", Message: "The selected project XML could not be fully inspected within the bounded input limits."})
 			}
 		}
-		lockPath, association, reason := associate(ecosystem, rec, records, locksByDir, dotnetCountByRoot)
-		workspaceRoot := ""
-		if ecosystem == "npm" && in.WorkspaceLocks {
-			if sharedPath, sharedRoot, state, why, attempted := associateNPMWorkspace(rec, records, locksByDir, in.Declarations.Diagnostics, inventoryComplete && projectInventoryComplete && in.Declarations.Coverage.OmittedDiagnostics == 0); attempted {
-				lockPath, workspaceRoot, association, reason = sharedPath, sharedRoot, state, why
-			}
-			if hasNonNPMOrUnknownPackageManager(rec, in.Declarations.Diagnostics) {
-				association, workspaceRoot, reason = "indeterminate", "", "npm-package-manager-not-established"
-			}
+		var a association
+		if ecosystem == "npm" {
+			a = npm.associate(rec)
+		} else {
+			a = associateNuGet(rec, records, locksByDir, dotnetCountByRoot)
 		}
-		selectedNPMShrinkwrap := ecosystem == "npm" && association == "observed" && path.Base(lockPath) == "npm-shrinkwrap.json"
+		selectedNPMShrinkwrap := ecosystem == "npm" && a.state == "observed" && path.Base(a.lockPath) == "npm-shrinkwrap.json"
 		if nugetCustomLockPath {
-			association = "indeterminate"
-			reason = "nuget-custom-lock-path-unresolved"
+			a.override("indeterminate", "nuget-custom-lock-path-unresolved")
 		} else if nugetProjectConfigUnresolved {
-			association = "indeterminate"
-			reason = "nuget-project-config-unresolved"
+			a.override("indeterminate", "nuget-project-config-unresolved")
 		} else if nugetImportedInputs {
-			association = "indeterminate"
-			reason = "nuget-imported-project-input-unresolved"
+			a.override("indeterminate", "nuget-imported-project-input-unresolved")
 		}
-		if ecosystem == "nuget" && association == "observed" && !projectInventoryComplete {
-			association = "indeterminate"
-			reason = "project-inventory-incomplete-association"
+		if ecosystem == "nuget" && a.state == "observed" && !omissions.nugetOwnersKnown(rec.Project.Root) {
+			a.override("indeterminate", "project-inventory-incomplete-association")
 		}
-		if association == "observed" && !inventoryComplete {
-			association = "indeterminate"
-			reason = "inventory-incomplete-association"
+		if a.state == "observed" && !inventoryComplete {
+			a.override("indeterminate", "inventory-incomplete-association")
 		}
-		if nugetSharedInputs && association == "missing" {
-			association = "indeterminate"
-			reason = "nuget-shared-inputs-or-custom-lock-path-unresolved"
+		if nugetSharedInputs && (a.state == "missing" || a.state == "not_applicable") {
+			a.override("indeterminate", "nuget-shared-inputs-or-custom-lock-path-unresolved")
 		}
-		if association == "missing" && !inventoryComplete {
-			association = "indeterminate"
-			reason = "inventory-incomplete"
+		if a.state == "missing" && !inventoryComplete {
+			a.override("indeterminate", "inventory-incomplete")
 		}
+		lockPath, association, workspaceRoot := a.lockPath, a.state, a.workspaceRoot
 		ctxResult.AssociationState = association
 		if lockPath != "" {
 			ctxResult.LockfilePath = lockPath
 		}
-		if reason != "" {
-			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: reason})
+		if a.reason != "" {
+			boundaryPath := a.reasonPath
+			if boundaryPath == "" {
+				boundaryPath = lockPath
+			}
+			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: boundaryPath, Reason: a.reason, Detail: a.detail})
 		}
+		ctxResult.Boundaries = append(ctxResult.Boundaries, a.extra...)
 		if selectedNPMShrinkwrap {
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: "npm-v11-shrinkwrap-selection"})
 		}
@@ -322,14 +325,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				} else {
 					r.Coverage.InputBytes += size
 					r.Coverage.LockfilesRead++
-					if ecosystem == "npm" && in.WorkspaceLocks {
-						parsed = parseNPMWorkspaceLock(data, limits.PackageNames-r.Coverage.PackageNames)
-						if parsed.state == "supported" {
-							r.Coverage.PackageNames += parsed.packageNames
-						}
-					} else {
-						parsed = parseLock(ecosystem, data)
-					}
+					parsed = parseLock(ecosystem, data)
 					if err := ctx.Err(); err != nil {
 						return nil, err
 					}
@@ -349,11 +345,18 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		comparisonLock := parsed
 		if workspaceRoot != "" {
 			memberRel, ok := relativeTo(workspaceRoot, rec.Project.Root)
-			entry, found := parsed.npmPackages[memberRel]
-			if !ok || memberRel == "." || !found {
-				ctxResult.AssociationState = "indeterminate"
-				ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: "npm-workspace-lock-member-entry-missing"})
-				ctxResult.Checks = append(ctxResult.Checks, Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: "The selected workspace lockfile has no package descriptor for this member path; no member declaration comparison was made."})
+			entry, state, why := parsed.npmMember(memberRel)
+			if !ok || memberRel == "." {
+				state, why = "indeterminate", "npm-workspace-lock-member-entry-missing"
+			}
+			if state != "supported" {
+				explanation := "The selected workspace lockfile has no package descriptor for this member path; no member declaration comparison was made."
+				if state == "unsupported" {
+					explanation = explanationFor(why)
+				}
+				ctxResult.AssociationState = state
+				ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: why})
+				ctxResult.Checks = append(ctxResult.Checks, Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: explanation})
 				r.Status = "partial"
 				r.Contexts = append(r.Contexts, ctxResult)
 				continue
@@ -372,7 +375,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			check.Status = "indeterminate"
 			check.Explanation = "Declaration diagnostics were omitted, so the complete direct package table cannot be established."
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
-		} else if ecosystem == "npm" && hasNPMComparisonDiagnostics(in.Declarations.Diagnostics, manifest) {
+		} else if ecosystem == "npm" && npm.hasDiagnostic(manifest, npmComparisonDiagnostics...) {
 			check.Status = "indeterminate"
 			check.Explanation += " The selected package manifest has dependency-field diagnostics, so its complete direct declaration table is unknown."
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: manifest, Reason: "npm-manifest-declarations-unresolved"})
@@ -424,18 +427,14 @@ func isMSBuildProjectRecord(ext string) bool {
 	}
 }
 
-func hasNPMComparisonDiagnostics(diagnostics []declarations.Diagnostic, manifest string) bool {
-	for _, diagnostic := range diagnostics {
-		if diagnostic.Path != manifest {
-			continue
-		}
-		switch diagnostic.Code {
-		case "invalid-npm-manifest", "invalid-npm-field", "invalid-npm-dependency", "unsupported-npm-dependency", "unsupported-npm-workspace-dependency", "unsupported-npm-workspaces", "unsupported-npm-workspace-pattern", "unsupported-npm-workspace-field", "npm-workspace-match-limit":
-			return true
-		}
-	}
-	return false
-}
+// npmComparisonDiagnostics leave a manifest's complete direct dependency
+// table unknown.
+var npmComparisonDiagnostics = []string{"invalid-npm-manifest", "invalid-npm-field", "invalid-npm-dependency", "unsupported-npm-dependency", "unsupported-npm-workspace-dependency", "unsupported-npm-workspaces", "unsupported-npm-workspace-pattern", "unsupported-npm-workspace-field", "npm-workspace-match-limit"}
+
+// npmMembershipDiagnostics leave a workspace root's member list unknown, or
+// make npm itself reject the workspace (duplicate member names). Fields that
+// npm ignores, such as Yarn's nohoist, do not affect membership.
+var npmMembershipDiagnostics = []string{"unsupported-npm-workspaces", "unsupported-npm-workspace-pattern", "npm-workspace-match-limit", "unsupported-npm-workspace-identity", "duplicate-npm-workspace-name", "npm-resolution-limit"}
 
 // inspectNuGetProjectConfig reads only the already-selected project snapshot.
 // It recognizes the presence of an explicit NuGetLockFilePath property but
@@ -497,8 +496,7 @@ type parsedLock struct {
 	reason             string
 	version            string
 	npmRoot            map[string]map[string]string
-	npmPackages        map[string]map[string]map[string]string
-	packageNames       int
+	npmPackages        map[string]any
 	nugetTarget        int
 	nugetDirect        map[string]bool
 	nugetExtendedKinds []string
@@ -523,25 +521,11 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 		if !ok {
 			return parsedLock{state: "unsupported", reason: "npm-root-package-entry-missing", version: strconv.Itoa(v)}
 		}
-		deps := map[string]map[string]string{}
-		for _, field := range npmDependencyFields {
-			if raw, present := entry[field]; present {
-				m, ok := raw.(map[string]any)
-				if !ok {
-					return parsedLock{state: "unsupported", reason: "invalid-npm-direct-table", version: strconv.Itoa(v)}
-				}
-				d := map[string]string{}
-				for name, value := range m {
-					text, ok := value.(string)
-					if !ok || !safeNPMReportName(name) {
-						return parsedLock{state: "unsupported", reason: "invalid-npm-direct-entry", version: strconv.Itoa(v)}
-					}
-					d[name] = text
-				}
-				deps[field] = d
-			}
+		deps, reason := npmDirectTables(entry)
+		if reason != "" {
+			return parsedLock{state: "unsupported", reason: reason, version: strconv.Itoa(v)}
 		}
-		return parsedLock{state: "supported", version: strconv.Itoa(v), npmRoot: deps}
+		return parsedLock{state: "supported", version: strconv.Itoa(v), npmRoot: deps, npmPackages: packages}
 	case "nuget":
 		v, ok := integer(root["version"])
 		if !ok || v < 1 || v > 2 {
@@ -596,70 +580,47 @@ func parseLock(ecosystem string, data []byte) parsedLock {
 	}
 }
 
-// parseNPMWorkspaceLock accepts the existing v2/v3 subset and additionally
-// retains every packages descriptor needed for a member comparison. It counts
-// package locations and every direct-table name across the whole lock before
-// exposing the map, so workspace mode cannot bypass the shared name budget.
-func parseNPMWorkspaceLock(data []byte, remainingNames int) parsedLock {
-	root, err := declarations.ValidateJSON(data)
-	if err != nil {
-		return parsedLock{state: "unsupported", reason: "invalid-lockfile-json"}
+func npmDirectTables(entry map[string]any) (map[string]map[string]string, string) {
+	deps := map[string]map[string]string{}
+	for _, field := range npmDependencyFields {
+		raw, present := entry[field]
+		if !present {
+			continue
+		}
+		m, ok := raw.(map[string]any)
+		if !ok {
+			return nil, "invalid-npm-direct-table"
+		}
+		d := make(map[string]string, len(m))
+		for name, value := range m {
+			text, ok := value.(string)
+			if !ok || !safeNPMReportName(name) {
+				return nil, "invalid-npm-direct-entry"
+			}
+			d[name] = text
+		}
+		deps[field] = d
 	}
-	v, ok := integer(root["lockfileVersion"])
-	if !ok || v < 2 || v > 3 {
-		return parsedLock{state: "unsupported", reason: "unsupported-npm-lockfile-version"}
+	return deps, ""
+}
+
+// npmMember returns the direct tables of one workspace member descriptor.
+// Only the selected member's descriptor is interpreted; other packages
+// entries do not affect its comparison or the package-name budget.
+func (p parsedLock) npmMember(location string) (map[string]map[string]string, string, string) {
+	raw, found := p.npmPackages[location]
+	if !found {
+		return nil, "indeterminate", "npm-workspace-lock-member-entry-missing"
 	}
-	version := strconv.Itoa(v)
-	packages, ok := root["packages"].(map[string]any)
+	entry, ok := raw.(map[string]any)
 	if !ok {
-		return parsedLock{state: "unsupported", reason: "npm-packages-table-missing", version: version}
+		return nil, "unsupported", "invalid-npm-package-descriptor"
 	}
-	if _, ok := packages[""].(map[string]any); !ok {
-		return parsedLock{state: "unsupported", reason: "npm-root-package-entry-missing", version: version}
+	deps, reason := npmDirectTables(entry)
+	if reason != "" {
+		return nil, "unsupported", reason
 	}
-	if remainingNames <= 0 || len(packages) > remainingNames {
-		return parsedLock{state: "indeterminate", reason: "package-name-limit", version: version}
-	}
-	out := make(map[string]map[string]map[string]string, len(packages))
-	count := len(packages)
-	for location, raw := range packages {
-		if location != "" {
-			clean, valid := cleanRelative(location)
-			if !valid || clean != location {
-				return parsedLock{state: "unsupported", reason: "invalid-npm-package-location", version: version}
-			}
-		}
-		descriptor, valid := raw.(map[string]any)
-		if !valid {
-			return parsedLock{state: "unsupported", reason: "invalid-npm-package-descriptor", version: version}
-		}
-		tables := make(map[string]map[string]string)
-		for _, field := range npmDependencyFields {
-			tableRaw, present := descriptor[field]
-			if !present {
-				continue
-			}
-			table, valid := tableRaw.(map[string]any)
-			if !valid {
-				return parsedLock{state: "unsupported", reason: "invalid-npm-direct-table", version: version}
-			}
-			count += len(table)
-			if count > remainingNames {
-				return parsedLock{state: "indeterminate", reason: "package-name-limit", version: version}
-			}
-			values := make(map[string]string, len(table))
-			for name, value := range table {
-				text, valid := value.(string)
-				if !valid || !safeNPMReportName(name) {
-					return parsedLock{state: "unsupported", reason: "invalid-npm-direct-entry", version: version}
-				}
-				values[name] = text
-			}
-			tables[field] = values
-		}
-		out[location] = tables
-	}
-	return parsedLock{state: "supported", version: version, npmRoot: out[""], npmPackages: out, packageNames: count}
+	return deps, "supported", ""
 }
 
 // NuGet's conventional lockfile names are case-insensitive on common
@@ -906,198 +867,330 @@ func compareNuGet(rec declarations.ProjectRecord, lock parsedLock, maxNames int)
 	return c, count, ""
 }
 
-func associate(ecosystem string, rec declarations.ProjectRecord, records []declarations.ProjectRecord, locksByDir map[string][]string, dotnetCountByRoot map[string]int) (string, string, string) {
-	root := rec.Project.Root
-	if !rec.Parsed || !rec.Complete {
-		return "", "indeterminate", "project-declarations-incomplete"
-	}
-	switch ecosystem {
-	case "nuget":
-		candidates := []string{}
-		allCandidates := locksByDir[root]
-		for _, p := range locksByDir[root] {
-			base := path.Base(p)
-			if strings.EqualFold(base, "packages.lock.json") || strings.EqualFold(base, "packages."+strings.TrimSuffix(path.Base(rec.Project.ID), path.Ext(rec.Project.ID))+".lock.json") {
-				candidates = append(candidates, p)
-			}
-		}
-		if len(candidates) == 0 {
-			if len(allCandidates) > 0 {
-				return "", "indeterminate", "nuget-lockfile-owner-unresolved"
-			}
-			if !hasDirectDeclarations(rec, ecosystem) {
-				return "", "not_applicable", ""
-			}
-			return "", missingState(rec), "lockfile-not-present"
-		}
-		if len(candidates) != 1 {
-			return "", "indeterminate", "ambiguous-nuget-lockfile-owner"
-		}
-		base := path.Base(candidates[0])
-		if strings.EqualFold(base, "packages.lock.json") {
-			if base != "packages.lock.json" {
-				return "", "indeterminate", "nuget-lockfile-case-unresolved"
-			}
-			if len(allCandidates) != 1 || dotnetCountByRoot[root] != 1 {
-				return "", "indeterminate", "ambiguous-nuget-lockfile-owner"
-			}
-		} else {
-			projectLockName := "packages." + strings.TrimSuffix(path.Base(rec.Project.ID), path.Ext(rec.Project.ID)) + ".lock.json"
-			if !strings.EqualFold(base, projectLockName) || base != projectLockName {
-				return "", "indeterminate", "nuget-lockfile-case-unresolved"
-			}
-			// Project-specific lock filenames are accepted only when every
-			// selected NuGet lock in this directory maps uniquely to one project.
-			// Arbitrary NuGetLockFilePath settings are not evaluated.
-			for _, candidate := range allCandidates {
-				candidateBase := path.Base(candidate)
-				if candidateBase == "packages.lock.json" || !strings.HasPrefix(candidateBase, "packages.") || !strings.HasSuffix(candidateBase, ".lock.json") {
-					return "", "indeterminate", "nuget-lockfile-owner-unresolved"
-				}
-				candidateName := strings.TrimSuffix(strings.TrimPrefix(candidateBase, "packages."), ".lock.json")
-				owners := 0
-				for _, other := range records {
-					if other.Project.Kind == "dotnet" && other.Project.Root == root && strings.EqualFold(strings.TrimSuffix(path.Base(other.Project.ID), path.Ext(other.Project.ID)), candidateName) {
-						owners++
-					}
-				}
-				if owners != 1 {
-					return "", "indeterminate", "nuget-lockfile-owner-unresolved"
-				}
-			}
-		}
-		return candidates[0], "observed", ""
-	case "npm":
-		own := npmLocks(locksByDir[root])
-		var shrinkwraps, packageLocks []string
-		for _, candidate := range own {
-			if path.Base(candidate) == "npm-shrinkwrap.json" {
-				shrinkwraps = append(shrinkwraps, candidate)
-			} else {
-				packageLocks = append(packageLocks, candidate)
-			}
-		}
-		if len(shrinkwraps) == 1 {
-			return shrinkwraps[0], "observed", ""
-		}
-		if len(shrinkwraps) > 1 {
-			return "", "indeterminate", "multiple-npm-shrinkwraps-at-project-root"
-		}
-		if len(packageLocks) == 1 {
-			return packageLocks[0], "observed", ""
-		}
-		if len(packageLocks) > 1 {
-			return "", "indeterminate", "multiple-npm-lockfiles-at-project-root"
-		}
-		// An ancestor lockfile is not associated by path alone. Workspace
-		// membership and the owning lock entry require scanner-level association
-		// evidence; guessing here could compare a member against the wrong root.
-		for dir := range locksByDir {
-			if isAncestor(dir, root) && len(npmLocks(locksByDir[dir])) > 0 {
-				return "", "indeterminate", "workspace-lockfile-owner-unresolved"
-			}
-		}
-		if !hasDirectDeclarations(rec, ecosystem) {
-			return "", "not_applicable", ""
-		}
-		return "", missingState(rec), "lockfile-not-present"
-	}
-	return "", "unsupported", "unsupported-ecosystem"
+// association is one project's lockfile ownership decision. reasonPath names
+// the boundary evidence when it is not the selected lockfile.
+type association struct {
+	lockPath      string
+	workspaceRoot string
+	state         string
+	reason        string
+	reasonPath    string
+	detail        string
+	extra         []Boundary
 }
 
-// associateNPMWorkspace establishes an ancestor lock owner only from one
-// complete, explicit workspace declaration and one unambiguous ancestor lock.
-// `attempted` means an ancestor npm lock exists, so callers must not fall back
-// to treating a member-local lock as independent evidence.
-func associateNPMWorkspace(rec declarations.ProjectRecord, records []declarations.ProjectRecord, locksByDir map[string][]string, diagnostics []declarations.Diagnostic, complete bool) (lockPath, workspaceRoot, state, reason string, attempted bool) {
-	memberRoot := rec.Project.Root
-	var ancestorDirs []string
-	for dir, candidates := range locksByDir {
-		if !isAncestor(dir, memberRoot) || len(npmLocks(candidates)) == 0 {
+func (a *association) override(state, reason string) {
+	a.state, a.reason, a.reasonPath, a.detail, a.workspaceRoot = state, reason, "", "", ""
+}
+
+func associateNuGet(rec declarations.ProjectRecord, records []declarations.ProjectRecord, locksByDir map[string][]string, dotnetCountByRoot map[string]int) association {
+	unknown := func(reason string) association { return association{state: "indeterminate", reason: reason} }
+	root := rec.Project.Root
+	if !rec.Parsed || !rec.Complete {
+		return unknown("project-declarations-incomplete")
+	}
+	projectName := strings.TrimSuffix(path.Base(rec.Project.ID), path.Ext(rec.Project.ID))
+	projectLockName := "packages." + projectName + ".lock.json"
+	candidates := []string{}
+	allCandidates := locksByDir[root]
+	for _, p := range allCandidates {
+		base := path.Base(p)
+		if strings.EqualFold(base, "packages.lock.json") || strings.EqualFold(base, projectLockName) {
+			candidates = append(candidates, p)
+		}
+	}
+	if len(candidates) == 0 {
+		if len(allCandidates) > 0 {
+			return unknown("nuget-lockfile-owner-unresolved")
+		}
+		if !hasDirectDeclarations(rec, "nuget") {
+			return association{state: "not_applicable"}
+		}
+		return association{state: missingState(rec), reason: "lockfile-not-present"}
+	}
+	if len(candidates) != 1 {
+		return unknown("ambiguous-nuget-lockfile-owner")
+	}
+	base := path.Base(candidates[0])
+	if strings.EqualFold(base, "packages.lock.json") {
+		if base != "packages.lock.json" {
+			return unknown("nuget-lockfile-case-unresolved")
+		}
+		if len(allCandidates) != 1 || dotnetCountByRoot[root] != 1 {
+			return unknown("ambiguous-nuget-lockfile-owner")
+		}
+	} else {
+		if base != projectLockName {
+			return unknown("nuget-lockfile-case-unresolved")
+		}
+		// Project-specific lock filenames are accepted only when every
+		// selected NuGet lock in this directory maps uniquely to one project.
+		// Arbitrary NuGetLockFilePath settings are not evaluated.
+		for _, candidate := range allCandidates {
+			candidateBase := path.Base(candidate)
+			if candidateBase == "packages.lock.json" || !strings.HasPrefix(candidateBase, "packages.") || !strings.HasSuffix(candidateBase, ".lock.json") {
+				return unknown("nuget-lockfile-owner-unresolved")
+			}
+			candidateName := strings.TrimSuffix(strings.TrimPrefix(candidateBase, "packages."), ".lock.json")
+			owners := 0
+			for _, other := range records {
+				if other.Project.Kind == "dotnet" && other.Project.Root == root && strings.EqualFold(strings.TrimSuffix(path.Base(other.Project.ID), path.Ext(other.Project.ID)), candidateName) {
+					owners++
+				}
+			}
+			if owners != 1 {
+				return unknown("nuget-lockfile-owner-unresolved")
+			}
+		}
+	}
+	return association{lockPath: candidates[0], state: "observed"}
+}
+
+// npmResolver decides which npm lockfile, if any, npm would use for a
+// selected package.json. Without workspace mode an ancestor npm lockfile
+// keeps the historical indeterminate result. Workspace mode follows npm's
+// workspace-root selection: the nearest ancestor package.json whose
+// workspaces include the project owns it, and ancestors that do not list it
+// are skipped.
+type npmResolver struct {
+	workspace          bool
+	manifests          map[string]declarations.ProjectRecord
+	locks              map[string][]string
+	markers            map[string][]string
+	diagnostics        map[string][]string
+	omissions          omissionScope
+	omittedDiagnostics bool
+}
+
+func newNPMResolver(in Input, records []declarations.ProjectRecord, locks, markers map[string][]string, omissions omissionScope) *npmResolver {
+	r := &npmResolver{workspace: in.WorkspaceLocks, manifests: map[string]declarations.ProjectRecord{}, locks: locks, markers: markers, diagnostics: map[string][]string{}, omissions: omissions, omittedDiagnostics: in.Declarations.Coverage.OmittedDiagnostics > 0}
+	for _, rec := range records {
+		if rec.Project.Kind == "npm" && path.Base(rec.Project.ID) == "package.json" {
+			r.manifests[rec.Project.Root] = rec
+		}
+	}
+	for _, diagnostic := range in.Declarations.Diagnostics {
+		r.diagnostics[diagnostic.Path] = append(r.diagnostics[diagnostic.Path], diagnostic.Code)
+	}
+	return r
+}
+
+func (r *npmResolver) hasDiagnostic(manifest string, codes ...string) bool {
+	return slices.ContainsFunc(r.diagnostics[manifest], func(code string) bool { return slices.Contains(codes, code) })
+}
+
+// ancestors returns the selected npm manifests above root, nearest first.
+func (r *npmResolver) ancestors(root string) []declarations.ProjectRecord {
+	var out []declarations.ProjectRecord
+	for dir := root; dir != "."; {
+		dir = path.Dir(dir)
+		if rec, ok := r.manifests[dir]; ok {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
+func (r *npmResolver) associate(rec declarations.ProjectRecord) association {
+	if !rec.Parsed || !rec.Complete {
+		return association{state: "indeterminate", reason: "project-declarations-incomplete"}
+	}
+	root := rec.Project.Root
+	if manager := declaredPackageManager(rec); manager != "" && manager != "npm" {
+		return association{state: "unsupported", reason: "npm-alternative-package-manager", reasonPath: rec.Project.ID, detail: "The project declares packageManager " + manager + "."}
+	}
+	ancestors := r.ancestors(root)
+	notShared := false
+	if r.workspace {
+		owner, why := r.workspaceOwner(rec, ancestors)
+		if why != "" {
+			return association{state: "indeterminate", reason: why}
+		}
+		if owner != nil {
+			return r.associateMember(rec, *owner, ancestors)
+		}
+		notShared = true
+	}
+	if lock := npmLockAt(r.locks[root]); lock != "" {
+		return association{lockPath: lock, state: "observed"}
+	}
+	if a, ok := alternativeAt(r.markers[root]); ok {
+		return a
+	}
+	var extra []Boundary
+	if nearest := r.nearestAncestorLock(root); nearest != "" {
+		// Without workspace evaluation an ancestor lockfile is not associated by
+		// path alone; guessing could compare a member against the wrong root.
+		if !notShared {
+			return association{state: "indeterminate", reason: "workspace-lockfile-owner-unresolved"}
+		}
+		extra = append(extra, Boundary{Path: nearest, Reason: "npm-ancestor-lock-not-shared"})
+	}
+	// Another manager above the project cannot give it something to lock.
+	if !hasDirectDeclarations(rec, "npm") {
+		if r.declarationsUnresolved(rec) {
+			return association{state: "indeterminate", reason: "npm-manifest-declarations-unresolved", reasonPath: rec.Project.ID, extra: extra}
+		}
+		return association{state: "not_applicable", extra: extra}
+	}
+	if evidence := r.ancestorAlternative(rec, ancestors); evidence != "" {
+		return association{state: "indeterminate", reason: "npm-ancestor-alternative-package-manager", reasonPath: evidence, extra: extra}
+	}
+	return association{state: missingState(rec), reason: "lockfile-not-present", extra: extra}
+}
+
+// workspaceOwner returns the nearest ancestor whose workspaces include rec.
+// A non-empty reason means a selected ancestor could list rec, or npm could
+// reject the workspace, but the declarations do not establish which.
+func (r *npmResolver) workspaceOwner(rec declarations.ProjectRecord, ancestors []declarations.ProjectRecord) (*declarations.ProjectRecord, string) {
+	root := rec.Project.Root
+	// A project at the selected root has no ancestor an omission could hide.
+	if root != "." && r.omissions.blocks(isPackageJSON, func(dir string) bool { return isAncestor(dir, root) }) {
+		return nil, "npm-workspace-lock-owner-incomplete"
+	}
+	if len(ancestors) > 0 && r.omittedDiagnostics {
+		return nil, "npm-workspace-lock-owner-incomplete"
+	}
+	for _, ancestor := range ancestors {
+		if !ancestor.Parsed || !ancestor.Complete || r.hasDiagnostic(ancestor.Project.ID, npmMembershipDiagnostics...) {
+			return nil, "npm-workspace-lock-owner-incomplete"
+		}
+		listed := 0
+		for _, ref := range ancestor.Project.References {
+			// npm skips a listed path that has no package.json, so a
+			// definitely absent member cannot be rec or make npm reject the
+			// workspace.
+			if ref.Kind != "npm-workspace-member" || ref.Evidence != ancestor.Project.ID || ref.State == "missing" {
+				continue
+			}
+			if ref.State != "resolved" {
+				return nil, "npm-workspace-lock-membership-unresolved"
+			}
+			if ref.Target == rec.Project.ID {
+				listed++
+			}
+		}
+		if listed == 0 {
 			continue
 		}
-		ancestorDirs = append(ancestorDirs, dir)
+		if listed > 1 {
+			return nil, "npm-workspace-lock-membership-unresolved"
+		}
+		// npm rejects a workspace whose members share a name, so an omitted
+		// manifest beneath the owner leaves that check unknown.
+		if r.omissions.blocks(isPackageJSON, func(dir string) bool { return isAncestor(ancestor.Project.Root, dir) }) {
+			return nil, "npm-workspace-lock-owner-incomplete"
+		}
+		return &ancestor, ""
 	}
-	if len(ancestorDirs) == 0 {
-		return "", "", "", "", false
-	}
-	slices.Sort(ancestorDirs)
-	unknown := func(why string) (string, string, string, string, bool) {
-		return "", "", "indeterminate", why, true
-	}
-	if !complete || !rec.Parsed || !rec.Complete {
-		return unknown("npm-workspace-lock-owner-incomplete")
-	}
-	if len(npmLocks(locksByDir[memberRoot])) > 0 {
-		return unknown("npm-workspace-member-lock-collision")
-	}
+	return nil, ""
+}
+
+func isPackageJSON(base string) bool { return base == "package.json" }
+
+func (r *npmResolver) associateMember(rec, owner declarations.ProjectRecord, ancestors []declarations.ProjectRecord) association {
+	// npm uses the outer root for a member that declares its own workspaces
+	// but does not install that member's workspaces.
 	if declaresNPMWorkspace(rec) {
-		return unknown("nested-npm-workspace-owner-unresolved")
+		return association{state: "indeterminate", reason: "nested-npm-workspace-owner-unresolved", reasonPath: owner.Project.ID}
 	}
-	if len(ancestorDirs) != 1 {
-		return unknown("npm-workspace-lock-ancestor-collision")
-	}
-	// Every selected npm package manifest above this member is relevant to
-	// ownership, including manifests above the candidate lock root. An
-	// incomplete or malformed package.json could conceal a competing workspace
-	// and must not disappear merely because it has no parsed workspace requirement.
-	for _, candidate := range records {
-		if candidate.Project.Kind != "npm" || path.Base(candidate.Project.ID) != "package.json" ||
-			candidate.Project.ID == rec.Project.ID || !isAncestor(candidate.Project.Root, memberRoot) {
-			continue
+	ownerRoot := owner.Project.Root
+	if manager, declarer := nearestPackageManager(rec, ancestors); manager != "" && manager != "npm" {
+		// Corepack applies the nearest declaration. Within the workspace it
+		// names the workspace's manager; above it, the owner is uncertain.
+		if declarer.Project.Root == ownerRoot || isAncestor(ownerRoot, declarer.Project.Root) {
+			return association{state: "unsupported", reason: "npm-alternative-package-manager", reasonPath: declarer.Project.ID, detail: "The workspace declares packageManager " + manager + "."}
 		}
-		if !candidate.Parsed || !candidate.Complete || hasNPMWorkspaceDeclarationDiagnostics(diagnostics, candidate.Project.ID) {
-			return unknown("npm-workspace-lock-owner-incomplete")
+		return association{state: "indeterminate", reason: "npm-ancestor-alternative-package-manager", reasonPath: declarer.Project.ID}
+	}
+	if lock := npmLockAt(r.locks[ownerRoot]); lock != "" {
+		return association{lockPath: lock, workspaceRoot: ownerRoot, state: "observed"}
+	}
+	if a, ok := alternativeAt(r.markers[ownerRoot]); ok {
+		return a
+	}
+	state := "missing"
+	if !hasDirectDeclarations(rec, "npm") {
+		if r.declarationsUnresolved(rec) {
+			return association{state: "indeterminate", reason: "npm-manifest-declarations-unresolved", reasonPath: rec.Project.ID}
 		}
+		state = "not_applicable"
 	}
-	var workspaceRecords []declarations.ProjectRecord
-	for _, candidate := range records {
-		if candidate.Project.Kind != "npm" || path.Base(candidate.Project.ID) != "package.json" || !isAncestor(candidate.Project.Root, memberRoot) {
-			continue
-		}
-		if declaresNPMWorkspace(candidate) {
-			workspaceRecords = append(workspaceRecords, candidate)
-		}
-	}
-	if len(workspaceRecords) != 1 {
-		return unknown("npm-workspace-lock-owner-unresolved")
-	}
-	owner := workspaceRecords[0]
-	if owner.Project.Root != ancestorDirs[0] || !owner.Parsed || !owner.Complete || hasNPMComparisonDiagnostics(diagnostics, owner.Project.ID) || hasNPMWorkspaceDeclarationDiagnostics(diagnostics, owner.Project.ID) || hasNonNPMOrUnknownPackageManager(owner, diagnostics) {
-		return unknown("npm-workspace-lock-owner-incomplete")
-	}
-	ownerManifest := path.Join(owner.Project.Root, "package.json")
-	if owner.Project.ID != ownerManifest {
-		return unknown("npm-workspace-lock-owner-unresolved")
-	}
-	membershipCount := 0
-	for _, ref := range owner.Project.References {
-		if ref.Kind == "npm-workspace-member" && ref.Target == rec.Project.ID && ref.State == "resolved" && ref.Evidence == owner.Project.ID {
-			membershipCount++
+	return association{state: state, reason: "npm-workspace-root-lockfile-not-present", reasonPath: owner.Project.ID}
+}
+
+// declarationsUnresolved reports whether rec's dependency fields could not all
+// be read, so the absence of direct declarations is not established either.
+func (r *npmResolver) declarationsUnresolved(rec declarations.ProjectRecord) bool {
+	return r.omittedDiagnostics || r.hasDiagnostic(rec.Project.ID, npmComparisonDiagnostics...)
+}
+
+func (r *npmResolver) nearestAncestorLock(root string) string {
+	for dir := root; dir != "."; {
+		dir = path.Dir(dir)
+		if lock := npmLockAt(r.locks[dir]); lock != "" {
+			return lock
 		}
 	}
-	if membershipCount != 1 {
-		return unknown("npm-workspace-lock-membership-unresolved")
-	}
-	ancestorLocks := npmLocks(locksByDir[ancestorDirs[0]])
-	if len(ancestorLocks) == 0 {
-		return unknown("npm-workspace-lock-owner-unresolved")
-	}
-	var wraps, packageLocks []string
-	for _, candidate := range ancestorLocks {
-		if path.Base(candidate) == "npm-shrinkwrap.json" {
-			wraps = append(wraps, candidate)
-		} else {
-			packageLocks = append(packageLocks, candidate)
+	return ""
+}
+
+// ancestorAlternative names ancestor evidence that another package manager
+// may own the project. Workspace mode has already evaluated package.json
+// workspaces, which Yarn and Bun share with npm, so an ancestor lockfile in any
+// format matters only through that ownership. pnpm and Rush define membership
+// in pnpm-workspace.yaml and rush.json, which remain unresolved there.
+func (r *npmResolver) ancestorAlternative(rec declarations.ProjectRecord, ancestors []declarations.ProjectRecord) string {
+	for dir := rec.Project.Root; dir != "."; {
+		dir = path.Dir(dir)
+		for _, marker := range r.markers[dir] {
+			if !r.workspace || !isAlternativeLockName(path.Base(marker)) {
+				return marker
+			}
 		}
 	}
-	if len(wraps) > 1 || len(wraps) == 0 && len(packageLocks) != 1 {
-		return unknown("npm-workspace-lockfile-collision")
+	if manager, declarer := nearestPackageManager(rec, ancestors); manager != "" && manager != "npm" {
+		return declarer.Project.ID
 	}
-	if len(wraps) == 1 {
-		return wraps[0], owner.Project.Root, "observed", "", true
+	return ""
+}
+
+// nearestPackageManager returns the packageManager declaration Corepack
+// would apply to rec: its own, or the nearest ancestor's.
+func nearestPackageManager(rec declarations.ProjectRecord, ancestors []declarations.ProjectRecord) (string, declarations.ProjectRecord) {
+	if manager := declaredPackageManager(rec); manager != "" {
+		return manager, rec
 	}
-	return packageLocks[0], owner.Project.Root, "observed", "", true
+	for _, ancestor := range ancestors {
+		if manager := declaredPackageManager(ancestor); manager != "" {
+			return manager, ancestor
+		}
+	}
+	return "", declarations.ProjectRecord{}
+}
+
+// alternativeAt reports another package manager's lockfile or workspace file
+// in the directory npm would otherwise use.
+func alternativeAt(markers []string) (association, bool) {
+	for _, marker := range markers {
+		if isAlternativeLockName(path.Base(marker)) {
+			return association{lockPath: marker, state: "unsupported", reason: "npm-alternative-lockfile-format"}, true
+		}
+	}
+	if len(markers) > 0 {
+		return association{state: "unsupported", reason: "npm-alternative-package-manager", reasonPath: markers[0]}, true
+	}
+	return association{}, false
+}
+
+func isAlternativeLockName(base string) bool {
+	return base == "yarn.lock" || base == "pnpm-lock.yaml" || base == "bun.lock" || base == "bun.lockb"
+}
+
+// IsAlternativeNPMMarker matches files that place a package.json under
+// another package manager's lockfile or workspace definition.
+func IsAlternativeNPMMarker(base string) bool {
+	return isAlternativeLockName(base) || base == "pnpm-workspace.yaml" || base == "rush.json"
 }
 
 func declaresNPMWorkspace(rec declarations.ProjectRecord) bool {
@@ -1109,41 +1202,105 @@ func declaresNPMWorkspace(rec declarations.ProjectRecord) bool {
 	return false
 }
 
-func hasNonNPMOrUnknownPackageManager(rec declarations.ProjectRecord, diagnostics []declarations.Diagnostic) bool {
+// declaredPackageManager returns the name from a valid packageManager
+// declaration. npm ignores the field and invalid values carry no name, so
+// they are not evidence of another manager.
+func declaredPackageManager(rec declarations.ProjectRecord) string {
 	for _, req := range rec.Project.Requirements {
-		if req.Kind != "package-manager" {
-			continue
-		}
-		manager, _, ok := strings.Cut(req.Value, "@")
-		if !ok || manager != "npm" {
-			return true
+		if req.Kind == "package-manager" {
+			name, _, _ := strings.Cut(req.Value, "@")
+			return name
 		}
 	}
-	for _, diagnostic := range diagnostics {
-		if diagnostic.Path == rec.Project.ID && (diagnostic.Code == "unsupported-package-manager" || diagnostic.Code == "unsupported-package-manager-semantics") {
-			return true
-		}
-	}
-	return false
+	return ""
 }
 
-func hasNPMWorkspaceDeclarationDiagnostics(diagnostics []declarations.Diagnostic, manifest string) bool {
-	for _, diagnostic := range diagnostics {
-		if diagnostic.Path == manifest && (strings.Contains(diagnostic.Code, "npm-workspace") || strings.Contains(diagnostic.Code, "workspace")) {
-			return true
-		}
-	}
-	return false
+// omissionScope records which manifests and unreadable directories the
+// declaration collector omitted, so an omission blocks only the ownership
+// decisions it could change.
+type omissionScope struct {
+	declarations bool
+	attributed   bool
+	paths        []string
+	trees        []string
 }
 
-func npmLocks(paths []string) []string {
-	var out []string
+func newOmissionScope(in Input) omissionScope {
+	s := omissionScope{declarations: in.Declarations.Status != "" && in.Declarations.Status != "skipped"}
+	omitted := in.Declarations.Coverage.OmittedFiles
+	if omitted == 0 {
+		s.attributed = true
+		return s
+	}
+	if !in.DeclarationOmissionsAttributed || int64(len(in.DeclarationOmissions)+len(in.DeclarationOmittedTrees)) > omitted {
+		return s
+	}
+	for _, list := range []struct {
+		in  []string
+		out *[]string
+	}{{in.DeclarationOmissions, &s.paths}, {in.DeclarationOmittedTrees, &s.trees}} {
+		for _, p := range list.in {
+			// Only a manifest can change an ownership decision.
+			if list.out == &s.paths && !declarations.IsManifest(p) {
+				continue
+			}
+			if !in.WorkspaceLocks {
+				p = strings.ReplaceAll(p, "\\", "/")
+			}
+			clean, ok := cleanSelectedRelative(p, in.WorkspaceLocks)
+			if !ok {
+				return omissionScope{declarations: s.declarations}
+			}
+			*list.out = append(*list.out, clean)
+		}
+	}
+	s.attributed = true
+	return s
+}
+
+// blocks reports whether an omitted file whose base name satisfies name, in a
+// directory that satisfies dir, could exist. An unreadable directory can hide
+// files at any depth, but the projects and workspace roots being compared lie
+// outside it, so testing the directory itself is enough for every predicate
+// used here.
+func (s omissionScope) blocks(name, dir func(string) bool) bool {
+	if !s.attributed || slices.ContainsFunc(s.trees, dir) {
+		return true
+	}
+	return slices.ContainsFunc(s.paths, func(p string) bool { return name(path.Base(p)) && dir(path.Dir(p)) })
+}
+
+// nugetOwnersKnown reports whether every MSBuild project in root was retained,
+// so a conventional lockfile name maps to a known set of projects.
+func (s omissionScope) nugetOwnersKnown(root string) bool {
+	return s.declarations && !s.blocks(func(base string) bool { return isMSBuildProjectRecord(path.Ext(base)) }, func(dir string) bool { return dir == root })
+}
+
+// IsNuGetLockProject matches SDK-style project files whose restore can write
+// packages.lock.json.
+func IsNuGetLockProject(manifest string) bool {
+	switch strings.ToLower(path.Ext(manifest)) {
+	case ".csproj", ".fsproj", ".vbproj":
+		return true
+	default:
+		return false
+	}
+}
+
+// npmLockAt returns the lockfile npm uses in one directory, or "".
+// npm-shrinkwrap.json takes precedence over package-lock.json. Inventory paths
+// are unique after cleaning, so a directory holds at most one of each.
+func npmLockAt(paths []string) string {
+	lock := ""
 	for _, p := range paths {
-		if path.Base(p) == "package-lock.json" || path.Base(p) == "npm-shrinkwrap.json" {
-			out = append(out, p)
+		switch path.Base(p) {
+		case "npm-shrinkwrap.json":
+			return p
+		case "package-lock.json":
+			lock = p
 		}
 	}
-	return out
+	return lock
 }
 
 func hasDirectDeclarations(rec declarations.ProjectRecord, ecosystem string) bool {

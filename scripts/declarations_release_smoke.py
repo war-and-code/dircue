@@ -46,9 +46,12 @@ ASSESSMENT_FACTS = {
     'regular_files': len(FIXTURES),
     'logical_bytes': sum(len(content.encode('utf-8')) for content in FIXTURES.values()),
     'manifest_candidates': len(EXPECTED_MANIFESTS),
-    'parsed_projects': 11,
-    'distinct_project_roots': 11,
-    'eligible_lockfile_projects': 4,
+    # go.work and the Cargo [workspace]-only manifest are virtual roots, not projects.
+    'parsed_projects': 10,
+    'distinct_project_roots': 10,
+    # Only the npm workspace root has something to lock (its members) and no
+    # lockfile; the npm member and both .NET projects declare no packages.
+    'eligible_lockfile_projects': 1,
     'lockfile_state_partition': ['covered', 'missing', 'not_applicable', 'unsupported', 'unknown'],
 }
 
@@ -195,7 +198,7 @@ def check_assessment_facts(report):
             assessment['projects']['completeness'] == 'complete' and
             assessment['project_roots']['count'] == ASSESSMENT_FACTS['distinct_project_roots'] and
             assessment['project_roots']['completeness'] == 'complete',
-            'parsed projects or distinct roots differ (Go workspace config is excluded; Cargo virtual root is included)')
+            'parsed projects or distinct roots differ (Go and Cargo virtual workspace roots are excluded)')
     lockfiles = assessment['lockfiles_overall']
     require(lockfiles['eligible']['count'] == ASSESSMENT_FACTS['eligible_lockfile_projects'], 'eligible npm/NuGet project count differs')
     states = ASSESSMENT_FACTS['lockfile_state_partition']

@@ -74,7 +74,27 @@ type File struct {
 	Vendored      *bool
 	Generated     *bool
 	Documentation *bool
+	// VendorPath caches Linguist's vendor path rule for Path when the caller
+	// has evaluated it; nil means the rule is evaluated on use.
+	VendorPath *bool
 }
+
+// LinguistVendored reports whether Linguist treats the file as vendored: its
+// linguist-vendored attribute when set, otherwise the vendor path rules.
+func (f File) LinguistVendored() bool {
+	if f.Vendored != nil {
+		return *f.Vendored
+	}
+	return f.vendorPathRule()
+}
+
+func (f File) vendorPathRule() bool {
+	if f.VendorPath != nil {
+		return *f.VendorPath
+	}
+	return enry.IsVendor(f.Path)
+}
+
 type Collector struct {
 	report     Report
 	categories map[string]*Group
@@ -137,7 +157,7 @@ func (c *Collector) Add(file File) {
 			add(c.roles, name, basis, file.Size)
 		}
 	}
-	role("vendored", file.Vendored, enry.IsVendor(file.Path), "enry_path")
+	role("vendored", file.Vendored, file.Vendored == nil && file.vendorPathRule(), "enry_path")
 	// Generated-code content heuristics are deliberately not run in metadata discovery.
 	role("generated", file.Generated, false, "")
 	role("documentation", file.Documentation, enry.IsDocumentation(file.Path), "enry_path")

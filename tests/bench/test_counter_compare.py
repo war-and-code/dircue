@@ -235,7 +235,10 @@ class CounterCompareTests(unittest.TestCase):
             root = Path(tmp)
             path = root / "budget.json"
             path.write_text(deep_json)
-            with self.assertRaisesRegex(counter_compare.GateError, "cannot read budget"):
+            # Python 3.14 can decode nesting that older decoders reject with a
+            # RecursionError. Either path must reject this non-object budget.
+            with self.assertRaisesRegex(counter_compare.GateError,
+                                        "cannot read budget|unsupported budget schema_version"):
                 counter_compare.load_budget(path)
 
             def malformed_stats(command, **kwargs):
@@ -243,8 +246,26 @@ class CounterCompareTests(unittest.TestCase):
                 return subprocess.CompletedProcess(command, 0, "", "")
 
             with mock.patch.object(counter_compare.smoke_process, "run", side_effect=malformed_stats), \
-                 self.assertRaisesRegex(counter_compare.GateError, "invalid stats JSON"):
+                 self.assertRaisesRegex(counter_compare.GateError,
+                                        "invalid stats JSON|stats document must be a JSON object"):
                 counter_compare.counters("dircue", FIXTURES / "non-source", root)
+
+    def test_decoder_recursion_errors_become_gate_diagnostics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            path = root / "budget.json"
+            path.write_text("{}")
+
+            def valid_stats(command, **kwargs):
+                Path(command[command.index("--stats-json") + 1]).write_text("{}")
+                return subprocess.CompletedProcess(command, 0, "", "")
+
+            with mock.patch.object(counter_compare.json, "loads", side_effect=RecursionError("decoder limit")):
+                with self.assertRaisesRegex(counter_compare.GateError, "cannot read budget.*decoder limit"):
+                    counter_compare.load_budget(path)
+                with mock.patch.object(counter_compare.smoke_process, "run", side_effect=valid_stats), \
+                     self.assertRaisesRegex(counter_compare.GateError, "invalid stats JSON.*decoder limit"):
+                    counter_compare.counters("dircue", FIXTURES / "non-source", root)
 
     def test_counter_command_fails_closed_on_process_or_stats_errors(self):
         fixture = FIXTURES / "non-source"

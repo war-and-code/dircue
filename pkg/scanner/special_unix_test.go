@@ -381,6 +381,33 @@ func TestPermissionDeniedDirectoryContinue(t *testing.T) {
 	}
 }
 
+// TestUnreadableDirectoryQualifiesAssessmentProjects verifies that an
+// unreadable directory, which can hide manifests, makes assessment project
+// counts a lower bound, while one inside installed npm contents does not.
+func TestUnreadableDirectoryQualifiesAssessmentProjects(t *testing.T) {
+	if os.Geteuid() == 0 {
+		t.Skip("chmod 000 has no effect when running as root")
+	}
+	for locked, want := range map[string]string{"packages/locked": "lower_bound", "node_modules/locked": "complete"} {
+		dir := fixtures(t, map[string]string{
+			"package.json":               `{"name":"root","version":"1.0.0"}`,
+			"packages/open/package.json": `{"name":"open","version":"1.0.0"}`,
+			locked + "/package.json":     `{"name":"locked","version":"1.0.0"}`,
+		})
+		if err := os.Chmod(filepath.Join(dir, locked), 0); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() { _ = os.Chmod(filepath.Join(dir, locked), 0755) })
+		report, err := Scan(context.Background(), dir, Options{Source: "directory", Assessment: true, ErrorPolicy: ErrorPolicyContinue})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got := report.Assessment.Projects; got.Count != 2 || got.Completeness != want {
+			t.Fatalf("unreadable %s: projects = %+v, want 2 %s", locked, got, want)
+		}
+	}
+}
+
 // TestPermissionDeniedDirectoryFail verifies that a permission-denied directory
 // is fatal under the default ErrorPolicyFail.
 func TestPermissionDeniedDirectoryFail(t *testing.T) {

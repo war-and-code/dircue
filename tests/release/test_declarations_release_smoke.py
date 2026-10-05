@@ -105,7 +105,7 @@ class DeclarationReleaseContracts(unittest.TestCase):
         for mutate in (
             lambda r: r['checks'].remove('assessment_lock_partition'),
             lambda r: r['stdout_sha256'].pop('assessment_all'),
-            lambda r: r['observed_facts']['assessment'].update(parsed_projects=10),
+            lambda r: r['observed_facts']['assessment'].update(parsed_projects=smoke.ASSESSMENT_FACTS['parsed_projects'] + 1),
             lambda r: r.update(assessment_required=False),
             lambda r: r.pop('assessment_required'),
         ):
@@ -136,18 +136,20 @@ class DeclarationReleaseContracts(unittest.TestCase):
             'assessment': {
                 'inventory': {'files': metric(14), 'bytes': metric(smoke.ASSESSMENT_FACTS['logical_bytes'])},
                 'manifest_candidate_population': metric(12),
-                'projects': metric(11),
-                'project_roots': metric(11),
+                'projects': metric(10),
+                'project_roots': metric(10),
                 'lockfiles_overall': {
-                    'eligible': metric(4), 'covered': metric(0), 'missing': metric(1),
-                    'not_applicable': metric(3), 'unsupported': metric(7), 'unknown': metric(0),
+                    'eligible': metric(1), 'covered': metric(0), 'missing': metric(1),
+                    'not_applicable': metric(3), 'unsupported': metric(6), 'unknown': metric(0),
                 },
             },
         }
         smoke.check_assessment_facts(report)
-        report['assessment']['lockfiles_overall']['not_applicable']['count'] = 2
-        with self.assertRaises(ValueError):
-            smoke.check_assessment_facts(report)
+        for field, value in (('not_applicable', 2), ('eligible', 4)):
+            changed = copy.deepcopy(report)
+            changed['assessment']['lockfiles_overall'][field]['count'] = value
+            with self.assertRaises(ValueError):
+                smoke.check_assessment_facts(changed)
 
     def test_helper_and_fixture_coverage(self):
         self.assertEqual({'scripts/declarations_release_smoke.py', 'scripts/wheels.py'}, set(smoke.source_inputs()))
@@ -157,7 +159,7 @@ class DeclarationReleaseContracts(unittest.TestCase):
         for value in smoke.fixture_inputs().values():
             self.assertTrue(smoke.valid_digest(value))
         self.assertEqual(12, smoke.ASSESSMENT_FACTS['manifest_candidates'])
-        self.assertEqual(11, smoke.ASSESSMENT_FACTS['parsed_projects'])
+        self.assertEqual(10, smoke.ASSESSMENT_FACTS['parsed_projects'])
 
     def test_malformed_receipt_shapes_fail_cleanly(self):
         for receipt in (None, [], {}, {'checks': None}):

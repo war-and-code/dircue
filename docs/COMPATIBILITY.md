@@ -92,8 +92,22 @@ These are current limitations and follow-up work. They do not establish support 
 
 ## 1.4 repository measurements
 
-`analyze assessment` and `analyze all --assessment` opt into aggregate schema `1.9.0`, with an `assessment` component at version `1.0.0`. The component adds file and logical-byte populations, filename-selected manifest counts, parsed project roots, explicit local relationships, and supported lockfile association totals with per-metric completeness. Older strict profile readers may reject it. Profiles without this opt-in keep their existing version selection.
+`analyze assessment` and `analyze all --assessment` opt into aggregate schema `1.9.0`, with an `assessment` component at version `1.0.0`. The component adds file and logical-byte populations, vendored-file and vendored-byte totals, filename-selected manifest counts with ecosystem and kind, parsed project roots, explicit local relationships, and supported lockfile association totals with per-metric completeness and per-role breakdowns. Older strict profile readers may reject it. Profiles without this opt-in keep their existing version selection.
 
-Assessment enables shared npm v2/v3 workspace-lock ownership checks when selected declarations establish one owner and the lock contains the member's own package entry. The existing `analyze lockfiles` and `analyze all --lockfiles` retain their earlier ancestor-lock interpretation. The additional association check and preservation of literal POSIX backslashes in selected paths are disclosed in the lockfile module's semantics; older strict lockfile readers may reject that opt-in semantics array. Optional Syft evidence stays separate and does not establish native ownership or completeness.
+Assessment and `--npm-workspace-locks` enable shared npm v2/v3 workspace-lock ownership checks when selected declarations establish one owner and the lock contains the member's own package entry. The additional association check and preservation of literal POSIX backslashes in selected paths are disclosed in the lockfile module's semantics array; older strict lockfile readers may reject that opt-in semantics array.
+
+The following behaviors differ from 1.3.1 in the default `analyze lockfiles` and `analyze all --lockfiles` output (without `--npm-workspace-locks`):
+
+- Yarn, pnpm, Bun, and Rush files (`yarn.lock`, `pnpm-lock.yaml`, `bun.lock`, `bun.lockb`, `pnpm-workspace.yaml`, `rush.json`) and non-npm `packageManager` declarations now yield `unsupported` or `indeterminate` outcomes; 1.3.1 usually reported these projects as `missing`.
+- A project whose own `package.json` declares a non-npm `packageManager` is `unsupported` even beside its own npm lockfile, which 1.3.1 reported as `observed` with a named check.
+- An npm project with no readable dependency declarations whose dependency or workspace fields have diagnostics is `indeterminate` (`npm-manifest-declarations-unresolved`); 1.3.1 reported it as `not_applicable`.
+- `.fsproj` and `.vbproj` projects receive NuGet lockfile contexts alongside `.csproj` projects.
+- An omitted path that cannot be an MSBuild project file in the project's directory no longer makes a NuGet association indeterminate.
+- A NuGet project with no direct package declarations and selected shared MSBuild inputs is now `indeterminate`, rather than `not_applicable`, because those inputs may introduce packages. An `Update`-only item no longer creates a direct package declaration: without a lockfile or shared/imported inputs it is `not_applicable`, rather than `missing`.
+- The module's `inventory_paths` coverage count includes those Yarn, pnpm, Bun, and Rush files.
+
+Npm manifests beginning with a UTF-8 byte-order mark are now parsed as npm parses them. This can add declaration, project, or map observations that older versions omitted. MSBuild `PackageReference` and `PackageVersion` `Update` items no longer introduce package observations; `Include` declarations remain. These are parser corrections, not changes to the map's field semantics.
+
+Optional Syft evidence stays separate and does not establish native ownership or completeness.
 
 The command catalog, workflow guide, schema exports, module capability registry and inert planner gain assessment entries. Saved-profile comparison accepts schema `1.9.0` and compares assessment aggregates; capped example lists remain metadata. Legacy language output, default `analyze all`, map field semantics, and existing exit codes are unchanged.

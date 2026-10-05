@@ -25,16 +25,13 @@ func assessmentModules(p profile.Report, result map[string]moduleData) {
 			m.reasons = appendReason(m.reasons, "assessment_measurement_is_lower_bound")
 		}
 	}
-	add("inventory:files", r.Inventory.Files)
-	add("inventory:bytes", r.Inventory.Bytes)
-	add("manifest_candidate_population", r.ManifestCandidatePopulation)
-	add("unparsed_manifest_candidates", r.UnparsedManifestCandidates)
-	add("filename_candidate_population", r.FilenameCandidatePopulation)
-	add("unsupported_ecosystem_projects", r.UnsupportedEcosystemProjects)
-	add("projects", r.Projects)
-	add("project_roots", r.ProjectRoots)
-	add("workspace_membership", r.WorkspaceMembership)
-	add("local_dependencies", r.LocalDependencies)
+	for _, value := range r.Metrics() {
+		id := value.Name
+		if value.Ecosystem != "" {
+			id = "lockfiles:" + key(value.Ecosystem, value.Name)
+		}
+		add(id, value.Metric)
+	}
 	for _, row := range r.ManifestCandidates {
 		m.add("manifest:"+key(row.Filename, row.Kind, row.Ecosystem), row)
 	}
@@ -47,10 +44,18 @@ func assessmentModules(p profile.Report, result map[string]moduleData) {
 	for _, row := range r.LocalDependencyByKind {
 		m.add("local_kind:"+row.Kind, row)
 	}
-	rows := append([]assessment.LockfileEcosystem{r.LockfilesOverall}, r.Lockfiles...)
-	for _, row := range rows {
-		for name, value := range map[string]assessment.Metric{"projects": row.Projects, "eligible": row.Eligible, "covered": row.Covered, "missing": row.Missing, "not_applicable": row.NotApplicable, "unsupported": row.Unsupported, "unknown": row.Unknown} {
-			add("lockfiles:"+key(row.Ecosystem, name), value)
+	for _, row := range r.ProjectsByRole {
+		m.add("project_role:"+row.Role, row)
+	}
+	for _, row := range r.ProjectRootsByRole {
+		m.add("project_root_role:"+row.Role, row)
+	}
+	for _, row := range append([]assessment.LockfileEcosystem{r.LockfilesOverall}, r.Lockfiles...) {
+		for _, role := range row.ByRole {
+			m.add("lockfile_role:"+key(row.Ecosystem, role.Role), role)
+		}
+		for _, reason := range row.OutcomeReasons {
+			m.add("lockfile_reason:"+key(row.Ecosystem, reason.State, reason.Reason), reason)
 		}
 	}
 	result["assessment"] = m

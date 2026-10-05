@@ -59,7 +59,7 @@ func ValidateReport(r *Report) error {
 		}
 		seenProjectIDs[ctx.ProjectID] = true
 		seenManifestPaths[ctx.ManifestPath] = true
-		if ctx.Ecosystem == "npm" && path.Base(ctx.ManifestPath) != "package.json" || ctx.Ecosystem == "nuget" && !strings.EqualFold(path.Ext(ctx.ManifestPath), ".csproj") {
+		if ctx.Ecosystem == "npm" && path.Base(ctx.ManifestPath) != "package.json" || ctx.Ecosystem == "nuget" && !IsNuGetLockProject(ctx.ManifestPath) {
 			return errors.New("lockfile context manifest does not match its ecosystem")
 		}
 		if ctx.LockfilePath != "" && !validSelectedRelative(ctx.LockfilePath, workspacePaths) {

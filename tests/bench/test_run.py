@@ -6,6 +6,7 @@ import tempfile
 from pathlib import Path
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run
@@ -278,7 +279,15 @@ class BenchmarkPreflightTests(unittest.TestCase):
             self.assertFalse(report['passed'])
             self.assertIsNone(report['performance_passed'])
             self.assertEqual(report['status'], 'failed')
-            self.assertIn('cannot read manifest', report['failure'])
+            # The Python 3.14 decoder accepts deeper nesting; schema validation
+            # must still reject the array and invalidate the previous success.
+            self.assertRegex(report['failure'],
+                             'cannot read manifest|manifest must be an object with schema_version 1')
+
+    def test_decoder_recursion_error_becomes_manifest_diagnostic(self):
+        with mock.patch.object(run.json, 'loads', side_effect=RecursionError('decoder limit')):
+            with self.assertRaisesRegex(run.HarnessError, 'cannot read manifest.*decoder limit'):
+                run.load_manifest(Path('manifest.json'), Path('corpus'), raw=b'{}')
 
     def test_manifest_byte_limit_invalidates_old_success_receipt(self):
         with tempfile.TemporaryDirectory() as temporary:

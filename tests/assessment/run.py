@@ -47,6 +47,11 @@ def locks(a):
             for r in a['lockfiles']}
 
 
+def outcome_reasons(a, ecosystem):
+    row = next(r for r in a['lockfiles'] if r['ecosystem'] == ecosystem)
+    return {(v['state'], v['reason']): v['count'] for v in row['outcome_reasons']}
+
+
 def population(a):
     return {'candidates': candidate_counts(a),
             **{k: count(a[k]) for k in METRICS}, 'locks': locks(a)}
@@ -242,6 +247,21 @@ class Runner:
         assert sum(count(total[k]) for k in STATES) == count(total['projects']), total
         for k in ('projects', 'eligible', *STATES):
             assert sum(count(row[k]) for row in a['lockfiles']) == count(total[k]), k
+        inv = a['inventory']
+        assert count(inv['vendored_files']) <= count(inv['files']), inv
+        assert count(inv['vendored_bytes']) <= count(inv['bytes']), inv
+        for key, metric in (('projects_by_role', 'projects'), ('project_roots_by_role', 'project_roots')):
+            assert sum(v['count'] for v in a[key]) == count(a[metric]), (key, a[key], a[metric])
+        for row in [*a['lockfiles'], total]:
+            if row['ecosystem'] in ('npm', 'nuget'):
+                assert count(row['eligible']) == sum(count(row[k]) for k in ('covered', 'missing', 'unknown')), row
+            elif row['ecosystem'] != 'all':
+                assert count(row['eligible']) == 0 and count(row['unsupported']) == count(row['projects']), row
+            for k in ('projects', 'eligible', *STATES):
+                assert sum(v[k] for v in row['by_role']) == count(row[k]), (k, row['by_role'])
+            for k in STATES[1:]:
+                assert sum(v['count'] for v in row['outcome_reasons'] if v['state'] == k) == count(row[k]), (k, row['outcome_reasons'])
+            assert all(v['state'] != 'covered' for v in row['outcome_reasons']), row['outcome_reasons']
 
 
 def run_seed(r, root, seed, syft):
@@ -263,6 +283,13 @@ def run_seed(r, root, seed, syft):
     r.probe(prefix + 'manifest filename undercount', lambda: assert_exact_manifests(corrupt, fixture))
     corrupt = copy.deepcopy(before); corrupt['assessment']['lockfiles_overall']['covered']['count'] += 1
     r.probe(prefix + 'overall partition double count', lambda: r.basic(corrupt))
+    corrupt = copy.deepcopy(before); corrupt['assessment']['lockfiles'][0]['by_role'][0]['projects'] += 1
+    r.probe(prefix + 'role partition overcount', lambda: r.basic(corrupt))
+    corrupt = copy.deepcopy(before)
+    next(v for v in corrupt['assessment']['lockfiles'] if v['ecosystem'] == 'npm')['eligible']['count'] += 1
+    r.probe(prefix + 'eligible outside covered missing unknown', lambda: r.basic(corrupt))
+    corrupt = copy.deepcopy(before); corrupt['assessment']['lockfiles_overall']['outcome_reasons'][0]['count'] += 1
+    r.probe(prefix + 'outcome reason overcount', lambda: r.basic(corrupt))
     r.check(prefix + 'generated projects and workspace membership', lambda: expect(
         (count(a['projects']), count(a['project_roots']), count(a['workspace_membership']), count(a['local_dependencies'])),
         (n + members + 2, n + members + 2, members, n - 1)))
@@ -398,11 +425,17 @@ def directed(r, root, syft):
     put(dotnet, 'empty/App.csproj', '<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>\n')
     jput(dotnet, 'locked/packages.lock.json', dict(version=1, dependencies={'net8.0': {
         'Fixture.Core': dict(type='Direct', requested='[1.0.0, )', resolved='1.0.0', contentHash='fixture')}}))
+    put(dotnet, 'fsharp/App.fsproj', csproj)
+    jput(dotnet, 'fsharp/packages.lock.json', dict(version=1, dependencies={'net8.0': {
+        'Fixture.Core': dict(type='Direct', requested='[1.0.0, )', resolved='1.0.0', contentHash='fixture')}}))
     nuget = r.run('nuget-association-partition', dotnet)
     row = locks(nuget['assessment'])['nuget']
     r.check('NuGet covered missing and not-applicable partition', lambda: expect(
-        (row['projects'], row['covered'], row['missing'], row['not_applicable'], row['unknown']),
-        (3, 1, 1, 1, 0)))
+        (row['projects'], row['eligible'], row['covered'], row['missing'], row['not_applicable'], row['unknown']),
+        (4, 3, 2, 1, 1, 0)))
+    r.check('NuGet outcome reasons explain each uncovered project', lambda: expect(
+        outcome_reasons(nuget['assessment'], 'nuget'),
+        {('missing', 'lockfile-not-present'): 1, ('not_applicable', 'no-direct-declarations'): 1}))
     malformed = root / 'malformed'
     put(malformed, 'package.json', '{broken json')
     report = r.run('malformed-manifest', malformed)
@@ -558,6 +591,65 @@ def directed(r, root, syft):
         limited['projects']['completeness'] == 'lower_bound' and bool(limited['projects']['reasons']), limited['projects']))
 
 
+def directed_semantics(r, root):
+    tree = root / 'semantics'
+    deps = {'fixture-dep': '^1.0.0'}
+    put(tree, 'app/main.go', 'package main\n')
+    put(tree, 'vendor/lib/lib.go', 'package lib\n')
+    put(tree, 'node_modules/dep/index.js', 'module.exports = 1;\n')
+    put(tree, '.venv/lib/site.py', 'x = 1\n')
+    jput(tree, 'yarn-app/package.json', dict(name='yarn-app', dependencies=deps))
+    put(tree, 'yarn-app/yarn.lock', '# yarn lockfile v1\n')
+    jput(tree, 'pnpm-app/package.json', dict(name='pnpm-app', packageManager='pnpm@9.0.0', dependencies=deps))
+    put(tree, 'pnpm-ws/pnpm-workspace.yaml', 'packages:\n  - packages/*\n')
+    jput(tree, 'pnpm-ws/package.json', dict(name='pnpm-ws', private=True))
+    jput(tree, 'pnpm-ws/packages/x/package.json', dict(name='x', dependencies=deps))
+    jput(tree, 'test/fixtures/proj/package.json', dict(name='fixture-proj'))
+    jput(tree, 'examples/demo/package.json', dict(name='demo'))
+    jput(tree, 'docs/package.json', dict(name='docs'))
+    put(tree, 'rust/Cargo.toml', '[workspace]\nmembers = ["crates/a"]\n')
+    put(tree, 'rust/crates/a/Cargo.toml', '[package]\nname = "a"\nversion = "0.1.0"\n')
+    put(tree, 'tooling/pyproject.toml', '[tool.ruff]\nline-length = 100\n')
+    put(tree, 'py/pyproject.toml', '[project]\nname = "py"\nversion = "1.0.0"\n')
+    a = r.run('assessment-semantics', tree)['assessment']
+    # Linguist's vendor rules include test/fixtures/; .venv/ matches none of them.
+    vendored = [tree / 'vendor/lib/lib.go', tree / 'node_modules/dep/index.js',
+                tree / 'test/fixtures/proj/package.json']
+    r.check('Linguist vendor rules partition inventory; .venv is not vendored', lambda: expect(
+        (count(a['inventory']['vendored_files']), count(a['inventory']['vendored_bytes'])),
+        (len(vendored), sum(p.stat().st_size for p in vendored))))
+    r.check('lockfiles are a filename kind of their own, not manifests', lambda: require(
+        {v['kind']: v['files'] for v in a['filename_candidates']}.get('lockfile') == 1 and
+        all(v['filename'] != 'yarn.lock' for v in a['manifest_candidates']), a['filename_candidates']))
+    r.check('manifest groups name an ecosystem and a kind', lambda: expect(
+        {(v['filename'], v['ecosystem'], v['kind']) for v in a['manifest_candidates']},
+        {('package.json', 'npm', 'manifest'), ('Cargo.toml', 'cargo', 'manifest'),
+         ('pyproject.toml', 'python', 'manifest')}))
+    r.check('virtual workspace roots and tool settings are not projects', lambda: expect(
+        (count(a['projects']), locks(a)['cargo']['projects'], locks(a)['python']['projects'],
+         count(a['unparsed_manifest_candidates'])), (9, 1, 1, 0)))
+    r.check('virtual Cargo workspace still contributes membership', lambda: require(
+        count(a['workspace_membership']) == 1 and
+        'pnpm_workspace_unparsed' in a['workspace_membership']['reasons'], a['workspace_membership']))
+    r.check('project roles partition projects and roots', lambda: expect(
+        ({v['role']: v['count'] for v in a['projects_by_role']},
+         {v['role']: v['count'] for v in a['project_roots_by_role']}),
+        ({'docs': 1, 'example': 1, 'fixture': 1, 'primary': 6},) * 2))
+    r.check('other package managers are unsupported or unknown, never missing', lambda: expect(
+        locks(a)['npm'], dict(projects=7, eligible=1, covered=0, missing=0, not_applicable=3,
+                              unsupported=3, unknown=1)))
+    r.check('npm outcome reasons name the package-manager evidence', lambda: expect(
+        outcome_reasons(a, 'npm'),
+        {('not_applicable', 'no-direct-declarations'): 3,
+         ('unknown', 'npm-ancestor-alternative-package-manager'): 1,
+         ('unsupported', 'npm-alternative-lockfile-format'): 1,
+         ('unsupported', 'npm-alternative-package-manager'): 2}))
+    npm_roles = {v['role']: v for v in next(v for v in a['lockfiles'] if v['ecosystem'] == 'npm')['by_role']}
+    r.check('lockfile rows partition by project role', lambda: expect(
+        {k: (v['projects'], v['not_applicable']) for k, v in npm_roles.items()},
+        {'docs': (1, 1), 'example': (1, 1), 'fixture': (1, 1), 'primary': (4, 0)}))
+
+
 def validate_candidate_schema(r, repo):
     result = subprocess.run([str(r.candidate), 'capabilities', '--schema', 'profile', '--json'],
                             capture_output=True, timeout=15)
@@ -566,19 +658,16 @@ def validate_candidate_schema(r, repo):
     assert result.returncode == 0, result.stderr
     exported = json.loads(result.stdout)
     assert exported['$schema'] == 'https://json-schema.org/draft/2020-12/schema'
-    overlay = r.output / 'schema-overlay.json'
-    overlay.write_text(json.dumps({'Replace': {
-        str(repo / 'schema/assessment_generated_audit_test.go'):
-        str(Path(__file__).with_name('schema_test.go.txt').resolve())}}))
     # Resolve the already available toolchain before disabling checksum lookups.
     # The Go launcher cannot verify even a cached auto-toolchain with GOSUMDB=off.
     toolchain = subprocess.run(['go', 'env', 'GOROOT'], cwd=repo,
         env=dict(os.environ, GOPROXY='off'), capture_output=True, timeout=15)
     assert toolchain.returncode == 0, toolchain.stderr.decode(errors='replace')
     go_executable = Path(toolchain.stdout.decode().strip()) / 'bin' / ('go.exe' if os.name == 'nt' else 'go')
-    checked = subprocess.run([str(go_executable), 'test', '-overlay', str(overlay), './schema',
+    checked = subprocess.run([str(go_executable), 'test', './tests/assessment',
                               '-run', '^TestAssessmentGeneratedReports$', '-count=1', '-v'],
-                             cwd=repo, env=dict(os.environ, GOMAXPROCS='2', GOPROXY='off', GOSUMDB='off', GOTOOLCHAIN='local',
+                             cwd=repo, env=dict(os.environ, GOMAXPROCS='2', GOPROXY='off', GOSUMDB='off',
+                             GOTOOLCHAIN='local', GOFLAGS='-mod=readonly',
                              DIRCUE_ASSESSMENT_REPORTS=str(r.output),
                              DIRCUE_ASSESSMENT_REPORT_COUNT=str(len(r.calls))),
                              capture_output=True, timeout=60)
@@ -609,7 +698,7 @@ def main():
     r = Runner(candidate, output)
     receipt = dict(passed=False, candidate=str(candidate), candidate_sha256=digest(candidate),
                    harness_sha256=digest(Path(__file__)),
-                   schema_helper_sha256=digest(Path(__file__).with_name('schema_test.go.txt')),
+                   schema_helper_sha256=digest(Path(__file__).with_name('schema_test.go')),
                    syft_sha256=digest(syft),
                    seeds=list(range(args.seeds)), mr_strength_matrix=[dict(
                        name=n, category=c, sensitivity=f, independence=i, cost=k,
@@ -619,6 +708,7 @@ def main():
         for seed in range(args.seeds):
             run_seed(r, root, seed, syft)
         directed(r, root, syft)
+        directed_semantics(r, root)
         receipt['native_schema_validation'] = validate_candidate_schema(r, repo)
         assert receipt['candidate_sha256'] == digest(candidate), 'candidate changed during run'
         receipt['passed'] = True

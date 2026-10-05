@@ -45,6 +45,7 @@ type options struct {
 	displayName            string
 	environments           bool
 	lockfiles              bool
+	npmWorkspaceLocks      bool
 	assessment             bool
 	availability           bool
 	focusProject           string
@@ -246,6 +247,9 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 		if mode == "focus" {
 			addFocusFlags(command, opts)
 		}
+		if mode == "lockfiles" || mode == "all" {
+			command.Flags().BoolVar(&opts.npmWorkspaceLocks, "npm-workspace-locks", false, "Compare npm workspace members with the lockfile of the nearest workspace root that lists them; implies --lockfiles")
+		}
 		if mode == "all" {
 			command.Flags().BoolVar(&opts.assessment, "assessment", false, "Collect factual repository, project, workspace, and lockfile measurements with per-metric coverage")
 			command.Flags().BoolVar(&opts.lockfiles, "lockfiles", false, "Associate selected npm and NuGet lockfiles and run named static declaration checks")
@@ -389,16 +393,17 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
-		Environments:     mode == "environments" || (mode == "all" && opts.environments),
-		Assessment:       mode == "assessment" || (mode == "all" && opts.assessment),
-		Lockfiles:        mode == "lockfiles" || (mode == "all" && opts.lockfiles),
-		Focus:            focusRequest,
-		Availability:     mode == "availability" || (mode == "all" && opts.availability),
-		AvailabilityOnly: mode == "availability",
-		Source:           opts.source,
-		Revision:         opts.revision,
-		Tree:             opts.tree,
-		ErrorPolicy:      scanner.ErrorPolicy(opts.onError),
+		Environments:      mode == "environments" || (mode == "all" && opts.environments),
+		Assessment:        mode == "assessment" || (mode == "all" && opts.assessment),
+		Lockfiles:         mode == "lockfiles" || (mode == "all" && opts.lockfiles),
+		NPMWorkspaceLocks: (mode == "lockfiles" || mode == "all") && opts.npmWorkspaceLocks,
+		Focus:             focusRequest,
+		Availability:      mode == "availability" || (mode == "all" && opts.availability),
+		AvailabilityOnly:  mode == "availability",
+		Source:            opts.source,
+		Revision:          opts.revision,
+		Tree:              opts.tree,
+		ErrorPolicy:       scanner.ErrorPolicy(opts.onError),
 		// Linguist accepts nonpositive limits and emits empty statistics.
 		// A limit of one has the same result for every nonempty tree,
 		// while preserving zero as the embedding API's default sentinel.

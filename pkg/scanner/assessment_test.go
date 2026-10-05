@@ -113,6 +113,49 @@ func TestAssessmentExactInventoryLanguagesAndSharedWorkspaceLocks(t *testing.T) 
 	}
 }
 
+func TestAssessmentKeepsPyprojectWithEmptyBuildSystem(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"python/pyproject.toml": "[build-system]\nrequires = []\n",
+	})
+	report := scanAssessment(t, root, Options{Source: "directory", Workers: 2})
+	if report.Assessment.Projects.Count != 1 || report.Assessment.ProjectRoots.Count != 1 || len(report.Assessment.ProjectRootEvidence) != 1 || report.Assessment.ProjectRootEvidence[0] != "python" {
+		t.Fatalf("empty build-system pyproject was excluded: projects=%+v roots=%+v evidence=%v", report.Assessment.Projects, report.Assessment.ProjectRoots, report.Assessment.ProjectRootEvidence)
+	}
+}
+
+func TestAssessmentSummarizedTreesBoundProjectCoverage(t *testing.T) {
+	t.Run("venv can hide a project", func(t *testing.T) {
+		root := fixtures(t, map[string]string{
+			"package.json":                       `{"name":"root"}`,
+			".venv/pyvenv.cfg":                   "home = /usr/bin\n",
+			".venv/packages/hidden/package.json": `{"name":"hidden"}`,
+		})
+		full := scanAssessment(t, root, Options{Source: "directory", Workers: 2})
+		summarized := scanAssessment(t, root, Options{Source: "directory", Workers: 2, SummarizeTrees: true})
+		if full.Assessment.Projects.Count != 2 || full.Assessment.Projects.Completeness != "complete" {
+			t.Fatalf("full scan did not find both projects: %+v", full.Assessment.Projects)
+		}
+		if summarized.Assessment.Projects.Count != 1 || summarized.Assessment.Projects.Completeness != "lower_bound" || !slicesContains(summarized.Assessment.Projects.Reasons, "declaration_files_omitted") {
+			t.Fatalf("summarized venv did not qualify project count: %+v", summarized.Assessment.Projects)
+		}
+		if summarized.Assessment.WorkspaceMembership.Completeness != "lower_bound" || summarized.Assessment.LockfilesOverall.Projects.Completeness != "lower_bound" {
+			t.Fatalf("summarized venv did not qualify related metrics: workspace=%+v lockfiles=%+v", summarized.Assessment.WorkspaceMembership, summarized.Assessment.LockfilesOverall.Projects)
+		}
+	})
+	t.Run("installed npm contents do not hide counted projects", func(t *testing.T) {
+		root := fixtures(t, map[string]string{
+			"package.json":                                 `{"name":"root"}`,
+			"node_modules/dependency/package.json":         `{"name":"dependency"}`,
+			"node_modules/dependency/lib/package.json":     `{"name":"nested"}`,
+			"node_modules/another-dependency/package.json": `{"name":"another"}`,
+		})
+		report := scanAssessment(t, root, Options{Source: "directory", Workers: 2, SummarizeTrees: true})
+		if report.Assessment.Projects.Count != 1 || report.Assessment.Projects.Completeness != "complete" {
+			t.Fatalf("node_modules summary changed the project population: %+v", report.Assessment.Projects)
+		}
+	})
+}
+
 func TestAssessmentNPMWorkspaceRejectsMalformedSelectedIntermediateOwner(t *testing.T) {
 	files := map[string]string{
 		"package.json":              `{"name":"repo","workspaces":["packages/app"]}`,

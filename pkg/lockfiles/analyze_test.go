@@ -30,7 +30,7 @@ func testInput(records []declarations.ProjectRecord, content map[string]string, 
 		content = map[string]string{}
 	}
 	for _, record := range records {
-		if record.Project.Kind == "dotnet" && strings.HasSuffix(strings.ToLower(record.Project.ID), ".csproj") {
+		if record.Project.Kind == "dotnet" && IsNuGetLockProject(record.Project.ID) {
 			if _, ok := content[record.Project.ID]; !ok {
 				content[record.Project.ID] = "<Project />"
 			}
@@ -418,13 +418,13 @@ func TestNPMWorkspaceAssociationRequiresCompleteUnambiguousOwnership(t *testing.
 		complete bool
 	}{
 		{"missing member descriptor", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}`}, nil, true},
-		{"member-local lock collision", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared, "packages/app/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"alpha":"1.0.0"}}}}`}, nil, true},
-		{"multiple workspace owners", []declarations.ProjectRecord{makeRoot(member.Project.ID), func() declarations.ProjectRecord {
-			r := npmRecord("packages")
-			r.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
-			r.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "packages/package.json"}}
+		{"unresolved member of a listing ancestor", []declarations.ProjectRecord{func() declarations.ProjectRecord {
+			r := makeRoot(member.Project.ID)
+			r.Project.References = append(r.Project.References, declarations.Reference{Kind: "npm-workspace-member", Target: "packages/other/package.json", State: "unresolved", Evidence: "package.json"})
 			return r
 		}()}, map[string]string{"package-lock.json": shared}, nil, true},
+		{"duplicate member names make npm reject the workspace", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, []declarations.Diagnostic{{Path: "package.json", Code: "duplicate-npm-workspace-name"}}, true},
+		{"omitted diagnostics", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, nil, true},
 		{"unsupported workspace declaration", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, []declarations.Diagnostic{{Path: "package.json", Code: "unsupported-npm-workspace-pattern"}}, true},
 		{"incomplete parent inventory", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, nil, false},
 	} {
@@ -435,6 +435,9 @@ func TestNPMWorkspaceAssociationRequiresCompleteUnambiguousOwnership(t *testing.
 			in.Declarations.Diagnostics = tc.diags
 			if !tc.complete {
 				in.Declarations.Coverage.OmittedFiles = 1
+			}
+			if tc.name == "omitted diagnostics" {
+				in.Declarations.Coverage.OmittedDiagnostics = 1
 			}
 			r, err := Analyze(context.Background(), in, Limits{})
 			if err != nil {
@@ -507,42 +510,61 @@ func TestNPMWorkspaceMalformedSelectedAncestorBlocksOwnerButUnrelatedDoesNot(t *
 	}
 }
 
-func TestNPMWorkspaceChecksAncestorsAboveLockRoot(t *testing.T) {
-	innerOwner := npmRecord("repo")
-	innerOwner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
-	innerOwner.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "repo/packages/app/package.json", State: "resolved", Evidence: "repo/package.json"}}
+// Oracle: npm 11.12.1 `npm prefix --offline` in a member prints the nearest
+// ancestor whose workspaces list it, skips ancestors that do not list it, and
+// stops there even when a farther ancestor also lists the member.
+func TestNPMWorkspaceNearestListingAncestorOwnsMember(t *testing.T) {
+	workspace := func(root string, targets ...string) declarations.ProjectRecord {
+		r := npmRecord(root)
+		r.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+		for _, target := range targets {
+			r.Project.References = append(r.Project.References, declarations.Reference{Kind: "npm-workspace-member", Target: target, State: "resolved", Evidence: r.Project.ID})
+		}
+		return r
+	}
 	member := npmRecord("repo/packages/app", npmRef("alpha@1.0.0", "dependencies"))
 	shared := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
-	malformedAbove := npmRecord(".")
-	malformedAbove.Parsed = false
-	outerWorkspace := npmRecord(".")
-	outerWorkspace.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
-	outerWorkspace.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "package.json"}}
-
+	outerShared := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"repo/packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
+	unparsedAbove := npmRecord(".")
+	unparsedAbove.Parsed = false
+	unparsedIntermediate := npmRecord("repo")
+	unparsedIntermediate.Parsed = false
 	for _, tc := range []struct {
 		name    string
-		outer   declarations.ProjectRecord
-		wantWhy string
+		records []declarations.ProjectRecord
+		files   map[string]string
+		state   string
+		lock    string
+		reason  string
 	}{
-		{name: "unparsed package above lock root", outer: malformedAbove, wantWhy: "npm-workspace-lock-owner-incomplete"},
-		{name: "known competing workspace above lock root", outer: outerWorkspace, wantWhy: "npm-workspace-lock-owner-unresolved"},
+		{"unparsed package above the owner is not consulted", []declarations.ProjectRecord{unparsedAbove, workspace("repo", member.Project.ID), member}, map[string]string{"repo/package-lock.json": shared}, "observed", "repo/package-lock.json", "npm-workspace-lock-ownership-observed"},
+		{"farther listing ancestor loses to the nearest", []declarations.ProjectRecord{workspace(".", member.Project.ID), workspace("repo", member.Project.ID), member}, map[string]string{"package-lock.json": outerShared, "repo/package-lock.json": shared}, "observed", "repo/package-lock.json", "npm-workspace-lock-ownership-observed"},
+		{"non-listing intermediate is skipped", []declarations.ProjectRecord{workspace(".", member.Project.ID), npmRecord("repo"), member}, map[string]string{"package-lock.json": outerShared}, "observed", "package-lock.json", "npm-workspace-lock-ownership-observed"},
+		{"nearest owner without a lockfile", []declarations.ProjectRecord{workspace(".", member.Project.ID), workspace("repo", member.Project.ID), member}, map[string]string{"package-lock.json": outerShared}, "missing", "", "npm-workspace-root-lockfile-not-present"},
+		{"unparsed intermediate could list the member", []declarations.ProjectRecord{workspace(".", member.Project.ID), unparsedIntermediate, member}, map[string]string{"package-lock.json": outerShared}, "indeterminate", "", "npm-workspace-lock-owner-incomplete"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			in := testInput([]declarations.ProjectRecord{tc.outer, innerOwner, member}, map[string]string{"repo/package-lock.json": shared}, true)
+			in := testInput(tc.records, tc.files, true)
 			in.WorkspaceLocks = true
 			report, err := Analyze(context.Background(), in, Limits{})
 			if err != nil {
 				t.Fatal(err)
 			}
 			c := contextByManifest(report, member.Project.ID)
-			if c.AssociationState != "indeterminate" || len(c.Checks) != 0 || len(c.Boundaries) != 1 || c.Boundaries[0].Reason != tc.wantWhy {
-				t.Fatalf("ancestor above lock root was not treated as a competing owner: %+v", c)
+			if c.AssociationState != tc.state || c.LockfilePath != tc.lock || len(c.Boundaries) != 1 || c.Boundaries[0].Reason != tc.reason {
+				t.Fatalf("got %+v", c)
+			}
+			if tc.state == "observed" && (len(c.Checks) != 1 || c.Checks[0].Status != "match") {
+				t.Fatalf("owner lock did not compare the member descriptor: %+v", c)
+			}
+			if err := ValidateReport(report); err != nil {
+				t.Fatal(err)
 			}
 		})
 	}
 }
 
-func TestNPMWorkspaceUnsupportedAndAncestorCollisionsRemainUnknown(t *testing.T) {
+func TestNPMWorkspaceLockStatesFollowTheOwnerDirectory(t *testing.T) {
 	root := npmRecord(".")
 	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
 	root.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "packages/app/package.json", State: "resolved", Evidence: "package.json"}}
@@ -555,8 +577,12 @@ func TestNPMWorkspaceUnsupportedAndAncestorCollisionsRemainUnknown(t *testing.T)
 		association string
 	}{
 		{"unsupported v1 lock", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": `{"lockfileVersion":1,"dependencies":{}}`}, "unsupported"},
-		{"multiple ancestor lock directories", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": valid, "packages/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}`}, "indeterminate"},
-		{"non-workspace ancestor lock", []declarations.ProjectRecord{member}, map[string]string{"package-lock.json": valid}, "indeterminate"},
+		// npm never reads a lockfile in a directory without package.json.
+		{"lock in a directory without package.json", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": valid, "packages/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}`}, "observed"},
+		{"ancestor lock without a selected ancestor manifest", []declarations.ProjectRecord{member}, map[string]string{"package-lock.json": valid}, "missing"},
+		{"shrinkwrap takes precedence at the owner", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": valid, "npm-shrinkwrap.json": valid}, "observed"},
+		{"Yarn lock at the owner", []declarations.ProjectRecord{root, member}, map[string]string{"yarn.lock": "# yarn lockfile v1\n"}, "unsupported"},
+		{"pnpm workspace file at the owner", []declarations.ProjectRecord{root, member}, map[string]string{"pnpm-workspace.yaml": "packages: []\n"}, "unsupported"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			in := testInput(tc.records, tc.files, true)
@@ -569,7 +595,7 @@ func TestNPMWorkspaceUnsupportedAndAncestorCollisionsRemainUnknown(t *testing.T)
 			if c.AssociationState != tc.association {
 				t.Fatalf("association=%q want %q: %+v", c.AssociationState, tc.association, c)
 			}
-			if c.AssociationState == "indeterminate" && len(c.Checks) != 0 || c.AssociationState == "unsupported" && (len(c.Checks) != 1 || c.Checks[0].Status != "indeterminate") {
+			if c.AssociationState == "indeterminate" && len(c.Checks) != 0 || c.AssociationState == "unsupported" && len(c.Checks) == 1 && c.Checks[0].Status != "indeterminate" {
 				t.Fatalf("unknown/corrupt evidence became a check result: %+v", c)
 			}
 		})
@@ -609,7 +635,7 @@ func TestNPMWorkspaceEmptyRootAndPrivateEmptyMember(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := contextByManifest(r, member.Project.ID)
-	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 {
+	if c.AssociationState != "not_applicable" || len(c.Checks) != 0 || len(c.Boundaries) != 1 || c.Boundaries[0].Reason != "npm-ancestor-lock-not-shared" {
 		t.Fatalf("empty workspace root inferred membership: %+v", c)
 	}
 
@@ -656,13 +682,13 @@ func TestNPMWorkspaceScopedConditionalPeerAndPackageManagerEligibility(t *testin
 				t.Fatal(analyzeErr)
 			}
 			ctxReport := report.Contexts[0]
-			if ctxReport.AssociationState != "indeterminate" || len(ctxReport.Checks) != 0 || len(ctxReport.Boundaries) != 1 || ctxReport.Boundaries[0].Reason != "npm-package-manager-not-established" {
+			if ctxReport.AssociationState != "unsupported" || len(ctxReport.Checks) != 0 || len(ctxReport.Boundaries) != 1 || ctxReport.Boundaries[0].Reason != "npm-alternative-package-manager" {
 				t.Fatalf("%s was falsely treated as an npm lock owner: %+v", manager, ctxReport)
 			}
 			input.WorkspaceLocks = false
 			legacy, analyzeErr := Analyze(context.Background(), input, Limits{})
-			if analyzeErr != nil || legacy.Contexts[0].AssociationState != "observed" {
-				t.Fatalf("legacy behavior changed for %s: report=%+v err=%v", manager, legacy, analyzeErr)
+			if analyzeErr != nil || !reflect.DeepEqual(legacy.Contexts, report.Contexts) {
+				t.Fatalf("modes disagree for %s: report=%+v err=%v", manager, legacy, analyzeErr)
 			}
 			owner := npmRecord(".")
 			owner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}, {Kind: "package-manager", Value: manager, State: "declared"}}
@@ -675,25 +701,34 @@ func TestNPMWorkspaceScopedConditionalPeerAndPackageManagerEligibility(t *testin
 				t.Fatal(analyzeErr)
 			}
 			workspaceContext := contextByManifest(workspaceReport, workspaceMember.Project.ID)
-			if workspaceContext.AssociationState != "indeterminate" || len(workspaceContext.Checks) != 0 {
+			if workspaceContext.AssociationState != "unsupported" || len(workspaceContext.Checks) != 0 || workspaceContext.Boundaries[0].Path != "package.json" {
 				t.Fatalf("workspace owned by %s was falsely eligible for npm lock coverage: %+v", manager, workspaceContext)
 			}
 		})
 	}
 }
 
-func TestNPMWorkspaceLockParseRejectsDuplicateKeysAndEnforcesAggregateBudget(t *testing.T) {
-	duplicate := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"":{"dependencies":{}}}}`), 100)
+func TestNPMWorkspaceMemberDescriptorIsInterpretedAlone(t *testing.T) {
+	duplicate := parseLock("npm", []byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"":{"dependencies":{}}}}`))
 	if duplicate.state != "unsupported" || duplicate.reason != "invalid-lockfile-json" {
 		t.Fatalf("duplicate JSON package entries accepted: %+v", duplicate)
 	}
-	tooMany := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1"}},"packages/app":{"dependencies":{"b":"1"}}}}`), 3)
-	if tooMany.state != "indeterminate" || tooMany.reason != "package-name-limit" {
-		t.Fatalf("aggregate workspace package-name budget not enforced: %+v", tooMany)
+	// An unrelated malformed descriptor (for example a linked package outside
+	// the root) neither blocks the member comparison nor spends name budget.
+	lock := parseLock("npm", []byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1"}},"packages/app":{"dependencies":{"b":"1"}},"../outside":7,"packages/bad":{"dependencies":[]}}}`))
+	if lock.state != "supported" {
+		t.Fatalf("root entry rejected: %+v", lock)
 	}
-	valid := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1"}},"packages/app":{"dependencies":{"b":"1"}}}}`), 4)
-	if valid.state != "supported" || valid.packageNames != 4 || valid.npmPackages["packages/app"]["dependencies"]["b"] != "1" {
-		t.Fatalf("workspace package descriptors were not retained: %+v", valid)
+	for _, tc := range []struct{ location, state, reason string }{
+		{"packages/app", "supported", ""},
+		{"packages/none", "indeterminate", "npm-workspace-lock-member-entry-missing"},
+		{"../outside", "unsupported", "invalid-npm-package-descriptor"},
+		{"packages/bad", "unsupported", "invalid-npm-direct-table"},
+	} {
+		tables, state, reason := lock.npmMember(tc.location)
+		if state != tc.state || reason != tc.reason || state == "supported" && tables["dependencies"]["b"] != "1" {
+			t.Fatalf("%s: state=%q reason=%q tables=%v", tc.location, state, reason, tables)
+		}
 	}
 }
 
@@ -979,8 +1014,13 @@ func TestNuGetGenericLockOwnerCountsAllMSBuildProjectTypes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(r.Contexts) != 1 || r.Contexts[0].AssociationState != "indeterminate" || r.Contexts[0].Boundaries[0].Reason != "ambiguous-nuget-lockfile-owner" {
-		t.Fatalf("generic NuGet lock was assigned despite a same-directory F# owner: %+v", r.Contexts)
+	if len(r.Contexts) != 2 {
+		t.Fatalf("C# and F# projects should both have NuGet lock contexts: %+v", r.Contexts)
+	}
+	for _, c := range r.Contexts {
+		if c.AssociationState != "indeterminate" || c.Boundaries[0].Reason != "ambiguous-nuget-lockfile-owner" {
+			t.Fatalf("generic NuGet lock was assigned despite a same-directory second owner: %+v", r.Contexts)
+		}
 	}
 }
 

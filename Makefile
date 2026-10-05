@@ -5,7 +5,7 @@ WHEEL_DIR ?= $(RELEASE_DIR)/wheels
 ATLAS_CACHE ?= .cache/atlas-repos
 ATLAS_OUTPUT ?= .cache/atlas
 
-.PHONY: build test check bench test-bench bench-cli reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden corpus-availability fetch-receipts
+.PHONY: build test check fmt-check bench test-bench bench-cli reference conformance public-conformance classifier-window samples release release-archives hostile-fs forest-e2e atlas-fetch atlas atlas-smoke accuracy-cards golden corpus-availability fetch-receipts
 
 build:
 	CGO_ENABLED=0 go build -buildvcs=false -trimpath -ldflags '-s -w -X github.com/war-and-code/dircue/internal/cli.Version=$(VERSION)' -o bin/dircue .
@@ -18,6 +18,12 @@ check:
 	go test -race ./...
 	cd third_party/go-enry && go test ./...
 	cd third_party/go-git && go test -race . ./plumbing/format/packfile ./storage/filesystem ./storage/filesystem/dotgit
+
+fmt-check:
+	@set -e; files="$$(mktemp)"; trap 'rm -f "$$files"' 0; \
+	git ls-files -z --cached --others --exclude-standard -- '*.go' ':(exclude)third_party/**' ':(exclude)**/testdata/**' ':(exclude)**/fixtures/**' > "$$files"; \
+	unformatted="$$(xargs -0 gofmt -l < "$$files")"; \
+	if [ -n "$$unformatted" ]; then echo "$$unformatted"; exit 1; fi
 
 bench:
 	go test ./pkg/scanner -run '^$$' -bench . -benchmem

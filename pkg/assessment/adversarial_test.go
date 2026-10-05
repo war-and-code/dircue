@@ -78,7 +78,7 @@ func TestManifestGroupsBoundAllRecognizedDotnetFamilies(t *testing.T) {
 	}
 	manifests := int64(3*n + 6)
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: manifests, ParsedManifests: int(manifests)}}
-	r, err := c.Finish(decls, nil)
+	r, err := c.Finish(Evidence{Declarations: decls})
 	if err != nil {
 		t.Fatalf("normalized manifest groups rejected variable .NET names: %v", err)
 	}
@@ -246,17 +246,20 @@ func TestGeneratedAndSyntheticNonRelationshipsAreNotMisclassified(t *testing.T) 
 	}
 }
 
-func TestVirtualWorkspaceRecordsAreInProjectPopulation(t *testing.T) {
+// Virtual workspace roots (Cargo, uv, and go.work alike) hold membership,
+// not a package, so they are excluded from projects consistently.
+func TestVirtualWorkspaceRootsAreNotProjects(t *testing.T) {
 	decls, records, files := parseAssessmentDeclarations(t, map[string]string{
 		"Cargo.toml":            "[workspace]\nmembers = []\n",
 		"python/pyproject.toml": "[tool.uv]\nmanaged = true\n[tool.uv.workspace]\nmembers = []\n",
+		"go/go.work":            "go 1.24.0\n",
 	})
 	r := finishParsedAssessment(t, decls, records, files)
-	if r.Projects.Count != 2 || r.ProjectRoots.Count != 2 || r.LockfilesOverall.Projects.Count != 2 || r.LockfilesOverall.Unsupported.Count != 2 {
-		t.Fatalf("virtual workspace project scope is inconsistent: projects=%+v roots=%+v locks=%+v", r.Projects, r.ProjectRoots, r.LockfilesOverall)
+	if r.Projects.Count != 0 || r.ProjectRoots.Count != 0 || r.LockfilesOverall.Projects.Count != 0 || r.UnparsedManifestCandidates.Count != 0 {
+		t.Fatalf("virtual workspace roots were counted: projects=%+v roots=%+v locks=%+v unparsed=%+v", r.Projects, r.ProjectRoots, r.LockfilesOverall, r.UnparsedManifestCandidates)
 	}
-	if !strings.Contains(r.Projects.Scope, "virtual-workspace") {
-		t.Fatalf("project metric does not disclose workspace records: %q", r.Projects.Scope)
+	if !strings.Contains(r.Projects.Scope, "virtual workspace roots") {
+		t.Fatalf("project metric does not disclose the exclusion: %q", r.Projects.Scope)
 	}
 }
 
@@ -273,7 +276,7 @@ func TestFinishQualifiesRepresentableFileSizeAggregateOverflow(t *testing.T) {
 	c.Add(discovery.File{Path: "npm/package.json", Size: math.MaxInt64})
 	c.Add(discovery.File{Path: "dotnet/App.csproj", Size: math.MaxInt64})
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 2, ParsedManifests: 2}}
-	r, err := c.Finish(decls, nil)
+	r, err := c.Finish(Evidence{Declarations: decls})
 	if err != nil {
 		t.Fatalf("Finish rejected selected file metadata with a qualified aggregate overflow: %v", err)
 	}
@@ -307,7 +310,7 @@ func TestFinishQualifiesDiagnosticsAndTruncatedProjectRecords(t *testing.T) {
 			collector := New("directory", "")
 			collector.Add(discovery.File{Path: p.ID, Size: 1})
 			collector.Add(discovery.File{Path: target.ID, Size: 1})
-			r, err := collector.Finish(decls, nil, records)
+			r, err := collector.Finish(Evidence{Declarations: decls, Records: records})
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -334,7 +337,7 @@ func TestFinishAcceptsMatchingGitSourceAndConfinedReferences(t *testing.T) {
 	collector.Add(discovery.File{Path: member.ID, Size: 3})
 	decls := &declarations.Report{Source: "git", Tree: tree, Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: 2, ParsedManifests: 2}, Projects: projects}
 	locks := &lockfiles.Report{Source: "git", Tree: tree, Status: "complete", Contexts: []lockfiles.Context{{ProjectID: project.ID, Ecosystem: "npm", AssociationState: "observed"}, {ProjectID: member.ID, Ecosystem: "npm", AssociationState: "missing"}}}
-	r, err := collector.Finish(decls, locks, projectRecords(projects))
+	r, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: projectRecords(projects)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -353,7 +356,7 @@ func TestManifestGroupsNormalizeVariableFilenameFamilies(t *testing.T) {
 		c.Add(discovery.File{Path: p, Size: 1})
 	}
 	decls := &declarations.Report{Source: "directory", Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: int64(len(paths)), ParsedManifests: len(paths)}}
-	r, err := c.Finish(decls, nil)
+	r, err := c.Finish(Evidence{Declarations: decls})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -418,7 +421,7 @@ func FuzzFinishProducesValidNativeReports(f *testing.F) {
 			decls.Diagnostics = []declarations.Diagnostic{{Path: ".", Code: "bounded", Message: "synthetic bounded parse evidence"}}
 		}
 		locks := &lockfiles.Report{Source: mode, Tree: tree, Status: "complete", Contexts: []lockfiles.Context{}}
-		r, err := collector.Finish(decls, locks, records)
+		r, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: records})
 		if err != nil {
 			t.Fatalf("valid generated inputs failed Finish: %v", err)
 		}
@@ -463,7 +466,7 @@ func finishParsedAssessment(t *testing.T, decls *declarations.Report, records []
 	for _, file := range files {
 		collector.Add(file)
 	}
-	report, err := collector.Finish(decls, nil, records)
+	report, err := collector.Finish(Evidence{Declarations: decls, Records: records})
 	if err != nil {
 		t.Fatalf("assessment collector: %v", err)
 	}
@@ -522,7 +525,7 @@ func nativeFixture(t testing.TB, git bool) *Report {
 	}
 	decls := &declarations.Report{Source: mode, Tree: tree, Status: "complete", Coverage: declarations.Coverage{ManifestCandidates: int64(len(projects)), ParsedManifests: len(projects)}, Projects: projects}
 	locks := &lockfiles.Report{Source: mode, Tree: tree, Status: "complete", Contexts: []lockfiles.Context{{ProjectID: projects[0].ID, Ecosystem: "npm", AssociationState: "observed"}, {ProjectID: projects[1].ID, Ecosystem: "npm", AssociationState: "missing"}}}
-	r, err := collector.Finish(decls, locks, projectRecords(projects))
+	r, err := collector.Finish(Evidence{Declarations: decls, Lockfiles: locks, Records: projectRecords(projects)})
 	if err != nil {
 		t.Fatalf("native fixture: %v", err)
 	}

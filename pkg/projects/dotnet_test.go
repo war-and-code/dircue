@@ -50,6 +50,21 @@ func TestDotnetProjectDeclarations(t *testing.T) {
 	}
 }
 
+func TestDotnetPackageReferenceUpdateDoesNotDeclarePackage(t *testing.T) {
+	doc := ParseDotnet("App.csproj", []byte(`<Project><ItemGroup Condition="'$(TargetFramework)' == 'net8.0'"><PackageReference Update="Imported.Package" Version="2.0" /></ItemGroup></Project>`))
+	if len(doc.Projects) != 1 {
+		t.Fatalf("projects: %+v", doc.Projects)
+	}
+	for _, req := range doc.Projects[0].Requirements {
+		if req.Kind == "package-reference" {
+			t.Fatalf("Update item was treated as a package declaration: %+v", req)
+		}
+	}
+	if len(doc.Diagnostics) != 0 {
+		t.Fatalf("Update item produced parser diagnostics: %+v", doc.Diagnostics)
+	}
+}
+
 func TestDotnetDeclaredApplicationOutputPreservesConditionsAndExpressions(t *testing.T) {
 	doc := ParseDotnet("src/App/App.csproj", []byte(`<Project>
   <PropertyGroup Condition="'$(Configuration)' == 'Release'"><OutputType>WinExe</OutputType></PropertyGroup>

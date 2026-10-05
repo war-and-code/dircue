@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"path"
 	"slices"
@@ -16,6 +17,7 @@ import (
 	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/discovery"
 	"github.com/war-and-code/dircue/pkg/lockfiles"
+	"github.com/war-and-code/dircue/pkg/pathrole"
 	"github.com/war-and-code/dircue/pkg/projects"
 )
 
@@ -38,10 +40,13 @@ type Metric struct {
 	Reasons      []string `json:"reasons"`
 }
 
+// CandidateCount groups selected files with one recognized manifest filename.
+// Kind is the file's role in its ecosystem: manifest, workspace, solution,
+// configuration, or toolchain.
 type CandidateCount struct {
 	Filename  string `json:"filename"`
 	Kind      string `json:"kind"`
-	Ecosystem string `json:"ecosystem,omitempty"`
+	Ecosystem string `json:"ecosystem"`
 	Files     int64  `json:"files"`
 	Bytes     int64  `json:"bytes"`
 }
@@ -52,9 +57,20 @@ type CandidateKindCount struct {
 	Bytes int64  `json:"bytes"`
 }
 
+// InventoryMetrics counts selected regular files. The vendored subset uses
+// Linguist's vendor path rules and linguist-vendored attributes, the rule
+// that excludes files from language statistics.
 type InventoryMetrics struct {
-	Files Metric `json:"files"`
-	Bytes Metric `json:"bytes"`
+	Files         Metric `json:"files"`
+	Bytes         Metric `json:"bytes"`
+	VendoredFiles Metric `json:"vendored_files"`
+	VendoredBytes Metric `json:"vendored_bytes"`
+}
+
+// RoleCount partitions a count by conventional path role (see pathrole).
+type RoleCount struct {
+	Role  string `json:"role"`
+	Count int64  `json:"count"`
 }
 
 type RelationshipCount struct {
@@ -73,15 +89,38 @@ type RelationshipEvidence struct {
 	State         string `json:"state"`
 }
 
+// LockfileRole partitions one lockfile row by project role. Its counts share
+// the completeness of the row's metrics.
+type LockfileRole struct {
+	Role          string `json:"role"`
+	Projects      int64  `json:"projects"`
+	Eligible      int64  `json:"eligible"`
+	Covered       int64  `json:"covered"`
+	Missing       int64  `json:"missing"`
+	NotApplicable int64  `json:"not_applicable"`
+	Unsupported   int64  `json:"unsupported"`
+	Unknown       int64  `json:"unknown"`
+}
+
+// OutcomeReason counts the projects in one non-covered state by the reason
+// that explains it, usually a lockfile boundary reason.
+type OutcomeReason struct {
+	State  string `json:"state"`
+	Reason string `json:"reason"`
+	Count  int64  `json:"count"`
+}
+
 type LockfileEcosystem struct {
-	Ecosystem     string `json:"ecosystem"`
-	Projects      Metric `json:"projects"`
-	Eligible      Metric `json:"eligible"`
-	Covered       Metric `json:"covered"`
-	Missing       Metric `json:"missing"`
-	NotApplicable Metric `json:"not_applicable"`
-	Unsupported   Metric `json:"unsupported"`
-	Unknown       Metric `json:"unknown"`
+	Ecosystem      string          `json:"ecosystem"`
+	Projects       Metric          `json:"projects"`
+	Eligible       Metric          `json:"eligible"`
+	Covered        Metric          `json:"covered"`
+	Missing        Metric          `json:"missing"`
+	NotApplicable  Metric          `json:"not_applicable"`
+	Unsupported    Metric          `json:"unsupported"`
+	Unknown        Metric          `json:"unknown"`
+	ByRole         []LockfileRole  `json:"by_role"`
+	OutcomeReasons []OutcomeReason `json:"outcome_reasons"`
 }
 
 type Definition struct {
@@ -101,7 +140,9 @@ type Report struct {
 	CandidateEvidence            []discovery.Candidate  `json:"candidate_evidence"`
 	OmittedCandidateEvidence     map[string]int64       `json:"omitted_candidate_evidence"`
 	ProjectRoots                 Metric                 `json:"project_roots"`
+	ProjectRootsByRole           []RoleCount            `json:"project_roots_by_role"`
 	Projects                     Metric                 `json:"projects"`
+	ProjectsByRole               []RoleCount            `json:"projects_by_role"`
 	ProjectRootEvidence          []string               `json:"project_root_evidence"`
 	OmittedProjectRootEvidence   int64                  `json:"omitted_project_root_evidence"`
 	WorkspaceMembership          Metric                 `json:"workspace_membership"`
@@ -118,27 +159,90 @@ type Report struct {
 	Definitions                  []Definition           `json:"definitions"`
 }
 
+// NamedMetric is one aggregate metric with a stable name. Lockfile row
+// metrics also name their ecosystem row ("all" for the overall row).
+type NamedMetric struct {
+	Name      string
+	Ecosystem string
+	Metric    Metric
+}
+
+// Metrics lists every aggregate metric in a stable order, so validation,
+// comparison, and planning cannot drift from the report's fields.
+func (r *Report) Metrics() []NamedMetric {
+	out := []NamedMetric{
+		{Name: "inventory:files", Metric: r.Inventory.Files},
+		{Name: "inventory:bytes", Metric: r.Inventory.Bytes},
+		{Name: "inventory:vendored_files", Metric: r.Inventory.VendoredFiles},
+		{Name: "inventory:vendored_bytes", Metric: r.Inventory.VendoredBytes},
+		{Name: "manifest_candidate_population", Metric: r.ManifestCandidatePopulation},
+		{Name: "unparsed_manifest_candidates", Metric: r.UnparsedManifestCandidates},
+		{Name: "filename_candidate_population", Metric: r.FilenameCandidatePopulation},
+		{Name: "projects", Metric: r.Projects},
+		{Name: "project_roots", Metric: r.ProjectRoots},
+		{Name: "workspace_membership", Metric: r.WorkspaceMembership},
+		{Name: "local_dependencies", Metric: r.LocalDependencies},
+		{Name: "unsupported_ecosystem_projects", Metric: r.UnsupportedEcosystemProjects},
+	}
+	for _, row := range append([]LockfileEcosystem{r.LockfilesOverall}, r.Lockfiles...) {
+		for _, m := range []NamedMetric{{Name: "projects", Metric: row.Projects}, {Name: "eligible", Metric: row.Eligible}, {Name: "covered", Metric: row.Covered}, {Name: "missing", Metric: row.Missing}, {Name: "not_applicable", Metric: row.NotApplicable}, {Name: "unsupported", Metric: row.Unsupported}, {Name: "unknown", Metric: row.Unknown}} {
+			m.Ecosystem = row.Ecosystem
+			out = append(out, m)
+		}
+	}
+	return out
+}
+
+// Evidence is the declaration and lockfile evidence for the collector's
+// source snapshot.
+type Evidence struct {
+	Declarations *declarations.Report
+	Lockfiles    *lockfiles.Report
+	// Records are the declaration collector's project records; they are
+	// required whenever the declaration report contains projects.
+	Records []declarations.ProjectRecord
+	// InterpretedManifests lists manifests the declaration parser read in full
+	// and either parsed or found to hold no declarations. Selected manifests
+	// outside this list are counted as unparsed.
+	InterpretedManifests []string
+	// OmittedDeclarationPaths lists omitted selected manifests and
+	// OmittedDeclarationTrees lists selected directories that could not be
+	// read. When attributed is false, any omission may hide a manifest;
+	// otherwise every other omission is a file that is not a manifest.
+	OmittedDeclarationPaths      []string
+	OmittedDeclarationTrees      []string
+	OmittedDeclarationAttributed bool
+}
+
 type Collector struct {
 	mode, tree      string
 	files           int64
 	bytes           int64
+	vendoredFiles   int64
+	vendoredBytes   int64
 	invalid         map[string]int64
 	candidateCounts map[string]*CandidateCount
 	kindCounts      map[string]*CandidateKindCount
 	candidates      map[string]*candidateHeap
-	status          string
-	omissions       map[string]int64
+	// manifests holds every selected manifest candidate path, so unparsed
+	// candidates are identified by path rather than by subtracting counts.
+	manifests          map[string]bool
+	pythonLockDirs     map[string]bool
+	unparsedWorkspaces map[string]bool
+	status             string
+	omissions          map[string]int64
 }
 
 // New creates an assessment collector for one selected source snapshot.
 func New(mode, tree string) *Collector {
-	return &Collector{mode: mode, tree: tree, status: "complete", invalid: map[string]int64{}, candidateCounts: map[string]*CandidateCount{}, kindCounts: map[string]*CandidateKindCount{}, candidates: map[string]*candidateHeap{}, omissions: map[string]int64{}}
+	return &Collector{mode: mode, tree: tree, status: "complete", invalid: map[string]int64{}, candidateCounts: map[string]*CandidateCount{}, kindCounts: map[string]*CandidateKindCount{}, candidates: map[string]*candidateHeap{}, manifests: map[string]bool{}, pythonLockDirs: map[string]bool{}, unparsedWorkspaces: map[string]bool{}, omissions: map[string]int64{}}
 }
 
 // Add adds metadata for one selected regular file. It does not retain every
 // path: exact counts are maintained separately from bounded candidate samples.
 func (c *Collector) Add(file discovery.File) {
 	c.files++
+	sized := false
 	if file.Size < 0 {
 		c.invalid["invalid_file_size"]++
 		c.Partial("invalid_file_size")
@@ -147,6 +251,7 @@ func (c *Collector) Add(file discovery.File) {
 		c.Partial("inventory_bytes_overflow")
 	} else {
 		c.bytes += file.Size
+		sized = true
 	}
 	if !utf8.ValidString(file.Path) {
 		c.invalid["invalid_utf8_path"]++
@@ -158,13 +263,28 @@ func (c *Collector) Add(file discovery.File) {
 		c.Partial("invalid_selected_path")
 		return
 	}
+	if file.LinguistVendored() {
+		c.vendoredFiles++
+		if sized {
+			c.vendoredBytes += file.Size
+		}
+	}
+	base := path.Base(file.Path)
+	if !strings.Contains("/"+file.Path+"/", "/node_modules/") {
+		if reason := unparsedWorkspaceReason(base); reason != "" {
+			c.unparsedWorkspaces[reason] = true
+		}
+		if isPythonLock(base) {
+			c.pythonLockDirs[path.Dir(file.Path)] = true
+		}
+	}
 	if declarations.IsManifest(file.Path) {
-		filename := manifestFilenameType(file.Path)
-		ecosystem := manifestEcosystem(file.Path)
-		key := "manifest\x00" + ecosystem + "\x00" + filename
+		c.manifests[file.Path] = true
+		filename, ecosystem, kind := classifyManifest(file.Path)
+		key := kind + "\x00" + ecosystem + "\x00" + filename
 		count := c.candidateCounts[key]
 		if count == nil {
-			count = &CandidateCount{Filename: filename, Kind: "manifest", Ecosystem: ecosystem}
+			count = &CandidateCount{Filename: filename, Kind: kind, Ecosystem: ecosystem}
 			c.candidateCounts[key] = count
 		}
 		count.Files++
@@ -177,6 +297,11 @@ func (c *Collector) Add(file discovery.File) {
 	candidate := discovery.ClassifyCandidate(file.Path)
 	if candidate == nil {
 		return
+	}
+	if candidate.Kind == "manifest" && (strings.HasSuffix(candidate.Format, "_lock") || strings.HasSuffix(candidate.Format, "_checksums")) {
+		// Lockfiles and checksum files record resolutions rather than
+		// declarations, so they are not counted with manifests.
+		candidate.Kind = "lockfile"
 	}
 	kindCount := c.kindCounts[candidate.Kind]
 	if kindCount == nil {
@@ -212,6 +337,28 @@ func (c *Collector) Add(file discovery.File) {
 	}
 }
 
+// unparsedWorkspaceReason names workspace definition files that dircue
+// recognizes but does not parse; their members are not counted.
+func unparsedWorkspaceReason(base string) string {
+	switch base {
+	case "pnpm-workspace.yaml":
+		return "pnpm_workspace_unparsed"
+	case "lerna.json":
+		return "lerna_workspace_unparsed"
+	case "rush.json":
+		return "rush_workspace_unparsed"
+	}
+	return ""
+}
+
+func isPythonLock(base string) bool {
+	switch base {
+	case "poetry.lock", "pdm.lock", "uv.lock", "pylock.toml":
+		return true
+	}
+	return strings.HasPrefix(base, "pylock.") && strings.HasSuffix(base, ".toml")
+}
+
 // Partial records a real source omission or invalid selected metadata.
 func (c *Collector) Partial(reason string) {
 	if reason == "" {
@@ -233,9 +380,12 @@ func (c *Collector) Skip(reason string) {
 	c.omissions[reason]++
 }
 
+const manifestPopulationScope = "selected files with a recognized manifest filename, excluding installed node_modules"
+
 // Finish combines exact scanner metadata with bounded parsed-project and
 // lockfile observations. Inputs must describe the same source snapshot.
-func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, projectRecords ...[]declarations.ProjectRecord) (*Report, error) {
+func (c *Collector) Finish(in Evidence) (*Report, error) {
+	decls, locks := in.Declarations, in.Lockfiles
 	if decls == nil {
 		return nil, errors.New("assessment requires a declaration report")
 	}
@@ -251,30 +401,33 @@ func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, 
 	if err := validateDeclarationPaths(decls.Projects); err != nil {
 		return nil, err
 	}
-	if (len(projectRecords) == 0 || projectRecords[0] == nil || len(projectRecords[0]) == 0) && len(decls.Projects) > 0 {
+	if len(in.Records) == 0 && len(decls.Projects) > 0 {
 		return nil, errors.New("assessment requires declaration project records to distinguish parsed projects from configuration and invalid documents")
 	}
-	if len(projectRecords) > 0 {
-		recordProjects := make([]declarations.Project, 0, len(projectRecords[0]))
-		for _, record := range projectRecords[0] {
-			recordProjects = append(recordProjects, record.Project)
-		}
-		if err := validateDeclarationPaths(recordProjects); err != nil {
-			return nil, err
-		}
+	recordProjects := make([]declarations.Project, 0, len(in.Records))
+	for _, record := range in.Records {
+		recordProjects = append(recordProjects, record.Project)
 	}
-	graphProjects, parsedProjects, recordsIncomplete := selectProjects(decls.Projects, projectRecords)
+	if err := validateDeclarationPaths(recordProjects); err != nil {
+		return nil, err
+	}
+	sel := selectProjects(in.Records, decls.Diagnostics, c.pythonLockDirs)
 	consistency := "live_directory_metadata"
 	if c.mode == "git" {
 		consistency = "selected_git_tree"
 	}
+	inventoryLower, inventoryReasons := c.status != "complete", mapKeys(c.omissions)
 	out := &Report{Version: Version, Source: discovery.Source{Mode: c.mode, Tree: c.tree, Consistency: consistency},
-		Inventory:          InventoryMetrics{Files: metric(c.files, "selected regular files", c.status != "complete", mapKeys(c.omissions)), Bytes: metric(c.bytes, "logical bytes in selected regular files", c.status != "complete", mapKeys(c.omissions))},
-		ManifestCandidates: []CandidateCount{}, ManifestCandidatePopulation: metric(0, "selected files recognized by declarations.IsManifest, excluding installed node_modules", c.status != "complete", mapKeys(c.omissions)), CandidateEvidence: []discovery.Candidate{}, OmittedCandidateEvidence: map[string]int64{},
+		Inventory: InventoryMetrics{
+			Files:         metric(c.files, "selected regular files", inventoryLower, inventoryReasons),
+			Bytes:         metric(c.bytes, "logical bytes in selected regular files", inventoryLower, inventoryReasons),
+			VendoredFiles: metric(c.vendoredFiles, "selected regular files that Linguist vendor path rules or a linguist-vendored attribute mark as vendored", inventoryLower, inventoryReasons),
+			VendoredBytes: metric(c.vendoredBytes, "logical bytes in vendored selected regular files", inventoryLower, inventoryReasons),
+		},
+		ManifestCandidates: sortedCandidateCounts(c.candidateCounts), CandidateEvidence: []discovery.Candidate{}, OmittedCandidateEvidence: map[string]int64{},
 		FilenameCandidates:  sortedKindCounts(c.kindCounts),
 		ProjectRootEvidence: []string{}, WorkspaceByKind: []RelationshipCount{}, WorkspaceEvidence: []RelationshipEvidence{},
 		LocalDependencyByKind: []RelationshipCount{}, LocalDependencyEvidence: []RelationshipEvidence{}, Lockfiles: []LockfileEcosystem{}, Definitions: definitions()}
-	out.ManifestCandidates = sortedCandidateCounts(c.candidateCounts)
 	var manifestCount int64
 	var manifestBytes int64
 	manifestBytesOverflow := false
@@ -290,9 +443,18 @@ func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, 
 	if !manifestBytesOverflow && manifestBytes > out.Inventory.Bytes.Count {
 		return nil, errors.New("manifest candidate bytes exceed inventory bytes")
 	}
-	out.ManifestCandidatePopulation = metric(manifestCount, "selected files recognized by declarations.IsManifest, excluding installed node_modules", c.status != "complete", mapKeys(c.omissions))
-	unparsedCandidates := max(int64(0), manifestCount-int64(decls.Coverage.ParsedManifests))
-	out.UnparsedManifestCandidates = metric(unparsedCandidates, "recognized manifest candidates not represented by a successfully parsed document; ecosystem ownership is not inferred", c.status != "complete", mapKeys(c.omissions))
+	out.ManifestCandidatePopulation = metric(manifestCount, manifestPopulationScope, inventoryLower, inventoryReasons)
+	interpreted := make(map[string]bool, len(in.InterpretedManifests))
+	for _, name := range in.InterpretedManifests {
+		interpreted[name] = true
+	}
+	var unparsed int64
+	for name := range c.manifests {
+		if !sel.parsedIDs[name] && !interpreted[name] {
+			unparsed++
+		}
+	}
+	out.UnparsedManifestCandidates = metric(unparsed, "manifest candidates the declaration parser did not interpret because they were unreadable, invalid, unsupported, or over a declaration input limit", inventoryLower, inventoryReasons)
 	var filenameCandidateCount int64
 	var filenameCandidateBytes int64
 	filenameCandidateBytesOverflow := false
@@ -308,7 +470,7 @@ func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, 
 	if !filenameCandidateBytesOverflow && filenameCandidateBytes > out.Inventory.Bytes.Count {
 		return nil, errors.New("filename candidate bytes exceed inventory bytes")
 	}
-	out.FilenameCandidatePopulation = metric(filenameCandidateCount, "selected files with discovery filename classification evidence", c.status != "complete", mapKeys(c.omissions))
+	out.FilenameCandidatePopulation = metric(filenameCandidateCount, "selected files with discovery filename classification evidence", inventoryLower, inventoryReasons)
 	for kind, h := range c.candidates {
 		out.CandidateEvidence = append(out.CandidateEvidence, (*h)...)
 		if omitted := c.omissions["candidate_evidence:"+kind]; omitted > 0 {
@@ -321,10 +483,18 @@ func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, 
 		}
 		return strings.Compare(a.Kind, b.Kind)
 	})
-	projectsComplete, projectReasons := projectCoverage(decls, recordsIncomplete)
-	rootSet, projectByID := projectRoots(parsedProjects, graphProjects)
-	out.ProjectRoots = metric(int64(len(rootSet)), "distinct roots among projects in the declaration report", !projectsComplete, projectReasons)
-	out.Projects = metric(int64(len(parsedProjects)), "parsed package, project, or virtual-workspace records; configuration and solution records excluded", !projectsComplete, projectReasons)
+	projectsComplete, projectReasons := projectCoverage(decls, sel, unparsed > 0, manifestOmitted(decls, in))
+	rootSet, rootRoles := projectRoots(sel.projects)
+	out.ProjectRoots = metric(int64(len(rootSet)), "distinct roots of counted projects", !projectsComplete, projectReasons)
+	out.ProjectRootsByRole = rootRoles
+	out.Projects = metric(int64(len(sel.projects)), "parsed package and project records; virtual workspace roots and configuration, solution, annotation, and tool-settings records are excluded", !projectsComplete, projectReasons)
+	out.ProjectsByRole = projectRoles(sel.projects)
+	projectByID := map[string]string{}
+	for _, p := range sel.graph {
+		if p.ID != "" && p.Root != "" {
+			projectByID[p.ID] = p.Root
+		}
+	}
 	allRoots := mapKeysBool(rootSet)
 	rootEvidence := make([]string, 0, min(len(allRoots), ProjectRootEvidenceLimit))
 	for _, root := range allRoots {
@@ -335,13 +505,13 @@ func (c *Collector) Finish(decls *declarations.Report, locks *lockfiles.Report, 
 	}
 	out.ProjectRootEvidence = rootEvidence
 	out.OmittedProjectRootEvidence = int64(len(allRoots) - len(rootEvidence))
-	relationComplete, relationReasons := relationshipCoverage(decls, projectsComplete, projectReasons)
-	out.WorkspaceMembership, out.WorkspaceByKind, out.WorkspaceEvidence, out.OmittedWorkspaceEvidence = relationshipMetric(graphProjects, projectByID, "workspace", relationComplete, relationReasons)
-	out.LocalDependencies, out.LocalDependencyByKind, out.LocalDependencyEvidence, out.OmittedLocalEvidence = relationshipMetric(graphProjects, projectByID, "local", relationComplete, relationReasons)
-	out.Lockfiles, out.LockfilesOverall = lockfileMetrics(parsedProjects, locks, projectsComplete, projectReasons)
+	relationComplete, relationReasons := relationshipCoverage(decls, projectsComplete, projectReasons, c.unparsedWorkspaces)
+	out.WorkspaceMembership, out.WorkspaceByKind, out.WorkspaceEvidence, out.OmittedWorkspaceEvidence = relationshipMetric(sel.graph, projectByID, "workspace", relationComplete, relationReasons)
+	out.LocalDependencies, out.LocalDependencyByKind, out.LocalDependencyEvidence, out.OmittedLocalEvidence = relationshipMetric(sel.graph, projectByID, "local", relationComplete, relationReasons)
+	out.Lockfiles, out.LockfilesOverall = lockfileMetrics(sel.projects, locks, projectsComplete, projectReasons)
 	var unsupportedProjects int64
 	for _, row := range out.Lockfiles {
-		if row.Ecosystem != "npm" && row.Ecosystem != "nuget" {
+		if !associationScope(row.Ecosystem) {
 			unsupportedProjects += row.Projects.Count
 		}
 	}
@@ -456,28 +626,44 @@ func metric(count int64, scope string, lower bool, reasons []string) Metric {
 	return Metric{Count: count, Scope: scope, Completeness: completeness, Reasons: slices.Clone(reasons)}
 }
 
-func projectCoverage(r *declarations.Report, recordsIncomplete bool) (bool, []string) {
+func projectCoverage(r *declarations.Report, sel selection, unparsed, omitted bool) (bool, []string) {
 	reasons := []string{}
 	if r.Status == "skipped" {
 		reasons = append(reasons, "declarations_skipped")
 	}
-	if r.Coverage.OmittedFiles > 0 {
+	if omitted {
 		reasons = append(reasons, "declaration_files_omitted")
 	}
 	if r.Coverage.OmittedDiagnostics > 0 {
 		reasons = append(reasons, "declaration_diagnostics_omitted")
 	}
-	if r.Coverage.ManifestCandidates > int64(r.Coverage.ParsedManifests) {
+	if unparsed {
 		reasons = append(reasons, "manifest_candidates_unparsed")
 	}
 	if hasDotnetSelectedPathIdentityIssue(r) {
 		reasons = append(reasons, "dotnet_selected_path_identity_ambiguous")
 	}
-	if recordsIncomplete {
+	if sel.incomplete {
 		reasons = append(reasons, "parsed_project_observations_incomplete")
+	}
+	if sel.unclassified {
+		reasons = append(reasons, "unclassified_declaration_kind")
 	}
 	slices.Sort(reasons)
 	return len(reasons) == 0, reasons
+}
+
+// manifestOmitted reports whether a declaration omission may hide a project.
+// An omitted path that is not a manifest, such as a symbolic link to a
+// directory, cannot. Unattributed omissions are assumed to hide one.
+func manifestOmitted(r *declarations.Report, in Evidence) bool {
+	if r.Coverage.OmittedFiles == 0 {
+		return false
+	}
+	if !in.OmittedDeclarationAttributed || int64(len(in.OmittedDeclarationPaths)+len(in.OmittedDeclarationTrees)) > r.Coverage.OmittedFiles {
+		return true
+	}
+	return len(in.OmittedDeclarationTrees) > 0 || slices.ContainsFunc(in.OmittedDeclarationPaths, declarations.IsManifest)
 }
 
 func hasDotnetSelectedPathIdentityIssue(r *declarations.Report) bool {
@@ -496,7 +682,7 @@ func hasDotnetSelectedPathIdentityIssue(r *declarations.Report) bool {
 	return false
 }
 
-func relationshipCoverage(r *declarations.Report, complete bool, reasons []string) (bool, []string) {
+func relationshipCoverage(r *declarations.Report, complete bool, reasons []string, unparsedWorkspaces map[string]bool) (bool, []string) {
 	result := slices.Clone(reasons)
 	if len(r.Diagnostics) > 0 {
 		result = append(result, "declaration_diagnostics_present")
@@ -504,62 +690,135 @@ func relationshipCoverage(r *declarations.Report, complete bool, reasons []strin
 	if r.Coverage.RetainedObservations >= r.Limits.TotalObservations && r.Limits.TotalObservations > 0 {
 		result = append(result, "declaration_observation_limit_reached")
 	}
+	for reason := range unparsedWorkspaces {
+		result = append(result, reason)
+	}
 	slices.Sort(result)
 	result = slices.Compact(result)
 	return complete && len(result) == 0, result
 }
 
-func selectProjects(projects []declarations.Project, recordsArg [][]declarations.ProjectRecord) (graphProjects, parsedProjects []declarations.Project, incomplete bool) {
-	if len(recordsArg) == 0 {
-		// Empty project collections need no eligibility metadata.
-		return []declarations.Project{}, []declarations.Project{}, false
+// projectKinds classifies every declaration record kind. True kinds are
+// packages and projects. False kinds are virtual workspace roots (go.work, a
+// Cargo manifest with only [workspace], a uv workspace without [project]),
+// configuration, solutions, and records that only annotate another manifest,
+// such as a Rails config/application.rb name hint. Workspace roots still
+// contribute membership edges. An unlisted kind is never counted silently:
+// it makes the project metrics lower bounds.
+var projectKinds = map[string]bool{
+	"autoconf": true, "bazel-module": true, "bazel-workspace": true, "cargo": true,
+	"clojure-deps": true, "clojure-leiningen": true, "cmake": true, "dart-pub": true, "deno": true,
+	"dotnet": true, "elixir-mix": true, "erlang-rebar": true, "go": true, "gradle": true,
+	"haskell-cabal": true, "haskell-stack": true, "julia-project": true, "kbuild-kconfig": true, "maven": true,
+	"meson": true, "npm": true, "perl-cpanfile": true, "perl-extutils": true, "php-composer": true,
+	"python": true, "python-uv": true, "r-package": true, "ruby-bundler": true,
+	"ruby-gem": true, "scala-sbt": true, "swift-package": true, "zig-build": true,
+	"cargo-workspace": false, "go-workspace": false, "python-workspace": false,
+	"configuration": false, "dotnet-configuration": false, "jvm-configuration": false,
+	"kbuild-kconfig-marker": false, "ruby-rails-app": false, "solution": false,
+}
+
+type selection struct {
+	graph        []declarations.Project // every parsed record, for relationship edges
+	projects     []declarations.Project // counted projects
+	parsedIDs    map[string]bool
+	incomplete   bool
+	unclassified bool
+}
+
+func selectProjects(records []declarations.ProjectRecord, diagnostics []declarations.Diagnostic, pythonLockDirs map[string]bool) selection {
+	sel := selection{graph: []declarations.Project{}, projects: []declarations.Project{}, parsedIDs: map[string]bool{}}
+	cargoMissing := map[string]bool{}
+	for _, d := range diagnostics {
+		if d.Code == "cargo-missing-project" {
+			cargoMissing[d.Path] = true
+		}
 	}
-	seen := map[string]bool{}
-	for _, record := range recordsArg[0] {
+	for _, record := range records {
 		if !record.Parsed {
 			continue
 		}
 		p := record.Project
-		if seen[p.ID] {
-			incomplete = true
+		if sel.parsedIDs[p.ID] {
+			sel.incomplete = true
 			continue
 		}
-		seen[p.ID] = true
-		graphProjects = append(graphProjects, p)
+		sel.parsedIDs[p.ID] = true
+		sel.graph = append(sel.graph, p)
 		if !record.Complete {
-			incomplete = true
+			sel.incomplete = true
 		}
-		if isPackageProject(p) {
-			parsedProjects = append(parsedProjects, p)
+		counted, known := projectKinds[p.Kind]
+		if !known {
+			sel.unclassified = true
+			continue
 		}
+		// Cargo rejects a manifest with neither a package nor a workspace table.
+		if !counted || p.Kind == "cargo" && cargoMissing[p.ID] || toolSettingsPyproject(record, pythonLockDirs) {
+			continue
+		}
+		sel.projects = append(sel.projects, p)
 	}
-	return graphProjects, parsedProjects, incomplete
+	return sel
 }
 
-func isPackageProject(p declarations.Project) bool {
-	kind := strings.ToLower(p.Kind)
-	if kind == "solution" || kind == "configuration" || strings.HasSuffix(kind, "-configuration") || kind == "kbuild-kconfig-marker" || kind == "go-workspace" {
+// toolSettingsPyproject reports a pyproject.toml with neither a project nor a
+// build-system table and no Python lockfile beside it. Such a file holds tool
+// settings, such as [tool.ruff], rather than a package.
+
+func toolSettingsPyproject(record declarations.ProjectRecord, pythonLockDirs map[string]bool) bool {
+	p := record.Project
+	if p.Kind != "python" || path.Base(p.ID) != "pyproject.toml" || pythonLockDirs[p.Root] {
 		return false
 	}
-	return true
+	if record.PythonBuildSystemSeen {
+		return false
+	}
+	projectTable := true
+	for _, req := range p.Requirements {
+		switch req.Kind {
+		case "python-project-table":
+			projectTable = req.State != "missing"
+		case "python-build-backend", "python-build-requirement":
+			return false
+		}
+	}
+	return !projectTable
 }
 
-func projectRoots(projects, graphProjects []declarations.Project) (map[string]bool, map[string]string) {
-	roots := map[string]bool{}
-	byID := map[string]string{}
-	for _, p := range projects {
-		root := p.Root
-		if root == "" {
-			continue
+func projectRoles(projectList []declarations.Project) []RoleCount {
+	counts := map[string]int64{}
+	for _, p := range projectList {
+		counts[pathrole.Of(p.ID)]++
+	}
+	return sortedRoleCounts(counts)
+}
+
+// projectRoots returns the distinct roots of counted projects and their roles.
+// A root takes the highest-priority role among its projects.
+func projectRoots(projectList []declarations.Project) (map[string]bool, []RoleCount) {
+	byRoot := map[string][]string{}
+	for _, p := range projectList {
+		if p.Root != "" {
+			byRoot[p.Root] = append(byRoot[p.Root], p.ID)
 		}
+	}
+	roots := make(map[string]bool, len(byRoot))
+	counts := map[string]int64{}
+	for root, ids := range byRoot {
 		roots[root] = true
+		counts[pathrole.Of(ids...)]++
 	}
-	for _, p := range graphProjects {
-		if p.ID != "" && p.Root != "" {
-			byID[p.ID] = p.Root
-		}
+	return roots, sortedRoleCounts(counts)
+}
+
+func sortedRoleCounts(counts map[string]int64) []RoleCount {
+	out := make([]RoleCount, 0, len(counts))
+	for role, n := range counts {
+		out = append(out, RoleCount{Role: role, Count: n})
 	}
-	return roots, byID
+	slices.SortFunc(out, func(a, b RoleCount) int { return strings.Compare(a.Role, b.Role) })
+	return out
 }
 
 func relationshipMetric(projects []declarations.Project, byID map[string]string, relation string, projectsComplete bool, reasons []string) (Metric, []RelationshipCount, []RelationshipEvidence, int64) {
@@ -655,145 +914,155 @@ func (h *relationshipHeap) Pop() any {
 	return v
 }
 
-func lockfileMetrics(projects []declarations.Project, locks *lockfiles.Report, projectsComplete bool, reasons []string) ([]LockfileEcosystem, LockfileEcosystem) {
-	byEco := map[string]map[string]int64{}
-	contextIDs := map[string]map[string]bool{}
-	projectIDs := map[string]map[string]bool{}
-	// Parsed projects define the full population. Eligibility is a subset for
-	// which a supported static association checker exists.
-	for _, p := range projects {
-		eco := projectEcosystem(p)
-		if eco == "" {
-			continue
-		}
-		if byEco[eco] == nil {
-			byEco[eco] = map[string]int64{}
-		}
-		if projectIDs[eco] == nil {
-			projectIDs[eco] = map[string]bool{}
-		}
-		projectIDs[eco][p.ID] = true
-		byEco[eco]["projects"]++
-		if eco == "npm" || eco == "nuget" {
-			byEco[eco]["eligible"]++
-		} else {
-			byEco[eco]["unsupported"]++
-		}
-	}
-	if locks != nil {
-		for _, ctx := range locks.Contexts {
-			counts := byEco[ctx.Ecosystem]
-			if counts == nil || counts["eligible"] == 0 || !projectIDs[ctx.Ecosystem][ctx.ProjectID] {
-				continue
-			}
-			if contextIDs[ctx.Ecosystem] == nil {
-				contextIDs[ctx.Ecosystem] = map[string]bool{}
-			}
-			if contextIDs[ctx.Ecosystem][ctx.ProjectID] {
-				continue
-			}
-			contextIDs[ctx.Ecosystem][ctx.ProjectID] = true
-			state := ctx.AssociationState
-			if state != "observed" && state != "missing" && state != "not_applicable" && state != "unsupported" {
-				state = "unknown"
-			}
-			counts[state]++
-		}
-	}
-	// No context, including one omitted under a context limit, means that the
-	// association is unknown. Missing is reserved for an explicit missing state.
-	for eco, counts := range byEco {
-		if eco != "npm" && eco != "nuget" {
-			continue
-		}
-		known := counts["observed"] + counts["missing"] + counts["not_applicable"] + counts["unsupported"] + counts["unknown"]
-		if known < counts["eligible"] {
-			counts["unknown"] += counts["eligible"] - known
-		}
-	}
-	ecologies := mapKeysNested(byEco)
-	out := make([]LockfileEcosystem, 0, len(ecologies))
-	for _, eco := range ecologies {
-		counts := byEco[eco]
-		projectMetric := metric(counts["projects"], "parsed projects in this ecosystem", !projectsComplete, reasons)
-		eligibleComplete := projectsComplete
-		eligibleReasons := []string{}
-		if !projectsComplete {
-			eligibleReasons = append(eligibleReasons, reasons...)
-		}
-		stateMetrics := func(state string) Metric {
-			return metric(counts[state], "reported parsed projects in this ecosystem with this association state", !eligibleComplete, eligibleReasons)
-		}
-		eligibleScope := "parsed npm/NuGet projects supported by the static association checker; descriptive subset, not a policy requirement"
-		if eco != "npm" && eco != "nuget" {
-			eligibleScope = "not in npm/nuget static association scope"
-		}
-		eligibleCount := counts["eligible"]
-		out = append(out, LockfileEcosystem{Ecosystem: eco, Projects: projectMetric,
-			Eligible: metric(eligibleCount, eligibleScope, !eligibleComplete, eligibleReasons),
-			Covered:  stateMetrics("observed"), Missing: stateMetrics("missing"), NotApplicable: stateMetrics("not_applicable"), Unsupported: stateMetrics("unsupported"), Unknown: stateMetrics("unknown")})
-	}
-	all := map[string]int64{}
-	for _, groups := range byEco {
-		for state, count := range groups {
-			all[state] += count
-		}
-	}
-	allComplete := projectsComplete
-	allReasons := slices.Clone(reasons)
-	slices.Sort(allReasons)
-	stateMetric := func(state string) Metric {
-		return metric(all[state], "reported parsed projects across ecosystems with this association state", !allComplete, allReasons)
-	}
-	overall := LockfileEcosystem{Ecosystem: "all", Projects: metric(all["projects"], "parsed projects in ecosystems represented by this report", !projectsComplete, reasons),
-		Eligible: metric(all["eligible"], "parsed npm/NuGet projects supported by the static association checker; descriptive subset, not a policy requirement", !allComplete, allReasons),
-		Covered:  stateMetric("observed"), Missing: stateMetric("missing"), NotApplicable: stateMetric("not_applicable"), Unsupported: stateMetric("unsupported"), Unknown: stateMetric("unknown")}
-	return out, overall
+// associationScope reports whether dircue's static lockfile association
+// covers an ecosystem.
+func associationScope(ecosystem string) bool {
+	return ecosystem == "npm" || ecosystem == "nuget"
 }
 
-func projectEcosystem(p declarations.Project) string {
-	switch p.Kind {
-	case "npm":
-		return "npm"
-	case "dotnet":
-		if strings.EqualFold(path.Ext(p.ID), ".csproj") {
-			return "nuget"
-		}
-		return "dotnet"
-	case "cargo":
-		return "cargo"
-	case "go":
-		return "go"
-	case "python", "python-uv":
-		return "python"
-	case "ruby", "ruby-bundler":
-		return "ruby-bundler"
-	case "ruby-gem":
-		return "ruby-gem"
-	case "erlang-rebar":
-		return "erlang-rebar"
-	case "maven":
-		return "maven"
-	case "gradle":
-		return "gradle"
-	case "dart", "dart-pub":
-		return "dart-pub"
-	case "swift", "swift-package":
-		return "swift-package"
-	case "elixir", "elixir-mix":
-		return "elixir-mix"
-	case "sbt", "scala-sbt":
-		return "scala-sbt"
-	case "composer", "php-composer":
-		return "php-composer"
-	case "haskell", "haskell-cabal", "haskell-stack":
-		if path.Ext(p.ID) == ".cabal" {
-			return "haskell-cabal"
-		}
-		return "haskell-stack"
-	default:
-		return p.Kind
+type lockfileTally struct {
+	counts  map[string]int64
+	roles   map[string]*LockfileRole
+	reasons map[[2]string]int64
+}
+
+func (t *lockfileTally) add(role, state, reason string, eligible bool) {
+	t.counts["projects"]++
+	t.counts[state]++
+	r := t.roles[role]
+	if r == nil {
+		r = &LockfileRole{Role: role}
+		t.roles[role] = r
 	}
+	r.Projects++
+	switch state {
+	case "covered":
+		r.Covered++
+	case "missing":
+		r.Missing++
+	case "not_applicable":
+		r.NotApplicable++
+	case "unsupported":
+		r.Unsupported++
+	default:
+		r.Unknown++
+	}
+	if eligible {
+		t.counts["eligible"]++
+		r.Eligible++
+	}
+	if state != "covered" {
+		t.reasons[[2]string{state, reason}]++
+	}
+}
+
+func (t *lockfileTally) row(ecosystem string, complete bool, reasons []string) LockfileEcosystem {
+	population := "parsed projects in this ecosystem"
+	stateScope := "parsed projects in this ecosystem with this lockfile outcome"
+	eligibleScope := "npm/NuGet projects whose outcome is covered, missing, or unknown; descriptive subset, not a policy requirement"
+	switch {
+	case ecosystem == "all":
+		population = "parsed projects across ecosystems"
+		stateScope = "parsed projects across ecosystems with this lockfile outcome"
+	case !associationScope(ecosystem):
+		eligibleScope = "not in npm/NuGet static association scope"
+	}
+	m := func(name, scope string) Metric { return metric(t.counts[name], scope, !complete, reasons) }
+	out := LockfileEcosystem{Ecosystem: ecosystem, Projects: m("projects", population), Eligible: m("eligible", eligibleScope),
+		Covered: m("covered", stateScope), Missing: m("missing", stateScope), NotApplicable: m("not_applicable", stateScope), Unsupported: m("unsupported", stateScope), Unknown: m("unknown", stateScope),
+		ByRole: make([]LockfileRole, 0, len(t.roles)), OutcomeReasons: make([]OutcomeReason, 0, len(t.reasons))}
+	for _, role := range t.roles {
+		out.ByRole = append(out.ByRole, *role)
+	}
+	slices.SortFunc(out.ByRole, func(a, b LockfileRole) int { return strings.Compare(a.Role, b.Role) })
+	for key, n := range t.reasons {
+		out.OutcomeReasons = append(out.OutcomeReasons, OutcomeReason{State: key[0], Reason: key[1], Count: n})
+	}
+	slices.SortFunc(out.OutcomeReasons, func(a, b OutcomeReason) int { return strings.Compare(outcomeReasonKey(a), outcomeReasonKey(b)) })
+	return out
+}
+
+func outcomeReasonKey(o OutcomeReason) string { return o.State + "\x00" + o.Reason }
+
+func lockfileMetrics(projectList []declarations.Project, locks *lockfiles.Report, complete bool, reasons []string) ([]LockfileEcosystem, LockfileEcosystem) {
+	contexts := map[string]lockfiles.Context{}
+	noContext := "lockfiles-not-run"
+	if locks != nil {
+		noContext = "no-lockfile-context"
+		if locks.Status == "skipped" {
+			noContext = "lockfiles-skipped"
+		}
+		for _, ctx := range locks.Contexts {
+			key := ctx.Ecosystem + "\x00" + ctx.ProjectID
+			if _, seen := contexts[key]; !seen {
+				contexts[key] = ctx
+			}
+		}
+	}
+	newTally := func() *lockfileTally {
+		return &lockfileTally{counts: map[string]int64{}, roles: map[string]*LockfileRole{}, reasons: map[[2]string]int64{}}
+	}
+	rows := map[string]*lockfileTally{}
+	overall := newTally()
+	for _, p := range projectList {
+		ecosystem := projectEcosystem(p)
+		state, reason := lockfileOutcome(ecosystem, p.ID, contexts, noContext)
+		eligible := associationScope(ecosystem) && (state == "covered" || state == "missing" || state == "unknown")
+		role := pathrole.Of(p.ID)
+		if rows[ecosystem] == nil {
+			rows[ecosystem] = newTally()
+		}
+		rows[ecosystem].add(role, state, reason, eligible)
+		overall.add(role, state, reason, eligible)
+	}
+	ecosystems := make([]string, 0, len(rows))
+	for ecosystem := range rows {
+		ecosystems = append(ecosystems, ecosystem)
+	}
+	slices.Sort(ecosystems)
+	out := make([]LockfileEcosystem, 0, len(ecosystems))
+	for _, ecosystem := range ecosystems {
+		out = append(out, rows[ecosystem].row(ecosystem, complete, reasons))
+	}
+	return out, overall.row("all", complete, reasons)
+}
+
+// lockfileOutcome maps a project's lockfile context to a report state and
+// the reason that explains a non-covered state.
+func lockfileOutcome(ecosystem, id string, contexts map[string]lockfiles.Context, noContext string) (string, string) {
+	if !associationScope(ecosystem) {
+		return "unsupported", "ecosystem-outside-association-scope"
+	}
+	ctx, ok := contexts[ecosystem+"\x00"+id]
+	if !ok {
+		return "unknown", noContext
+	}
+	state := "unknown"
+	switch ctx.AssociationState {
+	case "observed":
+		return "covered", ""
+	case "missing", "not_applicable", "unsupported":
+		state = ctx.AssociationState
+	}
+	// A not_applicable project has nothing to lock; any boundary it carries,
+	// such as an unshared ancestor lockfile, does not explain that state.
+	if state == "not_applicable" {
+		return state, "no-direct-declarations"
+	}
+	reason := ctx.OutcomeReason()
+	if reason == "" {
+		reason = "unspecified"
+	}
+	return state, reason
+}
+
+// projectEcosystem uses the manifest table, so a project and its manifest
+// candidate always name the same ecosystem.
+func projectEcosystem(p declarations.Project) string {
+	if _, ecosystem, _ := classifyManifest(p.ID); ecosystem != "other" {
+		return ecosystem
+	}
+	return p.Kind
 }
 
 func sortedCandidateCounts(m map[string]*CandidateCount) []CandidateCount {
@@ -822,95 +1091,53 @@ func sortedKindCounts(m map[string]*CandidateKindCount) []CandidateKindCount {
 	return out
 }
 
-func manifestEcosystem(selectedPath string) string {
-	filename := manifestFilenameType(selectedPath)
-	lower := strings.ToLower(filename)
-	if strings.HasPrefix(lower, "requirements") && strings.HasSuffix(lower, ".txt") || strings.Contains(lower, "requirements/") && strings.HasSuffix(lower, ".txt") {
-		return "python"
+// manifestClasses names the ecosystem and kind of every manifest filename
+// group that declarations.IsManifest selects. Ecosystem names follow the
+// declarations module, except that SDK-style .NET projects and NuGet files
+// are nuget, the ecosystem of their lockfiles.
+var manifestClasses = map[string][2]string{
+	"package.json": {"npm", "manifest"},
+	"go.mod":       {"go", "manifest"}, "go.work": {"go", "workspace"},
+	"cargo.toml":     {"cargo", "manifest"},
+	"pyproject.toml": {"python", "manifest"}, "setup.py": {"python", "manifest"}, "setup.cfg": {"python", "manifest"}, "pipfile": {"python", "manifest"},
+	"requirements*.txt": {"python", "manifest"}, "requirements/*.txt": {"python", "manifest"},
+	"gemfile": {"ruby-bundler", "manifest"}, "*.gemspec": {"ruby-gem", "manifest"}, "application.rb": {"ruby-bundler", "configuration"},
+	"composer.json": {"php-composer", "manifest"},
+	"package.swift": {"swift-package", "manifest"},
+	"pubspec.yaml":  {"dart-pub", "manifest"},
+	"mix.exs":       {"elixir-mix", "manifest"},
+	"rebar.config":  {"erlang-rebar", "manifest"},
+	"build.sbt":     {"scala-sbt", "manifest"},
+	"stack.yaml":    {"haskell-stack", "manifest"}, "*.cabal": {"haskell-cabal", "manifest"},
+	"cmakelists.txt": {"cmake", "manifest"}, "meson.build": {"meson", "manifest"}, "configure.ac": {"autoconf", "manifest"},
+	"deno.json": {"deno", "manifest"}, "deno.jsonc": {"deno", "manifest"},
+	"module.bazel": {"bazel-module", "manifest"}, "workspace": {"bazel-workspace", "workspace"},
+	"build.zig":    {"zig-build", "manifest"},
+	"project.toml": {"julia-project", "manifest"},
+	"description":  {"r-package", "manifest"},
+	"deps.edn":     {"clojure-deps", "manifest"}, "project.clj": {"clojure-leiningen", "manifest"},
+	"cpanfile": {"perl-cpanfile", "manifest"}, "makefile.pl": {"perl-extutils", "manifest"},
+	"kbuild": {"kbuild-kconfig", "manifest"}, "kconfig": {"kbuild-kconfig", "configuration"},
+	"*.csproj": {"nuget", "manifest"}, "*.fsproj": {"nuget", "manifest"}, "*.vbproj": {"nuget", "manifest"}, "packages.config": {"nuget", "manifest"},
+	"directory.packages.props": {"nuget", "configuration"}, "nuget.config": {"nuget", "configuration"},
+	"*.vcxproj": {"dotnet", "manifest"}, "*.sqlproj": {"dotnet", "manifest"}, "*.wixproj": {"dotnet", "manifest"}, "*.shproj": {"dotnet", "manifest"}, "*.proj": {"dotnet", "manifest"},
+	"*.sln": {"dotnet", "solution"}, "*.slnx": {"dotnet", "solution"}, "*.slnf": {"dotnet", "solution"},
+	"directory.build.props": {"dotnet", "configuration"}, "directory.build.targets": {"dotnet", "configuration"},
+	"global.json": {"dotnet", "toolchain"},
+	"pom.xml":     {"maven", "manifest"}, "toolchains.xml": {"maven", "toolchain"},
+	"build.gradle": {"gradle", "manifest"}, "build.gradle.kts": {"gradle", "manifest"},
+	"settings.gradle": {"gradle", "workspace"}, "settings.gradle.kts": {"gradle", "workspace"},
+	"gradle.properties": {"gradle", "configuration"}, "gradle-wrapper.properties": {"gradle", "toolchain"},
+}
+
+// classifyManifest returns a selected manifest's filename group, ecosystem,
+// and kind. A name outside the table is ecosystem "other".
+func classifyManifest(selectedPath string) (filename, ecosystem, kind string) {
+	filename = manifestFilenameType(selectedPath)
+	if class, ok := manifestClasses[strings.ToLower(filename)]; ok {
+		return filename, class[0], class[1]
 	}
-	switch lower {
-	case "package.json":
-		return "npm"
-	case "go.mod":
-		return "go"
-	case "go.work":
-		return "go-workspace"
-	case "cargo.toml":
-		return "cargo"
-	case "pyproject.toml", "requirements.txt", "setup.py", "setup.cfg", "pipfile":
-		return "python"
-	case "gemfile":
-		return "ruby-bundler"
-	case "application.rb":
-		return "ruby-rails-app"
-	case "composer.json":
-		return "php-composer"
-	case "packages.config", "packages.lock.json":
-		return "nuget"
-	case "global.json", "directory.build.props", "directory.build.targets", "directory.packages.props", "nuget.config":
-		return "dotnet-configuration"
-	case "pubspec.yaml":
-		return "dart-pub"
-	case "package.swift":
-		return "swift-package"
-	case "mix.exs":
-		return "elixir-mix"
-	case "build.sbt":
-		return "scala-sbt"
-	case "pom.xml":
-		return "maven"
-	case "build.gradle", "build.gradle.kts":
-		return "gradle"
-	case "module.bazel":
-		return "bazel-module"
-	case "workspace":
-		return "bazel-workspace"
-	case "cmakelists.txt":
-		return "cmake"
-	case "deno.json", "deno.jsonc":
-		return "deno"
-	case "stack.yaml":
-		return "haskell-stack"
-	case "project.toml":
-		return "julia-project"
-	case "description":
-		return "r-package"
-	case "deps.edn":
-		return "clojure-deps"
-	case "project.clj":
-		return "clojure-leiningen"
-	case "cpanfile":
-		return "perl-cpanfile"
-	case "makefile.pl":
-		return "perl-extutils"
-	case "rebar.config":
-		return "erlang-rebar"
-	case "kbuild", "kconfig":
-		return "kbuild-kconfig-marker"
-	case "configure.ac":
-		return "autoconf"
-	case "meson.build":
-		return "meson"
-	case "build.zig":
-		return "zig-build"
-	default:
-		ext := strings.ToLower(path.Ext(filename))
-		switch ext {
-		case ".csproj", ".fsproj", ".vbproj", "*.csproj", "*.fsproj", "*.vbproj":
-			return "nuget"
-		case ".vcxproj", ".sqlproj", ".wixproj", ".shproj", ".proj", "*.vcxproj", "*.sqlproj", "*.wixproj", "*.shproj", "*.proj":
-			return "dotnet"
-		case ".sln", ".slnx", ".slnf", "*.sln", "*.slnx", "*.slnf":
-			return "dotnet-solution"
-		case ".cabal", "*.cabal":
-			return "haskell-cabal"
-		case ".gemspec", "*.gemspec":
-			return "ruby-gem"
-		case ".c":
-			return "cmake"
-		}
-		return "other"
-	}
+	return filename, "other", "manifest"
 }
 
 func manifestFilenameType(selectedPath string) string {
@@ -936,6 +1163,7 @@ func manifestFilenameType(selectedPath string) string {
 	}
 	return base
 }
+
 func mapKeys(m map[string]int64) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
@@ -946,6 +1174,7 @@ func mapKeys(m map[string]int64) []string {
 	slices.Sort(out)
 	return out
 }
+
 func mapKeysBool(m map[string]bool) []string {
 	out := make([]string, 0, len(m))
 	for k := range m {
@@ -954,26 +1183,22 @@ func mapKeysBool(m map[string]bool) []string {
 	slices.Sort(out)
 	return out
 }
-func mapKeysNested(m map[string]map[string]int64) []string {
-	out := make([]string, 0, len(m))
-	for k := range m {
-		out = append(out, k)
-	}
-	slices.Sort(out)
-	return out
-}
+
 func definitions() []Definition {
 	return []Definition{
 		{ID: "inventory_bytes", Description: "Logical file bytes count selected regular-file sizes, including lockfiles and data, without archive expansion."},
-		{ID: "manifest_candidate_population", Description: "Manifest candidate counts use the declarations parser's filename selection, including its installed node_modules exclusion; their bounded evidence sample does not reduce aggregate counts."},
-		{ID: "unparsed_manifest_candidates", Description: "This counts filename-selected manifest candidates without a successfully parsed document; it does not assign failed manifests to a package ecosystem."},
-		{ID: "filename_candidate_population", Description: "Filename candidate counts are exact across selected files; bounded candidate evidence does not reduce these totals."},
-		{ID: "project_roots", Description: "Distinct roots are counted only from parsed declaration projects; declaration parser caps can make this a lower bound."},
-		{ID: "workspace_membership", Description: "Only explicit supported workspace or module references are counted; Cargo default-member selection remains a distinct declaration and is not counted as general workspace membership."},
+		{ID: "inventory_vendored", Description: "Vendored files match Linguist's vendor path rules (for example node_modules/, vendor/, dist/, test/fixtures/, and .github/) or a linguist-vendored attribute. Installed environments outside those rules, such as .venv, stay in the unvendored remainder."},
+		{ID: "manifest_candidate_population", Description: "Manifest candidates are selected files with a filename the declarations parser reads, excluding installed node_modules. Each group names an ecosystem and a kind: manifest, workspace, solution, configuration, or toolchain. Projects use the same ecosystem table."},
+		{ID: "unparsed_manifest_candidates", Description: "Unparsed candidates are selected manifests that the declaration parser did not read in full and interpret, including manifests it reported as invalid or unsupported. A manifest merged into another project record, read in full and found to hold no declarations, or parsed and then dropped at the declaration report size limit is not counted; the last makes project counts lower bounds instead."},
+		{ID: "filename_candidate_population", Description: "Filename candidate counts are exact across selected files; bounded candidate evidence does not reduce these totals. Lockfiles and checksum files form the lockfile kind."},
+		{ID: "projects", Description: "Projects are parsed package and project records. Virtual workspace roots (go.work, a Cargo manifest with only [workspace], a uv workspace without [project]) are excluded but still contribute workspace membership. Configuration, solution, and annotation records (such as config/application.rb), Cargo manifests without a package or workspace table, and pyproject.toml files with neither a project nor a build-system table and no Python lockfile beside them are also excluded."},
+		{ID: "project_roles", Description: "Roles come from conventional path names, such as test/, fixtures/, examples/, vendor/, docs/, tools/, and .NET *.Tests projects; other paths are primary. A root takes the highest-priority role among its projects, in the order vendored, fixture, example, test, docs, tooling."},
+		{ID: "project_roots", Description: "Distinct roots are counted only from counted projects; declaration parser caps can make this a lower bound."},
+		{ID: "workspace_membership", Description: "Only explicit supported workspace or module references are counted; Cargo default-member selection remains a distinct declaration and is not counted as general workspace membership. Selected pnpm-workspace.yaml, lerna.json, and rush.json files are not parsed and make this and local_dependencies lower bounds."},
 		{ID: "local_dependencies", Description: "Only explicit supported local dependency or project references with a confined target are counted."},
-		{ID: "lockfile_association", Description: "Covered means a static project-to-lockfile association was observed; it does not establish consistency or a successful locked restore."},
-		{ID: "lockfile_eligible", Description: "Eligible means a parsed npm or NuGet project was in the static association scope; eligibility is descriptive and does not express a policy requirement."},
-		{ID: "lockfile_states", Description: "Covered, missing, not_applicable, unsupported, and unknown partition the reported project population; Eligible identifies the npm/NuGet subset, while unsupported ecosystems and checker-ineligible project forms have an unsupported state."},
+		{ID: "lockfile_association", Description: "Covered means a static project-to-lockfile association was observed; it does not establish consistency or a successful locked restore. npm associations follow npm's workspace-root selection: the nearest ancestor whose workspaces list a project owns its lockfile."},
+		{ID: "lockfile_eligible", Description: "Eligible counts npm and NuGet projects whose outcome is covered, missing, or unknown. Not_applicable projects declare no direct dependencies; unsupported projects use another package manager or an unsupported lockfile. Eligibility is descriptive, not a policy requirement."},
+		{ID: "lockfile_states", Description: "Covered, missing, not_applicable, unsupported, and unknown partition the project population. Outcome reasons name the lockfile boundary reason behind each non-covered project, and no-direct-declarations for each not_applicable project; by_role partitions each row by project role."},
 		{ID: "source_consistency", Description: "Directory mode uses live metadata; Git mode refers to the selected Git tree."},
 		{ID: "unsupported_ecosystems", Description: "Parsed projects outside npm and NuGet static lockfile association are counted as unsupported; this is not a health judgment."},
 	}
@@ -1001,16 +1226,13 @@ func ValidateReport(r *Report) error {
 	if r.Source.Consistency != wantConsistency {
 		return errors.New("assessment source consistency does not match source mode")
 	}
-	metrics := []Metric{r.Inventory.Files, r.Inventory.Bytes, r.ManifestCandidatePopulation, r.UnparsedManifestCandidates, r.FilenameCandidatePopulation, r.ProjectRoots, r.Projects, r.WorkspaceMembership, r.LocalDependencies, r.UnsupportedEcosystemProjects,
-		r.LockfilesOverall.Projects, r.LockfilesOverall.Eligible, r.LockfilesOverall.Covered, r.LockfilesOverall.Missing, r.LockfilesOverall.NotApplicable, r.LockfilesOverall.Unsupported, r.LockfilesOverall.Unknown}
-	for i := range r.Lockfiles {
-		row := r.Lockfiles[i]
-		metrics = append(metrics, row.Projects, row.Eligible, row.Covered, row.Missing, row.NotApplicable, row.Unsupported, row.Unknown)
-	}
-	for _, m := range metrics {
-		if err := validateMetric(m); err != nil {
-			return err
+	for _, m := range r.Metrics() {
+		if err := validateMetric(m.Metric); err != nil {
+			return fmt.Errorf("%s: %w", m.Name, err)
 		}
+	}
+	if r.Inventory.VendoredFiles.Count > r.Inventory.Files.Count || r.Inventory.VendoredBytes.Count > r.Inventory.Bytes.Count {
+		return errors.New("vendored inventory exceeds the selected inventory")
 	}
 	if r.Projects.Count != r.LockfilesOverall.Projects.Count {
 		return errors.New("project total does not match overall lockfile project population")
@@ -1022,7 +1244,7 @@ func ValidateReport(r *Report) error {
 	var manifestBytes int64
 	manifestBytesOverflow := false
 	for i, c := range r.ManifestCandidates {
-		if c.Filename == "" || c.Kind != "manifest" || c.Files < 0 || c.Bytes < 0 || c.Ecosystem == "" {
+		if c.Filename == "" || !manifestKinds[c.Kind] || c.Files < 0 || c.Bytes < 0 || c.Ecosystem == "" {
 			return errors.New("manifest candidate group is invalid")
 		}
 		if i > 0 && candidateCountKey(r.ManifestCandidates[i-1]) >= candidateCountKey(c) {
@@ -1084,6 +1306,12 @@ func ValidateReport(r *Report) error {
 			return errors.New("project root evidence is not strictly sorted")
 		}
 	}
+	if err := validateRoleCounts(r.ProjectsByRole, r.Projects.Count); err != nil {
+		return fmt.Errorf("projects by role: %w", err)
+	}
+	if err := validateRoleCounts(r.ProjectRootsByRole, r.ProjectRoots.Count); err != nil {
+		return fmt.Errorf("project roots by role: %w", err)
+	}
 	if err := validateRelationships(r.WorkspaceMembership, r.WorkspaceByKind, r.WorkspaceEvidence, r.OmittedWorkspaceEvidence); err != nil {
 		return fmt.Errorf("workspace membership: %w", err)
 	}
@@ -1096,6 +1324,27 @@ func ValidateReport(r *Report) error {
 	encoded, err := json.Marshal(r)
 	if err != nil || len(encoded) > MaxAssessmentJSONBytes {
 		return errors.New("assessment JSON exceeds its serialized size limit")
+	}
+	return nil
+}
+
+var manifestKinds = map[string]bool{"manifest": true, "workspace": true, "solution": true, "configuration": true, "toolchain": true}
+
+var projectRoleNames = map[string]bool{pathrole.Primary: true, pathrole.Vendored: true, pathrole.Fixture: true, pathrole.Example: true, pathrole.Test: true, pathrole.Docs: true, pathrole.Tooling: true}
+
+func validateRoleCounts(counts []RoleCount, total int64) error {
+	var sum int64
+	for i, c := range counts {
+		if !projectRoleNames[c.Role] || c.Count <= 0 || i > 0 && counts[i-1].Role >= c.Role {
+			return errors.New("role groups are invalid or unsorted")
+		}
+		var ok bool
+		if sum, ok = checkedAdd(sum, c.Count); !ok {
+			return errors.New("role totals overflow")
+		}
+	}
+	if sum != total {
+		return errors.New("role groups do not partition their metric")
 	}
 	return nil
 }
@@ -1210,51 +1459,47 @@ func validateRelationships(m Metric, byKind []RelationshipCount, evidence []Rela
 }
 
 func validateLockfileRows(r *Report) error {
-	var projectTotal, eligibleTotal, coveredTotal, missingTotal, naTotal, unsupportedTotal, unknownTotal, unsupportedEcosystemTotal int64
 	if len(r.Lockfiles) > 128 {
 		return errors.New("lockfile ecosystem rows exceed schema limit")
 	}
+	sum := lockfileTotals{roles: map[string]LockfileRole{}, reasons: map[string]int64{}}
+	var unsupportedEcosystemTotal int64
 	for i, row := range r.Lockfiles {
 		if row.Ecosystem == "" || row.Ecosystem == "all" || i > 0 && r.Lockfiles[i-1].Ecosystem >= row.Ecosystem {
 			return errors.New("lockfile ecosystem rows are invalid or unsorted")
 		}
-		var ok bool
-		for target, value := range map[*int64]int64{&projectTotal: row.Projects.Count, &eligibleTotal: row.Eligible.Count, &coveredTotal: row.Covered.Count, &missingTotal: row.Missing.Count, &naTotal: row.NotApplicable.Count, &unsupportedTotal: row.Unsupported.Count, &unknownTotal: row.Unknown.Count} {
-			*target, ok = checkedAdd(*target, value)
-			if !ok {
-				return errors.New("lockfile totals overflow")
-			}
+		if err := validateLockfileRow(row); err != nil {
+			return fmt.Errorf("lockfile row %q: %w", row.Ecosystem, err)
 		}
-		if row.Ecosystem != "npm" && row.Ecosystem != "nuget" {
-			unsupportedEcosystemTotal, ok = checkedAdd(unsupportedEcosystemTotal, row.Projects.Count)
-			if !ok {
+		if associationScope(row.Ecosystem) {
+			if eligible, ok := checkedSum(row.Covered.Count, row.Missing.Count, row.Unknown.Count); !ok || row.Eligible.Count != eligible {
+				return fmt.Errorf("lockfile row %q: eligible is not covered + missing + unknown", row.Ecosystem)
+			}
+		} else if row.Eligible.Count != 0 || row.Unsupported.Count != row.Projects.Count {
+			return fmt.Errorf("lockfile row %q: an ecosystem outside association scope must be wholly unsupported", row.Ecosystem)
+		} else {
+			var ok bool
+			if unsupportedEcosystemTotal, ok = checkedAdd(unsupportedEcosystemTotal, row.Projects.Count); !ok {
 				return errors.New("unsupported ecosystem project totals overflow")
 			}
 		}
-		states, ok := checkedSum(row.Covered.Count, row.Missing.Count, row.NotApplicable.Count, row.Unsupported.Count, row.Unknown.Count)
-		if !ok || states != row.Projects.Count {
-			return fmt.Errorf("lockfile states for %q do not partition project totals", row.Ecosystem)
-		}
-		if row.Eligible.Count > row.Projects.Count {
-			return errors.New("lockfile eligibility exceeds the project population")
-		}
-		if (row.Ecosystem == "npm" || row.Ecosystem == "nuget") && row.Eligible.Count != row.Projects.Count {
-			return errors.New("supported ecosystem project total is inconsistent")
-		}
-		if row.Ecosystem != "npm" && row.Ecosystem != "nuget" && row.Eligible.Count != 0 {
-			return errors.New("unsupported ecosystem was counted as lockfile eligible")
-		}
-		if row.Ecosystem != "npm" && row.Ecosystem != "nuget" && row.Unsupported.Count != row.Projects.Count {
-			return errors.New("unsupported ecosystem projects do not have unsupported outcomes")
+		if err := sum.add(row); err != nil {
+			return err
 		}
 	}
 	o := r.LockfilesOverall
-	if o.Ecosystem != "all" || o.Projects.Count != projectTotal || o.Eligible.Count != eligibleTotal || o.Covered.Count != coveredTotal || o.Missing.Count != missingTotal || o.NotApplicable.Count != naTotal || o.Unsupported.Count != unsupportedTotal || o.Unknown.Count != unknownTotal {
-		return errors.New("overall lockfile totals do not reconcile with ecosystem rows")
+	if o.Ecosystem != "all" {
+		return errors.New("overall lockfile row is not named all")
 	}
-	states, ok := checkedSum(o.Covered.Count, o.Missing.Count, o.NotApplicable.Count, o.Unsupported.Count, o.Unknown.Count)
-	if !ok || states != o.Projects.Count || o.Eligible.Count > o.Projects.Count {
-		return errors.New("overall lockfile states do not partition project totals")
+	if err := validateLockfileRow(o); err != nil {
+		return fmt.Errorf("overall lockfile row: %w", err)
+	}
+	overall := lockfileTotals{roles: map[string]LockfileRole{}, reasons: map[string]int64{}}
+	if err := overall.add(o); err != nil {
+		return err
+	}
+	if overall.counts != sum.counts || !maps.Equal(overall.roles, sum.roles) || !maps.Equal(overall.reasons, sum.reasons) {
+		return errors.New("overall lockfile totals do not reconcile with ecosystem rows")
 	}
 	if o.Projects.Count != r.Projects.Count {
 		return errors.New("lockfile overall projects do not match assessment projects")
@@ -1263,6 +1508,106 @@ func validateLockfileRows(r *Report) error {
 		return errors.New("unsupported ecosystem metric does not reconcile with ecosystem rows")
 	}
 	return nil
+}
+
+var outcomeStates = map[string]bool{"missing": true, "not_applicable": true, "unsupported": true, "unknown": true}
+
+// validateLockfileRow checks that one row's states partition its projects
+// and that its role and reason breakdowns reconcile with its metrics.
+func validateLockfileRow(row LockfileEcosystem) error {
+	states, ok := checkedSum(row.Covered.Count, row.Missing.Count, row.NotApplicable.Count, row.Unsupported.Count, row.Unknown.Count)
+	if !ok || states != row.Projects.Count {
+		return errors.New("lockfile states do not partition project totals")
+	}
+	if eligible, ok := checkedSum(row.Covered.Count, row.Missing.Count, row.Unknown.Count); !ok || row.Eligible.Count > eligible {
+		return errors.New("lockfile eligibility exceeds covered + missing + unknown")
+	}
+	var roles LockfileRole
+	for i, role := range row.ByRole {
+		if !projectRoleNames[role.Role] || role.Projects <= 0 || i > 0 && row.ByRole[i-1].Role >= role.Role {
+			return errors.New("lockfile role groups are invalid or unsorted")
+		}
+		roleStates, ok := checkedSum(role.Covered, role.Missing, role.NotApplicable, role.Unsupported, role.Unknown)
+		if !ok || roleStates != role.Projects || role.Eligible < 0 || role.Eligible > role.Covered+role.Missing+role.Unknown {
+			return errors.New("lockfile role states do not partition role projects")
+		}
+		for target, value := range map[*int64]int64{&roles.Projects: role.Projects, &roles.Eligible: role.Eligible, &roles.Covered: role.Covered, &roles.Missing: role.Missing, &roles.NotApplicable: role.NotApplicable, &roles.Unsupported: role.Unsupported, &roles.Unknown: role.Unknown} {
+			if *target, ok = checkedAdd(*target, value); !ok {
+				return errors.New("lockfile role totals overflow")
+			}
+		}
+	}
+	if roles != (LockfileRole{Projects: row.Projects.Count, Eligible: row.Eligible.Count, Covered: row.Covered.Count, Missing: row.Missing.Count, NotApplicable: row.NotApplicable.Count, Unsupported: row.Unsupported.Count, Unknown: row.Unknown.Count}) {
+		return errors.New("lockfile role groups do not reconcile with row metrics")
+	}
+	byState := map[string]int64{}
+	for i, reason := range row.OutcomeReasons {
+		if !outcomeStates[reason.State] || !validOutcomeReason(reason.Reason) || reason.Count <= 0 || i > 0 && outcomeReasonKey(row.OutcomeReasons[i-1]) >= outcomeReasonKey(reason) {
+			return errors.New("lockfile outcome reasons are invalid or unsorted")
+		}
+		if byState[reason.State], ok = checkedAdd(byState[reason.State], reason.Count); !ok {
+			return errors.New("lockfile outcome reason totals overflow")
+		}
+	}
+	if byState["missing"] != row.Missing.Count || byState["not_applicable"] != row.NotApplicable.Count || byState["unsupported"] != row.Unsupported.Count || byState["unknown"] != row.Unknown.Count {
+		return errors.New("lockfile outcome reasons do not reconcile with row states")
+	}
+	return nil
+}
+
+func validOutcomeReason(reason string) bool {
+	if reason == "" || len(reason) > 256 || reason[0] == '-' || reason[len(reason)-1] == '-' {
+		return false
+	}
+	for _, r := range reason {
+		if !(r >= 'a' && r <= 'z' || r >= '0' && r <= '9' || r == '-') {
+			return false
+		}
+	}
+	return true
+}
+
+// lockfileTotals sums rows for the overall reconciliation.
+type lockfileTotals struct {
+	counts  LockfileRole
+	roles   map[string]LockfileRole
+	reasons map[string]int64
+}
+
+func (t *lockfileTotals) add(row LockfileEcosystem) error {
+	values := LockfileRole{Projects: row.Projects.Count, Eligible: row.Eligible.Count, Covered: row.Covered.Count, Missing: row.Missing.Count, NotApplicable: row.NotApplicable.Count, Unsupported: row.Unsupported.Count, Unknown: row.Unknown.Count}
+	next, ok := addLockfileRole(t.counts, values)
+	if !ok {
+		return errors.New("lockfile totals overflow")
+	}
+	t.counts = next
+	for _, role := range row.ByRole {
+		name := role.Role
+		role.Role = ""
+		next, ok := addLockfileRole(t.roles[name], role)
+		if !ok {
+			return errors.New("lockfile role totals overflow")
+		}
+		t.roles[name] = next
+	}
+	for _, reason := range row.OutcomeReasons {
+		key := outcomeReasonKey(reason)
+		if t.reasons[key], ok = checkedAdd(t.reasons[key], reason.Count); !ok {
+			return errors.New("lockfile reason totals overflow")
+		}
+	}
+	return nil
+}
+
+func addLockfileRole(a, b LockfileRole) (LockfileRole, bool) {
+	out := a
+	var ok bool
+	for _, pair := range [][3]*int64{{&out.Projects, &a.Projects, &b.Projects}, {&out.Eligible, &a.Eligible, &b.Eligible}, {&out.Covered, &a.Covered, &b.Covered}, {&out.Missing, &a.Missing, &b.Missing}, {&out.NotApplicable, &a.NotApplicable, &b.NotApplicable}, {&out.Unsupported, &a.Unsupported, &b.Unsupported}, {&out.Unknown, &a.Unknown, &b.Unknown}} {
+		if *pair[0], ok = checkedAdd(*pair[1], *pair[2]); !ok {
+			return LockfileRole{}, false
+		}
+	}
+	return out, true
 }
 
 func checkedAdd(a, b int64) (int64, bool) {

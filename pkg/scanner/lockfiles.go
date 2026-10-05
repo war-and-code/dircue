@@ -30,7 +30,7 @@ func newLockfileAccumulator(opts Options) *lockfileAccumulator {
 	if !opts.Lockfiles {
 		return nil
 	}
-	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy), workspaceLocks: opts.Assessment}
+	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy), workspaceLocks: opts.NPMWorkspaceLocks || opts.Assessment}
 }
 
 func (a *lockfileAccumulator) add(value result) error {
@@ -43,9 +43,9 @@ func (a *lockfileAccumulator) add(value result) error {
 	base := path.Base(value.path)
 	nugetBase := strings.ToLower(base)
 	lockCandidate := base == "package-lock.json" || base == "npm-shrinkwrap.json" || nugetBase == "packages.lock.json" || (strings.HasPrefix(nugetBase, "packages.") && strings.HasSuffix(nugetBase, ".lock.json"))
-	manifest := strings.EqualFold(path.Ext(base), ".csproj")
+	manifest := lockfiles.IsNuGetLockProject(base)
 	sharedInput := strings.EqualFold(base, "Directory.Build.props") || strings.EqualFold(base, "Directory.Build.targets") || strings.EqualFold(base, "Directory.Packages.props")
-	relevant := lockCandidate || manifest || sharedInput
+	relevant := lockCandidate || manifest || sharedInput || lockfiles.IsAlternativeNPMMarker(base)
 	// Continue-mode read failures retain the known path. Non-attributable
 	// omissions invalidate absence checks for the selected inventory.
 	if value.omission != "" && !(a.errorPolicy == "continue" && value.omission == "file_read_error") {
@@ -64,7 +64,8 @@ func (a *lockfileAccumulator) add(value result) error {
 		return errors.New("duplicate lockfile path")
 	}
 	// Keep unreadable and non-regular candidates visible. Only selected regular
-	// lockfiles and project manifests retain a reader. Shared inputs are hints.
+	// lockfiles and project manifests retain a reader. Shared inputs and other
+	// package managers' files are presence evidence only.
 	file := lockfiles.File{Path: value.path, NonRegular: value.selectedJob == nil}
 	if value.selectedJob != nil && (lockCandidate || manifest) {
 		item := *value.selectedJob
@@ -107,11 +108,13 @@ func (a *lockfileAccumulator) finish(ctx context.Context, root *os.Root, collect
 	if a.maxFileBytes > 0 && a.maxFileBytes < lockfiles.DefaultMaxFileBytes {
 		limits.FileBytes = a.maxFileBytes
 	}
+	omitted, trees, attributed := collector.OmittedPaths()
 	input := lockfiles.Input{
 		WorkspaceLocks: a.workspaceLocks,
 		Source:         report.Declarations.Source, Tree: report.Declarations.Tree,
 		Inventory: inventory, InventoryComplete: true,
 		Declarations: *report.Declarations, ProjectRecords: collector.ProjectRecords(),
+		DeclarationOmissions: omitted, DeclarationOmittedTrees: trees, DeclarationOmissionsAttributed: attributed,
 		ErrorPolicy: a.errorPolicy,
 		ReadSelected: func(ctx context.Context, name string, limit int64) ([]byte, int64, error) {
 			selected, ok := a.jobs[name]

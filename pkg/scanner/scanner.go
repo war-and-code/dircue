@@ -43,6 +43,10 @@ type Options struct {
 	Assessment bool
 	// Lockfiles performs named static checks on selected manifest/lockfile pairs.
 	Lockfiles bool
+	// NPMWorkspaceLocks associates npm workspace members with the lockfile of
+	// the nearest workspace root that lists them. It implies Lockfiles, and
+	// Assessment implies it.
+	NPMWorkspaceLocks bool
 	// Environments reuses declarations and reads selected global.json inputs.
 	Environments bool
 	// Focus selects a declared project population and contextual inputs.
@@ -144,6 +148,8 @@ type job struct {
 	attrs          overrides
 	traceOverrides []explain.Override
 	read           func(int64) ([]byte, int64, error)
+	// vendorPath caches enry's vendor path rule for path; nil until evaluated.
+	vendorPath *bool
 }
 type result struct {
 	languageTrace       *explain.LanguageTrace
@@ -170,6 +176,8 @@ type result struct {
 	role                string
 	omission            string
 	structural          *structure.File
+	// unreadableTree marks a directory whose entries could not be listed.
+	unreadableTree bool
 	// envTree is set when this result represents a summarized environment tree
 	// rather than a scanned file. Only populated in directory mode when
 	// SummarizeTrees is true.
@@ -188,6 +196,9 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	}
 	if opts.Assessment {
 		opts.Discovery, opts.Declarations, opts.Lockfiles = true, true, true
+	}
+	if opts.NPMWorkspaceLocks {
+		opts.Lockfiles = true
 	}
 	if opts.Focus != nil || opts.Environments || opts.Lockfiles {
 		opts.Declarations = true
@@ -417,7 +428,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			if opts.Assessment {
 				c := assessment.New("directory", "")
 				c.Skip("tree_size_limit")
-				report.Assessment, err = c.Finish(report.Declarations, report.Lockfiles)
+				report.Assessment, err = c.Finish(assessment.Evidence{Declarations: report.Declarations, Lockfiles: report.Lockfiles})
 				if err != nil {
 					return nil, err
 				}
@@ -470,7 +481,7 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 						code = "permission_denied"
 						msg = fmt.Sprintf("directory not accessible: %s", walkErr)
 					}
-					if !send(result{path: filename, skipped: true, warnings: []profile.Warning{{Path: filename, Code: code, Message: msg}}}) {
+					if !send(result{path: filename, skipped: true, unreadableTree: true, warnings: []profile.Warning{{Path: filename, Code: code, Message: msg}}}) {
 						return ctx.Err()
 					}
 					return nil
@@ -699,6 +710,9 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 		if value.envTree != nil {
 			if assessmentCollector != nil {
 				assessmentCollector.Partial("summarized_tree")
+				if declarationCollector != nil {
+					declarationCollector.OmitTree(value.envTree.Path)
+				}
 			}
 			report.SummarizedTrees = append(report.SummarizedTrees, *value.envTree)
 			continue
@@ -742,8 +756,10 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			if value.declarationSelected {
 				declarationCollector.Add(value.path, value.declarationFile)
 				declarationCollector.RecordSelectedFileSize(value.path, value.inventorySize)
+			} else if value.unreadableTree {
+				declarationCollector.OmitTree(value.path)
 			} else if value.path != "" {
-				declarationCollector.Omit()
+				declarationCollector.OmitPath(value.path)
 			}
 		}
 		if registryCollector != nil {
@@ -1002,7 +1018,12 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 				assessmentCollector.Partial("tree_size_limit")
 			}
 		}
-		report.Assessment, err = assessmentCollector.Finish(report.Declarations, report.Lockfiles, declarationCollector.ProjectRecords())
+		omitted, trees, attributed := declarationCollector.OmittedPaths()
+		report.Assessment, err = assessmentCollector.Finish(assessment.Evidence{
+			Declarations: report.Declarations, Lockfiles: report.Lockfiles,
+			Records: declarationCollector.ProjectRecords(), InterpretedManifests: declarationCollector.InterpretedPaths(),
+			OmittedDeclarationPaths: omitted, OmittedDeclarationTrees: trees, OmittedDeclarationAttributed: attributed,
+		})
 		if err != nil {
 			return nil, fmt.Errorf("repository assessment: %w", err)
 		}
@@ -1101,7 +1122,12 @@ func analyzeFileBase(ctx context.Context, root *os.Root, item job, opts Options)
 	if opts.Metrics != nil {
 		value.metrics = &profile.FileMetrics{Path: item.path, Status: "skipped", Reason: "outside_scope"}
 	}
-	enryVendored := enry.IsVendor(item.path)
+	var enryVendored bool
+	if item.vendorPath != nil {
+		enryVendored = *item.vendorPath
+	} else {
+		enryVendored = enry.IsVendor(item.path)
+	}
 	vendored := overrideBool(item.attrs.vendored, enryVendored)
 	if trace != nil {
 		vendorProvider := "go-enry path rules"

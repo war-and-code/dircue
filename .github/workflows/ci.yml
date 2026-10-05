@@ -118,6 +118,12 @@ jobs:
           GOOS=windows   CGO_ENABLED=0 go vet ./...
           GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -trimpath ./...
           GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath ./...
+      - name: gofmt (Linux only)
+        if: runner.os == 'Linux'
+        run: |
+          set -euo pipefail
+          unformatted="$(git ls-files -z --cached --others --exclude-standard -- '*.go' ':(exclude)third_party/**' ':(exclude)**/testdata/**' ':(exclude)**/fixtures/**' | xargs -0 gofmt -l)"
+          if [ -n "$unformatted" ]; then echo "$unformatted"; exit 1; fi
       - name: staticcheck (Linux only)
         if: runner.os == 'Linux'
         run: |

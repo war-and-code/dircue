@@ -29,7 +29,9 @@
     "unparsed_manifest_candidates",
     "filename_candidate_population",
     "unsupported_ecosystem_projects",
-    "filename_candidates"
+    "filename_candidates",
+    "projects_by_role",
+    "project_roots_by_role"
   ],
   "properties": {
     "version": {
@@ -112,13 +114,21 @@
       "additionalProperties": false,
       "required": [
         "files",
-        "bytes"
+        "bytes",
+        "vendored_files",
+        "vendored_bytes"
       ],
       "properties": {
         "files": {
           "$ref": "#/$defs/metric"
         },
         "bytes": {
+          "$ref": "#/$defs/metric"
+        },
+        "vendored_files": {
+          "$ref": "#/$defs/metric"
+        },
+        "vendored_bytes": {
           "$ref": "#/$defs/metric"
         }
       }
@@ -138,9 +148,13 @@
         ],
         "properties": {
           "kind": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 8192
+            "enum": [
+              "configuration",
+              "manifest",
+              "solution",
+              "toolchain",
+              "workspace"
+            ]
           },
           "ecosystem": {
             "type": "string",
@@ -418,7 +432,9 @@
           "missing",
           "not_applicable",
           "unsupported",
-          "unknown"
+          "unknown",
+          "by_role",
+          "outcome_reasons"
         ],
         "properties": {
           "ecosystem": {
@@ -446,6 +462,106 @@
           },
           "unknown": {
             "$ref": "#/$defs/metric"
+          },
+          "by_role": {
+            "type": "array",
+            "maxItems": 7,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "role",
+                "projects",
+                "eligible",
+                "covered",
+                "missing",
+                "not_applicable",
+                "unsupported",
+                "unknown"
+              ],
+              "properties": {
+                "role": {
+                  "enum": [
+                    "docs",
+                    "example",
+                    "fixture",
+                    "primary",
+                    "test",
+                    "tooling",
+                    "vendored"
+                  ]
+                },
+                "projects": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9223372036854775807
+                },
+                "eligible": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "covered": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "missing": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "not_applicable": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "unsupported": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                },
+                "unknown": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9223372036854775807
+                }
+              }
+            }
+          },
+          "outcome_reasons": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "reason",
+                "count"
+              ],
+              "properties": {
+                "state": {
+                  "enum": [
+                    "missing",
+                    "not_applicable",
+                    "unknown",
+                    "unsupported"
+                  ]
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256,
+                  "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 9223372036854775807
+                }
+              }
+            }
           }
         }
       }
@@ -461,13 +577,13 @@
         "missing",
         "not_applicable",
         "unsupported",
-        "unknown"
+        "unknown",
+        "by_role",
+        "outcome_reasons"
       ],
       "properties": {
         "ecosystem": {
-          "type": "string",
-          "minLength": 1,
-          "maxLength": 8192
+          "const": "all"
         },
         "projects": {
           "$ref": "#/$defs/metric"
@@ -489,6 +605,106 @@
         },
         "unknown": {
           "$ref": "#/$defs/metric"
+        },
+        "by_role": {
+          "type": "array",
+          "maxItems": 7,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "role",
+              "projects",
+              "eligible",
+              "covered",
+              "missing",
+              "not_applicable",
+              "unsupported",
+              "unknown"
+            ],
+            "properties": {
+              "role": {
+                "enum": [
+                  "docs",
+                  "example",
+                  "fixture",
+                  "primary",
+                  "test",
+                  "tooling",
+                  "vendored"
+                ]
+              },
+              "projects": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              },
+              "eligible": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "covered": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "missing": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "not_applicable": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "unsupported": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              },
+              "unknown": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
+        },
+        "outcome_reasons": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "state",
+              "reason",
+              "count"
+            ],
+            "properties": {
+              "state": {
+                "enum": [
+                  "missing",
+                  "not_applicable",
+                  "unknown",
+                  "unsupported"
+                ]
+              },
+              "reason": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 256,
+                "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9223372036854775807
+              }
+            }
+          }
         }
       }
     },
@@ -557,6 +773,12 @@
           }
         }
       }
+    },
+    "projects_by_role": {
+      "$ref": "#/$defs/role_counts"
+    },
+    "project_roots_by_role": {
+      "$ref": "#/$defs/role_counts"
     }
   },
   "$defs": {
@@ -631,6 +853,36 @@
           }
         }
       ]
+    },
+    "role_counts": {
+      "type": "array",
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "count"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "docs",
+              "example",
+              "fixture",
+              "primary",
+              "test",
+              "tooling",
+              "vendored"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9223372036854775807
+          }
+        }
+      }
     }
   }
 }

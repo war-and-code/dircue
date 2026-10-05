@@ -1,6 +1,7 @@
 package declarations
 
 import (
+	"bytes"
 	"path"
 	"slices"
 	"strconv"
@@ -26,6 +27,7 @@ func ParseNPM(name string, content []byte) *Document {
 	d := NewDocument(name, "npm")
 	data := &npmDeclarationData{usable: true}
 	d.Data = data
+	content = bytes.TrimPrefix(content, []byte{0xef, 0xbb, 0xbf})
 	object, err := ValidateJSON(content)
 	if err != nil {
 		d.Parsed = false

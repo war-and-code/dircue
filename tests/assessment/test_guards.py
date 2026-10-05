@@ -17,12 +17,17 @@ def assessment():
     lock = {'ecosystem': 'npm', **{k: metric(0) for k in ('projects', 'eligible', *h.STATES)}}
     for k in ('projects', 'eligible', 'covered'):
         lock[k] = metric(2)
+    lock['by_role'] = [dict(role='primary', projects=2, eligible=2, covered=2, missing=0, not_applicable=0,
+                            unsupported=0, unknown=0)]
+    lock['outcome_reasons'] = []
+    overall = copy.deepcopy(lock); overall['ecosystem'] = 'all'
     return dict(version='1.0.0', source=dict(mode='directory', consistency='live_directory_metadata'),
-                inventory=dict(files=metric(6), bytes=metric(80)),
+                inventory=dict(files=metric(6), bytes=metric(80), vendored_files=metric(1), vendored_bytes=metric(10)),
                 manifest_candidates=[dict(filename='package.json', kind='manifest', ecosystem='npm', files=2, bytes=30)],
                 candidate_evidence=[dict(path='original/a/package.json', root='original/a', kind='manifest')],
                 projects=metric(2), project_roots=metric(2), workspace_membership=metric(0),
-                local_dependencies=metric(1), lockfiles=[lock], lockfiles_overall=copy.deepcopy(lock))
+                projects_by_role=[dict(role='primary', count=2)], project_roots_by_role=[dict(role='primary', count=2)],
+                local_dependencies=metric(1), lockfiles=[lock], lockfiles_overall=overall)
 
 
 class Guards(unittest.TestCase):
@@ -76,6 +81,22 @@ class Guards(unittest.TestCase):
         h.Runner.basic(report)
         report['assessment']['lockfiles_overall']['covered']['count'] += 1
         with self.assertRaises(AssertionError): h.Runner.basic(report)
+
+    def test_partition_guard_rejects_inconsistent_roles_reasons_and_eligibility(self):
+        def report():
+            return dict(schema_version='1.9.0', assessment=assessment(), languages=[], summary={'language_bytes': 0})
+        h.Runner.basic(report())
+        corruptions = [
+            lambda a: a['inventory']['vendored_files'].update(count=7),
+            lambda a: a['projects_by_role'][0].update(count=3),
+            lambda a: a['lockfiles'][0]['by_role'][0].update(covered=1),
+            lambda a: (a['lockfiles'][0]['eligible'].update(count=1), a['lockfiles_overall']['eligible'].update(count=1),
+                       a['lockfiles'][0]['by_role'][0].update(eligible=1), a['lockfiles_overall']['by_role'][0].update(eligible=1)),
+            lambda a: a['lockfiles'][0]['outcome_reasons'].append(dict(state='missing', reason='lockfile-not-present', count=1)),
+        ]
+        for corrupt in corruptions:
+            r = report(); corrupt(r['assessment'])
+            with self.assertRaises(AssertionError): h.Runner.basic(r)
 
     def test_equivalence_guard_checks_local_relationships(self):
         a = assessment(); b = copy.deepcopy(a)

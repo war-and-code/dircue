@@ -39,7 +39,16 @@ type Input struct {
 	OmittedFiles      int64
 	Declarations      declarations.Report
 	ProjectRecords    []declarations.ProjectRecord
-	ReadSelected      ReadSelected
+	// DeclarationOmissions lists omitted selected manifests and
+	// DeclarationOmittedTrees lists selected directories that could not be
+	// read. When DeclarationOmissionsAttributed is true every other
+	// declaration omission is a file that is not a manifest, so ownership
+	// checks can ignore omissions in unrelated paths; otherwise any
+	// declaration omission blocks the checks it could affect.
+	DeclarationOmissions           []string
+	DeclarationOmittedTrees        []string
+	DeclarationOmissionsAttributed bool
+	ReadSelected                   ReadSelected
 	// WorkspaceLocks enables the opt-in npm workspace association check. When
 	// false, ancestor lockfiles retain the historical indeterminate behavior.
 	WorkspaceLocks bool
@@ -97,6 +106,19 @@ type Check struct {
 	Mismatched  []string `json:"mismatched,omitempty"`
 	Unexpected  []string `json:"unexpected,omitempty"`
 	Explanation string   `json:"explanation"`
+}
+
+// OutcomeReason returns the boundary reason that explains the context's
+// association state, or "" when no boundary explains it (for example an npm
+// project without direct dependencies). The npm v11 shrinkwrap selection note
+// annotates the selected file and never explains an outcome.
+func (c Context) OutcomeReason() string {
+	for _, b := range c.Boundaries {
+		if b.Reason != "npm-v11-shrinkwrap-selection" {
+			return b.Reason
+		}
+	}
+	return ""
 }
 
 type Boundary struct {

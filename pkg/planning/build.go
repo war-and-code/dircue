@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/war-and-code/dircue/pkg/assessment"
 	"github.com/war-and-code/dircue/pkg/capabilities"
 	"github.com/war-and-code/dircue/pkg/discovery"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -340,8 +339,8 @@ func retainedStatus(p *profile.Report, module string, projects []string) (string
 		if p.Assessment != nil {
 			partial := false
 			// Aggregate completeness is independent of retained evidence samples.
-			for _, value := range []assessment.Metric{p.Assessment.Inventory.Files, p.Assessment.Inventory.Bytes, p.Assessment.ManifestCandidatePopulation, p.Assessment.Projects, p.Assessment.ProjectRoots, p.Assessment.WorkspaceMembership, p.Assessment.LocalDependencies, p.Assessment.LockfilesOverall.Projects, p.Assessment.LockfilesOverall.Eligible, p.Assessment.LockfilesOverall.Covered, p.Assessment.LockfilesOverall.Missing, p.Assessment.LockfilesOverall.NotApplicable, p.Assessment.LockfilesOverall.Unsupported, p.Assessment.LockfilesOverall.Unknown} {
-				if value.Completeness != "complete" {
+			for _, value := range p.Assessment.Metrics() {
+				if value.Metric.Completeness != "complete" {
 					partial = true
 				}
 			}

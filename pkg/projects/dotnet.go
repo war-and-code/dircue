@@ -266,30 +266,30 @@ func ParseDotnet(name string, content []byte) Document {
 					for update := range strings.SplitSeq(n.attrs["Update"], ";") {
 						update = strings.TrimSpace(update)
 						if update == "" {
-						continue
-					}
-					if !budget.observation(len(update) + len(condition) + 128) {
-						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
-						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
-						break
-					}
-					target := dotnetReference(name, "project-reference", update, condition).Target
-					if target == "" {
-						unknownAspireNameUpdate = unknownAspireNameUpdate || customName
-						unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
-						continue
-					}
-					if customName {
-						updatedAspireNames[target] = true
-					}
-					if resourceSeen {
-						if previous, exists := updatedAspireResources[target]; exists && previous != resource {
-							updatedAspireResources[target] = "unresolved"
-						} else {
-						updatedAspireResources[target] = resource
+							continue
+						}
+						if !budget.observation(len(update) + len(condition) + 128) {
+							unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+							unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+							break
+						}
+						target := dotnetReference(name, "project-reference", update, condition).Target
+						if target == "" {
+							unknownAspireNameUpdate = unknownAspireNameUpdate || customName
+							unknownAspireResourceUpdate = unknownAspireResourceUpdate || resourceSeen
+							continue
+						}
+						if customName {
+							updatedAspireNames[target] = true
+						}
+						if resourceSeen {
+							if previous, exists := updatedAspireResources[target]; exists && previous != resource {
+								updatedAspireResources[target] = "unresolved"
+							} else {
+								updatedAspireResources[target] = resource
+							}
 						}
 					}
-				}
 				}
 				break
 			}
@@ -395,9 +395,6 @@ func ParseDotnet(name string, content []byte) Document {
 				break
 			}
 			id := n.attrs["Include"]
-			if id == "" {
-				id = n.attrs["Update"]
-			}
 			if id == "" {
 				break
 			}

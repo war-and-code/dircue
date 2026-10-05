@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/war-and-code/dircue/pkg/assessment"
 )
@@ -11,9 +12,10 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 	if report == nil {
 		return nil
 	}
-	if _, err := fmt.Fprintf(out, "Repository measurements; source: %s\nSelected regular files: %d (%s); logical bytes: %d (%s)\nDeclared projects: %d (%s); distinct project roots: %d (%s)\nWorkspace memberships: %d (%s); local dependency references: %d (%s)\n", report.Source.Mode,
-		report.Inventory.Files.Count, report.Inventory.Files.Completeness, report.Inventory.Bytes.Count, report.Inventory.Bytes.Completeness,
-		report.Projects.Count, report.Projects.Completeness, report.ProjectRoots.Count, report.ProjectRoots.Completeness,
+	inventory := report.Inventory
+	if _, err := fmt.Fprintf(out, "Repository measurements; source: %s\nSelected regular files: %d (%s); logical bytes: %d (%s); Linguist-vendored: %d files, %d bytes\nDeclared projects: %d (%s)%s; distinct project roots: %d (%s)%s\nWorkspace memberships: %d (%s); local dependency references: %d (%s)\n", report.Source.Mode,
+		inventory.Files.Count, inventory.Files.Completeness, inventory.Bytes.Count, inventory.Bytes.Completeness, inventory.VendoredFiles.Count, inventory.VendoredBytes.Count,
+		report.Projects.Count, report.Projects.Completeness, roleSummary(report.ProjectsByRole), report.ProjectRoots.Count, report.ProjectRoots.Completeness, roleSummary(report.ProjectRootsByRole),
 		report.WorkspaceMembership.Count, report.WorkspaceMembership.Completeness, report.LocalDependencies.Count, report.LocalDependencies.Completeness); err != nil {
 		return err
 	}
@@ -21,7 +23,7 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 		return err
 	}
 	for _, group := range report.ManifestCandidates {
-		if _, err := fmt.Fprintf(out, "  %s [%s]: %d files; %d logical bytes\n", group.Filename, group.Ecosystem, group.Files, group.Bytes); err != nil {
+		if _, err := fmt.Fprintf(out, "  %s [%s %s]: %d files; %d logical bytes\n", group.Filename, group.Ecosystem, group.Kind, group.Files, group.Bytes); err != nil {
 			return err
 		}
 	}
@@ -29,7 +31,25 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 		if _, err := fmt.Fprintf(out, "%s lockfile associations: %d projects; %d eligible; %d covered; %d missing; %d not applicable; %d unsupported; %d unknown (%s)\n", group.Ecosystem, group.Projects.Count, group.Eligible.Count, group.Covered.Count, group.Missing.Count, group.NotApplicable.Count, group.Unsupported.Count, group.Unknown.Count, group.Projects.Completeness); err != nil {
 			return err
 		}
+		for _, reason := range group.OutcomeReasons {
+			if _, err := fmt.Fprintf(out, "  %s: %s %d\n", strings.ReplaceAll(reason.State, "_", " "), reason.Reason, reason.Count); err != nil {
+				return err
+			}
+		}
 	}
-	_, err := fmt.Fprintln(out, "Counts describe selected evidence, not repository size policy, package resolution, or successful builds. Use --json for scopes, definitions, evidence, and omissions.")
+	_, err := fmt.Fprintln(out, "Counts describe selected evidence only. Use --json for scopes, definitions, roles, evidence, and omissions.")
 	return err
+}
+
+// roleSummary renders a role partition, or nothing when every count is
+// primary.
+func roleSummary(roles []assessment.RoleCount) string {
+	if len(roles) == 0 || len(roles) == 1 && roles[0].Role == "primary" {
+		return ""
+	}
+	parts := make([]string, 0, len(roles))
+	for _, role := range roles {
+		parts = append(parts, fmt.Sprintf("%s %d", role.Role, role.Count))
+	}
+	return " [" + strings.Join(parts, ", ") + "]"
 }
