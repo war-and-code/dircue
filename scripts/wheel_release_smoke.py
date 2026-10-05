@@ -33,6 +33,13 @@ def source_inputs():
             (Path(__file__).resolve(), ROOT / 'scripts/declarations_release_smoke.py', ROOT / 'scripts/wheels.py')}
 
 
+def validated_assessment_gate(smoke, version, launcher_sha256):
+    declarations.validate_receipt(smoke, version, launcher_sha256)
+    if declarations.assessment_required(version):
+        return smoke['assessment_required']
+    return None
+
+
 def validate_receipt(receipt, version, target, core_sha256, wheel_name, wheel_sha256):
     require(isinstance(receipt, dict), 'native wheel smoke receipt must be an object')
     require(receipt.get('schema_version') == '1.0.0' and receipt.get('passed') is True and
@@ -46,15 +53,25 @@ def validate_receipt(receipt, version, target, core_sha256, wheel_name, wheel_sh
     require(receipt.get('harness_sha256') == source_inputs() and receipt.get('fixture_sha256') == declarations.fixture_inputs(),
             'native wheel smoke source identity differs')
     required = declarations.declarations_required(version)
-    expected_checks = declarations.DEFAULT_CHECKS | (declarations.DECLARATION_CHECKS if required else set())
+    assess = declarations.assessment_required(version)
+    require((receipt.get('assessment_required') is True) if assess else ('assessment_required' not in receipt),
+            'native wheel smoke assessment gate differs')
+    expected_checks = (declarations.DEFAULT_CHECKS |
+                       (declarations.DECLARATION_CHECKS if required else set()) |
+                       (declarations.ASSESSMENT_CHECKS if assess else set()))
     require(receipt.get('checks') == sorted(expected_checks), 'native wheel smoke check inventory differs')
     digests = receipt.get('stdout_sha256')
-    keys = {'default_languages', 'default_all'} | ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set())
+    keys = ({'default_languages', 'default_all'} |
+            ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set()) |
+            ({'assessment', 'assessment_all'} if assess else set()))
     require(isinstance(digests, dict) and set(digests) == keys and all(declarations.valid_digest(value) for value in digests.values()),
             'native wheel smoke output identity missing')
     require(receipt.get('source_removed_before_compare') is required and receipt.get('installation') == INSTALLATION and
             receipt.get('scope') == SCOPE, 'native wheel smoke execution scope differs')
-    require(receipt.get('observed_facts') == (declarations.FACTS if required else {}) and
+    facts = declarations.FACTS if required else {}
+    if assess:
+        facts = {'declarations': declarations.FACTS, 'assessment': declarations.ASSESSMENT_FACTS}
+    require(receipt.get('observed_facts') == facts and
             receipt.get('negative_cases') == (['duplicate-json-key', 'malformed-json'] if required else []),
             'native wheel smoke coverage differs')
     if formats.required(version):
@@ -155,6 +172,7 @@ def run(core, directory, target, version):
         smoke = json.loads(smoke_file.read_bytes())
         require(smoke['passed'] is True and smoke['candidate_sha256'] == launcher_hash,
                 'console entrypoint smoke identity differs')
+        assessment_gate = validated_assessment_gate(smoke, version, launcher_hash)
         # Verify dirq --version exits 0 and embeds the correct version number.
         dirq_version_result = execute([dirq_launcher, '--version'], env, area)
         dirq_version_line = dirq_version_result.stdout.decode('utf-8', errors='replace').strip()
@@ -173,6 +191,8 @@ def run(core, directory, target, version):
                 'source_removed_before_compare': smoke['source_removed_before_compare'],
                 'fixture_sha256': smoke['fixture_sha256'], 'observed_facts': smoke['observed_facts'],
                 'negative_cases': smoke['negative_cases'], 'harness_sha256': source_inputs(), 'scope': SCOPE}
+        if assessment_gate is not None:
+            receipt['assessment_required'] = assessment_gate
         if formats.required(version):
             format_file = area / 'launcher-formats.json'
             execute([python, '-E', '-s', ROOT / 'scripts/formats_release_smoke.py',
