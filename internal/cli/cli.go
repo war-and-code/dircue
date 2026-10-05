@@ -45,6 +45,7 @@ type options struct {
 	displayName            string
 	environments           bool
 	lockfiles              bool
+	assessment             bool
 	availability           bool
 	focusProject           string
 	focusRelated           []string
@@ -217,7 +218,7 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 		Example: "  " + name + " analyze discovery --json /checkout\n  " + name + " analyze languages --source directory --json /content\n  " + name + " analyze all --declarations --metrics --json /checkout",
 		RunE:    analysisSelectionError,
 	}
-	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "lockfiles", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
+	for _, mode := range []string{"languages", "discovery", "formats", "rules", "registries", "metrics", "projects", "declarations", "environments", "lockfiles", "assessment", "focus", "availability", "graph", "packages", "structure", "frameworks", "ecosystems", "all"} {
 		command := &cobra.Command{
 			Use:   mode + " [path]",
 			Short: "Analyze " + mode,
@@ -246,6 +247,7 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 			addFocusFlags(command, opts)
 		}
 		if mode == "all" {
+			command.Flags().BoolVar(&opts.assessment, "assessment", false, "Collect factual repository, project, workspace, and lockfile measurements with per-metric coverage")
 			command.Flags().BoolVar(&opts.lockfiles, "lockfiles", false, "Associate selected npm and NuGet lockfiles and run named static declaration checks")
 			command.Flags().BoolVar(&opts.environments, "environments", false, "Map declared project environments using manifest evidence and bounded global.json and Python/Node/Rust toolchain inputs")
 			command.Flags().BoolVar(&opts.availability, "availability", false, "Inspect bounded source-availability evidence without fetching missing material")
@@ -260,7 +262,7 @@ func newRootCommand(name string, out, errOut io.Writer) *cobra.Command {
 		if mode == "rules" || mode == "all" {
 			command.Flags().StringVar(&opts.rulesFile, "rules-file", "", "Apply an explicit caller-supplied JSON ruleset; never discovers rulesets automatically")
 		}
-		if mode == "packages" || mode == "all" {
+		if mode == "packages" || mode == "all" || mode == "assessment" {
 			addPackageFlags(command, opts)
 		}
 		analyze.AddCommand(command)
@@ -383,11 +385,12 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		focusRequest = &focus.Request{Project: opts.focusProject, Related: opts.focusRelated, AffectedBy: opts.focusAffectedBy}
 	}
 	var hooks []profile.Detector
-	if mode == "all" || mode == "frameworks" || mode == "ecosystems" {
+	if mode == "all" || mode == "assessment" || mode == "frameworks" || mode == "ecosystems" {
 		hooks = detectors.Default()
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
 		Environments:     mode == "environments" || (mode == "all" && opts.environments),
+		Assessment:       mode == "assessment" || (mode == "all" && opts.assessment),
 		Lockfiles:        mode == "lockfiles" || (mode == "all" && opts.lockfiles),
 		Focus:            focusRequest,
 		Availability:     mode == "availability" || (mode == "all" && opts.availability),
@@ -449,6 +452,9 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	if report.Lockfiles != nil {
 		report.SchemaVersion = profile.LockfilesSchemaVersion
 	}
+	if report.Assessment != nil {
+		report.SchemaVersion = profile.AssessmentSchemaVersion
+	}
 	for _, warning := range report.Warnings {
 		// The Linguist-compatible language commands have always treated an
 		// unusable implicit Git source as an ordinary directory without writing
@@ -482,6 +488,8 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		return writeFindings(out, report.Frameworks)
 	case "ecosystems":
 		return writeFindings(out, report.Ecosystems)
+	case "assessment":
+		return writeAssessment(cmd.OutOrStdout(), report.Assessment)
 	case "lockfiles":
 		return writeLockfiles(out, report.Lockfiles)
 	case "environments":

@@ -43,6 +43,8 @@ jobs:
           python -m unittest discover -s tests/resources -p 'test_*.py' -v
           python -m unittest discover -s tests/bench -p 'test_*.py' -v
           python -m unittest discover -s tests/mutation -p 'test_*.py' -v
+      - name: Test repository assessment assertion guards
+        run: python -m unittest discover -s tests/assessment -p 'test_*.py' -v
       - name: Test optional proof-evidence validation without Bend
         run: python -m unittest discover -s research/bend-aggregation -p 'test_*.py' -v
       - name: Test performance baseline identity checks
@@ -155,6 +157,19 @@ jobs:
           python3 tests/map_corpus/metamorphic_generated.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --tier ci
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Verify generated repository measurement populations and limits
+        run: python3 tests/assessment/run.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --seeds 3 --output .cache/assessment-acceptance
+      - name: Retain assessment acceptance receipts and report outputs
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always() && !cancelled()
+        with:
+          retention-days: 7
+          if-no-files-found: ignore
+          name: assessment-${{ runner.os }}
+          path: |
+            .cache/assessment-acceptance/*.json
+            .cache/assessment-acceptance/*.stdout
+            .cache/assessment-acceptance/*.stderr
       - name: Verify smoke-command timeout cleanup on each OS
         run: python3 -m unittest discover -s tests/release -p 'test_smoke_process.py' -v
       - name: Kill focused topology attribution mutations (Linux only)

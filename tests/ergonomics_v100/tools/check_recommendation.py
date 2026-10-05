@@ -86,6 +86,7 @@ def check(identifier, binary):
                 ('dircue',),
                 ('dircue', 'analyze'),
                 ('dircue', 'analyze', 'all'),
+                ('dircue', 'analyze', 'assessment'),
                 ('dircue', 'analyze', 'availability'),
                 ('dircue', 'analyze', 'declarations'),
                 ('dircue', 'analyze', 'discovery'),
@@ -140,7 +141,7 @@ def check(identifier, binary):
             guide = json.loads(run('capabilities','--guide','--json'))
             assert guide['kind'] == 'dircue-automation-guide'
             sections = guide['sections']
-            assert sum(x['title'].startswith('dircue analyze ') for x in sections) == 19
+            assert sum(x['title'].startswith('dircue analyze ') for x in sections) == 20
             assert any(x['title'] == 'dircue analyze lockfiles' for x in sections), (
                 'offline guide omitted the lockfiles command'
             )

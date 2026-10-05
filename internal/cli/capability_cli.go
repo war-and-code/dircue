@@ -185,7 +185,7 @@ func describeCLI(root *cobra.Command) cliContract {
 	for _, name := range schema.Names() {
 		scope, pointer := "whole output", ""
 		switch name {
-		case "availability", "declarations", "environments", "explanation", "focus", "formats", "lockfiles":
+		case "assessment", "availability", "declarations", "environments", "explanation", "focus", "formats", "lockfiles":
 			scope, pointer = "profile component", "/"+name
 		case "hotspots":
 			scope, pointer = "profile component", "/structure/hotspots"

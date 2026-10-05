@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/war-and-code/dircue/pkg/assessment"
 	"github.com/war-and-code/dircue/pkg/capabilities"
 	"github.com/war-and-code/dircue/pkg/discovery"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -94,7 +95,7 @@ func Build(ctx context.Context, in Input) (*Report, error) {
 }
 
 func validateInput(in Input) error {
-	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
+	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
 		return ErrInvalid
 	}
 	if len(in.Selection.Modules)+len(in.Selection.Questions) > MaxRequests || len(in.Selection.Inputs) > MaxRequests || len(in.Selection.Projects) > MaxProjects {
@@ -279,7 +280,7 @@ func evidenceFor(d *discovery.Report, module string, languages []profile.Languag
 	}
 	want := func(c discovery.Candidate) bool {
 		switch module {
-		case "declarations", "environments":
+		case "assessment", "declarations", "environments":
 			return c.Kind == "manifest" || c.Kind == "shared_configuration"
 		case "lockfiles":
 			return c.Kind == "manifest" && (c.Format == "npm" || c.Format == "dotnet" || c.Format == "npm_lock" || c.Format == "nuget_lock")
@@ -335,6 +336,21 @@ func evidenceFor(d *discovery.Report, module string, languages []profile.Languag
 
 func retainedStatus(p *profile.Report, module string, projects []string) (string, bool) {
 	switch module {
+	case "assessment":
+		if p.Assessment != nil {
+			partial := false
+			// Aggregate completeness is independent of retained evidence samples.
+			for _, value := range []assessment.Metric{p.Assessment.Inventory.Files, p.Assessment.Inventory.Bytes, p.Assessment.ManifestCandidatePopulation, p.Assessment.Projects, p.Assessment.ProjectRoots, p.Assessment.WorkspaceMembership, p.Assessment.LocalDependencies, p.Assessment.LockfilesOverall.Projects, p.Assessment.LockfilesOverall.Eligible, p.Assessment.LockfilesOverall.Covered, p.Assessment.LockfilesOverall.Missing, p.Assessment.LockfilesOverall.NotApplicable, p.Assessment.LockfilesOverall.Unsupported, p.Assessment.LockfilesOverall.Unknown} {
+				if value.Completeness != "complete" {
+					partial = true
+				}
+			}
+			if partial {
+				return "partial", true
+			}
+			return "complete", true
+		}
+
 	case "availability":
 		if p.Availability != nil {
 			return p.Availability.Status, true

@@ -1,4 +1,4 @@
-VERSION ?= 1.3.1-dev
+VERSION ?= 1.4.0-dev
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
@@ -138,11 +138,11 @@ fuzz-campaign: ## Run each Go fuzz target for FUZZ_TIME seconds (FUZZ_PKG=./... 
 fetch-receipts: ## Restore archived evidence receipts from GitHub release evidence-archive-1
 	python3 scripts/fetch_receipts.py
 
-# Run the release smokes that need only the core binary (declarations, formats,
-# targeted analysis, context) against a version-stamped build. The release
+# Run the release smokes that need only the core binary (assessment, declarations,
+# formats, targeted analysis, context) against a version-stamped build. The release
 # workflow runs them on packaged artifacts; running them here catches drift
 # before a release. Offline.
-RELEASE_SMOKE_VERSION ?= 1.0.0-rc.1
+RELEASE_SMOKE_VERSION ?= 1.4.0-rc.1
 RELEASE_SMOKE_DIR ?= .cache/release-smoke
 .PHONY: release-smoke
 release-smoke: ## Run the offline core release smokes against a stamped binary
@@ -326,3 +326,12 @@ MAP_BINARY ?= bin/dircue
 MAP_GENERATED_TIER ?= ci
 test-map-generated:
 	python3 tests/map_corpus/metamorphic_generated.py --binary "$(MAP_BINARY)" --tier "$(MAP_GENERATED_TIER)"
+
+# Combined repository measurement acceptance checks. No package manager runs.
+ASSESSMENT_BINARY ?= bin/dircue
+ASSESSMENT_OUTPUT ?= .cache/assessment/acceptance
+ASSESSMENT_SEEDS ?= 3
+.PHONY: assessment-check
+assessment-check:
+	python3 -m unittest discover -s tests/assessment -p 'test_*.py'
+	python3 tests/assessment/run.py --candidate "$(ASSESSMENT_BINARY)" --seeds "$(ASSESSMENT_SEEDS)" --output "$(ASSESSMENT_OUTPUT)"

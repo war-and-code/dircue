@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -346,6 +347,332 @@ func TestNPMUnsupportedMissingAndUnprovenWorkspaceStayDistinct(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestNPMWorkspaceSharedLockUsesExactMemberDescriptorAndReadsOnce(t *testing.T) {
+	// Independent format oracle: npm CLI 11.19.0 generated the receipt at
+	// .cache/assessment140/locks/oracle.json with `--package-lock-only
+	// --ignore-scripts --offline`; npm's v11 docs say packages keys are
+	// root-relative and `""` names the root package:
+	// https://docs.npmjs.com/cli/v11/configuring-npm/package-lock-json/#packages
+	root := npmRecord(".")
+	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared", Evidence: "package.json"}}
+	root.Project.References = []declarations.Reference{
+		{Kind: "npm-workspace-member", Value: "packages/*", Target: "packages/app/package.json", State: "resolved", Evidence: "package.json"},
+		{Kind: "npm-workspace-member", Value: "packages/*", Target: "packages/tool/package.json", State: "resolved", Evidence: "package.json"},
+	}
+	member := npmRecord("packages/app", npmRef("alpha@^1.0.0", "dependencies"))
+	member2 := npmRecord("packages/tool", npmRef("beta@~2.0.0", "devDependencies"))
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"root-only":"1"}},"packages/app":{"dependencies":{"alpha":"^1.0.0"}},"packages/tool":{"devDependencies":{"beta":"~2.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{root, member, member2}, map[string]string{"package-lock.json": lock}, true)
+	in.WorkspaceLocks = true
+	reads := map[string]int{}
+	read := in.ReadSelected
+	in.ReadSelected = func(ctx context.Context, p string, max int64) ([]byte, int64, error) {
+		reads[p]++
+		return read(ctx, p, max)
+	}
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reads["package-lock.json"] != 1 || r.Coverage.LockfilesRead != 1 {
+		t.Fatalf("shared lock was not read/cached once: reads=%v coverage=%+v", reads, r.Coverage)
+	}
+	for manifest, expected := range map[string]string{"packages/app/package.json": "match", "packages/tool/package.json": "match"} {
+		var found bool
+		for _, c := range r.Contexts {
+			if c.ManifestPath != manifest {
+				continue
+			}
+			found = true
+			if c.AssociationState != "observed" || c.LockfilePath != "package-lock.json" || len(c.Checks) != 1 || c.Checks[0].Status != expected {
+				t.Fatalf("member did not compare against its own package descriptor: %+v", c)
+			}
+			if len(c.Boundaries) != 1 || c.Boundaries[0].Reason != "npm-workspace-lock-ownership-observed" {
+				t.Fatalf("shared ownership evidence was not named: %+v", c.Boundaries)
+			}
+		}
+		if !found {
+			t.Fatalf("missing member context %q", manifest)
+		}
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("invalid workspace report: %v", err)
+	}
+}
+func TestNPMWorkspaceAssociationRequiresCompleteUnambiguousOwnership(t *testing.T) {
+	makeRoot := func(target string) declarations.ProjectRecord {
+		r := npmRecord(".")
+		r.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared", Evidence: "package.json"}}
+		r.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Value: "packages/*", Target: target, State: "resolved", Evidence: "package.json"}}
+		return r
+	}
+	member := npmRecord("packages/app", npmRef("alpha@1.0.0", "dependencies"))
+	shared := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
+	for _, tc := range []struct {
+		name     string
+		roots    []declarations.ProjectRecord
+		content  map[string]string
+		diags    []declarations.Diagnostic
+		complete bool
+	}{
+		{"missing member descriptor", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}`}, nil, true},
+		{"member-local lock collision", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared, "packages/app/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{"alpha":"1.0.0"}}}}`}, nil, true},
+		{"multiple workspace owners", []declarations.ProjectRecord{makeRoot(member.Project.ID), func() declarations.ProjectRecord {
+			r := npmRecord("packages")
+			r.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+			r.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "packages/package.json"}}
+			return r
+		}()}, map[string]string{"package-lock.json": shared}, nil, true},
+		{"unsupported workspace declaration", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, []declarations.Diagnostic{{Path: "package.json", Code: "unsupported-npm-workspace-pattern"}}, true},
+		{"incomplete parent inventory", []declarations.ProjectRecord{makeRoot(member.Project.ID)}, map[string]string{"package-lock.json": shared}, nil, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := append(slices.Clone(tc.roots), member)
+			in := testInput(records, tc.content, true)
+			in.WorkspaceLocks = true
+			in.Declarations.Diagnostics = tc.diags
+			if !tc.complete {
+				in.Declarations.Coverage.OmittedFiles = 1
+			}
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, c := range r.Contexts {
+				if c.ManifestPath == member.Project.ID && (c.AssociationState != "indeterminate" || len(c.Checks) > 0 && c.Checks[0].Status != "indeterminate") {
+					t.Fatalf("ambiguous/missing evidence became a comparison: %+v", c)
+				}
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatalf("invalid qualified report: %v", err)
+			}
+		})
+	}
+}
+
+func TestNPMWorkspaceUnsupportedAndAncestorCollisionsRemainUnknown(t *testing.T) {
+	root := npmRecord(".")
+	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	root.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "packages/app/package.json", State: "resolved", Evidence: "package.json"}}
+	member := npmRecord("packages/app", npmRef("alpha@1.0.0", "dependencies"))
+	valid := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
+	for _, tc := range []struct {
+		name        string
+		records     []declarations.ProjectRecord
+		files       map[string]string
+		association string
+	}{
+		{"unsupported v1 lock", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": `{"lockfileVersion":1,"dependencies":{}}`}, "unsupported"},
+		{"multiple ancestor lock directories", []declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": valid, "packages/package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}}}}`}, "indeterminate"},
+		{"non-workspace ancestor lock", []declarations.ProjectRecord{member}, map[string]string{"package-lock.json": valid}, "indeterminate"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := testInput(tc.records, tc.files, true)
+			in.WorkspaceLocks = true
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := contextByManifest(r, member.Project.ID)
+			if c.AssociationState != tc.association {
+				t.Fatalf("association=%q want %q: %+v", c.AssociationState, tc.association, c)
+			}
+			if c.AssociationState == "indeterminate" && len(c.Checks) != 0 || c.AssociationState == "unsupported" && (len(c.Checks) != 1 || c.Checks[0].Status != "indeterminate") {
+				t.Fatalf("unknown/corrupt evidence became a check result: %+v", c)
+			}
+		})
+	}
+}
+
+func TestNPMNestedWorkspaceMemberRemainsIndeterminate(t *testing.T) {
+	owner := npmRecord(".")
+	owner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	owner.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "packages/nested/package.json", State: "resolved", Evidence: "package.json"}}
+	member := npmRecord("packages/nested", npmRef("alpha@1.0.0", "dependencies"))
+	member.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	in := testInput([]declarations.ProjectRecord{owner, member}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/nested":{"dependencies":{"alpha":"1.0.0"}}}}`}, true)
+	in.WorkspaceLocks = true
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := contextByManifest(r, member.Project.ID)
+	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 {
+		t.Fatalf("nested workspace membership was treated as unambiguous: %+v", c)
+	}
+}
+
+func TestNPMWorkspaceEmptyRootAndPrivateEmptyMember(t *testing.T) {
+	member := npmRecord("apps/private")
+	member.Project.Requirements = []declarations.Requirement{{Kind: "npm-private", Value: "true", State: "declared"}}
+	member.Project.References = []declarations.Reference{}
+	root := npmRecord(".")
+	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	// A workspace root with an empty workspaces declaration cannot own the
+	// present package merely because its path is beneath the root.
+	in := testInput([]declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"apps/private":{"dependencies":{}}}}`}, true)
+	in.WorkspaceLocks = true
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := contextByManifest(r, member.Project.ID)
+	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 {
+		t.Fatalf("empty workspace root inferred membership: %+v", c)
+	}
+
+	root.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "package.json"}}
+	in = testInput([]declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"apps/private":{"dependencies":{}}}}`}, true)
+	in.WorkspaceLocks = true
+	r, err = Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c = contextByManifest(r, member.Project.ID)
+	if c.AssociationState != "observed" || len(c.Checks) != 1 || c.Checks[0].Status != "match" || c.Checks[0].Compared != 0 {
+		t.Fatalf("valid private dependency-free member was not represented accurately: %+v", c)
+	}
+}
+
+func TestNPMWorkspaceScopedConditionalPeerAndPackageManagerEligibility(t *testing.T) {
+	root := npmRecord(".")
+	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}, {Kind: "package-manager", Value: "npm@11.19.0", State: "declared"}}
+	member := npmRecord("packages/app", npmRef("@scope/widget@^2.0.0", "peerDependencies"))
+	root.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "package.json"}}
+	member.Project.References[0].State = "conditional"
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"peerDependencies":{"@scope/widget":"^2.0.0"}}}}`
+	in := testInput([]declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": lock}, true)
+	in.WorkspaceLocks = true
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	c := contextByManifest(r, member.Project.ID)
+	if c.AssociationState != "observed" || len(c.Checks) != 1 || c.Checks[0].Status != "indeterminate" || len(c.Checks[0].Unexpected) != 1 || c.Checks[0].Unexpected[0] != "@scope/widget" {
+		t.Fatalf("scoped conditional peer dependency lost its uncertainty: %+v", c)
+	}
+
+	for _, manager := range []string{"yarn@4.0.0", "pnpm@9.0.0"} {
+		t.Run(manager, func(t *testing.T) {
+			own := npmRecord("app", npmRef("alpha@1.0.0", "dependencies"))
+			own.Project.Requirements = []declarations.Requirement{{Kind: "package-manager", Value: manager, State: "declared"}}
+			ownLock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"alpha":"1.0.0"}}}}`
+			input := testInput([]declarations.ProjectRecord{own}, map[string]string{"app/package-lock.json": ownLock}, true)
+			input.WorkspaceLocks = true
+			report, analyzeErr := Analyze(context.Background(), input, Limits{})
+			if analyzeErr != nil {
+				t.Fatal(analyzeErr)
+			}
+			ctxReport := report.Contexts[0]
+			if ctxReport.AssociationState != "indeterminate" || len(ctxReport.Checks) != 0 || len(ctxReport.Boundaries) != 1 || ctxReport.Boundaries[0].Reason != "npm-package-manager-not-established" {
+				t.Fatalf("%s was falsely treated as an npm lock owner: %+v", manager, ctxReport)
+			}
+			input.WorkspaceLocks = false
+			legacy, analyzeErr := Analyze(context.Background(), input, Limits{})
+			if analyzeErr != nil || legacy.Contexts[0].AssociationState != "observed" {
+				t.Fatalf("legacy behavior changed for %s: report=%+v err=%v", manager, legacy, analyzeErr)
+			}
+			owner := npmRecord(".")
+			owner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}, {Kind: "package-manager", Value: manager, State: "declared"}}
+			workspaceMember := npmRecord("packages/app", npmRef("alpha@1.0.0", "dependencies"))
+			owner.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: workspaceMember.Project.ID, State: "resolved", Evidence: "package.json"}}
+			workspaceInput := testInput([]declarations.ProjectRecord{owner, workspaceMember}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`}, true)
+			workspaceInput.WorkspaceLocks = true
+			workspaceReport, analyzeErr := Analyze(context.Background(), workspaceInput, Limits{})
+			if analyzeErr != nil {
+				t.Fatal(analyzeErr)
+			}
+			workspaceContext := contextByManifest(workspaceReport, workspaceMember.Project.ID)
+			if workspaceContext.AssociationState != "indeterminate" || len(workspaceContext.Checks) != 0 {
+				t.Fatalf("workspace owned by %s was falsely eligible for npm lock coverage: %+v", manager, workspaceContext)
+			}
+		})
+	}
+}
+
+func TestNPMWorkspaceLockParseRejectsDuplicateKeysAndEnforcesAggregateBudget(t *testing.T) {
+	duplicate := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"":{"dependencies":{}}}}`), 100)
+	if duplicate.state != "unsupported" || duplicate.reason != "invalid-lockfile-json" {
+		t.Fatalf("duplicate JSON package entries accepted: %+v", duplicate)
+	}
+	tooMany := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1"}},"packages/app":{"dependencies":{"b":"1"}}}}`), 3)
+	if tooMany.state != "indeterminate" || tooMany.reason != "package-name-limit" {
+		t.Fatalf("aggregate workspace package-name budget not enforced: %+v", tooMany)
+	}
+	valid := parseNPMWorkspaceLock([]byte(`{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1"}},"packages/app":{"dependencies":{"b":"1"}}}}`), 4)
+	if valid.state != "supported" || valid.packageNames != 4 || valid.npmPackages["packages/app"]["dependencies"]["b"] != "1" {
+		t.Fatalf("workspace package descriptors were not retained: %+v", valid)
+	}
+}
+
+func TestNPMWorkspaceModeOptInLeavesLegacyReportUnchanged(t *testing.T) {
+	root := npmRecord(".")
+	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	root.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "app/package.json", State: "resolved", Evidence: "package.json"}}
+	member := npmRecord("app", npmRef("a@1.0.0", "dependencies"))
+	in := testInput([]declarations.ProjectRecord{root, member}, map[string]string{"package-lock.json": `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"app":{"dependencies":{"a":"1.0.0"}}}}`}, true)
+	legacy, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(legacy)
+	in.WorkspaceLocks = true
+	optIn, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	legacyMember, optMember := contextByManifest(legacy, "app/package.json"), contextByManifest(optIn, "app/package.json")
+	if legacyMember.AssociationState != "indeterminate" || optMember.AssociationState != "observed" || len(optMember.Boundaries) == 0 {
+		t.Fatalf("opt-in association did not separate historical and new behavior: legacy=%+v opted=%+v", legacyMember, optMember)
+	}
+	encodedAgain, _ := json.Marshal(legacy)
+	if !bytes.Equal(encoded, encodedAgain) {
+		t.Fatal("opt-in analysis mutated the prior report")
+	}
+}
+
+func TestWorkspaceModePreservesLiteralPOSIXBackslashProjectIdentity(t *testing.T) {
+	lock := `{"lockfileVersion":3,"packages":{"":{"dependencies":{"a":"1.0.0"}}}}`
+	backslash := npmRecord(`a\b`, npmRef("a@1.0.0", "dependencies"))
+	slash := npmRecord("a/b", npmRef("a@1.0.0", "dependencies"))
+	backslashLock := `a\b/package-lock.json`
+	slashLock := "a/b/package-lock.json"
+	in := testInput([]declarations.ProjectRecord{backslash, slash}, map[string]string{backslashLock: lock, slashLock: lock}, true)
+	in.WorkspaceLocks = true
+	report, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Contexts) != 2 {
+		t.Fatalf("literal backslash path aliased or poisoned the other project: %+v", report.Contexts)
+	}
+	byID := map[string]Context{}
+	for _, ctx := range report.Contexts {
+		byID[ctx.ProjectID] = ctx
+	}
+	for _, expected := range []struct{ id, lock string }{{`a\b/package.json`, backslashLock}, {"a/b/package.json", slashLock}} {
+		ctx, ok := byID[expected.id]
+		if !ok || ctx.ManifestPath != expected.id || ctx.LockfilePath != expected.lock || ctx.AssociationState != "observed" || len(ctx.Checks) != 1 || ctx.Checks[0].Status != "match" {
+			t.Fatalf("selected POSIX identity lost for %q: %+v", expected.id, report.Contexts)
+		}
+	}
+	if len(report.Semantics) != 3 || report.Semantics[2] != npmWorkspaceSemantics {
+		t.Fatalf("opt-in path semantics are not identified: %v", report.Semantics)
+	}
+	if err := ValidateReport(report); err != nil {
+		t.Fatalf("opt-in POSIX path report did not validate: %v", err)
+	}
+}
+
+func contextByManifest(r *Report, manifest string) Context {
+	for _, c := range r.Contexts {
+		if c.ManifestPath == manifest {
+			return c
+		}
+	}
+	return Context{}
 }
 
 func TestNuGetV1AndV2DirectPresenceAndMultiTargetUncertainty(t *testing.T) {

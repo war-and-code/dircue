@@ -26,7 +26,7 @@ func Compare(base, head *Snapshot) (*Report, error) {
 			names = append(names, name)
 		}
 	}
-	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments", "lockfiles"} {
+	for _, name := range []string{"focus_primary", "focus_related", "focus_context", "focus_relations", "focus_affected_projects", "focused_metrics_primary", "focused_metrics_related", "availability_lfs", "availability_gitlinks", "availability_submodules", "availability_sparse", "availability_references", "availability_diagnostics", "explanation", "environments", "lockfiles", "assessment"} {
 		if a[name].present || b[name].present {
 			names = append(names, name)
 		}
@@ -232,6 +232,8 @@ func compareModule(name string, a, b moduleData, remaining, byteBudget *int) Mod
 
 func comparisonScope(name string) string {
 	switch name {
+	case "assessment":
+		return "Aggregate repository measurements; retained examples are metadata, and incomplete populations cannot prove absence."
 	case "languages":
 		return "Reported language statistics by language name, including the reported byte denominator; classifier and selection provenance are unavailable."
 	case "summary":

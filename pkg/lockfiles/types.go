@@ -40,6 +40,9 @@ type Input struct {
 	Declarations      declarations.Report
 	ProjectRecords    []declarations.ProjectRecord
 	ReadSelected      ReadSelected
+	// WorkspaceLocks enables the opt-in npm workspace association check. When
+	// false, ancestor lockfiles retain the historical indeterminate behavior.
+	WorkspaceLocks bool
 	// ErrorPolicy "continue" retains later observations after a selected read
 	// error; the default returns a wrapped error.
 	ErrorPolicy string

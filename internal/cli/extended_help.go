@@ -10,7 +10,7 @@ func setExtendedCommandHelp(cmd *cobra.Command, mode, name string) {
 		cmd.Example = "  " + name + " --json /checkout\n  " + name + " analyze languages --source directory --breakdown /content"
 	case "all":
 		cmd.Short = "Combine language statistics, ecosystem hints, and selected profilers"
-		cmd.Long = "Run the default language and filename-based detectors in one scan. Optional profilers run only when requested through flags such as --discovery, --declarations, --environments, --metrics, and --structure. Each module retains its own population, coverage, and omissions; totals need not describe identical files. Structural analysis requires an explicitly selected worker."
+		cmd.Long = "Run the default language and filename-based detectors in one scan. Optional profilers run only when requested through flags such as --assessment, --discovery, --declarations, --environments, --metrics, and --structure. Each module retains its own population, coverage, and omissions; totals need not describe identical files. Structural analysis requires an explicitly selected worker."
 		cmd.Example = "  " + name + " analyze all --discovery --json /content\n  " + name + " analyze all --declarations --environments --metrics --json /checkout"
 	case "metrics":
 		cmd.Short = "Count lines, comments, code, and lexical complexity with scc"
@@ -29,6 +29,10 @@ func setExtendedCommandHelp(cmd *cobra.Command, mode, name string) {
 		cmd.Long = "Run built-in detectors over selected files and return findings with evidence paths. Findings are hints under the supported detector rules, not proof of installed packages, runtime behavior, or build success. For bounded manifest parsing and workspace relationships, use analyze declarations."
 		cmd.Example = "  " + name + " analyze " + mode + " --json /checkout"
 
+	case "assessment":
+		cmd.Short = "Measure repository populations, project relationships, and lockfile associations"
+		cmd.Long = "Collect languages, selected regular-file and byte totals, filename manifest counts, distinct declared project roots, workspace membership, local project relationships, and supported npm/NuGet lockfile associations in one versioned report. Each measurement discloses its population, completeness, and evidence limits. Shared npm locks require proven workspace ownership and member entries. No policy verdict, package resolution, Git requirement, or Syft dependency. Use --source directory for current files, or --source git for a selected committed tree. Optional Syft report import on analyze all adds separate package evidence without changing native measurements."
+		cmd.Example = "  " + name + " analyze assessment --source directory --json /content\n  " + name + " analyze all --assessment --json /checkout\n  " + name + " capabilities --schema assessment"
 	case "lockfiles":
 		cmd.Short = "Associate selected lockfiles and compare named dependency declarations"
 		cmd.Long = "Read supported npm lockfile v2/v3 and NuGet packages.lock.json v1/v2 from the selected source. Report association separately from named static checks: npm direct declaration text and NuGet direct package presence. Missing, unsupported, and indeterminate evidence remain distinct. This does not resolve dependency graphs, verify lockfile freshness, execute restore, or contact registries. Shared or ambiguous ownership remains explicit."

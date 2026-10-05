@@ -22,7 +22,7 @@ func addPackageFlags(cmd *cobra.Command, opts *options) {
 }
 
 func loadPackageEvidence(cmd *cobra.Command, opts *options, mode string) (*packageevidence.Report, error) {
-	if mode != "packages" && mode != "all" {
+	if mode != "packages" && mode != "all" && mode != "assessment" {
 		return nil, nil
 	}
 	if opts.syftReport == "" {

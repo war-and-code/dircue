@@ -23,13 +23,14 @@ type lockfileAccumulator struct {
 	inventoryComplete bool
 	inventoryOmission string
 	errorPolicy       string
+	workspaceLocks    bool
 }
 
 func newLockfileAccumulator(opts Options) *lockfileAccumulator {
 	if !opts.Lockfiles {
 		return nil
 	}
-	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy)}
+	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy), workspaceLocks: opts.Assessment}
 }
 
 func (a *lockfileAccumulator) add(value result) error {
@@ -107,7 +108,8 @@ func (a *lockfileAccumulator) finish(ctx context.Context, root *os.Root, collect
 		limits.FileBytes = a.maxFileBytes
 	}
 	input := lockfiles.Input{
-		Source: report.Declarations.Source, Tree: report.Declarations.Tree,
+		WorkspaceLocks: a.workspaceLocks,
+		Source:         report.Declarations.Source, Tree: report.Declarations.Tree,
 		Inventory: inventory, InventoryComplete: true,
 		Declarations: *report.Declarations, ProjectRecords: collector.ProjectRecords(),
 		ErrorPolicy: a.errorPolicy,

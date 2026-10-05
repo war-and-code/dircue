@@ -111,3 +111,9 @@ observations must fail both helpers' semantic checks. An optional
 
 These fixtures test the stated behavior. They do not establish universal format
 validation, semantic complexity, or a whole-repository quality score.
+
+## 1.4 repository measurements
+
+For 1.4.0 and later, the core declaration smoke also checks `analyze assessment` and `analyze all --assessment` in a Git-free fixture with no external tools on PATH. It verifies independently counted regular files, logical bytes, manifest candidates, parsed projects, distinct roots, and the npm/NuGet eligible subset. Lock association states partition all reported projects rather than just the eligible subset. Go workspace configuration contributes membership declarations but does not count as another package project.
+
+The receipt retains both declaration and assessment facts and hashes the two assessment outputs. The older receipt format and version gates remain unchanged for releases before 1.4.0. These assembly checks supplement the generated assessment and native validation suites; they do not establish comprehensive ecosystem detection or build-tool equivalence.

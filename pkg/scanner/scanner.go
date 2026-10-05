@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/war-and-code/dircue/pkg/assessment"
 	"github.com/war-and-code/dircue/pkg/availability"
 	"github.com/war-and-code/dircue/pkg/declarations"
 	"github.com/war-and-code/dircue/pkg/discovery"
@@ -38,6 +39,8 @@ const DefaultMaxTreeSize = 100_000
 const ClassificationBytes int64 = 128 * 1024
 
 type Options struct {
+	// Assessment aggregates factual repository measurements without external tools.
+	Assessment bool
 	// Lockfiles performs named static checks on selected manifest/lockfile pairs.
 	Lockfiles bool
 	// Environments reuses declarations and reads selected global.json inputs.
@@ -182,6 +185,9 @@ type result struct {
 func Scan(ctx context.Context, directory string, opts Options) (out *profile.Report, returnErr error) {
 	if err := validateTargetedOptions(opts); err != nil {
 		return nil, err
+	}
+	if opts.Assessment {
+		opts.Discovery, opts.Declarations, opts.Lockfiles = true, true, true
 	}
 	if opts.Focus != nil || opts.Environments || opts.Lockfiles {
 		opts.Declarations = true
@@ -407,6 +413,15 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			}
 			if opts.Lockfiles {
 				report.SchemaVersion = profile.LockfilesSchemaVersion
+			}
+			if opts.Assessment {
+				c := assessment.New("directory", "")
+				c.Skip("tree_size_limit")
+				report.Assessment, err = c.Finish(report.Declarations, report.Lockfiles)
+				if err != nil {
+					return nil, err
+				}
+				report.SchemaVersion = profile.AssessmentSchemaVersion
 			}
 			return report, nil
 		}
@@ -635,6 +650,14 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			declarationCollector.EnableProjectRecords()
 		}
 	}
+	var assessmentCollector *assessment.Collector
+	if opts.Assessment {
+		source, tree := "directory", ""
+		if snapshot != nil {
+			source, tree = "git", snapshot.tree.Hash.String()
+		}
+		assessmentCollector = assessment.New(source, tree)
+	}
 	var discoveryCollector *discovery.Collector
 	if opts.Discovery {
 		source, tree := "directory", ""
@@ -674,6 +697,9 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 	for value := range results {
 		// Env tree summaries are a distinct result kind; handle them first.
 		if value.envTree != nil {
+			if assessmentCollector != nil {
+				assessmentCollector.Partial("summarized_tree")
+			}
 			report.SummarizedTrees = append(report.SummarizedTrees, *value.envTree)
 			continue
 		}
@@ -730,6 +756,13 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			if err := ruleCollector.add(value); err != nil {
 				fail(fmt.Errorf("collect rules: %w", err))
 				continue
+			}
+		}
+		if assessmentCollector != nil {
+			if value.discoveryFile != nil {
+				assessmentCollector.Add(*value.discoveryFile)
+			} else if value.path != "" && value.omission != "" {
+				assessmentCollector.Partial(value.omission)
 			}
 		}
 		if discoveryCollector != nil {
@@ -962,6 +995,18 @@ func Scan(ctx context.Context, directory string, opts Options) (out *profile.Rep
 			}
 		}
 		report.SchemaVersion = profile.LockfilesSchemaVersion
+	}
+	if assessmentCollector != nil {
+		for _, warning := range report.Warnings {
+			if warning.Code == "tree_size_limit" {
+				assessmentCollector.Partial("tree_size_limit")
+			}
+		}
+		report.Assessment, err = assessmentCollector.Finish(report.Declarations, report.Lockfiles, declarationCollector.ProjectRecords())
+		if err != nil {
+			return nil, fmt.Errorf("repository assessment: %w", err)
+		}
+		report.SchemaVersion = profile.AssessmentSchemaVersion
 	}
 	for _, language := range languages {
 		if report.Summary.LanguageBytes > 0 {

@@ -39,9 +39,9 @@
       "pattern": "^[0-9a-f]{40}$"
     },
     "semantics": {
-      "const": [
-        "npm-package-lock-direct-tables-v1",
-        "nuget-packages-lock-direct-presence-v1"
+      "oneOf": [
+        {"const": ["npm-package-lock-direct-tables-v1", "nuget-packages-lock-direct-presence-v1"]},
+        {"const": ["npm-package-lock-direct-tables-v1", "nuget-packages-lock-direct-presence-v1", "npm-workspace-member-lock-descriptors-v1"]}
       ]
     },
     "limits": {
@@ -165,7 +165,7 @@
           "project_id": {
             "type": "string",
             "maxLength": 8192,
-            "pattern": "^[^/\\\\\\x00][^\\\\\\x00]*$",
+            "pattern": "^[^/\\x00][^\\x00]*$",
             "not": {
               "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
             }
@@ -179,7 +179,7 @@
           "manifest_path": {
             "type": "string",
             "maxLength": 8192,
-            "pattern": "^[^/\\\\\\x00][^\\\\\\x00]*$",
+            "pattern": "^[^/\\x00][^\\x00]*$",
             "not": {
               "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
             }
@@ -187,7 +187,7 @@
           "lockfile_path": {
             "type": "string",
             "maxLength": 8192,
-            "pattern": "^[^/\\\\\\x00][^\\\\\\x00]*$",
+            "pattern": "^[^/\\x00][^\\x00]*$",
             "not": {
               "pattern": "(^|/)\\.\\.?(/|$)|//|/$"
             }
@@ -313,6 +313,31 @@
     }
   },
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "semantics": {
+            "contains": {"const": "npm-workspace-member-lock-descriptors-v1"}
+          }
+        }
+      },
+      "then": {},
+      "else": {
+        "properties": {
+          "contexts": {
+            "items": {
+              "properties": {
+                "project_id": {"not": {"pattern": "\\\\"}},
+                "manifest_path": {"not": {"pattern": "\\\\"}},
+                "lockfile_path": {"not": {"pattern": "\\\\"}},
+                "boundaries": {"items": {"properties": {"path": {"not": {"pattern": "\\\\"}}}}}
+              }
+            }
+          },
+          "diagnostics": {"items": {"properties": {"path": {"not": {"pattern": "\\\\"}}}}}
+        }
+      }
+    },
     {
       "if": {
         "properties": {

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.4.0 (unreleased)
+
+- Add optional `analyze assessment` and `analyze all --assessment` reports combining existing language statistics with selected file/logical-byte totals, filename-selected manifest counts, parsed project roots, explicit workspace and local references, and npm/NuGet lockfile associations. Each metric states its population and completeness; capped evidence samples remain separate from incomplete counts. The module works without Git, Syft, build execution, or package restoration and emits no monorepo or size verdict.
+- Associate supported npm v2/v3 shared workspace locks only when selected declarations establish a unique owner and the lock contains the member entry. Reuse the parsed lock across members, retain ambiguous or unsupported outcomes, and preserve literal POSIX filename backslashes in the opt-in path semantics. Keep earlier `--lockfiles` behavior unchanged outside assessment. Optional imported Syft evidence remains separate from native measurements.
+- Introduce aggregate schema `1.9.0` and assessment component version `1.0.0`, with offline schema exports, built-in help, saved-report comparison, and inert follow-up planning. Correct the profile schema to accept existing discovery commit identity and summarized-tree fields without changing their output.
+- Add generated population and relationship checks, accounting validators, parser/evidence-limit tests, source-selection tests, and optional-provider independence checks to event-driven cross-platform CI. Existing language and default aggregate paths remain unchanged.
+
 ## 1.3.1 (2026-10-04)
 
 - Reuse cleared, bounded import-lexer token buffers without changing detected imports, coverage or language results. Dense-token growth also stays within the existing retained-token limit.

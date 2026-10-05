@@ -19,7 +19,7 @@ func parityOracle(t *testing.T) *upstream.Schema {
 	t.Helper()
 	c := upstream.NewCompiler()
 	c.LoadURL = func(string) (io.ReadCloser, error) { return nil, fmt.Errorf("resource is not bundled") }
-	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json", "focus.schema.json", "availability.schema.json", "explanation.schema.json", "environments.schema.json", "lockfiles.schema.json"} {
+	for _, name := range []string{"profile.schema.json", "declarations.schema.json", "formats.schema.json", "hotspots.schema.json", "focus.schema.json", "availability.schema.json", "explanation.schema.json", "environments.schema.json", "lockfiles.schema.json", "assessment.schema.json"} {
 		data, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)
@@ -41,7 +41,7 @@ func TestPrivateValidatorProfileParity(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.test/parity\ngo 1.26.0\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	for _, flags := range [][]string{nil, {"--declarations"}, {"--discovery"}, {"--formats"}, {"--environments"}, {"--lockfiles"}, {"--environments", "--lockfiles"}} {
+	for _, flags := range [][]string{nil, {"--declarations"}, {"--discovery"}, {"--formats"}, {"--environments"}, {"--lockfiles"}, {"--environments", "--lockfiles"}, {"--assessment"}} {
 		args := append([]string{"analyze", "all", "--json"}, flags...)
 		var out, stderr bytes.Buffer
 		if err := cli.Execute(context.Background(), append(args, root), &out, &stderr); err != nil {
@@ -69,6 +69,15 @@ func TestPrivateValidatorProfileParity(t *testing.T) {
 			}
 			return copy
 		}
+		value := clone()
+		summary := map[string]any{"path": "venv", "kind": "virtualenv", "ecosystem": "python", "marker": "venv/pyvenv.cfg", "basis": "environment-marker", "entries": json.Number("2"), "bytes": json.Number("10"), "bounded": true, "lower_bound": true, "reason": "environment_tree_entry_limit"}
+		value["summarized_trees"] = []any{summary}
+		check("existing summarized-tree reason", value, true)
+		summary["reason"] = 7
+		check("invalid summarized-tree reason", value, false)
+		summary["reason"] = "environment_tree_entry_limit"
+		summary["unknown"] = true
+		check("unknown summarized-tree property", value, false)
 		for _, required := range []string{"root", "schema_version", "summary", "languages", "warnings"} {
 			value := clone()
 			delete(value, required)
