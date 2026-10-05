@@ -1037,6 +1037,19 @@ func associateNPMWorkspace(rec declarations.ProjectRecord, records []declaration
 	if len(ancestorDirs) != 1 {
 		return unknown("npm-workspace-lock-ancestor-collision")
 	}
+	// Every selected npm package manifest above this member is relevant to
+	// ownership, including manifests above the candidate lock root. An
+	// incomplete or malformed package.json could conceal a competing workspace
+	// and must not disappear merely because it has no parsed workspace requirement.
+	for _, candidate := range records {
+		if candidate.Project.Kind != "npm" || path.Base(candidate.Project.ID) != "package.json" ||
+			candidate.Project.ID == rec.Project.ID || !isAncestor(candidate.Project.Root, memberRoot) {
+			continue
+		}
+		if !candidate.Parsed || !candidate.Complete || hasNPMWorkspaceDeclarationDiagnostics(diagnostics, candidate.Project.ID) {
+			return unknown("npm-workspace-lock-owner-incomplete")
+		}
+	}
 	var workspaceRecords []declarations.ProjectRecord
 	for _, candidate := range records {
 		if candidate.Project.Kind != "npm" || path.Base(candidate.Project.ID) != "package.json" || !isAncestor(candidate.Project.Root, memberRoot) {

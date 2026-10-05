@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -112,7 +113,53 @@ func TestAssessmentExactInventoryLanguagesAndSharedWorkspaceLocks(t *testing.T) 
 	}
 }
 
+func TestAssessmentNPMWorkspaceRejectsMalformedSelectedIntermediateOwner(t *testing.T) {
+	files := map[string]string{
+		"package.json":              `{"name":"repo","workspaces":["packages/app"]}`,
+		"package-lock.json":         `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`,
+		"packages/app/package.json": `{"name":"app","dependencies":{"alpha":"1.0.0"}}`,
+	}
+	for _, tc := range []struct {
+		name         string
+		intermediate map[string]string
+		want         string
+	}{
+		{name: "invalid JSON intermediate", intermediate: map[string]string{"packages/package.json": "{"}, want: "indeterminate"},
+		{name: "invalid workspace declaration intermediate", intermediate: map[string]string{"packages/package.json": `{"name":"ordinary","workspaces":"not-an-array"}`}, want: "indeterminate"},
+		{name: "unrelated invalid package", intermediate: map[string]string{"elsewhere/package.json": "{"}, want: "observed"},
+		{name: "complete ordinary intermediate", intermediate: map[string]string{"packages/package.json": `{"name":"ordinary"}`}, want: "observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			input := make(map[string]string, len(files)+len(tc.intermediate))
+			for name, content := range files {
+				input[name] = content
+			}
+			for name, content := range tc.intermediate {
+				input[name] = content
+			}
+			report := scanAssessment(t, fixtures(t, input), Options{Source: "directory"})
+			if got := assessmentLockState(t, report, "packages/app/package.json"); got != tc.want {
+				t.Fatalf("member lock association=%q want %q; locks=%+v", got, tc.want, report.Lockfiles.Contexts)
+			}
+			for _, context := range report.Lockfiles.Contexts {
+				if context.ManifestPath != "packages/app/package.json" {
+					continue
+				}
+				if tc.want == "indeterminate" && (len(context.Checks) != 0 || len(context.Boundaries) != 1 || context.Boundaries[0].Reason != "npm-workspace-lock-owner-incomplete") {
+					t.Fatalf("malformed selected ancestor did not qualify ownership: %+v", context)
+				}
+				if tc.want == "observed" && (len(context.Checks) != 1 || context.Checks[0].Status != "match") {
+					t.Fatalf("ordinary/unrelated manifests changed valid ownership: %+v", context)
+				}
+			}
+		})
+	}
+}
+
 func TestAssessmentPreservesLiteralPOSIXBackslashProjectPath(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("Windows physical paths treat backslashes as separators, so this literal POSIX filename cannot be represented")
+	}
 	manifest := `a\b/package.json`
 	root := fixtures(t, map[string]string{
 		manifest:                `{"name":"backslash-app","dependencies":{"left-pad":"1.0.0"}}`,

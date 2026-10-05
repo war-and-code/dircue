@@ -452,6 +452,96 @@ func TestNPMWorkspaceAssociationRequiresCompleteUnambiguousOwnership(t *testing.
 	}
 }
 
+func TestNPMWorkspaceMalformedSelectedAncestorBlocksOwnerButUnrelatedDoesNot(t *testing.T) {
+	owner := npmRecord(".")
+	owner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	owner.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "packages/app/package.json", State: "resolved", Evidence: "package.json"}}
+	member := npmRecord("packages/app", npmRef("alpha@1.0.0", "dependencies"))
+	shared := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
+	invalidIntermediate := npmRecord("packages")
+	invalidIntermediate.Parsed = false
+	validButIncompleteIntermediate := npmRecord("packages")
+	validButIncompleteIntermediate.Complete = false
+	malformedWorkspaceIntermediate := npmRecord("packages")
+	workspaceDiagnostic := declarations.Diagnostic{Path: malformedWorkspaceIntermediate.Project.ID, Code: "unsupported-npm-workspaces"}
+	unrelatedMalformed := npmRecord("outside")
+	unrelatedMalformed.Parsed = false
+
+	for _, tc := range []struct {
+		name            string
+		intermediate    declarations.ProjectRecord
+		hasIntermediate bool
+		diagnostics     []declarations.Diagnostic
+		want            string
+	}{
+		{name: "unparsed selected intermediate", intermediate: invalidIntermediate, hasIntermediate: true, want: "indeterminate"},
+		{name: "incomplete selected intermediate", intermediate: validButIncompleteIntermediate, hasIntermediate: true, want: "indeterminate"},
+		{name: "malformed workspace declaration", intermediate: malformedWorkspaceIntermediate, hasIntermediate: true, diagnostics: []declarations.Diagnostic{workspaceDiagnostic}, want: "indeterminate"},
+		{name: "unrelated malformed package does not poison ownership", intermediate: unrelatedMalformed, hasIntermediate: true, want: "observed"},
+		{name: "complete ordinary intermediate remains eligible", intermediate: npmRecord("packages"), hasIntermediate: true, want: "observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			records := []declarations.ProjectRecord{owner}
+			if tc.hasIntermediate {
+				records = append(records, tc.intermediate)
+			}
+			records = append(records, member)
+			in := testInput(records, map[string]string{"package-lock.json": shared}, true)
+			in.WorkspaceLocks = true
+			in.Declarations.Diagnostics = tc.diagnostics
+			report, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := contextByManifest(report, member.Project.ID)
+			if c.AssociationState != tc.want {
+				t.Fatalf("association=%q want %q: %+v", c.AssociationState, tc.want, c)
+			}
+			if tc.want == "observed" && (len(c.Checks) != 1 || c.Checks[0].Status != "match") {
+				t.Fatalf("complete ownership did not compare member declaration: %+v", c)
+			}
+			if tc.want == "indeterminate" && len(c.Checks) != 0 {
+				t.Fatalf("incomplete ownership produced a comparison: %+v", c)
+			}
+		})
+	}
+}
+
+func TestNPMWorkspaceChecksAncestorsAboveLockRoot(t *testing.T) {
+	innerOwner := npmRecord("repo")
+	innerOwner.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	innerOwner.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: "repo/packages/app/package.json", State: "resolved", Evidence: "repo/package.json"}}
+	member := npmRecord("repo/packages/app", npmRef("alpha@1.0.0", "dependencies"))
+	shared := `{"lockfileVersion":3,"packages":{"":{"dependencies":{}},"packages/app":{"dependencies":{"alpha":"1.0.0"}}}}`
+	malformedAbove := npmRecord(".")
+	malformedAbove.Parsed = false
+	outerWorkspace := npmRecord(".")
+	outerWorkspace.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}
+	outerWorkspace.Project.References = []declarations.Reference{{Kind: "npm-workspace-member", Target: member.Project.ID, State: "resolved", Evidence: "package.json"}}
+
+	for _, tc := range []struct {
+		name    string
+		outer   declarations.ProjectRecord
+		wantWhy string
+	}{
+		{name: "unparsed package above lock root", outer: malformedAbove, wantWhy: "npm-workspace-lock-owner-incomplete"},
+		{name: "known competing workspace above lock root", outer: outerWorkspace, wantWhy: "npm-workspace-lock-owner-unresolved"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := testInput([]declarations.ProjectRecord{tc.outer, innerOwner, member}, map[string]string{"repo/package-lock.json": shared}, true)
+			in.WorkspaceLocks = true
+			report, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			c := contextByManifest(report, member.Project.ID)
+			if c.AssociationState != "indeterminate" || len(c.Checks) != 0 || len(c.Boundaries) != 1 || c.Boundaries[0].Reason != tc.wantWhy {
+				t.Fatalf("ancestor above lock root was not treated as a competing owner: %+v", c)
+			}
+		})
+	}
+}
+
 func TestNPMWorkspaceUnsupportedAndAncestorCollisionsRemainUnknown(t *testing.T) {
 	root := npmRecord(".")
 	root.Project.Requirements = []declarations.Requirement{{Kind: "npm-workspace-root", Value: "true", State: "declared"}}

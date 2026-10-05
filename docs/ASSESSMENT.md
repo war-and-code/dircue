@@ -60,4 +60,4 @@ dircue analyze all --assessment --source directory --json \
 
 Dircue imports the report once through its existing [package-evidence importer](PACKAGE_EVIDENCE.md). It does not invoke Syft or recreate its package catalog. Native measurements remain based on the selected source: an attachment cannot establish a missing manifest, workspace membership, lockfile ownership, or complete native coverage. Package attribution retains its separate coordinate-mapping, source-binding, schema, and coverage checks. Keep supplied reports and saved dircue outputs outside the directory being measured if they should not contribute to its file/byte totals.
 
-A caller can inspect the native report first, apply its own policy, and import a Syft report later. No pipeline reorder is required.
+A caller can inspect the native report first, apply its own policy, and import a Syft report in a later invocation.
