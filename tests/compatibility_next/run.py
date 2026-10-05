@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Differential checks of released dircue 0.3.0 and a candidate, without output scrubbing."""
+"""Differential checks of a released dircue binary and a candidate, without output scrubbing."""
 import argparse
 import base64
 from datetime import datetime, timezone

@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "scenarios": [
+    {
+      "name": "spring-framework-git-map",
+      "args": [
+        "map",
+        "--json",
+        "--source",
+        "git",
+        "{cwd}"
+      ],
+      "cwd": "{corpus}/spring-framework",
+      "inputs": [
+        "spring-framework"
+      ],
+      "provenance": {
+        "repository": "spring-framework",
+        "selection": "git",
+        "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+        "working_tree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "working_tree_clean": true
+      }
+    },
+    {
+      "name": "spring-framework-directory-map",
+      "args": [
+        "map",
+        "--json",
+        "--source",
+        "directory",
+        "{cwd}"
+      ],
+      "cwd": "{corpus}/spring-framework",
+      "inputs": [
+        "spring-framework"
+      ],
+      "provenance": {
+        "repository": "spring-framework",
+        "selection": "directory",
+        "commit": "9e8cea3ef8ae02efb7956b071cd7bbef7c22cb82",
+        "working_tree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "working_tree_clean": true
+      }
+    },
+    {
+      "name": "roslyn-git-map",
+      "args": [
+        "map",
+        "--json",
+        "--source",
+        "git",
+        "{cwd}"
+      ],
+      "cwd": "{corpus}/roslyn",
+      "inputs": [
+        "roslyn"
+      ],
+      "provenance": {
+        "repository": "roslyn",
+        "selection": "git",
+        "commit": "ca7d6c1a040cda9fecd1ffe3720fb971251ace67",
+        "working_tree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "working_tree_clean": true
+      }
+    },
+    {
+      "name": "uv-git-map",
+      "args": [
+        "map",
+        "--json",
+        "--source",
+        "git",
+        "{cwd}"
+      ],
+      "cwd": "{corpus}/uv",
+      "inputs": [
+        "uv"
+      ],
+      "provenance": {
+        "repository": "uv",
+        "selection": "git",
+        "commit": "40efebb459c21b1ecafe4787f84cb693e68a9802",
+        "working_tree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "working_tree_clean": true
+      }
+    },
+    {
+      "name": "microservices-demo-directory-map",
+      "args": [
+        "map",
+        "--json",
+        "--source",
+        "directory",
+        "{cwd}"
+      ],
+      "cwd": "{corpus}/microservices-demo",
+      "inputs": [
+        "microservices-demo"
+      ],
+      "provenance": {
+        "repository": "microservices-demo",
+        "selection": "directory",
+        "commit": "38e7348eb289eb5b87c0c6e8cb19ced0449dc389",
+        "working_tree_status_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "working_tree_clean": true
+      }
+    }
+  ]
+}

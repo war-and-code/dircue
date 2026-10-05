@@ -152,8 +152,11 @@ jobs:
           python3 tests/map_corpus/run.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --output .cache/map-corpus
           python3 tests/map_corpus/verify.py --results .cache/map-corpus
           python3 tests/map_corpus/metamorphic.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+          python3 tests/map_corpus/metamorphic_generated.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --tier ci
           python3 tests/map_corpus/robustness.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
+      - name: Verify smoke-command timeout cleanup on each OS
+        run: python3 -m unittest discover -s tests/release -p 'test_smoke_process.py' -v
       - name: Kill focused topology attribution mutations (Linux only)
         if: runner.os == 'Linux'
         run: python3 tests/mutation/topology.py --output "$RUNNER_TEMP/topology-mutations.json"
@@ -162,12 +165,19 @@ jobs:
         env:
           GOMAXPROCS: '4'
         run: make fuzz-campaign FUZZ_COUNT=1000 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"
+      - name: Check reusable import tokens against fresh allocation (Linux only)
+        if: runner.os == 'Linux'
+        env:
+          CGO_ENABLED: '0'
+          GOMAXPROCS: '4'
+        run: go test ./pkg/intentmap -run '^$' -fuzz '^FuzzReusableImportTokens$' -fuzztime=1000x -fuzzminimizetime=100x -test.fuzzcachedir="$RUNNER_TEMP/import-token-fuzz"
       - name: Exercise benchmark assertions and whole-CLI equality (Linux only)
         if: runner.os == 'Linux'
         env:
           CGO_ENABLED: '0'
         run: |
           go test ./pkg/deployables ./pkg/projects -run '^$' -bench 'Benchmark(Procfile|Gradle|Aspire)' -benchtime=1x -benchmem
+          go test ./pkg/intentmap -run '^$' -bench '^BenchmarkImportObservations$' -benchtime=1x -benchmem
           # Different packaging of the same source makes two distinct binaries.
           # This exercises the harness; its timings are not a performance claim.
           go build -trimpath -ldflags '-s -w' -o "$RUNNER_TEMP/dircue-bench-smoke" .
@@ -248,10 +258,8 @@ jobs:
           path: .cache/metrics-differential.json
 
   counter-regression:
-    # Report-only PR check: map the corpus fixtures with the base and head
-    # builds and compare their deterministic cost counters in the job summary.
-    # Wall time, heap and GC counts vary between runs and are never compared.
-    if: github.event_name == 'pull_request' && !github.event.pull_request.draft
+    # Gate reviewed logical-cost ceilings and fixture identities. Base/head
+    # deltas remain context; noisy time, heap and GC values are never gated.
     needs: preflight
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -268,16 +276,18 @@ jobs:
           cache-dependency-path: go.sum
       - name: Build head and base
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha || 'v1.3.0' }}
           CGO_ENABLED: '0'
         run: |
+          set -euo pipefail
           go build -trimpath -o "$RUNNER_TEMP/dircue-head" .
           git worktree add --detach "$RUNNER_TEMP/base" "$BASE_SHA"
           (cd "$RUNNER_TEMP/base" && go build -trimpath -o "$RUNNER_TEMP/dircue-base" .)
-      - name: Compare deterministic cost counters
+      - name: Enforce reviewed deterministic cost budgets
         run: |
           python3 tests/bench/counter_compare.py \
             --base "$RUNNER_TEMP/dircue-base" --head "$RUNNER_TEMP/dircue-head" \
+            --budget tests/bench/counter_budget.json \
             tests/map_corpus/fixtures/*/
 
   map-diff-dogfood:

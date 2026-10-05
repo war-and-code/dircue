@@ -30,6 +30,32 @@ class MeasurementWorkflowTests(unittest.TestCase):
         self.assertIn("-benchtime=1x", text)
         self.assertIn("discover -s tests/mutation", text)
         self.assertIn('make fuzz-campaign FUZZ_COUNT=1000 FUZZ_PKG=./pkg/deployables FUZZ_CACHE="$RUNNER_TEMP/topology-fuzz"', text)
+        self.assertIn("-fuzz '^FuzzReusableImportTokens$' -fuzztime=1000x", text)
+        self.assertIn("-bench '^BenchmarkImportObservations$'", text)
+        self.assertIn("discover -s tests/release -p 'test_smoke_process.py'", text)
+
+    def test_cost_and_generated_guards_are_wired_into_event_ci(self):
+        text = (WORKFLOWS / "ci.yml").read_text()
+        job = text.split("  counter-regression:\n", 1)[1].split("\n  map-diff-dogfood:", 1)[0]
+        self.assertIn("--budget tests/bench/counter_budget.json", job)
+        self.assertIn("tests/map_corpus/fixtures/*/", job)
+        self.assertIn("needs: preflight", job)
+        self.assertNotIn("continue-on-error", job)
+        self.assertIn("tests/map_corpus/metamorphic_generated.py --binary", text)
+        self.assertIn("--tier ci", text)
+        manual = (WORKFLOWS / "map-corpus.yml").read_text()
+        self.assertIn("--tier manual", manual)
+
+    def test_per_runner_uvx_smoke_uses_verified_hashes_and_retains_failures(self):
+        text = (WORKFLOWS / "publish-pypi.yml").read_text()
+        job = text.split("  install-smoke:\n", 1)[1]
+        self.assertIn("needs: [verify, lock-smoke]", job)
+        self.assertIn("EXPECTED_WHEELS_JSON: ${{ needs.verify.outputs.wheel_hashes }}", job)
+        self.assertIn('pypi_uvx_ready.py --version "$RELEASE_VERSION"', job)
+        self.assertIn("if: always()", job)
+        self.assertIn("path: ${{ runner.temp }}/uvx-smoke", job)
+        self.assertNotIn("continue-on-error", job)
+        self.assertNotIn("uv publish", job)
 
     @unittest.skipIf(os.name == "nt", "the manually dispatched Linux job uses POSIX executable scripts")
     def test_mutation_tool_failures_or_missing_receipts_fail_the_job(self):

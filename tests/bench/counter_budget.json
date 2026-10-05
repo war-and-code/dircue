@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "description": "Reviewed deterministic map-cost ceilings for the committed local fixture corpus. These ceilings cover logical counters only; they do not claim exhaustive I/O cost.",
+  "provenance": {
+    "source_commit": "6170e0ea6f2cddb0d6f755fc86d19b29e9ea33bf",
+    "source_tag": "v1.3.0",
+    "measurement_binary": {
+      "kind": "fresh-source-build",
+      "sha256": "d595bdb5fa687c1713298a218e0abee1b486f8c143bdaa2618c3ecce298acf09",
+      "command": "go build -trimpath -o /tmp/dircue-counter-baseline .",
+      "go_version": "go1.26.6",
+      "goos": "darwin",
+      "goarch": "arm64"
+    },
+    "published_v1_3_0_artifact": {
+      "path": ".cache/release130/native/dircue",
+      "sha256": "3df817be95212a4ee6e89eb54bf0e8cc6bfa8b115923be1d68dab63a794eb3e1",
+      "measurement_source": false
+    },
+    "command": [
+      "dircue",
+      "map",
+      "--source",
+      "directory",
+      "--json",
+      "--stats-json",
+      "<temporary-stats-path>",
+      "<fixture>"
+    ],
+    "inventory_root": "tests/map_corpus/fixtures",
+    "digest_algorithm": "SHA-256 over sorted regular-file relative paths and raw bytes, plus symlink relative paths and link targets; type and length framed",
+    "stats_schema": "schema/stats.schema.json 1.0.0"
+  },
+  "growth_policy": {
+    "percent": 25,
+    "files_absolute_floor": 2,
+    "bytes_absolute_floor": 256,
+    "limit_hits": "no-increase",
+    "formula": "ceiling = baseline + max(absolute_floor, ceil(baseline * percent / 100)); limit_hits ceiling equals baseline"
+  },
+  "fixtures": [
+    {
+      "id": "attribution-boundaries",
+      "input_sha256": "2434ceab9935c0498118488aba49a236955de220b005a991eea324c079f05dd7",
+      "baseline": {
+        "files_enumerated": 6,
+        "files_content_read": 6,
+        "bytes_requested": 1129,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "capabilities-polyglot",
+      "input_sha256": "22e5cc30d78bf7e978f2fcb51407bf75e42d1f7124ab3c96242cb04d624434f9",
+      "baseline": {
+        "files_enumerated": 8,
+        "files_content_read": 8,
+        "bytes_requested": 3335,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "declared-intent",
+      "input_sha256": "3853bb64de1795d2fb6e580d447a4a29ba96215ad53223c26f250231e0ce8980",
+      "baseline": {
+        "files_enumerated": 4,
+        "files_content_read": 4,
+        "bytes_requested": 319,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "documentation-boundary",
+      "input_sha256": "94d3cb027cf5bcabc345528c126314fe35043b5fefca3f1c47d1ca63505b2f33",
+      "baseline": {
+        "files_enumerated": 2,
+        "files_content_read": 2,
+        "bytes_requested": 300,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "flask-entry-point",
+      "input_sha256": "fdaf2c0cdb6f40a64c275d634f721d654bda321c8a874c980fbd8d307ebcd60b",
+      "baseline": {
+        "files_enumerated": 2,
+        "files_content_read": 2,
+        "bytes_requested": 122,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "go-http-subpackage",
+      "input_sha256": "2d3fdf6d37e751c5ed3dafebd9da2f5dbfe736bbcfd5492f1616f7302501ac75",
+      "baseline": {
+        "files_enumerated": 3,
+        "files_content_read": 3,
+        "bytes_requested": 590,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "jvm-dart-declarations",
+      "input_sha256": "49a6f42f7ee197fb9bd7ea214595f4d2bed4470a389d957a707c717d7f00a0b5",
+      "baseline": {
+        "files_enumerated": 3,
+        "files_content_read": 3,
+        "bytes_requested": 939,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "jvm-maven-sibling-prisma",
+      "input_sha256": "9094789cc40aac43d5b50efa4c1083946335e897401a9ae064ccbd7b9162e487",
+      "baseline": {
+        "files_enumerated": 4,
+        "files_content_read": 4,
+        "bytes_requested": 1565,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "misleading-declarations",
+      "input_sha256": "6a08192f46dfc3d0b2504210c985baaa8e635516b089ce7c2a9712a54d212b95",
+      "baseline": {
+        "files_enumerated": 3,
+        "files_content_read": 3,
+        "bytes_requested": 196,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "non-source",
+      "input_sha256": "acb728d3166f20b8c166048cb8ce2262085da70332d81ba30abcbf2ddffd555f",
+      "baseline": {
+        "files_enumerated": 5,
+        "files_content_read": 5,
+        "bytes_requested": 384,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "polyglot-deployable",
+      "input_sha256": "cf67d9468aa36c866739e97472d636bd5fe39471f0973d9d63b66fbb4fd5e36c",
+      "baseline": {
+        "files_enumerated": 10,
+        "files_content_read": 10,
+        "bytes_requested": 918,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "project-launch-topology",
+      "input_sha256": "d9acc2fe440ad59ad92626218cc4394cd2ba82d31af453ae80432e3b24f8d127",
+      "baseline": {
+        "files_enumerated": 15,
+        "files_content_read": 15,
+        "bytes_requested": 1423,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "python-capabilities",
+      "input_sha256": "de4dc1ec32ca5c9a7e2a29dd30fdc4f51e461ff7dd4fa42a4c2fd20e3b30ab34",
+      "baseline": {
+        "files_enumerated": 2,
+        "files_content_read": 2,
+        "bytes_requested": 237,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "python-manifest-extras",
+      "input_sha256": "e09d5fec1f1a727450f68b693b1e7216836ed61a142f6f3b6686c2c248ee743b",
+      "baseline": {
+        "files_enumerated": 5,
+        "files_content_read": 5,
+        "bytes_requested": 372,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "review-regressions",
+      "input_sha256": "f856a81aca5bb62ec19304bf699d506def75ca403b00946deef9dc572b1c01a4",
+      "baseline": {
+        "files_enumerated": 7,
+        "files_content_read": 7,
+        "bytes_requested": 951,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    },
+    {
+      "id": "typescript-imports",
+      "input_sha256": "6dd45d5e822503d22bdee258bb43d4acda1172dcd740183630b91d12e95ad47d",
+      "baseline": {
+        "files_enumerated": 5,
+        "files_content_read": 5,
+        "bytes_requested": 449,
+        "limit_hits.file_bytes": 0,
+        "limit_hits.tree_size": 0
+      }
+    }
+  ]
+}
