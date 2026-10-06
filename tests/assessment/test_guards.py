@@ -8,6 +8,9 @@ spec = importlib.util.spec_from_file_location('assessment_acceptance', Path(__fi
 h = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(h)
 
+CURRENT_ASSESSMENT_VERSION = '1.1.0'
+CURRENT_PROFILE_SCHEMA_VERSION = '1.10.0'
+
 
 def metric(n):
     return dict(count=n, scope='synthetic population', completeness='complete', reasons=[])
@@ -21,7 +24,8 @@ def assessment():
                             unsupported=0, unknown=0)]
     lock['outcome_reasons'] = []
     overall = copy.deepcopy(lock); overall['ecosystem'] = 'all'
-    return dict(version='1.0.0', source=dict(mode='directory', consistency='live_directory_metadata'),
+    return dict(version=CURRENT_ASSESSMENT_VERSION,
+                source=dict(mode='directory', consistency='live_directory_metadata'),
                 inventory=dict(files=metric(6), bytes=metric(80), vendored_files=metric(1), vendored_bytes=metric(10)),
                 manifest_candidates=[dict(filename='package.json', kind='manifest', ecosystem='npm', files=2, bytes=30)],
                 candidate_evidence=[dict(path='original/a/package.json', root='original/a', kind='manifest')],
@@ -77,14 +81,14 @@ class Guards(unittest.TestCase):
         with self.assertRaises(AssertionError): h.assert_lock_removed(a, b)
 
     def test_partition_guard_rejects_double_counted_overall(self):
-        report = dict(schema_version='1.9.0', assessment=assessment(), languages=[], summary={'language_bytes': 0})
+        report = dict(schema_version=CURRENT_PROFILE_SCHEMA_VERSION, assessment=assessment(), languages=[], summary={'language_bytes': 0})
         h.Runner.basic(report)
         report['assessment']['lockfiles_overall']['covered']['count'] += 1
         with self.assertRaises(AssertionError): h.Runner.basic(report)
 
     def test_partition_guard_rejects_inconsistent_roles_reasons_and_eligibility(self):
         def report():
-            return dict(schema_version='1.9.0', assessment=assessment(), languages=[], summary={'language_bytes': 0})
+            return dict(schema_version=CURRENT_PROFILE_SCHEMA_VERSION, assessment=assessment(), languages=[], summary={'language_bytes': 0})
         h.Runner.basic(report())
         corruptions = [
             lambda a: a['inventory']['vendored_files'].update(count=7),

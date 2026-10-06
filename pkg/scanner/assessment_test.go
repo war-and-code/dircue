@@ -349,6 +349,33 @@ func TestGradleBuildEvaluationQualifiesOnlyDependencyCoverage(t *testing.T) {
 	}
 }
 
+func TestAssessmentMavenExactCaseExplicitReactorDependency(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"pom.xml":     `<project><modelVersion>4.0.0</modelVersion><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version><packaging>pom</packaging><modules><module>app</module><module>lib</module></modules></project>`,
+		"app/pom.xml": `<project><modelVersion>4.0.0</modelVersion><parent><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version></parent><artifactId>app</artifactId><version>1</version><dependencies><dependency><groupId>Org.Example</groupId><artifactId>Lib</artifactId><version>1</version></dependency></dependencies></project>`,
+		"lib/pom.xml": `<project><modelVersion>4.0.0</modelVersion><parent><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version></parent><artifactId>Lib</artifactId><version>1</version></project>`,
+	})
+	report := scanAssessment(t, root, Options{Source: "directory"})
+	structure := report.Assessment.Structure
+	found := false
+	for _, edge := range structure.Dependencies.Edges {
+		if edge.From == "app/pom.xml" && edge.To == "lib/pom.xml" && edge.Kind == "maven-sibling-dependency" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("case-exact Maven reactor edge missing: %+v", structure.Dependencies)
+	}
+	if structure.Dependencies.DefiniteEdges.Count != 3 || structure.Dependencies.ConnectedGroups.Count != 1 {
+		t.Fatalf("Maven graph totals should include two parent edges and the sibling edge: %+v", structure.Dependencies)
+	}
+	for _, row := range structure.Coverage {
+		if row.Ecosystem == "maven" && (row.Scope == "project_dependencies" || row.Scope == "dependency_connectivity") && row.Status != "complete" {
+			t.Fatalf("exact, unconditional reactor dependency should retain complete coverage: %+v", row)
+		}
+	}
+}
+
 func TestAssessmentPerMetricLowerBoundsForContentSummaryAndTreeLimits(t *testing.T) {
 	t.Run("content cap", func(t *testing.T) {
 		root := fixtures(t, map[string]string{

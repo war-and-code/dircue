@@ -149,6 +149,73 @@ func TestStructureMavenCoordinatesNeedExplicitUnconditionalReactorMembership(t *
 			t.Fatalf("explicit reactor dependency not retained: %+v", a.Structure.Dependencies)
 		}
 	})
+	t.Run("exact-case reactor dependency survives legacy matcher normalization", func(t *testing.T) {
+		req := func(kind, value string) declarations.Requirement {
+			return declarations.Requirement{Kind: kind, Value: value, State: "declared"}
+		}
+		root := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven", Requirements: []declarations.Requirement{
+			req("maven-groupId", "Org.Example"), req("maven-artifactId", "root"), req("maven-version", "1"),
+		}, References: []declarations.Reference{
+			{Kind: "module", Target: "app/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+			{Kind: "module", Target: "lib/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+		}, Interfaces: []declarations.Interface{}}
+		app := declarations.Project{ID: "app/pom.xml", Root: "app", Kind: "maven", Requirements: []declarations.Requirement{
+			req("maven-groupId", "Org.Example"), req("maven-artifactId", "app"), req("maven-version", "1"),
+			{Kind: "maven-dependency", Value: "Org.Example:Lib:1", State: "declared", Evidence: "app/pom.xml"},
+		}, References: []declarations.Reference{}, Interfaces: []declarations.Interface{}}
+		lib := declarations.Project{ID: "lib/pom.xml", Root: "lib", Kind: "maven", Requirements: []declarations.Requirement{
+			req("maven-groupId", "Org.Example"), req("maven-artifactId", "Lib"), req("maven-version", "1"),
+		}, References: []declarations.Reference{}, Interfaces: []declarations.Interface{}}
+		a := finishStructureProjects(t, []declarations.Project{root, app, lib})
+		found := false
+		for _, edge := range a.Structure.Dependencies.Edges {
+			if edge.From == app.ID && edge.To == lib.ID && edge.Kind == "maven-sibling-dependency" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("case-exact Maven reactor dependency was dropped: edges=%+v qualified=%+v", a.Structure.Dependencies.Edges, a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("qualified versions do not produce an exact-case edge", func(t *testing.T) {
+		for _, tt := range []struct {
+			name, dependencyVersion, targetVersion, targetVersionState string
+		}{
+			{name: "conditional target version", dependencyVersion: "1", targetVersion: "1", targetVersionState: "conditional"},
+			{name: "unresolved target version", dependencyVersion: "1", targetVersion: "1", targetVersionState: "unresolved"},
+			{name: "range dependency version", dependencyVersion: "[1,2)", targetVersion: "1", targetVersionState: "declared"},
+			{name: "interpolated dependency version", dependencyVersion: "${lib.version}", targetVersion: "1", targetVersionState: "declared"},
+		} {
+			t.Run(tt.name, func(t *testing.T) {
+				declared := func(kind, value string) declarations.Requirement {
+					return declarations.Requirement{Kind: kind, Value: value, State: "declared"}
+				}
+				root := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven", Requirements: []declarations.Requirement{
+					declared("maven-groupId", "Org.Example"), declared("maven-artifactId", "root"), declared("maven-version", "1"),
+				}, References: []declarations.Reference{
+					{Kind: "module", Target: "app/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+					{Kind: "module", Target: "lib/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+				}}
+				app := declarations.Project{ID: "app/pom.xml", Root: "app", Kind: "maven", Requirements: []declarations.Requirement{
+					declared("maven-groupId", "Org.Example"), declared("maven-artifactId", "app"), declared("maven-version", "1"),
+					{Kind: "maven-dependency", Value: "Org.Example:Lib:" + tt.dependencyVersion, State: "declared", Evidence: "app/pom.xml"},
+				}}
+				lib := declarations.Project{ID: "lib/pom.xml", Root: "lib", Kind: "maven", Requirements: []declarations.Requirement{
+					declared("maven-groupId", "Org.Example"), declared("maven-artifactId", "Lib"),
+					{Kind: "maven-version", Value: tt.targetVersion, State: tt.targetVersionState},
+				}}
+				a := finishStructureProjects(t, []declarations.Project{root, app, lib})
+				for _, edge := range a.Structure.Dependencies.Edges {
+					if edge.From == app.ID && edge.To == lib.ID && edge.Kind == "maven-sibling-dependency" {
+						t.Fatalf("qualified coordinate/version evidence was promoted to an edge: %+v", edge)
+					}
+				}
+				if !coverageReason(a.Structure, "project_dependencies", "maven", "maven_dependency_version_unresolved") {
+					t.Fatalf("uncertain version did not qualify Maven dependency coverage: %+v", a.Structure.Coverage)
+				}
+			})
+		}
+	})
 	t.Run("conditional reactor membership is insufficient", func(t *testing.T) {
 		root := project("pom.xml", "root", declarations.Reference{Kind: "module", Value: "app", Target: "app/pom.xml", TargetStatus: "present", State: "conditional", Condition: "profile:test", Evidence: "pom.xml"}, declarations.Reference{Kind: "module", Value: "lib", Target: "lib/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"})
 		app := project("app/pom.xml", "app")
@@ -179,6 +246,51 @@ func TestStructureMavenCoordinatesNeedExplicitUnconditionalReactorMembership(t *
 	})
 }
 
+func TestStructureMavenLegacyEdgesRequireLiteralTargetEvidence(t *testing.T) {
+	for _, tt := range []struct {
+		name, kind, state, reason string
+	}{
+		{name: "conditional target version", kind: "maven-version", state: "conditional", reason: "maven_dependency_version_unresolved"},
+		{name: "unresolved target version", kind: "maven-version", state: "unresolved", reason: "maven_dependency_version_unresolved"},
+		{name: "conditional target coordinate", kind: "maven-artifactId", state: "conditional", reason: "maven_target_coordinate_unresolved"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			declared := func(kind, value string) declarations.Requirement {
+				return declarations.Requirement{Kind: kind, Value: value, State: "declared"}
+			}
+			root := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven", Requirements: []declarations.Requirement{
+				declared("maven-groupId", "x"), declared("maven-artifactId", "root"), declared("maven-version", "1"),
+			}, References: []declarations.Reference{
+				{Kind: "module", Target: "app/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+				{Kind: "module", Target: "lib/pom.xml", TargetStatus: "present", State: "resolved", Evidence: "pom.xml"},
+			}}
+			app := declarations.Project{ID: "app/pom.xml", Root: "app", Kind: "maven", Requirements: []declarations.Requirement{
+				declared("maven-groupId", "x"), declared("maven-artifactId", "app"), declared("maven-version", "1"),
+				{Kind: "maven-dependency", Value: "x:lib:1", State: "declared", Evidence: "app/pom.xml"},
+			}}
+			lib := declarations.Project{ID: "lib/pom.xml", Root: "lib", Kind: "maven", Requirements: []declarations.Requirement{
+				declared("maven-groupId", "x"),
+				{Kind: "maven-artifactId", Value: "lib", State: "declared"},
+				declared("maven-version", "1"),
+			}}
+			if tt.kind == "maven-version" {
+				lib.Requirements[2] = declarations.Requirement{Kind: tt.kind, Value: "1", State: tt.state}
+			} else {
+				lib.Requirements[1] = declarations.Requirement{Kind: tt.kind, Value: "lib", State: tt.state}
+			}
+			a := finishStructureProjects(t, []declarations.Project{root, app, lib})
+			for _, edge := range a.Structure.Dependencies.Edges {
+				if edge.From == app.ID && edge.To == lib.ID && edge.Kind == "maven-sibling-dependency" {
+					t.Fatalf("legacy Maven relationship was promoted without literal target evidence: %+v", edge)
+				}
+			}
+			if !coverageReason(a.Structure, "project_dependencies", "maven", tt.reason) {
+				t.Fatalf("missing Maven completeness qualification %q: %+v", tt.reason, a.Structure.Coverage)
+			}
+		})
+	}
+}
+
 func TestStructureValidationRejectsOverflowedPopulationsAndInflatedComponents(t *testing.T) {
 	base := finishStructureProjects(t, []declarations.Project{{ID: "App.csproj", Root: ".", Kind: "dotnet", Requirements: []declarations.Requirement{}, References: []declarations.Reference{}, Interfaces: []declarations.Interface{}}})
 	populationOverflow := *base
@@ -202,6 +314,27 @@ func TestStructureValidationRejectsOverflowedPopulationsAndInflatedComponents(t 
 	c.OmittedProjects = math.MaxInt64 - 1
 	if err := ValidateReport(&inflated); err == nil {
 		t.Fatal("component project total exceeding graph vertices was accepted")
+	}
+}
+
+func BenchmarkMavenCoordinateIndexManyProjects(b *testing.B) {
+	projects := make([]declarations.Project, 2048)
+	for i := range projects {
+		projects[i] = declarations.Project{
+			ID: fmt.Sprintf("module-%04d/pom.xml", i), Kind: "maven",
+			Requirements: []declarations.Requirement{
+				{Kind: "maven-groupId", Value: "example.group", State: "declared"},
+				{Kind: "maven-artifactId", Value: fmt.Sprintf("module-%04d", i), State: "declared"},
+			},
+		}
+	}
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		index := newMavenCoordinateIndex(projects)
+		if len(index.exact) != len(projects) || len(index.folded) != len(projects) || len(index.byID) != len(projects) {
+			b.Fatal("coordinate index did not retain all unique projects")
+		}
 	}
 }
 

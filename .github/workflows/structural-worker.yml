@@ -30,7 +30,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       # Test-fixture version only; this selects no release version and creates no tags/releases.
-      DIRCUE_CI_VERSION: '1.4.0-rc.1'
+      DIRCUE_CI_VERSION: '1.5.0-rc.1'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0

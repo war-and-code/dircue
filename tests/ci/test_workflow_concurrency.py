@@ -302,8 +302,12 @@ class WorkflowExpressionTests(unittest.TestCase):
 
     def test_native_structural_matrix_smokes_an_installed_release_wheel(self) -> None:
         workflow = WORKFLOWS["Structural worker"].read_text()
-        # Exercise the assessment version gate through each installed native wheel.
-        self.assertIn("DIRCUE_CI_VERSION: '1.4.0-rc.1'", workflow)
+        # The native wheel and local core smokes must exercise the same current
+        # fixture version, rather than leaving one on an older schema family.
+        makefile = (ROOT / 'Makefile').read_text()
+        fixture_version = re.search(r'^RELEASE_SMOKE_VERSION \?= (\S+)$', makefile, re.M)
+        self.assertIsNotNone(fixture_version)
+        self.assertIn(f"DIRCUE_CI_VERSION: '{fixture_version.group(1)}'", workflow)
         self.assertIn("scripts/release.py --version", workflow)
         self.assertIn("scripts/wheels.py --release-dir .cache/native-release/core", workflow)
         self.assertIn("scripts/wheel_release_smoke.py --release-dir .cache/native-release/core", workflow)

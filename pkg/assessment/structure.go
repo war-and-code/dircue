@@ -471,13 +471,18 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 	for _, p := range projects {
 		vertices[p.ID] = p
 	}
+	mavenCoordinates := newMavenCoordinateIndex(projects)
 	deps := StructureDependencies{Projects: metric(int64(len(vertices)), "counted parsed projects used as dependency graph vertices", false, []string{}), QualifiedReferences: []StructureQualifiedCount{}, Edges: []StructureEdge{}, Components: []StructureConnectedComponent{}}
 	edges := map[string]StructureEdge{}
 	qualified := map[string]int64{}
 	reactors := unconditionalMavenReactors(fragment)
+	mavenRelationships := map[string]bool{}
 	for _, rel := range fragment.Relationships {
 		if rel.Type != "depends_on_local" {
 			continue
+		}
+		if rel.DeclarationKind == "maven-sibling-dependency" {
+			mavenRelationships[rel.From+"\x00"+rel.To] = true
 		}
 		from, fok := vertices[rel.From]
 		_, tok := vertices[rel.To]
@@ -485,7 +490,7 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 			continue
 		}
 		eco := projectEcosystem(from)
-		if rel.DeclarationKind == "maven-sibling-dependency" && mavenCoordinateCaseMismatch(projects, rel.From, rel.To) {
+		if rel.DeclarationKind == "maven-sibling-dependency" && mavenCoordinates.caseMismatch(rel.From, rel.To) {
 			state := rel.State
 			if rel.Condition != "" || state == "conditional" {
 				state = "conditional"
@@ -505,6 +510,13 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 			qualified[qualifiedCountKey(eco, rel.DeclarationKind, state, "coordinate_match_without_declared_reactor")]++
 			continue
 		}
+		if rel.DeclarationKind == "maven-sibling-dependency" {
+			state, resolution, _, unproven := qualifyMavenRelationship(mavenCoordinates, rel)
+			if unproven {
+				qualified[qualifiedCountKey(eco, rel.DeclarationKind, state, resolution)]++
+				continue
+			}
+		}
 		if rel.Coverage == "complete" && rel.Condition == "" && rel.State != "conditional" && rel.State != "unresolved" {
 			e := StructureEdge{From: rel.From, To: rel.To, Ecosystem: eco, Kind: rel.DeclarationKind, Evidence: rel.Evidence}
 			key := structureEdgeKey(e)
@@ -522,6 +534,69 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 			qualified[key]++
 		}
 	}
+	// componentmap's legacy Maven matcher lowercases only the declared
+	// dependency GA while its target index preserves Maven's case-sensitive
+	// coordinates. Recover exact-case matches here without changing that shared
+	// map contract. Only an explicit unconditional reactor and matching known
+	// versions establish a definite local edge.
+	for _, project := range projects {
+		if project.Kind != "maven" {
+			continue
+		}
+		for _, req := range project.Requirements {
+			if req.Kind != "maven-dependency" {
+				continue
+			}
+			wanted := mavenDependencyGA(req.Value)
+			matches := mavenCoordinates.exact[wanted]
+			if len(matches) == 0 {
+				folded := mavenCoordinates.folded[strings.ToLower(wanted)]
+				if len(folded) == 0 {
+					continue
+				}
+				if len(folded) > 1 {
+					state := mavenRequirementState(req)
+					qualified[qualifiedCountKey("maven", "maven-sibling-dependency", state, "ambiguous_coordinate_match")]++
+					continue
+				}
+				to := folded[0]
+				if mavenRelationships[project.ID+"\x00"+to] {
+					continue
+				}
+				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", mavenRequirementState(req), "coordinate_case_mismatch")]++
+				continue
+			}
+			if len(matches) > 1 {
+				state := mavenRequirementState(req)
+				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", state, "ambiguous_coordinate_match")]++
+				continue
+			}
+			to := matches[0]
+			if to == project.ID || mavenRelationships[project.ID+"\x00"+to] {
+				continue
+			}
+			if !sameMavenReactor(reactors, project.ID, to) {
+				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", mavenRequirementState(req), "coordinate_match_without_declared_reactor")]++
+				continue
+			}
+			target := mavenCoordinates.byID[to]
+			depVersion := mavenDependencyVersion(req.Value)
+			targetVersion := mavenDeclaredVersion(target)
+			if depVersion != "" && targetVersion != "" && depVersion != targetVersion {
+				continue
+			}
+			if req.State != "declared" || req.Condition != "" || depVersion == "" || targetVersion == "" {
+				state, resolution := mavenRequirementState(req), "qualified_target"
+				if req.Condition != "" || req.State == "conditional" {
+					state, resolution = "conditional", "conditional"
+				}
+				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", state, resolution)]++
+				continue
+			}
+			e := StructureEdge{From: project.ID, To: to, Ecosystem: "maven", Kind: "maven-sibling-dependency", Evidence: req.Evidence}
+			edges[structureEdgeKey(e)] = e
+		}
+	}
 	// componentmap intentionally suppresses self edges. Preserve explicit
 	// self-targeting local references in the structural view as qualified facts.
 	for _, p := range projects {
@@ -537,30 +612,6 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 				state = "declared"
 			}
 			qualified[qualifiedCountKey(projectEcosystem(p), ref.Kind, state, resolution)]++
-		}
-	}
-	// Ambiguous Maven coordinates do not produce a componentmap relationship.
-	// Count those declarations explicitly so absence of an edge is not mistaken
-	// for proof that no local project match was observed.
-	for _, p := range projects {
-		if p.Kind != "maven" {
-			continue
-		}
-		for _, req := range p.Requirements {
-			if req.Kind != "maven-dependency" {
-				continue
-			}
-			matches := mavenCoordinateMatches(projects, mavenDependencyGA(req.Value))
-			if len(matches) < 2 {
-				continue
-			}
-			state := req.State
-			if req.Condition != "" || state == "conditional" {
-				state = "conditional"
-			} else if state == "" {
-				state = "declared"
-			}
-			qualified[qualifiedCountKey(projectEcosystem(p), "maven-sibling-dependency", state, "ambiguous_coordinate_match")]++
 		}
 	}
 	for _, q := range fragment.QualifiedReferences {
@@ -648,125 +699,209 @@ func mavenDependencyGA(value string) string {
 }
 
 func mavenProjectCoordinate(project declarations.Project) string {
-	group, artifact := "", ""
-	for _, req := range project.Requirements {
-		switch req.Kind {
-		case "maven-groupId":
-			if group == "" {
-				group = req.Value
-			}
-		case "maven-artifactId":
-			if artifact == "" {
-				artifact = req.Value
-			}
-		case "maven-parent":
-			if group == "" {
-				if i := strings.IndexByte(req.Value, ':'); i > 0 {
-					group = req.Value[:i]
-				}
+	group, groupOK := declaredLiteralMavenRequirement(project, "maven-groupId")
+	if !groupOK && !hasMavenRequirement(project, "maven-groupId") {
+		if parent, ok := declaredLiteralMavenRequirement(project, "maven-parent"); ok {
+			parts := strings.Split(parent, ":")
+			if len(parts) == 3 && validMavenCoordinatePart(parts[0]) && validMavenCoordinatePart(parts[1]) {
+				group, groupOK = parts[0], true
 			}
 		}
 	}
-	if group == "" {
-		for _, req := range project.Requirements {
-			if req.Kind == "maven-parent" {
-				if i := strings.IndexByte(req.Value, ':'); i > 0 {
-					group = req.Value[:i]
-				}
-				break
-			}
-		}
-	}
-	if group == "" || artifact == "" {
+	artifact, artifactOK := declaredLiteralMavenRequirement(project, "maven-artifactId")
+	if !groupOK || !artifactOK {
 		return ""
 	}
 	return group + ":" + artifact
 }
 
-func mavenCoordinateCaseMismatch(projects []declarations.Project, from, to string) bool {
-	var source, target *declarations.Project
-	for i := range projects {
-		if projects[i].ID == from {
-			source = &projects[i]
-		}
-		if projects[i].ID == to {
-			target = &projects[i]
-		}
-	}
-	if source == nil || target == nil {
-		return false
-	}
-	targetCoordinate := mavenProjectCoordinate(*target)
-	if targetCoordinate == "" {
-		return false
-	}
-	for _, req := range source.Requirements {
-		if req.Kind != "maven-dependency" {
+func declaredLiteralMavenRequirement(project declarations.Project, kind string) (string, bool) {
+	value := ""
+	found := false
+	for _, req := range project.Requirements {
+		if req.Kind != kind {
 			continue
 		}
-		coordinate := mavenDependencyGA(req.Value)
-		if coordinate != "" && coordinate != targetCoordinate && strings.EqualFold(coordinate, targetCoordinate) {
+		if req.State != "declared" || req.Condition != "" || !validLiteralMavenValue(req.Value) {
+			return "", false
+		}
+		if found && value != req.Value {
+			return "", false
+		}
+		value, found = req.Value, true
+	}
+	return value, found
+}
+
+func hasMavenRequirement(project declarations.Project, kind string) bool {
+	return slices.ContainsFunc(project.Requirements, func(req declarations.Requirement) bool { return req.Kind == kind })
+}
+
+func validMavenCoordinatePart(value string) bool {
+	return validLiteralMavenValue(value) && !strings.Contains(value, ":")
+}
+
+func validLiteralMavenValue(value string) bool {
+	return value != "" && value == strings.TrimSpace(value) && !strings.ContainsAny(value, "$[](),*?")
+}
+
+type mavenCoordinateIndex struct {
+	exact          map[string][]string
+	folded         map[string][]string
+	byID           map[string]declarations.Project
+	coordinateByID map[string]string
+	requested      map[string]map[string]map[string]bool
+}
+
+func newMavenCoordinateIndex(projects []declarations.Project) mavenCoordinateIndex {
+	index := mavenCoordinateIndex{
+		exact:          map[string][]string{},
+		folded:         map[string][]string{},
+		byID:           make(map[string]declarations.Project, len(projects)),
+		coordinateByID: make(map[string]string, len(projects)),
+		requested:      map[string]map[string]map[string]bool{},
+	}
+	for _, project := range projects {
+		index.byID[project.ID] = project
+		if project.Kind != "maven" {
+			continue
+		}
+		coordinate := mavenProjectCoordinate(project)
+		index.coordinateByID[project.ID] = coordinate
+		if coordinate == "" {
+			continue
+		}
+		index.exact[coordinate] = append(index.exact[coordinate], project.ID)
+		folded := strings.ToLower(coordinate)
+		index.folded[folded] = append(index.folded[folded], project.ID)
+	}
+	for _, project := range projects {
+		if project.Kind != "maven" {
+			continue
+		}
+		for _, req := range project.Requirements {
+			if req.Kind != "maven-dependency" {
+				continue
+			}
+			coordinate := mavenDependencyGA(req.Value)
+			if coordinate == "" {
+				continue
+			}
+			folded := strings.ToLower(coordinate)
+			if index.requested[project.ID] == nil {
+				index.requested[project.ID] = map[string]map[string]bool{}
+			}
+			if index.requested[project.ID][folded] == nil {
+				index.requested[project.ID][folded] = map[string]bool{}
+			}
+			index.requested[project.ID][folded][coordinate] = true
+		}
+	}
+	return index
+}
+
+func (index mavenCoordinateIndex) caseMismatch(from, to string) bool {
+	target := index.coordinateByID[to]
+	if target == "" {
+		return false
+	}
+	for requested := range index.requested[from][strings.ToLower(target)] {
+		if requested != target {
 			return true
 		}
 	}
 	return false
 }
 
-func mavenCoordinateMatches(projects []declarations.Project, wanted string) []string {
-	if wanted == "" {
-		return nil
+func mavenDependencyVersion(value string) string {
+	parts := strings.Split(value, ":")
+	if len(parts) != 3 || !validMavenCoordinatePart(parts[0]) || !validMavenCoordinatePart(parts[1]) || !validLiteralMavenValue(parts[2]) || strings.EqualFold(parts[2], "LATEST") || strings.EqualFold(parts[2], "RELEASE") {
+		return ""
 	}
-	var matches []string
-	for _, project := range projects {
-		if project.Kind != "maven" {
+	return parts[2]
+}
+
+func mavenDeclaredVersion(project declarations.Project) string {
+	version, ok := declaredLiteralMavenRequirement(project, "maven-version")
+	if !ok || strings.Contains(version, ":") || strings.EqualFold(version, "LATEST") || strings.EqualFold(version, "RELEASE") {
+		return ""
+	}
+	return version
+}
+
+func mavenRequirementState(req declarations.Requirement) string {
+	if req.Condition != "" || req.State == "conditional" {
+		return "conditional"
+	}
+	return defaultString(req.State, "declared")
+}
+
+func qualifyMavenRelationship(index mavenCoordinateIndex, rel componentmap.Relationship) (state, resolution, reason string, unproven bool) {
+	state, resolution = defaultString(rel.State, "unresolved"), "qualified_target"
+	if rel.State != "declared" || rel.Condition != "" {
+		if rel.State == "conditional" || rel.Condition != "" {
+			state, resolution = "conditional", "conditional"
+		}
+		return state, resolution, "qualified_maven_dependency_reference", true
+	}
+	source, sourceOK := index.byID[rel.From]
+	target, targetOK := index.byID[rel.To]
+	if !sourceOK || !targetOK || index.coordinateByID[rel.To] == "" {
+		return state, resolution, "maven_target_coordinate_unresolved", true
+	}
+	targetCoordinate := index.coordinateByID[rel.To]
+	var matched *declarations.Requirement
+	for i := range source.Requirements {
+		req := &source.Requirements[i]
+		if req.Kind != "maven-dependency" || mavenDependencyGA(req.Value) != targetCoordinate {
 			continue
 		}
-		group, artifact := "", ""
-		for _, req := range project.Requirements {
-			switch req.Kind {
-			case "maven-groupId":
-				if group == "" {
-					group = req.Value
-				}
-			case "maven-artifactId":
-				if artifact == "" {
-					artifact = req.Value
-				}
-			case "maven-parent":
-				if group == "" {
-					if i := strings.IndexByte(req.Value, ':'); i > 0 {
-						group = req.Value[:i]
-					}
-				}
-			}
+		if rel.Evidence != "" && req.Evidence != rel.Evidence {
+			continue
 		}
-		if group == "" {
-			for _, req := range project.Requirements {
-				if req.Kind == "maven-parent" {
-					if i := strings.IndexByte(req.Value, ':'); i > 0 {
-						group = req.Value[:i]
-					}
-					break
-				}
-			}
-		}
-		if group != "" && artifact != "" && group+":"+artifact == wanted {
-			matches = append(matches, project.ID)
-		}
+		matched = req
+		break
 	}
-	return matches
+	if matched == nil {
+		return state, resolution, "maven_dependency_coordinate_unresolved", true
+	}
+	state = mavenRequirementState(*matched)
+	if matched.State != "declared" || matched.Condition != "" {
+		if matched.Condition != "" || matched.State == "conditional" {
+			state, resolution = "conditional", "conditional"
+		}
+		return state, resolution, "qualified_maven_dependency_reference", true
+	}
+	dependencyVersion := mavenDependencyVersion(matched.Value)
+	targetVersion := mavenDeclaredVersion(target)
+	if dependencyVersion == "" || targetVersion == "" {
+		return state, resolution, "maven_dependency_version_unresolved", true
+	}
+	if dependencyVersion != targetVersion {
+		return state, resolution, "maven_dependency_version_mismatch", true
+	}
+	return state, "", "", false
 }
 
 func structuralDependencyQualifications(fragment componentmap.Fragment, projects []declarations.Project) map[string][]string {
 	qualified := map[string][]string{}
 	reactors := unconditionalMavenReactors(fragment)
+	coordinates := newMavenCoordinateIndex(projects)
 	for _, rel := range fragment.Relationships {
 		if rel.Type == "depends_on_local" && rel.DeclarationKind == "maven-sibling-dependency" {
-			if mavenCoordinateCaseMismatch(projects, rel.From, rel.To) {
+			if coordinates.caseMismatch(rel.From, rel.To) {
 				qualified["maven"] = append(qualified["maven"], "coordinate_case_mismatch")
 			} else if !sameMavenReactor(reactors, rel.From, rel.To) {
 				qualified["maven"] = append(qualified["maven"], "coordinate_match_without_declared_reactor")
+			} else if _, _, reason, unproven := qualifyMavenRelationship(coordinates, rel); unproven {
+				qualified["maven"] = append(qualified["maven"], reason)
 			}
+		}
+	}
+	relationships := map[string]bool{}
+	for _, rel := range fragment.Relationships {
+		if rel.Type == "depends_on_local" && rel.DeclarationKind == "maven-sibling-dependency" {
+			relationships[rel.From+"\x00"+rel.To] = true
 		}
 	}
 	for _, p := range projects {
@@ -774,8 +909,32 @@ func structuralDependencyQualifications(fragment componentmap.Fragment, projects
 			continue
 		}
 		for _, req := range p.Requirements {
-			if req.Kind == "maven-dependency" && len(mavenCoordinateMatches(projects, mavenDependencyGA(req.Value))) > 1 {
+			if req.Kind != "maven-dependency" {
+				continue
+			}
+			wanted := mavenDependencyGA(req.Value)
+			matches := coordinates.exact[wanted]
+			if len(matches) > 1 {
 				qualified["maven"] = append(qualified["maven"], "ambiguous_coordinate_match")
+				continue
+			}
+			if len(matches) == 0 {
+				folded := coordinates.folded[strings.ToLower(wanted)]
+				if len(folded) > 1 {
+					qualified["maven"] = append(qualified["maven"], "ambiguous_coordinate_match")
+				} else if len(folded) == 1 && !relationships[p.ID+"\x00"+folded[0]] {
+					qualified["maven"] = append(qualified["maven"], "coordinate_case_mismatch")
+				}
+				continue
+			}
+			if len(matches) == 1 && !relationships[p.ID+"\x00"+matches[0]] {
+				if !sameMavenReactor(reactors, p.ID, matches[0]) {
+					qualified["maven"] = append(qualified["maven"], "coordinate_match_without_declared_reactor")
+				} else if mavenDependencyVersion(req.Value) == "" || mavenDeclaredVersion(coordinates.byID[matches[0]]) == "" {
+					qualified["maven"] = append(qualified["maven"], "maven_dependency_version_unresolved")
+				} else if req.State != "declared" || req.Condition != "" {
+					qualified["maven"] = append(qualified["maven"], "qualified_maven_dependency_reference")
+				}
 			}
 		}
 	}

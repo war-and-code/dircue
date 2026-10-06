@@ -10,6 +10,7 @@ import unittest
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[2]
+STRUCTURAL_WORKER_TEST_VERSION = '1.5.0-rc.1'
 sys.path.insert(0, str(ROOT / 'scripts'))
 import wheel_release_smoke as smoke
 
@@ -29,6 +30,7 @@ class NativeWheelSmokeTests(unittest.TestCase):
     def receipt(self, version='0.5.0', target='linux-amd64'):
         required = smoke.declarations.declarations_required(version)
         assess = smoke.declarations.assessment_required(version)
+        structure = smoke.declarations.structure_required(version)
         tag = smoke.wheels.PLATFORMS[tuple(target.split('-'))][0]
         keys = ({'default_languages', 'default_all'} |
                 ({'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'} if required else set()) |
@@ -39,16 +41,20 @@ class NativeWheelSmokeTests(unittest.TestCase):
                 'launcher_sha256': 'c' * 64, 'installation': smoke.INSTALLATION, 'scope': smoke.SCOPE,
                 'checks': sorted(smoke.declarations.DEFAULT_CHECKS |
                                  (smoke.declarations.DECLARATION_CHECKS if required else set()) |
-                                 (smoke.declarations.ASSESSMENT_CHECKS if assess else set())),
+                                 (smoke.declarations.ASSESSMENT_CHECKS if assess else set()) |
+                                 (smoke.declarations.STRUCTURE_CHECKS if structure else set())),
                 'stdout_sha256': {key: 'd' * 64 for key in keys}, 'source_removed_before_compare': required,
                 'fixture_sha256': smoke.declarations.fixture_inputs(),
                 'observed_facts': ({'declarations': smoke.declarations.FACTS,
-                                    'assessment': smoke.declarations.ASSESSMENT_FACTS} if assess else
+                                    'assessment': smoke.declarations.ASSESSMENT_FACTS,
+                                    **({'structure': smoke.declarations.STRUCTURE_FACTS} if structure else {})} if assess else
                                    smoke.declarations.FACTS if required else {}),
                 'negative_cases': ['duplicate-json-key', 'malformed-json'] if required else [],
                 'harness_sha256': smoke.source_inputs()}
         if assess:
             receipt['assessment_required'] = True
+        if structure:
+            receipt['structure_required'] = True
         if smoke.formats.required(version):
             from test_v060_smoke import formats_receipt
             receipt['formats'] = formats_receipt(version)
@@ -94,6 +100,9 @@ class NativeWheelSmokeTests(unittest.TestCase):
             return smoke.validate_receipt(value, version, 'linux-amd64', 'b' * 64, receipt['wheel'], 'a' * 64)
 
         self.assertEqual(receipt, validate(receipt))
+        self.assertNotIn('structure_required', receipt)
+        self.assertEqual({'declarations': smoke.declarations.FACTS,
+                          'assessment': smoke.declarations.ASSESSMENT_FACTS}, receipt['observed_facts'])
         for mutate in (
             lambda value: value['checks'].remove('assessment_lock_partition'),
             lambda value: value['stdout_sha256'].pop('assessment_all'),
@@ -105,6 +114,35 @@ class NativeWheelSmokeTests(unittest.TestCase):
             mutate(changed)
             with self.assertRaises(ValueError):
                 validate(changed)
+
+    def test_150_requires_structure_inventory_and_receipt_gate(self):
+        version = STRUCTURAL_WORKER_TEST_VERSION
+        receipt = self.receipt(version)
+
+        def validate(value):
+            return smoke.validate_receipt(value, version, 'linux-amd64', 'b' * 64, receipt['wheel'], 'a' * 64)
+
+        self.assertEqual(receipt, validate(receipt))
+        self.assertIs(receipt['structure_required'], True)
+        self.assertEqual(smoke.declarations.STRUCTURE_FACTS, receipt['observed_facts']['structure'])
+        for mutate in (
+            lambda value: value['checks'].remove('assessment_workspace_structure'),
+            lambda value: value['checks'].remove('assessment_dependency_graph'),
+            lambda value: value['checks'].remove('assessment_manifest_entrypoint_catalog'),
+            lambda value: value['observed_facts']['structure'].update(definite_edges=3),
+            lambda value: value['observed_facts']['structure']['manifest_entrypoints'].pop(),
+            lambda value: value.pop('structure_required'),
+            lambda value: value.update(structure_required=False),
+        ):
+            changed = copy.deepcopy(receipt)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                validate(changed)
+
+    def test_structural_worker_workflow_uses_current_assessment_version(self):
+        workflow = (ROOT / '.github/workflows/structural-worker.yml').read_text()
+        self.assertIn(f"DIRCUE_CI_VERSION: '{STRUCTURAL_WORKER_TEST_VERSION}'", workflow)
+        self.assertTrue(smoke.declarations.structure_required(STRUCTURAL_WORKER_TEST_VERSION))
 
     def test_pre_140_wheel_receipts_keep_the_previous_shape(self):
         version = '1.3.99'
@@ -128,6 +166,16 @@ class NativeWheelSmokeTests(unittest.TestCase):
         with mock.patch.object(smoke.declarations, 'validate_receipt', return_value=older) as validate:
             self.assertIsNone(smoke.validated_assessment_gate(older, '1.3.99', 'c' * 64))
             validate.assert_called_once_with(older, '1.3.99', 'c' * 64)
+
+    def test_structure_gate_is_taken_from_validated_launcher_receipt(self):
+        current = {'structure_required': True}
+        with mock.patch.object(smoke.declarations, 'validate_receipt', return_value=current) as validate:
+            self.assertIs(smoke.validated_structure_gate(current, STRUCTURAL_WORKER_TEST_VERSION, 'c' * 64), True)
+            validate.assert_called_once_with(current, STRUCTURAL_WORKER_TEST_VERSION, 'c' * 64)
+        older = {}
+        with mock.patch.object(smoke.declarations, 'validate_receipt', return_value=older) as validate:
+            self.assertIsNone(smoke.validated_structure_gate(older, '1.4.0-rc.1', 'c' * 64))
+            validate.assert_called_once_with(older, '1.4.0-rc.1', 'c' * 64)
 
     def test_inherited_python_and_pip_controls_removed(self):
         env = smoke.environment({'PATH': 'keep', 'SystemRoot': 'keep-windows', 'PYTHONPATH': 'bad',
