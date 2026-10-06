@@ -27,6 +27,12 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 			return err
 		}
 	}
+	if structure := report.Structure; structure != nil {
+		if _, err := fmt.Fprintf(out, "Declared groups: %d workspace/module groups; %d solution groups\nObserved dependencies: %d definite local edges; %d connected project groups; %d qualified references\nStatic entry-point observations: %d; structural scope and uncertainty are in --json\n", structure.WorkspaceGroupCount, structure.SolutionGroupCount,
+			structure.Dependencies.DefiniteEdges.Count, structure.Dependencies.ConnectedGroups.Count, structure.Dependencies.QualifiedReferenceCount, structure.EntryPointCount); err != nil {
+			return err
+		}
+	}
 	for _, group := range report.Lockfiles {
 		if _, err := fmt.Fprintf(out, "%s lockfile associations: %d projects; %d eligible; %d covered; %d missing; %d not applicable; %d unsupported; %d unknown (%s)\n", group.Ecosystem, group.Projects.Count, group.Eligible.Count, group.Covered.Count, group.Missing.Count, group.NotApplicable.Count, group.Unsupported.Count, group.Unknown.Count, group.Projects.Completeness); err != nil {
 			return err

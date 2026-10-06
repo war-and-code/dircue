@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"path"
+	"slices"
 	"strings"
 	"unicode/utf8"
 )
@@ -15,7 +16,9 @@ func ValidateReport(r *Report) error {
 	if r == nil {
 		return errors.New("lockfile report is required")
 	}
-	if r.Provider != Provider || r.ProviderVersion != ProviderVersion || !validStatus(r.Status) ||
+	legacy := r.ProviderVersion == LegacyProviderVersion
+	current := r.ProviderVersion == ProviderVersion
+	if r.Provider != Provider || (!legacy && !current) || !validStatus(r.Status) ||
 		(r.Source != "git" && r.Source != "directory") || (r.Source == "git") != (r.Tree != "") || !validText(r.Tree, 64) {
 		return errors.New("lockfile report identity is invalid")
 	}
@@ -78,6 +81,15 @@ func ValidateReport(r *Report) error {
 		if len(ctx.Checks) > 1 || ctx.AssociationState == "observed" && len(ctx.Checks) != 1 {
 			return errors.New("lockfile context check count is invalid")
 		}
+		if ctx.Ecosystem == "nuget" && current {
+			if !validNuGetEvidence(ctx.NuGetEvidence, ctx, workspacePaths) {
+				return errors.New("NuGet evidence is invalid")
+			}
+		} else if ctx.Ecosystem == "nuget" && legacy && ctx.NuGetEvidence != nil {
+			return errors.New("legacy NuGet context contains newer evidence")
+		} else if ctx.Ecosystem == "npm" && ctx.NuGetEvidence != nil {
+			return errors.New("npm context contains NuGet evidence")
+		}
 		for _, check := range ctx.Checks {
 			if !validCheck(ctx.Ecosystem, check, l.PackageNames) {
 				return errors.New("lockfile check is invalid")
@@ -105,6 +117,55 @@ func ValidateReport(r *Report) error {
 		return errors.New("lockfile report exceeds output byte limit")
 	}
 	return nil
+}
+
+func validNuGetEvidence(e *NuGetEvidence, ctx Context, workspacePaths bool) bool {
+	if e == nil || (e.PresenceState != "observed" && e.PresenceState != "not_observed" && e.PresenceState != "unknown") ||
+		!validAssociation(e.OwnershipState) || e.CandidateCount < 0 || e.CandidateCount > DefaultMaxInventoryPaths ||
+		len(e.CandidatePaths) > nugetCandidatePathLimit || e.OmittedCandidatePaths < 0 || e.OmittedCandidatePaths != e.CandidateCount-len(e.CandidatePaths) ||
+		len(e.PresenceReasons) > 32 || len(e.OwnershipReasons) > 32 {
+		return false
+	}
+	if e.OwnershipState != ctx.AssociationState && !validNuGetContentQualifiedOwnership(e, ctx) {
+		return false
+	}
+	if e.PresenceState == "observed" && e.CandidateCount == 0 || e.PresenceState != "observed" && e.CandidateCount != 0 {
+		return false
+	}
+	last := ""
+	for _, p := range e.CandidatePaths {
+		if !validSelectedRelative(p, workspacePaths) || p <= last {
+			return false
+		}
+		last = p
+	}
+	for _, list := range [][]string{e.PresenceReasons, e.OwnershipReasons} {
+		for _, reason := range list {
+			if !requiredText(reason, 256) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+func validNuGetContentQualifiedOwnership(e *NuGetEvidence, ctx Context) bool {
+	reason := ctx.OutcomeReason()
+	if e.OwnershipState != "observed" || (ctx.AssociationState != "unsupported" && ctx.AssociationState != "indeterminate") || ctx.LockfilePath == "" {
+		return false
+	}
+	if !slices.Contains(e.CandidatePaths, ctx.LockfilePath) && e.OmittedCandidatePaths == 0 &&
+		!(reason == "lockfile-unreadable" && e.PresenceState != "observed") {
+		return false
+	}
+	switch reason {
+	case "lockfile-limit", "lockfile-unreadable", "file-read-error", "incomplete-lockfile-read", "invalid-lockfile-json", "duplicate-nuget-package-id",
+		"unsupported-nuget-lockfile-version", "nuget-targets-missing", "invalid-nuget-target", "invalid-nuget-package-entry",
+		"nuget-package-type-missing", "unsupported-nuget-package-type":
+		return true
+	default:
+		return false
+	}
 }
 
 func validLockfileVersion(ecosystem, value string) bool {

@@ -87,7 +87,7 @@ const EnvironmentSchemaVersion = "1.7.0"
 
 const LockfilesSchemaVersion = "1.8.0"
 
-const AssessmentSchemaVersion = "1.9.0"
+const AssessmentSchemaVersion = "1.10.0"
 
 // SummarizedTree records a recognized environment or build-output tree that
 // was counted rather than scanned in detail.

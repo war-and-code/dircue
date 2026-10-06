@@ -260,7 +260,7 @@ Directory statistics count full file sizes, and classification reads at most the
 | `analyze projects` | .NET, Maven and Gradle declarations, references and file composition | [PROJECTS.md](docs/PROJECTS.md) |
 | `analyze declarations` | project identities, workspaces, requirements and named interfaces from manifests | [DECLARATIONS.md](docs/DECLARATIONS.md) |
 | `analyze lockfiles` | supported npm/NuGet lockfile associations and named static checks | [LOCKFILES.md](docs/LOCKFILES.md) |
-| `analyze assessment` | file and byte populations, manifest counts, project roots, workspace and local relationships, and npm/NuGet lockfile associations | [ASSESSMENT.md](docs/ASSESSMENT.md) |
+| `analyze assessment` | file/byte and ecosystem/role populations, explicit project groups, local dependency structure, static entry points, and npm/NuGet lockfile evidence | [ASSESSMENT.md](docs/ASSESSMENT.md) |
 | `analyze environments` | manifest environment requirements and declared Python, Node and Rust toolchains | [ENVIRONMENTS.md](docs/ENVIRONMENTS.md) |
 | `analyze formats` | file-format evidence | [FORMATS.md](docs/FORMATS.md) |
 | `analyze availability` | Git LFS pointers, gitlinks, submodules and sparse checkouts that can make source look absent | [AVAILABILITY.md](docs/AVAILABILITY.md) |

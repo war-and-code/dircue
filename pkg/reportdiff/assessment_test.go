@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -63,6 +64,134 @@ func TestAssessmentComparisonUsesAggregateCountsNotSamples(t *testing.T) {
 	}
 }
 
+func TestAssessmentComparisonIncludesStructuralEntryTotalsWithoutProjectChanges(t *testing.T) {
+	a := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	b := cloneAssessmentProfile(t, a)
+	if a.Assessment.Projects.Count != b.Assessment.Projects.Count {
+		t.Fatal("test setup changed the legacy project count")
+	}
+	entry := assessmentpkg.StructureEntryPoint{ProjectID: "app/package.json", EvidencePath: "app/server.js", Ecosystem: "npm", Role: "primary", Kind: "node-entry", Name: "server", Basis: "declaration", State: "declared"}
+	assessmentpkg.SetStructureEntryPoints(b.Assessment, []assessmentpkg.StructureEntryPoint{entry})
+	if err := assessmentpkg.ValidateReport(b.Assessment); err != nil {
+		t.Fatalf("mutated structural report invalid: %v", err)
+	}
+	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
+	if m.Status != "changed" || m.Counts.Changed == 0 {
+		t.Fatalf("new interface did not appear in the structural assessment diff: %+v", m)
+	}
+	if got := changeByID(m, "structure:entry_point_total"); got == nil || got.Status != "changed" {
+		t.Fatalf("entry-point aggregate change missing: %+v", m.Changes)
+	}
+	if changeByID(m, "structure:population:parsed_projects:npm:primary") != nil {
+		t.Fatalf("same project population changed when an interface was added: %+v", m.Changes)
+	}
+}
+
+func TestAssessmentComparisonCapturesQualifiedReferenceAggregateChanges(t *testing.T) {
+	a := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	b := cloneAssessmentProfile(t, a)
+	d := &b.Assessment.Structure.Dependencies
+	d.QualifiedReferences = []assessmentpkg.StructureQualifiedCount{{Ecosystem: "npm", Kind: "npm-local-dependency", State: "missing", Resolution: "missing", Count: 1}}
+	d.QualifiedReferenceCount = 1
+	d.QualifiedGroupCount = 1
+	d.OmittedQualified = 0
+	d.OmittedQualifiedReferenceCount = 0
+	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
+	if got := changeByID(m, "structure:qualified_reference_total"); got == nil || got.Status != "changed" {
+		t.Fatalf("qualified-reference total change missing: %+v", m.Changes)
+	}
+}
+
+func TestAssessmentComparisonReportsScopedCoverageChanges(t *testing.T) {
+	a := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	b := cloneAssessmentProfile(t, a)
+	for i := range b.Assessment.Structure.Coverage {
+		row := &b.Assessment.Structure.Coverage[i]
+		if row.Scope == "project_dependencies" && row.Ecosystem == "npm" {
+			row.Status = "partial"
+			row.Reasons = []string{"selected_dependency_observations_omitted"}
+		}
+	}
+	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
+	if got := changeByID(m, "structure:coverage:20:project_dependencies3:npm"); got == nil || got.Status != "changed" {
+		t.Fatalf("scoped coverage qualification change missing: %+v", m.Changes)
+	}
+	if m.Compatibility == "incomparable" {
+		t.Fatalf("partial structural coverage made the whole assessment incomparable: %+v", m)
+	}
+}
+
+func TestAssessmentSampleCapsRemainMetadataAndDoNotCreateRemovals(t *testing.T) {
+	a := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	b := cloneAssessmentProfile(t, a)
+	makeEntries := func(prefix string) []assessmentpkg.StructureEntryPoint {
+		entries := make([]assessmentpkg.StructureEntryPoint, 513)
+		for i := range entries {
+			name := fmt.Sprintf("%s-%03d", prefix, i)
+			entries[i] = assessmentpkg.StructureEntryPoint{ProjectID: "app/package.json", EvidencePath: "app/server.js", Ecosystem: "npm", Role: "primary", Kind: "node-entry", Name: name, Basis: "declaration", State: "declared"}
+		}
+		return entries
+	}
+	assessmentpkg.SetStructureEntryPoints(a.Assessment, makeEntries("base"))
+	assessmentpkg.SetStructureEntryPoints(b.Assessment, makeEntries("head"))
+	if err := assessmentpkg.ValidateReport(a.Assessment); err != nil {
+		t.Fatalf("base capped structural report invalid: %v", err)
+	}
+	if err := assessmentpkg.ValidateReport(b.Assessment); err != nil {
+		t.Fatalf("head capped structural report invalid: %v", err)
+	}
+	if a.Assessment.Structure.EntryPointCount != b.Assessment.Structure.EntryPointCount || a.Assessment.Structure.OmittedEntryPoints == 0 || b.Assessment.Structure.OmittedEntryPoints == 0 {
+		t.Fatal("test setup did not hold totals equal across bounded samples")
+	}
+	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
+	if m.Status != "unchanged" || m.Counts.Removed != 0 || m.Counts.Added != 0 || m.Counts.Changed != 0 {
+		t.Fatalf("bounded sample changes were treated as aggregate facts: %+v", m)
+	}
+	if len(m.Metadata) == 0 {
+		t.Fatal("bounded structural samples were not retained as comparison metadata")
+	}
+}
+
+func TestAssessmentLegacyVersionStructuralComparabilityIsQualified(t *testing.T) {
+	legacy := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	legacy.Assessment.Version = assessmentpkg.LegacyVersion
+	legacy.Assessment.Structure = nil
+	legacy.SchemaVersion = "1.9.0"
+	if err := assessmentpkg.ValidateReport(legacy.Assessment); err != nil {
+		t.Fatalf("legacy assessment report invalid: %v", err)
+	}
+	current := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	m := reviewModule(t, reviewCompare(t, legacy, current), "assessment")
+	if m.Compatibility != "incomparable" || m.Counts.Removed != 0 {
+		t.Fatalf("assessment policy version change was treated as comparable: %+v", m)
+	}
+	if !strings.Contains(strings.Join(m.Reasons, " "), "structural_assessment_not_measured") {
+		t.Fatalf("legacy structural measurement limitation missing: %+v", m.Reasons)
+	}
+}
+
+func cloneAssessmentProfile(t *testing.T, in profile.Report) profile.Report {
+	t.Helper()
+	raw, err := json.Marshal(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out profile.Report
+	if err := json.Unmarshal(raw, &out); err != nil {
+		t.Fatal(err)
+	}
+	return out
+}
+
+func changeByID(m reportdiff.Module, id string) *reportdiff.Change {
+	for i := range m.Changes {
+		if m.Changes[i].ID == id {
+			return &m.Changes[i]
+		}
+	}
+	return nil
+}
+
 func TestAssessmentComparisonDoesNotClaimRemovedFromMissingModule(t *testing.T) {
 	a := assessmentProfile(t, map[string]string{"package.json": `{"name":"a"}`})
 	b := a
@@ -95,6 +224,38 @@ func TestAssessmentLoadRejectsContradictoryNativeMeasurements(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAssessmentLoadRejectsFictitiousStructuralComponentAgainstFullDeclarations(t *testing.T) {
+	p := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+	if p.Declarations.Status != "complete" || p.Declarations.Coverage.OmittedFiles != 0 || len(p.Declarations.Diagnostics) != 0 || len(p.Declarations.Projects) != 1 {
+		t.Fatalf("test requires a fully retained declaration population: %+v", p.Declarations.Coverage)
+	}
+	c := &p.Assessment.Structure.Dependencies.Components[0]
+	c.ID = "package.json"
+	c.Projects = []string{"package.json"}
+	if err := assessmentpkg.ValidateReport(p.Assessment); err != nil {
+		t.Fatalf("fictitious component should pass native aggregate-only validator before companion reconciliation: %v", err)
+	}
+	raw, err := json.Marshal(p)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reportdiff.Load(bytes.NewReader(raw)); err == nil {
+		t.Fatal("component ID absent from fully retained declarations was accepted")
+	}
+}
+
+func TestAssessmentStructureIDJoinExcludesSolutionRecords(t *testing.T) {
+	p := assessmentProfile(t, map[string]string{
+		"app/App.csproj": "<Project><PropertyGroup><TargetFramework>net8.0</TargetFramework></PropertyGroup></Project>\n",
+		"Product.sln":    "Microsoft Visual Studio Solution File, Format Version 12.00\n# Visual Studio Version 17\n",
+	})
+	if p.Assessment.Structure.Dependencies.Projects.Count != 1 || len(p.Declarations.Projects) != 2 {
+		t.Fatalf("fixture must retain one project vertex and one solution record: vertices=%+v records=%+v",
+			p.Assessment.Structure.Dependencies.Projects, p.Declarations.Projects)
+	}
+	loadAssessmentProfile(t, p)
 }
 
 func TestAssessmentLoadReconcilesLongManifestPathOmission(t *testing.T) {

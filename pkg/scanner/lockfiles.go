@@ -19,6 +19,8 @@ import (
 type lockfileAccumulator struct {
 	jobs              map[string]job
 	files             map[string]lockfiles.File
+	selected          map[string]lockfiles.File
+	selectedComplete  bool
 	maxFileBytes      int64
 	inventoryComplete bool
 	inventoryOmission string
@@ -30,13 +32,14 @@ func newLockfileAccumulator(opts Options) *lockfileAccumulator {
 	if !opts.Lockfiles {
 		return nil
 	}
-	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy), workspaceLocks: opts.NPMWorkspaceLocks || opts.Assessment}
+	return &lockfileAccumulator{jobs: make(map[string]job), files: make(map[string]lockfiles.File), selected: make(map[string]lockfiles.File), selectedComplete: true, maxFileBytes: opts.MaxFileBytes, inventoryComplete: true, errorPolicy: string(opts.ErrorPolicy), workspaceLocks: opts.NPMWorkspaceLocks || opts.Assessment}
 }
 
 func (a *lockfileAccumulator) add(value result) error {
 	for _, warning := range value.warnings {
 		if warning.Code == "tree_size_limit" {
 			a.inventoryComplete = false
+			a.selectedComplete = false
 			a.inventoryOmission = "tree_size_limit"
 		}
 	}
@@ -50,7 +53,19 @@ func (a *lockfileAccumulator) add(value result) error {
 	// omissions invalidate absence checks for the selected inventory.
 	if value.omission != "" && !(a.errorPolicy == "continue" && value.omission == "file_read_error") {
 		a.inventoryComplete = false
+		a.selectedComplete = false
 		a.inventoryOmission = value.omission
+	}
+	if _, ok := a.selected[value.path]; !ok {
+		if len(a.selected) >= lockfiles.DefaultMaxInventoryPaths {
+			a.selectedComplete = false
+		} else if value.selectedJob == nil {
+			a.selected[value.path] = lockfiles.File{Path: value.path, NonRegular: true}
+		} else {
+			item := *value.selectedJob
+			a.selected[value.path] = lockfiles.File{Path: value.path, Size: item.size}
+			a.jobs[value.path] = item
+		}
 	}
 	if !relevant {
 		return nil
@@ -104,6 +119,15 @@ func (a *lockfileAccumulator) finish(ctx context.Context, root *os.Root, collect
 	for _, name := range paths {
 		inventory = append(inventory, a.files[name])
 	}
+	selectedPaths := make([]string, 0, len(a.selected))
+	for name := range a.selected {
+		selectedPaths = append(selectedPaths, name)
+	}
+	slices.Sort(selectedPaths)
+	selectedFiles := make([]lockfiles.File, 0, len(selectedPaths))
+	for _, name := range selectedPaths {
+		selectedFiles = append(selectedFiles, a.selected[name])
+	}
 	limits := lockfiles.Limits{}
 	if a.maxFileBytes > 0 && a.maxFileBytes < lockfiles.DefaultMaxFileBytes {
 		limits.FileBytes = a.maxFileBytes
@@ -113,6 +137,7 @@ func (a *lockfileAccumulator) finish(ctx context.Context, root *os.Root, collect
 		WorkspaceLocks: a.workspaceLocks,
 		Source:         report.Declarations.Source, Tree: report.Declarations.Tree,
 		Inventory: inventory, InventoryComplete: true,
+		SelectedFiles: selectedFiles, SelectedFilesComplete: a.selectedComplete,
 		Declarations: *report.Declarations, ProjectRecords: collector.ProjectRecords(),
 		DeclarationOmissions: omitted, DeclarationOmittedTrees: trees, DeclarationOmissionsAttributed: attributed,
 		ErrorPolicy: a.errorPolicy,

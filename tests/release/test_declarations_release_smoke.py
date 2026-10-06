@@ -17,6 +17,7 @@ class DeclarationReleaseContracts(unittest.TestCase):
         # not executable test results and are never retained as release evidence.
         required = smoke.declarations_required(version)
         assessment_required = smoke.assessment_required(version)
+        structure_required = smoke.structure_required(version)
         keys = {'default_languages', 'default_all'}
         if required:
             keys |= {'declarations', 'combined', 'changed_compare', 'identical_compare', 'partial_compare'}
@@ -27,21 +28,26 @@ class DeclarationReleaseContracts(unittest.TestCase):
                 'candidate_sha256': 'a' * 64,
                 'source_sha256': smoke.source_inputs(), 'fixture_sha256': smoke.fixture_inputs(),
                 'checks': sorted(smoke.DEFAULT_CHECKS | (smoke.DECLARATION_CHECKS if required else set()) |
-                                 (smoke.ASSESSMENT_CHECKS if assessment_required else set())),
+                                 (smoke.ASSESSMENT_CHECKS if assessment_required else set()) |
+                                 (smoke.STRUCTURE_CHECKS if structure_required else set())),
                 'stdout_sha256': {key: 'b' * 64 for key in keys},
                 'observed_facts': ({'declarations': copy.deepcopy(smoke.FACTS),
-                                    'assessment': copy.deepcopy(smoke.ASSESSMENT_FACTS)} if assessment_required else
+                                    'assessment': copy.deepcopy(smoke.ASSESSMENT_FACTS),
+                                    **({'structure': copy.deepcopy(smoke.STRUCTURE_FACTS)} if structure_required else {})} if assessment_required else
                                    copy.deepcopy(smoke.FACTS) if required else {}),
                 'source_removed_before_compare': required, 'worker_required': False,
                 'negative_cases': ['duplicate-json-key', 'malformed-json'] if required else []}
         if assessment_required:
             receipt['assessment_required'] = True
+        if structure_required:
+            receipt['structure_required'] = True
         return receipt
 
     def test_version_gate_preserves_earlier_releases(self):
         for version in ('0.1.0', '0.2.0', '0.3.0', '0.4.0', '0.4.99'):
             self.assertFalse(smoke.declarations_required(version))
             self.assertFalse(smoke.assessment_required(version))
+            self.assertFalse(smoke.structure_required(version))
             receipt = self.receipt(version)
             self.assertNotIn('assessment_required', receipt)
             self.assertEqual(receipt, smoke.validate_receipt(receipt, version, 'a' * 64))
@@ -54,15 +60,24 @@ class DeclarationReleaseContracts(unittest.TestCase):
             self.assertFalse(smoke.assessment_required(version))
             self.assertEqual(smoke.DEFAULT_CHECKS | smoke.DECLARATION_CHECKS,
                              set(self.receipt(version)['checks']))
-        for version in ('1.4.0-alpha.1', '1.4.0-beta.0', '1.4.0-rc.1', '1.4.0', '1.4.1', '2.0.0'):
+        for version in ('1.4.0-alpha.1', '1.4.0-beta.0', '1.4.0-rc.1', '1.4.0', '1.4.1'):
             self.assertTrue(smoke.assessment_required(version))
+            self.assertFalse(smoke.structure_required(version))
             self.assertEqual(smoke.DEFAULT_CHECKS | smoke.DECLARATION_CHECKS | smoke.ASSESSMENT_CHECKS,
+                             set(self.receipt(version)['checks']))
+            self.assertNotIn('structure_required', self.receipt(version))
+        for version in ('1.5.0-alpha.1', '1.5.0-beta.0', '1.5.0-rc.1', '1.5.0', '1.5.1', '2.0.0'):
+            self.assertTrue(smoke.assessment_required(version))
+            self.assertTrue(smoke.structure_required(version))
+            self.assertEqual(smoke.DEFAULT_CHECKS | smoke.DECLARATION_CHECKS | smoke.ASSESSMENT_CHECKS | smoke.STRUCTURE_CHECKS,
                              set(self.receipt(version)['checks']))
         for version in ('', '0.5', '00.5.0', '0.5.0-dev', 'v0.5.0', '0.5.0;command'):
             with self.assertRaises(ValueError):
                 smoke.declarations_required(version)
             with self.assertRaises(ValueError):
                 smoke.assessment_required(version)
+            with self.assertRaises(ValueError):
+                smoke.structure_required(version)
 
     def test_identity_and_coverage_rejection(self):
         baseline = self.receipt()
@@ -114,6 +129,53 @@ class DeclarationReleaseContracts(unittest.TestCase):
             with self.assertRaises(ValueError):
                 smoke.validate_receipt(changed, version, 'a' * 64)
 
+    def test_structure_receipts_require_versioned_gate_checks_and_facts(self):
+        version = '1.5.0-rc.1'
+        baseline = self.receipt(version)
+        self.assertEqual(baseline, smoke.validate_receipt(baseline, version, 'a' * 64))
+        self.assertEqual(smoke.STRUCTURE_FACTS, baseline['observed_facts']['structure'])
+        for mutate in (
+            lambda r: r['checks'].remove('assessment_workspace_structure'),
+            lambda r: r['checks'].remove('assessment_dependency_graph'),
+            lambda r: r['checks'].remove('assessment_manifest_entrypoint_catalog'),
+            lambda r: r['observed_facts']['structure'].update(workspace_groups=4),
+            lambda r: r['observed_facts']['structure']['manifest_entrypoints'].pop(),
+            lambda r: r.update(structure_required=False),
+            lambda r: r.pop('structure_required'),
+        ):
+            changed = copy.deepcopy(baseline)
+            mutate(changed)
+            with self.assertRaises(ValueError):
+                smoke.validate_receipt(changed, version, 'a' * 64)
+
+    def test_structural_semantics_fail_on_mutated_runtime_facts(self):
+        entries = [
+            {'ecosystem': 'npm', 'name': 'start', 'kind': 'manifest_interface:script', 'state': 'declared'},
+            {'ecosystem': 'cargo', 'name': 'smoke-app', 'target': 'cargo/crates/app/src/main.rs', 'kind': 'manifest_interface:cargo-bin', 'state': 'declared'},
+            {'ecosystem': 'python', 'name': 'suite', 'target': 'suite.cli:main', 'kind': 'manifest_interface:python-console-script', 'state': 'declared'},
+        ]
+        structure = {
+            'workspace_group_count': 5, 'workspace_groups': [
+                {'ecosystem': ecosystem, 'member_count': 1, 'membership_coverage': {'status': 'complete'}}
+                for ecosystem in ('cargo', 'go', 'maven', 'npm', 'python-uv')],
+            'omitted_workspace_groups': 0,
+            'dependencies': {'projects': {'count': 10}, 'definite_edges': {'count': 2}, 'connected_groups': {'count': 8}},
+            'entry_points': entries, 'entry_point_count': 3,
+        }
+        self.assertEqual(structure, smoke.check_assessment_structure_facts({'version': '1.1.0', 'structure': structure}))
+        for path, value in ((('workspace_group_count',), 4),
+                            (('dependencies', 'definite_edges', 'count'), 3),
+                            (('dependencies', 'connected_groups', 'count'), 7),
+                            (('entry_point_count',), 2),
+                            (('entry_points', 2, 'kind'), 'python-entry-point')):
+            changed = copy.deepcopy(structure)
+            target = changed
+            for key in path[:-1]:
+                target = target[key]
+            target[path[-1]] = value
+            with self.assertRaises(ValueError):
+                smoke.check_assessment_structure_facts({'version': '1.1.0', 'structure': changed})
+
     def test_assessment_parity_compares_the_native_payload(self):
         assessment = {'inventory': {'files': {'count': 1}}, 'projects': {'count': 1}}
         standalone = {'schema_version': '1.9.0', 'languages': [{'name': 'Go'}],
@@ -160,6 +222,9 @@ class DeclarationReleaseContracts(unittest.TestCase):
             self.assertTrue(smoke.valid_digest(value))
         self.assertEqual(12, smoke.ASSESSMENT_FACTS['manifest_candidates'])
         self.assertEqual(10, smoke.ASSESSMENT_FACTS['parsed_projects'])
+        self.assertEqual(5, smoke.STRUCTURE_FACTS['workspace_groups'])
+        self.assertEqual(2, smoke.STRUCTURE_FACTS['definite_edges'])
+        self.assertEqual(8, smoke.STRUCTURE_FACTS['observed_connected_groups'])
 
     def test_malformed_receipt_shapes_fail_cleanly(self):
         for receipt in (None, [], {}, {'checks': None}):

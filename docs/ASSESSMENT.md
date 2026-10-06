@@ -1,6 +1,6 @@
 # Repository measurements
 
-Added in the 1.4.0 candidate.
+Added in 1.4.0; structural summaries expanded in 1.5.0.
 
 Assessment combines language statistics with factual repository measurements. It works on an extracted directory or a selected Git tree, without Syft, package-manager execution, network access, or a structural worker. It does not decide whether a repository is large, whether it is a monorepo, or which tools a caller should run.
 
@@ -11,7 +11,7 @@ dircue analyze all --assessment --source git --rev HEAD --json /checkout
 dircue capabilities --schema assessment
 ```
 
-Both analysis commands return the versioned aggregate profile. The `assessment` component uses profile schema `1.9.0`; existing commands without this option keep their previous contracts. Assessment requests metadata discovery, passive project declarations, and supported lockfile observations. Languages keep their existing inclusion rules. File and byte measurements describe a wider population than language statistics.
+Both analysis commands return the versioned aggregate profile. In 1.5.0, the `assessment` component is version `1.1.0` and uses profile schema `1.10.0`. Current readers also accept the earlier assessment version `1.0.0` in profile `1.9.0`; strict older readers may reject the new fields. Assessment requests metadata discovery, passive project declarations, supported lockfile observations, and manifest/deployment entry points. Languages keep their existing inclusion rules. File and byte measurements describe a wider population than language statistics.
 
 `--source directory` reads current files and supports directories with no Git metadata. Automatic source selection at a Git repository root normally reads committed `HEAD`; it does not include dirty or untracked changes. Directory inspection is not an atomic snapshot. Read failures fail by default; `--on-error continue` records qualified evidence.
 
@@ -37,6 +37,22 @@ Lockfile association counts describe supported static ownership rules. They do n
 
 A `complete` count covers the supported population named in its scope. It is not a claim to support every ecosystem or evaluate every build expression. A `lower_bound` count contains the observations retained under its disclosed omissions. Do not turn a lower bound into a denominator for a supposedly exact percentage.
 
+## Structural summaries
+
+`structure.populations` partitions five populations by ecosystem and path role: `filename_candidates`, `parsed_projects`, `distinct_roots`, `workspace_groups`, and `solution_groups`. Each row has its own metric and reasons. Candidate counts come from selected filenames before parsing or evidence trimming. Invalid manifests remain candidates; they cannot become parsed projects. Several projects may share one root. A physical directory containing manifests for several ecosystems appears in each ecosystem's root population, so those root counts cannot be added to obtain a distinct-directory total.
+
+`workspace_groups` and `solution_groups` retain explicit declarations, including supported empty workspace groups. A group identifies its manifest, member count, bounded member paths, and unresolved members with their state and resolution. The full group totals and omitted-example counts remain separate from retained lists. Directory nesting establishes neither group membership nor dependency.
+
+The group observers cover supported Maven modules, literal Gradle settings, npm and uv workspaces, Cargo workspaces, Go workspaces, and .NET solutions. Project identities also cover the other manifest families supported by the declaration adapters, including Dart, PHP, Ruby, Swift, and Elixir. Detail varies by ecosystem: recognizing a project does not establish full build-system support. Unsupported workspace declarations keep the affected structural scope partial rather than making unrelated ecosystems uncertain.
+
+`structure.dependencies` separates definite local edges from `qualified_references`, grouped by ecosystem, declaration kind, state, and resolution. A definite edge requires retained, parsed endpoints and an unconditional supported local reference. A Maven dependency coordinate match additionally requires both projects in an explicitly declared, unconditional reactor group. Coordinate-only matches, ambiguous coordinates, conditions, missing targets, and self-references stay qualified. The legacy local-reference totals still count declarations; they are not interchangeable with definite-edge totals.
+
+`connected_groups` counts weakly connected components in the observed definite-edge graph, including isolated parsed projects. Direction is ignored when forming a component but retained on each edge. This count is exact for that observed graph. It is not a lower bound on the number of components in the complete repository: missing edges can merge groups and missing projects can add groups. Consult the separate `dependency_connectivity` coverage before using it. Connected groups do not establish independent applications, services, builds, or deployability.
+
+`structure.coverage` separates `workspace_membership`, `solution_membership`, `project_dependencies`, `dependency_connectivity`, and `entry_points` by ecosystem. Declaration diagnostics qualify the relationship scope they could affect; file traversal omissions separately qualify inventory populations. A complete inventory can therefore coexist with partial structural evidence. For example, `coordinate_match_without_declared_reactor`, `self_reference_qualified`, and `shared_msbuild_project_references_not_applied` identify distinct limits on dependency evidence. Gradle's unresolved build-evaluation requirements qualify its dependency and connectivity scopes with `build_declarations_require_evaluation`; its known project counts remain exact.
+
+`structure.entry_points` lists supported manifest interfaces and deployment observations, with a project association when the existing static rules support one. Each row names its evidence path, kind, ecosystem, role, basis, and state: `declared`, `qualified`, or `unassociated`. A declared script name is retained without its shell command. Build and run associations stay qualified; file proximity alone does not prove that a project runs or builds through an entry point. The catalog reuses deployment observers without running the source-code intent detectors, so entry-point coverage remains partial with `source_entry_points_not_inspected`. This avoids treating no observed entry point as proof that none exists.
+
 ## Lockfile associations
 
 The component exposes overall and per-ecosystem project counts, an eligible population, and covered, missing, not-applicable, unsupported, and unknown outcomes. `eligible` counts npm and NuGet projects whose outcome is `covered`, `missing`, or `unknown`; projects that are `not_applicable` (no direct declarations) or `unsupported` are excluded. It describes the static checker population; it is not a policy requirement.
@@ -45,7 +61,7 @@ Each lockfile row, including `lockfiles_overall`, has a `by_role` array partitio
 
 Assessment always applies `--npm-workspace-locks` association semantics. A covered project has a supported observed association; its named check can still be `different` or `indeterminate`. The existing `lockfiles.contexts` provide per-project paths, checks, and boundaries.
 
-A workspace member is covered by its workspace root's npm lockfile only when that root is the nearest ancestor whose `workspaces` list the member, as npm selects it, and the lockfile has the member's own package entry; the member is compared with that entry. NuGet associations keep their restrictions on conditional references, imported or shared build inputs, several projects in one directory, and custom lockfile paths. See [lockfile observations](LOCKFILES.md) for the rules, named checks, and reason codes.
+A workspace member is covered by its workspace root's npm lockfile only when that root is the nearest ancestor whose `workspaces` list the member, as npm selects it, and the lockfile has the member's own package entry; the member is compared with that entry. NuGet can inspect confined literal imports, harmless shared files, version-only central package declarations, and supported literal custom lock paths. Its per-context `nuget_evidence` distinguishes candidate presence from ownership; named checks retain their separate status. Conditions, unknown expressions, shared package items, collisions, and input limits remain qualified. See [lockfile observations](LOCKFILES.md) for the exact subset and reason codes.
 
 Selected `pnpm-workspace.yaml`, `lerna.json`, and `rush.json` files outside `node_modules` are recognized but not parsed, so their presence makes workspace membership and local dependency counts lower bounds (`pnpm_workspace_unparsed`, `lerna_workspace_unparsed`, `rush_workspace_unparsed`).
 
@@ -59,6 +75,8 @@ The scanner API can also summarize environment directories instead of traversing
 
 Candidate examples retain at most 256 paths per kind; project-directory examples retain at most 256 paths; workspace and local-reference examples each retain at most 64 entries. Paths longer than 3,072 bytes are excluded from these examples and counted in their omissions. These limits apply to display evidence independently of aggregate counts. Escaped JSON evidence also has a 7 MiB budget; the assessment component has an 8 MiB serialized ceiling. Budget trimming can reduce the retained examples further and increases their omitted-example counts without changing aggregates. An omitted example is not an omitted file. Parser limits, unreadable inputs, or an incomplete selected inventory are different: they qualify the affected project, relationship, or association population.
 
+Structural examples retain at most 256 workspace groups and 256 solution groups, 64 resolved and 64 unresolved members per group, 512 definite edges, 256 connected components with 64 project paths each, 512 qualified-reference categories, and 512 entry-point rows. The same path and JSON-byte budgets can trim these lists further. Counts are formed before display trimming, and omitted counts reconcile each sample with its observed total.
+
 The source traversal defaults to the existing 100,000-entry limit. Declaration parsing retains at most 4,096 documents, with a 1 MiB per-document and 64 MiB total input ceiling. Lockfile inspection retains at most 256 lockfiles and 4,096 contexts, with a 1 MiB per-file and 16 MiB total input ceiling. The companion modules expose their full limits and coverage.
 
 The existing .NET declaration adapter cannot faithfully interpret a selected POSIX filename containing a literal backslash. Assessment retains its exact file and manifest counts, but qualifies the affected project, root, relationship, and association populations with `dotnet_selected_path_identity_ambiguous`; it does not invent a project at a normalized path. This differs from backslashes used as separators inside a build declaration.
@@ -69,7 +87,7 @@ The assessment module reuses the selected source and declaration or lockfile rep
 
 ## Cost
 
-A five-run directory-mode comparison on rails, npm-cli, Roslyn, dotnet-samples, and ASP.NET Core found `analyze all --assessment` between 3% faster and 42% slower than plain `analyze all`. It was within 2% of `analyze all --discovery --declarations --lockfiles --npm-workspace-locks`, which performs the same companion analyses. After removing the assessment component and its schema-version bump, those companion reports matched exactly. These are descriptive warm-cache medians on one machine, not a performance guarantee; the added cost depends on repository contents and the chosen analysis limits.
+The 1.4.0 assessment used roughly the same work as explicitly requesting discovery, declarations, and lockfiles. Version 1.5.0 also inspects selected deployment files and joins bounded structural evidence. The language-only and default aggregate commands do not opt into this work. Added cost depends on repository contents and the selected limits; warm-cache measurements cannot establish a guarantee for another machine or repository.
 
 ## Reading the report
 
@@ -94,6 +112,20 @@ Outcome reasons for npm projects (state, reason code, and count for each non-cov
 ```sh
 dircue analyze assessment --source directory --json /repo \
   | jq '.assessment.lockfiles[] | select(.ecosystem=="npm") | .outcome_reasons[]'
+```
+
+Primary project populations by ecosystem and structural qualification:
+
+```sh
+dircue analyze all --assessment --source directory --json /repo \
+  | jq '.assessment.structure | {populations: [.populations[] | select(.role=="primary")], coverage}'
+```
+
+Observed connected groups and their bounded project lists:
+
+```sh
+dircue analyze assessment --source directory --json /repo \
+  | jq '.assessment.structure | {dependencies, coverage: [.coverage[] | select(.scope=="dependency_connectivity")]}'
 ```
 
 ## Optional Syft evidence

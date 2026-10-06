@@ -82,6 +82,37 @@ func TestProjectRecordsIncompleteDocument(t *testing.T) {
 	}
 }
 
+func TestProjectRecordsPreserveEmptyMavenAggregatorMetadataWithoutChangingReport(t *testing.T) {
+	const source = "<project><modelVersion>4.0.0</modelVersion><modules/></project>"
+	var ordinary []byte
+	for _, enabled := range []bool{false, true} {
+		c := New("directory", "", 0)
+		if enabled {
+			c.EnableProjectRecords()
+		}
+		c.Add("pom.xml", candidateFor("pom.xml", source))
+		r, err := c.Finish(context.Background())
+		if err != nil {
+			t.Fatal(err)
+		}
+		data, err := json.Marshal(r)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !enabled {
+			ordinary = data
+			continue
+		}
+		if string(data) != string(ordinary) {
+			t.Fatal("assessment-only Maven metadata changed public declaration JSON")
+		}
+		records := c.ProjectRecords()
+		if len(records) != 1 || !records[0].WorkspaceDeclared {
+			t.Fatalf("empty Maven group metadata missing: %+v", records)
+		}
+	}
+}
+
 func TestProjectRecordsUnavailableAfterFailedFinish(t *testing.T) {
 	c := New("directory", "", 0)
 	c.EnableProjectRecords()

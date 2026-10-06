@@ -41,12 +41,13 @@ type Project struct {
 
 // Data belongs to an adapter and is discarded after inventory-only resolution.
 type Document struct {
-	Project       *Project
-	Diagnostics   []Diagnostic
-	Data          any
-	Parsed        bool
-	retainedBytes int
-	limited       bool
+	Project           *Project
+	Diagnostics       []Diagnostic
+	Data              any
+	Parsed            bool
+	workspaceDeclared bool
+	retainedBytes     int
+	limited           bool
 }
 
 type Coverage struct {

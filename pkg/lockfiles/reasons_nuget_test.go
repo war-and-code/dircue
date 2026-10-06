@@ -177,23 +177,20 @@ func TestNuGetReasonNuGetLockfileOwnerUnresolved(t *testing.T) {
 }
 
 func TestNuGetReasonNuGetSharedInputsOrCustomLockPathUnresolved(t *testing.T) {
-	// "nuget-shared-inputs-or-custom-lock-path-unresolved" is emitted when
-	// nugetSharedInputs is true.
-	// Case 1: association state was "missing"; it overrides to "indeterminate".
+	// A shared package-item declaration keeps missing-lock ownership unknown.
 	req := declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"}
 	record := nugetRecord("src/App", "src/App/App.csproj", req)
-	// No lockfile in src/App → association would be "missing". But
-	// Directory.Build.props at root triggers nugetSharedInputs.
+	// No lockfile in src/App; the shared input can add package identities.
 	files := map[string]string{
-		"src/App/App.csproj":    "<Project />",
-		"Directory.Build.props": "<Project />",
+		"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"Directory.Build.props": `<Project><ItemGroup><PackageReference Include="Shared" Version="1.0" /></ItemGroup></Project>`,
 	}
 	in := testInput([]declarations.ProjectRecord{record}, files, true)
 	c := nugetReasonContext(t, in, "src/App/App.csproj")
 	if c.AssociationState != "indeterminate" {
 		t.Fatalf("AssociationState=%q want indeterminate; context=%+v", c.AssociationState, c)
 	}
-	const want = "nuget-shared-inputs-or-custom-lock-path-unresolved"
+	const want = "nuget-shared-input-effect-unresolved"
 	if nugetReasonBoundaryReason(c) != want {
 		t.Fatalf("boundary reason=%q want %q; context=%+v", nugetReasonBoundaryReason(c), want, c)
 	}

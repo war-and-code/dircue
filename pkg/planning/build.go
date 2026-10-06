@@ -94,7 +94,7 @@ func Build(ctx context.Context, in Input) (*Report, error) {
 }
 
 func validateInput(in Input) error {
-	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
+	if in.Profile == nil || !isDigest(in.ReportSHA256) || !slices.Contains([]string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0"}, in.Profile.SchemaVersion) || len(in.Profile.Root) > MaxReportedRootBytes || in.Capabilities.Validate() != nil {
 		return ErrInvalid
 	}
 	if len(in.Selection.Modules)+len(in.Selection.Questions) > MaxRequests || len(in.Selection.Inputs) > MaxRequests || len(in.Selection.Projects) > MaxProjects {

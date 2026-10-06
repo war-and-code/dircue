@@ -380,6 +380,12 @@ func TestMetricsListsEveryAggregateMetric(t *testing.T) {
 			}
 		}
 	}
+	if r.Structure != nil {
+		for _, row := range r.Structure.Populations {
+			want = append(want, ":structure:population:"+row.Population+":"+row.Ecosystem+":"+row.Role)
+		}
+		want = append(want, ":structure:dependency_projects", ":structure:definite_edges", ":structure:connected_groups")
+	}
 	if len(r.Lockfiles) == 0 || len(names) != len(want) {
 		t.Fatalf("Metrics() lists %d metrics, report has %d", len(names), len(want))
 	}

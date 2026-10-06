@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"testing"
 
@@ -28,8 +29,8 @@ func executeAssessmentJSON(t *testing.T, args ...string) (*profile.Report, []byt
 	if err := json.Unmarshal(out.Bytes(), &report); err != nil {
 		t.Fatalf("decode %v: %v\n%s", args, err, out.String())
 	}
-	if report.Assessment == nil || report.SchemaVersion != "1.9.0" {
-		t.Fatalf("missing assessment schema 1.9: %+v", report)
+	if report.Assessment == nil || report.SchemaVersion != profile.AssessmentSchemaVersion {
+		t.Fatalf("missing current assessment schema: %+v", report)
 	}
 	if err := assessment.ValidateReport(report.Assessment); err != nil {
 		t.Fatalf("native assessment validator: %v", err)
@@ -89,7 +90,7 @@ func TestAssessmentCLIStandaloneAndAllPreserveLanguagesOffline(t *testing.T) {
 	if err := Execute(context.Background(), []string{"analyze", "assessment", "--source", "directory", root}, &textOut, &textErr); err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(textOut.String(), "Repository measurements") || !strings.Contains(textOut.String(), "logical bytes") {
+	if !strings.Contains(textOut.String(), "Repository measurements") || !strings.Contains(textOut.String(), "logical bytes") || !strings.Contains(textOut.String(), "connected project groups") || !strings.Contains(textOut.String(), "Static entry-point observations") {
 		t.Fatalf("assessment text output missing summary: %s", textOut.String())
 	}
 }
@@ -132,5 +133,51 @@ func TestAssessmentSchemaIsAvailableOffline(t *testing.T) {
 	}
 	if exported["$schema"] == nil || exported["$id"] == nil || !strings.Contains(out.String(), "assessment") {
 		t.Fatalf("exported assessment schema is not a self-described JSON schema: %s", out.String())
+	}
+}
+
+func TestAssessmentLocalRelationshipsRequireDeclaredEvidence(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		files  map[string]string
+		reason string
+	}{
+		{"self-reference", map[string]string{"App.csproj": `<Project><ItemGroup><ProjectReference Include="App.csproj"/></ItemGroup></Project>`}, "self_reference_qualified"},
+		{"coordinate-only", map[string]string{
+			"app/pom.xml":     `<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>app</artifactId><version>1</version><dependencies><dependency><groupId>x</groupId><artifactId>lib</artifactId><version>1</version></dependency></dependencies></project>`,
+			"archive/pom.xml": `<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>lib</artifactId><version>1</version></project>`,
+		}, "coordinate_match_without_declared_reactor"},
+		{"coordinate-case", map[string]string{
+			"pom.xml":     `<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>root</artifactId><version>1</version><packaging>pom</packaging><modules><module>app</module><module>lib</module></modules></project>`,
+			"app/pom.xml": `<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>app</artifactId><version>1</version><dependencies><dependency><groupId>X</groupId><artifactId>Lib</artifactId><version>1</version></dependency></dependencies></project>`,
+			"lib/pom.xml": `<project><modelVersion>4.0.0</modelVersion><groupId>x</groupId><artifactId>lib</artifactId><version>1</version></project>`,
+		}, "coordinate_case_mismatch"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			for name, content := range tc.files {
+				filename := filepath.Join(root, filepath.FromSlash(name))
+				if err := os.MkdirAll(filepath.Dir(filename), 0700); err != nil {
+					t.Fatal(err)
+				}
+				if err := os.WriteFile(filename, []byte(content), 0600); err != nil {
+					t.Fatal(err)
+				}
+			}
+			r, _ := executeAssessmentJSON(t, "analyze", "assessment", "--source", "directory", "--json", root)
+			d := r.Assessment.Structure.Dependencies
+			if d.DefiniteEdges.Count != 0 || d.QualifiedReferenceCount < 1 {
+				t.Fatalf("local declaration became a definite edge or vanished: %+v", d)
+			}
+			var qualified bool
+			for _, c := range r.Assessment.Structure.Coverage {
+				if c.Scope == "project_dependencies" && c.Status == "partial" && slices.Contains(c.Reasons, tc.reason) {
+					qualified = true
+				}
+			}
+			if !qualified {
+				t.Fatalf("missing qualification %s: %+v", tc.reason, r.Assessment.Structure.Coverage)
+			}
+		})
 	}
 }

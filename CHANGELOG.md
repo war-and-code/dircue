@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.5.0 (unreleased)
+
+- Expand optional repository assessment with ecosystem/role populations for filename candidates, parsed projects, distinct roots, and explicit workspace and solution groups. Group totals are separate from bounded member samples; directory nesting does not establish membership or independence.
+- Summarize definite local project dependencies, qualified references, and connected groups in the observed dependency graph. Keep conditions, missing targets, self-references, and Maven coordinate matches without an explicit reactor qualified. Structural coverage is separate from exact file and byte counts and is scoped to the affected ecosystem and relationship family.
+- Include supported manifest and deployment entry points in the same offline assessment invocation. Retain declared names and static project associations without script bodies or execution. Source entry-point scanning remains outside this catalog and its coverage is explicit.
+- Separate NuGet candidate presence, lock ownership, and named-check status. Inspect the supported static subset of shared MSBuild inputs and confined imports, preserve assignment order, and associate literal custom lock paths only when their owners are unambiguous. Empty shared files and version-only central package declarations no longer make every direct-package check unknown. Dynamic inputs, unsupported import models, shared package items, path collisions, and parser limits remain qualified.
+- Advance assessment and lockfile providers to `1.1.0` and assessment aggregate profiles to `1.10.0`. Current readers retain older report forms. Built-in help, schemas, comparison, and compatibility notes describe the additional evidence and intentional changes to optional lockfile outcomes. Language-only, default aggregate, and map paths keep their existing semantics.
+- Add hand-labeled mixed-ecosystem fixtures, sample-limit accounting checks, false-attribution regressions, and optional isolated .NET SDK property/item queries. Event-driven CI and packaged-core checks exercise the new contracts; runtime analysis still requires no SDK, Git, Syft, network, or build execution.
+
 ## 1.4.0 (2026-10-05)
 
 - Add optional `analyze assessment` and `analyze all --assessment` reports combining existing language statistics with selected file and logical-byte totals (including Linguist-vendored subsets), filename-selected manifest counts with ecosystem and kind, parsed project roots with per-role breakdowns, explicit workspace and local references, and npm/NuGet lockfile associations with per-role and outcome-reason detail. Each metric states its population and completeness; capped evidence samples remain separate from incomplete counts. The module works without Git, Syft, build execution, or package restoration and emits no monorepo or size verdict.

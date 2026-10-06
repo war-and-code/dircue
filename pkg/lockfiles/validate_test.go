@@ -2,6 +2,7 @@ package lockfiles
 
 import (
 	"context"
+	"slices"
 	"strings"
 	"testing"
 
@@ -39,6 +40,36 @@ func TestValidateReportAcceptsAnalyzerOutput(t *testing.T) {
 	r := validNPMReport(t)
 	if err := ValidateReport(r); err != nil {
 		t.Fatalf("valid analyzer output rejected: %v", err)
+	}
+}
+
+func TestValidateReportAcceptsLegacyNuGetShapeAndRequiresCurrentEvidence(t *testing.T) {
+	record := nugetRecord("app", "app/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	body := `{"version":1,"dependencies":{"net10.0":{"A":{"type":"Direct"}}}}`
+	r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"app/packages.lock.json": body}, true), Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.ProviderVersion != ProviderVersion || r.Contexts[0].NuGetEvidence == nil {
+		t.Fatalf("current output lacks evidence: %+v", r.Contexts[0])
+	}
+	if err := ValidateReport(r); err != nil {
+		t.Fatalf("current output rejected: %v", err)
+	}
+
+	legacy := *r
+	legacy.ProviderVersion = LegacyProviderVersion
+	legacy.Contexts = slices.Clone(r.Contexts)
+	legacy.Contexts[0].NuGetEvidence = nil
+	if err := ValidateReport(&legacy); err != nil {
+		t.Fatalf("legacy 1.0 report rejected: %v", err)
+	}
+
+	currentWithoutEvidence := *r
+	currentWithoutEvidence.Contexts = slices.Clone(r.Contexts)
+	currentWithoutEvidence.Contexts[0].NuGetEvidence = nil
+	if err := ValidateReport(&currentWithoutEvidence); err == nil {
+		t.Fatal("1.1 NuGet context without evidence was accepted")
 	}
 }
 

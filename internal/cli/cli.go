@@ -15,6 +15,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/war-and-code/dircue/pkg/deployables"
 	"github.com/war-and-code/dircue/pkg/detectors"
 	"github.com/war-and-code/dircue/pkg/focus"
 	"github.com/war-and-code/dircue/pkg/profile"
@@ -389,8 +390,13 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 		focusRequest = &focus.Request{Project: opts.focusProject, Related: opts.focusRelated, AffectedBy: opts.focusAffectedBy}
 	}
 	var hooks []profile.Detector
+	var assessmentDeployables *deployables.Collector
 	if mode == "all" || mode == "assessment" || mode == "frameworks" || mode == "ecosystems" {
 		hooks = detectors.Default()
+	}
+	if mode == "assessment" || (mode == "all" && opts.assessment) {
+		assessmentDeployables = deployables.NewCollector(deployables.Options{})
+		hooks = append(hooks, assessmentDeployables)
 	}
 	report, err := scanner.Scan(cmd.Context(), path, scanner.Options{
 		Environments:      mode == "environments" || (mode == "all" && opts.environments),
@@ -430,6 +436,11 @@ func run(cmd *cobra.Command, args []string, opts *options, mode string) error {
 	})
 	if err != nil {
 		return err
+	}
+	if assessmentDeployables != nil {
+		if err := enrichAssessmentEntryPoints(cmd.Context(), report, assessmentDeployables.Finish()); err != nil {
+			return err
+		}
 	}
 	if mode == "graph" || (mode == "all" && opts.graph) {
 		report.Graph = projects.AnalyzeGraph(report.Projects)

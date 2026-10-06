@@ -22,7 +22,8 @@ import (
 )
 
 const (
-	Version                   = "1.0.0"
+	Version                   = "1.1.0"
+	LegacyVersion             = "1.0.0"
 	EvidenceLimitPerKind      = 256
 	ProjectRootEvidenceLimit  = 256
 	RelationshipEvidenceLimit = 64
@@ -157,6 +158,7 @@ type Report struct {
 	LockfilesOverall             LockfileEcosystem      `json:"lockfiles_overall"`
 	UnsupportedEcosystemProjects Metric                 `json:"unsupported_ecosystem_projects"`
 	Definitions                  []Definition           `json:"definitions"`
+	Structure                    *StructureReport       `json:"structure,omitempty"`
 }
 
 // NamedMetric is one aggregate metric with a stable name. Lockfile row
@@ -184,11 +186,25 @@ func (r *Report) Metrics() []NamedMetric {
 		{Name: "local_dependencies", Metric: r.LocalDependencies},
 		{Name: "unsupported_ecosystem_projects", Metric: r.UnsupportedEcosystemProjects},
 	}
-	for _, row := range append([]LockfileEcosystem{r.LockfilesOverall}, r.Lockfiles...) {
+	lockfileRows := make([]LockfileEcosystem, 0, len(r.Lockfiles)+1)
+	lockfileRows = append(lockfileRows, r.LockfilesOverall)
+	lockfileRows = append(lockfileRows, r.Lockfiles...)
+	for _, row := range lockfileRows {
 		for _, m := range []NamedMetric{{Name: "projects", Metric: row.Projects}, {Name: "eligible", Metric: row.Eligible}, {Name: "covered", Metric: row.Covered}, {Name: "missing", Metric: row.Missing}, {Name: "not_applicable", Metric: row.NotApplicable}, {Name: "unsupported", Metric: row.Unsupported}, {Name: "unknown", Metric: row.Unknown}} {
 			m.Ecosystem = row.Ecosystem
 			out = append(out, m)
 		}
+	}
+	if r.Structure != nil {
+		for _, population := range r.Structure.Populations {
+			name := "structure:population:" + population.Population + ":" + population.Ecosystem + ":" + population.Role
+			out = append(out, NamedMetric{Name: name, Metric: population.Metric})
+		}
+		out = append(out, []NamedMetric{
+			{Name: "structure:dependency_projects", Metric: r.Structure.Dependencies.Projects},
+			{Name: "structure:definite_edges", Metric: r.Structure.Dependencies.DefiniteEdges},
+			{Name: "structure:connected_groups", Metric: r.Structure.Dependencies.ConnectedGroups},
+		}...)
 	}
 	return out
 }
@@ -215,15 +231,16 @@ type Evidence struct {
 }
 
 type Collector struct {
-	mode, tree      string
-	files           int64
-	bytes           int64
-	vendoredFiles   int64
-	vendoredBytes   int64
-	invalid         map[string]int64
-	candidateCounts map[string]*CandidateCount
-	kindCounts      map[string]*CandidateKindCount
-	candidates      map[string]*candidateHeap
+	mode, tree          string
+	files               int64
+	bytes               int64
+	vendoredFiles       int64
+	vendoredBytes       int64
+	invalid             map[string]int64
+	candidateCounts     map[string]*CandidateCount
+	candidateRoleCounts map[string]int64
+	kindCounts          map[string]*CandidateKindCount
+	candidates          map[string]*candidateHeap
 	// manifests holds every selected manifest candidate path, so unparsed
 	// candidates are identified by path rather than by subtracting counts.
 	manifests          map[string]bool
@@ -235,7 +252,7 @@ type Collector struct {
 
 // New creates an assessment collector for one selected source snapshot.
 func New(mode, tree string) *Collector {
-	return &Collector{mode: mode, tree: tree, status: "complete", invalid: map[string]int64{}, candidateCounts: map[string]*CandidateCount{}, kindCounts: map[string]*CandidateKindCount{}, candidates: map[string]*candidateHeap{}, manifests: map[string]bool{}, pythonLockDirs: map[string]bool{}, unparsedWorkspaces: map[string]bool{}, omissions: map[string]int64{}}
+	return &Collector{mode: mode, tree: tree, status: "complete", invalid: map[string]int64{}, candidateCounts: map[string]*CandidateCount{}, candidateRoleCounts: map[string]int64{}, kindCounts: map[string]*CandidateKindCount{}, candidates: map[string]*candidateHeap{}, manifests: map[string]bool{}, pythonLockDirs: map[string]bool{}, unparsedWorkspaces: map[string]bool{}, omissions: map[string]int64{}}
 }
 
 // Add adds metadata for one selected regular file. It does not retain every
@@ -288,6 +305,7 @@ func (c *Collector) Add(file discovery.File) {
 			c.candidateCounts[key] = count
 		}
 		count.Files++
+		c.candidateRoleCounts[structurePopulationKey("filename_candidates", ecosystem, pathrole.Of(file.Path))]++
 		if file.Size >= 0 && file.Size <= math.MaxInt64-count.Bytes {
 			count.Bytes += file.Size
 		} else if file.Size >= 0 {
@@ -489,6 +507,28 @@ func (c *Collector) Finish(in Evidence) (*Report, error) {
 	out.ProjectRootsByRole = rootRoles
 	out.Projects = metric(int64(len(sel.projects)), "parsed package and project records; virtual workspace roots and configuration, solution, annotation, and tool-settings records are excluded", !projectsComplete, projectReasons)
 	out.ProjectsByRole = projectRoles(sel.projects)
+	unparsedEcosystems := map[string]bool{}
+	for name := range c.manifests {
+		if sel.parsedIDs[name] || interpreted[name] {
+			continue
+		}
+		_, ecosystem, _ := classifyManifest(name)
+		unparsedEcosystems[ecosystem] = true
+	}
+	structureGlobalReasons := []string{}
+	if decls.Status == "skipped" {
+		structureGlobalReasons = append(structureGlobalReasons, "declarations_skipped")
+	}
+	if decls.Coverage.OmittedDiagnostics > 0 {
+		structureGlobalReasons = append(structureGlobalReasons, "declaration_diagnostics_omitted")
+	}
+	if manifestOmitted(decls, in) {
+		structureGlobalReasons = append(structureGlobalReasons, "declaration_files_omitted")
+	}
+	if sel.unclassified {
+		structureGlobalReasons = append(structureGlobalReasons, "unclassified_declaration_kind")
+	}
+	out.Structure = buildStructure(in.Records, sel.projects, in.Declarations, c.candidateRoleCounts, inventoryReasons, unparsedEcosystems, structureGlobalReasons)
 	projectByID := map[string]string{}
 	for _, p := range sel.graph {
 		if p.ID != "" && p.Root != "" {
@@ -571,6 +611,7 @@ func boundEvidence(r *Report) {
 		}
 	}
 	r.LocalDependencyEvidence = keepLocal
+	boundStructureEvidence(r.Structure, &remaining)
 }
 
 func encodedSize(v any) int {
@@ -1210,8 +1251,14 @@ func ValidateReport(r *Report) error {
 	if r == nil {
 		return errors.New("assessment report is nil")
 	}
-	if r.Version != Version {
+	if r.Version != Version && r.Version != LegacyVersion {
 		return fmt.Errorf("unsupported assessment version %q", r.Version)
+	}
+	if r.Version == LegacyVersion && r.Structure != nil {
+		return errors.New("legacy assessment version cannot contain structural summary")
+	}
+	if r.Version == Version && r.Structure == nil {
+		return errors.New("assessment structural summary is required")
 	}
 	if !validSource(r.Source.Mode, r.Source.Tree) {
 		return errors.New("assessment source identity is invalid")
@@ -1320,6 +1367,11 @@ func ValidateReport(r *Report) error {
 	}
 	if err := validateLockfileRows(r); err != nil {
 		return err
+	}
+	if r.Structure != nil {
+		if err := validateStructure(r.Structure, r.Projects.Count, r.ManifestCandidatePopulation.Count); err != nil {
+			return fmt.Errorf("structure: %w", err)
+		}
 	}
 	encoded, err := json.Marshal(r)
 	if err != nil || len(encoded) > MaxAssessmentJSONBytes {

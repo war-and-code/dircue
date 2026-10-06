@@ -3,10 +3,8 @@ package lockfiles
 import (
 	"context"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"path"
 	"slices"
 	"sort"
@@ -15,7 +13,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/war-and-code/dircue/internal/xmlencoding"
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
@@ -79,12 +76,42 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 	omissions := newOmissionScope(in)
 
 	files := make(map[string]File)
+	selectedFiles := make(map[string]File)
 	inventoryComplete := in.InventoryComplete && in.OmittedFiles == 0
 	paths := make([]string, 0, min(len(in.Inventory), limits.InventoryPaths))
 	ordered := slices.Clone(in.Inventory)
 	slices.SortFunc(ordered, func(a, b File) int { return strings.Compare(a.Path, b.Path) })
 	if err := ctx.Err(); err != nil {
 		return nil, err
+	}
+	selectedComplete := in.SelectedFilesComplete
+	selectedOrdered := slices.Clone(in.SelectedFiles)
+	slices.SortFunc(selectedOrdered, func(a, b File) int { return strings.Compare(a.Path, b.Path) })
+	for _, f := range selectedOrdered {
+		clean, ok := cleanSelectedRelative(f.Path, in.WorkspaceLocks)
+		if !ok || f.Size < 0 {
+			selectedComplete = false
+			continue
+		}
+		f.Path = clean
+		if previous, exists := selectedFiles[clean]; exists {
+			if previous.Size != f.Size || previous.NonRegular != f.NonRegular {
+				selectedComplete = false
+			}
+			continue
+		}
+		if len(selectedFiles) >= limits.InventoryPaths {
+			selectedComplete = false
+			continue
+		}
+		selectedFiles[clean] = f
+	}
+	readableFiles := make(map[string]File, len(files)+len(selectedFiles))
+	for p, f := range files {
+		readableFiles[p] = f
+	}
+	for p, f := range selectedFiles {
+		readableFiles[p] = f
 	}
 	for _, f := range ordered {
 		if err := ctx.Err(); err != nil {
@@ -186,7 +213,67 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 
 	npm := newNPMResolver(in, records, locksByDir, markersByDir, omissions)
 	lockReadCache := map[string]parsedLock{}
-	nugetProjectConfigCache := map[string]string{}
+	selectedReadCache := map[string]selectedFileRead{}
+	nugetProjectConfigCache := map[string]nugetProjectConfig{}
+	nugetStaticByManifest := map[string]nugetRecordStatic{}
+	nugetSharedIndex := indexNuGetSharedPaths(paths)
+	// Build bounded static path claims for every MSBuild project, including
+	// project types that do not receive a NuGet comparison context. A custom
+	// path is only uniquely attributable when every potential owner is known.
+	for _, rec := range records {
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		if rec.Project.Kind != "dotnet" || !isMSBuildProjectRecord(path.Ext(rec.Project.ID)) {
+			continue
+		}
+		manifest := rec.Project.ID
+		config, inspectErr := inspectNuGetProjectConfigStatic(ctx, in, files[manifest], manifest, limits, &r.Coverage.InputBytes, selectedReadCache)
+		if inspectErr != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			if in.ErrorPolicy != "continue" {
+				return nil, fmt.Errorf("read selected project file %q: %w", manifest, inspectErr)
+			}
+		}
+		nugetProjectConfigCache[manifest] = config
+		projectImportsUnknown, importErr := inspectNuGetImports(ctx, in, rec, selectedFiles, limits, &r.Coverage.InputBytes, selectedReadCache)
+		if importErr != nil {
+			return nil, importErr
+		}
+		var sharedUnknown, sharedPathUnknown bool
+		var propsPath, targetsPath string
+		if config.sharedInputsSupported {
+			var sharedErr error
+			sharedUnknown, propsPath, targetsPath, sharedPathUnknown, sharedErr = inspectNuGetSharedInputs(ctx, in, readableFiles, nugetSharedIndex, rec.Project.Root, manifest, limits, &r.Coverage.InputBytes, selectedReadCache)
+			if sharedErr != nil {
+				return nil, sharedErr
+			}
+		} else if config.sharedInputsUnknown {
+			sharedUnknown, sharedPathUnknown = true, true
+		}
+		// The SDK oracle confirms this supported top-level order: default
+		// Directory.Build.props, project body, then Directory.Build.targets.
+		pathValue := propsPath
+		if config.customPath != "" {
+			pathValue = config.customPath
+		}
+		if !config.sharedInputsUnknown && !sharedPathUnknown && targetsPath != "" {
+			pathValue = targetsPath
+		}
+		if config.sharedInputsUnknown || sharedPathUnknown {
+			// Do not label a later shared assignment as the selected candidate
+			// when import applicability or its controls are unresolved.
+			pathValue = config.customPath
+		}
+		pathUnknown := config.pathUnknown || config.sharedInputsUnknown || sharedPathUnknown
+		nugetStaticByManifest[manifest] = nugetRecordStatic{
+			config: config, customPath: pathValue, pathUnknown: pathUnknown,
+			sharedUnknown: sharedUnknown, importsUnknown: projectImportsUnknown,
+		}
+	}
+	customLockCounted := map[string]bool{}
 	for _, rec := range records {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -210,34 +297,27 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			continue
 		}
 		ctxResult := Context{ProjectID: rec.Project.ID, Ecosystem: ecosystem, ManifestPath: manifest, AssociationState: "indeterminate", Checks: []Check{}, Boundaries: []Boundary{}}
-		nugetSharedInputs := ecosystem == "nuget" && hasNuGetSharedInputs(paths, rec.Project.Root)
-		nugetImportedInputs := ecosystem == "nuget" && hasNuGetImports(rec)
+		appendContext := func() {
+			r.Contexts = append(r.Contexts, ctxResult)
+		}
+		nugetSharedInputs := false
+		nugetImportedInputs := false
 		nugetCustomLockPath := false
 		nugetProjectConfigUnresolved := false
+		var customLockPath string
 		if ecosystem == "nuget" {
-			state, ok := nugetProjectConfigCache[manifest]
-			if !ok {
-				var inspectErr error
-				state, inspectErr = inspectNuGetProjectConfig(ctx, in, files[manifest], manifest, limits, &r.Coverage.InputBytes)
-				if inspectErr != nil {
-					if ctx.Err() != nil {
-						return nil, ctx.Err()
-					}
-					if in.ErrorPolicy != "continue" {
-						return nil, fmt.Errorf("read selected project file %q: %w", manifest, inspectErr)
-					}
-				}
-				nugetProjectConfigCache[manifest] = state
-			}
-			switch state {
-			case "custom-lock-path":
-				nugetCustomLockPath = true
-			case "unresolved":
+			static := nugetStaticByManifest[manifest]
+			config := nugetProjectConfigCache[manifest]
+			customLockPath = static.customPath
+			nugetCustomLockPath = static.pathUnknown
+			nugetImportedInputs = config.importsUnknown || static.importsUnknown
+			if config.unresolved {
 				nugetProjectConfigUnresolved = true
 				r.Status = "partial"
 				r.Coverage.OmittedFiles++
 				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: manifest, Code: "nuget-project-config-unresolved", Message: "The selected project XML could not be fully inspected within the bounded input limits."})
 			}
+			nugetSharedInputs = static.sharedUnknown
 		}
 		var a association
 		if ecosystem == "npm" {
@@ -246,12 +326,30 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			a = associateNuGet(rec, records, locksByDir, dotnetCountByRoot)
 		}
 		selectedNPMShrinkwrap := ecosystem == "npm" && a.state == "observed" && path.Base(a.lockPath) == "npm-shrinkwrap.json"
-		if nugetCustomLockPath {
+		if ecosystem == "nuget" && customLockPath != "" && !nugetCustomLockPath {
+			f, found := selectedFiles[customLockPath]
+			if regular, ok := files[customLockPath]; ok {
+				f, found = regular, true
+			}
+			if found && !f.NonRegular && !customLockCounted[customLockPath] && !lockAllowed[customLockPath] {
+				customLockCounted[customLockPath] = true
+				r.Coverage.LockCandidates++
+				if r.Coverage.LockCandidates <= limits.Lockfiles {
+					lockAllowed[customLockPath] = true
+				}
+			}
+		}
+		if customLockPath != "" && !nugetCustomLockPath && !nugetImportedInputs {
+			a = associateNuGetCustom(rec, records, customLockPath, files, selectedFiles, selectedComplete, omissions, nugetStaticByManifest)
+		} else if nugetCustomLockPath {
 			a.override("indeterminate", "nuget-custom-lock-path-unresolved")
 		} else if nugetProjectConfigUnresolved {
 			a.override("indeterminate", "nuget-project-config-unresolved")
 		} else if nugetImportedInputs {
 			a.override("indeterminate", "nuget-imported-project-input-unresolved")
+		}
+		if ecosystem == "nuget" && a.state == "observed" && nugetCustomPathConflictsWithLock(rec, a.lockPath, records, nugetStaticByManifest) {
+			a.override("indeterminate", "ambiguous-nuget-lockfile-owner")
 		}
 		if ecosystem == "nuget" && a.state == "observed" && !omissions.nugetOwnersKnown(rec.Project.Root) {
 			a.override("indeterminate", "project-inventory-incomplete-association")
@@ -259,14 +357,29 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		if a.state == "observed" && !inventoryComplete {
 			a.override("indeterminate", "inventory-incomplete-association")
 		}
+		if ecosystem == "nuget" && a.state == "observed" && !lockAllowed[a.lockPath] {
+			_, conventionalCandidate := files[a.lockPath]
+			if !conventionalCandidate && !customLockCounted[a.lockPath] {
+				customLockCounted[a.lockPath] = true
+				r.Coverage.LockCandidates++
+			}
+			if r.Coverage.LockCandidates > limits.Lockfiles {
+				a.override("indeterminate", "lockfile-limit")
+			} else {
+				lockAllowed[a.lockPath] = true
+			}
+		}
 		if nugetSharedInputs && (a.state == "missing" || a.state == "not_applicable") {
-			a.override("indeterminate", "nuget-shared-inputs-or-custom-lock-path-unresolved")
+			a.override("indeterminate", "nuget-shared-input-effect-unresolved")
 		}
 		if a.state == "missing" && !inventoryComplete {
 			a.override("indeterminate", "inventory-incomplete")
 		}
 		lockPath, association, workspaceRoot := a.lockPath, a.state, a.workspaceRoot
 		ctxResult.AssociationState = association
+		if ecosystem == "nuget" {
+			ctxResult.NuGetEvidence = makeNuGetEvidence(rec, paths, files, selectedFiles, customLockPath, a.lockPath, a.state, a.reason, in.InventoryComplete && in.OmittedFiles == 0 && selectedComplete)
+		}
 		if lockPath != "" {
 			ctxResult.LockfilePath = lockPath
 		}
@@ -285,7 +398,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			if association == "indeterminate" || association == "unsupported" {
 				r.Status = "partial"
 			}
-			r.Contexts = append(r.Contexts, ctxResult)
+			appendContext()
 			continue
 		}
 		if !lockAllowed[lockPath] {
@@ -293,13 +406,16 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: "lockfile-limit"})
 			ctxResult.Checks = append(ctxResult.Checks, Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: "The bounded lockfile admission limit was reached before this file could be inspected."})
 			r.Status = "partial"
-			r.Contexts = append(r.Contexts, ctxResult)
+			appendContext()
 			continue
 		}
 		parsed, found := lockReadCache[lockPath]
 		if !found {
-			f := files[lockPath]
-			if f.NonRegular || f.Size < 0 || f.Size > limits.FileBytes || f.Size > limits.InputBytes-r.Coverage.InputBytes || in.ReadSelected == nil {
+			f, selectedFile := files[lockPath]
+			if !selectedFile {
+				f, selectedFile = selectedFiles[lockPath]
+			}
+			if !selectedFile || f.NonRegular || f.Size < 0 || f.Size > limits.FileBytes || f.Size > limits.InputBytes-r.Coverage.InputBytes || in.ReadSelected == nil {
 				parsed = parsedLock{state: "indeterminate", reason: "lockfile-unreadable"}
 			} else {
 				data, size, err := in.ReadSelected(ctx, lockPath, limits.FileBytes+1)
@@ -339,7 +455,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: parsed.reason})
 			ctxResult.Checks = append(ctxResult.Checks, Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: explanationFor(parsed.reason)})
 			r.Status = "partial"
-			r.Contexts = append(r.Contexts, ctxResult)
+			appendContext()
 			continue
 		}
 		comparisonLock := parsed
@@ -358,7 +474,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: why})
 				ctxResult.Checks = append(ctxResult.Checks, Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: explanation})
 				r.Status = "partial"
-				r.Contexts = append(r.Contexts, ctxResult)
+				appendContext()
 				continue
 			}
 			comparisonLock.npmRoot = entry
@@ -385,8 +501,8 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		}
 		if nugetSharedInputs {
 			check.Status = "indeterminate"
-			check.Explanation += " Ancestor Directory.Build.props/targets or Directory.Packages.props can add, condition, or version package references and was not evaluated."
-			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: rec.Project.Root, Reason: "nuget-shared-inputs-or-custom-lock-path-unresolved"})
+			check.Explanation += " A bounded static inspection found shared MSBuild input whose package-item effects were not classified; no MSBuild evaluation was run."
+			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: rec.Project.Root, Reason: "nuget-shared-input-effect-unresolved"})
 		}
 		r.Coverage.PackageNames += count
 		if checkReason != "" {
@@ -397,7 +513,7 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			r.Status = "partial"
 		}
 		ctxResult.Checks = append(ctxResult.Checks, check)
-		r.Contexts = append(r.Contexts, ctxResult)
+		appendContext()
 	}
 
 	sort.Slice(r.Contexts, func(i, j int) bool {
@@ -435,61 +551,6 @@ var npmComparisonDiagnostics = []string{"invalid-npm-manifest", "invalid-npm-fie
 // make npm itself reject the workspace (duplicate member names). Fields that
 // npm ignores, such as Yarn's nohoist, do not affect membership.
 var npmMembershipDiagnostics = []string{"unsupported-npm-workspaces", "unsupported-npm-workspace-pattern", "npm-workspace-match-limit", "unsupported-npm-workspace-identity", "duplicate-npm-workspace-name", "npm-resolution-limit"}
-
-// inspectNuGetProjectConfig reads only the already-selected project snapshot.
-// It recognizes the presence of an explicit NuGetLockFilePath property but
-// deliberately does not evaluate its value or associate a custom path.
-func inspectNuGetProjectConfig(ctx context.Context, in Input, file File, manifest string, limits Limits, inputBytes *int64) (string, error) {
-	if file.Path == "" || file.NonRegular || file.Size < 0 || file.Size > limits.FileBytes || file.Size > limits.InputBytes-*inputBytes || in.ReadSelected == nil {
-		return "unresolved", nil
-	}
-	data, size, err := in.ReadSelected(ctx, manifest, limits.FileBytes+1)
-	if err != nil {
-		return "unresolved", err
-	}
-	if size != int64(len(data)) || size != file.Size || size > limits.FileBytes || size > limits.InputBytes-*inputBytes {
-		return "unresolved", nil
-	}
-	*inputBytes += size
-	decoded, err := xmlencoding.Decode(data)
-	if err != nil {
-		return "unresolved", nil
-	}
-	decoder := xml.NewDecoder(strings.NewReader(string(decoded)))
-	decoder.Strict = true
-	depth, tokens := 0, 0
-	for {
-		if err := ctx.Err(); err != nil {
-			return "unresolved", err
-		}
-		token, err := decoder.Token()
-		if err != nil {
-			if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-				return "unresolved", err
-			}
-			if errors.Is(err, io.EOF) {
-				return "clear", nil
-			}
-			return "unresolved", nil
-		}
-		tokens++
-		if tokens > 100_000 {
-			return "unresolved", nil
-		}
-		switch value := token.(type) {
-		case xml.StartElement:
-			depth++
-			if depth > 128 {
-				return "unresolved", nil
-			}
-			if strings.EqualFold(value.Name.Local, "NuGetLockFilePath") {
-				return "custom-lock-path", nil
-			}
-		case xml.EndElement:
-			depth--
-		}
-	}
-}
 
 type parsedLock struct {
 	state              string
@@ -1321,15 +1382,6 @@ func hasDirectDeclarations(rec declarations.ProjectRecord, ecosystem string) boo
 	return false
 }
 
-func hasNuGetImports(rec declarations.ProjectRecord) bool {
-	for _, ref := range rec.Project.References {
-		if strings.EqualFold(ref.Kind, "import") {
-			return true
-		}
-	}
-	return false
-}
-
 func missingState(rec declarations.ProjectRecord) string {
 	if !rec.Parsed || !rec.Complete {
 		return "indeterminate"
@@ -1448,20 +1500,6 @@ func cleanProjectPathsMode(id, root string, preservePOSIXBackslash bool) (string
 		return "", "", false
 	}
 	return cleanID, cleanRoot, true
-}
-
-func hasNuGetSharedInputs(paths []string, projectRoot string) bool {
-	for _, p := range paths {
-		base := strings.ToLower(path.Base(p))
-		if base != "directory.build.props" && base != "directory.build.targets" && base != "directory.packages.props" {
-			continue
-		}
-		dir := path.Dir(p)
-		if dir == projectRoot || isAncestor(dir, projectRoot) {
-			return true
-		}
-	}
-	return false
 }
 
 func isAncestor(parent, child string) bool {

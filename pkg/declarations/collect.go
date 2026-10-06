@@ -454,7 +454,7 @@ func (c *Collector) Finish(ctx context.Context) (report *Report, err error) {
 				continue
 			}
 			if p, ok := retained[d.Project.ID]; ok {
-				record := ProjectRecord{Project: p, Parsed: d.Parsed, Complete: !d.limited}
+				record := ProjectRecord{Project: p, Parsed: d.Parsed, Complete: !d.limited, WorkspaceDeclared: d.workspaceDeclared}
 				if data, ok := d.Data.(*pythonData); ok {
 					record.PythonBuildSystemSeen = data.buildSystemPresent
 				}
@@ -611,6 +611,7 @@ func fromLegacy(name string, legacy projects.Document) *Document {
 		kind = "jvm-configuration"
 	}
 	d := NewDocument(name, kind)
+	d.workspaceDeclared = legacy.WorkspaceDeclared
 	d.Data = legacyData{}
 	for _, diagnostic := range legacy.Diagnostics {
 		AddDiagnostic(d, diagnostic.Code, "An existing project reader reported incomplete or unsupported declarations.")

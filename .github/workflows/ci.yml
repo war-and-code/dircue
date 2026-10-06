@@ -165,6 +165,8 @@ jobs:
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Verify generated repository measurement populations and limits
         run: python3 tests/assessment/run.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --seeds 3 --output .cache/assessment-acceptance
+      - name: Verify structural assessment and NuGet attribution counterexamples
+        run: python3 tests/assessment_v150/run.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --output .cache/assessment-acceptance/structural.json
       - name: Retain assessment acceptance receipts and report outputs
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && !cancelled()
