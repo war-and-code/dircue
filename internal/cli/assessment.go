@@ -28,8 +28,8 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 		}
 	}
 	if structure := report.Structure; structure != nil {
-		if _, err := fmt.Fprintf(out, "Declared groups: %d workspace/module groups; %d solution groups\nObserved dependencies: %d definite local edges; %d connected project groups; %d qualified references\nStatic entry-point observations: %d; structural scope and uncertainty are in --json\n", structure.WorkspaceGroupCount, structure.SolutionGroupCount,
-			structure.Dependencies.DefiniteEdges.Count, structure.Dependencies.ConnectedGroups.Count, structure.Dependencies.QualifiedReferenceCount, structure.EntryPointCount); err != nil {
+		if _, err := fmt.Fprintf(out, "Declared groups: %d workspace/module groups; %d solution groups\nObserved dependencies: %d definite local edges (%s); %d connected project groups (%s); %d qualified references\nGroups with qualified links: %d (%s)\nStatic entry-point observations: %d declarations; %d rows; %d project associations; structural scope and uncertainty are in --json\n", structure.WorkspaceGroupCount, structure.SolutionGroupCount,
+			structure.Dependencies.DefiniteEdges.Count, structure.Dependencies.DefiniteEdges.Completeness, structure.Dependencies.ConnectedGroups.Count, structure.Dependencies.ConnectedGroups.Completeness, structure.Dependencies.QualifiedReferenceCount, structure.Dependencies.ConnectedGroupsWithQualified.Count, structure.Dependencies.ConnectedGroupsWithQualified.Completeness, structure.EntryPointCount, structure.EntryPointRowCount, structure.EntryPointAssociationCount); err != nil {
 			return err
 		}
 	}
@@ -42,10 +42,39 @@ func writeAssessment(out io.Writer, report *assessment.Report) error {
 				return err
 			}
 		}
+		if c := group.Checks; c != nil && group.Covered.Count > 0 {
+			if _, err := fmt.Fprintf(out, "  covered checks: %d match; %d different; %d indeterminate; %d not applicable\n", c.Match, c.Different, c.Indeterminate, c.NotApplicable); err != nil {
+				return err
+			}
+			for _, reason := range c.IndeterminateReasons {
+				if _, err := fmt.Fprintf(out, "    indeterminate: %s %d\n", reason.Reason, reason.Count); err != nil {
+					return err
+				}
+			}
+		}
+		if p := group.NuGetPresence; p != nil {
+			if _, err := fmt.Fprintf(out, "  lockfile presence: %d observed; %d not observed; %d unknown\n", p.Observed, p.NotObserved, p.Unknown); err != nil {
+				return err
+			}
+		}
+		for i, cause := range group.Causes {
+			if i == assessmentTextCauses {
+				if _, err := fmt.Fprintf(out, "  %d more cause(s) in --json\n", int64(len(group.Causes)-i)+group.OmittedCauses); err != nil {
+					return err
+				}
+				break
+			}
+			if _, err := fmt.Fprintf(out, "  cause: %s %s (%d projects)\n", cause.Reason, cause.Path, cause.Count); err != nil {
+				return err
+			}
+		}
 	}
 	_, err := fmt.Fprintln(out, "Counts describe selected evidence only. Use --json for scopes, definitions, roles, evidence, and omissions.")
 	return err
 }
+
+// assessmentTextCauses bounds the causes printed per lockfile row.
+const assessmentTextCauses = 5
 
 // roleSummary renders a role partition, or nothing when every count is
 // primary.

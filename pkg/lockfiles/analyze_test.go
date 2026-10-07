@@ -27,6 +27,30 @@ func npmRef(value, section string) declarations.Reference {
 	return declarations.Reference{Kind: "npm-dependency", Value: value, State: "declared", Condition: section}
 }
 
+// nugetProjectXML writes the SDK-style project file that the static NuGet
+// evaluator reads for a test record: one PackageReference per declared
+// package-reference requirement, conditional requirements under a condition.
+// pkgA is a PackageReference item group for package A.
+const pkgA = `<ItemGroup><PackageReference Include="A" Version="1.0" /></ItemGroup>`
+
+func nugetProjectXML(record declarations.ProjectRecord) string {
+	var b strings.Builder
+	b.WriteString(`<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>`)
+	for _, req := range record.Project.Requirements {
+		if req.Kind != "package-reference" {
+			continue
+		}
+		id, version, _ := strings.Cut(req.Value, "@")
+		condition := ""
+		if req.State == "conditional" {
+			condition = ` Condition="'$(Configuration)' == 'Debug'"`
+		}
+		b.WriteString(`<PackageReference Include="` + id + `" Version="` + version + `"` + condition + ` />`)
+	}
+	b.WriteString(`</ItemGroup></Project>`)
+	return b.String()
+}
+
 func testInput(records []declarations.ProjectRecord, content map[string]string, complete bool) Input {
 	if content == nil {
 		content = map[string]string{}
@@ -34,7 +58,7 @@ func testInput(records []declarations.ProjectRecord, content map[string]string, 
 	for _, record := range records {
 		if record.Project.Kind == "dotnet" && IsNuGetLockProject(record.Project.ID) {
 			if _, ok := content[record.Project.ID]; !ok {
-				content[record.Project.ID] = "<Project />"
+				content[record.Project.ID] = nugetProjectXML(record)
 			}
 		}
 	}
@@ -1036,8 +1060,8 @@ func TestNuGetCustomLockPathIsUnresolvedFromSelectedProjectXML(t *testing.T) {
 		want    string
 		reason  string
 	}{
-		{"custom property missing path", `<Project><PropertyGroup><NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath></PropertyGroup></Project>`, "missing", "lockfile-not-present"},
-		{"comment does not count", `<Project><!-- <NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath> --></Project>`, "observed", ""},
+		{"custom property missing path", `<Project><PropertyGroup><NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`, "missing", "lockfile-not-present"},
+		{"comment does not count", `<Project><!-- <NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath> -->` + pkgA + `</Project>`, "observed", ""},
 		{"malformed XML unresolved", `<Project><NuGetLockFilePath>elsewhere.lock.json</Project>`, "indeterminate", "nuget-project-config-unresolved"},
 		{"malformed before property unresolved", `<Project><PropertyGroup></Project>`, "indeterminate", "nuget-project-config-unresolved"},
 	} {
@@ -1072,7 +1096,7 @@ func TestNuGetCustomLockOwnersAreResolvedPerActualPath(t *testing.T) {
 		if i < 2 {
 			custom = "locks/shared.data"
 		}
-		content[manifest] = `<Project><PropertyGroup><NuGetLockFilePath>../../` + custom + `</NuGetLockFilePath></PropertyGroup></Project>`
+		content[manifest] = `<Project><PropertyGroup><NuGetLockFilePath>../../` + custom + `</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`
 		content[custom] = lock
 	}
 	in := testInput(records, content, true)
@@ -1133,7 +1157,7 @@ func TestNuGetCustomPathClaimsBlockUnknownPotentialOwners(t *testing.T) {
 	first := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
 	second := nugetRecord("tools/Worker", "tools/Worker/Worker.fsproj")
 	in := testInput([]declarations.ProjectRecord{first, second}, map[string]string{
-		"src/App/App.csproj":         `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup></Project>`,
+		"src/App/App.csproj":         `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
 		"tools/Worker/Worker.fsproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</PropertyGroup>`,
 		"locks/shared.data":          lock,
 	}, true)
@@ -1148,7 +1172,7 @@ func TestNuGetCustomPathClaimsBlockUnknownPotentialOwners(t *testing.T) {
 	// An attributed omitted MSBuild project may point at any custom path, even
 	// when its directory differs from the known project's root.
 	in = testInput([]declarations.ProjectRecord{first}, map[string]string{
-		"src/App/App.csproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup></Project>`,
+		"src/App/App.csproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
 		"locks/shared.data":  lock,
 	}, true)
 	in.Declarations.Coverage.OmittedFiles = 1
@@ -1194,7 +1218,7 @@ func TestNuGetSharedProjectInputsKeepLockfileClaimIndeterminate(t *testing.T) {
 	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
 	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
 	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
-		"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
 		"Directory.Packages.props":   `<Project><PropertyGroup><ManagePackageVersionsCentrally Condition="'$(EnableCPM)' == 'true'">true</ManagePackageVersionsCentrally><CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled></PropertyGroup><ItemGroup Condition="'$(TargetFramework)' == 'net10.0'"><PackageVersion Include="A" Version="$(CentralVersion)" /></ItemGroup></Project>`,
 		"src/App/packages.lock.json": lock,
 	}, true)
@@ -1215,8 +1239,10 @@ func TestNuGetSharedProjectInputsKeepLockfileClaimIndeterminate(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Contexts[0].AssociationState != "indeterminate" {
-		t.Fatalf("shared config custom lock path not disclosed: %+v", r.Contexts[0])
+	// A statically kept PackageReference from Directory.Build.props applies
+	// to the project, so the absent conventional lock is missing.
+	if c := r.Contexts[0]; c.AssociationState != "missing" || c.OutcomeReason() != "lockfile-not-present" || c.NuGetEvidence.LockPathBasis != "conventional" {
+		t.Fatalf("shared PackageReference did not make the lock expected: %+v", c)
 	}
 }
 
@@ -1232,7 +1258,7 @@ func TestNuGetLockPathUsesProvenOrderedLiteralLayersAndImports(t *testing.T) {
 			name: "project overrides default props",
 			content: map[string]string{
 				"Directory.Build.props": `<Project><PropertyGroup><NuGetLockFilePath>props.lock</NuGetLockFilePath></PropertyGroup></Project>`,
-				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
 				"src/App/project.lock":  lock,
 			},
 			wantPath: "src/App/project.lock",
@@ -1241,7 +1267,7 @@ func TestNuGetLockPathUsesProvenOrderedLiteralLayersAndImports(t *testing.T) {
 			name: "default targets overrides project",
 			content: map[string]string{
 				"Directory.Build.props":   `<Project><PropertyGroup><NuGetLockFilePath>props.lock</NuGetLockFilePath></PropertyGroup></Project>`,
-				"src/App/App.csproj":      `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":      `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
 				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>targets.lock</NuGetLockFilePath></PropertyGroup></Project>`,
 				"src/App/targets.lock":    lock,
 			},
@@ -1253,7 +1279,7 @@ func TestNuGetLockPathUsesProvenOrderedLiteralLayersAndImports(t *testing.T) {
 				"Directory.Build.props": `<Project><Import Project="A.props" /><Import Project="B.props" /></Project>`,
 				"A.props":               `<Project><PropertyGroup><NuGetLockFilePath>first.lock</NuGetLockFilePath></PropertyGroup></Project>`,
 				"B.props":               `<Project><PropertyGroup><NuGetLockFilePath>second.lock</NuGetLockFilePath></PropertyGroup></Project>`,
-				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk" />`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
 				"src/App/second.lock":   lock,
 			},
 			wantPath: "src/App/second.lock",
@@ -1264,7 +1290,7 @@ func TestNuGetLockPathUsesProvenOrderedLiteralLayersAndImports(t *testing.T) {
 				"Directory.Build.props": `<Project><Import Project="B.props" /><Import Project="A.props" /></Project>`,
 				"A.props":               `<Project><PropertyGroup><NuGetLockFilePath>first.lock</NuGetLockFilePath></PropertyGroup></Project>`,
 				"B.props":               `<Project><PropertyGroup><NuGetLockFilePath>second.lock</NuGetLockFilePath></PropertyGroup></Project>`,
-				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk" />`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
 				"src/App/first.lock":    lock,
 			},
 			wantPath: "src/App/first.lock",
@@ -1298,7 +1324,9 @@ func TestNuGetThisFileDirectoryImportDoesNotDoubleJoinOrTrustDecoy(t *testing.T)
 		t.Fatal(err)
 	}
 	got := r.Contexts[0]
-	if got.AssociationState != "observed" || len(got.Checks) != 1 || got.Checks[0].Status != "indeterminate" {
+	// The import resolves to build/common.props, not the doubled-path decoy,
+	// so its unconditional Hidden reference is compared like the project's.
+	if got.AssociationState != "observed" || len(got.Checks) != 1 || got.Checks[0].Status != "different" || !slices.Equal(got.Checks[0].Missing, []string{"hidden"}) {
 		t.Fatalf("real imported PackageReference was bypassed through a doubled-path decoy: %+v", got)
 	}
 }
@@ -1345,41 +1373,41 @@ func TestNuGetImplicitDirectoryTargetsRequireKnownSDKImportModel(t *testing.T) {
 			wantState: "observed", wantPath: "src/App/wrong.lock.json",
 		},
 		{
-			name:      "unknown SDK chain is unresolved",
+			name:      "unknown SDK chain is unmodeled",
 			project:   `<Project Sdk="Acme.Custom"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
 			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
-			wantState: "indeterminate", wantReason: "nuget-custom-lock-path-unresolved",
+			wantState: "indeterminate", wantReason: "nuget-msbuild-input-unmodeled",
 		},
 		{
-			name:      "project can disable targets but control stays unresolved",
+			name:      "project can disable default targets",
 			project:   `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
 			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
-			wantState: "indeterminate", wantReason: "nuget-custom-lock-path-unresolved",
+			wantState: "observed", wantPath: "src/App/right.lock.json",
 		},
 		{
-			name:      "dynamic targets enable control stays unresolved",
+			name:      "dynamic targets enable control is conditional",
 			project:   `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><ImportDirectoryBuildTargets>$(ImportTargets)</ImportDirectoryBuildTargets><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
 			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
-			wantState: "indeterminate", wantReason: "nuget-custom-lock-path-unresolved",
+			wantState: "indeterminate", wantReason: "nuget-lock-path-conditional",
 		},
 		{
-			name:    "props can control targets import",
+			name:    "props can disable default targets",
 			project: `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
 			shared: map[string]string{
 				"Directory.Build.props":   `<Project><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets></PropertyGroup></Project>`,
 				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
 			},
-			wantState: "indeterminate", wantReason: "nuget-custom-lock-path-unresolved",
+			wantState: "observed", wantPath: "src/App/right.lock.json",
 		},
 		{
-			name:    "imported props controls targets import",
+			name:    "imported props can disable default targets",
 			project: `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
 			shared: map[string]string{
 				"Directory.Build.props":   `<Project><Import Project="controls.props" /></Project>`,
 				"controls.props":          `<Project><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets></PropertyGroup></Project>`,
 				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
 			},
-			wantState: "indeterminate", wantReason: "nuget-custom-lock-path-unresolved",
+			wantState: "observed", wantPath: "src/App/right.lock.json",
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1432,45 +1460,55 @@ func TestNuGetCustomAndConventionalPathCollisionIsSymmetric(t *testing.T) {
 	}
 }
 
-func TestNuGetMSBuildReservedPathAnchorsAndAliasesStayConservative(t *testing.T) {
+func TestNuGetMSBuildReservedPathAnchors(t *testing.T) {
+	// MSBuild property names are case-insensitive, and
+	// $(MSBuildProjectDirectory) has no trailing separator, so a following
+	// name concatenates onto the directory name (SDK 10.0.401 check).
 	for _, tc := range []struct {
-		name string
-		fn   func() (string, bool)
-		want bool
+		raw, definedIn, manifest string
+		want                     string
+		anchored                 bool
+		status                   anchorStatus
 	}{
-		{"project directory anchor", func() (string, bool) {
-			return literalNuGetLockPath("$(MSBuildProjectDirectory)/locks/a.data", "src/App/App.csproj")
-		}, true},
-		{"embedded project directory is unsupported", func() (string, bool) {
-			return literalNuGetLockPath("prefix/$(MSBuildProjectDirectory)/a.data", "src/App/App.csproj")
-		}, false},
-		{"wrong-case reserved token", func() (string, bool) {
-			return literalNuGetLockPath("$(msbuildprojectdirectory)/a.data", "src/App/App.csproj")
-		}, false},
-		{"backslash lock path", func() (string, bool) { return literalNuGetLockPath(`locks\\a.data`, "src/App/App.csproj") }, false},
-		{"embedded import directory is unsupported", func() (string, bool) {
-			return resolveNuGetImportPath("prefix/$(MSBuildThisFileDirectory)a.props", "build/Directory.Build.props")
-		}, false},
-		{"backslash import is unsupported", func() (string, bool) { return resolveNuGetImportPath(`sub\\a.props`, "build/Directory.Build.props") }, false},
+		{"$(MSBuildProjectDirectory)/locks/a.data", "src/App/App.csproj", "src/App/App.csproj", "src/App/locks/a.data", true, anchorOK},
+		{"$(msbuildprojectdirectory)/a.data", "src/App/App.csproj", "src/App/App.csproj", "src/App/a.data", true, anchorOK},
+		{"$(MSBuildProjectDirectory)lock.json", "src/App/App.csproj", "src/App/App.csproj", "src/Applock.json", true, anchorOK},
+		{"$(MSBuildProjectDirectory)lock.json", "App.csproj", "App.csproj", "", true, anchorOutside},
+		{"prefix/$(MSBuildProjectDirectory)/a.data", "src/App/App.csproj", "src/App/App.csproj", "", false, anchorDynamic},
+		{"$(MSBuildThisFileDirectory)common.props", "build/Directory.Build.props", "src/App/App.csproj", "build/common.props", true, anchorOK},
+		{"$(MSBuildThisFileDirectory)common.props", "Directory.Build.props", "App.csproj", "common.props", true, anchorOK},
+		{"$(MSBuildProjectName).lock.json", "src/App/App.csproj", "src/App/App.csproj", "App.lock.json", false, anchorOK},
 	} {
-		t.Run(tc.name, func(t *testing.T) {
-			_, ok := tc.fn()
-			if ok != tc.want {
-				t.Fatalf("accepted=%v, want %v", ok, tc.want)
+		got, anchored, status := resolveMSBuildAnchors(tc.raw, tc.definedIn, tc.manifest)
+		if got != tc.want || anchored != tc.anchored || status != tc.status {
+			t.Errorf("resolveMSBuildAnchors(%q, %q, %q) = %q, %v, %v; want %q, %v, %v", tc.raw, tc.definedIn, tc.manifest, got, anchored, status, tc.want, tc.anchored, tc.status)
+		}
+	}
+	for _, tc := range []struct {
+		raw  string
+		want []nugetLockValue
+	}{
+		{"", []nugetLockValue{{kind: nugetLockDefault}}},
+		{"locks/a.data", []nugetLockValue{{kind: nugetLockLiteral, value: "src/App/locks/a.data"}}},
+		{"../../../x.json", []nugetLockValue{{kind: nugetLockOutside}}},
+		{"/abs/x.json", []nugetLockValue{{kind: nugetLockOutside}}},
+		{"$(Root)/x.json", []nugetLockValue{{kind: nugetLockOpen}}},
+		{"locks/$(TargetFramework).json", []nugetLockValue{{kind: nugetLockPattern, value: "src/App/locks/*.json"}, {kind: nugetLockOpen}}},
+		{`locks\a.data`, []nugetLockValue{{kind: nugetLockLiteral, value: "src/App/locks/a.data"}, {kind: nugetLockLiteral, value: `src/App/locks\a.data`}}},
+	} {
+		got := nugetLockValues(tc.raw, "src/App/App.csproj", "src/App/App.csproj")
+		if len(got) != len(tc.want) {
+			t.Errorf("nugetLockValues(%q) = %+v; want %+v", tc.raw, got, tc.want)
+			continue
+		}
+		for i := range got {
+			if got[i].kind != tc.want[i].kind || got[i].value != tc.want[i].value {
+				t.Errorf("nugetLockValues(%q)[%d] = %+v; want %+v", tc.raw, i, got[i], tc.want[i])
 			}
-		})
+		}
 	}
-	if got, ok := resolveNuGetImportPath("$(MSBuildThisFileDirectory)common.props", "build/Directory.Build.props"); !ok || got != "build/common.props" {
-		t.Fatalf("ThisFileDirectory import was double-joined: path=%q ok=%v", got, ok)
-	}
-	if got, ok := resolveNuGetImportPath("$(MSBuildThisFileDirectory)common.props", "Directory.Build.props"); !ok || got != "common.props" {
-		t.Fatalf("root ThisFileDirectory import was not confined: path=%q ok=%v", got, ok)
-	}
-	if got, ok := literalNuGetLockPathForBase("$(MSBuildThisFileDirectory)custom.data", "App.csproj", "."); !ok || got != "custom.data" {
-		t.Fatalf("root ThisFileDirectory lock path was not confined: path=%q ok=%v", got, ok)
-	}
-	if !nugetSelectedCaseAlias(map[string]File{"build/Common.props": {Path: "build/Common.props"}}, "build/common.props") {
-		t.Fatal("selected case alias was not detected")
+	if got := nugetDefaultName("src/My App/My App.csproj"); got != "packages.My_App.lock.json" {
+		t.Errorf("default name with spaces = %q", got)
 	}
 }
 
@@ -1586,20 +1624,39 @@ func TestNuGetPresenceIsIndependentFromOwnershipAndDirectCheck(t *testing.T) {
 	}
 }
 
-func TestNuGetExplicitMSBuildImportKeepsLockAssociationIndeterminate(t *testing.T) {
+func TestNuGetExplicitMSBuildImportIsEvaluated(t *testing.T) {
 	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Declared@1.0", State: "declared"})
-	record.Project.References = []declarations.Reference{{Kind: "import", Value: "../Shared.props", Target: "Shared.props", State: "declared", Evidence: record.Project.ID}}
 	lock := `{"version":1,"dependencies":{"net8.0":{"Declared":{"type":"Direct"},"Imported":{"type":"Direct"}}}}`
-	r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true), Limits{})
-	if err != nil {
-		t.Fatal(err)
-	}
-	c := r.Contexts[0]
-	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 || r.Status != "partial" {
-		t.Fatalf("explicit imported MSBuild input was treated as a closed project: %+v", c)
-	}
-	if len(c.Boundaries) != 1 || c.Boundaries[0].Reason != "nuget-imported-project-input-unresolved" {
-		t.Fatalf("missing explicit import boundary: %+v", c.Boundaries)
+	project := `<Project Sdk="Microsoft.NET.Sdk"><Import Project="../Shared.props" /><ItemGroup><PackageReference Include="Declared" Version="1.0" /></ItemGroup></Project>`
+	for _, tc := range []struct {
+		name, shared string
+		want, check  string
+		reason       string
+	}{
+		{"selected import adds a reference", `<Project><ItemGroup><PackageReference Include="Imported" Version="1.0" /></ItemGroup></Project>`, "observed", "match", ""},
+		{"selected import sets a conditional lock path", `<Project><PropertyGroup Condition="'$(CI)' == 'true'"><NuGetLockFilePath>ci.lock.json</NuGetLockFilePath></PropertyGroup></Project>`, "indeterminate", "", "nuget-lock-path-conditional"},
+		{"absent unconditional import fails evaluation", "", "indeterminate", "", "nuget-project-config-unresolved"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			content := map[string]string{"src/App/App.csproj": project, "src/App/packages.lock.json": lock, "src/App/ci.lock.json": lock}
+			if tc.shared != "" {
+				content["src/Shared.props"] = tc.shared
+			}
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, content, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatal(err)
+			}
+			c := r.Contexts[0]
+			if c.AssociationState != tc.want || tc.check != "" && (len(c.Checks) != 1 || c.Checks[0].Status != tc.check) || tc.reason != "" && c.OutcomeReason() != tc.reason {
+				t.Fatalf("explicit import: %+v", c)
+			}
+			if tc.reason != "" && (len(c.NuGetEvidence.Causes) == 0 || c.NuGetEvidence.Causes[0].Path == "") {
+				t.Fatalf("uncertainty has no named cause: %+v", c.NuGetEvidence)
+			}
+		})
 	}
 }
 

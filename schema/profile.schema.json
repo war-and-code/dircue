@@ -2618,6 +2618,8 @@
             "language-version",
             "runtime-identifier",
             "package-reference",
+            "assembly-reference",
+            "assembly-name",
             "code-generation",
             "maven-parent",
             "maven-parent-lookup",

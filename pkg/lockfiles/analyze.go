@@ -204,22 +204,23 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		validRecords = append(validRecords, rec)
 	}
 	records = validRecords
-	dotnetCountByRoot := map[string]int{}
-	for _, rec := range records {
-		if rec.Project.Kind == "dotnet" && isMSBuildProjectRecord(path.Ext(rec.Project.ID)) {
-			dotnetCountByRoot[rec.Project.Root]++
-		}
-	}
 
 	npm := newNPMResolver(in, records, locksByDir, markersByDir, omissions)
 	lockReadCache := map[string]parsedLock{}
 	selectedReadCache := map[string]selectedFileRead{}
-	nugetProjectConfigCache := map[string]nugetProjectConfig{}
-	nugetStaticByManifest := map[string]nugetRecordStatic{}
-	nugetSharedIndex := indexNuGetSharedPaths(paths)
-	// Build bounded static path claims for every MSBuild project, including
-	// project types that do not receive a NuGet comparison context. A custom
-	// path is only uniquely attributable when every potential owner is known.
+	// Evaluate every MSBuild project, including project types that receive no
+	// NuGet context, so a lock path is attributed only when no other project's
+	// possible values can name it.
+	nugetFiles := make(map[string]File, len(selectedFiles)+len(files))
+	for p, f := range files {
+		nugetFiles[p] = f
+	}
+	for p, f := range selectedFiles {
+		nugetFiles[p] = f
+	}
+	nugetIndex := newNuGetFileIndex(nugetFiles, selectedComplete && inventoryComplete)
+	walker := &nugetWalker{ctx: ctx, in: in, index: nugetIndex, limits: limits, inputBytes: &r.Coverage.InputBytes, reads: selectedReadCache, parsed: map[string]*nugetParsed{}, globalSDKs: map[string]nugetGlobalSDKParse{}}
+	nugetEvals := map[string]*nugetEval{}
 	for _, rec := range records {
 		if err := ctx.Err(); err != nil {
 			return nil, err
@@ -227,52 +228,16 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		if rec.Project.Kind != "dotnet" || !isMSBuildProjectRecord(path.Ext(rec.Project.ID)) {
 			continue
 		}
-		manifest := rec.Project.ID
-		config, inspectErr := inspectNuGetProjectConfigStatic(ctx, in, files[manifest], manifest, limits, &r.Coverage.InputBytes, selectedReadCache)
-		if inspectErr != nil {
+		e, err := walker.evaluate(rec.Project.ID)
+		if err != nil {
 			if ctx.Err() != nil {
 				return nil, ctx.Err()
 			}
-			if in.ErrorPolicy != "continue" {
-				return nil, fmt.Errorf("read selected project file %q: %w", manifest, inspectErr)
-			}
+			return nil, fmt.Errorf("read selected project file %q: %w", rec.Project.ID, err)
 		}
-		nugetProjectConfigCache[manifest] = config
-		projectImportsUnknown, importErr := inspectNuGetImports(ctx, in, rec, selectedFiles, limits, &r.Coverage.InputBytes, selectedReadCache)
-		if importErr != nil {
-			return nil, importErr
-		}
-		var sharedUnknown, sharedPathUnknown bool
-		var propsPath, targetsPath string
-		if config.sharedInputsSupported {
-			var sharedErr error
-			sharedUnknown, propsPath, targetsPath, sharedPathUnknown, sharedErr = inspectNuGetSharedInputs(ctx, in, readableFiles, nugetSharedIndex, rec.Project.Root, manifest, limits, &r.Coverage.InputBytes, selectedReadCache)
-			if sharedErr != nil {
-				return nil, sharedErr
-			}
-		} else if config.sharedInputsUnknown {
-			sharedUnknown, sharedPathUnknown = true, true
-		}
-		// The SDK oracle confirms this supported top-level order: default
-		// Directory.Build.props, project body, then Directory.Build.targets.
-		pathValue := propsPath
-		if config.customPath != "" {
-			pathValue = config.customPath
-		}
-		if !config.sharedInputsUnknown && !sharedPathUnknown && targetsPath != "" {
-			pathValue = targetsPath
-		}
-		if config.sharedInputsUnknown || sharedPathUnknown {
-			// Do not label a later shared assignment as the selected candidate
-			// when import applicability or its controls are unresolved.
-			pathValue = config.customPath
-		}
-		pathUnknown := config.pathUnknown || config.sharedInputsUnknown || sharedPathUnknown
-		nugetStaticByManifest[manifest] = nugetRecordStatic{
-			config: config, customPath: pathValue, pathUnknown: pathUnknown,
-			sharedUnknown: sharedUnknown, importsUnknown: projectImportsUnknown,
-		}
+		nugetEvals[rec.Project.ID] = e
 	}
+	nugetClaims := newNuGetClaims(nugetEvals, nugetIndex)
 	customLockCounted := map[string]bool{}
 	for _, rec := range records {
 		if err := ctx.Err(); err != nil {
@@ -297,60 +262,29 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			continue
 		}
 		ctxResult := Context{ProjectID: rec.Project.ID, Ecosystem: ecosystem, ManifestPath: manifest, AssociationState: "indeterminate", Checks: []Check{}, Boundaries: []Boundary{}}
+		var a association
+		var nugetE *nugetEval
+		var nugetBasis, ownershipState string
+		var nugetCauses []NuGetCause
+		var checkReasons []string
 		appendContext := func() {
+			if ecosystem == "nuget" {
+				ctxResult.NuGetEvidence = makeNuGetEvidence(rec, nugetE, nugetIndex, ctxResult, ownershipState, nugetBasis, nugetCauses, checkReasons, inventoryComplete && selectedComplete)
+			}
 			r.Contexts = append(r.Contexts, ctxResult)
 		}
-		nugetSharedInputs := false
-		nugetImportedInputs := false
-		nugetCustomLockPath := false
-		nugetProjectConfigUnresolved := false
-		var customLockPath string
-		if ecosystem == "nuget" {
-			static := nugetStaticByManifest[manifest]
-			config := nugetProjectConfigCache[manifest]
-			customLockPath = static.customPath
-			nugetCustomLockPath = static.pathUnknown
-			nugetImportedInputs = config.importsUnknown || static.importsUnknown
-			if config.unresolved {
-				nugetProjectConfigUnresolved = true
+		if ecosystem == "npm" {
+			a = npm.associate(rec)
+		} else {
+			nugetE = nugetEvals[rec.Project.ID]
+			if nugetE == nil || nugetE.projectUnreadable {
 				r.Status = "partial"
 				r.Coverage.OmittedFiles++
 				r.Diagnostics = append(r.Diagnostics, Diagnostic{Path: manifest, Code: "nuget-project-config-unresolved", Message: "The selected project XML could not be fully inspected within the bounded input limits."})
 			}
-			nugetSharedInputs = static.sharedUnknown
-		}
-		var a association
-		if ecosystem == "npm" {
-			a = npm.associate(rec)
-		} else {
-			a = associateNuGet(rec, records, locksByDir, dotnetCountByRoot)
+			a, nugetBasis, nugetCauses = associateNuGetStatic(rec, nugetE, nugetClaims, nugetIndex, omissions, selectedComplete)
 		}
 		selectedNPMShrinkwrap := ecosystem == "npm" && a.state == "observed" && path.Base(a.lockPath) == "npm-shrinkwrap.json"
-		if ecosystem == "nuget" && customLockPath != "" && !nugetCustomLockPath {
-			f, found := selectedFiles[customLockPath]
-			if regular, ok := files[customLockPath]; ok {
-				f, found = regular, true
-			}
-			if found && !f.NonRegular && !customLockCounted[customLockPath] && !lockAllowed[customLockPath] {
-				customLockCounted[customLockPath] = true
-				r.Coverage.LockCandidates++
-				if r.Coverage.LockCandidates <= limits.Lockfiles {
-					lockAllowed[customLockPath] = true
-				}
-			}
-		}
-		if customLockPath != "" && !nugetCustomLockPath && !nugetImportedInputs {
-			a = associateNuGetCustom(rec, records, customLockPath, files, selectedFiles, selectedComplete, omissions, nugetStaticByManifest)
-		} else if nugetCustomLockPath {
-			a.override("indeterminate", "nuget-custom-lock-path-unresolved")
-		} else if nugetProjectConfigUnresolved {
-			a.override("indeterminate", "nuget-project-config-unresolved")
-		} else if nugetImportedInputs {
-			a.override("indeterminate", "nuget-imported-project-input-unresolved")
-		}
-		if ecosystem == "nuget" && a.state == "observed" && nugetCustomPathConflictsWithLock(rec, a.lockPath, records, nugetStaticByManifest) {
-			a.override("indeterminate", "ambiguous-nuget-lockfile-owner")
-		}
 		if ecosystem == "nuget" && a.state == "observed" && !omissions.nugetOwnersKnown(rec.Project.Root) {
 			a.override("indeterminate", "project-inventory-incomplete-association")
 		}
@@ -358,8 +292,11 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			a.override("indeterminate", "inventory-incomplete-association")
 		}
 		if ecosystem == "nuget" && a.state == "observed" && !lockAllowed[a.lockPath] {
-			_, conventionalCandidate := files[a.lockPath]
-			if !conventionalCandidate && !customLockCounted[a.lockPath] {
+			// The inventory pass counted only conventional lock names; a
+			// custom path is counted once, when a project first owns it.
+			_, inventoried := files[a.lockPath]
+			counted := inventoried && isNuGetLockCandidateName(path.Base(a.lockPath))
+			if !counted && !customLockCounted[a.lockPath] {
 				customLockCounted[a.lockPath] = true
 				r.Coverage.LockCandidates++
 			}
@@ -369,19 +306,19 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 				lockAllowed[a.lockPath] = true
 			}
 		}
-		if nugetSharedInputs && (a.state == "missing" || a.state == "not_applicable") {
-			a.override("indeterminate", "nuget-shared-input-effect-unresolved")
-		}
 		if a.state == "missing" && !inventoryComplete {
 			a.override("indeterminate", "inventory-incomplete")
 		}
+		ownershipState = a.state
 		lockPath, association, workspaceRoot := a.lockPath, a.state, a.workspaceRoot
 		ctxResult.AssociationState = association
-		if ecosystem == "nuget" {
-			ctxResult.NuGetEvidence = makeNuGetEvidence(rec, paths, files, selectedFiles, customLockPath, a.lockPath, a.state, a.reason, in.InventoryComplete && in.OmittedFiles == 0 && selectedComplete)
-		}
 		if lockPath != "" {
 			ctxResult.LockfilePath = lockPath
+		}
+		if ecosystem == "nuget" && a.reason != "" && a.reasonPath != "" && a.state != "observed" && a.state != "not_applicable" {
+			// The project or file the ownership decision names, such as
+			// another project that can use the same lockfile.
+			nugetCauses = append(nugetCauses, NuGetCause{Reason: a.reason, Path: a.reasonPath, Detail: nugetDetail(a.detail)})
 		}
 		if a.reason != "" {
 			boundaryPath := a.reasonPath
@@ -480,7 +417,15 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 			comparisonLock.npmRoot = entry
 			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: lockPath, Reason: "npm-workspace-lock-ownership-observed", Detail: "Workspace owner " + path.Join(workspaceRoot, "package.json") + " declares member " + manifest + "."})
 		}
-		check, count, checkReason := compare(ecosystem, rec, comparisonLock, limits.PackageNames-r.Coverage.PackageNames)
+		var check Check
+		var count int
+		var checkReason string
+		var checkCauses []NuGetCause
+		if ecosystem == "nuget" {
+			check, count, checkReason, checkCauses = compareNuGet(rec, nugetE, comparisonLock, limits.PackageNames-r.Coverage.PackageNames)
+		} else {
+			check, count, checkReason = compare(ecosystem, rec, comparisonLock, limits.PackageNames-r.Coverage.PackageNames)
+		}
 		if workspaceRoot != "" {
 			check.Explanation = strings.Replace(check.Explanation, "the root package entry's direct tables", "the selected workspace member package entry's direct tables", 1)
 		}
@@ -499,10 +444,19 @@ func Analyze(ctx context.Context, in Input, limits Limits) (*Report, error) {
 		if selectedNPMShrinkwrap {
 			check.Explanation += " Shrinkwrap selection follows npm v11 static precedence; npm v12 ignores project npm-shrinkwrap.json files, so this does not establish which lockfile npm v12 would use."
 		}
-		if nugetSharedInputs {
-			check.Status = "indeterminate"
-			check.Explanation += " A bounded static inspection found shared MSBuild input whose package-item effects were not classified; no MSBuild evaluation was run."
-			ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: rec.Project.Root, Reason: "nuget-shared-input-effect-unresolved"})
+		if len(checkCauses) > 0 {
+			nugetCauses = append(nugetCauses, checkCauses...)
+			seen := map[string]bool{}
+			for _, cause := range checkCauses {
+				if seen[cause.Reason] {
+					continue
+				}
+				seen[cause.Reason] = true
+				ctxResult.Boundaries = append(ctxResult.Boundaries, Boundary{Path: cause.Path, Reason: cause.Reason, Detail: cause.Detail})
+			}
+		}
+		if ecosystem == "nuget" {
+			checkReasons = nugetCheckReasons(rec, check, checkReason, checkCauses)
 		}
 		r.Coverage.PackageNames += count
 		if checkReason != "" {
@@ -719,8 +673,6 @@ func compare(ecosystem string, rec declarations.ProjectRecord, lock parsedLock, 
 	switch ecosystem {
 	case "npm":
 		return compareNPM(rec, lock, remainingNames)
-	case "nuget":
-		return compareNuGet(rec, lock, remainingNames)
 	default:
 		return Check{Name: checkName(ecosystem), Status: "indeterminate", Explanation: "The ecosystem is outside the supported comparison subset."}, 0, "unsupported-ecosystem"
 	}
@@ -871,63 +823,6 @@ func sortCheckNames(c *Check) {
 	slices.Sort(c.Unexpected)
 }
 
-func compareNuGet(rec declarations.ProjectRecord, lock parsedLock, maxNames int) (Check, int, string) {
-	c := Check{Name: "nuget-observed-direct-package-presence", Status: "match", Explanation: "Checks that statically observed PackageReference IDs occur as Direct entries in the lockfile target groups; it does not compare requested/resolved versions, evaluate MSBuild, or establish restore consistency."}
-	refs := map[string]bool{}
-	conditional := false
-	for _, req := range rec.Project.Requirements {
-		if req.Kind != "package-reference" {
-			continue
-		}
-		name := req.Value
-		if before, _, ok := strings.Cut(name, "@"); ok {
-			name = before
-		}
-		if !safeNuGetPackageID(name) {
-			conditional = true
-			continue
-		}
-		refs[strings.ToLower(name)] = true
-		if req.State != "declared" || req.Condition != "" {
-			conditional = true
-		}
-	}
-	if len(refs) == 0 {
-		c.Status = "not_applicable"
-		c.Explanation = "No statically observed PackageReference IDs were available for this project; imported and computed references are outside this check."
-		return c, 0, ""
-	}
-	if !rec.Parsed || !rec.Complete || conditional || lock.nugetTarget != 1 {
-		c.Status = "indeterminate"
-	}
-	count := 0
-	for _, name := range sortedStringMapKeys(refs) {
-		count++
-		if count > maxNames {
-			c.Status = "indeterminate"
-			return c, maxNames, "package-name-limit"
-		}
-		c.Compared++
-		if !lock.nugetDirect[name] {
-			c.Missing = append(c.Missing, name)
-		}
-	}
-	if len(c.Missing) > 0 {
-		if c.Status != "indeterminate" {
-			c.Status = "different"
-		}
-	}
-	slices.Sort(c.Missing)
-	if len(lock.nugetExtendedKinds) > 0 {
-		c.Explanation += " Project/CentralTransitive entries are present but not compared."
-		return c, count, "nuget-project-or-central-transitive-unexamined"
-	}
-	if lock.nugetTarget > 1 {
-		return c, count, "multiple-target-frameworks"
-	}
-	return c, count, ""
-}
-
 // association is one project's lockfile ownership decision. reasonPath names
 // the boundary evidence when it is not the selected lockfile.
 type association struct {
@@ -942,69 +837,6 @@ type association struct {
 
 func (a *association) override(state, reason string) {
 	a.state, a.reason, a.reasonPath, a.detail, a.workspaceRoot = state, reason, "", "", ""
-}
-
-func associateNuGet(rec declarations.ProjectRecord, records []declarations.ProjectRecord, locksByDir map[string][]string, dotnetCountByRoot map[string]int) association {
-	unknown := func(reason string) association { return association{state: "indeterminate", reason: reason} }
-	root := rec.Project.Root
-	if !rec.Parsed || !rec.Complete {
-		return unknown("project-declarations-incomplete")
-	}
-	projectName := strings.TrimSuffix(path.Base(rec.Project.ID), path.Ext(rec.Project.ID))
-	projectLockName := "packages." + projectName + ".lock.json"
-	candidates := []string{}
-	allCandidates := locksByDir[root]
-	for _, p := range allCandidates {
-		base := path.Base(p)
-		if strings.EqualFold(base, "packages.lock.json") || strings.EqualFold(base, projectLockName) {
-			candidates = append(candidates, p)
-		}
-	}
-	if len(candidates) == 0 {
-		if len(allCandidates) > 0 {
-			return unknown("nuget-lockfile-owner-unresolved")
-		}
-		if !hasDirectDeclarations(rec, "nuget") {
-			return association{state: "not_applicable"}
-		}
-		return association{state: missingState(rec), reason: "lockfile-not-present"}
-	}
-	if len(candidates) != 1 {
-		return unknown("ambiguous-nuget-lockfile-owner")
-	}
-	base := path.Base(candidates[0])
-	if strings.EqualFold(base, "packages.lock.json") {
-		if base != "packages.lock.json" {
-			return unknown("nuget-lockfile-case-unresolved")
-		}
-		if len(allCandidates) != 1 || dotnetCountByRoot[root] != 1 {
-			return unknown("ambiguous-nuget-lockfile-owner")
-		}
-	} else {
-		if base != projectLockName {
-			return unknown("nuget-lockfile-case-unresolved")
-		}
-		// Project-specific lock filenames are accepted only when every
-		// selected NuGet lock in this directory maps uniquely to one project.
-		// Arbitrary NuGetLockFilePath settings are not evaluated.
-		for _, candidate := range allCandidates {
-			candidateBase := path.Base(candidate)
-			if candidateBase == "packages.lock.json" || !strings.HasPrefix(candidateBase, "packages.") || !strings.HasSuffix(candidateBase, ".lock.json") {
-				return unknown("nuget-lockfile-owner-unresolved")
-			}
-			candidateName := strings.TrimSuffix(strings.TrimPrefix(candidateBase, "packages."), ".lock.json")
-			owners := 0
-			for _, other := range records {
-				if other.Project.Kind == "dotnet" && other.Project.Root == root && strings.EqualFold(strings.TrimSuffix(path.Base(other.Project.ID), path.Ext(other.Project.ID)), candidateName) {
-					owners++
-				}
-			}
-			if owners != 1 {
-				return unknown("nuget-lockfile-owner-unresolved")
-			}
-		}
-	}
-	return association{lockPath: candidates[0], state: "observed"}
 }
 
 // npmResolver decides which npm lockfile, if any, npm would use for a

@@ -2,6 +2,7 @@ package componentmap
 
 import (
 	"encoding/json"
+	"fmt"
 	"slices"
 	"testing"
 
@@ -76,6 +77,101 @@ func TestBuildQualifiesUnknownsAndIsDeterministic(t *testing.T) {
 	}
 	if a.QualifiedReferences[0].Reason == "" || a.QualifiedReferences[1].Reason == "" {
 		t.Fatalf("qualified reasons missing: %+v", a.QualifiedReferences)
+	}
+}
+
+func TestGoLocalReplacementRequiresMatchingRequirementActivation(t *testing.T) {
+	for _, tc := range []struct {
+		name, required, requiredState, replacement string
+		wantEdge                                   bool
+	}{
+		{name: "unused replacement", wantEdge: false},
+		{name: "direct matching requirement", required: "example.org/lib@v1.2.3", wantEdge: true},
+		{name: "different required version", required: "example.org/lib@v2.0.0", wantEdge: false},
+		{name: "different required module", required: "example.org/other@v1.2.3", wantEdge: false},
+		{name: "unresolved requirement", required: "example.org/lib@v1.2.3", requiredState: "unresolved", wantEdge: false},
+		{name: "versionless replacement applies to required module", required: "example.org/lib@v9.0.0", replacement: "example.org/lib", wantEdge: true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			replacement := tc.replacement
+			if replacement == "" {
+				replacement = "example.org/lib@v1.2.3"
+			}
+			references := []declarations.Reference{{Kind: "go-local-replacement", Value: "../lib", Target: "lib/go.mod", TargetStatus: "present", State: "declared", Condition: replacement, Evidence: "app/go.mod"}}
+			if tc.required != "" {
+				state := tc.requiredState
+				if state == "" {
+					state = "declared"
+				}
+				references = append(references, declarations.Reference{Kind: "go-require", Value: tc.required, State: state, TargetStatus: "external", Evidence: "app/go.mod"})
+			}
+			fragment := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{
+				{ID: "app/go.mod", Root: "app", Kind: "go", References: references},
+				{ID: "lib/go.mod", Root: "lib", Kind: "go"},
+			}})
+			hasEdge := slices.ContainsFunc(fragment.Relationships, func(r Relationship) bool {
+				return r.DeclarationKind == "go-local-replacement" && r.From == "app/go.mod" && r.To == "lib/go.mod" && r.Coverage == "complete"
+			})
+			if hasEdge != tc.wantEdge {
+				t.Fatalf("replacement edge presence = %v, want %v; fragment=%+v", hasEdge, tc.wantEdge, fragment)
+			}
+			if !tc.wantEdge {
+				if !slices.ContainsFunc(fragment.QualifiedReferences, func(q QualifiedReference) bool {
+					return q.DeclarationKind == "go-local-replacement" && q.Reason == "go_replacement_activation_unresolved" && q.Target == "lib/go.mod"
+				}) {
+					t.Fatalf("inactive replacement was not preserved as a qualified local observation: %+v", fragment)
+				}
+			}
+		})
+	}
+}
+
+func TestGoWorkspaceReplacementRetainsPartialWorkspaceObservation(t *testing.T) {
+	fragment := Build(&declarations.Report{Status: "complete", Projects: []declarations.Project{
+		{ID: "go.work", Root: ".", Kind: "go-workspace", References: []declarations.Reference{{Kind: "go-local-replacement", Value: "../lib", Target: "lib/go.mod", TargetStatus: "present", State: "declared", Condition: "example.org/lib@v1.2.3", Evidence: "go.work"}}},
+		{ID: "lib/go.mod", Root: "lib", Kind: "go"},
+	}})
+	if !slices.ContainsFunc(fragment.Relationships, func(r Relationship) bool {
+		return r.DeclarationKind == "go-local-replacement" && r.From == "go.work" && r.To == "lib/go.mod" && r.Coverage == "partial"
+	}) {
+		t.Fatalf("go.work replacement must remain an observed but unproven dependency relationship: %+v", fragment)
+	}
+}
+
+func BenchmarkBuildGoReplacementActivation(b *testing.B) {
+	for _, count := range []int{1000, 2000, 4000} {
+		b.Run(fmt.Sprintf("replacements_%d", count), func(b *testing.B) {
+			references := make([]declarations.Reference, 0, count*2)
+			projects := make([]declarations.Project, 0, count+1)
+			for i := 0; i < count; i++ {
+				module := fmt.Sprintf("example.org/library/%04d", i)
+				target := fmt.Sprintf("libs/lib-%04d/go.mod", i)
+				references = append(references,
+					declarations.Reference{Kind: "go-local-replacement", Value: fmt.Sprintf("../libs/lib-%04d", i), Target: target, State: "declared", Condition: module + "@v1.0.0", Evidence: "app/go.mod"},
+					declarations.Reference{Kind: "go-require", Value: module + "@v1.0.0", State: "declared", Evidence: "app/go.mod"},
+				)
+				projects = append(projects, declarations.Project{ID: target, Root: fmt.Sprintf("libs/lib-%04d", i), Kind: "go", Requirements: []declarations.Requirement{}, References: []declarations.Reference{}})
+			}
+			projects = append(projects, declarations.Project{ID: "app/go.mod", Root: "app", Kind: "go", References: references})
+			report := &declarations.Report{Status: "complete", Projects: projects}
+			check := Build(report)
+			if len(check.Components) != count+1 || len(check.Relationships) != count || len(check.QualifiedReferences) != 0 {
+				b.Fatalf("replacement activation facts differ: %d components, %d relationships, %d qualified", len(check.Components), len(check.Relationships), len(check.QualifiedReferences))
+			}
+			for _, edge := range check.Relationships {
+				if edge.Type != "depends_on_local" || edge.From != "app/go.mod" || edge.DeclarationKind != "go-local-replacement" || edge.Coverage != "complete" {
+					b.Fatalf("replacement activation lost its declared dependency: %+v", edge)
+				}
+			}
+			b.ReportAllocs()
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				result := Build(report)
+				if len(result.Components) != count+1 || len(result.Relationships) != count || len(result.QualifiedReferences) != 0 {
+					b.Fatal("replacement activation populations changed during measurement")
+				}
+			}
+		})
 	}
 }
 

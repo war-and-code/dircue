@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ProviderVersion    = "1.2.0"
+	ProviderVersion    = "1.3.0"
 	DefaultFileBytes   = int64(256 << 10)
 	DefaultInputBytes  = int64(16 << 20)
 	DefaultFiles       = 4096

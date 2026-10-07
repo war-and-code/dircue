@@ -5,7 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"os"
 	"path"
+	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 	"testing"
@@ -87,7 +90,10 @@ func TestStructureSummarizesExplicitGroupsAndObservedDependencyGraph(t *testing.
 	if s.Dependencies.QualifiedReferenceCount == 0 {
 		t.Fatal("conditional and missing references were not qualified")
 	}
-	if !hasQualified(s.Dependencies, "npm", "npm-local-dependency", "conditional") || !hasQualified(s.Dependencies, "npm", "npm-local-dependency", "missing") {
+	// After the F1 fix, npm-local-dependency relationships are always definite
+	// regardless of Condition (which npm parsers use only for section names, not
+	// genuine build conditions). Only the missing-target reference is qualified.
+	if !hasQualified(s.Dependencies, "npm", "npm-local-dependency", "missing") {
 		t.Fatalf("qualified npm references: %+v", s.Dependencies.QualifiedReferences)
 	}
 	if err := ValidateReport(assessment); err != nil {
@@ -118,6 +124,22 @@ func TestStructureQualifiesSelfProjectReferenceInsteadOfDroppingIt(t *testing.T)
 	}
 	if !coverageReason(a.Structure, "project_dependencies", "nuget", "self_reference_qualified") {
 		t.Fatalf("self-reference qualification reason missing: %+v", a.Structure.Coverage)
+	}
+}
+
+func TestStructureKeepsUnactivatedGoReplacementQualified(t *testing.T) {
+	app := declarations.Project{ID: "app/go.mod", Root: "app", Kind: "go", Requirements: []declarations.Requirement{}, Interfaces: []declarations.Interface{}, References: []declarations.Reference{{Kind: "go-local-replacement", Value: "../lib", Target: "lib/go.mod", TargetStatus: "present", State: "declared", Condition: "example.org/lib@v1.2.3", Evidence: "app/go.mod"}}}
+	lib := declarations.Project{ID: "lib/go.mod", Root: "lib", Kind: "go", Requirements: []declarations.Requirement{}, Interfaces: []declarations.Interface{}, References: []declarations.Reference{}}
+	a := finishStructureProjects(t, []declarations.Project{app, lib})
+	d := a.Structure.Dependencies
+	if d.DefiniteEdges.Count != 0 || d.ConnectedGroups.Count != 2 || d.ConnectedGroupsWithQualified.Count != 1 {
+		t.Fatalf("inactive replacement became a definite edge or was omitted from qualified connectivity: %+v", d)
+	}
+	if !hasQualifiedResolution(d, "go", "go-local-replacement", "present_qualified") || !coverageReason(a.Structure, "project_dependencies", "go", "go_replacement_activation_unresolved") {
+		t.Fatalf("inactive replacement did not retain its qualified status and completeness reason: qualified=%+v coverage=%+v", d.QualifiedReferences, a.Structure.Coverage)
+	}
+	if got := coverageStatus(a.Structure, "dependency_connectivity", "go"); got != "partial" {
+		t.Fatalf("connectivity coverage = %q, want partial because replacement activation is unresolved", got)
 	}
 }
 
@@ -402,6 +424,44 @@ func TestStructureValidationRequiresSourceEntryCoverageDisclosure(t *testing.T) 
 	}
 }
 
+func TestStructureEntryPointRowAndAssociationTotalsReconcile(t *testing.T) {
+	base := finishStructureProjects(t, []declarations.Project{{ID: "app/package.json", Root: "app", Kind: "npm", Requirements: []declarations.Requirement{}, References: []declarations.Reference{}, Interfaces: []declarations.Interface{}}})
+	SetStructureEntryPoints(base, []StructureEntryPoint{
+		{ProjectID: "app/package.json", EvidencePath: "app/Dockerfile", Ecosystem: "npm", Role: "primary", Kind: "builds:container", Name: "image", Basis: "test", State: "declared"},
+		{ProjectID: "app/package.json", EvidencePath: "app/Dockerfile", Ecosystem: "npm", Role: "primary", Kind: "runs:container", Name: "image", Basis: "test", State: "declared"},
+		{EvidencePath: "README.md", Ecosystem: "npm", Role: "primary", Kind: "container-launch", Name: "image", Basis: "test", Reason: "owner_unresolved", State: "unassociated"},
+	})
+	if base.Structure.EntryPointCount != 2 || base.Structure.EntryPointRowCount != 3 || base.Structure.EntryPointAssociationCount != 2 {
+		t.Fatalf("entry-point declaration, row, and association totals = %d/%d/%d, want 2/3/2", base.Structure.EntryPointCount, base.Structure.EntryPointRowCount, base.Structure.EntryPointAssociationCount)
+	}
+	if err := ValidateReport(base); err != nil {
+		t.Fatalf("valid row totals rejected: %v", err)
+	}
+	for _, mutate := range []func(*StructureReport){
+		func(s *StructureReport) { s.EntryPointRowCount++ },
+		func(s *StructureReport) { s.EntryPointAssociationCount++ },
+		func(s *StructureReport) { s.EntryPointAssociationCount-- },
+		func(s *StructureReport) {
+			associated := make([]StructureEntryPoint, 0, 2)
+			for _, e := range s.EntryPoints {
+				if e.ProjectID != "" {
+					associated = append(associated, e)
+				}
+			}
+			s.EntryPoints = associated
+			s.OmittedEntryPoints = 1
+			s.EntryPointCount = 3 // Two retained rows describe one declaration; one omitted row can add at most one.
+		},
+	} {
+		bad := *base
+		bad.Structure = cloneStructureForTest(base.Structure)
+		mutate(bad.Structure)
+		if err := ValidateReport(&bad); err == nil {
+			t.Fatalf("corrupted entry-point totals were accepted: %+v", bad.Structure)
+		}
+	}
+}
+
 func TestStructureConnectedGroupCountIsExactForObservedGraph(t *testing.T) {
 	base := finishStructureProjects(t, []declarations.Project{{ID: "App.csproj", Root: ".", Kind: "dotnet", Requirements: []declarations.Requirement{}, References: []declarations.Reference{}, Interfaces: []declarations.Interface{}}})
 	lowerBound := *base
@@ -564,7 +624,7 @@ func TestAssessmentVersionCompatibilityAndEntryPointHook(t *testing.T) {
 		t.Fatalf("core assessment did not disclose the unrun entry-point observer: %+v", r.Structure.Coverage)
 	}
 	SetStructureEntryPoints(r, []StructureEntryPoint{{ProjectID: project.ID, EvidencePath: "app/server.js", Ecosystem: "npm", Role: "primary", Kind: "node-entry", Name: "server", Basis: "map-observation", State: "declared"}, {EvidencePath: "Dockerfile", Ecosystem: "npm", Role: "primary", Kind: "container-launch", Basis: "static-container-observation", Reason: "owner_unresolved", State: "qualified"}})
-	if r.Structure.EntryPointCount != 2 || len(r.Structure.EntryPoints) != 2 || r.Structure.EntryPoints[0].ProjectID != "" {
+	if r.Structure.EntryPointCount != 2 || r.Structure.EntryPointRowCount != 2 || r.Structure.EntryPointAssociationCount != 1 || len(r.Structure.EntryPoints) != 2 || r.Structure.EntryPoints[0].ProjectID != "" {
 		t.Fatalf("entry points did not retain unassociated declarations deterministically: %+v", r.Structure)
 	}
 	if err := ValidateReport(r); err != nil {
@@ -576,7 +636,7 @@ func TestAssessmentVersionCompatibilityAndEntryPointHook(t *testing.T) {
 	longPathReport := *r
 	longPathReport.Structure = cloneStructureForTest(r.Structure)
 	SetStructureEntryPoints(&longPathReport, []StructureEntryPoint{{ProjectID: project.ID, EvidencePath: "app/" + strings.Repeat("x", MaxEvidencePathBytes), Ecosystem: "npm", Role: "primary", Kind: "oversized-path", Basis: "test", State: "declared"}})
-	if longPathReport.Structure.EntryPointCount != 1 || longPathReport.Structure.OmittedEntryPoints != 1 || len(longPathReport.Structure.EntryPoints) != 0 {
+	if longPathReport.Structure.EntryPointCount != 1 || longPathReport.Structure.EntryPointRowCount != 1 || longPathReport.Structure.EntryPointAssociationCount != 1 || longPathReport.Structure.OmittedEntryPoints != 1 || len(longPathReport.Structure.EntryPoints) != 0 {
 		t.Fatalf("oversized entry evidence was not counted and omitted: %+v", longPathReport.Structure)
 	}
 	if err := ValidateReport(&longPathReport); err != nil {
@@ -590,7 +650,7 @@ func TestAssessmentVersionCompatibilityAndEntryPointHook(t *testing.T) {
 		entries[i] = StructureEntryPoint{ProjectID: project.ID, EvidencePath: fmt.Sprintf("app/entry-%03d.js", i), Ecosystem: "npm", Role: "primary", Kind: "node-entry", Name: largeName, Basis: "test", State: "declared"}
 	}
 	SetStructureEntryPoints(&byteBoundReport, entries)
-	if byteBoundReport.Structure.EntryPointCount != StructureEntryPointLimit || byteBoundReport.Structure.OmittedEntryPoints <= 0 || len(byteBoundReport.Structure.EntryPoints)+int(byteBoundReport.Structure.OmittedEntryPoints) != StructureEntryPointLimit {
+	if byteBoundReport.Structure.EntryPointCount != StructureEntryPointLimit || byteBoundReport.Structure.EntryPointRowCount != StructureEntryPointLimit || byteBoundReport.Structure.EntryPointAssociationCount != StructureEntryPointLimit || byteBoundReport.Structure.OmittedEntryPoints <= 0 || len(byteBoundReport.Structure.EntryPoints)+int(byteBoundReport.Structure.OmittedEntryPoints) != int(byteBoundReport.Structure.EntryPointRowCount) {
 		t.Fatalf("byte-bound entry sample lost its exact aggregate: retained=%d omitted=%d total=%d", len(byteBoundReport.Structure.EntryPoints), byteBoundReport.Structure.OmittedEntryPoints, byteBoundReport.Structure.EntryPointCount)
 	}
 	if err := ValidateReport(&byteBoundReport); err != nil {
@@ -599,6 +659,11 @@ func TestAssessmentVersionCompatibilityAndEntryPointHook(t *testing.T) {
 	legacy := *r
 	legacy.Version = LegacyVersion
 	legacy.Structure = nil
+	legacy.Lockfiles = slices.Clone(r.Lockfiles)
+	for i := range legacy.Lockfiles {
+		legacy.Lockfiles[i].Checks, legacy.Lockfiles[i].NuGetPresence, legacy.Lockfiles[i].Causes, legacy.Lockfiles[i].OmittedCauses = nil, nil, nil, 0
+	}
+	legacy.LockfilesOverall.Checks, legacy.LockfilesOverall.NuGetPresence, legacy.LockfilesOverall.Causes, legacy.LockfilesOverall.OmittedCauses = nil, nil, nil, 0
 	if err := ValidateReport(&legacy); err != nil {
 		t.Fatalf("legacy saved assessment rejected: %v", err)
 	}
@@ -781,6 +846,48 @@ func coverageStatus(s *StructureReport, scope, ecosystem string) string {
 	}
 	return ""
 }
+func TestValidateStructureEntryPointStateReasonConstraints(t *testing.T) {
+	project := declarations.Project{ID: "app/package.json", Root: "app", Kind: "npm", References: []declarations.Reference{}, Requirements: []declarations.Requirement{}, Interfaces: []declarations.Interface{}}
+	c := New("directory", "")
+	c.Add(discovery.File{Path: project.ID, Size: 1})
+	base, err := c.Finish(Evidence{Declarations: &declarations.Report{Source: "directory", Status: "complete", Projects: []declarations.Project{project}, Diagnostics: []declarations.Diagnostic{}}, Lockfiles: &lockfiles.Report{Source: "directory", Status: "complete", Contexts: []lockfiles.Context{}}, Records: []declarations.ProjectRecord{{Project: project, Parsed: true, Complete: true}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	validCases := []StructureEntryPoint{
+		{EvidencePath: "app/a.js", Ecosystem: "npm", Role: "primary", Kind: "k", Basis: "b", State: "declared"},
+		{EvidencePath: "app/b.js", Ecosystem: "npm", Role: "primary", Kind: "k", Basis: "b", State: "associated"},
+		{EvidencePath: "app/c.js", Ecosystem: "npm", Role: "primary", Kind: "k", Basis: "b", State: "qualified", Reason: "r"},
+		{EvidencePath: "app/d.js", Ecosystem: "npm", Role: "primary", Kind: "k", Basis: "b", State: "unassociated", Reason: "r"},
+	}
+	SetStructureEntryPoints(base, validCases)
+	if err := ValidateReport(base); err != nil {
+		t.Fatalf("valid state/reason combinations failed validation: %v", err)
+	}
+
+	invalidCases := []struct {
+		name   string
+		state  string
+		reason string
+	}{
+		{"declared with reason", "declared", "should_be_empty"},
+		{"associated with reason", "associated", "should_be_empty"},
+		{"qualified without reason", "qualified", ""},
+		{"unassociated without reason", "unassociated", ""},
+		{"invalid state", "unknown_state", ""},
+	}
+	for _, tc := range invalidCases {
+		r := *base
+		r.Structure = cloneStructureForTest(base.Structure)
+		// SetStructureEntryPoints stores the entry as-is; ValidateReport checks constraints.
+		SetStructureEntryPoints(&r, []StructureEntryPoint{{EvidencePath: "app/x.js", Ecosystem: "npm", Role: "primary", Kind: "k", Basis: "b", State: tc.state, Reason: tc.reason}})
+		if err := ValidateReport(&r); err == nil {
+			t.Errorf("case %q: expected validation error for state=%q reason=%q", tc.name, tc.state, tc.reason)
+		}
+	}
+}
+
 func coverageReason(s *StructureReport, scope, ecosystem, reason string) bool {
 	for _, row := range s.Coverage {
 		if row.Scope == scope && row.Ecosystem == ecosystem {
@@ -796,4 +903,289 @@ func hasQualified(d StructureDependencies, ecosystem, kind, state string) bool {
 		}
 	}
 	return false
+}
+
+// TestStructureMavenParentCoordinateVerification covers F8: a parent
+// relationship must only become a definite dependency edge when the target
+// POM's declared coordinates match the declared parent GA (case-sensitive)
+// and, when both versions are literal, the versions agree.
+func TestStructureMavenParentCoordinateVerification(t *testing.T) {
+	req := func(kind, value string) declarations.Requirement {
+		return declarations.Requirement{Kind: kind, Value: value, State: "declared", Evidence: ""}
+	}
+	parentRef := func(from, to string) declarations.Reference {
+		return declarations.Reference{Kind: "parent", Value: to, Target: to, TargetStatus: "present", State: "resolved", Evidence: from}
+	}
+	t.Run("matching coordinates become definite edge", func(t *testing.T) {
+		parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "parent"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "x:parent:1")},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{parent, child})
+		found := false
+		for _, e := range a.Structure.Dependencies.Edges {
+			if e.From == child.ID && e.To == parent.ID && e.Kind == "parent" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("verified parent did not produce a definite edge: edges=%+v qualified=%+v", a.Structure.Dependencies.Edges, a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("default ../pom.xml path still needs coordinate verification", func(t *testing.T) {
+		// A pre-4.1 Maven child declares a parent but the file at ../pom.xml
+		// belongs to a different project. This should be qualified.
+		unrelated := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "other"), req("maven-artifactId", "unrelated"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "x:real-parent:1")},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{unrelated, child})
+		if a.Structure.Dependencies.DefiniteEdges.Count != 0 {
+			t.Fatalf("GA-mismatched default parent produced a definite edge: %+v", a.Structure.Dependencies.Edges)
+		}
+		if !hasQualifiedResolution(a.Structure.Dependencies, "maven", "parent", "parent_coordinates_mismatch") {
+			t.Fatalf("GA mismatch not qualified: %+v", a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("maven 4.1 default parent already partial", func(t *testing.T) {
+		// A Maven 4.1 model sets a condition on the default parent reference.
+		// isDefiniteRelationship treats it as partial; no F8 verification needed.
+		parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "parent"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		// Simulate a Maven 4.1 parent reference: State "conditional" with condition.
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "x:parent:1")},
+			References: []declarations.Reference{{Kind: "parent", Value: "pom.xml", Target: "pom.xml", TargetStatus: "present", State: "conditional",
+				Condition: "Maven default parent lookup; reactor and repository resolution not evaluated", Evidence: "child/pom.xml"}}}
+		a := finishStructureProjects(t, []declarations.Project{parent, child})
+		if a.Structure.Dependencies.DefiniteEdges.Count != 0 {
+			t.Fatalf("Maven 4.1 conditional parent produced a definite edge: %+v", a.Structure.Dependencies.Edges)
+		}
+		if !hasQualifiedResolution(a.Structure.Dependencies, "maven", "parent", "qualified_target") {
+			t.Fatalf("Maven 4.1 conditional parent not qualified: %+v", a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("GA case mismatch is qualified as parent_coordinates_mismatch", func(t *testing.T) {
+		parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "Org.Example"), req("maven-artifactId", "Parent"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "Org.Example"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "org.example:parent:1")},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{parent, child})
+		if a.Structure.Dependencies.DefiniteEdges.Count != 0 {
+			t.Fatalf("case-mismatched parent produced a definite edge: %+v", a.Structure.Dependencies.Edges)
+		}
+		if !hasQualifiedResolution(a.Structure.Dependencies, "maven", "parent", "parent_coordinates_mismatch") {
+			t.Fatalf("GA case mismatch not qualified: %+v", a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("version mismatch is qualified as parent_version_mismatch", func(t *testing.T) {
+		parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "parent"), req("maven-version", "2")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "2"), req("maven-parent", "x:parent:1")},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{parent, child})
+		if a.Structure.Dependencies.DefiniteEdges.Count != 0 {
+			t.Fatalf("version-mismatched parent produced a definite edge: %+v", a.Structure.Dependencies.Edges)
+		}
+		if !hasQualifiedResolution(a.Structure.Dependencies, "maven", "parent", "parent_version_mismatch") {
+			t.Fatalf("version mismatch not qualified: %+v", a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("unresolved parent coordinates are qualified", func(t *testing.T) {
+		parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "parent"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), {Kind: "maven-parent", Value: "${project.groupId}:parent:1", State: "declared"}},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{parent, child})
+		if a.Structure.Dependencies.DefiniteEdges.Count != 0 {
+			t.Fatalf("unresolved parent coord produced a definite edge: %+v", a.Structure.Dependencies.Edges)
+		}
+		if !hasQualifiedResolution(a.Structure.Dependencies, "maven", "parent", "parent_coordinates_unresolved") {
+			t.Fatalf("unresolved coords not qualified: %+v", a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+	t.Run("groupId inherited from target parent is included in coordinate index", func(t *testing.T) {
+		// The child's groupId comes from its own maven-parent (inherited). The
+		// target's coordinate index must resolve it via the first two parts of
+		// the maven-parent value when maven-groupId is absent.
+		grandparent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "root"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		parent := declarations.Project{ID: "parent/pom.xml", Root: "parent", Kind: "maven",
+			// No maven-groupId; inherits "x" from maven-parent first part.
+			Requirements: []declarations.Requirement{req("maven-parent", "x:root:1"), req("maven-artifactId", "parent"), req("maven-version", "1")},
+			References:   []declarations.Reference{}}
+		child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+			Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "x:parent:1")},
+			References:   []declarations.Reference{parentRef("child/pom.xml", "parent/pom.xml")}}
+		a := finishStructureProjects(t, []declarations.Project{grandparent, parent, child})
+		found := false
+		for _, e := range a.Structure.Dependencies.Edges {
+			if e.From == child.ID && e.To == parent.ID && e.Kind == "parent" {
+				found = true
+			}
+		}
+		if !found {
+			t.Fatalf("parent with inherited groupId not a definite edge: edges=%+v qualified=%+v", a.Structure.Dependencies.Edges, a.Structure.Dependencies.QualifiedReferences)
+		}
+	})
+}
+
+// TestStructureLocalDependenciesExcludesMavenParent proves that the released
+// local_dependencies metric (1.4.0) is not affected by Maven parent references.
+// Parent edges are structural-only; adding them to the top-level metric would
+// silently change a released contract.
+func TestStructureLocalDependenciesExcludesMavenParent(t *testing.T) {
+	req := func(kind, value string) declarations.Requirement {
+		return declarations.Requirement{Kind: kind, Value: value, State: "declared"}
+	}
+	parent := declarations.Project{ID: "pom.xml", Root: ".", Kind: "maven",
+		Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "parent"), req("maven-version", "1")},
+		References:   []declarations.Reference{}}
+	child := declarations.Project{ID: "child/pom.xml", Root: "child", Kind: "maven",
+		Requirements: []declarations.Requirement{req("maven-groupId", "x"), req("maven-artifactId", "child"), req("maven-version", "1"), req("maven-parent", "x:parent:1")},
+		References:   []declarations.Reference{{Kind: "parent", Value: "pom.xml", Target: "pom.xml", TargetStatus: "present", State: "resolved", Evidence: "child/pom.xml"}}}
+	a := finishStructureProjects(t, []declarations.Project{parent, child})
+	// local_dependencies counts only non-parent local relationships.
+	if a.LocalDependencies.Count != 0 {
+		t.Fatalf("local_dependencies counted a parent reference: %d (count should be 0)", a.LocalDependencies.Count)
+	}
+	// The parent edge must still appear in the structural dependency graph.
+	found := false
+	for _, e := range a.Structure.Dependencies.Edges {
+		if e.From == child.ID && e.To == parent.ID && e.Kind == "parent" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("verified parent not a structural edge: edges=%+v", a.Structure.Dependencies.Edges)
+	}
+}
+
+// TestDiagnosticRelationshipScopeIsExhaustive verifies that every diagnostic
+// code emitted by declaration parsers appears in diagnosticRelationshipScopeTable
+// with a valid scope value. Add new parser codes to knownParserCodes when a
+// parser is extended; the test then fails until the code also appears in the
+// table, enforcing the invariant that every code is intentionally classified.
+func TestDiagnosticRelationshipScopeIsExhaustive(t *testing.T) {
+	for code, scope := range diagnosticRelationshipScopeTable {
+		switch scope {
+		case "membership", "dependencies", "both", "none":
+		default:
+			t.Errorf("code %q has invalid scope %q", code, scope)
+		}
+	}
+	// Scan the parser sources for every literal diagnostic code, so a new
+	// code fails here until it is classified.
+	patterns := []*regexp.Regexp{
+		regexp.MustCompile(`AddDiagnostic\([^,()]+, "([a-z0-9_-]+)"`),
+		regexp.MustCompile(`Code: +"([a-z0-9_-]+)"`),
+		regexp.MustCompile(`Diagnostic\{[A-Za-z.]+, "([a-z0-9_-]+)"`),
+		regexp.MustCompile(`fail\("([a-z0-9_-]+)"`),
+	}
+	found := 0
+	for _, dir := range []string{"../declarations", "../projects"} {
+		files, err := filepath.Glob(filepath.Join(dir, "*.go"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range files {
+			if strings.HasSuffix(file, "_test.go") {
+				continue
+			}
+			src, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, re := range patterns {
+				for _, m := range re.FindAllStringSubmatch(string(src), -1) {
+					found++
+					if _, ok := diagnosticRelationshipScopeTable[m[1]]; !ok {
+						t.Errorf("%s emits diagnostic %q, which has no structural scope", filepath.Base(file), m[1])
+					}
+				}
+			}
+		}
+	}
+	if found < 100 {
+		t.Fatalf("source scan found only %d diagnostic codes; the patterns are stale", found)
+	}
+}
+
+func TestStructureEcosystemNamesAreCanonical(t *testing.T) {
+	uvRoot := declarations.Project{
+		ID: "app/pyproject.toml", Root: "app", Kind: "python-workspace",
+		Requirements: []declarations.Requirement{},
+		References: []declarations.Reference{
+			{Kind: "uv-workspace-member", Value: "lib", Target: "app/lib/pyproject.toml", TargetStatus: "present", State: "resolved", Evidence: "app/pyproject.toml"},
+		},
+		Interfaces: []declarations.Interface{},
+	}
+	uvMember := declarations.Project{
+		ID: "app/lib/pyproject.toml", Root: "app/lib", Kind: "python-uv",
+		Requirements: []declarations.Requirement{},
+		References:   []declarations.Reference{},
+		Interfaces:   []declarations.Interface{},
+	}
+	sln := declarations.Project{
+		ID: "repo.sln", Root: ".", Kind: "solution",
+		Requirements: []declarations.Requirement{},
+		References: []declarations.Reference{
+			{Kind: "solution-member", Value: "Lib", Target: "Lib.csproj", TargetStatus: "present", State: "declared", Evidence: "repo.sln"},
+		},
+		Interfaces: []declarations.Interface{},
+	}
+	csproj := declarations.Project{
+		ID: "Lib.csproj", Root: ".", Kind: "dotnet",
+		Requirements: []declarations.Requirement{},
+		References:   []declarations.Reference{},
+		Interfaces:   []declarations.Interface{},
+	}
+	a := finishStructureProjects(t, []declarations.Project{uvRoot, uvMember, sln, csproj})
+	s := a.Structure
+
+	// python-workspace group must use "python", not "python-uv".
+	var uvGroup *StructureGroup
+	for i := range s.WorkspaceGroups {
+		if s.WorkspaceGroups[i].ID == "app/pyproject.toml" {
+			uvGroup = &s.WorkspaceGroups[i]
+		}
+	}
+	if uvGroup == nil {
+		t.Fatal("python-workspace group not found")
+	}
+	if uvGroup.Ecosystem != "python" {
+		t.Fatalf("python-workspace group ecosystem = %q, want %q", uvGroup.Ecosystem, "python")
+	}
+
+	// Solution group must use "dotnet".
+	if len(s.SolutionGroups) != 1 {
+		t.Fatalf("solution group count = %d, want 1", len(s.SolutionGroups))
+	}
+	if s.SolutionGroups[0].Ecosystem != "dotnet" {
+		t.Fatalf("solution group ecosystem = %q, want %q", s.SolutionGroups[0].Ecosystem, "dotnet")
+	}
+
+	// Coverage rows must not carry "python-uv".
+	for _, c := range s.Coverage {
+		if c.Ecosystem == "python-uv" {
+			t.Fatalf("coverage row uses non-canonical ecosystem %q: scope=%q", c.Ecosystem, c.Scope)
+		}
+	}
+
+	// ValidateReport must accept the report (validator enforces the invariant).
+	if err := ValidateReport(a); err != nil {
+		t.Fatalf("ValidateReport failed for canonical-ecosystem report: %v", err)
+	}
 }

@@ -10,6 +10,7 @@ import (
 	"maps"
 	"math"
 	"path"
+	"reflect"
 	"slices"
 	"strings"
 	"unicode/utf8"
@@ -37,7 +38,7 @@ const (
 type Metric struct {
 	Count        int64    `json:"count"`
 	Scope        string   `json:"scope"`
-	Completeness string   `json:"completeness"` // complete or lower_bound
+	Completeness string   `json:"completeness"` // complete, lower_bound, upper_bound, or observed_only
 	Reasons      []string `json:"reasons"`
 }
 
@@ -111,6 +112,44 @@ type OutcomeReason struct {
 	Count  int64  `json:"count"`
 }
 
+// LockfileChecks partitions covered projects by the status of their named
+// lockfile check. IndeterminateReasons counts each reason once per project,
+// so a project can appear under several reasons.
+type LockfileChecks struct {
+	Match                int64         `json:"match"`
+	Different            int64         `json:"different"`
+	Indeterminate        int64         `json:"indeterminate"`
+	NotApplicable        int64         `json:"not_applicable"`
+	IndeterminateReasons []ReasonCount `json:"indeterminate_reasons"`
+}
+
+// LockfilePresence partitions NuGet projects by whether a lockfile exists at
+// a path they can use, independently of ownership. UnknownReasons counts each
+// reason once per project.
+type LockfilePresence struct {
+	Observed       int64         `json:"observed"`
+	NotObserved    int64         `json:"not_observed"`
+	Unknown        int64         `json:"unknown"`
+	UnknownReasons []ReasonCount `json:"unknown_reasons"`
+}
+
+// ReasonCount counts projects that carry one reason.
+type ReasonCount struct {
+	Reason string `json:"reason"`
+	Count  int64  `json:"count"`
+}
+
+// LockfileCause counts the projects whose uncertain outcome or check names
+// one selected file as its cause.
+type LockfileCause struct {
+	Reason string `json:"reason"`
+	Path   string `json:"path"`
+	Count  int64  `json:"count"`
+}
+
+// LockfileCauseLimit bounds the causes listed in one lockfile row.
+const LockfileCauseLimit = 32
+
 type LockfileEcosystem struct {
 	Ecosystem      string          `json:"ecosystem"`
 	Projects       Metric          `json:"projects"`
@@ -122,6 +161,13 @@ type LockfileEcosystem struct {
 	Unknown        Metric          `json:"unknown"`
 	ByRole         []LockfileRole  `json:"by_role"`
 	OutcomeReasons []OutcomeReason `json:"outcome_reasons"`
+	// Checks, NuGetPresence, and Causes are absent from assessment 1.0.0.
+	// NuGetPresence is set on the nuget and all rows when NuGet projects
+	// exist; Causes is omitted when no file is named.
+	Checks        *LockfileChecks   `json:"checks,omitempty"`
+	NuGetPresence *LockfilePresence `json:"nuget_presence,omitempty"`
+	Causes        []LockfileCause   `json:"causes,omitempty"`
+	OmittedCauses int64             `json:"omitted_causes,omitempty"`
 }
 
 type Definition struct {
@@ -204,6 +250,7 @@ func (r *Report) Metrics() []NamedMetric {
 			{Name: "structure:dependency_projects", Metric: r.Structure.Dependencies.Projects},
 			{Name: "structure:definite_edges", Metric: r.Structure.Dependencies.DefiniteEdges},
 			{Name: "structure:connected_groups", Metric: r.Structure.Dependencies.ConnectedGroups},
+			{Name: "structure:connected_groups_with_qualified", Metric: r.Structure.Dependencies.ConnectedGroupsWithQualified},
 		}...)
 	}
 	return out
@@ -528,7 +575,7 @@ func (c *Collector) Finish(in Evidence) (*Report, error) {
 	if sel.unclassified {
 		structureGlobalReasons = append(structureGlobalReasons, "unclassified_declaration_kind")
 	}
-	out.Structure = buildStructure(in.Records, sel.projects, in.Declarations, c.candidateRoleCounts, inventoryReasons, unparsedEcosystems, structureGlobalReasons)
+	out.Structure = buildStructure(in.Records, sel.projects, in.Declarations, c.candidateRoleCounts, inventoryReasons, unparsedEcosystems, c.unparsedWorkspaces, structureGlobalReasons)
 	projectByID := map[string]string{}
 	for _, p := range sel.graph {
 		if p.ID != "" && p.Root != "" {
@@ -937,6 +984,15 @@ func isLocalRelation(kind string) bool {
 	}
 }
 
+// isStructureLocalRelation extends isLocalRelation with "parent" for structural
+// qualified-reference tallying only. It must NOT be used for the top-level
+// local_dependencies metric (released in 1.4.0) because that metric predates
+// parent-edge verification and because directory-default parent paths can
+// silently count unverified edges.
+func isStructureLocalRelation(kind string) bool {
+	return isLocalRelation(kind) || kind == "parent"
+}
+
 func relationshipKey(e RelationshipEvidence) string {
 	return e.Kind + "\x00" + e.SourceProject + "\x00" + e.TargetPath + "\x00" + e.SourceRoot + "\x00" + e.TargetRoot + "\x00" + e.State
 }
@@ -962,9 +1018,96 @@ func associationScope(ecosystem string) bool {
 }
 
 type lockfileTally struct {
-	counts  map[string]int64
-	roles   map[string]*LockfileRole
-	reasons map[[2]string]int64
+	counts       map[string]int64
+	roles        map[string]*LockfileRole
+	reasons      map[[2]string]int64
+	checks       LockfileChecks
+	checkReasons map[string]int64
+	presence     *LockfilePresence
+	unknownWhy   map[string]int64
+	causes       map[[2]string]int64
+}
+
+// addDetail tallies the check, presence, and cause evidence of one project's
+// lockfile context.
+func (t *lockfileTally) addDetail(ctx *lockfiles.Context, ecosystem, state, noContext string) {
+	if ecosystem == "nuget" {
+		if t.presence == nil {
+			t.presence = &LockfilePresence{}
+		}
+		switch {
+		case ctx == nil || ctx.NuGetEvidence == nil:
+			t.presence.Unknown++
+			t.unknownWhy[noContext]++
+		case ctx.NuGetEvidence.PresenceState == "observed":
+			t.presence.Observed++
+		case ctx.NuGetEvidence.PresenceState == "not_observed":
+			t.presence.NotObserved++
+		default:
+			t.presence.Unknown++
+			for _, reason := range ctx.NuGetEvidence.PresenceReasons {
+				t.unknownWhy[reason]++
+			}
+		}
+	}
+	if ctx == nil {
+		return
+	}
+	checkStatus := ""
+	if state == "covered" {
+		// A valid lockfile report has exactly one check for an observed
+		// association; anything else counts as indeterminate.
+		checkStatus = "indeterminate"
+		if len(ctx.Checks) == 1 {
+			checkStatus = ctx.Checks[0].Status
+		}
+		switch checkStatus {
+		case "match":
+			t.checks.Match++
+		case "different":
+			t.checks.Different++
+		case "not_applicable":
+			t.checks.NotApplicable++
+		default:
+			t.checks.Indeterminate++
+			reasons := map[string]bool{}
+			if ctx.NuGetEvidence != nil {
+				for _, reason := range ctx.NuGetEvidence.CheckReasons {
+					reasons[reason] = true
+				}
+			} else {
+				for _, b := range ctx.Boundaries {
+					reasons[b.Reason] = true
+				}
+			}
+			if len(reasons) == 0 {
+				reasons["unspecified"] = true
+			}
+			for reason := range reasons {
+				t.checkReasons[reason]++
+			}
+		}
+	}
+	// Causes explain an uncertain or missing outcome, or an indeterminate
+	// check; they are not listed for settled results.
+	if state == "covered" && checkStatus != "indeterminate" || state == "not_applicable" {
+		return
+	}
+	seen := map[[2]string]bool{}
+	if ctx.NuGetEvidence != nil {
+		for _, cause := range ctx.NuGetEvidence.Causes {
+			seen[[2]string{cause.Reason, cause.Path}] = true
+		}
+	} else if reason := ctx.OutcomeReason(); reason != "" && state != "covered" {
+		for _, b := range ctx.Boundaries {
+			if b.Reason == reason && b.Path != "" {
+				seen[[2]string{b.Reason, b.Path}] = true
+			}
+		}
+	}
+	for key := range seen {
+		t.causes[key]++
+	}
 }
 
 func (t *lockfileTally) add(role, state, reason string, eligible bool) {
@@ -1012,6 +1155,22 @@ func (t *lockfileTally) row(ecosystem string, complete bool, reasons []string) L
 	out := LockfileEcosystem{Ecosystem: ecosystem, Projects: m("projects", population), Eligible: m("eligible", eligibleScope),
 		Covered: m("covered", stateScope), Missing: m("missing", stateScope), NotApplicable: m("not_applicable", stateScope), Unsupported: m("unsupported", stateScope), Unknown: m("unknown", stateScope),
 		ByRole: make([]LockfileRole, 0, len(t.roles)), OutcomeReasons: make([]OutcomeReason, 0, len(t.reasons))}
+	checks := t.checks
+	checks.IndeterminateReasons = sortedReasonCounts(t.checkReasons)
+	out.Checks = &checks
+	if t.presence != nil {
+		presence := *t.presence
+		presence.UnknownReasons = sortedReasonCounts(t.unknownWhy)
+		out.NuGetPresence = &presence
+	}
+	for key, n := range t.causes {
+		out.Causes = append(out.Causes, LockfileCause{Reason: key[0], Path: key[1], Count: n})
+	}
+	slices.SortFunc(out.Causes, compareLockfileCauses)
+	if len(out.Causes) > LockfileCauseLimit {
+		out.OmittedCauses = int64(len(out.Causes) - LockfileCauseLimit)
+		out.Causes = out.Causes[:LockfileCauseLimit]
+	}
 	for _, role := range t.roles {
 		out.ByRole = append(out.ByRole, *role)
 	}
@@ -1024,6 +1183,30 @@ func (t *lockfileTally) row(ecosystem string, complete bool, reasons []string) L
 }
 
 func outcomeReasonKey(o OutcomeReason) string { return o.State + "\x00" + o.Reason }
+
+func sortedReasonCounts(m map[string]int64) []ReasonCount {
+	out := make([]ReasonCount, 0, len(m))
+	for reason, n := range m {
+		out = append(out, ReasonCount{Reason: reason, Count: n})
+	}
+	slices.SortFunc(out, func(a, b ReasonCount) int { return strings.Compare(a.Reason, b.Reason) })
+	return out
+}
+
+// compareLockfileCauses orders causes by descending count, then reason and
+// path, so the bounded list keeps the files that explain the most projects.
+func compareLockfileCauses(a, b LockfileCause) int {
+	if a.Count != b.Count {
+		if a.Count > b.Count {
+			return -1
+		}
+		return 1
+	}
+	if n := strings.Compare(a.Reason, b.Reason); n != 0 {
+		return n
+	}
+	return strings.Compare(a.Path, b.Path)
+}
 
 func lockfileMetrics(projectList []declarations.Project, locks *lockfiles.Report, complete bool, reasons []string) ([]LockfileEcosystem, LockfileEcosystem) {
 	contexts := map[string]lockfiles.Context{}
@@ -1041,7 +1224,7 @@ func lockfileMetrics(projectList []declarations.Project, locks *lockfiles.Report
 		}
 	}
 	newTally := func() *lockfileTally {
-		return &lockfileTally{counts: map[string]int64{}, roles: map[string]*LockfileRole{}, reasons: map[[2]string]int64{}}
+		return &lockfileTally{counts: map[string]int64{}, roles: map[string]*LockfileRole{}, reasons: map[[2]string]int64{}, checkReasons: map[string]int64{}, unknownWhy: map[string]int64{}, causes: map[[2]string]int64{}}
 	}
 	rows := map[string]*lockfileTally{}
 	overall := newTally()
@@ -1053,8 +1236,16 @@ func lockfileMetrics(projectList []declarations.Project, locks *lockfiles.Report
 		if rows[ecosystem] == nil {
 			rows[ecosystem] = newTally()
 		}
-		rows[ecosystem].add(role, state, reason, eligible)
-		overall.add(role, state, reason, eligible)
+		var ctx *lockfiles.Context
+		if found, ok := contexts[ecosystem+"\x00"+p.ID]; ok && associationScope(ecosystem) {
+			ctx = &found
+		}
+		for _, t := range []*lockfileTally{rows[ecosystem], overall} {
+			t.add(role, state, reason, eligible)
+			if associationScope(ecosystem) {
+				t.addDetail(ctx, ecosystem, state, noContext)
+			}
+		}
 	}
 	ecosystems := make([]string, 0, len(rows))
 	for ecosystem := range rows {
@@ -1104,6 +1295,20 @@ func projectEcosystem(p declarations.Project) string {
 		return ecosystem
 	}
 	return p.Kind
+}
+
+// canonicalEcosystem normalizes a componentmap.Component's Ecosystem field to
+// the assessment-layer canonical name, which matches the vocabulary produced by
+// classifyManifest. The two vocabularies diverge on python-uv projects
+// (componentmap: "python-uv"; assessment: "python") and on dotnet-kind projects
+// (componentmap: "dotnet"; assessment: "nuget"). Normalizing at the point where
+// components enter the assessment layer keeps populations, groups, coverage, and
+// membership-reason maps consistent with one another.
+func canonicalEcosystem(manifest, componentEcosystem string) string {
+	if _, eco, _ := classifyManifest(manifest); eco != "other" {
+		return eco
+	}
+	return componentEcosystem
 }
 
 func sortedCandidateCounts(m map[string]*CandidateCount) []CandidateCount {
@@ -1277,6 +1482,12 @@ func ValidateReport(r *Report) error {
 		if err := validateMetric(m.Metric); err != nil {
 			return fmt.Errorf("%s: %w", m.Name, err)
 		}
+		// connected_groups cannot be lower_bound: missing edges can only merge
+		// components (reducing the count), so an incomplete edge set is an upper
+		// bound, not a lower bound.
+		if m.Name == "structure:connected_groups" && m.Metric.Completeness == "lower_bound" {
+			return errors.New("structure:connected_groups: lower_bound completeness is not valid; use upper_bound or observed_only")
+		}
 	}
 	if r.Inventory.VendoredFiles.Count > r.Inventory.Files.Count || r.Inventory.VendoredBytes.Count > r.Inventory.Bytes.Count {
 		return errors.New("vendored inventory exceeds the selected inventory")
@@ -1405,11 +1616,13 @@ func validateMetric(m Metric) error {
 	if m.Count < 0 || strings.TrimSpace(m.Scope) == "" {
 		return errors.New("metric has a negative count or empty scope")
 	}
-	if m.Completeness != "complete" && m.Completeness != "lower_bound" {
-		return errors.New("metric completeness must be complete or lower_bound")
+	switch m.Completeness {
+	case "complete", "lower_bound", "upper_bound", "observed_only":
+	default:
+		return errors.New("metric completeness must be complete, lower_bound, upper_bound, or observed_only")
 	}
-	if m.Completeness == "lower_bound" && len(m.Reasons) == 0 {
-		return errors.New("lower-bound metric has no reason")
+	if (m.Completeness == "lower_bound" || m.Completeness == "upper_bound" || m.Completeness == "observed_only") && len(m.Reasons) == 0 {
+		return errors.New("non-complete metric has no reason")
 	}
 	if m.Completeness == "complete" && len(m.Reasons) != 0 {
 		return errors.New("complete metric cannot carry omission reasons")
@@ -1420,6 +1633,12 @@ func validateMetric(m Metric) error {
 		}
 	}
 	return nil
+}
+
+// metricC creates a Metric with an explicit completeness string and reasons.
+// Use "complete", "lower_bound", "upper_bound", or "observed_only".
+func metricC(count int64, scope, completeness string, reasons []string) Metric {
+	return Metric{Count: count, Scope: scope, Completeness: completeness, Reasons: slices.Clone(reasons)}
 }
 
 func validateCandidateEvidence(r *Report) error {
@@ -1520,7 +1739,7 @@ func validateLockfileRows(r *Report) error {
 		if row.Ecosystem == "" || row.Ecosystem == "all" || i > 0 && r.Lockfiles[i-1].Ecosystem >= row.Ecosystem {
 			return errors.New("lockfile ecosystem rows are invalid or unsorted")
 		}
-		if err := validateLockfileRow(row); err != nil {
+		if err := validateLockfileRow(row, r.Version == Version); err != nil {
 			return fmt.Errorf("lockfile row %q: %w", row.Ecosystem, err)
 		}
 		if associationScope(row.Ecosystem) {
@@ -1543,15 +1762,24 @@ func validateLockfileRows(r *Report) error {
 	if o.Ecosystem != "all" {
 		return errors.New("overall lockfile row is not named all")
 	}
-	if err := validateLockfileRow(o); err != nil {
+	if err := validateLockfileRow(o, r.Version == Version); err != nil {
 		return fmt.Errorf("overall lockfile row: %w", err)
 	}
 	overall := lockfileTotals{roles: map[string]LockfileRole{}, reasons: map[string]int64{}}
 	if err := overall.add(o); err != nil {
 		return err
 	}
-	if overall.counts != sum.counts || !maps.Equal(overall.roles, sum.roles) || !maps.Equal(overall.reasons, sum.reasons) {
+	if overall.counts != sum.counts || !maps.Equal(overall.roles, sum.roles) || !maps.Equal(overall.reasons, sum.reasons) || overall.checks != sum.checks || !maps.Equal(overall.checkReasons, sum.checkReasons) {
 		return errors.New("overall lockfile totals do not reconcile with ecosystem rows")
+	}
+	var nugetPresence *LockfilePresence
+	for _, row := range r.Lockfiles {
+		if row.Ecosystem == "nuget" {
+			nugetPresence = row.NuGetPresence
+		}
+	}
+	if (nugetPresence == nil) != (o.NuGetPresence == nil) || nugetPresence != nil && !reflect.DeepEqual(*nugetPresence, *o.NuGetPresence) {
+		return errors.New("overall NuGet presence does not match the nuget row")
 	}
 	if o.Projects.Count != r.Projects.Count {
 		return errors.New("lockfile overall projects do not match assessment projects")
@@ -1566,7 +1794,7 @@ var outcomeStates = map[string]bool{"missing": true, "not_applicable": true, "un
 
 // validateLockfileRow checks that one row's states partition its projects
 // and that its role and reason breakdowns reconcile with its metrics.
-func validateLockfileRow(row LockfileEcosystem) error {
+func validateLockfileRow(row LockfileEcosystem, current bool) error {
 	states, ok := checkedSum(row.Covered.Count, row.Missing.Count, row.NotApplicable.Count, row.Unsupported.Count, row.Unknown.Count)
 	if !ok || states != row.Projects.Count {
 		return errors.New("lockfile states do not partition project totals")
@@ -1604,6 +1832,70 @@ func validateLockfileRow(row LockfileEcosystem) error {
 	if byState["missing"] != row.Missing.Count || byState["not_applicable"] != row.NotApplicable.Count || byState["unsupported"] != row.Unsupported.Count || byState["unknown"] != row.Unknown.Count {
 		return errors.New("lockfile outcome reasons do not reconcile with row states")
 	}
+	if !current {
+		if row.Checks != nil || row.NuGetPresence != nil || row.Causes != nil || row.OmittedCauses != 0 {
+			return errors.New("legacy lockfile row contains newer evidence")
+		}
+		return nil
+	}
+	c := row.Checks
+	if c == nil {
+		return errors.New("lockfile row lacks check statuses")
+	}
+	if checks, ok := checkedSum(c.Match, c.Different, c.Indeterminate, c.NotApplicable); !ok || checks != row.Covered.Count {
+		return errors.New("lockfile check statuses do not partition covered projects")
+	}
+	if err := validateReasonCounts(c.IndeterminateReasons, c.Indeterminate); err != nil {
+		return fmt.Errorf("lockfile check reasons: %w", err)
+	}
+	if p := row.NuGetPresence; p != nil {
+		if row.Ecosystem != "nuget" && row.Ecosystem != "all" {
+			return errors.New("NuGet presence appears outside the nuget and all rows")
+		}
+		total, ok := checkedSum(p.Observed, p.NotObserved, p.Unknown)
+		if !ok || row.Ecosystem == "nuget" && total != row.Projects.Count || total > row.Projects.Count {
+			return errors.New("NuGet presence does not partition NuGet projects")
+		}
+		if err := validateReasonCounts(p.UnknownReasons, p.Unknown); err != nil {
+			return fmt.Errorf("NuGet presence reasons: %w", err)
+		}
+	} else if row.Ecosystem == "nuget" {
+		return errors.New("nuget row lacks NuGet presence")
+	}
+	if len(row.Causes) > LockfileCauseLimit || row.OmittedCauses < 0 || row.OmittedCauses > 0 && len(row.Causes) != LockfileCauseLimit {
+		return errors.New("lockfile causes exceed their bound")
+	}
+	seenCauses := make(map[[2]string]bool, len(row.Causes))
+	for i, cause := range row.Causes {
+		key := [2]string{cause.Reason, cause.Path}
+		if !validOutcomeReason(cause.Reason) || !validSelectedPath(cause.Path) || cause.Count <= 0 || cause.Count > row.Projects.Count || seenCauses[key] || i > 0 && compareLockfileCauses(row.Causes[i-1], cause) >= 0 {
+			return errors.New("lockfile causes are invalid, duplicated, or unsorted")
+		}
+		seenCauses[key] = true
+	}
+	return nil
+}
+
+// validateReasonCounts checks reasons that can each count a project once:
+// every counted project has at least one reason, and no reason exceeds the
+// population.
+func validateReasonCounts(reasons []ReasonCount, population int64) error {
+	if reasons == nil {
+		return errors.New("reasons are absent")
+	}
+	var total int64
+	for i, reason := range reasons {
+		var ok bool
+		if !validOutcomeReason(reason.Reason) || reason.Count <= 0 || reason.Count > population || i > 0 && reasons[i-1].Reason >= reason.Reason {
+			return errors.New("reasons are invalid or unsorted")
+		}
+		if total, ok = checkedAdd(total, reason.Count); !ok {
+			return errors.New("reason totals overflow")
+		}
+	}
+	if total < population {
+		return errors.New("some counted projects have no reason")
+	}
 	return nil
 }
 
@@ -1621,9 +1913,11 @@ func validOutcomeReason(reason string) bool {
 
 // lockfileTotals sums rows for the overall reconciliation.
 type lockfileTotals struct {
-	counts  LockfileRole
-	roles   map[string]LockfileRole
-	reasons map[string]int64
+	counts       LockfileRole
+	roles        map[string]LockfileRole
+	reasons      map[string]int64
+	checks       [4]int64
+	checkReasons map[string]int64
 }
 
 func (t *lockfileTotals) add(row LockfileEcosystem) error {
@@ -1646,6 +1940,22 @@ func (t *lockfileTotals) add(row LockfileEcosystem) error {
 		key := outcomeReasonKey(reason)
 		if t.reasons[key], ok = checkedAdd(t.reasons[key], reason.Count); !ok {
 			return errors.New("lockfile reason totals overflow")
+		}
+	}
+	if row.Checks == nil {
+		return nil
+	}
+	for i, n := range []int64{row.Checks.Match, row.Checks.Different, row.Checks.Indeterminate, row.Checks.NotApplicable} {
+		if t.checks[i], ok = checkedAdd(t.checks[i], n); !ok {
+			return errors.New("lockfile check totals overflow")
+		}
+	}
+	if t.checkReasons == nil {
+		t.checkReasons = map[string]int64{}
+	}
+	for _, reason := range row.Checks.IndeterminateReasons {
+		if t.checkReasons[reason.Reason], ok = checkedAdd(t.checkReasons[reason.Reason], reason.Count); !ok {
+			return errors.New("lockfile check reason totals overflow")
 		}
 	}
 	return nil
@@ -1682,7 +1992,7 @@ func checkedSum(values ...int64) (int64, bool) {
 }
 
 func metricHasReason(m Metric, want string) bool {
-	if m.Completeness != "lower_bound" {
+	if m.Completeness == "complete" {
 		return false
 	}
 	for _, reason := range m.Reasons {

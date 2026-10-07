@@ -58,9 +58,13 @@ ASSESSMENT_FACTS = {
 }
 STRUCTURE_FACTS = {
     'workspace_groups': 5,
+    'workspace_ecosystems': ['cargo', 'go', 'maven', 'npm', 'python'],
     'definite_edges': 2,
     'observed_connected_groups': 8,
     'parsed_projects': 10,
+    'entry_point_rows': 3,
+    'entry_point_declarations': 3,
+    'entry_point_associations': 3,
     'manifest_entrypoints': [
         {'ecosystem': 'npm', 'kind': 'manifest_interface:script', 'name': 'start'},
         {'ecosystem': 'cargo', 'kind': 'manifest_interface:cargo-bin', 'name': 'smoke-app', 'target': 'cargo/crates/app/src/main.rs'},
@@ -240,7 +244,7 @@ def check_assessment_structure_facts(assessment):
     require(structure.get('workspace_group_count') == STRUCTURE_FACTS['workspace_groups'] and
             len(groups) + structure.get('omitted_workspace_groups', -1) == STRUCTURE_FACTS['workspace_groups'],
             'workspace group exact total or bounded sample differs')
-    expected_groups = {'cargo', 'go', 'maven', 'npm', 'python-uv'}
+    expected_groups = set(STRUCTURE_FACTS['workspace_ecosystems'])
     require({group.get('ecosystem') for group in groups} == expected_groups and
             all(group.get('member_count') == 1 and group.get('membership_coverage', {}).get('status') == 'complete'
                 for group in groups), 'workspace membership facts differ')
@@ -259,8 +263,16 @@ def check_assessment_structure_facts(assessment):
         if 'target' in expected:
             require(entry.get('target') == expected['target'], 'manifest entry-point target differs: ' + repr(expected))
         observed.append({key: entry[key] for key in expected})
-    require(structure.get('entry_point_count') == len(STRUCTURE_FACTS['manifest_entrypoints']) and
-            len(entries) == structure.get('entry_point_count'), 'entry-point catalog count differs')
+    require(structure.get('entry_point_count') == STRUCTURE_FACTS['entry_point_declarations'] and
+            structure.get('entry_point_row_count') == STRUCTURE_FACTS['entry_point_rows'] and
+            structure.get('entry_point_association_count') == STRUCTURE_FACTS['entry_point_associations'] and
+            len(entries) == structure.get('entry_point_row_count') and
+            all(entry.get('project_id') for entry in entries), 'entry-point declaration, row, or association counts differ')
+    coverage = [row for row in structure.get('coverage', [])
+                if row.get('scope') == 'entry_points' and row.get('ecosystem') == 'all']
+    require(len(coverage) == 1 and coverage[0].get('status') == 'partial' and
+            'source_entry_points_not_inspected' in coverage[0].get('reasons', []),
+            'manifest entry-point catalog must disclose that source entry points were not inspected')
     serialized = json.dumps(structure, sort_keys=True)
     require(SCRIPT_SENTINEL not in serialized and 'node server.js' not in serialized,
             'raw npm script body disclosed in structural catalog')

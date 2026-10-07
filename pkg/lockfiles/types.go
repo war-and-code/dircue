@@ -101,17 +101,33 @@ type Context struct {
 	NuGetEvidence    *NuGetEvidence `json:"nuget_evidence,omitempty"`
 }
 
-// NuGetEvidence keeps candidate-file presence separate from owner association
-// and from the named direct-package-presence check. Candidate paths are a
-// bounded sample; CandidateCount retains the aggregate count.
+// NuGetEvidence keeps three separate questions apart: whether a lockfile
+// exists at a path the project could use (presence), whether that file is
+// statically attributable to this project (ownership), and whether the named
+// direct-package-presence check could be completed (check). Candidate paths
+// and causes are bounded samples; their counts stay exact.
 type NuGetEvidence struct {
-	PresenceState         string   `json:"presence_state"`
-	CandidateCount        int      `json:"candidate_count"`
-	CandidatePaths        []string `json:"candidate_paths"`
-	OmittedCandidatePaths int      `json:"omitted_candidate_paths,omitempty"`
-	OwnershipState        string   `json:"ownership_state"`
-	PresenceReasons       []string `json:"presence_reasons"`
-	OwnershipReasons      []string `json:"ownership_reasons"`
+	PresenceState         string       `json:"presence_state"`
+	CandidateCount        int          `json:"candidate_count"`
+	CandidatePaths        []string     `json:"candidate_paths"`
+	OmittedCandidatePaths int          `json:"omitted_candidate_paths,omitempty"`
+	OwnershipState        string       `json:"ownership_state"`
+	PresenceReasons       []string     `json:"presence_reasons"`
+	OwnershipReasons      []string     `json:"ownership_reasons"`
+	LockPathBasis         string       `json:"lock_path_basis"`
+	CheckState            string       `json:"check_state"`
+	CheckReasons          []string     `json:"check_reasons"`
+	Causes                []NuGetCause `json:"causes"`
+	OmittedCauses         int          `json:"omitted_causes,omitempty"`
+}
+
+// NuGetCause names the selected file, and the SDK, import, or assignment in
+// it, behind an uncertain presence, ownership, or check result. Reason uses
+// the boundary reason vocabulary.
+type NuGetCause struct {
+	Reason string `json:"reason"`
+	Path   string `json:"path"`
+	Detail string `json:"detail,omitempty"`
 }
 
 // Check statuses describe only the named syntactic check. "match" never

@@ -565,6 +565,138 @@
                 }
               }
             }
+          },
+          "checks": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "match",
+              "different",
+              "indeterminate",
+              "not_applicable",
+              "indeterminate_reasons"
+            ],
+            "properties": {
+              "match": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "different": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "indeterminate": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "not_applicable": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "indeterminate_reasons": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reason",
+                    "count"
+                  ],
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                      "maxLength": 256
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "nuget_presence": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "observed",
+              "not_observed",
+              "unknown",
+              "unknown_reasons"
+            ],
+            "properties": {
+              "observed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "not_observed": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unknown": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "unknown_reasons": {
+                "type": "array",
+                "maxItems": 256,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "reason",
+                    "count"
+                  ],
+                  "properties": {
+                    "reason": {
+                      "type": "string",
+                      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                      "maxLength": 256
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 1
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "causes": {
+            "type": "array",
+            "maxItems": 32,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason",
+                "path",
+                "count"
+              ],
+              "properties": {
+                "reason": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                  "maxLength": 256
+                },
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 8192
+                },
+                "count": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            }
+          },
+          "omitted_causes": {
+            "type": "integer",
+            "minimum": 1
           }
         }
       }
@@ -708,6 +840,138 @@
               }
             }
           }
+        },
+        "checks": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "match",
+            "different",
+            "indeterminate",
+            "not_applicable",
+            "indeterminate_reasons"
+          ],
+          "properties": {
+            "match": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "different": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "indeterminate": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not_applicable": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "indeterminate_reasons": {
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason",
+                  "count"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                    "maxLength": 256
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nuget_presence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "observed",
+            "not_observed",
+            "unknown",
+            "unknown_reasons"
+          ],
+          "properties": {
+            "observed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "not_observed": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "unknown_reasons": {
+              "type": "array",
+              "maxItems": 256,
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "reason",
+                  "count"
+                ],
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                    "maxLength": 256
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1
+                  }
+                }
+              }
+            }
+          }
+        },
+        "causes": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "reason",
+              "path",
+              "count"
+            ],
+            "properties": {
+              "reason": {
+                "type": "string",
+                "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+                "maxLength": 256
+              },
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 8192
+              },
+              "count": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        "omitted_causes": {
+          "type": "integer",
+          "minimum": 1
         }
       }
     },
@@ -811,7 +1075,9 @@
         "completeness": {
           "enum": [
             "complete",
-            "lower_bound"
+            "lower_bound",
+            "upper_bound",
+            "observed_only"
           ]
         },
         "reasons": {
@@ -846,7 +1112,11 @@
           "if": {
             "properties": {
               "completeness": {
-                "const": "lower_bound"
+                "enum": [
+                  "lower_bound",
+                  "upper_bound",
+                  "observed_only"
+                ]
               }
             }
           },
@@ -1022,14 +1292,18 @@
                 {
                   "properties": {
                     "completeness": {
-                      "const": "complete"
-                    },
-                    "reasons": {
-                      "maxItems": 0
+                      "enum": [
+                        "complete",
+                        "upper_bound",
+                        "observed_only"
+                      ]
                     }
                   }
                 }
               ]
+            },
+            "connected_groups_with_qualified": {
+              "$ref": "#/$defs/metric"
             },
             "definite_edges": {
               "$ref": "#/$defs/metric"
@@ -1155,6 +1429,7 @@
             "projects",
             "definite_edges",
             "connected_groups",
+            "connected_groups_with_qualified",
             "qualified_references",
             "qualified_reference_count",
             "omitted_qualified_reference_count",
@@ -1171,6 +1446,28 @@
           "maximum": 9223372036854775807,
           "minimum": 0,
           "type": "integer"
+        },
+        "entry_point_association_count": {
+          "maximum": 9223372036854775807,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "entry_point_row_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9223372036854775807
+        },
+        "excluded_non_entry_kinds": {
+          "additionalProperties": {
+            "minimum": 1,
+            "type": "integer",
+            "maximum": 9223372036854775807
+          },
+          "maxProperties": 64,
+          "propertyNames": {
+            "pattern": "^[a-z0-9-]+:[a-z0-9_-]+$"
+          },
+          "type": "object"
         },
         "entry_points": {
           "items": {
@@ -1223,9 +1520,13 @@
                 "type": "string"
               },
               "state": {
-                "maxLength": 8192,
-                "minLength": 1,
-                "type": "string"
+                "type": "string",
+                "enum": [
+                  "declared",
+                  "associated",
+                  "qualified",
+                  "unassociated"
+                ]
               },
               "target": {
                 "maxLength": 8192,
@@ -1639,6 +1940,8 @@
         "dependencies",
         "entry_points",
         "entry_point_count",
+        "entry_point_association_count",
+        "entry_point_row_count",
         "omitted_workspace_groups",
         "omitted_solution_groups",
         "omitted_entry_points"
@@ -1656,11 +1959,73 @@
         }
       },
       "then": {
-        "not": {
-          "required": [
-            "structure"
-          ]
-        }
+        "allOf": [
+          {
+            "not": {
+              "required": [
+                "structure"
+              ]
+            }
+          },
+          {
+            "properties": {
+              "lockfiles": {
+                "items": {
+                  "not": {
+                    "anyOf": [
+                      {
+                        "required": [
+                          "checks"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "nuget_presence"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "causes"
+                        ]
+                      },
+                      {
+                        "required": [
+                          "omitted_causes"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              },
+              "lockfiles_overall": {
+                "not": {
+                  "anyOf": [
+                    {
+                      "required": [
+                        "checks"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "nuget_presence"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "causes"
+                      ]
+                    },
+                    {
+                      "required": [
+                        "omitted_causes"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        ]
       }
     },
     {
@@ -1674,7 +2039,21 @@
       "then": {
         "required": [
           "structure"
-        ]
+        ],
+        "properties": {
+          "lockfiles": {
+            "items": {
+              "required": [
+                "checks"
+              ]
+            }
+          },
+          "lockfiles_overall": {
+            "required": [
+              "checks"
+            ]
+          }
+        }
       }
     }
   ]

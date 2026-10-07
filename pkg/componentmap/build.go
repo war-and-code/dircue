@@ -8,6 +8,66 @@ import (
 	"github.com/war-and-code/dircue/pkg/declarations"
 )
 
+// isDefiniteRelationship returns true when a local relationship should
+// contribute a definite (complete-coverage) edge. It rejects only those
+// whose Condition or State represents a genuine build condition, as opposed
+// to a metadata scope, label, or origin annotation that does not affect
+// whether the dependency exists at all.
+//
+// Per-kind semantics (confirmed by reading each declaration producer):
+//   - npm-local-dependency, npm-workspace-dependency: Condition is always the
+//     dependency section name ("dependencies", "devDependencies", etc.), a
+//     scope label, not a build condition. State is "declared" or "resolved".
+//   - go-local-replacement: a local replacement is a configuration rule,
+//     not a dependency unless a matching go-require activates it.
+//   - pub-path-dependency (Dart): Condition is "dev_dependencies",
+//     "dependency_overrides", or "", a scope label.
+//   - cargo-path-dependency, cargo-workspace-path-dependency: Condition is
+//     produced by cargoDependencyCondition: "scope[; target=...][; optional=true]
+//     [; ...]". The scope part alone is not a genuine condition. Genuine
+//     conditions are "target=" (platform selector) and "optional=true".
+//   - uv-local-dependency: Condition is pythonCondition-joined parts. A
+//     "marker:" (PEP 508 environment marker) or "extra:" (an optional extra,
+//     installed only when requested) is a genuine condition; "group:" (a
+//     dependency group, like a dev scope) and "source-inherited-from:" are not.
+//   - All other kinds (parent, project-reference, module, gradle-module, etc.):
+//     any non-empty Condition or State "conditional" is genuine.
+//
+// State "unresolved" is always non-definite regardless of kind.
+func isDefiniteRelationship(kind, state, condition string) bool {
+	if state == "unresolved" {
+		return false
+	}
+	switch kind {
+	case "npm-local-dependency", "npm-workspace-dependency":
+		// Condition is always a dependency section name; never a genuine condition.
+		return true
+	case "go-local-replacement":
+		// Activation is checked against go-require references in Build. The
+		// replacement fact alone cannot establish a dependency edge.
+		return false
+	case "pub-path-dependency":
+		// Condition is a pubspec section name or empty; not a genuine condition.
+		return true
+	case "cargo-path-dependency", "cargo-workspace-path-dependency":
+		// cargoDependencyCondition emits "scope[; target=...][; optional=true][; ...]".
+		// Scope alone ("dependencies", "dev-dependencies", "build-dependencies") is
+		// not a genuine condition; "target=" and "optional=true" are.
+		return !strings.Contains(condition, "target=") && !strings.Contains(condition, "optional=true")
+	case "uv-local-dependency":
+		for _, part := range strings.Split(condition, "; ") {
+			if strings.HasPrefix(part, "marker:") || strings.HasPrefix(part, "extra:") {
+				return false
+			}
+		}
+		return true
+	default:
+		// For all other kinds (parent, project-reference, module, gradle-module, etc.)
+		// any non-empty Condition or State "conditional" is a genuine condition.
+		return state != "conditional" && condition == ""
+	}
+}
+
 // componentKinds lists the declaration kinds that form component roots, sorted
 // for binary search. Its length and the number of distinct ecosystem() values
 // are pinned by TestComponentKindCounts and stated in README.md and CHANGELOG.md.
@@ -48,6 +108,49 @@ var componentKinds = []string{
 	"solution",
 	"swift-package",
 	"zig-build",
+}
+
+type goRequirementIndex map[string]map[string]struct{}
+
+// indexGoRequirements indexes the module/version pairs required by one
+// go.mod. Build creates this only when that project has local replace
+// directives, avoiding a per-replacement scan of its full reference list.
+func indexGoRequirements(references []declarations.Reference) goRequirementIndex {
+	index := goRequirementIndex{}
+	for _, ref := range references {
+		if ref.Kind != "go-require" || ref.State == "unresolved" {
+			continue
+		}
+		modulePath, version, hasVersion := strings.Cut(ref.Value, "@")
+		if modulePath == "" || !hasVersion {
+			continue
+		}
+		if index[modulePath] == nil {
+			index[modulePath] = map[string]struct{}{}
+		}
+		index[modulePath][version] = struct{}{}
+	}
+	return index
+}
+
+// goReplacementActivated checks whether a local replace directive applies to
+// a module required by this go.mod. A replace directive by itself is inert; the
+// replacement may still be used transitively, which this static graph cannot
+// determine, so unmatched replacements remain qualified observations.
+func goReplacementActivated(requirements goRequirementIndex, replacement declarations.Reference) bool {
+	modulePath, replacementVersion, hasVersion := strings.Cut(replacement.Condition, "@")
+	if modulePath == "" {
+		return false
+	}
+	versions := requirements[modulePath]
+	if len(versions) == 0 {
+		return false
+	}
+	if !hasVersion {
+		return true
+	}
+	_, ok := versions[replacementVersion]
+	return ok
 }
 
 // Build converts the declaration report into a deterministic component graph.
@@ -126,10 +229,18 @@ func Build(report *declarations.Report) Fragment {
 		f.Relationships = append(f.Relationships, Relationship{Type: "contains", From: parent, To: child.Key, DeclarationKind: "root-containment", Evidence: child.Manifest, State: "inferred", Coverage: "complete"})
 	}
 
+	projectsByID := make(map[string]declarations.Project, len(projects))
+	for _, p := range projects {
+		projectsByID[p.ID] = p
+	}
 	seen := map[string]bool{}
 	for _, p := range projects {
 		if _, ok := byManifest[p.ID]; !ok {
 			continue
+		}
+		var goRequirements goRequirementIndex
+		if p.Kind == "go" && slices.ContainsFunc(p.References, func(ref declarations.Reference) bool { return ref.Kind == "go-local-replacement" }) {
+			goRequirements = indexGoRequirements(p.References)
 		}
 		for _, ref := range p.References {
 			// Gradle settings references are joined below against exact-root
@@ -142,12 +253,19 @@ func Build(report *declarations.Report) Fragment {
 			if !relevant {
 				continue
 			}
+			goReplacementActive := p.Kind == "go" && ref.Kind == "go-local-replacement" && goReplacementActivated(goRequirements, ref)
 			target, targetOK := byManifest[ref.Target]
 			if !targetOK && !ambiguousRoot[cleanRoot(ref.Target)] {
 				target, targetOK = byRoot[cleanRoot(ref.Target)]
 			}
 			if ref.Target == "" || !targetOK || ref.TargetStatus == "missing" || ref.TargetStatus == "unresolved" || ref.TargetStatus == "external" {
 				f.QualifiedReferences = append(f.QualifiedReferences, qualified(p.ID, ref, targetOK))
+				continue
+			}
+			if p.Kind == "go" && ref.Kind == "go-local-replacement" && !goReplacementActive {
+				q := qualified(p.ID, ref, true)
+				q.Reason = "go_replacement_activation_unresolved"
+				f.QualifiedReferences = append(f.QualifiedReferences, q)
 				continue
 			}
 			from, to := p.ID, target.Key
@@ -158,8 +276,22 @@ func Build(report *declarations.Report) Fragment {
 				continue
 			}
 			coverage := "complete"
-			if ref.State == "conditional" || ref.State == "unresolved" || ref.Condition != "" {
+			if !isDefiniteRelationship(ref.Kind, ref.State, ref.Condition) && !goReplacementActive {
 				coverage = "partial"
+			}
+			if ref.Kind == "parent" && p.Kind == "maven" {
+				// Maven uses a parent POM found by path only when its coordinates
+				// match the declared parent; otherwise it resolves the parent from
+				// a repository, so the directory position alone proves nothing.
+				switch reason := MavenParentCheck(p, projectsByID[target.Key]); reason {
+				case "parent_coordinates_mismatch", "parent_version_mismatch":
+					q := qualified(p.ID, ref, true)
+					q.Reason = reason
+					f.QualifiedReferences = append(f.QualifiedReferences, q)
+					continue
+				case "parent_coordinates_unresolved":
+					coverage = "partial"
+				}
 			}
 			r := Relationship{Type: typ, From: from, To: to, DeclarationKind: ref.Kind, Evidence: ref.Evidence, State: ref.State, Condition: ref.Condition, Coverage: coverage}
 			key := relationshipKey(r)
@@ -372,7 +504,7 @@ func addGradleSettingsMembership(f *Fragment, settings []declarations.Project, g
 				Coverage:               "complete",
 				gradleSettingsEvidence: true,
 			}
-			if ref.State == "conditional" || ref.State == "unresolved" || ref.Condition != "" {
+			if !isDefiniteRelationship(ref.Kind, ref.State, ref.Condition) {
 				relationship.Coverage = "partial"
 			}
 			key := relationshipKey(relationship)
@@ -570,6 +702,81 @@ func buildMavenCoordIndex(projects []declarations.Project, byManifest map[string
 		}
 	}
 	return out
+}
+
+// MavenParentCheck compares a Maven project's declared parent coordinates with
+// the coordinates the candidate parent POM declares. It returns "" when they
+// agree or the project declares no parent, "parent_coordinates_mismatch" for a
+// different groupId:artifactId (case-sensitive), "parent_version_mismatch" for
+// different literal versions, and "parent_coordinates_unresolved" when either
+// side's groupId:artifactId is not literal or the declared parent uses a
+// property. A target that inherits its version from its own parent is compared
+// by groupId:artifactId only.
+func MavenParentCheck(source, target declarations.Project) string {
+	parent := ""
+	for _, req := range source.Requirements {
+		if req.Kind == "maven-parent" {
+			parent = req.Value
+			break
+		}
+	}
+	if parent == "" {
+		return ""
+	}
+	// A property anywhere, or coordinates left for Maven 4 to infer, leave the
+	// declared parent unknown until Maven evaluates the model.
+	parts := strings.SplitN(parent, ":", 3)
+	if strings.Contains(parent, "${") || len(parts) < 2 || !literalMavenPart(parts[0]) || !literalMavenPart(parts[1]) {
+		return "parent_coordinates_unresolved"
+	}
+	if target.Kind != "maven" {
+		return "parent_coordinates_unresolved"
+	}
+	group, groupOK := literalMavenRequirement(target, "maven-groupId")
+	if !groupOK && mavenRequirement(target, "maven-groupId") == "" {
+		if inherited, ok := literalMavenRequirement(target, "maven-parent"); ok {
+			if fields := strings.Split(inherited, ":"); len(fields) == 3 && literalMavenPart(fields[0]) {
+				group, groupOK = fields[0], true
+			}
+		}
+	}
+	artifact, artifactOK := literalMavenRequirement(target, "maven-artifactId")
+	if !groupOK || !artifactOK || !literalMavenPart(group) || !literalMavenPart(artifact) {
+		return "parent_coordinates_unresolved"
+	}
+	if parts[0]+":"+parts[1] != group+":"+artifact {
+		return "parent_coordinates_mismatch"
+	}
+	if len(parts) == 3 && literalMavenPart(parts[2]) && !strings.EqualFold(parts[2], "LATEST") && !strings.EqualFold(parts[2], "RELEASE") {
+		if version, ok := literalMavenRequirement(target, "maven-version"); ok && literalMavenPart(version) && parts[2] != version {
+			return "parent_version_mismatch"
+		}
+	}
+	return ""
+}
+
+// literalMavenRequirement returns a requirement's value when every requirement
+// of that kind is declared, unconditional, literal, and identical.
+func literalMavenRequirement(p declarations.Project, kind string) (string, bool) {
+	value, found := "", false
+	for _, req := range p.Requirements {
+		if req.Kind != kind {
+			continue
+		}
+		if req.State != "declared" || req.Condition != "" || !literalMavenValue(req.Value) || found && value != req.Value {
+			return "", false
+		}
+		value, found = req.Value, true
+	}
+	return value, found
+}
+
+func literalMavenValue(value string) bool {
+	return value != "" && value == strings.TrimSpace(value) && !strings.ContainsAny(value, "$[](),*?")
+}
+
+func literalMavenPart(value string) bool {
+	return literalMavenValue(value) && !strings.Contains(value, ":")
 }
 
 // mavenRequirement returns the first requirement value for the given kind, or "".

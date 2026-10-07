@@ -28,7 +28,8 @@ func TestNuGetUpdateOnlyOwnershipAndLockfileEvidence(t *testing.T) {
 				"App.csproj":            `<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Update="FromShared" Version="2.0" /></ItemGroup></Project>`,
 				"Directory.Build.props": `<Project><ItemGroup><PackageReference Include="FromShared" Version="1.0" /></ItemGroup></Project>`,
 			},
-			wantState: "indeterminate",
+			// The shared Include is evaluated, so the absent lock is missing.
+			wantState: "missing",
 		},
 		{
 			name: "include plus update retains direct-presence check",

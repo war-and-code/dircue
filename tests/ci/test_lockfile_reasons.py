@@ -14,6 +14,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ANALYZER_SOURCES = (
     ROOT / "pkg" / "lockfiles" / "analyze.go",
     ROOT / "pkg" / "lockfiles" / "nuget_static.go",
+    ROOT / "pkg" / "lockfiles" / "nuget_association.go",
 )
 LOCKFILES_MD = ROOT / "docs" / "LOCKFILES.md"
 
@@ -35,6 +36,10 @@ NOT_REASONS = {
     "unsupported-ecosystem",
     # Presence/read qualifications carried in NuGet evidence, not boundaries.
     "nuget-candidate-not-regular", "nuget-selected-input-unavailable", "incomplete-selected-input-read",
+    # NuGet check_reasons for a check that did not run, described in the NuGet section.
+    "no-direct-declarations", "lockfile-not-associated",
+    # A global.json property name, not an emitted boundary.
+    "msbuild-sdks",
 }
 
 

@@ -82,6 +82,9 @@ func TestAssessmentComparisonIncludesStructuralEntryTotalsWithoutProjectChanges(
 	if got := changeByID(m, "structure:entry_point_total"); got == nil || got.Status != "changed" {
 		t.Fatalf("entry-point aggregate change missing: %+v", m.Changes)
 	}
+	if got := changeByID(m, "structure:entry_point_association_total"); got == nil || got.Status != "changed" {
+		t.Fatalf("entry-point association change missing: %+v", m.Changes)
+	}
 	if changeByID(m, "structure:population:parsed_projects:npm:primary") != nil {
 		t.Fatalf("same project population changed when an interface was added: %+v", m.Changes)
 	}
@@ -99,6 +102,27 @@ func TestAssessmentComparisonCapturesQualifiedReferenceAggregateChanges(t *testi
 	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
 	if got := changeByID(m, "structure:qualified_reference_total"); got == nil || got.Status != "changed" {
 		t.Fatalf("qualified-reference total change missing: %+v", m.Changes)
+	}
+}
+
+func TestAssessmentComparisonComparesLockfileChecks(t *testing.T) {
+	manifest := `{"name":"a","version":"1.0.0","dependencies":{"x":"1.0.0"}}`
+	lock := func(spec string) string {
+		return `{"name":"a","version":"1.0.0","lockfileVersion":3,"requires":true,"packages":{"":{"name":"a","version":"1.0.0","dependencies":{"x":"` + spec + `"}},"node_modules/x":{"version":"1.0.0"}}}`
+	}
+	a := assessmentProfile(t, map[string]string{"package.json": manifest, "package-lock.json": lock("1.0.0")})
+	b := assessmentProfile(t, map[string]string{"package.json": manifest, "package-lock.json": lock("^2.0.0")})
+	for _, p := range []profile.Report{a, b} {
+		if p.Assessment.LockfilesOverall.Checks == nil {
+			t.Fatalf("check partition missing: %+v", p.Assessment.LockfilesOverall)
+		}
+	}
+	if ca, cb := a.Assessment.LockfilesOverall.Checks, b.Assessment.LockfilesOverall.Checks; ca.Match == cb.Match && ca.Different == cb.Different {
+		t.Fatalf("fixture did not change the check outcome: %+v", a.Assessment.LockfilesOverall.Checks)
+	}
+	m := reviewModule(t, reviewCompare(t, a, b), "assessment")
+	if got := changeByID(m, "lockfile_checks:all"); got == nil || got.Status != "changed" {
+		t.Fatalf("lockfile check change missing: %+v", m.Changes)
 	}
 }
 
@@ -156,6 +180,12 @@ func TestAssessmentLegacyVersionStructuralComparabilityIsQualified(t *testing.T)
 	legacy := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
 	legacy.Assessment.Version = assessmentpkg.LegacyVersion
 	legacy.Assessment.Structure = nil
+	for i := range legacy.Assessment.Lockfiles {
+		row := &legacy.Assessment.Lockfiles[i]
+		row.Checks, row.NuGetPresence, row.Causes, row.OmittedCauses = nil, nil, nil, 0
+	}
+	overall := &legacy.Assessment.LockfilesOverall
+	overall.Checks, overall.NuGetPresence, overall.Causes, overall.OmittedCauses = nil, nil, nil, 0
 	legacy.SchemaVersion = "1.9.0"
 	if err := assessmentpkg.ValidateReport(legacy.Assessment); err != nil {
 		t.Fatalf("legacy assessment report invalid: %v", err)
@@ -344,5 +374,27 @@ func loadAssessmentProfile(t *testing.T, p profile.Report) {
 	}
 	if _, err := reportdiff.Load(bytes.NewReader(data)); err != nil {
 		t.Fatalf("collector-produced population discrepancy rejected: %v", err)
+	}
+}
+
+func TestAssessmentComparisonNamesTheActualMetricQualification(t *testing.T) {
+	for _, completeness := range []string{"upper_bound", "observed_only"} {
+		t.Run(completeness, func(t *testing.T) {
+			p := assessmentProfile(t, map[string]string{"app/package.json": `{"name":"a"}`})
+			metric := &p.Assessment.Structure.Dependencies.ConnectedGroups
+			metric.Completeness = completeness
+			metric.Reasons = []string{"selected_dependency_observations_omitted"}
+			if err := assessmentpkg.ValidateReport(p.Assessment); err != nil {
+				t.Fatal(err)
+			}
+			m := reviewModule(t, reviewCompare(t, p, p), "assessment")
+			want := "assessment_measurement_is_" + completeness
+			if !strings.Contains(strings.Join(m.Reasons, " "), want) {
+				t.Fatalf("%s metric qualification not disclosed: %+v", completeness, m.Reasons)
+			}
+			if strings.Contains(strings.Join(m.Reasons, " "), "assessment_measurement_is_lower_bound") {
+				t.Fatalf("%s metric mislabeled as lower_bound: %+v", completeness, m.Reasons)
+			}
+		})
 	}
 }

@@ -815,14 +815,19 @@ func skaffoldDefinitions(doc map[interface{}]interface{}, content []byte) ([]Def
 			continue
 		}
 		image, imageOK := stringValue(artifact, "image")
-		contextDir, contextOK := stringValue(artifact, "context")
-		if !imageOK || image == "" || !contextOK || contextDir == "" {
+		if !imageOK || image == "" {
 			continue
+		}
+		contextDir, contextOK := stringValue(artifact, "context")
+		contextBasis := "skaffold-artifact"
+		if !contextOK || contextDir == "" {
+			contextDir = "."
+			contextBasis = "skaffold-default-context"
 		}
 		imageLine := lineOf(content, "image: "+image)
 		contextLine := lineOf(content, "context: "+contextDir)
 		imageEvidence := Evidence{Field: "image", Value: bounded(image), Line: imageLine, Basis: "skaffold-artifact"}
-		contextEvidence := Evidence{Field: "context", Value: bounded(contextDir), Line: contextLine, Basis: "skaffold-artifact"}
+		contextEvidence := Evidence{Field: "context", Value: bounded(contextDir), Line: contextLine, Basis: contextBasis}
 		coverage := "complete"
 		imageQualification := "declared"
 		contextQualification := "local"
@@ -1098,12 +1103,22 @@ func helmChartDefinition(doc map[interface{}]interface{}, content []byte) ([]Def
 	if !a || !n {
 		return nil, false, nil
 	}
-	d := Definition{Kind: "infrastructure", Provider: "helm", Name: bounded(name), Coverage: "qualified",
+	// Helm chart type: absent or "application" → infrastructure (entry point);
+	// "library" → library (excluded from entry points).
+	chartType, _ := stringValue(doc, "type")
+	kind := "infrastructure"
+	if chartType == "library" {
+		kind = "library"
+	}
+	d := Definition{Kind: kind, Provider: "helm", Name: bounded(name), Coverage: "qualified",
 		Evidence: []Evidence{
 			{Field: "apiVersion", Value: bounded(api), Line: lineOf(content, "apiVersion:"), Basis: "helm-chart-field"},
 			{Field: "name", Value: bounded(name), Line: lineOf(content, "name:"), Basis: "helm-chart-field"},
 		},
 		References: []Reference{},
+	}
+	if chartType != "" {
+		d.Evidence = append(d.Evidence, Evidence{Field: "type", Value: bounded(chartType), Line: lineOf(content, "type:"), Basis: "helm-chart-field"})
 	}
 	if v, ok := stringValue(doc, "version"); ok && v != "" {
 		d.Evidence = append(d.Evidence, Evidence{Field: "version", Value: bounded(v), Line: lineOf(content, "version:"), Basis: "helm-chart-field"})
@@ -1348,7 +1363,14 @@ func cloudFormationDefinitions(doc map[interface{}]interface{}, content []byte) 
 		if typ == "" {
 			continue
 		}
-		d := Definition{Kind: "infrastructure", Provider: "cloudformation", Name: bounded(n), Coverage: "qualified", Evidence: []Evidence{{Field: "Type", Value: bounded(typ), Line: lineOf(content, "Type:"), Basis: "cloudformation-resource"}}, References: []Reference{}}
+		cfKind := "infrastructure"
+		switch typ {
+		case "AWS::Serverless::Function", "AWS::Lambda::Function":
+			cfKind = "function"
+		case "AWS::ECS::TaskDefinition", "AWS::Batch::JobDefinition", "AWS::AppRunner::Service":
+			cfKind = "container_task"
+		}
+		d := Definition{Kind: cfKind, Provider: "cloudformation", Name: bounded(n), Coverage: "qualified", Evidence: []Evidence{{Field: "Type", Value: bounded(typ), Line: lineOf(content, "Type:"), Basis: "cloudformation-resource"}}, References: []Reference{}}
 		if typ == "AWS::Serverless::Function" {
 			if props, ok := object(r, "Properties"); ok {
 				if code, ok := lookup(props, "CodeUri"); ok {

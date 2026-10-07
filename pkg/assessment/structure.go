@@ -26,18 +26,21 @@ const (
 // StructureReport describes explicit project populations, memberships, and
 // local dependencies. Its graph is only the observed declaration graph.
 type StructureReport struct {
-	Populations            []StructurePopulation `json:"populations"`
-	Coverage               []StructureCoverage   `json:"coverage"`
-	WorkspaceGroups        []StructureGroup      `json:"workspace_groups"`
-	SolutionGroups         []StructureGroup      `json:"solution_groups"`
-	WorkspaceGroupCount    int64                 `json:"workspace_group_count"`
-	SolutionGroupCount     int64                 `json:"solution_group_count"`
-	Dependencies           StructureDependencies `json:"dependencies"`
-	EntryPoints            []StructureEntryPoint `json:"entry_points"`
-	EntryPointCount        int64                 `json:"entry_point_count"`
-	OmittedWorkspaceGroups int64                 `json:"omitted_workspace_groups"`
-	OmittedSolutionGroups  int64                 `json:"omitted_solution_groups"`
-	OmittedEntryPoints     int64                 `json:"omitted_entry_points"`
+	Populations                []StructurePopulation `json:"populations"`
+	Coverage                   []StructureCoverage   `json:"coverage"`
+	WorkspaceGroups            []StructureGroup      `json:"workspace_groups"`
+	SolutionGroups             []StructureGroup      `json:"solution_groups"`
+	WorkspaceGroupCount        int64                 `json:"workspace_group_count"`
+	SolutionGroupCount         int64                 `json:"solution_group_count"`
+	Dependencies               StructureDependencies `json:"dependencies"`
+	EntryPoints                []StructureEntryPoint `json:"entry_points"`
+	EntryPointCount            int64                 `json:"entry_point_count"`
+	EntryPointRowCount         int64                 `json:"entry_point_row_count"`
+	EntryPointAssociationCount int64                 `json:"entry_point_association_count"`
+	OmittedWorkspaceGroups     int64                 `json:"omitted_workspace_groups"`
+	OmittedSolutionGroups      int64                 `json:"omitted_solution_groups"`
+	OmittedEntryPoints         int64                 `json:"omitted_entry_points"`
+	ExcludedNonEntryKinds      map[string]int64      `json:"excluded_non_entry_kinds,omitempty"`
 }
 
 type StructurePopulation struct {
@@ -83,6 +86,7 @@ type StructureDependencies struct {
 	Projects                       Metric                        `json:"projects"`
 	DefiniteEdges                  Metric                        `json:"definite_edges"`
 	ConnectedGroups                Metric                        `json:"connected_groups"`
+	ConnectedGroupsWithQualified   Metric                        `json:"connected_groups_with_qualified"`
 	QualifiedReferences            []StructureQualifiedCount     `json:"qualified_references"`
 	QualifiedReferenceCount        int64                         `json:"qualified_reference_count"`
 	OmittedQualifiedReferenceCount int64                         `json:"omitted_qualified_reference_count"`
@@ -137,14 +141,230 @@ func structurePopulationKey(population, ecosystem, role string) string {
 	return population + "\x00" + ecosystem + "\x00" + role
 }
 
+// diagnosticRelationshipScopeTable maps each known diagnostic code to the
+// structural coverage scope it qualifies: "membership", "dependencies",
+// "both", or "none" for facts that cannot change a project's memberships or
+// local dependencies, such as build targets, bin entries, and names inferred
+// from directories. New codes emitted by declaration parsers must be added
+// here; TestDiagnosticRelationshipScopeIsExhaustive scans the parser sources
+// and fails when one is missing.
+var diagnosticRelationshipScopeTable = map[string]string{
+	// Cargo workspace membership.
+	"cargo-ambiguous-workspace":             "membership",
+	"cargo-conflicting-workspace":           "membership",
+	"cargo-member-not-package":              "membership",
+	"cargo-missing-project":                 "membership",
+	"cargo-nested-workspace":                "membership",
+	"cargo-pattern-limit":                   "membership",
+	"cargo-resolution-limit":                "membership",
+	"cargo-unlisted-nested-package":         "membership",
+	"cargo-unsupported-pattern":             "membership",
+	"cargo-workspace-conflict":              "membership",
+	"cargo-workspace-member-unavailable":    "membership",
+	"cargo-workspace-membership-unresolved": "membership",
+	"cargo-workspace-pattern-unresolved":    "membership",
+	"cargo-workspace-selection-unresolved":  "membership",
+	"cargo-default-not-member":              "membership",
+	"cargo-workspace-pattern-unmatched":     "membership",
+	// Cargo dependency resolution.
+	"cargo-dependency-inheritance-unresolved": "dependencies",
+	"cargo-dependency-limit":                  "dependencies",
+	"cargo-dependency-name-mismatch":          "dependencies",
+	"cargo-dependency-overrides-unevaluated":  "dependencies",
+	"cargo-inheritance-unresolved":            "dependencies",
+	// Cargo non-structural (build targets, features, scripts).
+	"cargo-build-script-unavailable": "none",
+	"cargo-external-build-script":    "none",
+	"cargo-external-target":          "none",
+	"cargo-nightly-features":         "none",
+	"cargo-target-limit":             "none",
+	"cargo-target-unavailable":       "none",
+	// Go.
+	"external-go-ignore":         "dependencies",
+	"external-go-reference":      "dependencies",
+	"unsupported-go-module-path": "dependencies",
+	"unparsed-go-target":         "dependencies",
+	// npm workspace membership.
+	"duplicate-npm-workspace-name":       "membership",
+	"npm-workspace-match-limit":          "membership",
+	"unmatched-npm-workspace-pattern":    "membership",
+	"unsupported-npm-workspace-field":    "membership",
+	"unsupported-npm-workspace-identity": "membership",
+	"unsupported-npm-workspace-pattern":  "membership",
+	"unsupported-npm-workspaces":         "membership",
+	// npm dependencies. Note: "unresolved/unsupported-npm-workspace-dependency"
+	// qualifies dependency coverage, not membership; the substring heuristic
+	// was previously routing these to membership incorrectly.
+	"external-npm-dependency":              "dependencies",
+	"npm-resolution-limit":                 "dependencies",
+	"unparsed-npm-target":                  "dependencies",
+	"unresolved-npm-workspace-dependency":  "dependencies",
+	"unsupported-npm-dependency":           "dependencies",
+	"unsupported-npm-workspace-dependency": "dependencies",
+	// npm non-structural.
+	"external-npm-bin":              "none",
+	"invalid-npm-bin":               "none",
+	"invalid-npm-dependency":        "both",
+	"invalid-npm-field":             "both",
+	"invalid-npm-manifest":          "both",
+	"invalid-npm-script":            "none",
+	"unnamed-npm-bin":               "none",
+	"unsupported-npm-bin-directory": "none",
+	"unsupported-npm-engine":        "none",
+	"unsupported-npm-field":         "both",
+	"unsupported-npm-name":          "both",
+	"unsupported-npm-version":       "none",
+	// Dart pub.
+	"external-pub-path-dependency": "dependencies",
+	"invalid-dart-pubspec":         "both",
+	"missing-dart-package-name":    "both",
+	// Python workspace membership.
+	"ambiguous-python-workspace":           "membership",
+	"duplicate-python-member-name":         "membership",
+	"missing-python-workspace-member":      "membership",
+	"nested-python-workspace":              "membership",
+	"python-member-without-project":        "membership",
+	"python-workspace-match-limit":         "membership",
+	"python-workspace-pattern-limit":       "membership",
+	"unmatched-python-workspace-pattern":   "membership",
+	"unsupported-python-workspace-pattern": "membership",
+	// Python dependencies.
+	"dynamic-python-requirements":          "dependencies",
+	"duplicate-uv-source-name":             "dependencies",
+	"empty-uv-source":                      "dependencies",
+	"external-python-backend":              "dependencies",
+	"missing-static-python-requirements":   "dependencies",
+	"python-requirement-source-withheld":   "dependencies",
+	"python-requirements-constraint":       "dependencies",
+	"python-requirements-line-limit":       "dependencies",
+	"unsupported-python-group-include":     "dependencies",
+	"unsupported-python-group-item":        "dependencies",
+	"unsupported-python-marker":            "dependencies",
+	"unsupported-python-requirement":       "dependencies",
+	"unsupported-python-requirements-line": "dependencies",
+	"unsupported-uv-archive-source":        "dependencies",
+	"unsupported-uv-source":                "dependencies",
+	// Python non-structural (names, metadata, setup).
+	"ambiguous-python-setup":           "both",
+	"conflicting-python-metadata":      "both",
+	"dynamic-python-name":              "both",
+	"dynamic-python-setup-metadata":    "both",
+	"invalid-python-array":             "both",
+	"invalid-python-array-item":        "both",
+	"invalid-python-dynamic":           "both",
+	"invalid-python-extra":             "both",
+	"invalid-python-group":             "both",
+	"invalid-python-manifest":          "both",
+	"invalid-python-metadata":          "both",
+	"invalid-python-project":           "both",
+	"invalid-python-requirement":       "both",
+	"invalid-python-requirements":      "both",
+	"invalid-python-script-name":       "none",
+	"invalid-python-setup":             "both",
+	"invalid-python-setup-cfg":         "both",
+	"invalid-python-table":             "both",
+	"invalid-uv-managed":               "both",
+	"invalid-uv-package":               "both",
+	"invalid-uv-source":                "both",
+	"invalid-uv-source-name":           "both",
+	"missing-python-name":              "both",
+	"missing-python-setup-cfg-name":    "both",
+	"python-array-limit":               "both",
+	"unsupported-python-backend":       "both",
+	"unsupported-python-script-target": "none",
+	"unsupported-python-setup":         "both",
+	// Maven/Gradle (jvm.go diagnostics forwarded via collect.go).
+	// Note: jvm.go uses underscores in its codes, not dashes.
+	"declaration-budget-exceeded": "both",
+	"invalid-module":              "membership",
+	"invalid_manifest":            "both",
+	"manifest-too-large":          "both",
+	"unresolved_build_script":     "both",
+	"unsupported_manifest":        "both",
+	// .NET / solution (dotnet.go).
+	"invalid-json":                  "both",
+	"invalid-solution":              "both",
+	"invalid-solution-filter":       "both",
+	"invalid-solution-project":      "membership",
+	"unsupported-solution-encoding": "both",
+	// Reference graph (graph.go).
+	"ambiguous-graph-project-id":      "both",
+	"invalid-graph-project-id":        "both",
+	"unattributed-project-references": "dependencies",
+	// Shared / cross-ecosystem references.
+	"invalid-reference-target":  "dependencies",
+	"legacy-reference-withheld": "dependencies",
+	"legacy-value-withheld":     "both",
+	// Declaration infrastructure (declarations/collect.go).
+	"declaration-limit": "both",
+	"file-read-error":   "both",
+	"read-error":        "both",
+	"invalid-manifest":  "both",
+	"invalid-xml":       "both",
+	"unexpected-root":   "both",
+	// Non-structural (build/toolchain only).
+	"clojure-name-from-directory":           "none",
+	"erlang-name-from-directory":            "none",
+	"haskell-stack-name-from-directory":     "none",
+	"invalid-autoconf":                      "both",
+	"invalid-bazel-manifest":                "both",
+	"invalid-cargo-declaration":             "both",
+	"invalid-cargo-toml":                    "both",
+	"invalid-clojure-deps":                  "both",
+	"invalid-clojure-project":               "both",
+	"invalid-cmake":                         "both",
+	"invalid-deno-config":                   "both",
+	"invalid-elixir-mix":                    "both",
+	"invalid-erlang-rebar":                  "both",
+	"invalid-go-manifest":                   "both",
+	"invalid-haskell-cabal":                 "both",
+	"invalid-haskell-stack":                 "both",
+	"invalid-julia-project":                 "both",
+	"invalid-kbuild-marker":                 "both",
+	"invalid-meson":                         "both",
+	"invalid-perl-cpanfile":                 "both",
+	"invalid-perl-makefile-pl":              "both",
+	"invalid-php-composer":                  "both",
+	"invalid-r-description":                 "both",
+	"invalid-ruby-gemfile":                  "both",
+	"invalid-ruby-gemspec":                  "both",
+	"invalid-scala-sbt":                     "both",
+	"invalid-swift-package":                 "both",
+	"invalid-zig-build":                     "both",
+	"missing-autoconf-project-name":         "both",
+	"missing-bazel-project-name":            "both",
+	"missing-clojure-project-name":          "both",
+	"missing-cmake-project-name":            "both",
+	"missing-elixir-app-name":               "both",
+	"missing-haskell-package-name":          "both",
+	"missing-julia-project-name":            "both",
+	"missing-meson-project-name":            "both",
+	"missing-perl-dist-name":                "both",
+	"missing-php-package-name":              "both",
+	"missing-r-package-name":                "both",
+	"missing-ruby-gem-name":                 "both",
+	"missing-scala-project-name":            "both",
+	"missing-swift-package-name":            "both",
+	"perl-name-from-directory":              "none",
+	"zig-name-from-directory":               "none",
+	"unsupported-package-manager":           "both",
+	"unsupported-package-manager-semantics": "both",
+}
+
+// structureEcosystemNames is the ecosystem vocabulary of the manifest table.
+var structureEcosystemNames = func() map[string]bool {
+	names := map[string]bool{}
+	for _, class := range manifestClasses {
+		names[class[0]] = true
+	}
+	return names
+}()
+
 func diagnosticRelationshipScope(code string) string {
-	code = strings.ToLower(code)
-	if strings.Contains(code, "workspace") || strings.Contains(code, "module") || strings.Contains(code, "solution") {
-		return "membership"
+	if scope, ok := diagnosticRelationshipScopeTable[code]; ok {
+		return scope
 	}
-	if strings.Contains(code, "dependency") || strings.Contains(code, "reference") || strings.Contains(code, "parent") || strings.Contains(code, "artifact") {
-		return "dependencies"
-	}
+	// Unknown code: conservatively qualify both scopes.
 	return "both"
 }
 
@@ -163,7 +383,7 @@ func hasUnappliedSharedMSBuildReferences(report *declarations.Report) bool {
 	return false
 }
 
-func buildStructure(records []declarations.ProjectRecord, counted []declarations.Project, report *declarations.Report, candidateRoles map[string]int64, inventoryReasons []string, unparsedEcosystems map[string]bool, globalCompletenessReasons []string) *StructureReport {
+func buildStructure(records []declarations.ProjectRecord, counted []declarations.Project, report *declarations.Report, candidateRoles map[string]int64, inventoryReasons []string, unparsedEcosystems map[string]bool, unparsedWorkspaceReasons map[string]bool, globalCompletenessReasons []string) *StructureReport {
 	result := &StructureReport{Populations: []StructurePopulation{}, Coverage: []StructureCoverage{}, WorkspaceGroups: []StructureGroup{}, SolutionGroups: []StructureGroup{}, EntryPoints: []StructureEntryPoint{}}
 	rows := map[string]int64{}
 	rowScope := map[string]string{}
@@ -207,6 +427,13 @@ func buildStructure(records []declarations.ProjectRecord, counted []declarations
 		membershipReasons[eco] = append(membershipReasons[eco], "manifest_candidates_unparsed")
 		dependencyReasons[eco] = append(dependencyReasons[eco], "manifest_candidates_unparsed")
 	}
+	// f13: pnpm-workspace.yaml, lerna.json, and rush.json are recognized but
+	// not parsed. Their presence means npm workspace membership may be
+	// incomplete. Qualify npm membership coverage with an actionable reason
+	// so the output states which file caused the lower bound.
+	for reason := range unparsedWorkspaceReasons {
+		membershipReasons["npm"] = append(membershipReasons["npm"], reason)
+	}
 	if hasUnappliedSharedMSBuildReferences(report) {
 		dependencyReasons["nuget"] = append(dependencyReasons["nuget"], "shared_msbuild_project_references_not_applied")
 	}
@@ -220,6 +447,7 @@ func buildStructure(records []declarations.ProjectRecord, counted []declarations
 			globalReasons = append(globalReasons, "unattributed_declaration_diagnostic")
 		} else {
 			switch diagnosticRelationshipScope(d.Code) {
+			case "none":
 			case "membership":
 				membershipReasons[eco] = append(membershipReasons[eco], "declaration_diagnostics_present")
 			case "dependencies":
@@ -243,6 +471,11 @@ func buildStructure(records []declarations.ProjectRecord, counted []declarations
 			// Static Gradle declarations are retained, but project dependency
 			// relationships require evaluating the build. Keep exact project
 			// counts while qualifying graph scopes for this ecosystem only.
+			// Membership is also affected: module membership edges reference
+			// build.gradle paths, which require build evaluation to resolve to
+			// project IDs, so a Gradle workspace with unresolved build evaluation
+			// may have zero confirmed members.
+			membershipReasons[eco] = append(membershipReasons[eco], "build_declarations_require_evaluation")
 			dependencyReasons[eco] = append(dependencyReasons[eco], "build_declarations_require_evaluation")
 		}
 		if !record.Complete {
@@ -289,7 +522,27 @@ func buildStructure(records []declarations.ProjectRecord, counted []declarations
 		reasons := append(slices.Clone(globalReasons), projectReasons[group.Ecosystem]...)
 		add(population, group.Ecosystem, group.Role, "explicitly declared workspace/module/solution group records retained by the declaration parser", uniqueSorted(reasons))
 	}
-	result.Dependencies = buildStructureDependencies(fragment, counted)
+	// F2: collect cross-ecosystem reasons for graph metric completeness.
+	allProjectsReasons := slices.Clone(globalReasons)
+	for _, reasons := range projectReasons {
+		allProjectsReasons = append(allProjectsReasons, reasons...)
+	}
+	allProjectsReasons = uniqueSorted(allProjectsReasons)
+	projectsCompleteness := "complete"
+	if len(allProjectsReasons) > 0 {
+		projectsCompleteness = "lower_bound"
+	}
+	allDepReasons := slices.Clone(globalReasons)
+	for _, reasons := range dependencyReasons {
+		for _, reason := range reasons {
+			// A self-reference cannot hide an edge between two projects.
+			if reason != "self_reference_qualified" {
+				allDepReasons = append(allDepReasons, reason)
+			}
+		}
+	}
+	allDepReasons = uniqueSorted(allDepReasons)
+	result.Dependencies = buildStructureDependencies(fragment, counted, projectsCompleteness, allProjectsReasons, allDepReasons)
 	result.Coverage = structureCoverage(rows, membershipReasons, dependencyReasons, globalReasons)
 	result.Coverage = append(result.Coverage, StructureCoverage{Scope: "entry_points", Ecosystem: "all", Status: "partial", Reasons: []string{"entry_point_observer_not_run"}})
 	slices.SortFunc(result.Coverage, func(a, b StructureCoverage) int {
@@ -335,10 +588,10 @@ func buildStructureGroups(fragment componentmap.Fragment, report *declarations.R
 		key := kind + "\x00" + c.Key
 		g := groups[key]
 		if g == nil {
-			g = &groupAccumulator{id: c.Key, ecosystem: c.Ecosystem, role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
+			g = &groupAccumulator{id: c.Key, ecosystem: canonicalEcosystem(c.Manifest, c.Ecosystem), role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
 			groups[key] = g
 		}
-		if rel.Coverage != "complete" || rel.Condition != "" || rel.State == "conditional" || rel.State == "unresolved" {
+		if rel.Coverage != "complete" {
 			state := rel.State
 			resolution := "qualified_member"
 			if rel.Condition != "" || state == "conditional" {
@@ -365,7 +618,7 @@ func buildStructureGroups(fragment componentmap.Fragment, report *declarations.R
 		}
 		key := kind + "\x00" + p.ID
 		if groups[key] == nil {
-			groups[key] = &groupAccumulator{id: p.ID, ecosystem: c.Ecosystem, role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
+			groups[key] = &groupAccumulator{id: p.ID, ecosystem: canonicalEcosystem(c.Manifest, c.Ecosystem), role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
 		}
 	}
 	// Maven aggregators can explicitly declare an empty <modules/> element;
@@ -382,7 +635,7 @@ func buildStructureGroups(fragment componentmap.Fragment, report *declarations.R
 		}
 		key := "workspace\x00" + id
 		if groups[key] == nil {
-			groups[key] = &groupAccumulator{id: id, ecosystem: c.Ecosystem, role: pathrole.Of(c.Manifest), kind: "workspace", members: map[string]bool{}}
+			groups[key] = &groupAccumulator{id: id, ecosystem: canonicalEcosystem(c.Manifest, c.Ecosystem), role: pathrole.Of(c.Manifest), kind: "workspace", members: map[string]bool{}}
 		}
 	}
 	for _, q := range fragment.QualifiedReferences {
@@ -401,7 +654,7 @@ func buildStructureGroups(fragment componentmap.Fragment, report *declarations.R
 		key := kind + "\x00" + id
 		g := groups[key]
 		if g == nil {
-			g = &groupAccumulator{id: id, ecosystem: c.Ecosystem, role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
+			g = &groupAccumulator{id: id, ecosystem: canonicalEcosystem(c.Manifest, c.Ecosystem), role: pathrole.Of(c.Manifest), kind: kind, members: map[string]bool{}}
 			groups[key] = g
 		}
 		resolution := qualifiedResolution(q.Reason, q.TargetStatus)
@@ -423,6 +676,17 @@ func buildStructureGroups(fragment componentmap.Fragment, report *declarations.R
 			scope = "solution_membership"
 		}
 		reasons := uniqueSorted(append(slices.Clone(globalReasons), ecosystemReasons[g.ecosystem]...))
+		// f12: solution/workspace members whose project type is not parsed by the
+		// declarations layer appear as qualified unresolved members with reason
+		// "target_not_a_retained_component". Propagate this into the membership
+		// coverage so the group shows "partial" with an actionable reason.
+		for _, um := range unresolved {
+			if um.Reason == "target_not_a_retained_component" {
+				reasons = append(reasons, "member_project_type_not_retained")
+				break
+			}
+		}
+		reasons = uniqueSorted(reasons)
 		ug.MembershipCoverage = structureCoverageEntry(scope, g.ecosystem, reasons)
 		all = append(all, ug)
 	}
@@ -466,15 +730,28 @@ func declaredGroupKind(p declarations.Project) (string, bool) {
 	return "", false
 }
 
-func buildStructureDependencies(fragment componentmap.Fragment, projects []declarations.Project) StructureDependencies {
+func buildStructureDependencies(fragment componentmap.Fragment, projects []declarations.Project, projectsCompleteness string, projectsReasons, allDependencyReasons []string) StructureDependencies {
 	vertices := map[string]declarations.Project{}
 	for _, p := range projects {
 		vertices[p.ID] = p
 	}
 	mavenCoordinates := newMavenCoordinateIndex(projects)
-	deps := StructureDependencies{Projects: metric(int64(len(vertices)), "counted parsed projects used as dependency graph vertices", false, []string{}), QualifiedReferences: []StructureQualifiedCount{}, Edges: []StructureEdge{}, Components: []StructureConnectedComponent{}}
+	// F2: dependencies.projects carries the same completeness and reasons as
+	// the top-level projects metric.
+	projectsMetric := metricC(int64(len(vertices)), "counted parsed projects used as dependency graph vertices", projectsCompleteness, projectsReasons)
+	deps := StructureDependencies{Projects: projectsMetric, QualifiedReferences: []StructureQualifiedCount{}, Edges: []StructureEdge{}, Components: []StructureConnectedComponent{}}
 	edges := map[string]StructureEdge{}
 	qualified := map[string]int64{}
+	// qualifiedPairs joins two counted projects through a qualified local
+	// reference whose target is one retained project.
+	qualifiedPairs := map[[2]string]bool{}
+	addPair := func(from, to string) {
+		_, fok := vertices[from]
+		_, tok := vertices[to]
+		if from != to && fok && tok {
+			qualifiedPairs[[2]string{from, to}] = true
+		}
+	}
 	reactors := unconditionalMavenReactors(fragment)
 	mavenRelationships := map[string]bool{}
 	for _, rel := range fragment.Relationships {
@@ -508,16 +785,30 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 				state = "declared"
 			}
 			qualified[qualifiedCountKey(eco, rel.DeclarationKind, state, "coordinate_match_without_declared_reactor")]++
+			addPair(rel.From, rel.To)
 			continue
 		}
 		if rel.DeclarationKind == "maven-sibling-dependency" {
 			state, resolution, _, unproven := qualifyMavenRelationship(mavenCoordinates, rel)
 			if unproven {
 				qualified[qualifiedCountKey(eco, rel.DeclarationKind, state, resolution)]++
+				if !strings.Contains(resolution, "mismatch") {
+					addPair(rel.From, rel.To)
+				}
 				continue
 			}
 		}
-		if rel.Coverage == "complete" && rel.Condition == "" && rel.State != "conditional" && rel.State != "unresolved" {
+		// A Maven parent found by path counts only when the coordinates the
+		// child declares match the parent POM. componentmap already turns a
+		// proven mismatch into a qualified reference; an unconditional parent
+		// whose coordinates are not literal is counted here with that reason.
+		if rel.DeclarationKind == "parent" && rel.Condition == "" && rel.State != "conditional" {
+			if reason := componentmap.MavenParentCheck(mavenCoordinates.byID[rel.From], mavenCoordinates.byID[rel.To]); reason != "" {
+				qualified[qualifiedCountKey(eco, rel.DeclarationKind, defaultString(rel.State, "unresolved"), reason)]++
+				continue
+			}
+		}
+		if rel.Coverage == "complete" {
 			e := StructureEdge{From: rel.From, To: rel.To, Ecosystem: eco, Kind: rel.DeclarationKind, Evidence: rel.Evidence}
 			key := structureEdgeKey(e)
 			if prior, ok := edges[key]; !ok || e.Kind+"\x00"+e.Evidence < prior.Kind+"\x00"+prior.Evidence {
@@ -532,6 +823,7 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 			}
 			key := qualifiedCountKey(eco, rel.DeclarationKind, state, "qualified_target")
 			qualified[key]++
+			addPair(rel.From, rel.To)
 		}
 	}
 	// componentmap's legacy Maven matcher lowercases only the declared
@@ -577,6 +869,7 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 			}
 			if !sameMavenReactor(reactors, project.ID, to) {
 				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", mavenRequirementState(req), "coordinate_match_without_declared_reactor")]++
+				addPair(project.ID, to)
 				continue
 			}
 			target := mavenCoordinates.byID[to]
@@ -591,17 +884,40 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 					state, resolution = "conditional", "conditional"
 				}
 				qualified[qualifiedCountKey("maven", "maven-sibling-dependency", state, resolution)]++
+				addPair(project.ID, to)
 				continue
 			}
 			e := StructureEdge{From: project.ID, To: to, Ecosystem: "maven", Kind: "maven-sibling-dependency", Evidence: req.Evidence}
 			edges[structureEdgeKey(e)] = e
 		}
 	}
+	// An assembly reference whose simple name is one in-repository project's
+	// assembly name may be resolved to that project's output by custom build
+	// logic. It stays qualified: the build may equally resolve a package, a
+	// framework assembly, or a binary with the same name.
+	assemblies := newAssemblyNameIndex(projects)
+	for _, project := range projects {
+		for _, req := range project.Requirements {
+			if req.Kind != "assembly-reference" {
+				continue
+			}
+			matches := assemblies.matches(project.ID, req.Value)
+			state := mavenRequirementState(req)
+			switch len(matches) {
+			case 0:
+			case 1:
+				qualified[qualifiedCountKey(projectEcosystem(project), "assembly-reference", state, "assembly_name_match")]++
+				addPair(project.ID, matches[0])
+			default:
+				qualified[qualifiedCountKey(projectEcosystem(project), "assembly-reference", state, "ambiguous_assembly_name_match")]++
+			}
+		}
+	}
 	// componentmap intentionally suppresses self edges. Preserve explicit
 	// self-targeting local references in the structural view as qualified facts.
 	for _, p := range projects {
 		for _, ref := range p.References {
-			if ref.Target != p.ID || !isLocalRelation(ref.Kind) || ref.TargetStatus == "missing" || ref.TargetStatus == "external" {
+			if ref.Target != p.ID || !isStructureLocalRelation(ref.Kind) || ref.TargetStatus == "missing" || ref.TargetStatus == "external" {
 				continue
 			}
 			state := ref.State
@@ -615,7 +931,7 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 		}
 	}
 	for _, q := range fragment.QualifiedReferences {
-		if !isLocalRelation(q.DeclarationKind) {
+		if !isStructureLocalRelation(q.DeclarationKind) {
 			continue
 		}
 		from, ok := vertices[q.From]
@@ -625,6 +941,9 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 		resolution := qualifiedResolution(q.Reason, q.TargetStatus)
 		key := qualifiedCountKey(projectEcosystem(from), q.DeclarationKind, defaultString(q.State, "unresolved"), resolution)
 		qualified[key]++
+		if q.DeclarationKind == "go-local-replacement" && q.Reason == "go_replacement_activation_unresolved" {
+			addPair(q.From, q.Target)
+		}
 	}
 	edgeList := make([]StructureEdge, 0, len(edges))
 	adjacency := map[string]map[string]bool{}
@@ -637,7 +956,13 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 		adjacency[e.To][e.From] = true
 	}
 	slices.SortFunc(edgeList, func(a, b StructureEdge) int { return strings.Compare(structureEdgeKey(a), structureEdgeKey(b)) })
-	deps.DefiniteEdges = metric(int64(len(edgeList)), "unique unconditional local dependency edges between counted parsed projects with present parsed targets; observed declarations only", false, []string{})
+	// F2: definite_edges is lower_bound whenever any dependency coverage reason
+	// applies; definite edges are sound, so missing declarations can only add edges.
+	if len(allDependencyReasons) > 0 {
+		deps.DefiniteEdges = metricC(int64(len(edgeList)), "unique unconditional local dependency edges between counted parsed projects with present parsed targets; observed declarations only", "lower_bound", allDependencyReasons)
+	} else {
+		deps.DefiniteEdges = metric(int64(len(edgeList)), "unique unconditional local dependency edges between counted parsed projects with present parsed targets; observed declarations only", false, []string{})
+	}
 	for _, key := range sortedKeys(qualified) {
 		p := strings.Split(key, "\x00")
 		deps.QualifiedReferences = append(deps.QualifiedReferences, StructureQualifiedCount{Ecosystem: p[0], Kind: p[1], State: p[2], Resolution: p[3], Count: qualified[key]})
@@ -654,10 +979,81 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 	deps.Edges = takeEdges(edgeList, StructureEdgeLimit)
 	deps.OmittedEdges = int64(len(edgeList) - len(deps.Edges))
 	components, componentCount := weakComponents(adjacency, edgeList)
-	deps.ConnectedGroups = metric(componentCount, "weakly connected groups in the retained observed dependency graph, including isolated counted projects", false, []string{})
+	// F2: connected_groups completeness depends on vertex and edge completeness.
+	//   upper_bound: vertex set is complete but edges may be missing; missing
+	//     edges can only merge groups, so the true count is at most this value.
+	//   observed_only: vertices are also incomplete; count may be higher or lower.
+	//   complete: both vertex set and edge set are fully observed.
+	switch {
+	case projectsCompleteness != "complete":
+		allGroupReasons := uniqueSorted(append(slices.Clone(projectsReasons), allDependencyReasons...))
+		deps.ConnectedGroups = metricC(componentCount, "weakly connected groups in the retained observed dependency graph, including isolated counted projects", "observed_only", allGroupReasons)
+	case len(allDependencyReasons) > 0:
+		deps.ConnectedGroups = metricC(componentCount, "weakly connected groups in the retained observed dependency graph, including isolated counted projects", "upper_bound", allDependencyReasons)
+	default:
+		deps.ConnectedGroups = metric(componentCount, "weakly connected groups in the retained observed dependency graph, including isolated counted projects", false, []string{})
+	}
 	deps.Components = components
 	deps.OmittedComponents = componentCount - int64(len(deps.Components))
+	for pair := range qualifiedPairs {
+		adjacency[pair[0]][pair[1]] = true
+		adjacency[pair[1]][pair[0]] = true
+	}
+	_, withQualified := weakComponents(adjacency, nil)
+	scope := "weakly connected groups when definite edges are joined by every qualified local reference whose target is one retained project; with connected_groups it brackets the true count when the only missing dependency evidence is those references"
+	if len(allDependencyReasons) == 0 && projectsCompleteness == "complete" {
+		deps.ConnectedGroupsWithQualified = metric(withQualified, scope, false, []string{})
+	} else {
+		deps.ConnectedGroupsWithQualified = metricC(withQualified, scope, "observed_only", uniqueSorted(append(slices.Clone(projectsReasons), allDependencyReasons...)))
+	}
 	return deps
+}
+
+// assemblyNameIndex maps the assembly names of parsed MSBuild projects to
+// their project IDs. A project's assembly name is its one literal,
+// unconditional AssemblyName property, or else its project file name; a
+// conditional or expression-valued AssemblyName leaves it unindexed.
+type assemblyNameIndex map[string][]string
+
+func newAssemblyNameIndex(projects []declarations.Project) assemblyNameIndex {
+	index := assemblyNameIndex{}
+	for _, p := range projects {
+		if p.Kind != "dotnet" {
+			continue
+		}
+		ext := strings.ToLower(path.Ext(p.ID))
+		if ext != ".csproj" && ext != ".vbproj" && ext != ".fsproj" {
+			continue
+		}
+		name := strings.TrimSuffix(path.Base(p.ID), path.Ext(p.ID))
+		var declared []declarations.Requirement
+		for _, req := range p.Requirements {
+			if req.Kind == "assembly-name" {
+				declared = append(declared, req)
+			}
+		}
+		if len(declared) > 0 {
+			if len(declared) != 1 || declared[0].State != "declared" || declared[0].Condition != "" || strings.ContainsAny(declared[0].Value, "$@%") {
+				continue
+			}
+			name = declared[0].Value
+		}
+		key := strings.ToLower(name)
+		index[key] = append(index[key], p.ID)
+	}
+	return index
+}
+
+// matches returns the other projects whose assembly name equals name. .NET
+// assembly names compare case-insensitively.
+func (x assemblyNameIndex) matches(self, name string) []string {
+	var out []string
+	for _, id := range x[strings.ToLower(strings.TrimSpace(name))] {
+		if id != self {
+			out = append(out, id)
+		}
+	}
+	return out
 }
 
 // A Maven reactor group exists only where an explicit module relationship is
@@ -666,13 +1062,39 @@ func buildStructureDependencies(fragment componentmap.Fragment, projects []decla
 func unconditionalMavenReactors(fragment componentmap.Fragment) map[string]map[string]bool {
 	groups := map[string]map[string]bool{}
 	for _, rel := range fragment.Relationships {
-		if rel.Type != "member_of" || rel.DeclarationKind != "module" || rel.Coverage != "complete" || rel.Condition != "" || rel.State == "conditional" || rel.State == "unresolved" {
+		if rel.Type != "member_of" || rel.DeclarationKind != "module" || rel.Coverage != "complete" {
 			continue
 		}
 		if groups[rel.To] == nil {
 			groups[rel.To] = map[string]bool{rel.To: true}
 		}
 		groups[rel.To][rel.From] = true
+	}
+	// Compute transitive closure: a reactor is the root aggregator plus all
+	// transitively declared unconditional modules, not only direct children.
+	changed := true
+	for changed {
+		changed = false
+		for _, rel := range fragment.Relationships {
+			if rel.Type != "member_of" || rel.DeclarationKind != "module" || rel.Coverage != "complete" {
+				continue
+			}
+			// If rel.From is already a member of some reactor group,
+			// and rel.To is also in that group, this is already handled.
+			// But if rel.From is itself the root of another reactor group,
+			// merge that group's members into rel.To's group.
+			if groups[rel.To] == nil {
+				continue
+			}
+			if subGroup, ok := groups[rel.From]; ok {
+				for member := range subGroup {
+					if !groups[rel.To][member] {
+						groups[rel.To][member] = true
+						changed = true
+					}
+				}
+			}
+		}
 	}
 	return groups
 }
@@ -887,7 +1309,27 @@ func structuralDependencyQualifications(fragment componentmap.Fragment, projects
 	qualified := map[string][]string{}
 	reactors := unconditionalMavenReactors(fragment)
 	coordinates := newMavenCoordinateIndex(projects)
+	counted := make(map[string]declarations.Project, len(projects))
+	for _, project := range projects {
+		counted[project.ID] = project
+	}
 	for _, rel := range fragment.Relationships {
+		if rel.Type == "depends_on_local" && rel.Coverage != "complete" {
+			if source, sourceOK := counted[rel.From]; sourceOK {
+				if _, targetOK := counted[rel.To]; targetOK {
+					reason := "qualified_local_dependency_reference"
+					switch {
+					case rel.DeclarationKind == "gradle-module":
+						reason = "build_declarations_require_evaluation"
+					case rel.DeclarationKind == "project-reference" && (rel.Condition != "" || rel.State == "conditional"):
+						reason = "conditional_project_reference"
+					case rel.Condition != "" || rel.State == "conditional":
+						reason = "conditional_local_dependency_reference"
+					}
+					qualified[projectEcosystem(source)] = append(qualified[projectEcosystem(source)], reason)
+				}
+			}
+		}
 		if rel.Type == "depends_on_local" && rel.DeclarationKind == "maven-sibling-dependency" {
 			if coordinates.caseMismatch(rel.From, rel.To) {
 				qualified["maven"] = append(qualified["maven"], "coordinate_case_mismatch")
@@ -896,6 +1338,11 @@ func structuralDependencyQualifications(fragment componentmap.Fragment, projects
 			} else if _, _, reason, unproven := qualifyMavenRelationship(coordinates, rel); unproven {
 				qualified["maven"] = append(qualified["maven"], reason)
 			}
+		}
+	}
+	for _, q := range fragment.QualifiedReferences {
+		if q.DeclarationKind == "go-local-replacement" && q.Reason == "go_replacement_activation_unresolved" {
+			qualified["go"] = append(qualified["go"], "go_replacement_activation_unresolved")
 		}
 	}
 	relationships := map[string]bool{}
@@ -940,8 +1387,17 @@ func structuralDependencyQualifications(fragment componentmap.Fragment, projects
 	}
 	for _, p := range projects {
 		for _, ref := range p.References {
-			if ref.Target == p.ID && isLocalRelation(ref.Kind) && ref.TargetStatus != "missing" && ref.TargetStatus != "external" {
+			if ref.Target == p.ID && isStructureLocalRelation(ref.Kind) && ref.TargetStatus != "missing" && ref.TargetStatus != "external" {
 				qualified[projectEcosystem(p)] = append(qualified[projectEcosystem(p)], "self_reference_qualified")
+			}
+		}
+	}
+	assemblies := newAssemblyNameIndex(projects)
+	for _, p := range projects {
+		for _, req := range p.Requirements {
+			if req.Kind == "assembly-reference" && len(assemblies.matches(p.ID, req.Value)) > 0 {
+				qualified[projectEcosystem(p)] = append(qualified[projectEcosystem(p)], "assembly_name_references_to_local_projects")
+				break
 			}
 		}
 	}
@@ -1026,7 +1482,6 @@ func weakComponents(adjacency map[string]map[string]bool, edges []StructureEdge)
 				}
 			}
 		}
-		slices.Sort(members)
 		if keepMembers {
 			slices.Sort(members)
 			result = append(result, StructureConnectedComponent{ID: members[0], ProjectCount: memberCount, Projects: takeStrings(members, StructureProjectLimit), OmittedProjects: int64(max(0, len(members)-StructureProjectLimit))})
@@ -1068,12 +1523,24 @@ func SetStructureEntryPoints(report *Report, entries []StructureEntryPoint) {
 			i--
 		}
 	}
+	rowTotal := int64(len(items))
+	associationTotal := int64(0)
+	distinctKeys := map[string]struct{}{}
+	for _, e := range items {
+		distinctKeys[entryPointDeclarationKey(e)] = struct{}{}
+		if e.ProjectID != "" {
+			associationTotal++
+		}
+	}
+	distinctCount := int64(len(distinctKeys))
 	if len(items) > StructureEntryPointLimit {
 		report.Structure.OmittedEntryPoints = int64(len(items) - StructureEntryPointLimit)
 		items = items[:StructureEntryPointLimit]
 	}
 	report.Structure.EntryPoints = items
-	report.Structure.EntryPointCount = int64(len(items)) + report.Structure.OmittedEntryPoints
+	report.Structure.EntryPointRowCount = rowTotal
+	report.Structure.EntryPointAssociationCount = associationTotal
+	report.Structure.EntryPointCount = distinctCount
 	boundStructureForReport(report)
 }
 
@@ -1155,9 +1622,14 @@ func validateStructure(s *StructureReport, projects, manifestCandidates int64) e
 	if err := validateMetric(d.ConnectedGroups); err != nil {
 		return err
 	}
-	if d.ConnectedGroups.Completeness != "complete" {
-		return fmt.Errorf("observed connected-component count must be exact for the retained graph")
+	if err := validateMetric(d.ConnectedGroupsWithQualified); err != nil {
+		return err
 	}
+	if d.ConnectedGroupsWithQualified.Count > d.ConnectedGroups.Count || d.Projects.Count > 0 && d.ConnectedGroupsWithQualified.Count < 1 {
+		return fmt.Errorf("connected groups with qualified references must not exceed connected groups")
+	}
+	// F2: ConnectedGroups may be upper_bound or observed_only when coverage is
+	// incomplete. The count remains exact for the observed graph in all cases.
 	if d.Projects.Count != projects {
 		return fmt.Errorf("dependency vertices do not match project population")
 	}
@@ -1275,10 +1747,46 @@ func validateStructure(s *StructureReport, projects, manifestCandidates int64) e
 		if e.EvidencePath == "" || e.Kind == "" || e.Basis == "" || e.State == "" || e.Ecosystem == "" || !projectRoleNames[e.Role] || len(e.EvidencePath) > MaxEvidencePathBytes || !validSelectedPath(e.EvidencePath) || e.ProjectID != "" && (!validSelectedPath(e.ProjectID) || len(e.ProjectID) > MaxEvidencePathBytes) || i > 0 && entryPointKey(s.EntryPoints[i-1]) >= entryPointKey(e) {
 			return fmt.Errorf("invalid or unsorted entry point")
 		}
+		switch e.State {
+		case "declared", "associated":
+			if e.Reason != "" {
+				return fmt.Errorf("entry point state %q must not carry a reason", e.State)
+			}
+		case "qualified", "unassociated":
+			if e.Reason == "" {
+				return fmt.Errorf("entry point state %q requires a non-empty reason", e.State)
+			}
+		default:
+			return fmt.Errorf("entry point state %q is not in the allowed vocabulary", e.State)
+		}
 	}
 	entryPointSamples, entryPointSamplesOK := checkedAdd(int64(len(s.EntryPoints)), s.OmittedEntryPoints)
-	if s.OmittedEntryPoints < 0 || s.OmittedWorkspaceGroups < 0 || s.OmittedSolutionGroups < 0 || !entryPointSamplesOK || entryPointSamples != s.EntryPointCount {
+	if s.OmittedEntryPoints < 0 || s.OmittedWorkspaceGroups < 0 || s.OmittedSolutionGroups < 0 {
 		return fmt.Errorf("negative structural omission count")
+	}
+	if !entryPointSamplesOK || entryPointSamples != s.EntryPointRowCount {
+		return fmt.Errorf("entry-point row samples do not reconcile")
+	}
+	retainedAssociations := int64(0)
+	retainedDeclarations := map[string]struct{}{}
+	for _, e := range s.EntryPoints {
+		if e.ProjectID != "" {
+			retainedAssociations++
+		}
+		retainedDeclarations[entryPointDeclarationKey(e)] = struct{}{}
+	}
+	maxAssociations, associationsOK := checkedAdd(retainedAssociations, s.OmittedEntryPoints)
+	maxDeclarations, declarationsOK := checkedAdd(int64(len(retainedDeclarations)), s.OmittedEntryPoints)
+	if s.EntryPointCount < 0 || s.EntryPointAssociationCount < 0 || s.EntryPointRowCount < 0 || s.EntryPointCount > s.EntryPointRowCount || s.EntryPointAssociationCount > s.EntryPointRowCount || retainedAssociations > s.EntryPointAssociationCount || !associationsOK || s.EntryPointAssociationCount > maxAssociations || s.EntryPointCount < int64(len(retainedDeclarations)) || !declarationsOK || s.EntryPointCount > maxDeclarations || s.OmittedEntryPoints == 0 && (retainedAssociations != s.EntryPointAssociationCount || int64(len(retainedDeclarations)) != s.EntryPointCount) {
+		return fmt.Errorf("entry-point totals do not reconcile")
+	}
+	if len(s.ExcludedNonEntryKinds) > 64 {
+		return fmt.Errorf("too many excluded non-entry kinds: %d (max 64)", len(s.ExcludedNonEntryKinds))
+	}
+	for k, v := range s.ExcludedNonEntryKinds {
+		if !validExcludedKindKey(k) || v < 1 {
+			return fmt.Errorf("invalid excluded non-entry kind %q (count %d)", k, v)
+		}
 	}
 	lastCoverage := ""
 	entryPointCoverageFound := false
@@ -1305,6 +1813,20 @@ func validateStructure(s *StructureReport, projects, manifestCandidates int64) e
 	}
 	if !entryPointCoverageFound {
 		return fmt.Errorf("entry-point source-inspection coverage is required")
+	}
+	// Groups and coverage rows use the manifest-table ecosystem vocabulary,
+	// so they join with the project populations by name.
+	for _, groups := range [][]StructureGroup{s.WorkspaceGroups, s.SolutionGroups} {
+		for _, g := range groups {
+			if !structureEcosystemNames[g.Ecosystem] {
+				return fmt.Errorf("group %q uses ecosystem %q outside the manifest vocabulary", g.ID, g.Ecosystem)
+			}
+		}
+	}
+	for _, c := range s.Coverage {
+		if c.Ecosystem != "all" && !structureEcosystemNames[c.Ecosystem] {
+			return fmt.Errorf("coverage row %q uses ecosystem %q outside the manifest vocabulary", c.Scope, c.Ecosystem)
+		}
 	}
 	return nil
 }
@@ -1517,7 +2039,25 @@ func qualifiedCountKey(ecosystem, kind, state, resolution string) string {
 func entryPointKey(e StructureEntryPoint) string {
 	return e.ProjectID + "\x00" + e.EvidencePath + "\x00" + e.Ecosystem + "\x00" + e.Role + "\x00" + e.Kind + "\x00" + e.Name + "\x00" + e.Target + "\x00" + e.Basis + "\x00" + e.Reason + "\x00" + e.State
 }
+
+// entryPointDeclarationKey identifies the physical deployable declaration,
+// stripping the edge-type prefix ("builds:", "runs:") from Kind so that one
+// Dockerfile associated with multiple projects still counts as one declaration.
+func entryPointDeclarationKey(e StructureEntryPoint) string {
+	kind := e.Kind
+	for _, prefix := range []string{"builds:", "runs:"} {
+		if strings.HasPrefix(kind, prefix) {
+			kind = kind[len(prefix):]
+			break
+		}
+	}
+	return e.EvidencePath + "\x00" + kind + "\x00" + e.Name
+}
 func qualifiedResolution(reason, status string) string {
+	if strings.HasPrefix(reason, "parent_") {
+		// Maven parent coordinate checks keep their specific reason.
+		return reason
+	}
 	if status == "external" || strings.Contains(reason, "external") {
 		return "external"
 	}
@@ -1537,4 +2077,27 @@ func defaultString(value, fallback string) string {
 		return fallback
 	}
 	return value
+}
+
+// validExcludedKindKey returns true when key matches [a-z0-9-]+:[a-z0-9_-]+.
+// The format is "provider:kind" where provider uses hyphens and kind uses
+// underscores or hyphens (consistent with pkg/deployables naming conventions).
+func validExcludedKindKey(key string) bool {
+	colon := strings.IndexByte(key, ':')
+	if colon <= 0 || colon == len(key)-1 {
+		return false
+	}
+	provider := key[:colon]
+	kind := key[colon+1:]
+	for _, c := range provider {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '-') {
+			return false
+		}
+	}
+	for _, c := range kind {
+		if !((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9') || c == '_' || c == '-') {
+			return false
+		}
+	}
+	return true
 }

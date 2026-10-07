@@ -181,3 +181,29 @@ func TestAssessmentLocalRelationshipsRequireDeclaredEvidence(t *testing.T) {
 		})
 	}
 }
+
+func TestAssessmentTextDisclosesGraphQualificationAndAssociationScope(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range map[string]string{
+		"App.csproj": `<Project><ItemGroup><ProjectReference Include="Lib.csproj" Condition="'$(Configuration)' == 'Debug'"/></ItemGroup></Project>`,
+		"Lib.csproj": `<Project/>`,
+		"Dockerfile": "FROM scratch\n",
+	} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	report, _ := executeAssessmentJSON(t, "analyze", "assessment", "--source", "directory", "--json", root)
+	if report.Assessment.Structure.Dependencies.ConnectedGroups.Completeness != "upper_bound" {
+		t.Fatalf("fixture did not create qualified connectivity: %+v", report.Assessment.Structure.Dependencies)
+	}
+	var out bytes.Buffer
+	if err := writeAssessment(&out, report.Assessment); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"definite local edges (lower_bound)", "connected project groups (upper_bound)", "Groups with qualified links:", "(observed_only)", "project associations", " rows;"} {
+		if !strings.Contains(out.String(), want) {
+			t.Fatalf("text report did not disclose %q: %s", want, out.String())
+		}
+	}
+}

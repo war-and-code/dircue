@@ -384,7 +384,15 @@ func TestMetricsListsEveryAggregateMetric(t *testing.T) {
 		for _, row := range r.Structure.Populations {
 			want = append(want, ":structure:population:"+row.Population+":"+row.Ecosystem+":"+row.Role)
 		}
-		want = append(want, ":structure:dependency_projects", ":structure:definite_edges", ":structure:connected_groups")
+		for _, f := range reflect.VisibleFields(reflect.TypeFor[StructureDependencies]()) {
+			if f.Type == metricType {
+				name := jsonName(f)
+				if name == "projects" {
+					name = "dependency_projects"
+				}
+				want = append(want, ":structure:"+name)
+			}
+		}
 	}
 	if len(r.Lockfiles) == 0 || len(names) != len(want) {
 		t.Fatalf("Metrics() lists %d metrics, report has %d", len(names), len(want))

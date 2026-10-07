@@ -201,6 +201,7 @@ jobs:
         run: |
           go test ./pkg/deployables ./pkg/projects -run '^$' -bench 'Benchmark(Procfile|Gradle|Aspire)' -benchtime=1x -benchmem
           go test ./pkg/intentmap -run '^$' -bench '^BenchmarkImportObservations$' -benchtime=1x -benchmem
+          go test ./pkg/componentmap -run '^$' -bench '^BenchmarkBuildGoReplacementActivation$' -benchtime=1x -benchmem
           # Different packaging of the same source makes two distinct binaries.
           # This exercises the harness; its timings are not a performance claim.
           go build -trimpath -ldflags '-s -w' -o "$RUNNER_TEMP/dircue-bench-smoke" .

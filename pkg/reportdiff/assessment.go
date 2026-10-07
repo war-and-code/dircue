@@ -22,7 +22,14 @@ func assessmentModules(p profile.Report, result map[string]moduleData) {
 		if value.Completeness != "complete" {
 			m.complete = false
 			m.status = "partial"
-			m.reasons = appendReason(m.reasons, "assessment_measurement_is_lower_bound")
+			switch value.Completeness {
+			case "upper_bound":
+				m.reasons = appendReason(m.reasons, "assessment_measurement_is_upper_bound")
+			case "observed_only":
+				m.reasons = appendReason(m.reasons, "assessment_measurement_is_observed_only")
+			default:
+				m.reasons = appendReason(m.reasons, "assessment_measurement_is_lower_bound")
+			}
 		}
 	}
 	for _, value := range r.Metrics() {
@@ -56,6 +63,22 @@ func assessmentModules(p profile.Report, result map[string]moduleData) {
 		}
 		for _, reason := range row.OutcomeReasons {
 			m.add("lockfile_reason:"+key(row.Ecosystem, reason.State, reason.Reason), reason)
+		}
+		// Check and presence partitions are exact totals. Causes are a bounded
+		// sample, so they stay metadata like other retained examples.
+		if row.Checks != nil {
+			m.add("lockfile_checks:"+row.Ecosystem, row.Checks)
+		}
+		if row.NuGetPresence != nil {
+			m.add("lockfile_presence:"+row.Ecosystem, row.NuGetPresence)
+		}
+		if len(row.Causes) > 0 || row.OmittedCauses > 0 {
+			causes, _ := m.metadata["lockfile_causes"].(map[string]any)
+			if causes == nil {
+				causes = map[string]any{}
+				m.metadata["lockfile_causes"] = causes
+			}
+			causes[row.Ecosystem] = map[string]any{"causes": row.Causes, "omitted_causes": row.OmittedCauses}
 		}
 	}
 	if r.Structure != nil {
@@ -115,7 +138,9 @@ func addStructureComparison(m *moduleData, structure *assessment.StructureReport
 	complete, reasons = coverageCompleteness("solution_membership", "all")
 	addExact("structure:solution_group_total", structure.SolutionGroupCount, "declared solution groups retained by assessment", complete, reasons)
 	complete, reasons = coverageCompleteness("entry_points", "all")
-	addExact("structure:entry_point_total", structure.EntryPointCount, "retained entry-point observations; observer coverage is reported separately", complete, reasons)
+	addExact("structure:entry_point_total", structure.EntryPointCount, "distinct entry-point declarations; observer coverage is reported separately", complete, reasons)
+	addExact("structure:entry_point_association_total", structure.EntryPointAssociationCount, "entry-point rows with a named project; observer coverage is reported separately", complete, reasons)
+	addExact("structure:entry_point_row_total", structure.EntryPointRowCount, "entry-point rows, including unassociated declarations; observer coverage is reported separately", complete, reasons)
 	complete, reasons = coverageCompleteness("project_dependencies", "all")
 	addExact("structure:qualified_reference_total", structure.Dependencies.QualifiedReferenceCount, "qualified dependency declarations in counted parsed projects", complete, reasons)
 	// Group, entry-point, and qualified-reference rows are bounded examples.

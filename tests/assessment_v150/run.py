@@ -174,7 +174,10 @@ def check_corruption_rejected(candidate, reports, temp):
         ("population_overflow", "population", lambda r: r["assessment"]["structure"]["populations"][0]["metric"].update(count=1 << 80)),
         ("workspace_group", "workspace_group", lambda r: r["assessment"]["structure"]["workspace_groups"][0].update(member_count=999)),
         ("dependency", "dependency", lambda r: r["assessment"]["structure"]["dependencies"].update(qualified_reference_count=999)),
+        ("connectivity_lower_bound", "dependency", lambda r: r["assessment"]["structure"]["dependencies"]["connected_groups"].update(completeness="lower_bound")),
         ("entry_point", "entry_point", lambda r: r["assessment"]["structure"]["entry_points"][0].update(evidence_path="")),
+        ("entry_point_row_count", "entry_point", lambda r: r["assessment"]["structure"].update(entry_point_row_count=r["assessment"]["structure"]["entry_point_row_count"] + 1)),
+        ("entry_point_association_count", "entry_point", lambda r: r["assessment"]["structure"].update(entry_point_association_count=r["assessment"]["structure"]["entry_point_association_count"] + 1)),
         ("missing_entry_coverage", "entry_point", lambda r: r["assessment"]["structure"].update(coverage=[row for row in r["assessment"]["structure"]["coverage"] if row.get("scope") != "entry_points"])),
         ("lock_evidence", "lock_evidence", lambda r: r["lockfiles"]["contexts"][0]["nuget_evidence"].update(candidate_count=999)),
         ("impossible_lock_partition", "lock_evidence", lambda r: r["assessment"]["lockfiles_overall"]["missing"].update(count=r["assessment"]["lockfiles_overall"]["missing"]["count"] + 1)),
@@ -551,14 +554,15 @@ def main():
         native, structure = assessment(report)
         if metric_count(native["inventory"]["files"], "workspace inventory files") != ws_files or metric_count(native["inventory"]["bytes"], "workspace inventory bytes") != ws_bytes:
             raise AssertionError("mixed workspace fixture inventory differs from hand count")
-        for ecosystem in ("maven", "npm", "python-uv", "cargo", "go"):
+        # f15: uv workspace groups now use canonical ecosystem name "python" (not "python-uv").
+        for ecosystem in ("maven", "npm", "python", "cargo", "go"):
             assert_workspace_group(structure, ecosystem, 1)
         gradle_group = assert_workspace_group(structure, "gradle", 0)
         if gradle_group.get("unresolved_member_count") != 1 or not any(
                 member.get("state") == "conditional" for member in gradle_group.get("unresolved_members", [])):
             raise AssertionError(f"Gradle include should remain qualified static evidence: {gradle_group!r}")
         receipt["fixtures"].append({"id": "six_explicit_ecosystem_workspaces", "files": ws_files, "bytes": ws_bytes,
-                                    "ecosystems": ["maven", "gradle-qualified", "npm", "python-uv", "cargo", "go"]})
+                                    "ecosystems": ["maven", "gradle-qualified", "npm", "python", "cargo", "go"]})
 
         wider = temp / "wider-ecosystems"
         wider.mkdir()
@@ -722,6 +726,96 @@ def main():
             raise AssertionError("npm bin/script fixture exact inventory differs")
         receipt["fixtures"].append({"id": "npm_bin_and_script_start_entrypoints", "files": len(npm_cli_files),
                                     "bytes": npm_cli_bytes, "entrypoint_observations": npm_cli_entries})
+
+        deploy_entrypoints = temp / "deployment-entrypoint-taxonomy"
+        deploy_entrypoints.mkdir()
+        deployment_files = {
+            "cloudformation/template.yaml": (
+                "Resources:\n"
+                "  Function:\n"
+                "    Type: AWS::Lambda::Function\n"
+                "  Task:\n"
+                "    Type: AWS::ECS::TaskDefinition\n"
+                "  Bucket:\n"
+                "    Type: AWS::S3::Bucket\n"),
+            "charts/app/Chart.yaml": "apiVersion: v2\nname: app\nversion: 1.0.0\ntype: application\n",
+            "charts/library/Chart.yaml": "apiVersion: v2\nname: library\nversion: 1.0.0\ntype: library\n",
+        }
+        deployment_bytes = sum(put(deploy_entrypoints, name, body) for name, body in deployment_files.items())
+        deployment_report = run(candidate, "analyze", "assessment", "--source", "directory", "--json", deploy_entrypoints)
+        _, deployment_structure = assessment(deployment_report)
+        deployment_entries = deployment_structure.get("entry_points", [])
+        kinds = sorted(entry.get("kind") for entry in deployment_entries)
+        if kinds != ["deployment:cloudformation:container_task", "deployment:cloudformation:function",
+                     "deployment:helm:infrastructure"]:
+            raise AssertionError(f"only CloudFormation compute and Helm application declarations should be entries: {deployment_entries!r}")
+        if any(entry.get("state") != "unassociated" or not entry.get("reason") for entry in deployment_entries):
+            raise AssertionError(f"deployables without a project owner must remain explicitly unassociated: {deployment_entries!r}")
+        excluded_kinds = deployment_structure.get("excluded_non_entry_kinds", {})
+        if excluded_kinds.get("cloudformation:infrastructure") != 1 or excluded_kinds.get("helm:library") != 1:
+            raise AssertionError(f"CloudFormation resources and Helm library charts must be counted outside entry points: {excluded_kinds!r}")
+        if deployment_structure.get("entry_point_count") != 3:
+            raise AssertionError(f"three distinct deployment declarations should be observed: {deployment_structure!r}")
+        if deployment_structure.get("entry_point_association_count") != 0:
+            raise AssertionError(f"unassociated deployment declarations must not inflate the project-association total: {deployment_structure!r}")
+        if metric_count(deployment_report["assessment"]["inventory"]["files"], "deployment entrypoint files") != len(deployment_files) or metric_count(deployment_report["assessment"]["inventory"]["bytes"], "deployment entrypoint bytes") != deployment_bytes:
+            raise AssertionError("deployment entrypoint fixture exact inventory differs")
+        receipt["fixtures"].append({"id": "deployment_entrypoint_taxonomy_and_unassociated_rows",
+                                    "files": len(deployment_files), "bytes": deployment_bytes,
+                                    "entrypoint_kinds": kinds, "excluded_non_entry_kinds": excluded_kinds})
+
+        skaffold = temp / "skaffold-context-association"
+        skaffold.mkdir()
+        skaffold_files = {
+            "skaffold.yaml": (
+                "apiVersion: skaffold/v4beta11\nkind: Config\nbuild:\n  artifacts:\n"
+                "    - image: fixture/app\n      context: services/app\n"
+                "      docker:\n        dockerfile: Dockerfile\n"),
+            "services/app/go.mod": "module example.invalid/fixture/app\n\ngo 1.23\n",
+            "services/app/Dockerfile": "FROM scratch\n",
+        }
+        skaffold_bytes = sum(put(skaffold, name, body) for name, body in skaffold_files.items())
+        skaffold_report = run(candidate, "analyze", "assessment", "--source", "directory", "--json", skaffold)
+        _, skaffold_structure = assessment(skaffold_report)
+        skaffold_entries = [entry for entry in skaffold_structure.get("entry_points", [])
+                            if entry.get("kind", "").endswith("deployment:skaffold:container_build")]
+        if len(skaffold_entries) != 1 or skaffold_entries[0].get("state") != "associated" or skaffold_entries[0].get("project_id") != "services/app/go.mod" or skaffold_entries[0].get("basis") != "declared_config":
+            raise AssertionError(f"Skaffold declared context should associate to the exact project root with config evidence: {skaffold_entries!r}")
+        entry_coverage = [row for row in skaffold_structure.get("coverage", [])
+                          if row.get("scope") == "entry_points" and row.get("ecosystem") == "all"]
+        if len(entry_coverage) != 1 or entry_coverage[0].get("status") != "partial" or "source_entry_points_not_inspected" not in entry_coverage[0].get("reasons", []):
+            raise AssertionError(f"declared deployment entries must not imply source entrypoint inspection: {entry_coverage!r}")
+        if metric_count(skaffold_report["assessment"]["inventory"]["files"], "Skaffold inventory files") != len(skaffold_files) or metric_count(skaffold_report["assessment"]["inventory"]["bytes"], "Skaffold inventory bytes") != skaffold_bytes:
+            raise AssertionError("Skaffold association fixture exact inventory differs")
+        receipt["fixtures"].append({"id": "skaffold_declared_context_association_and_source_limit",
+                                    "files": len(skaffold_files), "bytes": skaffold_bytes,
+                                    "associated": skaffold_entries[0]})
+
+        skaffold_multi = temp / "skaffold-shared-root-associations"
+        skaffold_multi.mkdir()
+        multi_files = {
+            "skaffold.yaml": (
+                "apiVersion: skaffold/v4beta11\nkind: Config\nbuild:\n  artifacts:\n"
+                "    - image: fixture/shared\n      context: .\n"),
+            "go.mod": "module example.invalid/fixture/go\n\ngo 1.23\n",
+            "package.json": '{"name":"fixture-npm","version":"1.0.0"}\n',
+        }
+        multi_bytes = sum(put(skaffold_multi, name, body) for name, body in multi_files.items())
+        multi_report = run(candidate, "analyze", "assessment", "--source", "directory", "--json", skaffold_multi)
+        _, multi_structure = assessment(multi_report)
+        multi_entries = [entry for entry in multi_structure.get("entry_points", [])
+                         if entry.get("kind", "").endswith("deployment:skaffold:container_build")]
+        if len(multi_entries) != 2 or {entry.get("project_id") for entry in multi_entries} != {"go.mod", "package.json"} or any(entry.get("state") != "qualified" or entry.get("reason") != "build_context_matches_multiple_projects" for entry in multi_entries):
+            raise AssertionError(f"one Skaffold declaration matching two projects should retain two qualified project rows: {multi_entries!r}")
+        if multi_structure.get("entry_point_count") != 1 or multi_structure.get("entry_point_association_count") != 2:
+            raise AssertionError(f"multiple project associations must remain distinct from their shared declaration: {multi_structure!r}")
+        if metric_count(multi_report["assessment"]["inventory"]["files"], "multi-project Skaffold files") != len(multi_files) or metric_count(multi_report["assessment"]["inventory"]["bytes"], "multi-project Skaffold bytes") != multi_bytes:
+            raise AssertionError("multi-project Skaffold fixture exact inventory differs")
+        receipt["fixtures"].append({"id": "one_skaffold_declaration_two_qualified_project_associations",
+                                    "files": len(multi_files), "bytes": multi_bytes,
+                                    "distinct_declarations": multi_structure["entry_point_count"],
+                                    "project_associations": multi_structure["entry_point_association_count"],
+                                    "rows": multi_entries})
 
         relationship_edges = temp / "relationship-edge-cases"
         relationship_edges.mkdir()
@@ -1183,10 +1277,19 @@ def main():
         default_control = control_contexts["default"]
         if default_control.get("ownership_state") not in {"observed", "owned", "associated"} or "targets.lock.json" not in default_control.get("candidate_paths", []):
             raise AssertionError(f"default SDK imports should select the ordered targets lock path: {default_control!r}")
-        for name in ("disabled", "dynamic"):
-            evidence = control_contexts[name]
-            if evidence.get("ownership_state") != "indeterminate" or not evidence.get("ownership_reasons"):
-                raise AssertionError(f"{name} ImportDirectoryBuildTargets control should qualify static ownership: {evidence!r}")
+        # Microsoft.Common.targets reads ImportDirectoryBuildTargets after the
+        # project body, so a literal false in the project is honored (SDK
+        # 10.0.401 check below); an unexpanded value leaves both paths possible.
+        disabled = control_contexts["disabled"]
+        if disabled.get("ownership_state") != "observed" or disabled.get("candidate_paths") != ["props.lock.json"] or disabled.get("lock_path_basis") != "custom_literal":
+            raise AssertionError(f"disabled ImportDirectoryBuildTargets should select the props lock path: {disabled!r}")
+        dynamic = control_contexts["dynamic"]
+        if dynamic.get("ownership_state") != "indeterminate" or dynamic.get("ownership_reasons") != ["nuget-lock-path-conditional"] or not dynamic.get("causes"):
+            raise AssertionError(f"dynamic ImportDirectoryBuildTargets control should qualify static ownership with a cause: {dynamic!r}")
+        if dotnet_path.is_file():
+            value = msbuild_properties_oracle(dotnet_path, msbuild_controls / "disabled/Disabled.csproj", "import-targets-disabled").get("Properties", {}).get("NuGetLockFilePath")
+            if value != "props.lock.json":
+                raise AssertionError(f"SDK oracle disagrees on disabled Directory.Build.targets: {value!r}")
         receipt["fixtures"].append({"id": "nuget_import_directory_build_targets_controls", "files": len(control_files),
                                     "bytes": control_bytes, "default_selected": "targets.lock.json",
                                     "disabled_state": control_contexts["disabled"].get("ownership_state"),
@@ -1200,7 +1303,7 @@ def main():
                          wider_report, flat_report, empty_report, poison_report, same_root_report,
                          limited_report, bytecap_baseline_report, many_solution_report,
                          collision_report, foreign_report, npm_cli_report, relationship_report,
-                         bare_report, *control_reports.values()]
+                         bare_report, deployment_report, skaffold_report, multi_report, *control_reports.values()]
         check_saved_reports(candidate, saved_reports, temp)
         for saved in saved_reports:
             check_empty_entrypoint_coverage(saved)
@@ -1223,6 +1326,9 @@ def main():
         legacy["schema_version"] = "1.9.0"
         legacy["assessment"]["version"] = "1.0.0"
         legacy["assessment"].pop("structure", None)
+        for row in [*legacy["assessment"]["lockfiles"], legacy["assessment"]["lockfiles_overall"]]:
+            for field in ("checks", "nuget_presence", "causes", "omitted_causes"):
+                row.pop(field, None)
         legacy_path = temp / "saved-v14-assessment.json"
         legacy_path.write_text(json.dumps(legacy, sort_keys=True) + "\n")
         legacy_compare = subprocess.run([str(candidate), "compare", str(legacy_path), str(legacy_path), "--json"],

@@ -150,23 +150,29 @@ class DeclarationReleaseContracts(unittest.TestCase):
 
     def test_structural_semantics_fail_on_mutated_runtime_facts(self):
         entries = [
-            {'ecosystem': 'npm', 'name': 'start', 'kind': 'manifest_interface:script', 'state': 'declared'},
-            {'ecosystem': 'cargo', 'name': 'smoke-app', 'target': 'cargo/crates/app/src/main.rs', 'kind': 'manifest_interface:cargo-bin', 'state': 'declared'},
-            {'ecosystem': 'python', 'name': 'suite', 'target': 'suite.cli:main', 'kind': 'manifest_interface:python-console-script', 'state': 'declared'},
+            {'project_id': 'npm/package.json', 'ecosystem': 'npm', 'name': 'start', 'kind': 'manifest_interface:script', 'state': 'declared'},
+            {'project_id': 'cargo/crates/app/Cargo.toml', 'ecosystem': 'cargo', 'name': 'smoke-app', 'target': 'cargo/crates/app/src/main.rs', 'kind': 'manifest_interface:cargo-bin', 'state': 'declared'},
+            {'project_id': 'python/pyproject.toml', 'ecosystem': 'python', 'name': 'suite', 'target': 'suite.cli:main', 'kind': 'manifest_interface:python-console-script', 'state': 'declared'},
         ]
         structure = {
             'workspace_group_count': 5, 'workspace_groups': [
                 {'ecosystem': ecosystem, 'member_count': 1, 'membership_coverage': {'status': 'complete'}}
-                for ecosystem in ('cargo', 'go', 'maven', 'npm', 'python-uv')],
+                for ecosystem in ('cargo', 'go', 'maven', 'npm', 'python')],
             'omitted_workspace_groups': 0,
             'dependencies': {'projects': {'count': 10}, 'definite_edges': {'count': 2}, 'connected_groups': {'count': 8}},
-            'entry_points': entries, 'entry_point_count': 3,
+            'entry_points': entries, 'entry_point_count': 3, 'entry_point_row_count': 3,
+            'entry_point_association_count': 3,
+            'coverage': [{'scope': 'entry_points', 'ecosystem': 'all', 'status': 'partial',
+                          'reasons': ['manifest_and_deployment_entry_point_catalog', 'source_entry_points_not_inspected']}],
         }
         self.assertEqual(structure, smoke.check_assessment_structure_facts({'version': '1.1.0', 'structure': structure}))
         for path, value in ((('workspace_group_count',), 4),
                             (('dependencies', 'definite_edges', 'count'), 3),
                             (('dependencies', 'connected_groups', 'count'), 7),
                             (('entry_point_count',), 2),
+                            (('entry_point_row_count',), 2),
+                            (('entry_point_association_count',), 2),
+                            (('coverage', 0, 'reasons'), ['manifest_and_deployment_entry_point_catalog']),
                             (('entry_points', 2, 'kind'), 'python-entry-point')):
             changed = copy.deepcopy(structure)
             target = changed
@@ -218,6 +224,7 @@ class DeclarationReleaseContracts(unittest.TestCase):
         self.assertEqual(set(smoke.FIXTURES), set(smoke.fixture_inputs()))
         self.assertEqual(12, len(smoke.EXPECTED_MANIFESTS))
         self.assertEqual(['cargo', 'dotnet', 'go', 'maven', 'npm', 'python-uv'], smoke.FACTS['ecosystems'])
+        self.assertEqual(['cargo', 'go', 'maven', 'npm', 'python'], smoke.STRUCTURE_FACTS['workspace_ecosystems'])
         for value in smoke.fixture_inputs().values():
             self.assertTrue(smoke.valid_digest(value))
         self.assertEqual(12, smoke.ASSESSMENT_FACTS['manifest_candidates'])

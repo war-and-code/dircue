@@ -120,10 +120,9 @@ func ValidateReport(r *Report) error {
 }
 
 func validNuGetEvidence(e *NuGetEvidence, ctx Context, workspacePaths bool) bool {
-	if e == nil || (e.PresenceState != "observed" && e.PresenceState != "not_observed" && e.PresenceState != "unknown") ||
+	if e == nil || e.CandidatePaths == nil || e.PresenceReasons == nil || e.OwnershipReasons == nil || e.CheckReasons == nil || e.Causes == nil || (e.PresenceState != "observed" && e.PresenceState != "not_observed" && e.PresenceState != "unknown") ||
 		!validAssociation(e.OwnershipState) || e.CandidateCount < 0 || e.CandidateCount > DefaultMaxInventoryPaths ||
-		len(e.CandidatePaths) > nugetCandidatePathLimit || e.OmittedCandidatePaths < 0 || e.OmittedCandidatePaths != e.CandidateCount-len(e.CandidatePaths) ||
-		len(e.PresenceReasons) > 32 || len(e.OwnershipReasons) > 32 {
+		len(e.CandidatePaths) > nugetCandidatePathLimit || e.OmittedCandidatePaths < 0 || e.OmittedCandidatePaths != e.CandidateCount-len(e.CandidatePaths) {
 		return false
 	}
 	if e.OwnershipState != ctx.AssociationState && !validNuGetContentQualifiedOwnership(e, ctx) {
@@ -139,11 +138,38 @@ func validNuGetEvidence(e *NuGetEvidence, ctx Context, workspacePaths bool) bool
 		}
 		last = p
 	}
-	for _, list := range [][]string{e.PresenceReasons, e.OwnershipReasons} {
-		for _, reason := range list {
-			if !requiredText(reason, 256) {
+	for _, list := range [][]string{e.PresenceReasons, e.OwnershipReasons, e.CheckReasons} {
+		if len(list) > 32 {
+			return false
+		}
+		for i, reason := range list {
+			if !requiredText(reason, 256) || i > 0 && reason <= list[i-1] {
 				return false
 			}
+		}
+	}
+	if !slices.Contains([]string{"conventional", "custom_literal", "conditional", "pattern", "outside_snapshot", "open_evidence", "open_unmodeled", "unresolved"}, e.LockPathBasis) {
+		return false
+	}
+	switch {
+	case len(ctx.Checks) == 0:
+		if e.CheckState != "not_compared" || len(e.CheckReasons) == 0 {
+			return false
+		}
+	case e.CheckState != ctx.Checks[0].Status:
+		return false
+	case e.CheckState == "indeterminate" && len(e.CheckReasons) == 0:
+		return false
+	}
+	if len(e.Causes) > nugetMaxCauses || e.OmittedCauses < 0 || e.OmittedCauses > DefaultMaxInventoryPaths || e.OmittedCauses > 0 && len(e.Causes) < nugetMaxCauses {
+		return false
+	}
+	for i, cause := range e.Causes {
+		if !requiredText(cause.Reason, 256) || !requiredText(cause.Path, 8192) || cause.Path != "." && !validSelectedRelative(cause.Path, workspacePaths) || !validText(cause.Detail, 256) {
+			return false
+		}
+		if i > 0 && nugetCauseKey(cause) <= nugetCauseKey(e.Causes[i-1]) {
+			return false
 		}
 	}
 	return true
