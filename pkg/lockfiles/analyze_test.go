@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"path"
 	"reflect"
 	"slices"
 	"strings"
@@ -25,6 +27,30 @@ func npmRef(value, section string) declarations.Reference {
 	return declarations.Reference{Kind: "npm-dependency", Value: value, State: "declared", Condition: section}
 }
 
+// nugetProjectXML writes the SDK-style project file that the static NuGet
+// evaluator reads for a test record: one PackageReference per declared
+// package-reference requirement, conditional requirements under a condition.
+// pkgA is a PackageReference item group for package A.
+const pkgA = `<ItemGroup><PackageReference Include="A" Version="1.0" /></ItemGroup>`
+
+func nugetProjectXML(record declarations.ProjectRecord) string {
+	var b strings.Builder
+	b.WriteString(`<Project Sdk="Microsoft.NET.Sdk"><ItemGroup>`)
+	for _, req := range record.Project.Requirements {
+		if req.Kind != "package-reference" {
+			continue
+		}
+		id, version, _ := strings.Cut(req.Value, "@")
+		condition := ""
+		if req.State == "conditional" {
+			condition = ` Condition="'$(Configuration)' == 'Debug'"`
+		}
+		b.WriteString(`<PackageReference Include="` + id + `" Version="` + version + `"` + condition + ` />`)
+	}
+	b.WriteString(`</ItemGroup></Project>`)
+	return b.String()
+}
+
 func testInput(records []declarations.ProjectRecord, content map[string]string, complete bool) Input {
 	if content == nil {
 		content = map[string]string{}
@@ -32,13 +58,14 @@ func testInput(records []declarations.ProjectRecord, content map[string]string, 
 	for _, record := range records {
 		if record.Project.Kind == "dotnet" && IsNuGetLockProject(record.Project.ID) {
 			if _, ok := content[record.Project.ID]; !ok {
-				content[record.Project.ID] = "<Project />"
+				content[record.Project.ID] = nugetProjectXML(record)
 			}
 		}
 	}
-	in := Input{Source: "directory", InventoryComplete: complete, Declarations: declarations.Report{Status: "complete"}, ProjectRecords: records, Inventory: []File{}}
+	in := Input{Source: "directory", InventoryComplete: complete, SelectedFilesComplete: complete, Declarations: declarations.Report{Status: "complete"}, ProjectRecords: records, Inventory: []File{}, SelectedFiles: []File{}}
 	for p, body := range content {
 		in.Inventory = append(in.Inventory, File{Path: p, Size: int64(len(body))})
+		in.SelectedFiles = append(in.SelectedFiles, File{Path: p, Size: int64(len(body))})
 	}
 	in.ReadSelected = func(_ context.Context, p string, limit int64) ([]byte, int64, error) {
 		b, ok := content[p]
@@ -1033,9 +1060,9 @@ func TestNuGetCustomLockPathIsUnresolvedFromSelectedProjectXML(t *testing.T) {
 		want    string
 		reason  string
 	}{
-		{"custom property", `<Project><PropertyGroup><NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath></PropertyGroup></Project>`, "indeterminate", "nuget-custom-lock-path-unresolved"},
-		{"comment does not count", `<Project><!-- <NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath> --></Project>`, "observed", ""},
-		{"malformed XML unresolved", `<Project><NuGetLockFilePath>elsewhere.lock.json</Project>`, "indeterminate", "nuget-custom-lock-path-unresolved"},
+		{"custom property missing path", `<Project><PropertyGroup><NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`, "missing", "lockfile-not-present"},
+		{"comment does not count", `<Project><!-- <NuGetLockFilePath>elsewhere.lock.json</NuGetLockFilePath> -->` + pkgA + `</Project>`, "observed", ""},
+		{"malformed XML unresolved", `<Project><NuGetLockFilePath>elsewhere.lock.json</Project>`, "indeterminate", "nuget-project-config-unresolved"},
 		{"malformed before property unresolved", `<Project><PropertyGroup></Project>`, "indeterminate", "nuget-project-config-unresolved"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1057,11 +1084,142 @@ func TestNuGetCustomLockPathIsUnresolvedFromSelectedProjectXML(t *testing.T) {
 	}
 }
 
+func TestNuGetCustomLockOwnersAreResolvedPerActualPath(t *testing.T) {
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	var records []declarations.ProjectRecord
+	content := map[string]string{}
+	for i := 0; i < 20; i++ {
+		root := fmt.Sprintf("src/P%02d", i)
+		manifest := path.Join(root, fmt.Sprintf("P%02d.csproj", i))
+		records = append(records, nugetRecord(root, manifest, declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"}))
+		custom := path.Join("locks", fmt.Sprintf("P%02d.data", i))
+		if i < 2 {
+			custom = "locks/shared.data"
+		}
+		content[manifest] = `<Project><PropertyGroup><NuGetLockFilePath>../../` + custom + `</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`
+		content[custom] = lock
+	}
+	in := testInput(records, content, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Contexts) != 20 {
+		t.Fatalf("expected all contexts, got %d", len(r.Contexts))
+	}
+	for _, c := range r.Contexts {
+		idx := strings.TrimSuffix(path.Base(c.ManifestPath), ".csproj")
+		if idx == "P00" || idx == "P01" {
+			if c.AssociationState != "indeterminate" || c.OutcomeReason() != "ambiguous-nuget-lockfile-owner" {
+				t.Errorf("shared actual path was not marked ambiguous: %+v", c)
+			}
+		} else if c.AssociationState != "observed" || c.LockfilePath != path.Join("locks", idx+".data") {
+			t.Errorf("independent custom path became unknown: %+v", c)
+		}
+	}
+}
+
+func TestNuGetCustomPathCollidesWithDefaultAndNonNuGetMSBuildOwner(t *testing.T) {
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	first := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	second := nugetRecord("src/App", "src/App/Worker.csproj")
+	other := declarations.ProjectRecord{Parsed: true, Complete: true, Project: declarations.Project{ID: "src/App/Tool.wixproj", Root: "src/App", Kind: "dotnet"}}
+	for _, tc := range []struct {
+		name    string
+		second  declarations.ProjectRecord
+		content map[string]string
+	}{
+		{"default lock path", second, map[string]string{
+			"src/App/App.csproj":    `<Project><PropertyGroup><NuGetLockFilePath>packages.Worker.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
+			"src/App/Worker.csproj": `<Project />`, "src/App/packages.Worker.lock.json": lock,
+		}},
+		{"non-NuGet MSBuild project", other, map[string]string{
+			"src/App/App.csproj":   `<Project><PropertyGroup><NuGetLockFilePath>../../locks/tool.bin</NuGetLockFilePath></PropertyGroup></Project>`,
+			"src/App/Tool.wixproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/tool.bin</NuGetLockFilePath></PropertyGroup></Project>`,
+			"locks/tool.bin":       lock,
+		}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := testInput([]declarations.ProjectRecord{first, tc.second}, tc.content, true)
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if r.Contexts[0].AssociationState != "indeterminate" || r.Contexts[0].OutcomeReason() != "ambiguous-nuget-lockfile-owner" {
+				t.Fatalf("custom path had a second potential owner: %+v", r.Contexts[0])
+			}
+		})
+	}
+}
+
+func TestNuGetCustomPathClaimsBlockUnknownPotentialOwners(t *testing.T) {
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	first := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	second := nugetRecord("tools/Worker", "tools/Worker/Worker.fsproj")
+	in := testInput([]declarations.ProjectRecord{first, second}, map[string]string{
+		"src/App/App.csproj":         `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
+		"tools/Worker/Worker.fsproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</PropertyGroup>`,
+		"locks/shared.data":          lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Contexts[0].AssociationState != "indeterminate" || r.Contexts[0].NuGetEvidence.PresenceState != "observed" {
+		t.Fatalf("unparsed potential owner was ignored or known presence was lost: %+v", r.Contexts[0])
+	}
+
+	// An attributed omitted MSBuild project may point at any custom path, even
+	// when its directory differs from the known project's root.
+	in = testInput([]declarations.ProjectRecord{first}, map[string]string{
+		"src/App/App.csproj": `<Project><PropertyGroup><NuGetLockFilePath>../../locks/shared.data</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
+		"locks/shared.data":  lock,
+	}, true)
+	in.Declarations.Coverage.OmittedFiles = 1
+	in.DeclarationOmissionsAttributed = true
+	in.DeclarationOmissions = []string{"other/Unknown.csproj"}
+	r, err = Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Contexts[0].AssociationState != "indeterminate" || r.Contexts[0].NuGetEvidence.PresenceState != "observed" {
+		t.Fatalf("omitted potential owner was ignored or known presence was lost: %+v", r.Contexts[0])
+	}
+}
+
+func TestNuGetMSBuildXMLRequiresOneCompleteRootAndIgnoresUnselectedMalformedXML(t *testing.T) {
+	for _, input := range []string{
+		`<Project /><Project />`,
+		`<Project />trailing-junk`,
+	} {
+		if _, ok := parseNuGetMSBuildFile(context.Background(), []byte(input), 1024); ok {
+			t.Errorf("accepted trailing XML content %q", input)
+		}
+	}
+	if _, ok := parseNuGetMSBuildFile(context.Background(), []byte(`<Project /> <!-- trailing comment -->`), 1024); !ok {
+		t.Fatal("valid trailing XML comment was rejected")
+	}
+	manifest := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{manifest}, map[string]string{
+		"src/App/packages.lock.json": lock,
+		"unrelated.xml":              `<Project><broken`,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Contexts[0].AssociationState != "observed" || r.Contexts[0].Checks[0].Status != "match" {
+		t.Fatalf("unselected malformed XML tainted static evidence: %+v", r.Contexts[0])
+	}
+}
+
 func TestNuGetSharedProjectInputsKeepLockfileClaimIndeterminate(t *testing.T) {
 	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
 	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
 	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
-		"Directory.Packages.props":   "<Project />",
+		"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
+		"Directory.Packages.props":   `<Project><PropertyGroup><ManagePackageVersionsCentrally Condition="'$(EnableCPM)' == 'true'">true</ManagePackageVersionsCentrally><CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled></PropertyGroup><ItemGroup Condition="'$(TargetFramework)' == 'net10.0'"><PackageVersion Include="A" Version="$(CentralVersion)" /></ItemGroup></Project>`,
 		"src/App/packages.lock.json": lock,
 	}, true)
 	r, err := Analyze(context.Background(), in, Limits{})
@@ -1069,34 +1227,436 @@ func TestNuGetSharedProjectInputsKeepLockfileClaimIndeterminate(t *testing.T) {
 		t.Fatal(err)
 	}
 	c := r.Contexts[0]
-	if c.AssociationState != "observed" || c.Checks[0].Status != "indeterminate" || r.Status != "partial" {
-		t.Fatalf("shared input not disclosed: %+v", c)
+	if c.AssociationState != "observed" || c.Checks[0].Status != "match" || r.Status != "complete" {
+		t.Fatalf("version-only central input changed direct-ID presence claim: %+v", c)
 	}
 
-	in = testInput([]declarations.ProjectRecord{record}, map[string]string{"Directory.Build.props": "<Project />"}, true)
+	in = testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk" />`,
+		"Directory.Build.props": `<Project><ItemGroup><PackageReference Include="FromShared" Version="1.0" /></ItemGroup></Project>`,
+	}, true)
 	r, err = Analyze(context.Background(), in, Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Contexts[0].AssociationState != "indeterminate" {
-		t.Fatalf("shared config custom lock path not disclosed: %+v", r.Contexts[0])
+	// A statically kept PackageReference from Directory.Build.props applies
+	// to the project, so the absent conventional lock is missing.
+	if c := r.Contexts[0]; c.AssociationState != "missing" || c.OutcomeReason() != "lockfile-not-present" || c.NuGetEvidence.LockPathBasis != "conventional" {
+		t.Fatalf("shared PackageReference did not make the lock expected: %+v", c)
 	}
 }
 
-func TestNuGetExplicitMSBuildImportKeepsLockAssociationIndeterminate(t *testing.T) {
-	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Declared@1.0", State: "declared"})
-	record.Project.References = []declarations.Reference{{Kind: "import", Value: "../Shared.props", Target: "Shared.props", State: "declared", Evidence: record.Project.ID}}
-	lock := `{"version":1,"dependencies":{"net8.0":{"Declared":{"type":"Direct"},"Imported":{"type":"Direct"}}}}`
-	r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, map[string]string{"src/App/packages.lock.json": lock}, true), Limits{})
+func TestNuGetLockPathUsesProvenOrderedLiteralLayersAndImports(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	for _, tc := range []struct {
+		name     string
+		content  map[string]string
+		wantPath string
+	}{
+		{
+			name: "project overrides default props",
+			content: map[string]string{
+				"Directory.Build.props": `<Project><PropertyGroup><NuGetLockFilePath>props.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
+				"src/App/project.lock":  lock,
+			},
+			wantPath: "src/App/project.lock",
+		},
+		{
+			name: "default targets overrides project",
+			content: map[string]string{
+				"Directory.Build.props":   `<Project><PropertyGroup><NuGetLockFilePath>props.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":      `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>project.lock</NuGetLockFilePath></PropertyGroup>` + pkgA + `</Project>`,
+				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>targets.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/targets.lock":    lock,
+			},
+			wantPath: "src/App/targets.lock",
+		},
+		{
+			name: "later bounded props import wins",
+			content: map[string]string{
+				"Directory.Build.props": `<Project><Import Project="A.props" /><Import Project="B.props" /></Project>`,
+				"A.props":               `<Project><PropertyGroup><NuGetLockFilePath>first.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"B.props":               `<Project><PropertyGroup><NuGetLockFilePath>second.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
+				"src/App/second.lock":   lock,
+			},
+			wantPath: "src/App/second.lock",
+		},
+		{
+			name: "reversed bounded props imports reverse result",
+			content: map[string]string{
+				"Directory.Build.props": `<Project><Import Project="B.props" /><Import Project="A.props" /></Project>`,
+				"A.props":               `<Project><PropertyGroup><NuGetLockFilePath>first.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"B.props":               `<Project><PropertyGroup><NuGetLockFilePath>second.lock</NuGetLockFilePath></PropertyGroup></Project>`,
+				"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
+				"src/App/first.lock":    lock,
+			},
+			wantPath: "src/App/first.lock",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, tc.content, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := r.Contexts[0]
+			if got.AssociationState != "observed" || got.LockfilePath != tc.wantPath || got.Checks[0].Status != "match" {
+				t.Fatalf("ordered literal custom path was not selected: %+v", got)
+			}
+		})
+	}
+}
+
+func TestNuGetThisFileDirectoryImportDoesNotDoubleJoinOrTrustDecoy(t *testing.T) {
+	record := nugetRecord("build/app", "build/app/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Foo@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"Foo":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"build/Directory.Build.props":  `<Project><Import Project="$(MSBuildThisFileDirectory)common.props" /></Project>`,
+		"build/common.props":           `<Project><ItemGroup><PackageReference Include="Hidden" Version="1.0" /></ItemGroup></Project>`,
+		"build/build/common.props":     `<Project />`,
+		"build/app/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+		"build/app/packages.lock.json": lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := r.Contexts[0]
+	// The import resolves to build/common.props, not the doubled-path decoy,
+	// so its unconditional Hidden reference is compared like the project's.
+	if got.AssociationState != "observed" || len(got.Checks) != 1 || got.Checks[0].Status != "different" || !slices.Equal(got.Checks[0].Missing, []string{"hidden"}) {
+		t.Fatalf("real imported PackageReference was bypassed through a doubled-path decoy: %+v", got)
+	}
+}
+
+func TestNuGetImplicitDirectoryTargetsRequireKnownSDKImportModel(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Foo@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net10.0":{"Foo":{"type":"Direct"}}}}`
+	for _, tc := range []struct {
+		name       string
+		project    string
+		shared     map[string]string
+		wantState  string
+		wantPath   string
+		wantReason string
+	}{
+		{
+			name:      "bare Project does not implicitly import ancestor targets",
+			project:   `<Project><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/right.lock.json",
+		},
+		{
+			name:      "recognized SDK imports default targets after project",
+			project:   `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/wrong.lock.json",
+		},
+		{
+			name:      "recognized Web SDK imports default targets after project",
+			project:   `<Project Sdk="Microsoft.NET.Sdk.Web"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/wrong.lock.json",
+		},
+		{
+			name:      "recognized Razor SDK imports default targets after project",
+			project:   `<Project Sdk="Microsoft.NET.Sdk.Razor"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/wrong.lock.json",
+		},
+		{
+			name:      "recognized Worker SDK imports default targets after project",
+			project:   `<Project Sdk="Microsoft.NET.Sdk.Worker"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/wrong.lock.json",
+		},
+		{
+			name:      "unknown SDK chain is unmodeled",
+			project:   `<Project Sdk="Acme.Custom"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "indeterminate", wantReason: "nuget-msbuild-input-unmodeled",
+		},
+		{
+			name:      "project can disable default targets",
+			project:   `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "observed", wantPath: "src/App/right.lock.json",
+		},
+		{
+			name:      "dynamic targets enable control is conditional",
+			project:   `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><ImportDirectoryBuildTargets>$(ImportTargets)</ImportDirectoryBuildTargets><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared:    map[string]string{"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`},
+			wantState: "indeterminate", wantReason: "nuget-lock-path-conditional",
+		},
+		{
+			name:    "props can disable default targets",
+			project: `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared: map[string]string{
+				"Directory.Build.props":   `<Project><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets></PropertyGroup></Project>`,
+				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
+			},
+			wantState: "observed", wantPath: "src/App/right.lock.json",
+		},
+		{
+			name:    "imported props can disable default targets",
+			project: `<Project Sdk="Microsoft.NET.Sdk"><PropertyGroup><NuGetLockFilePath>right.lock.json</NuGetLockFilePath></PropertyGroup><ItemGroup><PackageReference Include="Foo" Version="1.0" /></ItemGroup></Project>`,
+			shared: map[string]string{
+				"Directory.Build.props":   `<Project><Import Project="controls.props" /></Project>`,
+				"controls.props":          `<Project><PropertyGroup><ImportDirectoryBuildTargets>false</ImportDirectoryBuildTargets></PropertyGroup></Project>`,
+				"Directory.Build.targets": `<Project><PropertyGroup><NuGetLockFilePath>wrong.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
+			},
+			wantState: "observed", wantPath: "src/App/right.lock.json",
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			content := map[string]string{
+				"src/App/App.csproj":      tc.project,
+				"src/App/right.lock.json": lock,
+				"src/App/wrong.lock.json": lock,
+			}
+			for p, v := range tc.shared {
+				content[p] = v
+			}
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, content, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := r.Contexts[0]
+			if got.AssociationState != tc.wantState {
+				t.Fatalf("association=%s want %s: %+v", got.AssociationState, tc.wantState, got)
+			}
+			if tc.wantPath != "" && (got.LockfilePath != tc.wantPath || got.Checks[0].Status != "match") {
+				t.Fatalf("selected path=%q want %q: %+v", got.LockfilePath, tc.wantPath, got)
+			}
+			if tc.wantReason != "" && (got.OutcomeReason() != tc.wantReason || len(got.Checks) != 0) {
+				t.Fatalf("uncertainty reason=%q want %q: %+v", got.OutcomeReason(), tc.wantReason, got)
+			}
+		})
+	}
+}
+
+func TestNuGetCustomAndConventionalPathCollisionIsSymmetric(t *testing.T) {
+	customOwner := nugetRecord("src/A", "src/A/A.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	conventionalOwner := nugetRecord("src/B", "src/B/B.csproj", declarations.Requirement{Kind: "package-reference", Value: "B@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"},"B":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{customOwner, conventionalOwner}, map[string]string{
+		"src/A/A.csproj":           `<Project><PropertyGroup><NuGetLockFilePath>../B/packages.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
+		"src/B/B.csproj":           `<Project />`,
+		"src/B/packages.lock.json": lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(r.Contexts) != 2 {
+		t.Fatalf("expected both contexts: %+v", r.Contexts)
+	}
+	for _, got := range r.Contexts {
+		if got.AssociationState != "indeterminate" || got.OutcomeReason() != "ambiguous-nuget-lockfile-owner" || len(got.Checks) != 0 {
+			t.Errorf("shared custom/default path had asymmetric ownership: %+v", got)
+		}
+	}
+}
+
+func TestNuGetMSBuildReservedPathAnchors(t *testing.T) {
+	// MSBuild property names are case-insensitive, and
+	// $(MSBuildProjectDirectory) has no trailing separator, so a following
+	// name concatenates onto the directory name (SDK 10.0.401 check).
+	for _, tc := range []struct {
+		raw, definedIn, manifest string
+		want                     string
+		anchored                 bool
+		status                   anchorStatus
+	}{
+		{"$(MSBuildProjectDirectory)/locks/a.data", "src/App/App.csproj", "src/App/App.csproj", "src/App/locks/a.data", true, anchorOK},
+		{"$(msbuildprojectdirectory)/a.data", "src/App/App.csproj", "src/App/App.csproj", "src/App/a.data", true, anchorOK},
+		{"$(MSBuildProjectDirectory)lock.json", "src/App/App.csproj", "src/App/App.csproj", "src/Applock.json", true, anchorOK},
+		{"$(MSBuildProjectDirectory)lock.json", "App.csproj", "App.csproj", "", true, anchorOutside},
+		{"prefix/$(MSBuildProjectDirectory)/a.data", "src/App/App.csproj", "src/App/App.csproj", "", false, anchorDynamic},
+		{"$(MSBuildThisFileDirectory)common.props", "build/Directory.Build.props", "src/App/App.csproj", "build/common.props", true, anchorOK},
+		{"$(MSBuildThisFileDirectory)common.props", "Directory.Build.props", "App.csproj", "common.props", true, anchorOK},
+		{"$(MSBuildProjectName).lock.json", "src/App/App.csproj", "src/App/App.csproj", "App.lock.json", false, anchorOK},
+	} {
+		got, anchored, status := resolveMSBuildAnchors(tc.raw, tc.definedIn, tc.manifest)
+		if got != tc.want || anchored != tc.anchored || status != tc.status {
+			t.Errorf("resolveMSBuildAnchors(%q, %q, %q) = %q, %v, %v; want %q, %v, %v", tc.raw, tc.definedIn, tc.manifest, got, anchored, status, tc.want, tc.anchored, tc.status)
+		}
+	}
+	for _, tc := range []struct {
+		raw  string
+		want []nugetLockValue
+	}{
+		{"", []nugetLockValue{{kind: nugetLockDefault}}},
+		{"locks/a.data", []nugetLockValue{{kind: nugetLockLiteral, value: "src/App/locks/a.data"}}},
+		{"../../../x.json", []nugetLockValue{{kind: nugetLockOutside}}},
+		{"/abs/x.json", []nugetLockValue{{kind: nugetLockOutside}}},
+		{"$(Root)/x.json", []nugetLockValue{{kind: nugetLockOpen}}},
+		{"locks/$(TargetFramework).json", []nugetLockValue{{kind: nugetLockPattern, value: "src/App/locks/*.json"}, {kind: nugetLockOpen}}},
+		{`locks\a.data`, []nugetLockValue{{kind: nugetLockLiteral, value: "src/App/locks/a.data"}, {kind: nugetLockLiteral, value: `src/App/locks\a.data`}}},
+	} {
+		got := nugetLockValues(tc.raw, "src/App/App.csproj", "src/App/App.csproj")
+		if len(got) != len(tc.want) {
+			t.Errorf("nugetLockValues(%q) = %+v; want %+v", tc.raw, got, tc.want)
+			continue
+		}
+		for i := range got {
+			if got[i].kind != tc.want[i].kind || got[i].value != tc.want[i].value {
+				t.Errorf("nugetLockValues(%q)[%d] = %+v; want %+v", tc.raw, i, got[i], tc.want[i])
+			}
+		}
+	}
+	if got := nugetDefaultName("src/My App/My App.csproj"); got != "packages.My_App.lock.json" {
+		t.Errorf("default name with spaces = %q", got)
+	}
+}
+
+func TestNuGetForeignXMLNamespaceCannotAssertMSBuildOwnership(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"src/App/App.csproj":  `<Project xmlns="urn:not-msbuild"><PropertyGroup><NuGetLockFilePath>custom.data</NuGetLockFilePath></PropertyGroup></Project>`,
+		"src/App/custom.data": lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := r.Contexts[0]
+	if got.AssociationState != "indeterminate" || len(got.Checks) != 0 {
+		t.Fatalf("foreign-namespace elements were treated as MSBuild: %+v", got)
+	}
+}
+
+func TestNuGetOwnershipSurvivesLockfileContentFailures(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	for _, tc := range []struct {
+		name   string
+		lock   string
+		limits Limits
+		state  string
+		reason string
+	}{
+		{name: "invalid JSON", lock: `{`, state: "unsupported", reason: "invalid-lockfile-json"},
+		{name: "unsupported format", lock: `{"version":9,"dependencies":{}}`, state: "unsupported", reason: "unsupported-nuget-lockfile-version"},
+		{name: "file read limit", lock: `{"version":1,"dependencies":{}}`, limits: Limits{FileBytes: 20}, state: "indeterminate", reason: "lockfile-unreadable"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+				"src/App/App.csproj":         `<Project />`,
+				"src/App/packages.lock.json": tc.lock,
+			}, true)
+			r, err := Analyze(context.Background(), in, tc.limits)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := r.Contexts[0]
+			if got.AssociationState != tc.state || got.NuGetEvidence == nil || got.NuGetEvidence.OwnershipState != "observed" || got.NuGetEvidence.PresenceState != "observed" || got.LockfilePath != "src/App/packages.lock.json" || got.OutcomeReason() != tc.reason {
+				t.Fatalf("content failure erased independent path ownership: %+v", got)
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatalf("valid report rejected: %v", err)
+			}
+		})
+	}
+}
+
+func TestNuGetInvalidMSBuildElementCaseCannotAssertCustomOwnership(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	for _, project := range []string{
+		`<project><PropertyGroup><NuGetLockFilePath>custom.data</NuGetLockFilePath></PropertyGroup></project>`,
+		`<Project><propertygroup><NuGetLockFilePath>custom.data</NuGetLockFilePath></propertygroup></Project>`,
+		`<Project><import Project="Shared.props" /><PropertyGroup><NuGetLockFilePath>custom.data</NuGetLockFilePath></PropertyGroup></Project>`,
+	} {
+		t.Run(project, func(t *testing.T) {
+			in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+				"src/App/App.csproj":         project,
+				"src/App/custom.data":        `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`,
+				"src/App/packages.lock.json": `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`,
+			}, true)
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := r.Contexts[0]
+			if got.AssociationState != "indeterminate" || got.NuGetEvidence.PresenceState != "observed" || got.NuGetEvidence.OwnershipState != "indeterminate" || len(got.Checks) != 0 {
+				t.Fatalf("invalid MSBuild element casing promoted ownership: %+v", got)
+			}
+		})
+	}
+}
+
+func TestNuGetCustomPathCaseAliasDoesNotClaimAbsence(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"src/App/App.csproj":  `<Project><PropertyGroup><NuGetLockFilePath>custom.data</NuGetLockFilePath></PropertyGroup></Project>`,
+		"src/App/CUSTOM.data": lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := r.Contexts[0]
+	if got.AssociationState != "indeterminate" || got.NuGetEvidence.PresenceState != "observed" || got.NuGetEvidence.CandidateCount != 1 || got.NuGetEvidence.CandidatePaths[0] != "src/App/CUSTOM.data" {
+		t.Fatalf("case-alias candidate was mistaken for absence or exact ownership: %+v", got)
+	}
+}
+
+func TestNuGetPresenceIsIndependentFromOwnershipAndDirectCheck(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	in := testInput([]declarations.ProjectRecord{record}, map[string]string{
+		"src/App/App.csproj":         `<Project><Import Project="$(SharedProps)" /><ItemGroup><PackageReference Include="A" /></ItemGroup></Project>`,
+		"src/App/packages.lock.json": lock,
+	}, true)
+	r, err := Analyze(context.Background(), in, Limits{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	c := r.Contexts[0]
-	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 || r.Status != "partial" {
-		t.Fatalf("explicit imported MSBuild input was treated as a closed project: %+v", c)
+	if c.NuGetEvidence == nil || c.NuGetEvidence.PresenceState != "observed" || c.NuGetEvidence.CandidateCount != 1 || len(c.NuGetEvidence.CandidatePaths) != 1 {
+		t.Fatalf("known candidate presence was lost: %+v", c)
 	}
-	if len(c.Boundaries) != 1 || c.Boundaries[0].Reason != "nuget-imported-project-input-unresolved" {
-		t.Fatalf("missing explicit import boundary: %+v", c.Boundaries)
+	if c.AssociationState != "indeterminate" || len(c.Checks) != 0 {
+		t.Fatalf("unknown ownership was conflated with presence: %+v", c)
+	}
+}
+
+func TestNuGetExplicitMSBuildImportIsEvaluated(t *testing.T) {
+	record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "Declared@1.0", State: "declared"})
+	lock := `{"version":1,"dependencies":{"net8.0":{"Declared":{"type":"Direct"},"Imported":{"type":"Direct"}}}}`
+	project := `<Project Sdk="Microsoft.NET.Sdk"><Import Project="../Shared.props" /><ItemGroup><PackageReference Include="Declared" Version="1.0" /></ItemGroup></Project>`
+	for _, tc := range []struct {
+		name, shared string
+		want, check  string
+		reason       string
+	}{
+		{"selected import adds a reference", `<Project><ItemGroup><PackageReference Include="Imported" Version="1.0" /></ItemGroup></Project>`, "observed", "match", ""},
+		{"selected import sets a conditional lock path", `<Project><PropertyGroup Condition="'$(CI)' == 'true'"><NuGetLockFilePath>ci.lock.json</NuGetLockFilePath></PropertyGroup></Project>`, "indeterminate", "", "nuget-lock-path-conditional"},
+		{"absent unconditional import fails evaluation", "", "indeterminate", "", "nuget-project-config-unresolved"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			content := map[string]string{"src/App/App.csproj": project, "src/App/packages.lock.json": lock, "src/App/ci.lock.json": lock}
+			if tc.shared != "" {
+				content["src/Shared.props"] = tc.shared
+			}
+			r, err := Analyze(context.Background(), testInput([]declarations.ProjectRecord{record}, content, true), Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatal(err)
+			}
+			c := r.Contexts[0]
+			if c.AssociationState != tc.want || tc.check != "" && (len(c.Checks) != 1 || c.Checks[0].Status != tc.check) || tc.reason != "" && c.OutcomeReason() != tc.reason {
+				t.Fatalf("explicit import: %+v", c)
+			}
+			if tc.reason != "" && (len(c.NuGetEvidence.Causes) == 0 || c.NuGetEvidence.Causes[0].Path == "") {
+				t.Fatalf("uncertainty has no named cause: %+v", c.NuGetEvidence)
+			}
+		})
 	}
 }
 

@@ -21,6 +21,8 @@ DECLARATION_CHECKS = {'six_ecosystem_facts', 'workspace_relationships', 'named_i
 ASSESSMENT_CHECKS = {'assessment_inventory_and_projects', 'assessment_lock_partition',
                      'assessment_offline_standalone_all_parity', 'assessment_no_external_tools',
                      'assessment_preserves_legacy_defaults'}
+STRUCTURE_CHECKS = {'assessment_workspace_structure', 'assessment_dependency_graph',
+                    'assessment_manifest_entrypoint_catalog'}
 SCRIPT_SENTINEL = 'DIRCUE_RELEASE_SMOKE_SCRIPT_BODY_DO_NOT_EXECUTE'
 FIXTURES = {
     'npm/package.json': '{"name":"suite","version":"1.0.0","workspaces":["packages/*"],"scripts":{"start":"node server.js","check":"echo ' + SCRIPT_SENTINEL + ' > EXECUTED"}}\n',
@@ -54,6 +56,21 @@ ASSESSMENT_FACTS = {
     'eligible_lockfile_projects': 1,
     'lockfile_state_partition': ['covered', 'missing', 'not_applicable', 'unsupported', 'unknown'],
 }
+STRUCTURE_FACTS = {
+    'workspace_groups': 5,
+    'workspace_ecosystems': ['cargo', 'go', 'maven', 'npm', 'python'],
+    'definite_edges': 2,
+    'observed_connected_groups': 8,
+    'parsed_projects': 10,
+    'entry_point_rows': 3,
+    'entry_point_declarations': 3,
+    'entry_point_associations': 3,
+    'manifest_entrypoints': [
+        {'ecosystem': 'npm', 'kind': 'manifest_interface:script', 'name': 'start'},
+        {'ecosystem': 'cargo', 'kind': 'manifest_interface:cargo-bin', 'name': 'smoke-app', 'target': 'cargo/crates/app/src/main.rs'},
+        {'ecosystem': 'python', 'kind': 'manifest_interface:python-console-script', 'name': 'suite', 'target': 'suite.cli:main'},
+    ],
+}
 
 
 def require(condition, message):
@@ -82,6 +99,10 @@ def assessment_required(version):
     return release_tuple(version) >= (1, 4, 0)
 
 
+def structure_required(version):
+    return release_tuple(version) >= (1, 5, 0)
+
+
 def source_inputs():
     return {p.relative_to(ROOT).as_posix(): file_sha(p) for p in (Path(__file__).resolve(), ROOT / 'scripts/wheels.py')}
 
@@ -98,16 +119,19 @@ def validate_receipt(receipt, version, candidate_sha256):
     require(isinstance(receipt, dict), 'declaration smoke receipt must be an object')
     required = declarations_required(version)
     assess = assessment_required(version)
+    structure = structure_required(version)
     require(receipt.get('schema_version') == '1.0.0' and receipt.get('passed') is True and
             receipt.get('version') == version and receipt.get('declarations_required') is required,
             'declaration smoke version/status mismatch')
     require((receipt.get('assessment_required') is True) if assess else ('assessment_required' not in receipt),
             'declaration smoke assessment gate mismatch')
+    require((receipt.get('structure_required') is True) if structure else ('structure_required' not in receipt),
+            'declaration smoke structure gate mismatch')
     require(valid_digest(candidate_sha256) and receipt.get('candidate_sha256') == candidate_sha256,
             'declaration smoke executable identity mismatch')
     require(receipt.get('source_sha256') == source_inputs() and receipt.get('fixture_sha256') == fixture_inputs(),
             'declaration smoke input identity mismatch')
-    expected = DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set()) | (ASSESSMENT_CHECKS if assess else set())
+    expected = DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set()) | (ASSESSMENT_CHECKS if assess else set()) | (STRUCTURE_CHECKS if structure else set())
     checks = receipt.get('checks')
     require(isinstance(checks, list) and all(isinstance(c, str) for c in checks) and len(checks) == len(expected) and set(checks) == expected,
             'declaration smoke check inventory mismatch')
@@ -118,6 +142,8 @@ def validate_receipt(receipt, version, candidate_sha256):
     facts = {} if not required else FACTS
     if assess:
         facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS}
+    if structure:
+        facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS, 'structure': STRUCTURE_FACTS}
     require(receipt.get('observed_facts') == facts, 'declaration smoke fact coverage mismatch')
     require(receipt.get('source_removed_before_compare') is required and receipt.get('worker_required') is False,
             'declaration smoke execution scope mismatch')
@@ -183,8 +209,9 @@ def check_facts(report):
     require(SCRIPT_SENTINEL not in json.dumps(report), 'raw script body disclosed')
 
 
-def check_assessment_facts(report):
-    require(report.get('schema_version') == '1.9.0', 'assessment schema mismatch')
+def check_assessment_facts(report, version='1.4.0'):
+    expected_schema = '1.10.0' if release_tuple(version) >= (1, 5, 0) else '1.9.0'
+    require(report.get('schema_version') == expected_schema, 'assessment schema mismatch')
     assessment = report.get('assessment')
     require(isinstance(assessment, dict), 'native assessment output is missing')
     inventory = assessment['inventory']
@@ -207,6 +234,50 @@ def check_assessment_facts(report):
     require(lockfiles['covered']['count'] == 0 and lockfiles['unknown']['count'] == 0,
             'fixture unexpectedly observed a lock or unresolved lock association')
     return assessment
+
+
+def check_assessment_structure_facts(assessment):
+    structure = assessment.get('structure')
+    require(isinstance(structure, dict), '1.5 structural assessment is missing')
+    require(assessment.get('version') == '1.1.0', 'structural assessment version mismatch')
+    groups = structure.get('workspace_groups', [])
+    require(structure.get('workspace_group_count') == STRUCTURE_FACTS['workspace_groups'] and
+            len(groups) + structure.get('omitted_workspace_groups', -1) == STRUCTURE_FACTS['workspace_groups'],
+            'workspace group exact total or bounded sample differs')
+    expected_groups = set(STRUCTURE_FACTS['workspace_ecosystems'])
+    require({group.get('ecosystem') for group in groups} == expected_groups and
+            all(group.get('member_count') == 1 and group.get('membership_coverage', {}).get('status') == 'complete'
+                for group in groups), 'workspace membership facts differ')
+    dependencies = structure.get('dependencies', {})
+    require(dependencies.get('projects', {}).get('count') == STRUCTURE_FACTS['parsed_projects'] and
+            dependencies.get('definite_edges', {}).get('count') == STRUCTURE_FACTS['definite_edges'] and
+            dependencies.get('connected_groups', {}).get('count') == STRUCTURE_FACTS['observed_connected_groups'],
+            'structural graph project/edge/connected-group facts differ')
+    entries = structure.get('entry_points', [])
+    observed = []
+    for expected in STRUCTURE_FACTS['manifest_entrypoints']:
+        matches = [entry for entry in entries if entry.get('ecosystem') == expected['ecosystem'] and
+                   entry.get('name') == expected['name'] and entry.get('state') == 'declared']
+        require(len(matches) == 1, 'manifest entry-point catalog missing or duplicated: ' + repr(expected))
+        entry = matches[0]
+        if 'target' in expected:
+            require(entry.get('target') == expected['target'], 'manifest entry-point target differs: ' + repr(expected))
+        observed.append({key: entry[key] for key in expected})
+    require(structure.get('entry_point_count') == STRUCTURE_FACTS['entry_point_declarations'] and
+            structure.get('entry_point_row_count') == STRUCTURE_FACTS['entry_point_rows'] and
+            structure.get('entry_point_association_count') == STRUCTURE_FACTS['entry_point_associations'] and
+            len(entries) == structure.get('entry_point_row_count') and
+            all(entry.get('project_id') for entry in entries), 'entry-point declaration, row, or association counts differ')
+    coverage = [row for row in structure.get('coverage', [])
+                if row.get('scope') == 'entry_points' and row.get('ecosystem') == 'all']
+    require(len(coverage) == 1 and coverage[0].get('status') == 'partial' and
+            'source_entry_points_not_inspected' in coverage[0].get('reasons', []),
+            'manifest entry-point catalog must disclose that source entry points were not inspected')
+    serialized = json.dumps(structure, sort_keys=True)
+    require(SCRIPT_SENTINEL not in serialized and 'node server.js' not in serialized,
+            'raw npm script body disclosed in structural catalog')
+    require(observed == STRUCTURE_FACTS['manifest_entrypoints'], 'manifest entry-point facts differ')
+    return structure
 
 
 def check_assessment_parity(standalone_raw, combined_raw):
@@ -234,6 +305,7 @@ def module(report, name):
 def run(candidate, version):
     required = declarations_required(version)
     assess = assessment_required(version)
+    structure_required_for_version = structure_required(version)
     candidate = candidate.resolve()
     binary_sha = file_sha(candidate)
     require(output(candidate, ['--version']) == f'dircue {version}\n'.encode(), 'packaged core version mismatch')
@@ -243,6 +315,8 @@ def run(candidate, version):
                'observed_facts': {}, 'negative_cases': []}
     if assess:
         receipt['assessment_required'] = True
+    if structure_required_for_version:
+        receipt['structure_required'] = True
     with tempfile.TemporaryDirectory(prefix='dircue-packaged-declarations-') as temp:
         area = Path(temp)
         root = area / 'source'
@@ -279,7 +353,9 @@ def run(candidate, version):
             standalone_raw = output(candidate, standalone_args, env=offline_env, cwd=area)
             combined_assessment_raw = output(candidate, combined_args, env=offline_env, cwd=area)
             assessment_report = check_assessment_parity(standalone_raw, combined_assessment_raw)
-            check_assessment_facts(assessment_report)
+            check_assessment_facts(assessment_report, version)
+            if structure_required_for_version:
+                check_assessment_structure_facts(assessment_report['assessment'])
             require('package_evidence' not in assessment_report or assessment_report['package_evidence'] is None,
                     'native assessment unexpectedly imported package evidence')
             require(not list(root.rglob('EXECUTED')), 'repository script executed during assessment')
@@ -322,11 +398,15 @@ def run(candidate, version):
                 require(b'RAW_PRIVATE_MARKER' not in result.stderr, 'invalid report payload leaked into error')
             receipt['stdout_sha256'].update(changed_compare=sha(changed_compare), identical_compare=sha(identical), partial_compare=sha(qualified))
             observed_facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS} if assess else FACTS
+            if structure_required_for_version:
+                observed_facts = {'declarations': FACTS, 'assessment': ASSESSMENT_FACTS,
+                                  'structure': STRUCTURE_FACTS}
             receipt.update(observed_facts=observed_facts, source_removed_before_compare=True,
                            negative_cases=['duplicate-json-key', 'malformed-json'])
     require(file_sha(candidate) == binary_sha, 'candidate changed during smoke checks')
     receipt.update(checks=sorted(DEFAULT_CHECKS | (DECLARATION_CHECKS if required else set()) |
-                                  (ASSESSMENT_CHECKS if assess else set())), passed=True)
+                                  (ASSESSMENT_CHECKS if assess else set()) |
+                                  (STRUCTURE_CHECKS if structure_required_for_version else set())), passed=True)
     return validate_receipt(receipt, version, binary_sha)
 
 

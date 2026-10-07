@@ -225,7 +225,7 @@ class Runner:
     @staticmethod
     def basic(report):
         a = report['assessment']
-        assert a['version'] == '1.0.0'
+        assert a['version'] == '1.1.0'
         for metric in [*a['inventory'].values(), *(a[k] for k in METRICS)]:
             assert metric['completeness'] in ('complete', 'lower_bound')
             assert metric['scope']
@@ -233,7 +233,7 @@ class Runner:
                 assert metric['reasons']
             else:
                 assert metric['reasons'] == []
-        assert report['schema_version'] == '1.9.0'
+        assert report['schema_version'] == '1.10.0'
         assert a['source']['mode'] == 'directory'
         assert a['source']['consistency'] == 'live_directory_metadata'
         assert 'languages' in report and 'summary' in report

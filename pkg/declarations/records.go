@@ -9,6 +9,8 @@ type ProjectRecord struct {
 	Project  Project
 	Parsed   bool
 	Complete bool
+	// WorkspaceDeclared is parser-private metadata for explicit empty groups.
+	WorkspaceDeclared bool
 	// PythonBuildSystemSeen preserves an empty pyproject build-system table,
 	// which has no corresponding requirement observation.
 	PythonBuildSystemSeen bool

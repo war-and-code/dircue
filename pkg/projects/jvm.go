@@ -305,6 +305,10 @@ func jvmParseMaven(name string, content []byte, d *Document) {
 		return
 	}
 	p := jvmProject(name, "maven")
+	// Preserve explicit aggregator presence even when the modules list is empty.
+	// This is internal structural metadata; module references remain the public
+	// declaration evidence when values are present.
+	d.WorkspaceDeclared = root.child("modules") != nil || root.child("subprojects") != nil
 	budget := &jvmObservationBudget{project: &p, document: d, name: name}
 	props := map[string]string{}
 	if properties := root.child("properties"); properties != nil {

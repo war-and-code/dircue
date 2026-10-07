@@ -313,6 +313,69 @@ func TestAssessmentExactCountsSurviveIndependentEvidenceSampleCap(t *testing.T) 
 	}
 }
 
+func TestGradleBuildEvaluationQualifiesOnlyDependencyCoverage(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"gradle/settings.gradle": "rootProject.name = 'static-only'\n",
+		"gradle/build.gradle":    "plugins { id 'base' }\n",
+		"package.json":           `{"name":"unrelated-npm"}`,
+	})
+	report := scanAssessment(t, root, Options{Source: "directory"})
+	structure := report.Assessment.Structure
+	if structure == nil {
+		t.Fatal("structure report missing")
+	}
+	if structure.Dependencies.Projects.Count != 2 || structure.Dependencies.Projects.Completeness != "complete" {
+		t.Fatalf("exact parsed project vertices were changed by build-evaluation uncertainty: %+v", structure.Dependencies.Projects)
+	}
+	coverage := func(scope, ecosystem string) (string, []string) {
+		for _, row := range structure.Coverage {
+			if row.Scope == scope && row.Ecosystem == ecosystem {
+				return row.Status, row.Reasons
+			}
+		}
+		return "", nil
+	}
+	for _, scope := range []string{"project_dependencies", "dependency_connectivity"} {
+		got, reasons := coverage(scope, "gradle")
+		if got != "partial" || !slicesContains(reasons, "build_declarations_require_evaluation") {
+			t.Fatalf("Gradle %s coverage must disclose build-evaluation boundary: status=%s reasons=%v", scope, got, reasons)
+		}
+		if got, _ := coverage(scope, "npm"); got != "complete" {
+			t.Fatalf("unrelated npm %s coverage was downgraded: %+v", scope, structure.Coverage)
+		}
+	}
+	if structure.Dependencies.ConnectedGroups.Count != 2 || structure.Dependencies.DefiniteEdges.Count != 0 {
+		t.Fatalf("isolated vertices should remain exact facts about the observed graph: %+v", structure.Dependencies)
+	}
+}
+
+func TestAssessmentMavenExactCaseExplicitReactorDependency(t *testing.T) {
+	root := fixtures(t, map[string]string{
+		"pom.xml":     `<project><modelVersion>4.0.0</modelVersion><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version><packaging>pom</packaging><modules><module>app</module><module>lib</module></modules></project>`,
+		"app/pom.xml": `<project><modelVersion>4.0.0</modelVersion><parent><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version></parent><artifactId>app</artifactId><version>1</version><dependencies><dependency><groupId>Org.Example</groupId><artifactId>Lib</artifactId><version>1</version></dependency></dependencies></project>`,
+		"lib/pom.xml": `<project><modelVersion>4.0.0</modelVersion><parent><groupId>Org.Example</groupId><artifactId>root</artifactId><version>1</version></parent><artifactId>Lib</artifactId><version>1</version></project>`,
+	})
+	report := scanAssessment(t, root, Options{Source: "directory"})
+	structure := report.Assessment.Structure
+	found := false
+	for _, edge := range structure.Dependencies.Edges {
+		if edge.From == "app/pom.xml" && edge.To == "lib/pom.xml" && edge.Kind == "maven-sibling-dependency" {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("case-exact Maven reactor edge missing: %+v", structure.Dependencies)
+	}
+	if structure.Dependencies.DefiniteEdges.Count != 3 || structure.Dependencies.ConnectedGroups.Count != 1 {
+		t.Fatalf("Maven graph totals should include two parent edges and the sibling edge: %+v", structure.Dependencies)
+	}
+	for _, row := range structure.Coverage {
+		if row.Ecosystem == "maven" && (row.Scope == "project_dependencies" || row.Scope == "dependency_connectivity") && row.Status != "complete" {
+			t.Fatalf("exact, unconditional reactor dependency should retain complete coverage: %+v", row)
+		}
+	}
+}
+
 func TestAssessmentPerMetricLowerBoundsForContentSummaryAndTreeLimits(t *testing.T) {
 	t.Run("content cap", func(t *testing.T) {
 		root := fixtures(t, map[string]string{
@@ -353,7 +416,7 @@ func TestAssessmentPerMetricLowerBoundsForContentSummaryAndTreeLimits(t *testing
 func TestAssessmentEmptyDirectoryAndSymlinkLockDoNotInventEvidence(t *testing.T) {
 	t.Run("empty directory", func(t *testing.T) {
 		report := scanAssessment(t, t.TempDir(), Options{Source: "directory"})
-		if report.Assessment.Inventory.Files.Count != 0 || report.Assessment.Inventory.Bytes.Count != 0 || report.Assessment.Inventory.Files.Completeness != "complete" || report.SchemaVersion != "1.9.0" {
+		if report.Assessment.Inventory.Files.Count != 0 || report.Assessment.Inventory.Bytes.Count != 0 || report.Assessment.Inventory.Files.Completeness != "complete" || report.SchemaVersion != profile.AssessmentSchemaVersion {
 			t.Fatalf("empty directory contract: %+v", report.Assessment)
 		}
 	})

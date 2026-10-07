@@ -64,6 +64,9 @@ type Document struct {
 	Requirements []Requirement
 	References   []Reference
 	Diagnostics  []Diagnostic
+	// WorkspaceDeclared preserves explicit empty Maven aggregators for the
+	// structural assessment adapter. It is parser metadata, not a declaration.
+	WorkspaceDeclared bool `json:"-"`
 }
 
 type Counts struct {

@@ -207,6 +207,11 @@ func ParseDotnet(name string, content []byte) Document {
 					interfaces = append(interfaces, iface)
 				}
 			}
+		case "AssemblyName":
+			if parent != "PropertyGroup" && parent != "Project" {
+				break
+			}
+			addReq("assembly-name", value, condition)
 		case "TargetFrameworkVersion":
 			if parent != "PropertyGroup" && parent != "Project" {
 				break
@@ -347,6 +352,15 @@ func ParseDotnet(name string, content []byte) Document {
 		case "Reference":
 			if parent != "ItemGroup" && parent != "Project" {
 				break
+			}
+			// An assembly reference names an assembly, optionally with a
+			// strong-name suffix after a comma. Keep the simple name so the
+			// structural view can match it to an in-repository project's
+			// assembly name; it says nothing about how the build resolves it.
+			for v := range strings.SplitSeq(n.attrs["Include"], ";") {
+				if simple, _, _ := strings.Cut(v, ","); strings.TrimSpace(simple) != "" {
+					addReq("assembly-reference", strings.TrimSpace(simple), condition)
+				}
 			}
 			// MSBuild permits item metadata in XML attributes as well as child
 			// elements. Keep HintPath declarations visible in either form; the

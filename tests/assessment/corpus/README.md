@@ -21,3 +21,5 @@ python3 tests/assessment/corpus/label.py --corpus-root .cache/corpus --id playwr
 ```
 
 The labels encode one dircue rule that npm does not answer directly: a project without a lockfile is `missing` when it declares dependencies or workspaces, and `not_applicable` otherwise.
+
+The stock-indicators NuGet missing count was corrected from five to six on 2026-10-06. The original label counted the five documentation examples but omitted `tools/application/Test.Application.csproj`. At the pinned commit that project declares package references, uses `Microsoft.NET.Sdk`, and has no lockfile. Its shared build props set only `NoWarn`, and its nearest package props disable central versions without changing the lock path. The correction and inspection method are recorded in `expectations.json`. A passing run against these corrected labels is regression evidence, not an independent blind accuracy estimate.

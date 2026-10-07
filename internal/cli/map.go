@@ -497,16 +497,18 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	// Partition deployables into three buckets:
 	//   1. runnableDeployables: container builds, workloads, Compose/Aspire services,
-	//      Helm charts, Terraform modules, CloudFormation stacks, functions. Shown
+	//      Helm charts, Terraform modules, functions and container tasks. Shown
 	//      by name, sorted by link count.
 	//   2. ciWorkflows: GitHub Actions / Jenkins / other CI. Shown as "+N CI
 	//      workflows" unless runnableDeployables is empty, in which case they fall
 	//      back to the named list (so a CI-only repo still shows workflow names).
 	//   3. clusterResources: Kubernetes cluster-management objects (ServiceAccounts,
-	//      ConfigMaps, …). Always shown as "+N cluster resources".
+	//      ConfigMaps, …). Other non-runnable deployable declarations are counted as
+	//      supporting declarations.
 	runnableDeployables := []mapdoc.Node{}
 	ciWorkflows := []mapdoc.Node{}
 	clusterResourceCount := 0
+	supportingResourceCount := 0
 	auxiliaryDeployableCount := 0
 	for _, n := range deployables {
 		kind := n.Properties["kind"]
@@ -520,7 +522,11 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 		} else if runnableDeployableKind(kind, provider) {
 			runnableDeployables = append(runnableDeployables, n)
 		} else {
-			clusterResourceCount++
+			if provider == "kubernetes" || provider == "tekton" {
+				clusterResourceCount++
+			} else {
+				supportingResourceCount++
+			}
 		}
 	}
 	// If there are no non-CI runnable deployables the CI workflows are the only
@@ -538,6 +544,9 @@ func writeMapSummary(out io.Writer, d mapdoc.Document) error {
 	}
 	if clusterResourceCount > 0 {
 		secondary = append(secondary, fmt.Sprintf("+%d cluster resources", clusterResourceCount))
+	}
+	if supportingResourceCount > 0 {
+		secondary = append(secondary, fmt.Sprintf("+%d supporting declarations", supportingResourceCount))
 	}
 	if auxiliaryDeployableCount > 0 {
 		secondary = append(secondary, fmt.Sprintf("+%d tooling, test or example", auxiliaryDeployableCount))
@@ -803,16 +812,18 @@ func hasRootDotGit(dir string) bool {
 // runnableDeployableKind returns true for deployable kinds that describe
 // something that runs, builds, or orchestrates: container images,
 // Compose/Serverless/Aspire services, Kubernetes workloads, Helm charts,
-// Terraform modules, and CloudFormation stacks. CI workflows (kind "workflow")
+// Terraform modules, CloudFormation functions and container tasks. CI workflows (kind "workflow")
 // return false; they are counted separately as "+N CI workflows" and shown by
 // name only when no other runnable deployables are present. Kubernetes
-// cluster-management objects (resource kind) also return false; those are shown
-// as "+N cluster resources".
+// cluster-management objects also return false; unknown kinds are not promoted
+// to runnable entries and remain in the supporting-declaration count.
 func runnableDeployableKind(kind, provider string) bool {
 	switch kind {
-	case "container_build":
+	case "container_build", "container":
 		return true
 	case "workload":
+		return true
+	case "function", "container_task", "archive", "process":
 		return true
 	case "service":
 		// Kubernetes Service objects are cluster-management; Compose/Serverless/Aspire
@@ -821,9 +832,12 @@ func runnableDeployableKind(kind, provider string) bool {
 	case "infrastructure":
 		// Helm charts and Terraform modules describe runnable deployments;
 		// Kubernetes infrastructure objects (ServiceAccounts, ConfigMaps, etc.) do not.
-		return provider == "helm" || provider == "terraform" || provider == "cloudformation"
+		return provider == "helm" || provider == "terraform"
 	case "resource":
 		// Kubernetes generic resources are cluster-management objects.
+		return false
+	case "library":
+		// Helm library charts only provide templates to other charts.
 		return false
 	case "workflow":
 		// CI workflows are separated from runnable deployables so that large
@@ -831,7 +845,7 @@ func runnableDeployableKind(kind, provider string) bool {
 		// The caller handles workflows in a dedicated ciWorkflows bucket.
 		return false
 	}
-	return true
+	return false
 }
 
 // componentRoot returns a component's clean root directory, "." for the

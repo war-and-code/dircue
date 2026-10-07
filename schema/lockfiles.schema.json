@@ -19,7 +19,10 @@
       "const": "dircue"
     },
     "provider_version": {
-      "const": "1.0.0"
+      "enum": [
+        "1.0.0",
+        "1.1.0"
+      ]
     },
     "status": {
       "enum": [
@@ -40,8 +43,19 @@
     },
     "semantics": {
       "oneOf": [
-        {"const": ["npm-package-lock-direct-tables-v1", "nuget-packages-lock-direct-presence-v1"]},
-        {"const": ["npm-package-lock-direct-tables-v1", "nuget-packages-lock-direct-presence-v1", "npm-workspace-member-lock-descriptors-v1"]}
+        {
+          "const": [
+            "npm-package-lock-direct-tables-v1",
+            "nuget-packages-lock-direct-presence-v1"
+          ]
+        },
+        {
+          "const": [
+            "npm-package-lock-direct-tables-v1",
+            "nuget-packages-lock-direct-presence-v1",
+            "npm-workspace-member-lock-descriptors-v1"
+          ]
+        }
       ]
     },
     "limits": {
@@ -283,6 +297,9 @@
                 }
               }
             }
+          },
+          "nuget_evidence": {
+            "$ref": "#/$defs/nuget_evidence"
           }
         }
       },
@@ -317,7 +334,9 @@
       "if": {
         "properties": {
           "semantics": {
-            "contains": {"const": "npm-workspace-member-lock-descriptors-v1"}
+            "contains": {
+              "const": "npm-workspace-member-lock-descriptors-v1"
+            }
           }
         }
       },
@@ -327,14 +346,46 @@
           "contexts": {
             "items": {
               "properties": {
-                "project_id": {"not": {"pattern": "\\\\"}},
-                "manifest_path": {"not": {"pattern": "\\\\"}},
-                "lockfile_path": {"not": {"pattern": "\\\\"}},
-                "boundaries": {"items": {"properties": {"path": {"not": {"pattern": "\\\\"}}}}}
+                "project_id": {
+                  "not": {
+                    "pattern": "\\\\"
+                  }
+                },
+                "manifest_path": {
+                  "not": {
+                    "pattern": "\\\\"
+                  }
+                },
+                "lockfile_path": {
+                  "not": {
+                    "pattern": "\\\\"
+                  }
+                },
+                "boundaries": {
+                  "items": {
+                    "properties": {
+                      "path": {
+                        "not": {
+                          "pattern": "\\\\"
+                        }
+                      }
+                    }
+                  }
+                }
               }
             }
           },
-          "diagnostics": {"items": {"properties": {"path": {"not": {"pattern": "\\\\"}}}}}
+          "diagnostics": {
+            "items": {
+              "properties": {
+                "path": {
+                  "not": {
+                    "pattern": "\\\\"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -351,6 +402,195 @@
           "tree"
         ]
       }
+    },
+    {
+      "if": {
+        "properties": {
+          "provider_version": {
+            "const": "1.0.0"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "contexts": {
+            "items": {
+              "not": {
+                "required": [
+                  "nuget_evidence"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "provider_version": {
+            "const": "1.1.0"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "contexts": {
+            "items": {
+              "if": {
+                "properties": {
+                  "ecosystem": {
+                    "const": "nuget"
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "nuget_evidence"
+                ]
+              }
+            }
+          }
+        }
+      }
     }
-  ]
+  ],
+  "$defs": {
+    "nuget_evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        },
+        "candidate_paths": {
+          "items": {
+            "maxLength": 8192,
+            "type": "string"
+          },
+          "maxItems": 16,
+          "type": "array"
+        },
+        "omitted_candidate_paths": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        },
+        "ownership_reasons": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "ownership_state": {
+          "enum": [
+            "observed",
+            "missing",
+            "not_applicable",
+            "indeterminate",
+            "unsupported"
+          ]
+        },
+        "presence_reasons": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "presence_state": {
+          "enum": [
+            "observed",
+            "not_observed",
+            "unknown"
+          ]
+        },
+        "lock_path_basis": {
+          "enum": [
+            "conventional",
+            "custom_literal",
+            "conditional",
+            "pattern",
+            "outside_snapshot",
+            "open_evidence",
+            "open_unmodeled",
+            "unresolved"
+          ]
+        },
+        "check_state": {
+          "enum": [
+            "match",
+            "different",
+            "indeterminate",
+            "not_applicable",
+            "not_compared"
+          ]
+        },
+        "check_reasons": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "causes": {
+          "type": "array",
+          "maxItems": 8,
+          "items": {
+            "$ref": "#/$defs/nuget_cause"
+          }
+        },
+        "omitted_causes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 200000
+        }
+      },
+      "required": [
+        "presence_state",
+        "candidate_count",
+        "candidate_paths",
+        "ownership_state",
+        "presence_reasons",
+        "ownership_reasons",
+        "lock_path_basis",
+        "check_state",
+        "check_reasons",
+        "causes"
+      ],
+      "type": "object"
+    },
+    "nuget_cause": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reason",
+        "path"
+      ],
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "detail": {
+          "type": "string",
+          "maxLength": 256
+        }
+      }
+    }
+  }
 }

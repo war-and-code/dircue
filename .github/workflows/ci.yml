@@ -165,6 +165,8 @@ jobs:
           python3 tests/receipts/test_map_fence.py --binary bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }}
       - name: Verify generated repository measurement populations and limits
         run: python3 tests/assessment/run.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --seeds 3 --output .cache/assessment-acceptance
+      - name: Verify structural assessment and NuGet attribution counterexamples
+        run: python3 tests/assessment_v150/run.py --candidate bin/dircue${{ runner.os == 'Windows' && '.exe' || '' }} --output .cache/assessment-acceptance/structural.json
       - name: Retain assessment acceptance receipts and report outputs
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always() && !cancelled()
@@ -199,6 +201,7 @@ jobs:
         run: |
           go test ./pkg/deployables ./pkg/projects -run '^$' -bench 'Benchmark(Procfile|Gradle|Aspire)' -benchtime=1x -benchmem
           go test ./pkg/intentmap -run '^$' -bench '^BenchmarkImportObservations$' -benchtime=1x -benchmem
+          go test ./pkg/componentmap -run '^$' -bench '^BenchmarkBuildGoReplacementActivation$' -benchtime=1x -benchmem
           # Different packaging of the same source makes two distinct binaries.
           # This exercises the harness; its timings are not a performance claim.
           go build -trimpath -ldflags '-s -w' -o "$RUNNER_TEMP/dircue-bench-smoke" .

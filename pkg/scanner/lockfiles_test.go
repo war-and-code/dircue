@@ -231,7 +231,7 @@ func TestLockfilesSkippedAggregateRetainsHighestSchema(t *testing.T) {
 	}
 }
 
-func TestNuGetExplicitImportedPropsPreventCompleteLockfileComparison(t *testing.T) {
+func TestNuGetExplicitImportedPropsAreEvaluated(t *testing.T) {
 	root := fixtures(t, map[string]string{
 		"app/App.csproj":         `<Project><Import Project="Additional.props"/><ItemGroup><PackageReference Include="Declared" Version="1.0.0"/></ItemGroup></Project>`,
 		"app/Additional.props":   `<Project><ItemGroup><PackageReference Include="Imported" Version="2.0.0"/></ItemGroup></Project>`,
@@ -245,10 +245,10 @@ func TestNuGetExplicitImportedPropsPreventCompleteLockfileComparison(t *testing.
 		t.Fatalf("lockfile contexts: %+v", report.Lockfiles.Contexts)
 	}
 	got := report.Lockfiles.Contexts[0]
-	if got.AssociationState != "indeterminate" || len(got.Checks) != 0 || report.Lockfiles.Status != "partial" {
-		t.Fatalf("explicit imported props were treated as fully inspected: context=%+v report=%+v", got, report.Lockfiles)
+	if got.AssociationState != "observed" || len(got.Checks) != 1 || got.Checks[0].Status != "match" || got.Checks[0].Compared != 2 {
+		t.Fatalf("explicit imported props were not read through the scanner: context=%+v report=%+v", got, report.Lockfiles)
 	}
-	if len(got.Boundaries) != 1 || got.Boundaries[0].Reason != "nuget-imported-project-input-unresolved" {
-		t.Fatalf("missing imported MSBuild boundary: %+v", got.Boundaries)
+	if err := lockfiles.ValidateReport(report.Lockfiles); err != nil {
+		t.Fatal(err)
 	}
 }

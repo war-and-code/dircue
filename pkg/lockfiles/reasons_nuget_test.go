@@ -3,6 +3,7 @@ package lockfiles
 import (
 	"context"
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/war-and-code/dircue/pkg/declarations"
@@ -176,26 +177,67 @@ func TestNuGetReasonNuGetLockfileOwnerUnresolved(t *testing.T) {
 	}
 }
 
-func TestNuGetReasonNuGetSharedInputsOrCustomLockPathUnresolved(t *testing.T) {
-	// "nuget-shared-inputs-or-custom-lock-path-unresolved" is emitted when
-	// nugetSharedInputs is true.
-	// Case 1: association state was "missing"; it overrides to "indeterminate".
-	req := declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"}
-	record := nugetRecord("src/App", "src/App/App.csproj", req)
-	// No lockfile in src/App → association would be "missing". But
-	// Directory.Build.props at root triggers nugetSharedInputs.
-	files := map[string]string{
-		"src/App/App.csproj":    "<Project />",
-		"Directory.Build.props": "<Project />",
-	}
-	in := testInput([]declarations.ProjectRecord{record}, files, true)
-	c := nugetReasonContext(t, in, "src/App/App.csproj")
-	if c.AssociationState != "indeterminate" {
-		t.Fatalf("AssociationState=%q want indeterminate; context=%+v", c.AssociationState, c)
-	}
-	const want = "nuget-shared-inputs-or-custom-lock-path-unresolved"
-	if nugetReasonBoundaryReason(c) != want {
-		t.Fatalf("boundary reason=%q want %q; context=%+v", nugetReasonBoundaryReason(c), want, c)
+func TestNuGetReasonStaticModelCodes(t *testing.T) {
+	// Each static-model reason names the selected file that caused it.
+	lock := `{"version":1,"dependencies":{"net8.0":{"A":{"type":"Direct"}}}}`
+	for _, tc := range []struct {
+		reason, path string
+		files        map[string]string
+		check        bool
+	}{
+		{"nuget-msbuild-input-unmodeled", "src/App/App.csproj", map[string]string{
+			"src/App/App.csproj": `<Project Sdk="Microsoft.Build.NoTargets/3.7.0">` + pkgA + `</Project>`,
+		}, false},
+		{"nuget-msbuild-input-unmodeled", "Directory.Build.props", map[string]string{
+			"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
+			"Directory.Build.props": `<Project><Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" /></Project>`,
+		}, false},
+		{"nuget-lock-path-conditional", "src/App/App.csproj", map[string]string{
+			"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk"><Choose><When Condition="'$(CI)' == 'true'"><PropertyGroup><NuGetLockFilePath>ci.lock.json</NuGetLockFilePath></PropertyGroup></When></Choose>` + pkgA + `</Project>`,
+			"src/App/packages.lock.json": lock,
+		}, false},
+		{"nuget-lock-path-conditional", "src/App/App.csproj", map[string]string{
+			"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk"><Target Name="Pin" BeforeTargets="Restore"><PropertyGroup><NuGetLockFilePath>t.lock.json</NuGetLockFilePath></PropertyGroup></Target>` + pkgA + `</Project>`,
+			"src/App/packages.lock.json": lock,
+		}, false},
+		{"nuget-custom-lock-path-unresolved", "Directory.Build.props", map[string]string{
+			"src/App/App.csproj":    `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
+			"Directory.Build.props": `<Project><PropertyGroup><NuGetLockFilePath>$(LockRoot)/app.lock.json</NuGetLockFilePath></PropertyGroup></Project>`,
+		}, false},
+		{"nuget-package-reference-conditional", "src/App/App.csproj", map[string]string{
+			"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `<ItemGroup Condition="'$(OS)' == 'Windows_NT'"><PackageReference Include="B" Version="1.0" /></ItemGroup></Project>`,
+			"src/App/packages.lock.json": lock,
+		}, true},
+		{"nuget-package-reference-dynamic", "src/App/App.csproj", map[string]string{
+			"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `<ItemGroup><PackageReference Include="$(ExtraPackage)" Version="1.0" /></ItemGroup></Project>`,
+			"src/App/packages.lock.json": lock,
+		}, true},
+	} {
+		t.Run(tc.reason+" "+tc.path, func(t *testing.T) {
+			record := nugetRecord("src/App", "src/App/App.csproj", declarations.Requirement{Kind: "package-reference", Value: "A@1.0", State: "declared"})
+			in := testInput([]declarations.ProjectRecord{record}, tc.files, true)
+			r, err := Analyze(context.Background(), in, Limits{})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := ValidateReport(r); err != nil {
+				t.Fatal(err)
+			}
+			c := contextByManifest(r, "src/App/App.csproj")
+			e := c.NuGetEvidence
+			if tc.check {
+				if c.AssociationState != "observed" || len(c.Checks) != 1 || c.Checks[0].Status != "indeterminate" || !slices.Contains(e.CheckReasons, tc.reason) || e.CheckState != "indeterminate" {
+					t.Fatalf("check reason %q: %+v %+v", tc.reason, c, e)
+				}
+			} else if c.AssociationState != "indeterminate" || c.OutcomeReason() != tc.reason {
+				t.Fatalf("ownership reason=%q want %q: %+v", c.OutcomeReason(), tc.reason, c)
+			}
+			if !slices.ContainsFunc(e.Causes, func(cause NuGetCause) bool {
+				return cause.Reason == tc.reason && cause.Path == tc.path && cause.Detail != ""
+			}) {
+				t.Fatalf("no cause %s at %s: %+v", tc.reason, tc.path, e.Causes)
+			}
+		})
 	}
 }
 
@@ -349,7 +391,7 @@ func TestNuGetReasonInventoryIncompleteAndAssociation(t *testing.T) {
 		// association overrides to "indeterminate" with this reason.
 		record := nugetRecord("src/App", "src/App/App.csproj", req)
 		in := testInput([]declarations.ProjectRecord{record}, map[string]string{
-			"src/App/App.csproj":         "<Project />",
+			"src/App/App.csproj":         `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
 			"src/App/packages.lock.json": lockBody,
 		}, false) // inventoryComplete = false
 		c := nugetReasonContext(t, in, "src/App/App.csproj")
@@ -367,7 +409,7 @@ func TestNuGetReasonInventoryIncompleteAndAssociation(t *testing.T) {
 		// association overrides to "indeterminate" with this reason.
 		record := nugetRecord("src/App", "src/App/App.csproj", req)
 		in := testInput([]declarations.ProjectRecord{record}, map[string]string{
-			"src/App/App.csproj": "<Project />",
+			"src/App/App.csproj": `<Project Sdk="Microsoft.NET.Sdk">` + pkgA + `</Project>`,
 		}, false) // inventoryComplete = false, no lockfile → "missing"
 		c := nugetReasonContext(t, in, "src/App/App.csproj")
 		if c.AssociationState != "indeterminate" {

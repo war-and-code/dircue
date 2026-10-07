@@ -11,7 +11,8 @@ import (
 
 const (
 	Provider                       = "dircue"
-	ProviderVersion                = "1.0.0"
+	ProviderVersion                = "1.1.0"
+	LegacyProviderVersion          = "1.0.0"
 	DefaultMaxInventoryPaths       = 200000
 	DefaultMaxLockfiles            = 256
 	DefaultMaxFileBytes      int64 = 1 << 20
@@ -32,13 +33,18 @@ type File struct {
 type ReadSelected func(context.Context, string, int64) ([]byte, int64, error)
 
 type Input struct {
-	Source            string
-	Tree              string
-	Inventory         []File
-	InventoryComplete bool
-	OmittedFiles      int64
-	Declarations      declarations.Report
-	ProjectRecords    []declarations.ProjectRecord
+	Source    string
+	Tree      string
+	Inventory []File
+	// SelectedFiles is a bounded set of additional selected regular files that
+	// may be read only through ReadSelected. It supports statically resolved
+	// NuGet imports and custom lock paths without opening host paths.
+	SelectedFiles         []File
+	SelectedFilesComplete bool
+	InventoryComplete     bool
+	OmittedFiles          int64
+	Declarations          declarations.Report
+	ProjectRecords        []declarations.ProjectRecord
 	// DeclarationOmissions lists omitted selected manifests and
 	// DeclarationOmittedTrees lists selected directories that could not be
 	// read. When DeclarationOmissionsAttributed is true every other
@@ -84,14 +90,44 @@ type Coverage struct {
 // association. AssociationState is observed, missing, unsupported,
 // indeterminate, or not_applicable.
 type Context struct {
-	ProjectID        string     `json:"project_id"`
-	Ecosystem        string     `json:"ecosystem"`
-	ManifestPath     string     `json:"manifest_path"`
-	LockfilePath     string     `json:"lockfile_path,omitempty"`
-	AssociationState string     `json:"association_state"`
-	LockfileVersion  string     `json:"lockfile_version,omitempty"`
-	Checks           []Check    `json:"checks"`
-	Boundaries       []Boundary `json:"boundaries"`
+	ProjectID        string         `json:"project_id"`
+	Ecosystem        string         `json:"ecosystem"`
+	ManifestPath     string         `json:"manifest_path"`
+	LockfilePath     string         `json:"lockfile_path,omitempty"`
+	AssociationState string         `json:"association_state"`
+	LockfileVersion  string         `json:"lockfile_version,omitempty"`
+	Checks           []Check        `json:"checks"`
+	Boundaries       []Boundary     `json:"boundaries"`
+	NuGetEvidence    *NuGetEvidence `json:"nuget_evidence,omitempty"`
+}
+
+// NuGetEvidence keeps three separate questions apart: whether a lockfile
+// exists at a path the project could use (presence), whether that file is
+// statically attributable to this project (ownership), and whether the named
+// direct-package-presence check could be completed (check). Candidate paths
+// and causes are bounded samples; their counts stay exact.
+type NuGetEvidence struct {
+	PresenceState         string       `json:"presence_state"`
+	CandidateCount        int          `json:"candidate_count"`
+	CandidatePaths        []string     `json:"candidate_paths"`
+	OmittedCandidatePaths int          `json:"omitted_candidate_paths,omitempty"`
+	OwnershipState        string       `json:"ownership_state"`
+	PresenceReasons       []string     `json:"presence_reasons"`
+	OwnershipReasons      []string     `json:"ownership_reasons"`
+	LockPathBasis         string       `json:"lock_path_basis"`
+	CheckState            string       `json:"check_state"`
+	CheckReasons          []string     `json:"check_reasons"`
+	Causes                []NuGetCause `json:"causes"`
+	OmittedCauses         int          `json:"omitted_causes,omitempty"`
+}
+
+// NuGetCause names the selected file, and the SDK, import, or assignment in
+// it, behind an uncertain presence, ownership, or check result. Reason uses
+// the boundary reason vocabulary.
+type NuGetCause struct {
+	Reason string `json:"reason"`
+	Path   string `json:"path"`
+	Detail string `json:"detail,omitempty"`
 }
 
 // Check statuses describe only the named syntactic check. "match" never

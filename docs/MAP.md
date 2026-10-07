@@ -93,6 +93,16 @@ Each edge type has a distinct meaning. They are not interchangeable and do not i
 
 An edge's `declaration_kind` and `state` describe a local declaration when present. A `builds` or `runs` edge derived from a matching path or image is partial and cites both declarations when needed; it does not prove that a build or deployment succeeded.
 
+A `member_of` or `depends_on_local` edge is complete only when its declaration is unconditional. A dependency section or scope such as npm `devDependencies`, Cargo `dev-dependencies`, or a uv dependency group is not a condition and keeps the edge complete. A platform target, Cargo `optional = true`, a Python environment marker or extra, a Maven profile, or an MSBuild condition makes the edge partial.
+
+Npm dependency sections, including `optionalDependencies` and `peerDependencies`, record declared relationships. They do not prove that the packages are installed or used at runtime; npm peer optionality metadata is not inspected by this adapter. Cargo `optional = true` and Python extras instead gate activation and remain qualified.
+
+A Go local replacement becomes a definite dependency only when the same `go.mod` requires the replaced module at a matching version. A replacement without that evidence stays qualified with `go_replacement_activation_unresolved`: it may affect a transitive dependency, but the directive alone does not establish one. A `go.work` replacement retains its partial relationship observation because activation across workspace modules is not evaluated.
+
+A Maven `parent` edge, whether from an explicit `relativePath` or the default `../pom.xml`, also requires the parent coordinates the child declares to match the POM found at that path. Maven uses that POM only when they match, so a different groupId:artifactId or literal version becomes a `qualified_local_reference` fact with `parent_coordinates_mismatch` or `parent_version_mismatch` instead of an edge. A declared parent that uses a property, or leaves its coordinates for Maven 4 to infer, keeps the edge partial.
+
+A Skaffold `container_build` node has no `builds` edge, so a component is not reached twice through both the Skaffold context and a Kubernetes image match. `dircue analyze assessment` matches each declared Skaffold build context to component roots directly and reports the result as an entry point.
+
 Export the bundled Draft 2020-12 schema without network access:
 
 ```sh

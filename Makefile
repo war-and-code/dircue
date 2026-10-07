@@ -1,4 +1,4 @@
-VERSION ?= 1.4.0-dev
+VERSION ?= 1.5.0
 REFERENCE_IMAGE ?= dircue-linguist:9.7.0
 RELEASE_DIR ?= dist
 WHEEL_DIR ?= $(RELEASE_DIR)/wheels
@@ -148,7 +148,7 @@ fetch-receipts: ## Restore archived evidence receipts from GitHub release eviden
 # formats, targeted analysis, context) against a version-stamped build. The release
 # workflow runs them on packaged artifacts; running them here catches drift
 # before a release. Offline.
-RELEASE_SMOKE_VERSION ?= 1.4.0-rc.1
+RELEASE_SMOKE_VERSION ?= 1.5.0-rc.1
 RELEASE_SMOKE_DIR ?= .cache/release-smoke
 .PHONY: release-smoke
 release-smoke: ## Run the offline core release smokes against a stamped binary
@@ -337,7 +337,12 @@ test-map-generated:
 ASSESSMENT_BINARY ?= bin/dircue
 ASSESSMENT_OUTPUT ?= .cache/assessment/acceptance
 ASSESSMENT_SEEDS ?= 3
-.PHONY: assessment-check
+.PHONY: assessment-check assessment-structure-check
 assessment-check:
 	python3 -m unittest discover -s tests/assessment -p 'test_*.py'
 	python3 tests/assessment/run.py --candidate "$(ASSESSMENT_BINARY)" --seeds "$(ASSESSMENT_SEEDS)" --output "$(ASSESSMENT_OUTPUT)"
+
+# Offline structural fixtures; an isolated SDK can be supplied to the runner
+# for controlled property/item oracle queries, but is not required.
+assessment-structure-check:
+	python3 tests/assessment_v150/run.py --candidate "$(ASSESSMENT_BINARY)" --output ".cache/assessment150/receipt.json"

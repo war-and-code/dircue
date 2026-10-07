@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-const defaultVersion = "1.4.0-dev"
+const defaultVersion = "1.5.0"
 
 // effectiveVersion reports the ldflags-injected release version. A binary
 // built by `go install github.com/war-and-code/dircue@vX.Y.Z` carries no

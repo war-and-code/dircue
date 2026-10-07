@@ -94,7 +94,7 @@ MUTATIONS = [
     mutation(
         "Gradle membership ignores evaluation qualification",
         "pkg/componentmap/build.go",
-        'if ref.State == "conditional" || ref.State == "unresolved" || ref.Condition != "" {\n\t\t\t\trelationship.Coverage = "partial"\n\t\t\t}',
+        'if !isDefiniteRelationship(ref.Kind, ref.State, ref.Condition) {\n\t\t\t\trelationship.Coverage = "partial"\n\t\t\t}',
         'if false {\n\t\t\t\trelationship.Coverage = "partial"\n\t\t\t}',
         "./pkg/componentmap", "TestActualGradleSettingsBecomeConditionalMapMembership",
     ),

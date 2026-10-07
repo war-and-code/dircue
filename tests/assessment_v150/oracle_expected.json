@@ -1,0 +1,96 @@
+{
+  "observations": {
+    "cpm": {
+      "package_references": [
+        "CentralOnly"
+      ],
+      "package_versions": [
+        [
+          "CentralOnly",
+          "2.0.0"
+        ]
+      ],
+      "properties": {
+        "ManagePackageVersionsCentrally": "true",
+        "NuGetLockFilePath": "",
+        "UseIt": ""
+      }
+    },
+    "custom": {
+      "package_references": [],
+      "package_versions": [],
+      "properties": {
+        "ManagePackageVersionsCentrally": "",
+        "NuGetLockFilePath": "custom.lock.json",
+        "UseIt": ""
+      }
+    },
+    "empty": {
+      "package_references": [],
+      "package_versions": [],
+      "properties": {
+        "ManagePackageVersionsCentrally": "",
+        "NuGetLockFilePath": "",
+        "UseIt": ""
+      }
+    },
+    "expression_path": {
+      "package_references": [],
+      "package_versions": [],
+      "properties": {
+        "ManagePackageVersionsCentrally": "",
+        "NuGetLockFilePath": "",
+        "UseIt": ""
+      }
+    },
+    "import_condition": {
+      "package_references": [
+        "ImportedOnly"
+      ],
+      "package_versions": [],
+      "properties": {
+        "ManagePackageVersionsCentrally": "",
+        "NuGetLockFilePath": "",
+        "UseIt": ""
+      }
+    }
+  },
+  "oracle_version": "10.0.401",
+  "sdk_import_observations": {
+    "Microsoft.NET.Sdk": {"manage_centrally": "true", "package_references": ["SharedPropsItem", "SharedTargetsItem"]},
+    "Microsoft.NET.Sdk.Web": {"manage_centrally": "true", "package_references": ["SharedPropsItem", "SharedTargetsItem"]},
+    "Microsoft.NET.Sdk.Razor": {"manage_centrally": "true", "package_references": ["SharedPropsItem", "SharedTargetsItem"]},
+    "Microsoft.NET.Sdk.Worker": {"manage_centrally": "true", "package_references": ["SharedPropsItem", "SharedTargetsItem"]},
+    "bare_project": {"manage_centrally": "", "package_references": []},
+    "targets-false": {"manage_centrally": "true", "package_references": ["SharedPropsItem"]},
+    "targets-dynamic": {"manage_centrally": "true", "package_references": ["SharedPropsItem", "SharedTargetsItem"]}
+  },
+  "anchored_import_observations": {
+    "anchored": {
+      "package_references": ["PathWinner"],
+      "package_versions": [["CentralWinner", "3.0"]],
+      "decoy_directory_not_selected": true
+    },
+    "dot_slash": {
+      "package_references": ["PathWinner"],
+      "package_versions": [["CentralWinner", "3.0"]],
+      "decoy_directory_not_selected": true
+    },
+    "backslash": {
+      "package_references": ["PathWinner"],
+      "package_versions": [["CentralWinner", "3.0"]],
+      "decoy_directory_not_selected": true
+    }
+  },
+  "precedence_observations": {
+    "directory_props_project_targets": "targets assignment wins",
+    "later_empty_or_dynamic": "shadows earlier literal with empty effective value",
+    "nested_relative_literal": "property remains relative; restore resolution not queried",
+    "ordered_imports": [
+      "last imported assignment wins",
+      "reversing order reverses selected assignment"
+    ]
+  },
+  "provenance": "Sanitized expected properties/items from hand-authored fixtures; paths, FullPath, timestamps, and environment fields are omitted. Precedence observations are limited to SDK property evaluation and do not assert restore behavior.",
+  "query": "dotnet msbuild -getProperty:NuGetLockFilePath,ManagePackageVersionsCentrally,UseIt -getItem:PackageReference,PackageVersion"
+}

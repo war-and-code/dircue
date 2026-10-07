@@ -77,7 +77,7 @@ func load(reader io.Reader, targeted bool) (*Snapshot, error) {
 		return nil, ErrInvalid
 	}
 	level := -1
-	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0"} {
+	for i, known := range []string{"1.0.0", "1.1.0", "1.2.0", "1.3.0", "1.4.0", "1.5.0", "1.6.0", "1.7.0", "1.8.0", "1.9.0", "1.10.0"} {
 		if version == known {
 			level = i
 		}
@@ -372,6 +372,9 @@ func validTargetedStates(p profile.Report) bool {
 		if !assessmentManifestPopulationMatches(p) {
 			return false
 		}
+		if !assessmentStructureIDsMatch(p) {
+			return false
+		}
 	}
 	if p.Environments != nil && environments.ValidateReport(p.Environments) != nil {
 		return false
@@ -432,6 +435,94 @@ func validTargetedStates(p profile.Report) bool {
 		seen[r.Project] = true
 	}
 	return len(seen) == len(selected)
+}
+
+// assessmentStructureIDsMatch checks structural graph/member IDs against the
+// exact companion declaration population when that population was retained in
+// full. A partial declaration report is not a complete allow-list.
+func assessmentStructureIDsMatch(p profile.Report) bool {
+	if p.Assessment == nil || p.Assessment.Structure == nil || p.Declarations == nil {
+		return true
+	}
+	d := p.Declarations
+	if d.Status != "complete" || d.Coverage.OmittedFiles != 0 || d.Coverage.OmittedDiagnostics != 0 || len(d.Diagnostics) != 0 {
+		return true
+	}
+	s := p.Assessment.Structure
+	projectIDs := make(map[string]bool, len(d.Projects))
+	manifestIDs := make(map[string]bool, len(d.Projects))
+	for _, project := range d.Projects {
+		if project.ID == "" || manifestIDs[project.ID] {
+			return false
+		}
+		manifestIDs[project.ID] = true
+		counted, known := declarationProjectKind(project.Kind)
+		if !known {
+			// Declaration companions retain virtual roots, solutions, and
+			// configuration records too. Unknown kinds, or kinds requiring
+			// parser-private eligibility metadata, prevent an exact join.
+			return true
+		}
+		if counted {
+			projectIDs[project.ID] = true
+		}
+	}
+	if int64(len(projectIDs)) != s.Dependencies.Projects.Count {
+		return true
+	}
+	for _, component := range s.Dependencies.Components {
+		if !projectIDs[component.ID] {
+			return false
+		}
+		for _, project := range component.Projects {
+			if !projectIDs[project] {
+				return false
+			}
+		}
+	}
+	for _, edge := range s.Dependencies.Edges {
+		if !projectIDs[edge.From] || !projectIDs[edge.To] {
+			return false
+		}
+	}
+	for _, groups := range [][]assessment.StructureGroup{s.WorkspaceGroups, s.SolutionGroups} {
+		for _, group := range groups {
+			if !manifestIDs[group.ID] {
+				return false
+			}
+			for _, member := range group.Members {
+				if !manifestIDs[member] {
+					return false
+				}
+			}
+		}
+	}
+	for _, entry := range s.EntryPoints {
+		if entry.ProjectID != "" && !projectIDs[entry.ProjectID] {
+			return false
+		}
+	}
+	return true
+}
+
+// isCountedDeclarationProjectKind mirrors only the stable kind-level part of
+// assessment's vertex selection. Some kinds (for example pyproject.toml)
+// require parser-private metadata; those are intentionally left unknown here
+// so cross-report validation is skipped rather than overclaiming an exact join.
+func declarationProjectKind(kind string) (counted, known bool) {
+	switch kind {
+	case "autoconf", "bazel-module", "bazel-workspace", "cargo", "clojure-deps", "clojure-leiningen",
+		"cmake", "dart-pub", "deno", "dotnet", "elixir-mix", "erlang-rebar", "go", "gradle",
+		"haskell-cabal", "haskell-stack", "julia-project", "kbuild-kconfig", "maven", "meson", "npm",
+		"perl-cpanfile", "perl-extutils", "php-composer", "python-uv", "r-package", "ruby-bundler",
+		"ruby-gem", "scala-sbt", "swift-package", "zig-build":
+		return true, true
+	case "cargo-workspace", "go-workspace", "python-workspace", "configuration", "dotnet-configuration",
+		"jvm-configuration", "kbuild-kconfig-marker", "ruby-rails-app", "solution":
+		return false, true
+	default:
+		return false, false
+	}
 }
 
 // assessmentManifestPopulationMatches reconciles two intentionally different
