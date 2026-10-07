@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.0 (unreleased)
+## 1.5.0 (2026-10-07)
 
 - Expand optional repository assessment with ecosystem/role populations for filename candidates, parsed projects, distinct roots, and explicit workspace and solution groups. Group totals are separate from bounded member samples; directory nesting does not establish membership or independence.
 - Summarize definite local project dependencies, qualified references, and connected groups in the observed dependency graph. A dependency section or scope (npm `devDependencies`, Cargo `dev-dependencies`, a uv group) is not a condition; platform targets, Cargo `optional = true`, Python markers and extras, Maven profiles, and MSBuild conditions are. A Maven parent counts only when the child's declared coordinates match the parent POM. A Go replacement without a matching direct `require` remains qualified instead of establishing a dependency on its own. .NET `<Reference>` items whose name matches one local project's assembly name join groups in `connected_groups_with_qualified`, a separate count that is never presented as definite. Each graph metric states whether it is complete, a lower bound, an upper bound, or observed only.
